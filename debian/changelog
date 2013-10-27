@@ -1,0 +1,5 @@
+efl (1.8.3-1) experimental; urgency=low
+
+  * First upload of the merged EFL tree (Closes: #729751)
+
+ -- Albin Tonnerre <lutin@debian.org>  Sun, 27 Oct 2013 12:18:27 +0100

@@ -1,0 +1,729 @@
+Source: efl
+Section: libs
+Priority: optional
+Maintainer: Debian Pkg-e Team <pkg-e-devel@lists.alioth.debian.org>
+Uploaders: Albin Tonnerre <lutin@debian.org>
+Build-Depends: dpkg-dev (>= 1.14.8), debhelper (>= 9), pkg-config, check,
+ zlib1g-dev, libjpeg-dev, libpng-dev, libtiff-dev, libgif-dev, libxpm-dev,
+ libfreetype6-dev, libfontconfig1-dev,
+ libx11-dev, x11proto-xext-dev, , libglu1-mesa-dev, mesa-common-dev,
+ librsvg2-dev, libfribidi-dev, libxrender-dev, libgl1-mesa-dev,
+ libpixman-1-dev, libxcb-shm0-dev, libxcb-image0-dev, libxcb1-dev,
+ libxcursor-dev, libxss-dev, libxrender-dev, libxinerama-dev,
+ libxrandr-dev, libxext-dev, libxp-dev, libxcomposite-dev, libxi-dev,
+ libxdamage-dev, x11proto-xext-dev, libxtst-dev, libglib2.0-dev,
+ liblua5.1-0-dev,
+ libgnutls-dev, libcurl4-gnutls-dev, libc-ares-dev
+Build-Depends-Indep: doxygen
+Standards-Version: 3.9.4
+Vcs-Git: git://anonscm.debian.org/pkg-e/libs/efl.git
+Vcs-Browser: http://anonscm.debian.org/gitweb/?p=pkg-e/libs/efl.git
+Homepage: http://www.enlightenment.org
+
+# EINA
+
+Package: libeina1
+Architecture: any
+Multi-Arch: same
+Pre-Depends: ${misc:Pre-Depends}
+Depends: ${shlibs:Depends}, ${misc:Depends}
+Conflicts: libeina0
+Breaks: libeet1 (<= 1.4.0~beta+1.4.0)
+Description: Enlightenment Foundation Library providing optimized data types
+ Eina is a multi-platform library that provides optimized data types and a few
+ tools. It supports the following data types:
+  - Array
+  - Hash Table
+  - Double-linked list
+  - Red-black tree
+  - Shared string
+  - Access Content types
+    + Accessor: can access items of a container randomly
+    + Iterator: can access items of a container sequentially
+
+Package: libeina-dev
+Section: libdevel
+Architecture: any
+Depends: ${misc:Depends}, libeina1 (= ${binary:Version}), pkg-config
+Recommends: libeina-doc
+Description: Development files for libeina
+ Eina is a multi-platform library that provides optimized data types and a few
+ tools. It supports the following data types:
+  - Array
+  - Hash Table
+  - Double-linked list
+  - Red-black tree
+  - Shared string
+  - Access Content types
+    + Accessor: can access items of a container randomly
+    + Iterator: can access items of a container sequentially
+ .
+ This package contains headers and static libraries for development with
+ libeina.
+
+Package: libeina-doc
+Architecture: all
+Depends: ${misc:Depends}
+Enhances: libeina-dev
+Section: doc
+Description: Documentation for use with libeina
+ Eina is a multi-platform library that provides optimized data types and a few
+ tools. It supports the following data types:
+  - Array
+  - Hash Table
+  - Double-linked list
+  - Red-black tree
+  - Shared string
+  - Access Content types
+    + Accessor: can access items of a container randomly
+    + Iterator: can access items of a container sequentially
+ .
+ This package contains documentation for libeina.
+
+
+Package: libeina-dbg
+Architecture: any
+Section: debug
+Depends: ${misc:Depends}, libeina1 (= ${binary:Version})
+Priority: extra
+Description: debugging symbols for use with libeina
+ Eina is a multi-platform library that provides optimized data types and a few
+ tools. It supports the following data types:
+  - Array
+  - Hash Table
+  - Double-linked list
+  - Red-black tree
+  - Shared string
+  - Access Content types
+    + Accessor: can access items of a container randomly
+    + Iterator: can access items of a container sequentially
+ .
+ This package contains unstripped shared libraries. It is provided primarily
+ to provide a backtrace with names in a debugger, this makes it somewhat easier
+ to interpret core dumps. The libraries are installed in /usr/lib/debug and
+ are automatically used by gdb.
+
+# EET
+
+Package: libeet-dev
+Section: libdevel
+Architecture: any
+Depends: ${misc:Depends}, libeet1 (= ${binary:Version}), libjpeg-dev, libeina-dev (>= 1.2.0), libgnutls-dev, pkg-config
+Recommends: libeet-doc
+Description: Enlightenment DR17 file chunk reading/writing library development files
+ Eet is a tiny library designed to write an arbitrary set of chunks of data to a
+ file and optionally compress each chunk (very much like a zip file) and allows
+ fast random-access reading of the file later on. It does not do zip as zip
+ itself has more complexity than needed, and it was much simpler to implement
+ this once here.
+ .
+ This package contains headers and static libraries for development with libeet.
+
+Package: libeet-doc
+Section: doc
+Architecture: all
+Enhances: libeet-dev
+Depends: ${misc:Depends}
+Description: libeet1 API documentation
+ Eet is a tiny library designed to write an arbitrary set of chunks of data to a
+ file and optionally compress each chunk (very much like a zip file) and allows
+ fast random-access reading of the file later on. It does not do zip as zip
+ itself has more complexity than needed, and it was much simpler to implement
+ this once here.
+ .
+ This package contains documentation (html and manpages) for development with
+ libeet.
+
+Package: libeet1
+Architecture: any
+Pre-Depends: ${misc:Pre-Depends}
+Depends: ${misc:Depends}, ${shlibs:Depends}
+Description: Enlightenment DR17 file chunk reading/writing library
+ Eet is a tiny library designed to write an arbitrary set of chunks of data to a
+ file and optionally compress each chunk (very much like a zip file) and allows
+ fast random-access reading of the file later on. It does not do zip as zip
+ itself has more complexity than needed, and it was much simpler to implement
+ this once here.
+ .
+ It's small, fast, and does a job. It's heavily commented and fully documented.
+
+Package: libeet-bin
+Architecture: any
+Depends: ${misc:Depends}, ${shlibs:Depends}
+Description: Enlightenment DR17 file chunk reading/writing utility
+ Eet is a tiny library designed to write an arbitrary set of chunks of data to a
+ file and optionally compress each chunk (very much like a zip file) and allows
+ fast random-access reading of the file later on. It does not do zip as zip
+ itself has more complexity than needed, and it was much simpler to implement
+ this once here.
+ .
+ This package contains eet, an utility that allows you to extract, insert,
+ encode and decode config blobs created with libeet.
+
+Package: libeet-dbg
+Architecture: any
+Section: debug
+Priority: extra
+Depends: ${misc:Depends}, libeet1 (= ${binary:Version})
+Description: E17 file chunk reading/writing library - debug symbols
+ Eet is a tiny library designed to write an arbitrary set of chunks of data to a
+ file and optionally compress each chunk (very much like a zip file) and allows
+ fast random-access reading of the file later on. It does not do zip as zip
+ itself has more complexity than needed, and it was much simpler to implement
+ this once here
+ .
+ This package contains unstripped shared libraries. It is provided primarily
+ to provide a backtrace with names in a debugger, this makes it somewhat easier
+ to interpret core dumps. The libraries are installed in /usr/lib/debug and
+ are automatically used by gdb.
+
+# EVAS
+
+Package: libevas1
+Architecture: any
+Pre-Depends: ${misc:Pre-Depends}
+Depends: ${shlibs:Depends}, ${misc:Depends}
+Description: Enlightenment DR17 advanced canvas library
+ Evas is an advanced canvas library, providing six engines for rendering: X11,
+ OpenGL (hardware accelerated), DirectFB, the framebuffer, Microsoft Windows
+ and Qtopia.
+ .
+ Due to its simple API, evas can be developed with rapidly, and cleanly.
+ .
+ This package contains the core library and a set of image loaders and/or savers
+ for various formats: eet, gif, jpeg, png, svg, tiff and xpm
+
+Package: libevas-doc
+Architecture: all
+Section: doc
+Depends: ${misc:Depends}
+Enhances: libevas-dev
+Description: Evas API Documentation
+ Evas is an advanced canvas library, providing six engines for rendering: X11,
+ OpenGL (hardware accelerated), DirectFB, the framebuffer, Microsoft Windows
+ and Qtopia.
+ Due to its simple API, evas can be developed with rapidly, and cleanly.
+ .
+ This package provides development documentation (html and manpages) for the
+ Evas library.
+
+Package: libevas-dev
+Section: libdevel
+Architecture: any
+Depends: ${misc:Depends}, libevas1 (= ${binary:Version}), libjpeg-dev, libx11-dev,
+ libfreetype6-dev, libfontconfig1-dev, libeet-dev (>= 1.7.4), libeina-dev (>= 1.6.0),
+ libfribidi-dev, pkg-config
+Suggests: libevas-doc
+Description: Enlightenment DR17 advanced canvas library development files
+ Evas is an advanced canvas library, providing six engines for rendering: X11,
+ OpenGL (hardware accelerated), DirectFB, the framebuffer, Microsoft Windows
+ and Qtopia.
+ .
+ Due to its simple API, evas can be developed with rapidly, and cleanly.
+ .
+ This package provides headers and static libraries required to develop against
+ evas.
+
+Package: libevas-dbg
+Architecture: any
+Section: debug
+Depends: ${misc:Depends}, libevas1 (= ${binary:Version})
+Priority: extra
+Description: enlightenment advanced canvas library
+ Evas is an advanced canvas library, providing six engines for rendering: X11,
+ OpenGL (hardware accelerated), DirectFB, the framebuffer, Microsoft Windows
+ and Qtopia.
+ .
+ This package contains unstripped shared libraries. It is provided primarily
+ to provide a backtrace with names in a debugger, this makes it somewhat
+ easier to interpret core dumps. The libraries are installed in
+ /usr/lib/debug and are automatically used by gdb.
+
+Package: libevas1-engines-core
+Architecture: any
+Depends: ${shlibs:Depends}, ${misc:Depends}
+Conflicts: libevas-0.9.9.050a-engines
+Replaces: libevas-engines
+Provides: libevas1-engine-buffer, libevas1-engine-software-generic
+Description: Evas module providing the framebuffer render engine
+ Evas is an advanced canvas library, providing six engines for rendering: X11,
+ OpenGL (hardware accelerated), DirectFB, the framebuffer, Microsoft Windows
+ and Qtopia.
+ Due to its simple API, evas can be developed with rapidly, and cleanly.
+ .
+ This package contains the core Evas engine modules:
+  - buffer
+  - software/generic
+
+Package: libevas1-engines-x
+Architecture: any
+Depends: ${shlibs:Depends}, ${misc:Depends}, libevas1-engines-core
+Conflicts: libevas-0.9.9.050a-engines
+Replaces: libevas-engines, libevas-engines-extras
+Provides: libevas1-engine-software-x11, libevas1-engine-gl-x11
+Description: Evas module providing the X11 engines
+ Evas is an advanced canvas library, providing six engines for rendering: X11,
+ OpenGL (hardware accelerated), DirectFB, the framebuffer, Microsoft Windows
+ and Qtopia.
+ Due to its simple API, evas can be developed with rapidly, and cleanly.
+ .
+ This package contains the X11-related Evas engine modules:
+  - GL/X11
+  - Software/X11 (Xlib/XCB)
+
+Package: libevas1-engine-fb
+Architecture: alpha amd64 armel hppa i386 ia64 lpia m68k mips mipsel powerpc s390 sh4 sparc
+Depends: ${shlibs:Depends}, ${misc:Depends}, libevas1-engines-core
+Conflicts: libevas-0.9.9.050a-engines-extras
+Replaces: libevas-engines-extras
+Description: Evas module providing the Framebuffer engine
+ Evas is an advanced canvas library, providing six engines for rendering: X11,
+ OpenGL (hardware accelerated), DirectFB, the framebuffer, Microsoft Windows
+ and Qtopia.
+ Due to its simple API, evas can be developed with rapidly, and cleanly.
+ .
+ This package contains the framebuffer Evas engine module.
+
+# ECORE
+
+Package: libecore1
+Architecture: any
+Pre-Depends: multiarch-support
+Depends: ${misc:Depends}, ${shlibs:Depends}
+Description: Core abstraction layer for enlightenment DR 0.17
+ This is the core event abstraction layer and X abstraction layer that makes
+ doing selections, Xdnd, general X stuff, and event loops, timeouts and idle
+ handlers fast, optimized, and convenient. It's a separate library so anyone
+ can make use of the work put into Ecore to make this job easy for
+ applications.
+
+Package: libecore-con1
+Architecture: any
+Pre-Depends: multiarch-support
+Depends: ${misc:Depends}, ${shlibs:Depends}
+Description: Ecore Connection Library
+ This is the core event abstraction layer and X abstraction layer that makes
+ doing selections, Xdnd, general X stuff, and event loops, timeouts and idle
+ handlers fast, optimized, and convenient. It's a separate library so anyone
+ can make use of the work put into Ecore to make this job easy for
+ applications.
+ .
+ This package contains the Ecore Connection Library.
+
+Package: libecore-evas1
+Architecture: any
+Pre-Depends: multiarch-support
+Depends: ${misc:Depends}, ${shlibs:Depends}
+Description: Ecore Evas Wrapper Library
+ This is the core event abstraction layer and X abstraction layer that makes
+ doing selections, Xdnd, general X stuff, and event loops, timeouts and idle
+ handlers fast, optimized, and convenient. It's a separate library so anyone
+ can make use of the work put into Ecore to make this job easy for
+ applications.
+ .
+ This package contains the Ecore Evas wrapper functions.
+
+Package: libecore-fb1
+Architecture: linux-any
+Pre-Depends: multiarch-support
+Depends: ${misc:Depends}, ${shlibs:Depends}
+Description: Ecore frame buffer system functions
+ This is the core event abstraction layer and X abstraction layer that makes
+ doing selections, Xdnd, general X stuff, and event loops, timeouts and idle
+ handlers fast, optimized, and convenient. It's a separate library so anyone
+ can make use of the work put into Ecore to make this job easy for
+ applications.
+ .
+ This package contains the Ecore frame buffer system functions.
+
+Package: libecore-file1
+Architecture: any
+Pre-Depends: multiarch-support
+Depends: ${misc:Depends}, ${shlibs:Depends}
+Description: Ecore File Library
+ This is the core event abstraction layer and X abstraction layer that makes
+ doing selections, Xdnd, general X stuff, and event loops, timeouts and idle
+ handlers fast, optimized, and convenient. It's a separate library so anyone
+ can make use of the work put into Ecore to make this job easy for
+ applications.
+ .
+ This package contains the Ecore File Library.
+
+Package: libecore-imf1
+Architecture: any
+Pre-Depends: multiarch-support
+Depends: ${misc:Depends}, ${shlibs:Depends}
+Description: Ecore Input Method Framework module
+ This is the core event abstraction layer and X abstraction layer that makes
+ doing selections, Xdnd, general X stuff, and event loops, timeouts and idle
+ handlers fast, optimized, and convenient. It's a separate library so anyone
+ can make use of the work put into Ecore to make this job easy for
+ applications.
+ .
+ This package contains the Ecore Input Method Framework module, and the Evas
+ helper functions for it.
+
+Package: libecore-input1
+Architecture: any
+Pre-Depends: multiarch-support
+Depends: ${misc:Depends}, ${shlibs:Depends}
+Description: Ecore input module
+ This is the core event abstraction layer and X abstraction layer that makes
+ doing selections, Xdnd, general X stuff, and event loops, timeouts and idle
+ handlers fast, optimized, and convenient. It's a separate library so anyone
+ can make use of the work put into Ecore to make this job easy for
+ applications.
+ .
+ This package contains the Ecore input module.
+
+Package: libecore-ipc1
+Architecture: any
+Pre-Depends: multiarch-support
+Depends: ${misc:Depends}, ${shlibs:Depends}
+Description: Ecore inter-process communication functions
+ This is the core event abstraction layer and X abstraction layer that makes
+ doing selections, Xdnd, general X stuff, and event loops, timeouts and idle
+ handlers fast, optimized, and convenient. It's a separate library so anyone
+ can make use of the work put into Ecore to make this job easy for
+ applications.
+ .
+ This package contains the Ecore inter-process communication functions.
+
+Package: libecore-x1
+Architecture: any
+Pre-Depends: multiarch-support
+Depends: ${misc:Depends}, ${shlibs:Depends}
+Description: Ecore functions for dealing with the X Window System
+ This is the core event abstraction layer and X abstraction layer that makes
+ doing selections, Xdnd, general X stuff, and event loops, timeouts and idle
+ handlers fast, optimized, and convenient. It's a separate library so anyone
+ can make use of the work put into Ecore to make this job easy for
+ applications.
+ .
+ This package contains the Ecore wrapper and convenience functions for using
+ the X Window System.
+
+Package: libecore-dev
+Architecture: any
+Section: libdevel
+Suggests: libecore-doc
+Depends: ${misc:Depends}, libecore1 (= ${binary:Version}),
+         libecore-con1 (= ${binary:Version}),
+         libecore-evas1 (= ${binary:Version}),
+         libecore-fb1 (= ${binary:Version}) [linux-any],
+         libecore-file1 (= ${binary:Version}),
+         libecore-imf1 (= ${binary:Version}),
+         libecore-ipc1 (= ${binary:Version}),
+         libecore-x1 (= ${binary:Version}),
+         libevas-dev (>= 1.7.7), libeina-dev (>= 1.7.7),
+         libgnutls-dev, libcurl4-gnutls-dev, libxcursor-dev, libxss-dev,
+         libxrender-dev, libxinerama-dev, libxrandr-dev, libxext-dev, libxi-dev,
+         libxp-dev, libxcomposite-dev, libxdamage-dev, x11proto-xext-dev, libxtst-dev,
+         libglib2.0-dev, libc-ares-dev, pkg-config
+Description: Ecore headers and static libraries
+ This is the core event abstraction layer and X abstraction layer that makes
+ doing selections, Xdnd, general X stuff, and event loops, timeouts and idle
+ handlers fast, optimized, and convenient. It's a separate library so anyone
+ can make use of the work put into Ecore to make this job easy for
+ applications.
+ .
+ This package contains headers and static libraries for the Ecore library.
+
+Package: libecore-doc
+Architecture: all
+Section: doc
+Depends: ${misc:Depends}
+Enhances: libecore-dev
+Description: Ecore API Documentation
+ This is the core event abstraction layer and X abstraction layer that makes
+ doing selections, Xdnd, general X stuff, and event loops, timeouts and idle
+ handlers fast, optimized, and convenient. It's a separate library so anyone
+ can make use of the work put into Ecore to make this job easy for
+ applications.
+ .
+ This package provides development documentation (html and manpages)for the
+ Ecore library.
+
+Package: libecore-dbg
+Architecture: any
+Section: debug
+Priority: extra
+Depends: ${misc:Depends}, libecore1 (= ${binary:Version})
+Recommends: libecore-con1 (= ${binary:Version}),
+            libecore-evas1 (= ${binary:Version}),
+            libecore-fb1 (= ${binary:Version}),
+            libecore-file1 (= ${binary:Version}),
+            libecore-imf1 (= ${binary:Version}),
+            libecore-ipc1 (= ${binary:Version}),
+            libecore-x1 (= ${binary:Version})
+Description: Debugging symbols for libecore
+ This is the core event abstraction layer and X abstraction layer that makes
+ doing selections, Xdnd, general X stuff, and event loops, timeouts and idle
+ handlers fast, optimized, and convenient. It's a separate library so anyone
+ can make use of the work put into Ecore to make this job easy for
+ applications
+ .
+ This package contains unstripped shared libraries. It is provided primarily
+ to provide a backtrace with names in a debugger, this makes it somewhat easier
+ to interpret core dumps. The libraries are installed in /usr/lib/debug and
+ are automatically used by gdb.
+
+# EFREET
+
+Package: libefreet1
+Architecture: any
+Pre-Depends: ${misc:Pre-Depends}
+Depends: ${shlibs:Depends}, ${misc:Depends}
+Description: Library that implements freedesktop.org specs for use with E17/EFL
+ An implementation of several specifications from freedesktop.org intended for
+ use in Enlightenment DR17 (e17) and other applications using the Enlightenment
+ Foundation Libraries (EFL). Currently, the following specifications are
+ included:
+  - Base Directory
+  - Desktop Entry
+  - Icon Theme
+  - Menu
+ .
+ This package provides the libefreet0 and libefreet0-mime libraries, which
+ contains efreet-based functions for dealing with mime.
+
+Package: libefreet-dev
+Section: libdevel
+Architecture: any
+Depends: ${misc:Depends}, libefreet1 (= ${binary:Version}), libecore-dev (>= 1.7.7), libeina-dev (>= 1.7.7)
+Suggests: libefreet-doc
+Description: Development files for libefreet and libefreet-mime
+ An implementation of several specifications from freedesktop.org intended for
+ use in Enlightenment DR17 (e17) and other applications using the Enlightenment
+ Foundation Libraries (EFL). Currently, the following specifications are
+ included:
+  - Base Directory
+  - Desktop Entry
+  - Icon Theme
+  - Menu
+ .
+ This package contains headers and static libraries for Efreet.
+
+Package: libefreet-doc
+Section: doc
+Depends: ${misc:Depends}
+Architecture: all
+Enhances: libefreet-dev
+Description: libefreet and libfreet-mime API documentation
+ An implementation of several specifications from freedesktop.org intended for
+ use in Enlightenment DR17 (e17) and other applications using the Enlightenment
+ Foundation Libraries (EFL). Currently, the following specifications are
+ included:
+  - Base Directory
+  - Desktop Entry
+  - Icon Theme
+  - Menu
+ .
+ This package contains HTML documentation for development with libefreet and
+ libefreet-mime.
+
+# EMBRYO
+
+Package: libembryo-dev
+Section: libdevel
+Architecture: any
+Depends: ${misc:Depends}, libembryo1 (= ${binary:Version}), pkg-config
+Description: Development files for libembryo1
+ Embryo is primarily a shared library that gives you an API to load
+ and control interpreted programs compiled into an abstract machine
+ bytecode that it understands.  This abstract (or virtual) machine is
+ similar to a real machine with a CPU, but it is emulated in
+ software.
+ .
+ This package contains headers and static libraries for Embryo.
+
+Package: libembryo1
+Architecture: any
+Multi-Arch: same
+Pre-Depends: ${misc:Pre-Depends}
+Depends: ${misc:Depends}, ${shlibs:Depends}
+Suggests: libembryo-bin
+Description: SMALL-based abstract machine (AMX) bytecode interpreter
+ Embryo is primarily a shared library that gives you an API to load
+ and control interpreted programs compiled into an abstract machine
+ bytecode that it understands.  This abstract (or virtual) machine is
+ similar to a real machine with a CPU, but it is emulated in
+ software.  The architecture is simple and is the same as the
+ abstract machine (AMX) in the SMALL language as it is based on
+ exactly the same code. Embryo has modified the code for the AMX
+ extensively and has made it smaller and more portable.  It is VERY
+ small.  The total size of the virtual machine code AND header files
+ is less than 2500 lines of code.  It includes the floating point
+ library support by default as well.  This makes it one of the
+ smallest interpreters around, and thus makes is very efficient to
+ use in code.
+ .
+ See also http://www.compuphase.com/small.htm for details on SMALL.
+
+Package: libembryo-doc
+Section: doc
+Architecture: all
+Depends: ${misc:Depends}
+Enhances: libembryo-dev
+Description: libembryo1 development documentation
+ Embryo is primarily a shared library that gives you an API to load
+ and control interpreted programs compiled into an abstract machine
+ bytecode that it understands.  This abstract (or virtual) machine is
+ similar to a real machine with a CPU, but it is emulated in
+ software.
+ .
+ This package provides development documentation for Embryo.
+
+Package: libembryo-dbg
+Architecture: any
+Section: debug
+Depends: ${misc:Depends}, libembryo1 (= ${binary:Version})
+Priority: extra
+Description: Debugging symbols for libembryo
+ Embryo is primarily a shared library that gives you an API to load
+ and control interpreted programs compiled into an abstract machine
+ bytecode that it understands.  This abstract (or virtual) machine is
+ similar to a real machine with a CPU, but it is emulated in
+ software
+ .
+ This package contains unstripped shared libraries. It is provided primarily
+ to provide a backtrace with names in a debugger, this makes it somewhat
+ easier to interpret core dumps. The libraries are installed in
+ /usr/lib/debug and are automatically used by gdb.
+
+Package: libembryo-bin
+Section: devel
+Architecture: any
+Depends: ${misc:Depends}, ${shlibs:Depends}
+Description: SMALL compiler creating Embryo bytecode
+ Embryo is primarily a shared library that gives you an API to load
+ and control interpreted programs compiled into an abstract machine
+ bytecode that it understands.  This abstract (or virtual) machine is
+ similar to a real machine with a CPU, but it is emulated in
+ software
+ .
+ This package contains the embryo compiler: embryo_cc.
+
+# EDJE
+
+Package: libedje-bin
+Architecture: any
+Section: devel
+Depends: ${misc:Depends}, ${shlibs:Depends}, libembryo-bin (>= 0.9.9.050+svn20090204), libevas1-engine-buffer
+Description: Various binaries for use with libedje
+ Edje is a graphical layout and animation library for animated resizable,
+ compressed and scalable themes. It is the theming engine behind
+ Enlightenment DR 0.17.
+ .
+ This package contains the following binaries:
+  - edje_cc: Compiles EDC files.
+  - edje_decc: Used to decompile compiled edje files.
+  - edje_recc: A convenience script to recompile EDC files.
+
+Package: libedje1
+Architecture: any
+Pre-Depends: ${misc:Pre-Depends}
+Depends: ${misc:Depends}, ${shlibs:Depends}
+Breaks: libelementary1 (<= 1.7.7-1)
+Suggests: libedje-bin (= ${binary:Version})
+Description: Graphical layout and animation library
+ Edje is a graphical layout and animation library for animated resizable,
+ compressed and scalable themes. It is the theming engine behind
+ Enlightenment DR 0.17.
+
+Package: libedje-doc
+Architecture: all
+Section: doc
+Depends: ${misc:Depends}
+Enhances: libedje-dev
+Description: libedje0 development documentation
+ Edje is a graphical layout and animation library for animated resizable,
+ compressed and scalable themes. It is the theming engine behind
+ Enlightenment DR 0.17.
+ .
+ This package provides development documentation for Edje.
+
+Package: libedje-dev
+Architecture: any
+Section: libdevel
+Depends: ${misc:Depends}, libedje1 (= ${binary:Version}), libedje-bin,
+ libeet-dev (>= 1.7.7), libembryo-dev (>= 1.7.7), libevas-dev (>= 1.7.7),
+ libecore-dev (>= 1.7.7), libeina-dev (>= 1.7.7), liblua5.1-0-dev,
+ pkg-config, libeio-dev (>= 1.7.7)
+Description: libedje headers and static libraries
+ Edje is a graphical layout and animation library for animated resizable,
+ compressed and scalable themes. It is the theming engine behind
+ Enlightenment DR 0.17.
+ .
+ This package provides headers and static libraries for Edje.
+
+Package: libedje-dbg
+Architecture: any
+Section: debug
+Priority: extra
+Depends: ${misc:Depends}, libedje1 (= ${binary:Version})
+Description: Debugging symbols for libedje
+ Edje is a graphical layout and animation library for animated resizable,
+ compressed and scalable themes. It is the theming engine behind
+ Enlightenment DR 0.17.
+ .
+ This package contains unstripped shared libraries. It is provided primarily
+ to provide a backtrace with names in a debugger, this makes it somewhat
+ easier to interpret core dumps. The libraries are installed in
+ /usr/lib/debug and are automatically used by gdb.
+
+# EIO
+
+Package: libeio1
+Architecture: any
+Pre-Depends: ${misc:Pre-Depends}
+Depends: ${misc:Depends}, ${shlibs:Depends}
+Description: Library providing non-blocking I/O using threads
+ This library is part of the Enlightenment Foundation Libraries (EFL). It is
+ intended to provide non-blocking IO by using thread for all operations that
+ may block. It should integrate all the features/functions of Ecore_File that
+ could block.
+
+Package: libeio-dev
+Architecture: any
+Section: libdevel
+Suggests: libeio-doc
+Depends: ${misc:Depends}, libeio1 (= ${binary:Version}),
+ libeina-dev (>= 1.7.7), libeet-dev (>= 1.7.7), libecore-dev (>= 1.7.7)
+Description: EIO headers and static libraries
+ This library is part of the Enlightenment Foundation Libraries (EFL). It is
+ intended to provide non-blocking IO by using thread for all operations that
+ may block. It should integrate all the features/functions of Ecore_File that
+ could block.
+ .
+ This package contains headers and static libraries for the EIO library.
+
+Package: libeio-doc
+Architecture: all
+Section: doc
+Depends: ${misc:Depends}
+Enhances: libeio-dev
+Description: EIO API Documentation
+ This library is part of the Enlightenment Foundation Libraries (EFL). It is
+ intended to provide non-blocking IO by using thread for all operations that
+ may block. It should integrate all the features/functions of Ecore_File that
+ could block.
+ .
+ This package provides development documentation (html and manpages)for the
+ EIO library.
+
+Package: libeio-dbg
+Architecture: any
+Section: debug
+Priority: extra
+Depends: ${misc:Depends}, libeio1 (= ${binary:Version})
+Description: Debugging symbols for libeio
+ This library is part of the Enlightenment Foundation Libraries (EFL). It is
+ intended to provide non-blocking IO by using thread for all operations that
+ may block. It should integrate all the features/functions of Ecore_File that
+ could block.
+ .
+ This package contains unstripped shared libraries. It is provided primarily
+ to provide a backtrace with names in a debugger, this makes it somewhat easier
+ to interpret core dumps. The libraries are installed in /usr/lib/debug and
+ are automatically used by gdb.
