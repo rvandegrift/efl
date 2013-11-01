@@ -502,3 +502,42 @@ libeina.so.1 libeina1 #MINVER#
  eina_xattr_string_set@Base 1.2.0
  eina_xattr_value_fd_ls@Base 1.2.0
  eina_xattr_value_ls@Base 1.2.0
+libeo.so.1 libeina1 #MINVER#
+ EO_BASE_BASE_ID@Base 1.8.0
+ EO_CLASS_CLASS_BASE_ID@Base 1.8.0
+ EO_DBG_INFO_TYPE@Base 1.8.0
+ _EO_EV_CALLBACK_ADD@Base 1.8.0
+ _EO_EV_CALLBACK_DEL@Base 1.8.0
+ _EO_EV_DEL@Base 1.8.0
+ _eo_class_creation_lock@Base 1.8.0
+ eo_add_internal@Base 1.8.0
+ eo_base_class_get@Base 1.8.0
+ eo_class_class_get@Base 1.8.0
+ eo_class_funcs_set@Base 1.8.0
+ eo_class_get@Base 1.8.0
+ eo_class_name_get@Base 1.8.0
+ eo_class_new@Base 1.8.0
+ eo_composite_attach@Base 1.8.0
+ eo_composite_detach@Base 1.8.0
+ eo_composite_is@Base 1.8.0
+ eo_data_get@Base 1.8.0
+ eo_data_scope_get@Base 1.8.0
+ eo_data_xref_internal@Base 1.8.0
+ eo_data_xunref_internal@Base 1.8.0
+ eo_dbg_info_free@Base 1.8.0
+ eo_del@Base 1.8.0
+ eo_destructed_is@Base 1.8.0
+ eo_do_internal@Base 1.8.0
+ eo_do_super_internal@Base 1.8.0
+ eo_error_set_internal@Base 1.8.0
+ eo_init@Base 1.8.0
+ eo_isa@Base 1.8.0
+ eo_manual_free@Base 1.8.0
+ eo_manual_free_set@Base 1.8.0
+ eo_ref@Base 1.8.0
+ eo_ref_get@Base 1.8.0
+ eo_shutdown@Base 1.8.0
+ eo_unref@Base 1.8.0
+ eo_vdo_internal@Base 1.8.0
+ eo_xref_internal@Base 1.8.0
+ eo_xunref@Base 1.8.0
