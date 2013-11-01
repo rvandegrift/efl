@@ -12,3 +12,7 @@ debian/tmp/usr/lib/*/libecore_input_evas.so
 debian/tmp/usr/lib/*/libecore_ipc.so
 debian/tmp/usr/lib/*/libecore_x.so
 debian/tmp/usr/lib/*/pkgconfig/ecore*.pc
+
+debian/tmp/usr/include/eldbus-*
+debian/tmp/usr/lib/*/libeldbus.so
+debian/tmp/usr/lib/*/pkgconfig/eldbus.pc
