@@ -351,7 +351,7 @@ Depends: ${misc:Depends}, libecore1 (= ${binary:Version}),
          libgnutls-dev, libcurl4-gnutls-dev, libxcursor-dev, libxss-dev,
          libxrender-dev, libxinerama-dev, libxrandr-dev, libxext-dev, libxi-dev,
          libxp-dev, libxcomposite-dev, libxdamage-dev, x11proto-xext-dev, libxtst-dev,
-         libglib2.0-dev, libc-ares-dev, pkg-config
+         libglib2.0-dev, libc-ares-dev, pkg-config, libdbus-1-dev
 Description: Ecore headers and static libraries
  This is the core event abstraction layer and X abstraction layer that makes
  doing selections, Xdnd, general X stuff, and event loops, timeouts and idle
