@@ -43,6 +43,8 @@ libefreet.so.1 libefreet1 #MINVER#
  efreet_desktop_x_field_del@Base 1.7.7
  efreet_desktop_x_field_get@Base 1.7.7
  efreet_desktop_x_field_set@Base 1.7.7
+ efreet_documents_dir_get@Base 1.8.0
+ efreet_download_dir_get@Base 1.8.0
  efreet_fsetowner@Base 1.7.7
  efreet_hash_array_string_edd@Base 1.7.7
  efreet_hash_free@Base 1.7.7
@@ -81,7 +83,13 @@ libefreet.so.1 libefreet1 #MINVER#
  efreet_ini_string_get@Base 1.7.7
  efreet_ini_string_set@Base 1.7.7
  efreet_init@Base 1.7.7
+ efreet_lang_country_get@Base 1.8.0
+ efreet_lang_get@Base 1.8.0
+ efreet_lang_modifier_get@Base 1.8.0
  efreet_lang_reset@Base 1.7.7
+ efreet_language_get@Base 1.8.0
+ efreet_menu_async_get@Base 1.8.0
+ efreet_menu_async_parse@Base 1.8.0
  efreet_menu_desktop_insert@Base 1.7.7
  efreet_menu_desktop_remove@Base 1.7.7
  efreet_menu_dump@Base 1.7.7
@@ -92,8 +100,13 @@ libefreet.so.1 libefreet1 #MINVER#
  efreet_menu_new@Base 1.7.7
  efreet_menu_parse@Base 1.7.7
  efreet_menu_save@Base 1.7.7
+ efreet_music_dir_get@Base 1.8.0
+ efreet_pictures_dir_get@Base 1.8.0
+ efreet_public_share_dir_get@Base 1.8.0
+ efreet_runtime_dir_get@Base 1.8.0
  efreet_setowner@Base 1.7.7
  efreet_shutdown@Base 1.7.7
+ efreet_templates_dir_get@Base 1.8.0
  efreet_uri_decode@Base 1.7.7
  efreet_uri_encode@Base 1.7.7
  efreet_uri_free@Base 1.7.7
@@ -113,6 +126,7 @@ libefreet.so.1 libefreet1 #MINVER#
  efreet_util_path_to_file_id@Base 1.7.7
  efreet_version@Base 1.7.7
  efreet_version_edd@Base 1.7.7
+ efreet_videos_dir_get@Base 1.8.0
 libefreet_mime.so.1 libefreet1 #MINVER#
  efreet_mime_fallback_type_get@Base 1.7.7
  efreet_mime_globs_type_get@Base 1.7.7

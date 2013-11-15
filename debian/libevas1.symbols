@@ -1,12 +1,65 @@
 libevas.so.1 libevas1 #MINVER#
+ EVAS_CANVAS_BASE_ID@Base 1.8.0
+ EVAS_COMMON_BASE_ID@Base 1.8.0
+ EVAS_OBJ_BASE_ID@Base 1.8.0
+ EVAS_OBJ_BOX_BASE_ID@Base 1.8.0
+ EVAS_OBJ_GRID_BASE_ID@Base 1.8.0
+ EVAS_OBJ_IMAGE_BASE_ID@Base 1.8.0
+ EVAS_OBJ_LINE_BASE_ID@Base 1.8.0
+ EVAS_OBJ_POLYGON_BASE_ID@Base 1.8.0
+ EVAS_OBJ_RECTANGLE_BASE_ID@Base 1.8.0
+ EVAS_OBJ_SMART_BASE_ID@Base 1.8.0
+ EVAS_OBJ_SMART_CLIPPED_BASE_ID@Base 1.8.0
+ EVAS_OBJ_TABLE_BASE_ID@Base 1.8.0
+ EVAS_OBJ_TEXTBLOCK_BASE_ID@Base 1.8.0
+ EVAS_OBJ_TEXTGRID_BASE_ID@Base 1.8.0
+ EVAS_OBJ_TEXT_BASE_ID@Base 1.8.0
+ EVAS_OUT_BASE_ID@Base 1.8.0
+ _CLICKED_DOUBLE_EVENT@Base 1.8.0
+ _CLICKED_EVENT@Base 1.8.0
+ _CLICKED_TRIPLE_EVENT@Base 1.8.0
+ _DRAG_END_EVENT@Base 1.8.0
+ _DRAG_EVENT@Base 1.8.0
+ _DRAG_START_DOWN_EVENT@Base 1.8.0
+ _DRAG_START_EVENT@Base 1.8.0
+ _DRAG_START_LEFT_EVENT@Base 1.8.0
+ _DRAG_START_RIGHT_EVENT@Base 1.8.0
+ _DRAG_START_UP_EVENT@Base 1.8.0
+ _DRAG_STOP_EVENT@Base 1.8.0
+ (regex|optional)"^_EVAS_CANVAS_.*" 1.8.0
+ (regex|optional)"^_EVAS_OBJECT_.*" 1.8.0
+ _LONGPRESSED_EVENT@Base 1.8.0
+ _PRESSED_EVENT@Base 1.8.0
+ _REPEATED_EVENT@Base 1.8.0
+ _SCROLL_ANIM_START_EVENT@Base 1.8.0
+ _SCROLL_ANIM_STOP_EVENT@Base 1.8.0
+ _SCROLL_DRAG_START_EVENT@Base 1.8.0
+ _SCROLL_DRAG_STOP_EVENT@Base 1.8.0
+ _SCROLL_EVENT@Base 1.8.0
+ _SELECTED_EVENT@Base 1.8.0
+ _SELECTION_CHANGED_EVENT@Base 1.8.0
+ _SELECTION_CLEARED_EVENT@Base 1.8.0
+ _SELECTION_COPY_EVENT@Base 1.8.0
+ _SELECTION_CUT_EVENT@Base 1.8.0
+ _SELECTION_PASTE_EVENT@Base 1.8.0
+ _SELECTION_START_EVENT@Base 1.8.0
+ _UNPRESSED_EVENT@Base 1.8.0
+ _UNSELECTED_EVENT@Base 1.8.0
+ _ZOOM_CHANGE_EVENT@Base 1.8.0
+ _ZOOM_START_EVENT@Base 1.8.0
+ _ZOOM_STOP_EVENT@Base 1.8.0
  _evas_log_dom_global@Base 1.7.7
  _evas_module_engine_inherit@Base 1.7.7
  _evas_module_libdir_get@Base 1.7.7
  evas_alloc_error@Base 1.7.7
  evas_async_events_fd_get@Base 1.7.7
  evas_async_events_process@Base 1.7.7
+ evas_async_events_process_blocking@Base 1.8.0
  evas_async_events_put@Base 1.7.7
  evas_bidi_shape_string@Base 1.7.7
+ evas_cache_async_freeze@Base 1.8.0
+ evas_cache_async_frozen_get@Base 1.8.0
+ evas_cache_async_thaw@Base 1.8.0
  evas_cache_engine_image_alone@Base 1.7.7
  evas_cache_engine_image_colorspace@Base 1.7.7
  evas_cache_engine_image_copied_data@Base 1.7.7
@@ -38,9 +91,11 @@ libevas.so.1 libevas1 #MINVER#
  evas_cache_image_init@Base 1.7.7
  evas_cache_image_is_loaded@Base 1.7.7
  evas_cache_image_load_data@Base 1.7.7
+ evas_cache_image_mmap_request@Base 1.8.0
  evas_cache_image_pixels@Base 1.7.7
  evas_cache_image_preload_cancel@Base 1.7.7
  evas_cache_image_preload_data@Base 1.7.7
+ evas_cache_image_ref@Base 1.8.0
  evas_cache_image_request@Base 1.7.7
  evas_cache_image_set@Base 1.7.7
  evas_cache_image_shutdown@Base 1.7.7
@@ -53,6 +108,7 @@ libevas.so.1 libevas1 #MINVER#
  evas_cache_private_from_image_entry_get@Base 1.7.7
  evas_cache_private_get@Base 1.7.7
  evas_cache_private_set@Base 1.7.7
+ evas_class_get@Base 1.8.0
  evas_color_argb_premul@Base 1.7.7
  evas_color_argb_unpremul@Base 1.7.7
  evas_color_hsv_to_rgb@Base 1.7.7
@@ -68,6 +124,7 @@ libevas.so.1 libevas1 #MINVER#
  evas_cserve_disconnect@Base 1.7.7
  evas_cserve_image_cache_contents_clean@Base 1.7.7
  evas_cserve_image_cache_contents_get@Base 1.7.7
+ evas_cserve_path_get@Base 1.8.0
  evas_cserve_stats_get@Base 1.7.7
  evas_cserve_want_get@Base 1.7.7
  evas_damage_rectangle_add@Base 1.7.7
@@ -75,6 +132,23 @@ libevas.so.1 libevas1 #MINVER#
  evas_data_argb_unpremul@Base 1.7.7
  evas_data_attach_get@Base 1.7.7
  evas_data_attach_set@Base 1.7.7
+ evas_device_add@Base 1.8.0
+ evas_device_class_get@Base 1.8.0
+ evas_device_class_set@Base 1.8.0
+ evas_device_del@Base 1.8.0
+ evas_device_description_get@Base 1.8.0
+ evas_device_description_set@Base 1.8.0
+ evas_device_emulation_source_get@Base 1.8.0
+ evas_device_emulation_source_set@Base 1.8.0
+ evas_device_list@Base 1.8.0
+ evas_device_name_get@Base 1.8.0
+ evas_device_name_set@Base 1.8.0
+ evas_device_parent_get@Base 1.8.0
+ evas_device_parent_set@Base 1.8.0
+ evas_device_pop@Base 1.8.0
+ evas_device_push@Base 1.8.0
+ evas_device_subclass_get@Base 1.8.0
+ evas_device_subclass_set@Base 1.8.0
  evas_engine_info_get@Base 1.7.7
  evas_engine_info_set@Base 1.7.7
  evas_event_callback_add@Base 1.7.7
@@ -99,6 +173,10 @@ libevas.so.1 libevas1 #MINVER#
  evas_event_feed_multi_up@Base 1.7.7
  evas_event_freeze@Base 1.7.7
  evas_event_freeze_get@Base 1.7.7
+ evas_event_input_mouse_move@Base 1.8.0
+ evas_event_input_multi_down@Base 1.8.0
+ evas_event_input_multi_move@Base 1.8.0
+ evas_event_input_multi_up@Base 1.8.0
  evas_event_refeed_event@Base 1.7.7
  evas_event_thaw@Base 1.7.7
  evas_event_thaw_eval@Base 1.7.7
@@ -174,6 +252,7 @@ libevas.so.1 libevas1 #MINVER#
  evas_map_util_points_populate_from_geometry@Base 1.7.7
  evas_map_util_points_populate_from_object@Base 1.7.7
  evas_map_util_points_populate_from_object_full@Base 1.7.7
+ evas_map_util_quat_rotate@Base 1.8.0
  evas_map_util_rotate@Base 1.7.7
  evas_map_util_zoom@Base 1.7.7
  evas_module_register@Base 1.7.7
@@ -194,6 +273,7 @@ libevas.so.1 libevas1 #MINVER#
  evas_object_box_align_set@Base 1.7.7
  evas_object_box_append@Base 1.7.7
  evas_object_box_children_get@Base 1.7.7
+ evas_object_box_class_get@Base 1.8.0
  evas_object_box_insert_after@Base 1.7.7
  evas_object_box_insert_at@Base 1.7.7
  evas_object_box_insert_before@Base 1.7.7
@@ -222,10 +302,12 @@ libevas.so.1 libevas1 #MINVER#
  evas_object_box_remove_at@Base 1.7.7
  evas_object_box_smart_class_get@Base 1.7.7
  evas_object_box_smart_set@Base 1.7.7
+ evas_object_class_get@Base 1.8.0
  evas_object_clip_get@Base 1.7.7
  evas_object_clip_set@Base 1.7.7
  evas_object_clip_unset@Base 1.7.7
  evas_object_clipees_get@Base 1.7.7
+ evas_object_clipees_has@Base 1.8.0
  evas_object_color_get@Base 1.7.7
  evas_object_color_set@Base 1.7.7
  evas_object_data_del@Base 1.7.7
@@ -242,10 +324,12 @@ libevas.so.1 libevas1 #MINVER#
  evas_object_freeze_events_get@Base 1.7.7
  evas_object_freeze_events_set@Base 1.7.7
  evas_object_geometry_get@Base 1.7.7
+ evas_object_geometry_set@Base 1.8.0
  evas_object_grid_accessor_new@Base 1.7.7
  evas_object_grid_add@Base 1.7.7
  evas_object_grid_add_to@Base 1.7.7
  evas_object_grid_children_get@Base 1.7.7
+ evas_object_grid_class_get@Base 1.8.0
  evas_object_grid_clear@Base 1.7.7
  evas_object_grid_iterator_new@Base 1.7.7
  evas_object_grid_mirrored_get@Base 1.7.7
@@ -272,6 +356,7 @@ libevas.so.1 libevas1 #MINVER#
  evas_object_image_border_scale_get@Base 1.7.7
  evas_object_image_border_scale_set@Base 1.7.7
  evas_object_image_border_set@Base 1.7.7
+ evas_object_image_class_get@Base 1.8.0
  evas_object_image_colorspace_get@Base 1.7.7
  evas_object_image_colorspace_set@Base 1.7.7
  evas_object_image_content_hint_get@Base 1.7.7
@@ -304,6 +389,7 @@ libevas.so.1 libevas1 #MINVER#
  evas_object_image_load_size_get@Base 1.7.7
  evas_object_image_load_size_set@Base 1.7.7
  evas_object_image_memfile_set@Base 1.7.7
+ evas_object_image_mmap_set@Base 1.8.0
  evas_object_image_native_surface_get@Base 1.7.7
  evas_object_image_native_surface_set@Base 1.7.7
  evas_object_image_pixels_dirty_get@Base 1.7.7
@@ -320,10 +406,18 @@ libevas.so.1 libevas1 #MINVER#
  evas_object_image_size_set@Base 1.7.7
  evas_object_image_smooth_scale_get@Base 1.7.7
  evas_object_image_smooth_scale_set@Base 1.7.7
+ evas_object_image_source_clip_get@Base 1.8.0
+ evas_object_image_source_clip_set@Base 1.8.0
+ evas_object_image_source_events_get@Base 1.8.0
+ evas_object_image_source_events_set@Base 1.8.0
  evas_object_image_source_get@Base 1.7.7
  evas_object_image_source_set@Base 1.7.7
  evas_object_image_source_unset@Base 1.7.7
+ evas_object_image_source_visible_get@Base 1.8.0
+ evas_object_image_source_visible_set@Base 1.8.0
  evas_object_image_stride_get@Base 1.7.7
+ evas_object_image_video_surface_caps_get@Base 1.8.0
+ evas_object_image_video_surface_caps_set@Base 1.8.0
  evas_object_image_video_surface_get@Base 1.7.7
  evas_object_image_video_surface_set@Base 1.7.7
  evas_object_intercept_clip_set_callback_add@Base 1.7.7
@@ -332,6 +426,8 @@ libevas.so.1 libevas1 #MINVER#
  evas_object_intercept_clip_unset_callback_del@Base 1.7.7
  evas_object_intercept_color_set_callback_add@Base 1.7.7
  evas_object_intercept_color_set_callback_del@Base 1.7.7
+ evas_object_intercept_focus_set_callback_add@Base 1.8.0
+ evas_object_intercept_focus_set_callback_del@Base 1.8.0
  evas_object_intercept_hide_callback_add@Base 1.7.7
  evas_object_intercept_hide_callback_del@Base 1.7.7
  evas_object_intercept_layer_set_callback_add@Base 1.7.7
@@ -357,6 +453,7 @@ libevas.so.1 libevas1 #MINVER#
  evas_object_layer_get@Base 1.7.7
  evas_object_layer_set@Base 1.7.7
  evas_object_line_add@Base 1.7.7
+ evas_object_line_class_get@Base 1.8.0
  evas_object_line_xy_get@Base 1.7.7
  evas_object_line_xy_set@Base 1.7.7
  evas_object_lower@Base 1.7.7
@@ -374,6 +471,7 @@ libevas.so.1 libevas1 #MINVER#
  evas_object_pointer_mode_get@Base 1.7.7
  evas_object_pointer_mode_set@Base 1.7.7
  evas_object_polygon_add@Base 1.7.7
+ evas_object_polygon_class_get@Base 1.8.0
  evas_object_polygon_point_add@Base 1.7.7
  evas_object_polygon_points_clear@Base 1.7.7
  evas_object_precise_is_inside_get@Base 1.7.7
@@ -382,6 +480,7 @@ libevas.so.1 libevas1 #MINVER#
  evas_object_propagate_events_set@Base 1.7.7
  evas_object_raise@Base 1.7.7
  evas_object_rectangle_add@Base 1.7.7
+ evas_object_rectangle_class_get@Base 1.8.0
  evas_object_ref@Base 1.7.7
  evas_object_ref_get@Base 1.7.7
  evas_object_render_op_get@Base 1.7.7
@@ -396,6 +495,8 @@ libevas.so.1 libevas1 #MINVER#
  evas_object_size_hint_align_set@Base 1.7.7
  evas_object_size_hint_aspect_get@Base 1.7.7
  evas_object_size_hint_aspect_set@Base 1.7.7
+ evas_object_size_hint_display_mode_get@Base 1.8.0
+ evas_object_size_hint_display_mode_set@Base 1.8.0
  evas_object_size_hint_max_get@Base 1.7.7
  evas_object_size_hint_max_set@Base 1.7.7
  evas_object_size_hint_min_get@Base 1.7.7
@@ -417,13 +518,16 @@ libevas.so.1 libevas1 #MINVER#
  evas_object_smart_callbacks_descriptions_get@Base 1.7.7
  evas_object_smart_callbacks_descriptions_set@Base 1.7.7
  evas_object_smart_changed@Base 1.7.7
+ evas_object_smart_class_get@Base 1.8.0
  evas_object_smart_clipped_class_get@Base 1.7.7
  evas_object_smart_clipped_clipper_get@Base 1.7.7
+ evas_object_smart_clipped_eo_class_get@Base 1.8.0
  evas_object_smart_clipped_smart_set@Base 1.7.7
  evas_object_smart_data_get@Base 1.7.7
  evas_object_smart_data_set@Base 1.7.7
  evas_object_smart_interface_data_get@Base 1.7.7
  evas_object_smart_interface_get@Base 1.7.7
+ evas_object_smart_iterator_new@Base 1.8.0
  evas_object_smart_member_add@Base 1.7.7
  evas_object_smart_member_del@Base 1.7.7
  evas_object_smart_members_get@Base 1.7.7
@@ -445,6 +549,7 @@ libevas.so.1 libevas1 #MINVER#
  evas_object_table_align_set@Base 1.7.7
  evas_object_table_child_get@Base 1.7.7
  evas_object_table_children_get@Base 1.7.7
+ evas_object_table_class_get@Base 1.8.0
  evas_object_table_clear@Base 1.7.7
  evas_object_table_col_row_size_get@Base 1.7.7
  evas_object_table_homogeneous_get@Base 1.7.7
@@ -463,8 +568,11 @@ libevas.so.1 libevas1 #MINVER#
  evas_object_text_bidi_delimiters_set@Base 1.7.7
  evas_object_text_char_coords_get@Base 1.7.7
  evas_object_text_char_pos_get@Base 1.7.7
+ evas_object_text_class_get@Base 1.8.0
  evas_object_text_descent_get@Base 1.7.7
  evas_object_text_direction_get@Base 1.7.7
+ evas_object_text_ellipsis_get@Base 1.8.0
+ evas_object_text_ellipsis_set@Base 1.8.0
  evas_object_text_font_get@Base 1.7.7
  evas_object_text_font_set@Base 1.7.7
  evas_object_text_font_source_get@Base 1.7.7
@@ -491,6 +599,7 @@ libevas.so.1 libevas1 #MINVER#
  evas_object_textblock_add@Base 1.7.7
  evas_object_textblock_bidi_delimiters_get@Base 1.7.7
  evas_object_textblock_bidi_delimiters_set@Base 1.7.7
+ evas_object_textblock_class_get@Base 1.8.0
  evas_object_textblock_clear@Base 1.7.7
  evas_object_textblock_cursor_get@Base 1.7.7
  evas_object_textblock_cursor_new@Base 1.7.7
@@ -516,6 +625,7 @@ libevas.so.1 libevas1 #MINVER#
  evas_object_textgrid_cell_size_get@Base 1.7.7
  evas_object_textgrid_cellrow_get@Base 1.7.7
  evas_object_textgrid_cellrow_set@Base 1.7.7
+ evas_object_textgrid_class_get@Base 1.8.0
  evas_object_textgrid_font_get@Base 1.7.7
  evas_object_textgrid_font_set@Base 1.7.7
  evas_object_textgrid_font_source_get@Base 1.7.7
@@ -538,12 +648,19 @@ libevas.so.1 libevas1 #MINVER#
  evas_objects_in_rectangle_get@Base 1.7.7
  evas_obscured_clear@Base 1.7.7
  evas_obscured_rectangle_add@Base 1.7.7
+ evas_out_add@Base 1.8.0
+ evas_out_class_get@Base 1.8.0
+ evas_output_del@Base 1.8.0
+ evas_output_engine_info_get@Base 1.8.0
+ evas_output_engine_info_set@Base 1.8.0
  evas_output_framespace_get@Base 1.7.7
  evas_output_framespace_set@Base 1.7.7
  evas_output_method_get@Base 1.7.7
  evas_output_method_set@Base 1.7.7
  evas_output_size_get@Base 1.7.7
  evas_output_size_set@Base 1.7.7
+ evas_output_view_get@Base 1.8.0
+ evas_output_view_set@Base 1.8.0
  evas_output_viewport_get@Base 1.7.7
  evas_output_viewport_set@Base 1.7.7
  evas_pointer_button_down_mask_get@Base 1.7.7
@@ -554,6 +671,7 @@ libevas.so.1 libevas1 #MINVER#
  evas_post_event_callback_remove@Base 1.7.7
  evas_post_event_callback_remove_full@Base 1.7.7
  evas_render@Base 1.7.7
+ evas_render_async@Base 1.8.0
  evas_render_dump@Base 1.7.7
  evas_render_idle_flush@Base 1.7.7
  evas_render_method_list@Base 1.7.7
@@ -567,11 +685,18 @@ libevas.so.1 libevas1 #MINVER#
  evas_smart_class_get@Base 1.7.7
  evas_smart_class_inherit_full@Base 1.7.7
  evas_smart_class_new@Base 1.7.7
+ evas_smart_clickable_interface_get@Base 1.8.0
  evas_smart_data_get@Base 1.7.7
+ evas_smart_draggable_interface_get@Base 1.8.0
  evas_smart_free@Base 1.7.7
+ evas_smart_legacy_type_register@Base 1.8.0
  evas_smart_objects_calculate@Base 1.7.7
  evas_smart_objects_calculate_count_get@Base 1.7.7
+ evas_smart_scrollable_interface_get@Base 1.8.0
+ evas_smart_selectable_interface_get@Base 1.8.0
+ evas_smart_signal_interface_get@Base 1.8.0
  evas_smart_usage_get@Base 1.7.7
+ evas_smart_zoomable_interface_get@Base 1.8.0
  evas_string_char_len_get@Base 1.7.7
  evas_string_char_next_get@Base 1.7.7
  evas_string_char_prev_get@Base 1.7.7
@@ -594,6 +719,7 @@ libevas.so.1 libevas1 #MINVER#
  evas_textblock_cursor_format_prepend@Base 1.7.7
  evas_textblock_cursor_format_prev@Base 1.7.7
  evas_textblock_cursor_free@Base 1.7.7
+ evas_textblock_cursor_geometry_bidi_get@Base 1.8.0
  evas_textblock_cursor_geometry_get@Base 1.7.7
  evas_textblock_cursor_is_format@Base 1.7.7
  evas_textblock_cursor_line_char_first@Base 1.7.7
@@ -638,8 +764,13 @@ libevas.so.1 libevas1 #MINVER#
  evas_textblock_style_set@Base 1.7.7
  evas_textblock_text_markup_to_utf8@Base 1.7.7
  evas_textblock_text_utf8_to_markup@Base 1.7.7
+ evas_thread_cmd_enqueue@Base 1.8.0
+ evas_thread_main_loop_begin@Base 1.8.0
+ evas_thread_main_loop_end@Base 1.8.0
+ evas_thread_queue_flush@Base 1.8.0
  evas_touch_point_list_count@Base 1.7.7
  evas_touch_point_list_nth_id_get@Base 1.7.7
  evas_touch_point_list_nth_state_get@Base 1.7.7
  evas_touch_point_list_nth_xy_get@Base 1.7.7
+ evas_tree_objects_at_xy_get@Base 1.8.0
  evas_version@Base 1.7.7

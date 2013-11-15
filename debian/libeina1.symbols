@@ -38,11 +38,14 @@ libeina.so.1 libeina1 #MINVER#
  EINA_VALUE_TYPE_USHORT@Base 1.2.0
  _EINA_VALUE_TYPE_BASICS_END@Base 1.2.0
  _EINA_VALUE_TYPE_BASICS_START@Base 1.2.0
+ _eina_log_state_init@Base 1.8.0
+ _eina_log_state_shutdown@Base 1.8.0
  _eina_main_loop@Base 1.2.0
  _eina_threads_activated@Base 1.2.0
  _eina_threads_debug@Base 1.2.0
  _eina_tracking@Base 1.2.0
  _eina_tracking_lock@Base 1.2.0
+ _eina_unicode_utf8_next_get@Base 1.8.0
  eina_accessor_container_get@Base 1.0.0~beta
  eina_accessor_data_get@Base 1.0.0~beta
  eina_accessor_free@Base 1.0.0~beta
@@ -93,8 +96,18 @@ libeina.so.1 libeina1 #MINVER#
  eina_counter_new@Base 1.0.0~beta
  eina_counter_start@Base 1.0.0~beta
  eina_counter_stop@Base 1.0.0~beta
+ eina_cow_add@Base 1.8.0
+ eina_cow_alloc@Base 1.8.0
+ eina_cow_del@Base 1.8.0
+ eina_cow_done@Base 1.8.0
+ eina_cow_free@Base 1.8.0
+ eina_cow_gc@Base 1.8.0
+ eina_cow_memcpy@Base 1.8.0
+ eina_cow_write@Base 1.8.0
  eina_cpu_count@Base 1.0.0~beta
+ eina_cpu_features@Base 1.8.0
  eina_cpu_features_get@Base 1.0.0~beta
+ eina_cpu_page_size@Base 1.8.1
  eina_error_find@Base 1.2.0
  eina_error_get@Base 1.0.0~beta
  eina_error_msg_get@Base 1.0.0~beta
@@ -105,8 +118,10 @@ libeina.so.1 libeina1 #MINVER#
  eina_f32p32_cos@Base 1.0.0~beta
  eina_f32p32_sin@Base 1.0.0~beta
  eina_file_close@Base 1.2.0
+ eina_file_copy@Base 1.8.0
  eina_file_dir_list@Base 1.0.0~beta
  eina_file_direct_ls@Base 1.0.0~beta
+ eina_file_dup@Base 1.8.0
  eina_file_filename_get@Base 1.2.0
  eina_file_ls@Base 1.0.0~beta
  eina_file_map_all@Base 1.2.0
@@ -114,13 +129,19 @@ libeina.so.1 libeina1 #MINVER#
  eina_file_map_free@Base 1.2.0
  eina_file_map_lines@Base 1.7.4
  eina_file_map_new@Base 1.2.0
+ eina_file_map_populate@Base 1.8.0
+ eina_file_mkdtemp@Base 1.8.0
+ eina_file_mkstemp@Base 1.8.0
  eina_file_mtime_get@Base 1.2.0
  eina_file_open@Base 1.2.0
  eina_file_path_sanitize@Base 1.2.0
+ eina_file_refresh@Base 1.8.0
  eina_file_size_get@Base 1.2.0
  eina_file_split@Base 1.0.0~beta
  eina_file_stat_ls@Base 1.0.0~beta3
  eina_file_statat@Base 1.2.0
+ eina_file_virtual@Base 1.8.0
+ eina_file_virtualize@Base 1.8.0
  eina_file_xattr_get@Base 1.2.0
  eina_file_xattr_value_get@Base 1.2.0
  eina_hamster_count@Base 1.0.0~beta
@@ -163,6 +184,7 @@ libeina.so.1 libeina1 #MINVER#
  eina_inarray_foreach@Base 1.2.0
  eina_inarray_foreach_remove@Base 1.2.0
  eina_inarray_free@Base 1.2.0
+ eina_inarray_grow@Base 1.8.0
  eina_inarray_insert@Base 1.2.0
  eina_inarray_insert_at@Base 1.2.0
  eina_inarray_insert_sorted@Base 1.2.0
@@ -237,6 +259,7 @@ libeina.so.1 libeina1 #MINVER#
  eina_list_search_sorted_near_list@Base 1.0.0~beta
  eina_list_search_unsorted@Base 1.0.0~beta
  eina_list_search_unsorted_list@Base 1.0.0~beta
+ eina_list_shuffle@Base 1.8.0
  eina_list_sort@Base 1.0.0~beta
  eina_list_sorted_insert@Base 1.0.0~beta
  eina_list_sorted_merge@Base 1.0.0~beta
@@ -262,10 +285,12 @@ libeina.so.1 libeina1 #MINVER#
  eina_log_main_thread_check@Base 1.0.0~beta
  eina_log_print@Base 1.0.0~beta
  eina_log_print_cb_file@Base 1.0.0~beta
+ eina_log_print_cb_journald@Base 1.8.0
  eina_log_print_cb_set@Base 1.0.0~beta
  eina_log_print_cb_stderr@Base 1.0.0~beta
  eina_log_print_cb_stdout@Base 1.0.0~beta
  eina_log_threads_enable@Base 1.0.0~beta
+ eina_log_timing@Base 1.8.0
  eina_log_vprint@Base 1.0.0~beta
  eina_magic_fail@Base 1.0.0~beta
  eina_magic_string_get@Base 1.0.0~beta
@@ -364,6 +389,8 @@ libeina.so.1 libeina1 #MINVER#
  eina_simple_xml_node_comment_new@Base 1.2.0
  eina_simple_xml_node_data_free@Base 1.2.0
  eina_simple_xml_node_data_new@Base 1.2.0
+ eina_simple_xml_node_doctype_child_free@Base 1.8.0
+ eina_simple_xml_node_doctype_child_new@Base 1.8.0
  eina_simple_xml_node_doctype_free@Base 1.2.0
  eina_simple_xml_node_doctype_new@Base 1.2.0
  eina_simple_xml_node_dump@Base 1.2.0
@@ -376,6 +403,7 @@ libeina.so.1 libeina1 #MINVER#
  eina_simple_xml_parse@Base 1.2.0
  eina_simple_xml_tag_attributes_find@Base 1.2.0
  eina_str_convert@Base 1.0.0~beta
+ eina_str_convert_len@Base 1.8.0
  eina_str_escape@Base 1.0.0~beta
  eina_str_has_extension@Base 1.0.0~beta
  eina_str_has_prefix@Base 1.0.0~beta
@@ -425,16 +453,28 @@ libeina.so.1 libeina1 #MINVER#
  eina_stringshare_vprintf@Base 1.0.0~beta
  eina_strlcat@Base 1.0.0~beta
  eina_strlcpy@Base 1.0.0~beta
+ eina_thread_create@Base 1.8.0
+ eina_thread_equal@Base 1.8.0
+ eina_thread_join@Base 1.8.0
+ eina_thread_self@Base 1.8.0
  eina_threads_init@Base 1.0.0~beta
  eina_threads_shutdown@Base 1.0.0~beta
  eina_tile_grid_slicer_iterator_new@Base 1.0.0~beta
+ eina_tiler_area_size_get@Base 1.8.0
+ eina_tiler_area_size_set@Base 1.8.0
  eina_tiler_clear@Base 1.0.0~beta
+ eina_tiler_empty@Base 1.8.0
  eina_tiler_free@Base 1.0.0~beta
  eina_tiler_iterator_new@Base 1.0.0~beta
  eina_tiler_new@Base 1.0.0~beta
  eina_tiler_rect_add@Base 1.0.0~beta
  eina_tiler_rect_del@Base 1.0.0~beta
+ eina_tiler_strict_set@Base 1.8.0
  eina_tiler_tile_size_set@Base 1.0.0~beta
+ eina_tmpstr_add@Base 1.8.0
+ eina_tmpstr_add_length@Base 1.8.0
+ eina_tmpstr_del@Base 1.8.0
+ eina_tmpstr_strlen@Base 1.8.0
  eina_unicode_escape@Base 1.0.0~beta
  eina_unicode_strcmp@Base 1.0.0~beta
  eina_unicode_strcpy@Base 1.0.0~beta
@@ -490,9 +530,15 @@ libeina.so.1 libeina1 #MINVER#
  eina_value_type_check@Base 1.2.0
  eina_value_type_name_get@Base 1.2.0
  eina_version@Base 1.0.0~beta
+ eina_xattr_copy@Base 1.8.0
+ eina_xattr_del@Base 1.8.0
  eina_xattr_double_get@Base 1.2.0
  eina_xattr_double_set@Base 1.2.0
+ eina_xattr_fd_copy@Base 1.8.0
+ eina_xattr_fd_del@Base 1.8.0
+ eina_xattr_fd_get@Base 1.8.0
  eina_xattr_fd_ls@Base 1.2.0
+ eina_xattr_fd_set@Base 1.8.0
  eina_xattr_get@Base 1.2.0
  eina_xattr_int_get@Base 1.2.0
  eina_xattr_int_set@Base 1.2.0

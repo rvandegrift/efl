@@ -41,6 +41,8 @@ libecore_imf.so.1 libecore-imf1 #MINVER#
  ecore_imf_context_input_panel_enabled_get@Base 1.7.7
  ecore_imf_context_input_panel_enabled_set@Base 1.7.7
  ecore_imf_context_input_panel_event_callback_add@Base 1.7.7
+ ecore_imf_context_input_panel_event_callback_call@Base 1.8.0
+ ecore_imf_context_input_panel_event_callback_clear@Base 1.8.0
  ecore_imf_context_input_panel_event_callback_del@Base 1.7.7
  ecore_imf_context_input_panel_geometry_get@Base 1.7.7
  ecore_imf_context_input_panel_hide@Base 1.7.7
@@ -51,11 +53,15 @@ libecore_imf.so.1 libecore-imf1 #MINVER#
  ecore_imf_context_input_panel_language_set@Base 1.7.7
  ecore_imf_context_input_panel_layout_get@Base 1.7.7
  ecore_imf_context_input_panel_layout_set@Base 1.7.7
+ ecore_imf_context_input_panel_layout_variation_get@Base 1.8.0
+ ecore_imf_context_input_panel_layout_variation_set@Base 1.8.0
  ecore_imf_context_input_panel_return_key_disabled_get@Base 1.7.7
  ecore_imf_context_input_panel_return_key_disabled_set@Base 1.7.7
  ecore_imf_context_input_panel_return_key_type_get@Base 1.7.7
  ecore_imf_context_input_panel_return_key_type_set@Base 1.7.7
  ecore_imf_context_input_panel_show@Base 1.7.7
+ ecore_imf_context_input_panel_show_on_demand_get@Base 1.8.0
+ ecore_imf_context_input_panel_show_on_demand_set@Base 1.8.0
  ecore_imf_context_input_panel_state_get@Base 1.7.7
  ecore_imf_context_new@Base 1.7.7
  ecore_imf_context_prediction_allow_get@Base 1.7.7
@@ -71,6 +77,7 @@ libecore_imf.so.1 libecore-imf1 #MINVER#
  ecore_imf_context_surrounding_get@Base 1.7.7
  ecore_imf_context_use_preedit_set@Base 1.7.7
  ecore_imf_init@Base 1.7.7
+ ecore_imf_input_panel_hide@Base 1.8.0
  ecore_imf_module_register@Base 1.7.7
  ecore_imf_shutdown@Base 1.7.7
 libecore_imf_evas.so.1 libecore-imf1 #MINVER#
