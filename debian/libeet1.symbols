@@ -18,6 +18,7 @@ libeet.so.1 libeet1 #MINVER#
  eet_data_descriptor_encode_cipher@Base 1.2.0
  eet_data_descriptor_file_new@Base 1.2.3
  eet_data_descriptor_free@Base 1.0.0
+ eet_data_descriptor_name_get@Base 1.8.0
  eet_data_descriptor_new@Base 1.0.0
  eet_data_descriptor_stream_new@Base 1.2.3
  eet_data_dump@Base 1.0.0
@@ -71,7 +72,9 @@ libeet.so.1 libeet1 #MINVER#
  eet_identity_x509@Base 1.1.0
  eet_init@Base 1.0.0
  eet_list@Base 1.0.0
+ eet_list_entries@Base 1.8.0
  eet_memopen_read@Base 1.1.0
+ eet_mmap@Base 1.8.0
  eet_mode_get@Base 1.0.0
  eet_node_array_new@Base 1.2.0
  eet_node_char_new@Base 1.2.0

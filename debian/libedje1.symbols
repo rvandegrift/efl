@@ -2,6 +2,9 @@ libedje.so.1 libedje1 #MINVER#
  EDJE_EDIT_ERROR_GROUP_CURRENTLY_USED@Base 1.7.4
  EDJE_EDIT_ERROR_GROUP_DOES_NOT_EXIST@Base 1.7.4
  EDJE_EDIT_ERROR_GROUP_REFERENCED@Base 1.7.4
+ EDJE_OBJ_BASE_ID@Base 1.8.0
+ _edje_cache_file_unref@Base 1.8.0
+ _edje_data_font_list_desc_make@Base 1.8.0
  _edje_default_log_dom@Base 1.7.4
  _edje_edd_edje_file@Base 1.7.4
  _edje_edd_edje_part_collection@Base 1.7.4
@@ -9,8 +12,22 @@ libedje.so.1 libedje1 #MINVER#
  _edje_edd_shutdown@Base 1.7.4
  _edje_program_insert@Base 1.7.4
  _edje_program_remove@Base 1.7.4
+ _emp_BOX@Base 1.8.0
+ _emp_EXTERNAL@Base 1.8.0
+ _emp_GROUP@Base 1.8.0
+ _emp_IMAGE@Base 1.8.0
+ _emp_PROXY@Base 1.8.0
+ _emp_RECTANGLE@Base 1.8.0
+ _emp_SPACER@Base 1.8.0
+ _emp_SWALLOW@Base 1.8.0
+ _emp_TABLE@Base 1.8.0
+ _emp_TEXT@Base 1.8.0
+ _emp_TEXTBLOCK@Base 1.8.0
+ _emp_part@Base 1.8.0
  edje_available_modules_get@Base 1.7.4
  edje_box_layout_register@Base 1.7.4
+ edje_cache_emp_alloc@Base 1.8.0
+ edje_cache_emp_free@Base 1.8.0
  edje_collection_cache_flush@Base 1.7.4
  edje_collection_cache_get@Base 1.7.4
  edje_collection_cache_set@Base 1.7.4
@@ -18,6 +35,7 @@ libedje.so.1 libedje1 #MINVER#
  edje_color_class_get@Base 1.7.4
  edje_color_class_list@Base 1.7.4
  edje_color_class_set@Base 1.7.4
+ edje_edit_class_get@Base 1.8.0
  edje_edit_color_class_add@Base 1.7.4
  edje_edit_color_class_colors_get@Base 1.7.4
  edje_edit_color_class_colors_set@Base 1.7.4
@@ -86,6 +104,8 @@ libedje.so.1 libedje1 #MINVER#
  edje_edit_part_drag_step_x_set@Base 1.7.4
  edje_edit_part_drag_step_y_get@Base 1.7.4
  edje_edit_part_drag_step_y_set@Base 1.7.4
+ edje_edit_part_drag_threshold_get@Base 1.8.0
+ edje_edit_part_drag_threshold_set@Base 1.8.0
  edje_edit_part_drag_x_get@Base 1.7.4
  edje_edit_part_drag_x_set@Base 1.7.4
  edje_edit_part_drag_y_get@Base 1.7.4
@@ -152,6 +172,10 @@ libedje.so.1 libedje1 #MINVER#
  edje_edit_program_transition_set@Base 1.7.4
  edje_edit_program_transition_time_get@Base 1.7.4
  edje_edit_program_transition_time_set@Base 1.7.4
+ edje_edit_program_transition_value1_get@Base 1.8.0
+ edje_edit_program_transition_value1_set@Base 1.8.0
+ edje_edit_program_transition_value2_get@Base 1.8.0
+ edje_edit_program_transition_value2_set@Base 1.8.0
  edje_edit_program_value2_get@Base 1.7.4
  edje_edit_program_value2_set@Base 1.7.4
  edje_edit_program_value_get@Base 1.7.4
@@ -268,6 +292,14 @@ libedje.so.1 libedje1 #MINVER#
  edje_edit_state_text_fit_y_get@Base 1.7.4
  edje_edit_state_text_fit_y_set@Base 1.7.4
  edje_edit_state_text_get@Base 1.7.4
+ edje_edit_state_text_max_x_get@Base 1.8.0
+ edje_edit_state_text_max_x_set@Base 1.8.0
+ edje_edit_state_text_max_y_get@Base 1.8.0
+ edje_edit_state_text_max_y_set@Base 1.8.0
+ edje_edit_state_text_min_x_get@Base 1.8.0
+ edje_edit_state_text_min_x_set@Base 1.8.0
+ edje_edit_state_text_min_y_get@Base 1.8.0
+ edje_edit_state_text_min_y_set@Base 1.8.0
  edje_edit_state_text_set@Base 1.7.4
  edje_edit_state_text_size_get@Base 1.7.4
  edje_edit_state_text_size_set@Base 1.7.4
@@ -321,12 +353,17 @@ libedje.so.1 libedje1 #MINVER#
  edje_init@Base 1.7.4
  edje_load_error_str@Base 1.7.4
  edje_message_signal_process@Base 1.7.4
+ edje_mmap_collection_list@Base 1.8.0
+ edje_mmap_collection_list_free@Base 1.8.0
+ edje_mmap_data_get@Base 1.8.0
+ edje_mmap_group_exists@Base 1.8.0
  edje_module_load@Base 1.7.4
  edje_object_access_part_list_get@Base 1.7.4
  edje_object_add@Base 1.7.4
  edje_object_animation_get@Base 1.7.4
  edje_object_animation_set@Base 1.7.4
  edje_object_calc_force@Base 1.7.4
+ edje_object_class_get@Base 1.8.0
  edje_object_color_class_del@Base 1.7.4
  edje_object_color_class_get@Base 1.7.4
  edje_object_color_class_set@Base 1.7.4
@@ -341,6 +378,7 @@ libedje.so.1 libedje1 #MINVER#
  edje_object_message_signal_process@Base 1.7.4
  edje_object_mirrored_get@Base 1.7.4
  edje_object_mirrored_set@Base 1.7.4
+ edje_object_mmap_set@Base 1.8.0
  edje_object_part_box_append@Base 1.7.4
  edje_object_part_box_insert_at@Base 1.7.4
  edje_object_part_box_insert_before@Base 1.7.4
@@ -409,6 +447,8 @@ libedje.so.1 libedje1 #MINVER#
  edje_object_part_text_input_panel_language_set@Base 1.7.4
  edje_object_part_text_input_panel_layout_get@Base 1.7.4
  edje_object_part_text_input_panel_layout_set@Base 1.7.4
+ edje_object_part_text_input_panel_layout_variation_get@Base 1.8.0
+ edje_object_part_text_input_panel_layout_variation_set@Base 1.8.0
  edje_object_part_text_input_panel_return_key_disabled_get@Base 1.7.4
  edje_object_part_text_input_panel_return_key_disabled_set@Base 1.7.4
  edje_object_part_text_input_panel_return_key_type_get@Base 1.7.4

@@ -11,13 +11,21 @@ libecore_x.so.1 libecore-x1 #MINVER#
  ECORE_X_ATOM_E_COMP_SYNC_DRAW_DONE@Base 1.7.7
  ECORE_X_ATOM_E_COMP_SYNC_END@Base 1.7.7
  ECORE_X_ATOM_E_COMP_SYNC_SUPPORTED@Base 1.7.7
+ ECORE_X_ATOM_E_DEICONIFY_APPROVE@Base 1.8.0
  ECORE_X_ATOM_E_FRAME_SIZE@Base 1.7.7
  ECORE_X_ATOM_E_ILLUME_ACCESS_ACTION_ACTIVATE@Base 1.7.7
+ ECORE_X_ATOM_E_ILLUME_ACCESS_ACTION_BACK@Base 1.8.0
+ ECORE_X_ATOM_E_ILLUME_ACCESS_ACTION_DISABLE@Base 1.8.0
+ ECORE_X_ATOM_E_ILLUME_ACCESS_ACTION_DOWN@Base 1.8.0
+ ECORE_X_ATOM_E_ILLUME_ACCESS_ACTION_ENABLE@Base 1.8.0
+ ECORE_X_ATOM_E_ILLUME_ACCESS_ACTION_MOUSE@Base 1.8.0
  ECORE_X_ATOM_E_ILLUME_ACCESS_ACTION_NEXT@Base 1.7.7
  ECORE_X_ATOM_E_ILLUME_ACCESS_ACTION_PREV@Base 1.7.7
  ECORE_X_ATOM_E_ILLUME_ACCESS_ACTION_READ@Base 1.7.7
  ECORE_X_ATOM_E_ILLUME_ACCESS_ACTION_READ_NEXT@Base 1.7.7
  ECORE_X_ATOM_E_ILLUME_ACCESS_ACTION_READ_PREV@Base 1.7.7
+ ECORE_X_ATOM_E_ILLUME_ACCESS_ACTION_SCROLL@Base 1.8.0
+ ECORE_X_ATOM_E_ILLUME_ACCESS_ACTION_UP@Base 1.8.0
  ECORE_X_ATOM_E_ILLUME_ACCESS_CONTROL@Base 1.7.7
  ECORE_X_ATOM_E_ILLUME_CLIPBOARD_GEOMETRY@Base 1.7.7
  ECORE_X_ATOM_E_ILLUME_CLIPBOARD_OFF@Base 1.7.7
@@ -42,6 +50,10 @@ libecore_x.so.1 libecore-x1 #MINVER#
  ECORE_X_ATOM_E_ILLUME_INDICATOR_STATE@Base 1.7.7
  ECORE_X_ATOM_E_ILLUME_INDICATOR_TRANSLUCENT@Base 1.7.7
  ECORE_X_ATOM_E_ILLUME_INDICATOR_TRANSPARENT@Base 1.7.7
+ ECORE_X_ATOM_E_ILLUME_INDICATOR_TYPE_1@Base 1.8.0
+ ECORE_X_ATOM_E_ILLUME_INDICATOR_TYPE_2@Base 1.8.0
+ ECORE_X_ATOM_E_ILLUME_INDICATOR_TYPE_3@Base 1.8.0
+ ECORE_X_ATOM_E_ILLUME_INDICATOR_TYPE_MODE@Base 1.8.0
  ECORE_X_ATOM_E_ILLUME_KEYBOARD_GEOMETRY@Base 1.7.7
  ECORE_X_ATOM_E_ILLUME_MODE@Base 1.7.7
  ECORE_X_ATOM_E_ILLUME_MODE_DUAL_LEFT@Base 1.7.7
@@ -88,6 +100,12 @@ libecore_x.so.1 libecore-x1 #MINVER#
  ECORE_X_ATOM_E_VIRTUAL_KEYBOARD_STATE@Base 1.7.7
  ECORE_X_ATOM_E_VIRTUAL_KEYBOARD_TERMINAL@Base 1.7.7
  ECORE_X_ATOM_E_VIRTUAL_KEYBOARD_URL@Base 1.7.7
+ ECORE_X_ATOM_E_WINDOW_PROFILE@Base 1.8.0
+ ECORE_X_ATOM_E_WINDOW_PROFILE_AVAILABLE_LIST@Base 1.8.0
+ ECORE_X_ATOM_E_WINDOW_PROFILE_CHANGE@Base 1.8.0
+ ECORE_X_ATOM_E_WINDOW_PROFILE_CHANGE_DONE@Base 1.8.0
+ ECORE_X_ATOM_E_WINDOW_PROFILE_CHANGE_REQUEST@Base 1.8.0
+ ECORE_X_ATOM_E_WINDOW_PROFILE_SUPPORTED@Base 1.8.0
  ECORE_X_ATOM_FILE_NAME@Base 1.7.7
  ECORE_X_ATOM_MOTIF_WM_HINTS@Base 1.7.7
  ECORE_X_ATOM_NET_ACTIVE_WINDOW@Base 1.7.7
@@ -219,6 +237,7 @@ libecore_x.so.1 libecore-x1 #MINVER#
  ECORE_X_ATOM_XDND_ACTION_MOVE@Base 1.7.7
  ECORE_X_ATOM_XDND_ACTION_PRIVATE@Base 1.7.7
  ECORE_X_ATOM_XDND_AWARE@Base 1.7.7
+ ECORE_X_ATOM_XDND_DIRECTSAVE0@Base 1.8.0
  ECORE_X_ATOM_XDND_DROP@Base 1.7.7
  ECORE_X_ATOM_XDND_ENTER@Base 1.7.7
  ECORE_X_ATOM_XDND_FINISHED@Base 1.7.7
@@ -227,6 +246,7 @@ libecore_x.so.1 libecore-x1 #MINVER#
  ECORE_X_ATOM_XDND_PROXY@Base 1.7.7
  ECORE_X_ATOM_XDND_STATUS@Base 1.7.7
  ECORE_X_ATOM_XDND_TYPE_LIST@Base 1.7.7
+ ECORE_X_ATOM_X_MOZ_URL@Base 1.8.0
  ECORE_X_DND_ACTION_ASK@Base 1.7.7
  ECORE_X_DND_ACTION_COPY@Base 1.7.7
  ECORE_X_DND_ACTION_LINK@Base 1.7.7
@@ -304,6 +324,9 @@ libecore_x.so.1 libecore-x1 #MINVER#
  ECORE_X_MODIFIER_CTRL@Base 1.7.7
  ECORE_X_MODIFIER_SHIFT@Base 1.7.7
  ECORE_X_MODIFIER_WIN@Base 1.7.7
+ ECORE_X_RAW_BUTTON_PRESS@Base 1.8.0
+ ECORE_X_RAW_BUTTON_RELEASE@Base 1.8.0
+ ECORE_X_RAW_MOTION@Base 1.8.0
  ecore_x_atom_get@Base 1.7.7
  ecore_x_atom_name_get@Base 1.7.7
  ecore_x_atoms_get@Base 1.7.7
@@ -342,6 +365,8 @@ libecore_x.so.1 libecore-x1 #MINVER#
  ecore_x_dnd_begin@Base 1.7.7
  ecore_x_dnd_callback_pos_update_set@Base 1.7.7
  ecore_x_dnd_drop@Base 1.7.7
+ ecore_x_dnd_self_begin@Base 1.8.0
+ ecore_x_dnd_self_drop@Base 1.8.0
  ecore_x_dnd_send_finished@Base 1.7.7
  ecore_x_dnd_send_status@Base 1.7.7
  ecore_x_dnd_source_action_get@Base 1.7.7
@@ -356,6 +381,7 @@ libecore_x.so.1 libecore-x1 #MINVER#
  ecore_x_dpms_capable_get@Base 1.7.7
  ecore_x_dpms_enabled_get@Base 1.7.7
  ecore_x_dpms_enabled_set@Base 1.7.7
+ ecore_x_dpms_power_level_get@Base 1.8.0
  ecore_x_dpms_query@Base 1.7.7
  ecore_x_dpms_timeout_off_get@Base 1.7.7
  ecore_x_dpms_timeout_off_set@Base 1.7.7
@@ -384,11 +410,13 @@ libecore_x.so.1 libecore-x1 #MINVER#
  ecore_x_e_comp_sync_supported_set@Base 1.7.7
  ecore_x_e_frame_size_set@Base 1.7.7
  ecore_x_e_illume_access_action_activate_send@Base 1.7.7
+ ecore_x_e_illume_access_action_down_send@Base 1.8.0
  ecore_x_e_illume_access_action_next_send@Base 1.7.7
  ecore_x_e_illume_access_action_prev_send@Base 1.7.7
  ecore_x_e_illume_access_action_read_next_send@Base 1.7.7
  ecore_x_e_illume_access_action_read_prev_send@Base 1.7.7
  ecore_x_e_illume_access_action_read_send@Base 1.7.7
+ ecore_x_e_illume_access_action_up_send@Base 1.8.0
  ecore_x_e_illume_clipboard_geometry_get@Base 1.7.7
  ecore_x_e_illume_clipboard_geometry_set@Base 1.7.7
  ecore_x_e_illume_clipboard_state_get@Base 1.7.7
@@ -415,6 +443,9 @@ libecore_x.so.1 libecore-x1 #MINVER#
  ecore_x_e_illume_indicator_state_get@Base 1.7.7
  ecore_x_e_illume_indicator_state_send@Base 1.7.7
  ecore_x_e_illume_indicator_state_set@Base 1.7.7
+ ecore_x_e_illume_indicator_type_get@Base 1.8.0
+ ecore_x_e_illume_indicator_type_send@Base 1.8.0
+ ecore_x_e_illume_indicator_type_set@Base 1.8.0
  ecore_x_e_illume_keyboard_geometry_get@Base 1.7.7
  ecore_x_e_illume_keyboard_geometry_set@Base 1.7.7
  ecore_x_e_illume_mode_get@Base 1.7.7
@@ -450,10 +481,17 @@ libecore_x.so.1 libecore-x1 #MINVER#
  ecore_x_e_virtual_keyboard_state_get@Base 1.7.7
  ecore_x_e_virtual_keyboard_state_send@Base 1.7.7
  ecore_x_e_virtual_keyboard_state_set@Base 1.7.7
+ ecore_x_e_window_available_profiles_get@Base 1.8.0
+ ecore_x_e_window_available_profiles_set@Base 1.8.0
+ ecore_x_e_window_profile_change_done_send@Base 1.8.0
+ ecore_x_e_window_profile_change_request_send@Base 1.8.0
+ ecore_x_e_window_profile_change_send@Base 1.8.0
  ecore_x_e_window_profile_get@Base 1.7.7
  ecore_x_e_window_profile_list_get@Base 1.7.7
  ecore_x_e_window_profile_list_set@Base 1.7.7
  ecore_x_e_window_profile_set@Base 1.7.7
+ ecore_x_e_window_profile_supported_get@Base 1.8.0
+ ecore_x_e_window_profile_supported_set@Base 1.8.0
  ecore_x_error_code_get@Base 1.7.7
  ecore_x_error_handler_set@Base 1.7.7
  ecore_x_error_request_get@Base 1.7.7
@@ -515,6 +553,7 @@ libecore_x.so.1 libecore-x1 #MINVER#
  ecore_x_image_to_argb_convert@Base 1.7.7
  ecore_x_init@Base 1.7.7
  ecore_x_input_multi_select@Base 1.7.7
+ ecore_x_input_raw_select@Base 1.8.0
  ecore_x_io_error_handler_set@Base 1.7.7
  ecore_x_keyboard_grab@Base 1.7.7
  ecore_x_keyboard_ungrab@Base 1.7.7
@@ -605,17 +644,31 @@ libecore_x.so.1 libecore-x1 #MINVER#
  ecore_x_pointer_last_xy_get@Base 1.7.7
  ecore_x_pointer_mapping_get@Base 1.7.7
  ecore_x_pointer_mapping_set@Base 1.7.7
+ ecore_x_pointer_root_xy_get@Base 1.8.0
  ecore_x_pointer_ungrab@Base 1.7.7
  ecore_x_pointer_warp@Base 1.7.7
  ecore_x_pointer_xy_get@Base 1.7.7
+ ecore_x_randr_config_timestamp_get@Base 1.8.0
+ ecore_x_randr_crtc_border_area_get@Base 1.8.0
+ ecore_x_randr_crtc_border_area_set@Base 1.8.0
  ecore_x_randr_crtc_clone_set@Base 1.7.7
+ ecore_x_randr_crtc_gamma_get@Base 1.8.0
+ ecore_x_randr_crtc_gamma_ramp_size_get@Base 1.8.0
+ ecore_x_randr_crtc_gamma_ramps_get@Base 1.8.0
+ ecore_x_randr_crtc_gamma_ramps_set@Base 1.8.0
+ ecore_x_randr_crtc_gamma_set@Base 1.8.0
+ ecore_x_randr_crtc_gamma_size_get@Base 1.8.0
  ecore_x_randr_crtc_geometry_get@Base 1.7.7
+ ecore_x_randr_crtc_info_free@Base 1.8.0
+ ecore_x_randr_crtc_info_get@Base 1.8.0
  ecore_x_randr_crtc_mode_get@Base 1.7.7
  ecore_x_randr_crtc_mode_set@Base 1.7.7
  ecore_x_randr_crtc_orientation_get@Base 1.7.7
  ecore_x_randr_crtc_orientation_set@Base 1.7.7
  ecore_x_randr_crtc_orientations_get@Base 1.7.7
  ecore_x_randr_crtc_outputs_get@Base 1.7.7
+ ecore_x_randr_crtc_panning_area_get@Base 1.8.0
+ ecore_x_randr_crtc_panning_area_set@Base 1.8.0
  ecore_x_randr_crtc_pos_get@Base 1.7.7
  ecore_x_randr_crtc_pos_relative_set@Base 1.7.7
  ecore_x_randr_crtc_pos_set@Base 1.7.7
@@ -623,6 +676,8 @@ libecore_x.so.1 libecore-x1 #MINVER#
  ecore_x_randr_crtc_refresh_rate_get@Base 1.7.7
  ecore_x_randr_crtc_settings_set@Base 1.7.7
  ecore_x_randr_crtc_size_get@Base 1.7.7
+ ecore_x_randr_crtc_tracking_area_get@Base 1.8.0
+ ecore_x_randr_crtc_tracking_area_set@Base 1.8.0
  ecore_x_randr_crtcs_get@Base 1.7.7
  ecore_x_randr_current_crtc_get@Base 1.7.7
  ecore_x_randr_current_output_get@Base 1.7.7
@@ -643,6 +698,7 @@ libecore_x.so.1 libecore-x1 #MINVER#
  ecore_x_randr_edid_manufacturer_model_get@Base 1.7.7
  ecore_x_randr_edid_manufacturer_name_get@Base 1.7.7
  ecore_x_randr_edid_manufacturer_serial_number_get@Base 1.7.7
+ ecore_x_randr_edid_model_get@Base 1.8.0
  ecore_x_randr_edid_version_get@Base 1.7.7
  ecore_x_randr_events_select@Base 1.7.7
  ecore_x_randr_mode_del@Base 1.7.7
@@ -657,15 +713,24 @@ libecore_x.so.1 libecore-x1 #MINVER#
  ecore_x_randr_output_backlight_level_get@Base 1.7.7
  ecore_x_randr_output_backlight_level_set@Base 1.7.7
  ecore_x_randr_output_clones_get@Base 1.7.7
+ ecore_x_randr_output_compatibility_list_get@Base 1.8.0
  ecore_x_randr_output_connection_status_get@Base 1.7.7
+ ecore_x_randr_output_connector_number_get@Base 1.8.0
+ ecore_x_randr_output_connector_type_get@Base 1.8.0
  ecore_x_randr_output_crtc_get@Base 1.7.7
+ ecore_x_randr_output_crtc_set@Base 1.8.0
  ecore_x_randr_output_edid_get@Base 1.7.7
  ecore_x_randr_output_mode_add@Base 1.7.7
  ecore_x_randr_output_mode_del@Base 1.7.7
  ecore_x_randr_output_modes_get@Base 1.7.7
  ecore_x_randr_output_name_get@Base 1.7.7
  ecore_x_randr_output_possible_crtcs_get@Base 1.7.7
+ ecore_x_randr_output_signal_format_set@Base 1.8.0
+ ecore_x_randr_output_signal_formats_get@Base 1.8.0
+ ecore_x_randr_output_signal_properties_get@Base 1.8.0
  ecore_x_randr_output_size_mm_get@Base 1.7.7
+ ecore_x_randr_output_subpixel_order_get@Base 1.8.0
+ ecore_x_randr_output_wired_clones_get@Base 1.8.0
  ecore_x_randr_outputs_get@Base 1.7.7
  ecore_x_randr_primary_output_get@Base 1.7.7
  ecore_x_randr_primary_output_set@Base 1.7.7
@@ -734,6 +799,7 @@ libecore_x.so.1 libecore-x1 #MINVER#
  ecore_x_selection_converter_atom_add@Base 1.7.7
  ecore_x_selection_converter_atom_del@Base 1.7.7
  ecore_x_selection_converter_del@Base 1.7.7
+ ecore_x_selection_converter_text@Base 1.8.0
  ecore_x_selection_notify_send@Base 1.7.7
  ecore_x_selection_owner_get@Base 1.7.7
  ecore_x_selection_owner_set@Base 1.7.7
@@ -764,6 +830,7 @@ libecore_x.so.1 libecore-x1 #MINVER#
  ecore_x_test_fake_key_press@Base 1.7.7
  ecore_x_test_fake_key_up@Base 1.7.7
  ecore_x_ungrab@Base 1.7.7
+ ecore_x_version@Base 1.8.0
  ecore_x_visual_id_get@Base 1.7.7
  ecore_x_vsync_animator_tick_source_set@Base 1.7.7
  ecore_x_window_area_clear@Base 1.7.7

@@ -1,12 +1,20 @@
 libecore.so.1 libecore1 #MINVER#
+ ECORE_ANIMATOR_BASE_ID@Base 1.8.0
  ECORE_EXE_EVENT_ADD@Base 1.7.7
  ECORE_EXE_EVENT_DATA@Base 1.7.7
  ECORE_EXE_EVENT_DEL@Base 1.7.7
  ECORE_EXE_EVENT_ERROR@Base 1.7.7
+ ECORE_IDLER_BASE_ID@Base 1.8.0
+ ECORE_IDLE_ENTERER_BASE_ID@Base 1.8.0
+ ECORE_IDLE_EXITER_BASE_ID@Base 1.8.0
+ ECORE_JOB_BASE_ID@Base 1.8.0
+ ECORE_POLLER_BASE_ID@Base 1.8.0
+ ECORE_TIMER_BASE_ID@Base 1.8.0
  _ecore_event_handler_del@Base 1.7.7
  _ecore_magic_fail@Base 1.7.7
  _ecore_timer_delay@Base 1.7.7
  ecore_animator_add@Base 1.7.7
+ ecore_animator_class_get@Base 1.8.0
  ecore_animator_custom_source_tick_begin_callback_set@Base 1.7.7
  ecore_animator_custom_source_tick_end_callback_set@Base 1.7.7
  ecore_animator_custom_tick@Base 1.7.7
@@ -21,6 +29,7 @@ libecore.so.1 libecore1 #MINVER#
  ecore_animator_timeline_add@Base 1.7.7
  ecore_app_args_get@Base 1.7.7
  ecore_app_args_set@Base 1.7.7
+ ecore_app_no_system_modules@Base 1.8.0
  ecore_app_restart@Base 1.7.7
  ecore_event_add@Base 1.7.7
  ecore_event_current_event_get@Base 1.7.7
@@ -70,13 +79,17 @@ libecore.so.1 libecore1 #MINVER#
  ecore_getopt_parser_has_duplicates@Base 1.7.7
  ecore_idle_enterer_add@Base 1.7.7
  ecore_idle_enterer_before_add@Base 1.7.7
+ ecore_idle_enterer_class_get@Base 1.8.0
  ecore_idle_enterer_del@Base 1.7.7
  ecore_idle_exiter_add@Base 1.7.7
+ ecore_idle_exiter_class_get@Base 1.8.0
  ecore_idle_exiter_del@Base 1.7.7
  ecore_idler_add@Base 1.7.7
+ ecore_idler_class_get@Base 1.8.0
  ecore_idler_del@Base 1.7.7
  ecore_init@Base 1.7.7
  ecore_job_add@Base 1.7.7
+ ecore_job_class_get@Base 1.8.0
  ecore_job_del@Base 1.7.7
  ecore_loop_time_get@Base 1.7.7
  ecore_main_fd_handler_active_get@Base 1.7.7
@@ -98,20 +111,29 @@ libecore.so.1 libecore1 #MINVER#
  ecore_main_loop_thread_safe_call_sync@Base 1.7.7
  ecore_main_win32_handler_add@Base 1.7.7
  ecore_main_win32_handler_del@Base 1.7.7
+ ecore_memory_state_get@Base 1.8.0
+ ecore_memory_state_set@Base 1.8.0
+ ecore_parent_class_get@Base 1.8.0
  ecore_pipe_add@Base 1.7.7
  ecore_pipe_del@Base 1.7.7
  ecore_pipe_freeze@Base 1.7.7
+ ecore_pipe_full_add@Base 1.8.0
  ecore_pipe_read_close@Base 1.7.7
+ ecore_pipe_read_fd@Base 1.8.0
  ecore_pipe_thaw@Base 1.7.7
  ecore_pipe_wait@Base 1.7.7
  ecore_pipe_write@Base 1.7.7
  ecore_pipe_write_close@Base 1.7.7
+ ecore_pipe_write_fd@Base 1.8.0
  ecore_poller_add@Base 1.7.7
+ ecore_poller_class_get@Base 1.8.0
  ecore_poller_del@Base 1.7.7
  ecore_poller_poll_interval_get@Base 1.7.7
  ecore_poller_poll_interval_set@Base 1.7.7
  ecore_poller_poller_interval_get@Base 1.7.7
  ecore_poller_poller_interval_set@Base 1.7.7
+ ecore_power_state_get@Base 1.8.0
+ ecore_power_state_set@Base 1.8.0
  ecore_print_warning@Base 1.7.7
  ecore_shutdown@Base 1.7.7
  ecore_thread_active_get@Base 1.7.7
@@ -144,6 +166,7 @@ libecore.so.1 libecore1 #MINVER#
  ecore_time_get@Base 1.7.7
  ecore_time_unix_get@Base 1.7.7
  ecore_timer_add@Base 1.7.7
+ ecore_timer_class_get@Base 1.8.0
  ecore_timer_del@Base 1.7.7
  ecore_timer_delay@Base 1.7.7
  ecore_timer_dump@Base 1.7.7
