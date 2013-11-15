@@ -28,6 +28,27 @@ libecore_con.so.1 libecore-con1 #MINVER#
  ecore_con_client_timeout_get@Base 1.7.7
  ecore_con_client_timeout_set@Base 1.7.7
  ecore_con_client_uptime_get@Base 1.7.7
+ ecore_con_eet_client_connect_callback_add@Base 1.8.0
+ ecore_con_eet_client_connect_callback_del@Base 1.8.0
+ ecore_con_eet_client_disconnect_callback_add@Base 1.8.0
+ ecore_con_eet_client_disconnect_callback_del@Base 1.8.0
+ ecore_con_eet_client_new@Base 1.8.0
+ ecore_con_eet_data_callback_add@Base 1.8.0
+ ecore_con_eet_data_callback_del@Base 1.8.0
+ ecore_con_eet_data_get@Base 1.8.0
+ ecore_con_eet_data_set@Base 1.8.0
+ ecore_con_eet_raw_data_callback_add@Base 1.8.0
+ ecore_con_eet_raw_data_callback_del@Base 1.8.0
+ ecore_con_eet_raw_send@Base 1.8.0
+ ecore_con_eet_register@Base 1.8.0
+ ecore_con_eet_reply@Base 1.8.0
+ ecore_con_eet_send@Base 1.8.0
+ ecore_con_eet_server_connect_callback_add@Base 1.8.0
+ ecore_con_eet_server_connect_callback_del@Base 1.8.0
+ ecore_con_eet_server_disconnect_callback_add@Base 1.8.0
+ ecore_con_eet_server_disconnect_callback_del@Base 1.8.0
+ ecore_con_eet_server_free@Base 1.8.0
+ ecore_con_eet_server_new@Base 1.8.0
  ecore_con_info_get@Base 1.7.7
  ecore_con_init@Base 1.7.7
  ecore_con_lookup@Base 1.7.7
