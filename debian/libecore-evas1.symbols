@@ -161,7 +161,6 @@ libecore_evas.so.1 libecore-evas1 #MINVER#
  ecore_evas_size_min_set@Base 1.7.7
  ecore_evas_size_step_get@Base 1.7.7
  ecore_evas_size_step_set@Base 1.7.7
- ecore_evas_software_16_ddraw_new@Base 1.7.7
  ecore_evas_software_ddraw_new@Base 1.7.7
  ecore_evas_software_gdi_new@Base 1.7.7
  ecore_evas_software_wince_ddraw_new@Base 1.7.7
