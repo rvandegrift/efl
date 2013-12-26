@@ -3,7 +3,8 @@ Section: libs
 Priority: optional
 Maintainer: Debian Pkg-e Team <pkg-e-devel@lists.alioth.debian.org>
 Uploaders: Albin Tonnerre <lutin@debian.org>
-Build-Depends: dpkg-dev (>= 1.14.8), debhelper (>= 9), pkg-config, check,
+Build-Depends: dpkg-dev (>= 1.14.8), debhelper (>= 9), dh-autoreconf,
+ pkg-config, check,
  zlib1g-dev, libjpeg-dev, libpng-dev, libtiff-dev, libgif-dev, libxpm-dev,
  libfreetype6-dev, libfontconfig1-dev,
  libx11-dev, x11proto-xext-dev, , libglu1-mesa-dev, mesa-common-dev,
