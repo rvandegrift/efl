@@ -13,7 +13,8 @@ Build-Depends: dpkg-dev (>= 1.14.8), debhelper (>= 9), pkg-config, check,
  libxrandr-dev, libxext-dev, libxp-dev, libxcomposite-dev, libxi-dev,
  libxdamage-dev, x11proto-xext-dev, libxtst-dev, libglib2.0-dev,
  liblua5.1-0-dev,
- libgnutls-dev, libcurl4-gnutls-dev, libc-ares-dev
+ libgnutls-dev, libcurl4-gnutls-dev, libc-ares-dev,
+ libdbus-1-dev, libsndfile-dev, libudev-dev, libmount-dev, libblkid-dev
 Build-Depends-Indep: doxygen
 Standards-Version: 3.9.4
 Vcs-Git: git://anonscm.debian.org/pkg-e/libs/efl.git
