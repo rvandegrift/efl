@@ -81,28 +81,6 @@ Description: Documentation for use with libeina
  This package contains documentation for libeina.
 
 
-Package: libeina-dbg
-Architecture: any
-Section: debug
-Depends: ${misc:Depends}, libeina1 (= ${binary:Version})
-Priority: extra
-Description: debugging symbols for use with libeina
- Eina is a multi-platform library that provides optimized data types and a few
- tools. It supports the following data types:
-  - Array
-  - Hash Table
-  - Double-linked list
-  - Red-black tree
-  - Shared string
-  - Access Content types
-    + Accessor: can access items of a container randomly
-    + Iterator: can access items of a container sequentially
- .
- This package contains unstripped shared libraries. It is provided primarily
- to provide a backtrace with names in a debugger, this makes it somewhat easier
- to interpret core dumps. The libraries are installed in /usr/lib/debug and
- are automatically used by gdb.
-
 # EET
 
 Package: libeet-dev
@@ -160,23 +138,6 @@ Description: Enlightenment DR17 file chunk reading/writing utility
  This package contains eet, an utility that allows you to extract, insert,
  encode and decode config blobs created with libeet.
 
-Package: libeet-dbg
-Architecture: any
-Section: debug
-Priority: extra
-Depends: ${misc:Depends}, libeet1 (= ${binary:Version})
-Description: E17 file chunk reading/writing library - debug symbols
- Eet is a tiny library designed to write an arbitrary set of chunks of data to a
- file and optionally compress each chunk (very much like a zip file) and allows
- fast random-access reading of the file later on. It does not do zip as zip
- itself has more complexity than needed, and it was much simpler to implement
- this once here
- .
- This package contains unstripped shared libraries. It is provided primarily
- to provide a backtrace with names in a debugger, this makes it somewhat easier
- to interpret core dumps. The libraries are installed in /usr/lib/debug and
- are automatically used by gdb.
-
 # EVAS
 
 Package: libevas1
@@ -223,21 +184,6 @@ Description: Enlightenment DR17 advanced canvas library development files
  .
  This package provides headers and static libraries required to develop against
  evas.
-
-Package: libevas-dbg
-Architecture: any
-Section: debug
-Depends: ${misc:Depends}, libevas1 (= ${binary:Version})
-Priority: extra
-Description: enlightenment advanced canvas library
- Evas is an advanced canvas library, providing six engines for rendering: X11,
- OpenGL (hardware accelerated), DirectFB, the framebuffer, Microsoft Windows
- and Qtopia.
- .
- This package contains unstripped shared libraries. It is provided primarily
- to provide a backtrace with names in a debugger, this makes it somewhat
- easier to interpret core dumps. The libraries are installed in
- /usr/lib/debug and are automatically used by gdb.
 
 Package: libevas1-engines-core
 Architecture: any
@@ -444,30 +390,6 @@ Description: Ecore API Documentation
  This package provides development documentation (html and manpages)for the
  Ecore library.
 
-Package: libecore-dbg
-Architecture: any
-Section: debug
-Priority: extra
-Depends: ${misc:Depends}, libecore1 (= ${binary:Version})
-Recommends: libecore-con1 (= ${binary:Version}),
-            libecore-evas1 (= ${binary:Version}),
-            libecore-fb1 (= ${binary:Version}),
-            libecore-file1 (= ${binary:Version}),
-            libecore-imf1 (= ${binary:Version}),
-            libecore-ipc1 (= ${binary:Version}),
-            libecore-x1 (= ${binary:Version})
-Description: Debugging symbols for libecore
- This is the core event abstraction layer and X abstraction layer that makes
- doing selections, Xdnd, general X stuff, and event loops, timeouts and idle
- handlers fast, optimized, and convenient. It's a separate library so anyone
- can make use of the work put into Ecore to make this job easy for
- applications
- .
- This package contains unstripped shared libraries. It is provided primarily
- to provide a backtrace with names in a debugger, this makes it somewhat easier
- to interpret core dumps. The libraries are installed in /usr/lib/debug and
- are automatically used by gdb.
-
 # EFREET
 
 Package: libefreet1
@@ -574,23 +496,6 @@ Description: libembryo1 development documentation
  .
  This package provides development documentation for Embryo.
 
-Package: libembryo-dbg
-Architecture: any
-Section: debug
-Depends: ${misc:Depends}, libembryo1 (= ${binary:Version})
-Priority: extra
-Description: Debugging symbols for libembryo
- Embryo is primarily a shared library that gives you an API to load
- and control interpreted programs compiled into an abstract machine
- bytecode that it understands.  This abstract (or virtual) machine is
- similar to a real machine with a CPU, but it is emulated in
- software
- .
- This package contains unstripped shared libraries. It is provided primarily
- to provide a backtrace with names in a debugger, this makes it somewhat
- easier to interpret core dumps. The libraries are installed in
- /usr/lib/debug and are automatically used by gdb.
-
 Package: libembryo-bin
 Section: devel
 Architecture: any
@@ -657,21 +562,6 @@ Description: libedje headers and static libraries
  .
  This package provides headers and static libraries for Edje.
 
-Package: libedje-dbg
-Architecture: any
-Section: debug
-Priority: extra
-Depends: ${misc:Depends}, libedje1 (= ${binary:Version})
-Description: Debugging symbols for libedje
- Edje is a graphical layout and animation library for animated resizable,
- compressed and scalable themes. It is the theming engine behind
- Enlightenment DR 0.17.
- .
- This package contains unstripped shared libraries. It is provided primarily
- to provide a backtrace with names in a debugger, this makes it somewhat
- easier to interpret core dumps. The libraries are installed in
- /usr/lib/debug and are automatically used by gdb.
-
 # EIO
 
 Package: libeio1
@@ -712,17 +602,41 @@ Description: EIO API Documentation
  This package provides development documentation (html and manpages)for the
  EIO library.
 
-Package: libeio-dbg
+
+Package: efl-dbg
 Architecture: any
 Section: debug
 Priority: extra
-Depends: ${misc:Depends}, libeio1 (= ${binary:Version})
-Description: Debugging symbols for libeio
- This library is part of the Enlightenment Foundation Libraries (EFL). It is
- intended to provide non-blocking IO by using thread for all operations that
- may block. It should integrate all the features/functions of Ecore_File that
- could block.
- .
+Depends:  ${misc:Depends},
+          libeina1       (= ${binary:Version}),
+          libeet1        (= ${binary:Version}),
+          libevas1       (= ${binary:Version}),
+          libecore1      (= ${binary:Version}),
+          libecore-con1  (= ${binary:Version}),
+          libecore-evas1 (= ${binary:Version}),
+          libecore-fb1   (= ${binary:Version}),
+          libecore-file1 (= ${binary:Version}),
+          libecore-imf1  (= ${binary:Version}),
+          libecore-ipc1  (= ${binary:Version}),
+          libecore-x1    (= ${binary:Version}),
+          libembryo1     (= ${binary:Version}),
+          libedje1       (= ${binary:Version}),
+          libeio1        (= ${binary:Version})
+Breaks:   libeina-dbg    (<< 1.8.3),
+          libeet-dbg     (<< 1.8.3),
+          libevas-dbg    (<< 1.8.3),
+          libecore-dbg   (<< 1.8.3),
+          libembryo-dbg  (<< 1.8.3),
+          libedje-dbg    (<< 1.8.3),
+          libeio-dbg     (<< 1.8.3)
+Replaces: libeina-dbg    (<< 1.8.3),
+          libeet-dbg     (<< 1.8.3),
+          libevas-dbg    (<< 1.8.3),
+          libecore-dbg   (<< 1.8.3),
+          libembryo-dbg  (<< 1.8.3),
+          libedje-dbg    (<< 1.8.3),
+          libeio-dbg     (<< 1.8.3)
+Description: Debugging symbols for the Enlightenment Foundation Libraries
  This package contains unstripped shared libraries. It is provided primarily
  to provide a backtrace with names in a debugger, this makes it somewhat easier
  to interpret core dumps. The libraries are installed in /usr/lib/debug and
