@@ -88,7 +88,9 @@ Description: Documentation for use with libeina
 Package: libeet-dev
 Section: libdevel
 Architecture: any
-Depends: ${misc:Depends}, libeet1 (= ${binary:Version}), libjpeg-dev, libeina-dev (>= 1.2.0), libgnutls-dev, pkg-config
+Depends: ${misc:Depends}, libeet1 (= ${binary:Version}), pkg-config,
+ libeina-dev (>= ${source:Upstream-Version}),
+ libjpeg-dev, libgnutls-dev
 Recommends: libeet-doc
 Description: Enlightenment DR17 file chunk reading/writing library development files
  Eet is a tiny library designed to write an arbitrary set of chunks of data to a
@@ -173,9 +175,10 @@ Description: Evas API Documentation
 Package: libevas-dev
 Section: libdevel
 Architecture: any
-Depends: ${misc:Depends}, libevas1 (= ${binary:Version}), libjpeg-dev, libx11-dev,
- libfreetype6-dev, libfontconfig1-dev, libeet-dev (>= 1.7.4), libeina-dev (>= 1.6.0),
- libfribidi-dev, pkg-config
+Depends: ${misc:Depends}, libevas1 (= ${binary:Version}), pkg-config,
+ libeina-dev (>= ${source:Upstream-Version}),
+ libeet-dev  (>= ${source:Upstream-Version}),
+ libjpeg-dev, libx11-dev, libfreetype6-dev, libfontconfig1-dev, libfribidi-dev
 Suggests: libevas-doc
 Description: Enlightenment DR17 advanced canvas library development files
  Evas is an advanced canvas library, providing six engines for rendering: X11,
@@ -339,7 +342,7 @@ Package: libecore-dev
 Architecture: any
 Section: libdevel
 Suggests: libecore-doc
-Depends: ${misc:Depends}, libecore1 (= ${binary:Version}),
+Depends: ${misc:Depends}, libecore1 (= ${binary:Version}), pkg-config,
          libecore-con1 (= ${binary:Version}),
          libecore-evas1 (= ${binary:Version}),
          libecore-fb1 (= ${binary:Version}) [linux-any],
@@ -347,11 +350,12 @@ Depends: ${misc:Depends}, libecore1 (= ${binary:Version}),
          libecore-imf1 (= ${binary:Version}),
          libecore-ipc1 (= ${binary:Version}),
          libecore-x1 (= ${binary:Version}),
-         libevas-dev (>= 1.7.7), libeina-dev (>= 1.7.7),
+         libeina-dev (>= ${source:Upstream-Version}),
+         libevas-dev (>= ${source:Upstream-Version}),
          libgnutls-dev, libcurl4-gnutls-dev, libxcursor-dev, libxss-dev,
          libxrender-dev, libxinerama-dev, libxrandr-dev, libxext-dev, libxi-dev,
          libxp-dev, libxcomposite-dev, libxdamage-dev, x11proto-xext-dev, libxtst-dev,
-         libglib2.0-dev, libc-ares-dev, pkg-config, libdbus-1-dev
+         libglib2.0-dev, libc-ares-dev, libdbus-1-dev
 Description: Ecore headers and static libraries
  This is the core event abstraction layer and X abstraction layer that makes
  doing selections, Xdnd, general X stuff, and event loops, timeouts and idle
@@ -398,7 +402,9 @@ Description: Library that implements freedesktop.org specs for use with E17/EFL
 Package: libefreet-dev
 Section: libdevel
 Architecture: any
-Depends: ${misc:Depends}, libefreet1 (= ${binary:Version}), libecore-dev (>= 1.7.7), libeina-dev (>= 1.7.7)
+Depends: ${misc:Depends}, libefreet1 (= ${binary:Version}), pkg-config,
+ libeina-dev  (>= ${source:Upstream-Version}),
+ libecore-dev (>= ${source:Upstream-Version})
 Suggests: libefreet-doc
 Description: Development files for libefreet and libefreet-mime
  An implementation of several specifications from freedesktop.org intended for
@@ -435,7 +441,8 @@ Description: libefreet and libfreet-mime API documentation
 Package: libembryo-dev
 Section: libdevel
 Architecture: any
-Depends: ${misc:Depends}, libembryo1 (= ${binary:Version}), pkg-config
+Depends: ${misc:Depends}, libembryo1 (= ${binary:Version}), pkg-config,
+ libeina-dev (>= ${source:Upstream-Version})
 Description: Development files for libembryo1
  Embryo is primarily a shared library that gives you an API to load
  and control interpreted programs compiled into an abstract machine
@@ -537,10 +544,14 @@ Description: libedje0 development documentation
 Package: libedje-dev
 Architecture: any
 Section: libdevel
-Depends: ${misc:Depends}, libedje1 (= ${binary:Version}), libedje-bin,
- libeet-dev (>= 1.7.7), libembryo-dev (>= 1.7.7), libevas-dev (>= 1.7.7),
- libecore-dev (>= 1.7.7), libeina-dev (>= 1.7.7), liblua5.1-0-dev,
- pkg-config, libeio-dev (>= 1.7.7)
+Depends: ${misc:Depends}, libedje1 (= ${binary:Version}), libedje-bin, pkg-config,
+ libeina-dev   (>= ${source:Upstream-Version}),
+ libeet-dev    (>= ${source:Upstream-Version}),
+ libevas-dev   (>= ${source:Upstream-Version}),
+ libecore-dev  (>= ${source:Upstream-Version}),
+ libembryo-dev (>= ${source:Upstream-Version}),
+ libeio-dev    (>= ${source:Upstream-Version}),
+ liblua5.1-0-dev
 Description: libedje headers and static libraries
  Edje is a graphical layout and animation library for animated resizable,
  compressed and scalable themes. It is the theming engine behind
@@ -564,8 +575,10 @@ Package: libeio-dev
 Architecture: any
 Section: libdevel
 Suggests: libeio-doc
-Depends: ${misc:Depends}, libeio1 (= ${binary:Version}),
- libeina-dev (>= 1.7.7), libeet-dev (>= 1.7.7), libecore-dev (>= 1.7.7)
+Depends: ${misc:Depends}, libeio1 (= ${binary:Version}), pkg-config,
+ libeina-dev   (>= ${source:Upstream-Version}),
+ libeet-dev    (>= ${source:Upstream-Version}),
+ libecore-dev  (>= ${source:Upstream-Version})
 Description: EIO headers and static libraries
  This library is part of the Enlightenment Foundation Libraries (EFL). It is
  intended to provide non-blocking IO by using thread for all operations that
