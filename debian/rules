@@ -8,7 +8,7 @@ ifeq (linux,$(DEB_HOST_ARCH_OS))
 endif
 
 %:
-	dh $@ --with autoreconf
+	dh $@ --with autoreconf --parallel
 
 override_dh_auto_configure:
 	dh_auto_configure -- \
@@ -29,7 +29,12 @@ override_dh_auto_build-indep:
 
 override_dh_auto_test-indep:
 override_dh_auto_test-arch:
-	$(MAKE) check VERBOSE=yes
+	$(MAKE) -j1 check VERBOSE=yes
+
+# The install phase doesn't work reliably in parallel
+# Force it to run with only 1 thread to avoid issues
+override_dh_auto_install:
+	$(MAKE) -j1 DESTDIR=$(CURDIR)/debian/tmp install
 
 override_dh_install:
 	dh_install
