@@ -523,6 +523,43 @@ Description: EIO headers and static libraries
  .
  This package contains headers and static libraries for the EIO library.
 
+# EEZE
+
+Package: libeeze1
+Architecture: any
+Pre-Depends: ${misc:Pre-Depends}
+Depends: ${misc:Depends}, ${shlibs:Depends}
+Description: Library for manipulating devices through udev
+ This library is part of the Enlightenment Foundation Libraries (EFL). It
+ interfaces directly with libudev, avoiding such middleman daemons as
+ udisks/upower or hal, and gathers device information when it becomes
+ known to the system. This can be used to determine such things as:
+  - If a cdrom has a disk inserted
+  - The temperature of a cpu core
+  - The remaining power left in a battery
+  - The current power consumption of various parts
+  - Monitor in realtime the status of peripheral devices
+
+Package: libeeze-dev
+Section: libdevel
+Architecture: any
+Depends: ${misc:Depends}, libeeze1 (= ${binary:Version}), pkg-config,
+ libeina-dev  (>= ${source:Upstream-Version}),
+ libeet-dev   (>= ${source:Upstream-Version}),
+ libecore-dev (>= ${source:Upstream-Version}),
+ libblkid-dev, libmount-dev, libudev-dev [linux-any]
+Description: EEZE headers and static libraries
+ This library is part of the Enlightenment Foundation Libraries (EFL). It
+ interfaces directly with libudev, avoiding such middleman daemons as
+ udisks/upower or hal, and gathers device information when it becomes
+ known to the system. This can be used to determine such things as:
+  - If a cdrom has a disk inserted
+  - The temperature of a cpu core
+  - The remaining power left in a battery
+  - The current power consumption of various parts
+  - Monitor in realtime the status of peripheral devices
+ .
+ This package contains headers and static libraries for the Eeze library.
 
 Package: efl-doc
 Architecture: all
@@ -569,7 +606,8 @@ Depends:  ${misc:Depends},
           libecore-x1    (= ${binary:Version}),
           libembryo1     (= ${binary:Version}),
           libedje1       (= ${binary:Version}),
-          libeio1        (= ${binary:Version})
+          libeio1        (= ${binary:Version}),
+          libeeze1       (= ${binary:Version})
 Breaks:   libeina-dbg    (<< 1.8.3),
           libeet-dbg     (<< 1.8.3),
           libevas-dbg    (<< 1.8.3),
