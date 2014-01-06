@@ -1,5 +1,38 @@
 efl (1.8.3-1) experimental; urgency=low
 
   * First upload of the merged EFL tree (Closes: #729751)
+  * debian: add control and packages information from previous EFL packages
+  * debian: bring back and refresh applicable patches from previous EFL packages
+  * debian: move to a single debug symbols package for EFL
+  * debian: core evas engines now ship with libevas1, drop libevas-engines-core
+  * debian: upstream no longer provides static libraries
+  * debian: fix install path for ecore and edje utility libraries
+  * debian: remove evas loaders install; they'll be split in a separate package
+  * debian: update Build-Depends as per new EFL requirements
+  * debian/rules: always run autoreconf during build to get a recent version
+  * debian/rules: force build with dev profile
+  * debian/rules: add support for parallel builds
+  * debian: add packaging information for EO.
+    Since this a base EFL that all other libs depend on, integrate it with
+    the eina package
+  * debian: add packaging information for Eldbus.
+    To avoid a circular dependency between eldbus and ecore (ecore modules
+    depend on eldbus, eldbus depends on ecore), put the eldbus library in
+    the libecore package
+  * debian: refactor packages dependencies to be easier to maintain.
+    Upstream always generates the .pc files to have dependencies between
+    libs with the upstream version (ie. for EFL 1.8.3 all .pc files refer to
+    1.8.3), so there's no point in trying to be clever: just use the
+    source:Upstream-Version. Also, include Efl_Config.h in eina and make
+    sure all -dev packages depend on libeina-dev to get that config header
+  * debian/libevas1.symbols: mark all evas_common symbols as optional.
+    Even if the evas_common symbols are exported, they are internal to
+    Evas: they are only part of the internal engine API, but the symbols
+    have to be exported because Evas module use them and we need to be able
+    to resolve references to those symbols
+  * debian/libecore-evas1.symbols: drop windows-only symbol removed from EFL 1.8
+  * add patches/03_ecore_evas_extn_abi: cherry-pick e1b1296 to fix ABI issue
+  * debian: add new symbols from this version in the symbols files
+  * debian: add a DEP5-compliant copyright file
 
- -- Albin Tonnerre <lutin@debian.org>  Sun, 27 Oct 2013 12:18:27 +0100
+ -- Albin Tonnerre <lutin@debian.org>  Mon, 06 Jan 2014 12:05:43 +0100
