@@ -1,0 +1,134 @@
+From e1b12968a54e9bbb3ab9603f9510854a363f72f4 Mon Sep 17 00:00:00 2001
+From: Cedric Bail <cedric.bail@free.fr>
+Date: Sat, 4 Jan 2014 11:23:47 +0900
+Subject: [PATCH] ecore_evas: extn - restore missing symbol that resulted in a
+ temporary ABI break.
+
+Thanks to Albin and Debian tools to have spotted that.
+
+- cherry-pick me -
+---
+ src/Makefile_Ecore_Evas.am                          |  1 +
+ src/lib/ecore_evas/ecore_evas.c                     |  4 ++++
+ src/lib/ecore_evas/ecore_evas_extn.c                | 19 +++++++++++++++++++
+ src/lib/ecore_evas/ecore_evas_private.h             |  3 +++
+ .../ecore_evas/engines/extn/ecore_evas_extn.c       | 21 ++++++---------------
+ 5 files changed, 33 insertions(+), 15 deletions(-)
+ create mode 100644 src/lib/ecore_evas/ecore_evas_extn.c
+
+diff --git a/src/Makefile_Ecore_Evas.am b/src/Makefile_Ecore_Evas.am
+index a6c1f46..d72cd86 100644
+--- a/src/Makefile_Ecore_Evas.am
++++ b/src/Makefile_Ecore_Evas.am
+@@ -18,6 +18,7 @@ lib/ecore_evas/ecore_evas_ews.c \
+ lib/ecore_evas/ecore_evas_module.c \
+ lib/ecore_evas/ecore_evas_private.h \
+ lib/ecore_evas/ecore_evas_extn.h \
++lib/ecore_evas/ecore_evas_extn.c \
+ lib/ecore_evas/ecore_evas_wayland.h \
+ lib/ecore_evas/ecore_evas_win32.h \
+ lib/ecore_evas/ecore_evas_x11.h \
+diff --git a/src/lib/ecore_evas/ecore_evas.c b/src/lib/ecore_evas/ecore_evas.c
+index 771e7dc..e7b2023 100644
+--- a/src/lib/ecore_evas/ecore_evas.c
++++ b/src/lib/ecore_evas/ecore_evas.c
+@@ -318,6 +318,8 @@ ecore_evas_init(void)
+    _ecore_evas_ews_events_init();
+ #endif
+ 
++   _ecore_evas_extn_init();
++
+    _ecore_evas_engine_init();
+ 
+    eina_log_timing(_ecore_evas_log_dom,
+@@ -352,6 +354,8 @@ ecore_evas_shutdown(void)
+    ecore_idle_enterer_del(ecore_evas_idle_enterer);
+    ecore_evas_idle_enterer = NULL;
+ 
++   _ecore_evas_extn_shutdown();
++
+ #ifdef BUILD_ECORE_EVAS_EWS
+    while (_ecore_evas_ews_shutdown());
+ #endif
+diff --git a/src/lib/ecore_evas/ecore_evas_extn.c b/src/lib/ecore_evas/ecore_evas_extn.c
+new file mode 100644
+index 0000000..5500f09
+--- /dev/null
++++ b/src/lib/ecore_evas/ecore_evas_extn.c
+@@ -0,0 +1,19 @@
++#include <Ecore.h>
++#include "Ecore_Evas.h"
++
++EAPI int ECORE_EVAS_EXTN_CLIENT_ADD = 0;
++EAPI int ECORE_EVAS_EXTN_CLIENT_DEL = 0;
++
++void
++_ecore_evas_extn_init(void)
++{
++   ECORE_EVAS_EXTN_CLIENT_ADD = ecore_event_type_new();
++   ECORE_EVAS_EXTN_CLIENT_DEL = ecore_event_type_new();
++}
++
++void
++_ecore_evas_extn_shutdown(void)
++{
++   ECORE_EVAS_EXTN_CLIENT_ADD = 0;
++   ECORE_EVAS_EXTN_CLIENT_DEL = 0;
++}
+diff --git a/src/lib/ecore_evas/ecore_evas_private.h b/src/lib/ecore_evas/ecore_evas_private.h
+index 46d2316..d1e8d42 100644
+--- a/src/lib/ecore_evas/ecore_evas_private.h
++++ b/src/lib/ecore_evas/ecore_evas_private.h
+@@ -329,6 +329,9 @@ void _ecore_evas_ews_events_init(void);
+ int _ecore_evas_ews_shutdown(void);
+ #endif
+ 
++void _ecore_evas_extn_init(void);
++void _ecore_evas_extn_shutdown(void);
++
+ Eina_Module *_ecore_evas_engine_load(const char *engine);
+ const Eina_List *_ecore_evas_available_engines_get(void);
+ void _ecore_evas_engine_init(void);
+diff --git a/src/modules/ecore_evas/engines/extn/ecore_evas_extn.c b/src/modules/ecore_evas/engines/extn/ecore_evas_extn.c
+index 66eec8c..b1332b6 100644
+--- a/src/modules/ecore_evas/engines/extn/ecore_evas_extn.c
++++ b/src/modules/ecore_evas/engines/extn/ecore_evas_extn.c
+@@ -43,23 +43,14 @@ struct _Extn
+ 
+ static Eina_List *extn_ee_list = NULL;
+ 
+-EAPI int ECORE_EVAS_EXTN_CLIENT_ADD = 0;
+-EAPI int ECORE_EVAS_EXTN_CLIENT_DEL = 0;
+-
+-Eina_Bool
+-_ecore_evas_extn_init(void)
++static Eina_Bool
++_ecore_evas_extn_module_init(void)
+ {
+-   if (!ECORE_EVAS_EXTN_CLIENT_ADD)
+-     {
+-	ECORE_EVAS_EXTN_CLIENT_ADD = ecore_event_type_new();
+-	ECORE_EVAS_EXTN_CLIENT_DEL = ecore_event_type_new();
+-     }
+-
+    return EINA_TRUE;
+ }
+ 
+-void
+-_ecore_evas_extn_shutdown(void)
++static void
++_ecore_evas_extn_module_shutdown(void)
+ {
+ }
+ 
+@@ -2209,5 +2200,5 @@ _ecore_evas_extn_interface_new(void)
+    return iface;
+ }
+ 
+-EINA_MODULE_INIT(_ecore_evas_extn_init);
+-EINA_MODULE_SHUTDOWN(_ecore_evas_extn_shutdown);
++EINA_MODULE_INIT(_ecore_evas_extn_module_init);
++EINA_MODULE_SHUTDOWN(_ecore_evas_extn_module_shutdown);
+-- 
+1.8.5.2
+
