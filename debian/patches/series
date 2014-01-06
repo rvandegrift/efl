@@ -1,2 +1,3 @@
 01_restore-eina_abi.diff
 02_no_ecore_imf_test.diff
+03_ecore_evas_extn_abi.diff
