@@ -1,4 +1,4 @@
-EFL_VERSION([1], [8], [3], [release])
+EFL_VERSION([1], [8], [4], [release])
 AC_INIT([efl], [efl_version], [enlightenment-devel@lists.sourceforge.net])
 
 AC_PREREQ([2.60])
@@ -3939,3 +3939,43 @@ echo "  LDFLAGS.......: $LDFLAGS"
 echo "Installation....: make install (as root if needed, with 'su' or 'sudo')"
 echo "  prefix........: $prefix"
 echo
+
+if test "x${with_x11}" = "xxcb"; then
+   echo "_____________________________________________________________________"
+   echo "!!-- WARNING --!!"
+   echo "_____________________________________________________________________"
+   echo "You have chosen to use XCB instead of Xlib. It is a myth that XCB"
+   echo "is amazingly faster than Xlib (when used sensibly). It can be"
+   echo "faster in a few corner cases on startup of an app, but it comes"
+   echo "with many downsides. One of those is more complex code inside"
+   echo "ecore_x, which is far less tested in XCB mode than Xlib. Also"
+   echo "the big catch is that OpenGL suppot basically requires Xlib anyway"
+   echo "so if you want OpenGL in X11, you need Xlib regardless and so you"
+   echo "gain nothing really in terms of speed and no savings in memory"
+   echo "because Xlib is still linked, loaded and used, BUT instead you"
+   echo "have OpenGL drivers working with an hybrid XCB/Xlib (mostly XCB)"
+   echo "toolkit and this is basically never tested by anyone working on"
+   echo "the OpenGL drivers, so you will have bugs. Do not enable XCB"
+   echo "and use OpenGL. XCB is only useful if you wish to shave a few Kb"
+   echo "off the memory footprint of a whole system and live with less"
+   echo "tested code, and possibly unimplemented features in ecore_x. To"
+   echo "remove the XCB setup, remove the --with-x11=xcb optiomn to"
+   echo "configure."
+   echo "_____________________________________________________________________"
+   sleep 10
+fi
+
+if test "x${build_crypto}" = "xgnutls"; then
+   echo "_____________________________________________________________________"
+   echo "!!-- WARNING --!!"
+   echo "_____________________________________________________________________"
+   echo "You have chosen gnutls as the crypto back-end. This will have some"
+   echo "side-effects that can break set-uid root binaries that happen to"
+   echo "link to and/or use EFL. These do actually exist. Gnutls will drop"
+   echo "root privs if it detects being setuid, thus breaking these tools"
+   echo "and their functionality. Only enable gnutls if you REALLY know"
+   echo "what you are doing and are willing to live with broken "
+   echo "functionality."
+   echo "_____________________________________________________________________"
+   sleep 10
+fi

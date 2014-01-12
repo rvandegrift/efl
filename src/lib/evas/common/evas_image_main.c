@@ -113,7 +113,8 @@ static inline size_t
 _evas_common_rgba_image_surface_size(unsigned int w, unsigned int h, Eina_Bool alpha_only)
 {
 #define PAGE_SIZE (4 * 1024)
-#ifdef HAVE_SYS_MMAN_H
+#define HUGE_PAGE_SIZE (2 * 1024 * 1024)
+#if defined (HAVE_SYS_MMAN_H) && (!defined (_WIN32))
 # define ALIGN_TO_PAGE(Siz) (((Siz / PAGE_SIZE) + (Siz % PAGE_SIZE ? 1 : 0)) * PAGE_SIZE)
 #else
 # define ALIGN_TO_PAGE(Siz) Siz
@@ -136,11 +137,13 @@ static void *
 _evas_common_rgba_image_surface_mmap(unsigned int w, unsigned int h, Eina_Bool alpha_only)
 {
    size_t siz;
-   void *r;
+#if defined (HAVE_SYS_MMAN_H) && (!defined (_WIN32))
+   void *r = MAP_FAILED;
+#endif
 
    siz = _evas_common_rgba_image_surface_size(w, h, alpha_only);
 
-#ifdef HAVE_SYS_MMAN_H
+#if defined (HAVE_SYS_MMAN_H) && (!defined (_WIN32))
 #ifndef MAP_HUGETLB
 # define MAP_HUGETLB 0
 #endif
@@ -154,7 +157,8 @@ _evas_common_rgba_image_surface_mmap(unsigned int w, unsigned int h, Eina_Bool a
 # endif
 #endif
 
-   r = mmap(NULL, siz, PROT_READ | PROT_WRITE, MAP_PRIVATE | MAP_ANONYMOUS | MAP_HUGETLB, -1, 0);
+   if (siz > ((HUGE_PAGE_SIZE * 75) / 100))
+     r = mmap(NULL, siz, PROT_READ | PROT_WRITE, MAP_PRIVATE | MAP_ANONYMOUS | MAP_HUGETLB, -1, 0);
    if (r == MAP_FAILED)
      r = mmap(NULL, siz, PROT_READ | PROT_WRITE, MAP_PRIVATE | MAP_ANONYMOUS, -1, 0);
    if (r == MAP_FAILED)
@@ -169,7 +173,7 @@ _evas_common_rgba_image_surface_mmap(unsigned int w, unsigned int h, Eina_Bool a
 static void
 _evas_common_rgba_image_surface_munmap(void *data, unsigned int w, unsigned int h, Eina_Bool alpha_only)
 {
-#ifdef HAVE_SYS_MMAN_H
+#if defined (HAVE_SYS_MMAN_H) && (!defined (_WIN32))
    size_t siz;
 
    siz = _evas_common_rgba_image_surface_size(w, h, alpha_only);
