@@ -1,3 +1,9 @@
+efl (1.8.4-1) UNRELEASED; urgency=medium
+
+  * New upstream release
+
+ -- Albin Tonnerre <lutin@debian.org>  Sun, 12 Jan 2014 13:03:26 +0100
+
 efl (1.8.3-1) experimental; urgency=low
 
   * First upload of the merged EFL tree (Closes: #729751)
