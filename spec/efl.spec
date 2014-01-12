@@ -3,7 +3,7 @@
 
 Summary: Enlightenment Foundation Libraries
 Name: efl
-Version: 1.8.3
+Version: 1.8.4
 Release: %{_rel}
 License: LGPLv2.1 GPLv2.1 BSD
 Group: System Environment/Libraries
