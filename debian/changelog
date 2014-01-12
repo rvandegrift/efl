@@ -1,8 +1,26 @@
-efl (1.8.4-1) UNRELEASED; urgency=medium
+efl (1.8.4-1) experimental; urgency=low
 
   * New upstream release
+  * debian/control: Build-Depend on libudev-dev only for Linux architectures
+  * debian/control: libevas1 Depends: libevas-loaders to support more formats
+  * debian/control: drop B-D on librsvg2-dev, svg is handled via evas-loaders
+  * debian/control: use Architecture: linux-any instead of hardcoded list
+  * debian/control: mark libeet1 and libevas1 packages as Multi-Arch: same
+  * debian/control: bump Standards-Version to 3.9.5, no changes required
+  * patches/03_ecore_evas_extn_abi: remove, applied upstream
+  * patches/03_no_ecore_audio_test: disable the Ecore_Audio testsuite.
+    We don't ship libecore-audio but the testsuite seems to have issues at
+    least on s390x. Since the library has other problems that make
+    debugging difficult, disable the tests until it gets fixed.
+  * patches/04_eina_file_hash_fix: cherry-pick cad0db51 to fix FTBFS on Sparc
+  * debian/rules: use a large testsuite timeout to fix issues on slow buildds
+  * debian: merge all libe*-doc into a single efl-doc package.
+    The initial upload erroenously copied the complete doc in all the -doc
+    packages, reuslting in much bigger packages than expected. Now that all
+    libs are in the same source package, keeping separate -doc binary
+    packages does not make much sense, so merge them all.
 
- -- Albin Tonnerre <lutin@debian.org>  Sun, 12 Jan 2014 13:03:26 +0100
+ -- Albin Tonnerre <lutin@debian.org>  Sun, 19 Jan 2014 12:13:11 +0100
 
 efl (1.8.3-1) experimental; urgency=low
 
