@@ -148,7 +148,7 @@ Description: Enlightenment DR17 file chunk reading/writing utility
 Package: libevas1
 Architecture: any
 Pre-Depends: ${misc:Pre-Depends}
-Depends: ${shlibs:Depends}, ${misc:Depends}
+Depends: ${shlibs:Depends}, ${misc:Depends}, libevas-loaders
 Description: Enlightenment DR17 advanced canvas library
  Evas is an advanced canvas library, providing six engines for rendering: X11,
  OpenGL (hardware accelerated), DirectFB, the framebuffer, Microsoft Windows
