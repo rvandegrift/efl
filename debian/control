@@ -208,7 +208,7 @@ Description: Evas module providing the X11 engines
   - Software/X11 (Xlib/XCB)
 
 Package: libevas1-engine-fb
-Architecture: alpha amd64 armel hppa i386 ia64 lpia m68k mips mipsel powerpc s390 sh4 sparc
+Architecture: linux-any
 Depends: ${shlibs:Depends}, ${misc:Depends}
 Conflicts: libevas-0.9.9.050a-engines-extras
 Replaces: libevas-engines-extras
