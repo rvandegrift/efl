@@ -119,6 +119,7 @@ Description: libeet1 API documentation
 
 Package: libeet1
 Architecture: any
+Multi-Arch: same
 Pre-Depends: ${misc:Pre-Depends}
 Depends: ${misc:Depends}, ${shlibs:Depends}
 Description: Enlightenment DR17 file chunk reading/writing library
@@ -147,6 +148,7 @@ Description: Enlightenment DR17 file chunk reading/writing utility
 
 Package: libevas1
 Architecture: any
+Multi-Arch: same
 Pre-Depends: ${misc:Pre-Depends}
 Depends: ${shlibs:Depends}, ${misc:Depends}, libevas-loaders
 Description: Enlightenment DR17 advanced canvas library
@@ -193,6 +195,7 @@ Description: Enlightenment DR17 advanced canvas library development files
 
 Package: libevas1-engines-x
 Architecture: any
+Multi-Arch: same
 Depends: ${shlibs:Depends}, ${misc:Depends}
 Conflicts: libevas-0.9.9.050a-engines
 Replaces: libevas-engines, libevas-engines-extras
@@ -209,6 +212,7 @@ Description: Evas module providing the X11 engines
 
 Package: libevas1-engine-fb
 Architecture: linux-any
+Multi-Arch: same
 Depends: ${shlibs:Depends}, ${misc:Depends}
 Conflicts: libevas-0.9.9.050a-engines-extras
 Replaces: libevas-engines-extras
