@@ -179,7 +179,7 @@ Description: Evas module providing the Framebuffer engine
 
 Package: libecore1
 Architecture: any
-Pre-Depends: multiarch-support
+Pre-Depends: ${misc:Pre-Depends}
 Depends: ${misc:Depends}, ${shlibs:Depends}
 Description: Core abstraction layer for enlightenment DR 0.17
  This is the core event abstraction layer and X abstraction layer that makes
@@ -190,7 +190,7 @@ Description: Core abstraction layer for enlightenment DR 0.17
 
 Package: libecore-con1
 Architecture: any
-Pre-Depends: multiarch-support
+Pre-Depends: ${misc:Pre-Depends}
 Depends: ${misc:Depends}, ${shlibs:Depends}
 Description: Ecore Connection Library
  This is the core event abstraction layer and X abstraction layer that makes
@@ -203,7 +203,7 @@ Description: Ecore Connection Library
 
 Package: libecore-evas1
 Architecture: any
-Pre-Depends: multiarch-support
+Pre-Depends: ${misc:Pre-Depends}
 Depends: ${misc:Depends}, ${shlibs:Depends}
 Description: Ecore Evas Wrapper Library
  This is the core event abstraction layer and X abstraction layer that makes
@@ -216,7 +216,7 @@ Description: Ecore Evas Wrapper Library
 
 Package: libecore-fb1
 Architecture: linux-any
-Pre-Depends: multiarch-support
+Pre-Depends: ${misc:Pre-Depends}
 Depends: ${misc:Depends}, ${shlibs:Depends}
 Description: Ecore frame buffer system functions
  This is the core event abstraction layer and X abstraction layer that makes
@@ -229,7 +229,7 @@ Description: Ecore frame buffer system functions
 
 Package: libecore-file1
 Architecture: any
-Pre-Depends: multiarch-support
+Pre-Depends: ${misc:Pre-Depends}
 Depends: ${misc:Depends}, ${shlibs:Depends}
 Description: Ecore File Library
  This is the core event abstraction layer and X abstraction layer that makes
@@ -242,7 +242,7 @@ Description: Ecore File Library
 
 Package: libecore-imf1
 Architecture: any
-Pre-Depends: multiarch-support
+Pre-Depends: ${misc:Pre-Depends}
 Depends: ${misc:Depends}, ${shlibs:Depends}
 Description: Ecore Input Method Framework module
  This is the core event abstraction layer and X abstraction layer that makes
@@ -256,7 +256,7 @@ Description: Ecore Input Method Framework module
 
 Package: libecore-input1
 Architecture: any
-Pre-Depends: multiarch-support
+Pre-Depends: ${misc:Pre-Depends}
 Depends: ${misc:Depends}, ${shlibs:Depends}
 Description: Ecore input module
  This is the core event abstraction layer and X abstraction layer that makes
@@ -269,7 +269,7 @@ Description: Ecore input module
 
 Package: libecore-ipc1
 Architecture: any
-Pre-Depends: multiarch-support
+Pre-Depends: ${misc:Pre-Depends}
 Depends: ${misc:Depends}, ${shlibs:Depends}
 Description: Ecore inter-process communication functions
  This is the core event abstraction layer and X abstraction layer that makes
@@ -282,7 +282,7 @@ Description: Ecore inter-process communication functions
 
 Package: libecore-x1
 Architecture: any
-Pre-Depends: multiarch-support
+Pre-Depends: ${misc:Pre-Depends}
 Depends: ${misc:Depends}, ${shlibs:Depends}
 Description: Ecore functions for dealing with the X Window System
  This is the core event abstraction layer and X abstraction layer that makes
