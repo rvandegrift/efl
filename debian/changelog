@@ -1,3 +1,20 @@
+efl (1.8.4-2) experimental; urgency=medium
+
+  * debian/control: use misc:Pre-Depends instead of hardcoded multiarch-support
+  * debian/control: all libecore packages are now Multi-Arch: same
+  * debian: add the libefreet-bin package, necessary for proper efreet operation
+  * debian: update the efreet packaging to work with Multi-Arch
+    libefreet1 and efreetd communicate via d-bus, and there is a circular
+    dependency between libefreet1 and efreetd, which make things difficult
+    with Multi-Arch (as the helper binary had to be in a separate package).
+    To avoid that circular dependency issue, libefreet1 is now a
+    transitional package to libefreet1a and libefreet-bin and the
+    libefreet1a shlibs file forces a Depends: libefreet-bin. Thanks to
+    Josselin Mouette for the suggestion!
+  * debian: add packaging information for Eeze
+
+ -- Albin Tonnerre <lutin@debian.org>  Sun, 26 Jan 2014 20:14:58 +0100
+
 efl (1.8.4-1) experimental; urgency=low
 
   * New upstream release
