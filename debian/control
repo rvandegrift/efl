@@ -179,6 +179,7 @@ Description: Evas module providing the Framebuffer engine
 
 Package: libecore1
 Architecture: any
+Multi-Arch: same
 Pre-Depends: ${misc:Pre-Depends}
 Depends: ${misc:Depends}, ${shlibs:Depends}
 Description: Core abstraction layer for enlightenment DR 0.17
@@ -190,6 +191,7 @@ Description: Core abstraction layer for enlightenment DR 0.17
 
 Package: libecore-con1
 Architecture: any
+Multi-Arch: same
 Pre-Depends: ${misc:Pre-Depends}
 Depends: ${misc:Depends}, ${shlibs:Depends}
 Description: Ecore Connection Library
@@ -203,6 +205,7 @@ Description: Ecore Connection Library
 
 Package: libecore-evas1
 Architecture: any
+Multi-Arch: same
 Pre-Depends: ${misc:Pre-Depends}
 Depends: ${misc:Depends}, ${shlibs:Depends}
 Description: Ecore Evas Wrapper Library
@@ -216,6 +219,7 @@ Description: Ecore Evas Wrapper Library
 
 Package: libecore-fb1
 Architecture: linux-any
+Multi-Arch: same
 Pre-Depends: ${misc:Pre-Depends}
 Depends: ${misc:Depends}, ${shlibs:Depends}
 Description: Ecore frame buffer system functions
@@ -229,6 +233,7 @@ Description: Ecore frame buffer system functions
 
 Package: libecore-file1
 Architecture: any
+Multi-Arch: same
 Pre-Depends: ${misc:Pre-Depends}
 Depends: ${misc:Depends}, ${shlibs:Depends}
 Description: Ecore File Library
@@ -242,6 +247,7 @@ Description: Ecore File Library
 
 Package: libecore-imf1
 Architecture: any
+Multi-Arch: same
 Pre-Depends: ${misc:Pre-Depends}
 Depends: ${misc:Depends}, ${shlibs:Depends}
 Description: Ecore Input Method Framework module
@@ -256,6 +262,7 @@ Description: Ecore Input Method Framework module
 
 Package: libecore-input1
 Architecture: any
+Multi-Arch: same
 Pre-Depends: ${misc:Pre-Depends}
 Depends: ${misc:Depends}, ${shlibs:Depends}
 Description: Ecore input module
@@ -269,6 +276,7 @@ Description: Ecore input module
 
 Package: libecore-ipc1
 Architecture: any
+Multi-Arch: same
 Pre-Depends: ${misc:Pre-Depends}
 Depends: ${misc:Depends}, ${shlibs:Depends}
 Description: Ecore inter-process communication functions
@@ -282,6 +290,7 @@ Description: Ecore inter-process communication functions
 
 Package: libecore-x1
 Architecture: any
+Multi-Arch: same
 Pre-Depends: ${misc:Pre-Depends}
 Depends: ${misc:Depends}, ${shlibs:Depends}
 Description: Ecore functions for dealing with the X Window System
