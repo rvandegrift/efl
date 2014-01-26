@@ -333,10 +333,12 @@ Description: Ecore headers and static libraries
 
 # EFREET
 
-Package: libefreet1
+Package: libefreet1a
 Architecture: any
+Multi-Arch: same
 Pre-Depends: ${misc:Pre-Depends}
 Depends: ${shlibs:Depends}, ${misc:Depends}
+Replaces: libefreet1 (<= 1.8.4-1)
 Description: Library that implements freedesktop.org specs for use with E17/EFL
  An implementation of several specifications from freedesktop.org intended for
  use in Enlightenment DR17 (e17) and other applications using the Enlightenment
@@ -371,7 +373,7 @@ Description: D-Bus activated helper binary to create efreet data caches
 Package: libefreet-dev
 Section: libdevel
 Architecture: any
-Depends: ${misc:Depends}, libefreet1 (= ${binary:Version}), pkg-config,
+Depends: ${misc:Depends}, libefreet1a (= ${binary:Version}), pkg-config,
  libeina-dev  (>= ${source:Upstream-Version}),
  libecore-dev (>= ${source:Upstream-Version})
 Suggests: efl-doc
@@ -386,6 +388,15 @@ Description: Development files for libefreet and libefreet-mime
   - Menu
  .
  This package contains headers and static libraries for Efreet.
+
+Package: libefreet1
+Section: oldlibs
+Priority: extra
+Architecture: all
+Depends: ${misc:Depends}, libefreet1a, libefreet-bin
+Description: dummy transitional package to libefreet1a+libefreet-bin
+ This is a dummy transitional package to allow transition to the Multi-Arch
+ packages libefreet1a and libefreet-bin. It can safely be removed.
 
 # EMBRYO
 
