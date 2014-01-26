@@ -350,6 +350,24 @@ Description: Library that implements freedesktop.org specs for use with E17/EFL
  This package provides the libefreet0 and libefreet0-mime libraries, which
  contains efreet-based functions for dealing with mime.
 
+Package: libefreet-bin
+Architecture: any
+Multi-arch: foreign
+Pre-Depends: ${misc:Pre-Depends}
+Depends: ${shlibs:Depends}, ${misc:Depends}
+Description: D-Bus activated helper binary to create efreet data caches
+ An implementation of several specifications from freedesktop.org intended for
+ use in Enlightenment DR17 (e17) and other applications using the Enlightenment
+ Foundation Libraries (EFL). Currently, the following specifications are
+ included:
+  - Base Directory
+  - Desktop Entry
+  - Icon Theme
+  - Menu
+ .
+ This package provides the efreetd helper binary and the associated D-Bus
+ service file that are internally used by libefreet.
+
 Package: libefreet-dev
 Section: libdevel
 Architecture: any
