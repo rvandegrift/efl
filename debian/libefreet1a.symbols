@@ -1,4 +1,4 @@
-libefreet.so.1 libefreet1 #MINVER#
+libefreet.so.1 libefreet1a #MINVER#, libefreet-bin
  EFREET_DESKTOP_TYPE_APPLICATION@Base 1.7.7
  EFREET_DESKTOP_TYPE_DIRECTORY@Base 1.7.7
  EFREET_DESKTOP_TYPE_LINK@Base 1.7.7
@@ -127,7 +127,7 @@ libefreet.so.1 libefreet1 #MINVER#
  efreet_version@Base 1.7.7
  efreet_version_edd@Base 1.7.7
  efreet_videos_dir_get@Base 1.8.0
-libefreet_mime.so.1 libefreet1 #MINVER#
+libefreet_mime.so.1 libefreet1a #MINVER#
  efreet_mime_fallback_type_get@Base 1.7.7
  efreet_mime_globs_type_get@Base 1.7.7
  efreet_mime_init@Base 1.7.7
@@ -138,7 +138,7 @@ libefreet_mime.so.1 libefreet1 #MINVER#
  efreet_mime_type_cache_flush@Base 1.7.7
  efreet_mime_type_get@Base 1.7.7
  efreet_mime_type_icon_get@Base 1.7.7
-libefreet_trash.so.1 libefreet1 #MINVER#
+libefreet_trash.so.1 libefreet1a #MINVER#
  efreet_trash_delete_uri@Base 1.7.7
  efreet_trash_dir_get@Base 1.7.7
  efreet_trash_empty_trash@Base 1.7.7
