@@ -13,10 +13,9 @@ Build-Depends: dpkg-dev (>= 1.14.8), debhelper (>= 9), dh-autoreconf,
  libxcursor-dev, libxss-dev, libxrender-dev, libxinerama-dev,
  libxrandr-dev, libxext-dev, libxp-dev, libxcomposite-dev, libxi-dev,
  libxdamage-dev, x11proto-xext-dev, libxtst-dev, libglib2.0-dev,
- liblua5.1-0-dev,
+ liblua5.1-0-dev, libdbus-1-dev, libsndfile-dev,
  libgnutls-dev, libcurl4-gnutls-dev, libc-ares-dev,
- libdbus-1-dev, libsndfile-dev, libmount-dev, libblkid-dev,
- libudev-dev [linux-any]
+ libudev-dev [linux-any], libmount-dev [linux-any], libblkid-dev [linux-any]
 Build-Depends-Indep: doxygen
 Standards-Version: 3.9.5
 Vcs-Git: git://anonscm.debian.org/pkg-e/libs/efl.git
@@ -526,7 +525,7 @@ Description: EIO headers and static libraries
 # EEZE
 
 Package: libeeze1
-Architecture: any
+Architecture: linux-any
 Pre-Depends: ${misc:Pre-Depends}
 Depends: ${misc:Depends}, ${shlibs:Depends}
 Description: Library for manipulating devices through udev
@@ -542,12 +541,12 @@ Description: Library for manipulating devices through udev
 
 Package: libeeze-dev
 Section: libdevel
-Architecture: any
+Architecture: linux-any
 Depends: ${misc:Depends}, libeeze1 (= ${binary:Version}), pkg-config,
  libeina-dev  (>= ${source:Upstream-Version}),
  libeet-dev   (>= ${source:Upstream-Version}),
  libecore-dev (>= ${source:Upstream-Version}),
- libblkid-dev, libmount-dev, libudev-dev [linux-any]
+ libblkid-dev, libmount-dev, libudev-dev
 Description: EEZE headers and static libraries
  This library is part of the Enlightenment Foundation Libraries (EFL). It
  interfaces directly with libudev, avoiding such middleman daemons as
@@ -607,7 +606,7 @@ Depends:  ${misc:Depends},
           libembryo1     (= ${binary:Version}),
           libedje1       (= ${binary:Version}),
           libeio1        (= ${binary:Version}),
-          libeeze1       (= ${binary:Version})
+          libeeze1       (= ${binary:Version}) [linux-any]
 Breaks:   libeina-dbg    (<< 1.8.3),
           libeet-dbg     (<< 1.8.3),
           libevas-dbg    (<< 1.8.3),
