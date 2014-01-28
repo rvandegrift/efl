@@ -1,4 +1,4 @@
-EFL_VERSION([1], [8], [4], [release])
+EFL_VERSION([1], [8], [5], [release])
 AC_INIT([efl], [efl_version], [enlightenment-devel@lists.sourceforge.net])
 
 AC_PREREQ([2.60])
@@ -516,6 +516,8 @@ case $host_cpu in
   arm*)
     build_cpu_neon="yes"
     AC_MSG_CHECKING([whether to use NEON instructions])
+    CFLAGS_save="${CFLAGS}"
+    CFLAGS="${CFLAGS} -mfpu=neon"
     AC_TRY_COMPILE([#include <arm_neon.h>],
        [asm volatile ("vqadd.u8 d0, d1, d0\n")],
        [
@@ -527,6 +529,7 @@ case $host_cpu in
         AC_MSG_RESULT([no])
         build_cpu_neon="no"
        ])
+    CFLAGS="${CFLAGS_save}"
     ;;
 esac
 
