@@ -1,8 +1,15 @@
-efl (1.8.5-1) UNRELEASED; urgency=medium
+efl (1.8.5-1) experimental; urgency=medium
 
   * New upstream release
+  * patches/04_eina_file_hash_fix: remove, applied upstream
+  * debian/control: allow efl-dbg to be installed on platforms lacking ecore-fb
+  * debian/control: allow efl to build on non-linux architectures
+    libudev-dev, libmount-dev and libbkid-dev are all linux-specific
+    packages. When they're not present the build system disables libeeze, so
+    that package is now linux-any.
+  * debian/copyright: fix missing licenses for some files (Closes: #736914)
 
- -- Albin Tonnerre <lutin@debian.org>  Tue, 28 Jan 2014 21:13:07 +0100
+ -- Albin Tonnerre <lutin@debian.org>  Fri, 31 Jan 2014 13:48:50 +0100
 
 efl (1.8.4-2) experimental; urgency=medium
 
