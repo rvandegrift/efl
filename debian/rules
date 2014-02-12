@@ -26,6 +26,7 @@ override_dh_auto_configure:
 	--disable-pulseaudio \
 	--disable-physics \
 	--disable-tslib \
+	--disable-magic-debug \
 	$(arch_flags)
 
 override_dh_auto_build-indep:
