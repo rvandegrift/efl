@@ -1,0 +1,67 @@
+From 5ff5f509fccab9196449f1c31109e316a1a7fed3 Mon Sep 17 00:00:00 2001
+From: Albin Tonnerre <albin.tonnerre@gmail.com>
+Date: Wed, 12 Feb 2014 11:50:48 +0900
+Subject: [PATCH] eina: allow eina_time_get to fall back to other clocks if the
+ first one fails
+
+Summary:
+eina_time_get tries to use only one clock which is defined at compile-time and
+returns the result of that one. This causes problems on platforms where eg.
+CLOCK_PROCESS_CPUTIME_ID is defined but the clock is actually not implemented
+(ie. clock_gettime returns EINVAL), as we simply don't get any time at all.
+
+Instead, make sure we include the code for all defined clocks and simply fall
+back to other clocks if the previous ones aren't implemented.
+
+Reviewers: cedric, raster
+
+Reviewed By: cedric
+
+CC: cedric
+
+Differential Revision: https://phab.enlightenment.org/D547
+
+Signed-off-by: Cedric BAIL <cedric.bail@samsung.com>
+---
+ src/lib/eina/eina_inline_private.h | 18 +++++++++++-------
+ 1 file changed, 11 insertions(+), 7 deletions(-)
+
+diff --git a/src/lib/eina/eina_inline_private.h b/src/lib/eina/eina_inline_private.h
+index ee0c49b..fe0d7b4 100644
+--- a/src/lib/eina/eina_inline_private.h
++++ b/src/lib/eina/eina_inline_private.h
+@@ -41,12 +41,17 @@ _eina_time_get(Eina_Nano_Time *tp)
+ {
+ #ifndef _WIN32
+ # if defined(CLOCK_PROCESS_CPUTIME_ID)
+-   return clock_gettime(CLOCK_PROCESS_CPUTIME_ID, tp);
+-# elif defined(CLOCK_PROF)
+-   return clock_gettime(CLOCK_PROF, tp);
+-# elif defined(CLOCK_REALTIME)
+-   return clock_gettime(CLOCK_REALTIME, tp);
+-# else
++   if (!clock_gettime(CLOCK_PROCESS_CPUTIME_ID, tp))
++     return 0;
++# endif
++# if defined(CLOCK_PROF)
++   if (!clock_gettime(CLOCK_PROF, tp))
++     return 0;
++# endif
++# if defined(CLOCK_REALTIME)
++   if (!clock_gettime(CLOCK_REALTIME, tp))
++     return 0;
++# endif
+    struct timeval tv;
+ 
+    if (gettimeofday(&tv, NULL))
+@@ -56,7 +61,6 @@ _eina_time_get(Eina_Nano_Time *tp)
+    tp->tv_nsec = tv.tv_usec * 1000L;
+ 
+    return 0;
+-# endif
+ #else
+    return QueryPerformanceCounter(tp);
+ #endif /* _WIN2 */
+-- 
+1.9.0.rc3
+
