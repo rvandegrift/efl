@@ -1,3 +1,16 @@
+efl (1.8.5-2) unstable; urgency=medium
+
+  * debian: enable GLES insead of regular GL on armel and armhf
+  * debian/patches/04_magic_debug_abi: disable 'magic debug' to not break ABI.
+    Eina uses a 'magic' number to perform checks on its data structures, but
+    enabling this 'magic' number changes to ABI. Eina in debian is currently
+    compiled without magic debug, so we need to this patch to keep ABI
+    compatibility
+  * debian/patches/05_eina_time_get: fix issues with clock_gettime on hurd/*bsd
+  * Upload to unstable
+
+ -- Albin Tonnerre <lutin@debian.org>  Sat, 22 Feb 2014 11:34:32 +0100
+
 efl (1.8.5-1) experimental; urgency=medium
 
   * New upstream release
