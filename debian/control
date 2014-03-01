@@ -603,6 +603,61 @@ Description: Development files for libemotion
  .
  This package contains headers and static libraries for the Emotion library.
 
+# ETHUMB
+
+Package: libethumb1
+Architecture: any
+Multi-Arch: same
+Pre-Depends: ${misc:Pre-Depends}
+Depends: ${misc:Depends}, ${shlibs:Depends}
+Description: Library to create thumbnails for images and documents
+ Ethumb uses Evas to generate thumbnail images of given files. The API allows
+ great customization of the generated files and also helps complying to
+ FreeDesktop.Org Thumbnail Specification.
+
+Package: libethumb-client1
+Architecture: any
+Multi-Arch: same
+Pre-Depends: ${misc:Pre-Depends}
+Depends: ${misc:Depends}, ${shlibs:Depends}
+Description: Library to create thumbnails using a D-Bus-actived server
+ Ethumb-Client creates thumbnails by communicating with a thumbnail generation
+ server using standard D-Bus protocol. The server uses Ethumb itself to
+ generate the thumbnail images and cache them using FreeDesktop.Org standard.
+
+Package: libethumb-client-bin
+Architecture: any
+Multi-Arch: foreign
+Depends: ${misc:Depends}, ${shlibs:Depends}
+Description: D-Bus activated helper binary to create thumbnails with libethumb
+ Ethumb-Client creates thumbnails by communicating with a thumbnail generation
+ server using standard D-Bus protocol. The server uses Ethumb itself to
+ generate the thumbnail images and cache them using FreeDesktop.Org standard.
+ .
+ This package provides the ethumbd helper binary and the associated D-Bus
+ service file that are internally used by libethumb-client.
+
+Package: libethumb-dev
+Section: libdevel
+Architecture: any
+Depends: ${misc:Depends}, libethumb1 (= ${binary:Version}), libethumb-client1 (= ${binary:Version}), pkg-config,
+ libeina-dev  (>= ${source:Upstream-Version}),
+ libeet-dev   (>= ${source:Upstream-Version}),
+ libevas-dev  (>= ${source:Upstream-Version}),
+ libecore-dev (>= ${source:Upstream-Version}),
+ libedje-dev  (>= ${source:Upstream-Version})
+Description: Development files for libethumb and libethumb-client
+ Ethumb uses Evas to generate thumbnail images of given files. The API allows
+ great customization of the generated files and also helps complying to
+ FreeDesktop.Org Thumbnail Specification
+ .
+ Ethumb-Client creates thumbnails by communicating with a thumbnail generation
+ server using standard D-Bus protocol. The server uses Ethumb itself to
+ generate the thumbnail images and cache them using FreeDesktop.Org standard.
+ .
+ This package contains headers and static libraries for the Ethumb and
+ Ethumb-Client libraries.
+
 
 Package: efl-doc
 Architecture: all
@@ -652,7 +707,9 @@ Depends:  ${misc:Depends},
           libedje1       (= ${binary:Version}),
           libeio1        (= ${binary:Version}),
           libeeze1       (= ${binary:Version}) [linux-any],
-          libemotion1    (= ${binary:Version})
+          libemotion1    (= ${binary:Version}),
+          libethumb1        (= ${binary:Version}),
+          libethumb-client1 (= ${binary:Version})
 Breaks:   libeina-dbg    (<< 1.8.3),
           libeet-dbg     (<< 1.8.3),
           libevas-dbg    (<< 1.8.3),
