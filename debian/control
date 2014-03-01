@@ -468,6 +468,7 @@ Description: Various binaries for use with libedje
 
 Package: libedje1
 Architecture: any
+Multi-Arch: same
 Pre-Depends: ${misc:Pre-Depends}
 Depends: ${misc:Depends}, ${shlibs:Depends}
 Breaks: libelementary1 (<= 1.7.7-1)
@@ -499,6 +500,7 @@ Description: libedje headers and static libraries
 
 Package: libeio1
 Architecture: any
+Multi-Arch: same
 Pre-Depends: ${misc:Pre-Depends}
 Depends: ${misc:Depends}, ${shlibs:Depends}
 Description: Library providing non-blocking I/O using threads
@@ -527,6 +529,7 @@ Description: EIO headers and static libraries
 
 Package: libeeze1
 Architecture: linux-any
+Multi-Arch: same
 Pre-Depends: ${misc:Pre-Depends}
 Depends: ${misc:Depends}, ${shlibs:Depends}
 Description: Library for manipulating devices through udev
@@ -590,6 +593,7 @@ Description: Documentation for the Enlightenment Foundation Libraries
 
 Package: efl-dbg
 Architecture: any
+Multi-Arch: same
 Section: debug
 Priority: extra
 Depends:  ${misc:Depends},
