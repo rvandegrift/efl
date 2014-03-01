@@ -22,7 +22,6 @@ override_dh_auto_configure:
 	--with-tests=regular \
 	--with-crypto=gnutls \
 	--disable-cserve \
-	--disable-gstreamer \
 	--disable-pulseaudio \
 	--disable-physics \
 	--disable-tslib \

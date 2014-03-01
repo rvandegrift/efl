@@ -16,7 +16,8 @@ Build-Depends: dpkg-dev (>= 1.14.8), debhelper (>= 9), dh-autoreconf,
  libxdamage-dev, x11proto-xext-dev, libxtst-dev, libglib2.0-dev,
  liblua5.1-0-dev, libdbus-1-dev, libsndfile-dev,
  libgnutls-dev, libcurl4-gnutls-dev, libc-ares-dev,
- libudev-dev [linux-any], libmount-dev [linux-any], libblkid-dev [linux-any]
+ libudev-dev [linux-any], libmount-dev [linux-any], libblkid-dev [linux-any],
+ libgstreamer0.10-dev, libgstreamer-plugins-base0.10-dev
 Build-Depends-Indep: doxygen
 Standards-Version: 3.9.5
 Vcs-Git: git://anonscm.debian.org/pkg-e/libs/efl.git
@@ -564,6 +565,45 @@ Description: EEZE headers and static libraries
  .
  This package contains headers and static libraries for the Eeze library.
 
+# EMOTION
+
+Package: libemotion1
+Architecture: any
+Multi-Arch: same
+Pre-Depends: ${misc:Pre-Depends}
+Depends: ${misc:Depends}, ${shlibs:Depends}
+Description: Media object creation/manipulation library
+ Emotion is a library that allows playing audio and video files, using one of
+ its backends (GStreamer, xine or generic shm player).
+ .
+ It is integrated into Ecore through its mainloop, and is transparent to the
+ user of the library how the decoding of audio and video is being done. Once
+ the objects are created, the user can set callbacks to the specific events and
+ set options to this object, all in the main loop.
+
+Package: libemotion-dev
+Section: libdevel
+Architecture: any
+Depends: ${misc:Depends}, libemotion1 (= ${binary:Version}), pkg-config,
+ libeina-dev  (>= ${source:Upstream-Version}),
+ libeet-dev   (>= ${source:Upstream-Version}),
+ libevas-dev  (>= ${source:Upstream-Version}),
+ libecore-dev (>= ${source:Upstream-Version}),
+ libeio-dev   (>= ${source:Upstream-Version}),
+ libeeze-dev  (>= ${source:Upstream-Version}) [linux-any],
+ libgstreamer0.10-dev, libgstreamer-plugins-base0.10-dev
+Description: Development files for libemotion
+ Emotion is a library that allows playing audio and video files, using one of
+ its backends (GStreamer, xine or generic shm player).
+ .
+ It is integrated into Ecore through its mainloop, and is transparent to the
+ user of the library how the decoding of audio and video is being done. Once
+ the objects are created, the user can set callbacks to the specific events and
+ set options to this object, all in the main loop.
+ .
+ This package contains headers and static libraries for the Emotion library.
+
+
 Package: efl-doc
 Architecture: all
 Section: doc
@@ -611,7 +651,8 @@ Depends:  ${misc:Depends},
           libembryo1     (= ${binary:Version}),
           libedje1       (= ${binary:Version}),
           libeio1        (= ${binary:Version}),
-          libeeze1       (= ${binary:Version}) [linux-any]
+          libeeze1       (= ${binary:Version}) [linux-any],
+          libemotion1    (= ${binary:Version})
 Breaks:   libeina-dbg    (<< 1.8.3),
           libeet-dbg     (<< 1.8.3),
           libevas-dbg    (<< 1.8.3),
