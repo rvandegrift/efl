@@ -1,3 +1,11 @@
+efl (1.8.5-3) unstable; urgency=medium
+
+  * debian/control: libedje1, libeio1, libeeze1, efl-dbg are now M-A: same
+  * debian: add new package for Emotion
+  * debian: add new packages for Ethumb/Ethumb-Client
+
+ -- Albin Tonnerre <lutin@debian.org>  Sat, 01 Mar 2014 14:42:35 +0100
+
 efl (1.8.5-2) unstable; urgency=medium
 
   * debian: enable GLES insead of regular GL on armel and armhf
