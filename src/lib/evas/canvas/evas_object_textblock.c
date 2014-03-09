@@ -4561,6 +4561,7 @@ _layout_par(Ctxt *c)
                     }
                   else
                     {
+                       ititr->visually_deleted = EINA_FALSE;
                        prev_it = ititr;
                     }
                }
@@ -9773,17 +9774,22 @@ evas_textblock_cursor_char_coord_set(Evas_Textblock_Cursor *cur, Evas_Coord x, E
                }
           }
      }
-   else if (o->paragraphs && (y >= o->paragraphs->y + o->formatted.h))
+
+   if (o->paragraphs)
      {
-        /* If we are after the last paragraph, use the last position in the
-         * text. */
-        evas_textblock_cursor_paragraph_last(cur);
-        return EINA_TRUE;
-     }
-   else if (o->paragraphs && (y < o->paragraphs->y))
-     {
-        evas_textblock_cursor_paragraph_first(cur);
-        return EINA_TRUE;
+        Evas_Object_Textblock_Line *first_line = o->paragraphs->lines;
+        if (y >= o->paragraphs->y + o->formatted.h)
+          {
+             /* If we are after the last paragraph, use the last position in the
+              * text. */
+             evas_textblock_cursor_paragraph_last(cur);
+             return EINA_TRUE;
+          }
+        else if (o->paragraphs && (y < (o->paragraphs->y + first_line->y)))
+          {
+             evas_textblock_cursor_paragraph_first(cur);
+             return EINA_TRUE;
+          }
      }
 
    return EINA_FALSE;
@@ -10109,7 +10115,8 @@ _evas_textblock_cursor_range_in_line_geometry_get(
 
         while (it && (it != it2))
           {
-             if ((it1->text_pos <= it->text_pos) && (it->text_pos <= it2->text_pos))
+             if (((it1->text_pos <= it->text_pos) && (it->text_pos <= it2->text_pos)) ||
+                   ((it2->text_pos <= it->text_pos) && (it->text_pos <= it1->text_pos)))
                {
                   max_x = it->x + it->adv;
                }
