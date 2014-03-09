@@ -1,8 +1,10 @@
-efl (1.8.6-1) UNRELEASED; urgency=medium
+efl (1.8.6-1) unstable; urgency=medium
 
   * New upstream version
+  * debian/watch: update watch file to correctly parse alpha/beta versions
+  * patches/{04_magic_debug_abi,05_eina_time_get}: remove, applied upstream
 
- -- Albin Tonnerre <lutin@debian.org>  Sun, 09 Mar 2014 12:27:49 +0100
+ -- Albin Tonnerre <lutin@debian.org>  Sun, 09 Mar 2014 12:31:42 +0100
 
 efl (1.8.5-3) unstable; urgency=medium
 
