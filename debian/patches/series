@@ -1,5 +1,3 @@
 01_restore-eina_abi.diff
 02_no_ecore_imf_test.diff
 03_no_ecore_audio_test.diff
-04_magic_debug_abi.diff
-05_eina_time_get.diff
