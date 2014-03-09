@@ -1,6 +1,6 @@
 # Maintainer: Enlightenment Developers <enlightenment-devel@enlightenment.org>
 pkgname=('efl' 'efl_doc')
-pkgver=1.8.5
+pkgver=1.8.6
 pkgrel=1
 pkgdesc="Enlightenment Foundation Libraries - GIT development snapshot (Ecore, Eldbus, Edje, Eet, Eeze, Efreet, Eina, Eio, Embryo, Emotion, Eo, Ephysics, Ethumb, & Evas)"
 arch=('i686' 'x86_64' 'arm')

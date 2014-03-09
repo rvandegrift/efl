@@ -400,6 +400,10 @@ START_TEST(evas_textblock_cursor)
    evas_textblock_cursor_paragraph_last(main_cur);
    fail_if(evas_textblock_cursor_compare(cur, main_cur));
 
+   /* Try positions between the first paragraph and the first line. */
+   evas_object_textblock_text_markup_set(tb, buf);
+   fail_if(!evas_textblock_cursor_char_coord_set(cur, 5, 1));
+
    /* Try positions beyond the left/right limits of lines. */
    for (i = 0 ; i < 2 ; i++)
      {
@@ -1720,6 +1724,28 @@ START_TEST(evas_textblock_wrapping)
    fail_if(-1 == evas_textblock_cursor_geometry_get(cur, &cx, &cy, &cw, &ch,
             NULL, EVAS_TEXTBLOCK_CURSOR_BEFORE));
 
+   /* Getting whites back after wrapping. */
+   evas_object_resize(tb, 1, 1);
+   evas_object_textblock_text_markup_set(tb, "<wrap=word><keyword>return</keyword> <number>0</number>;</wrap>");
+
+   evas_object_textblock_size_formatted_get(tb, &w, &h);
+   ck_assert_int_eq(w, 33);
+   ck_assert_int_eq(h, 25);
+
+   evas_object_resize(tb, 400, 400);
+
+   evas_object_textblock_size_formatted_get(tb, &w, &h);
+   ck_assert_int_eq(w, 45);
+   ck_assert_int_eq(h, 16);
+
+   /* Complex compound clusters using Devanagari. */
+   evas_object_resize(tb, 0, 0);
+
+   evas_object_textblock_text_markup_set(tb, "<wrap=char> करेंकरेंकरेंकरेंकरेंकरें");
+   evas_object_textblock_size_formatted_get(tb, &w, &h);
+
+   fail_if(w > h); /* FIXME: Not the best test, should be more strict. */
+
    END_TB_TEST();
 }
 END_TEST
@@ -1899,6 +1925,18 @@ START_TEST(evas_textblock_geometries)
    rects = evas_textblock_cursor_range_geometry_get(cur, main_cur);
 
    fail_if(eina_list_count(rects) != 3);
+
+   EINA_LIST_FREE(rects, tr)
+      free(tr);
+
+   /* Bidi text with a few back and forth from bidi. */
+   evas_object_textblock_text_markup_set(tb, "נגכדגךלח eountoheunth ךלחגדךכלח");
+
+   evas_textblock_cursor_pos_set(cur, 0);
+   evas_textblock_cursor_pos_set(main_cur, 28);
+   rects = evas_textblock_cursor_range_geometry_get(cur, main_cur);
+
+   ck_assert_int_eq(eina_list_count(rects), 3);
 
    EINA_LIST_FREE(rects, tr)
       free(tr);
