@@ -1,3 +1,9 @@
+efl (1.8.6-2) unstable; urgency=medium
+
+  * patches/04_eina_suite_lockup: cherry-pick f5c125 to fix eina suite lockup
+
+ -- Albin Tonnerre <lutin@debian.org>  Sun, 04 May 2014 13:54:21 +0200
+
 efl (1.8.6-1) unstable; urgency=medium
 
   * New upstream version
