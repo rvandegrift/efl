@@ -1,3 +1,12 @@
+efl (1.8.6-2.1) unstable; urgency=medium
+
+  * Non-maintainer upload.
+  * GnuTLS v3 transition: Change (build-)depends to libgnutls28-dev, add b-d
+    on libgcrypt-dev. Closes: #753025
+  * efl-doc built with doxygen 1.8.7-3 to work around #762272.
+
+ -- Andreas Metzler <ametzler@debian.org>  Sat, 20 Sep 2014 14:47:56 +0200
+
 efl (1.8.6-2) unstable; urgency=medium
 
   * patches/04_eina_suite_lockup: cherry-pick f5c125 to fix eina suite lockup
