@@ -26,6 +26,7 @@ override_dh_auto_configure:
 	--disable-physics \
 	--disable-tslib \
 	--disable-magic-debug \
+	--enable-i-really-know-what-i-am-doing-and-that-this-will-probably-break-things-and-i-will-fix-them-myself-and-send-patches-aba \
 	$(arch_flags)
 
 override_dh_auto_build-indep:
