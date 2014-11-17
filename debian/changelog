@@ -4,6 +4,8 @@ efl (1.12.0-0.1) UNRELEASED; urgency=medium
   * New upstream version
     + Unfuzz 03_no_ecore_audio_test.diff.
     + Drop 04_eina_suite_lockup.diff. (Previously cherry-picked.)
+  * Update build-dependencies:
+    + liblua5.1-0-dev -> libluajit-5.1-dev.
 
  -- Andreas Metzler <ametzler@debian.org>  Mon, 17 Nov 2014 18:50:55 +0100
 
