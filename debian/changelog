@@ -9,6 +9,7 @@ efl (1.12.0-0.1) UNRELEASED; urgency=medium
     + libgstreamer0.10-dev ->  libgstreamer1.0-dev
     + libgstreamer-plugins-base0.10-dev -> libgstreamer-plugins-base1.0-dev
   * ./configure with --enable-i-really-know-what-i-am-doing-and-that-this-will-probably-break-things-and-i-will-fix-them-myself-and-send-patches-aba
+  * Set --disable-silent-rules.
 
  -- Andreas Metzler <ametzler@debian.org>  Mon, 17 Nov 2014 18:50:55 +0100
 
