@@ -17,6 +17,8 @@ efl (1.12.1-0.1) UNRELEASED; urgency=medium
   * debian/watch: point to .xz instead of .gz.
   * 15_try_curl-gnutls.diff: Try to dlopen curl-gnutls (in addition to the
     OpenSSL variant).
+  * 21_skip_failing_tests.diff: Skip ecore fb test (needs writeable /dev/tty0)
+    and eldbus_cxx test (needs running dbus daemon and $DISPLAY).
 
  -- Andreas Metzler <ametzler@debian.org>  Mon, 17 Nov 2014 18:50:55 +0100
 
