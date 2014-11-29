@@ -12,6 +12,8 @@ efl (1.12.1-0.1) UNRELEASED; urgency=medium
   * Set --disable-silent-rules.
   * Add 10_migrate_ecore_con_serverclient_to_eo.diff to fix GnuTLS related
     FTBFS.
+  * 20_shorter_buildlog.diff: Strip down verbosity of testsuite, taking down
+    the buildlog from >= 150 MB to about 1,5 MB.
 
  -- Andreas Metzler <ametzler@debian.org>  Mon, 17 Nov 2014 18:50:55 +0100
 

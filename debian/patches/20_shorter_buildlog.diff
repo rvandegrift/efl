@@ -1,0 +1,42 @@
+Description: Strip down verbosity of testsuite, taking down the buildlog from
+ >= 150 MB to about 1,5 MB.
+Author: Andreas Metzler <ametzler@debian.org>
+
+--- a/src/tests/ecore/ecore_test_ecore_thread_eina_thread_queue.c
++++ b/src/tests/ecore/ecore_test_ecore_thread_eina_thread_queue.c
+@@ -214,7 +214,7 @@ START_TEST(ecore_test_ecore_thread_eina_
+         thq = sub->queue;
+         eina_thread_queue_wait_done(thqmaster, ref);
+         msg = eina_thread_queue_wait(thq, &ref);
+-        printf("V %09i: %p - %i  [%i]\n", cnt, thq, msg->value, eina_thread_queue_pending_get(thqmaster));
++        /* printf("V %09i: %p - %i  [%i]\n", cnt, thq, msg->value, eina_thread_queue_pending_get(thqmaster)); */
+         if (thq == thq1)
+           {
+              if ((val1 + 1) != msg->value)
+@@ -305,7 +305,7 @@ START_TEST(ecore_test_ecore_thread_eina_
+         Msg4 *msg;
+         void *ref;
+         msg = eina_thread_queue_wait(thq1, &ref);
+-        printf("V %08i: %i  [%i]\n", cnt, msg->value, eina_thread_queue_pending_get(thq1));
++        /* printf("V %08i: %i  [%i]\n", cnt, msg->value, eina_thread_queue_pending_get(thq1)); */
+         if (msg->value >= 10000000)
+           {
+              if ((val2 + 1) != msg->value)
+@@ -501,7 +501,7 @@ START_TEST(ecore_test_ecore_thread_eina_
+    for (;;)
+      {
+         eina_spinlock_take(&msgnum_lock);
+-        printf("msgnum %i\n", msgnum);
++        /* printf("msgnum %i\n", msgnum); */
+         if (msgnum == 10000)
+           {
+              eina_spinlock_release(&msgnum_lock);
+@@ -563,7 +563,7 @@ START_TEST(ecore_test_ecore_thread_eina_
+           {
+              eina_thread_queue_wait_done(thq1, ref);
+              msgcnt++;
+-             printf("msgcnt: %i\n", msgcnt);
++             /* printf("msgcnt: %i\n", msgcnt); */
+           }
+         if (msgcnt == 1000000) break;
+      }
