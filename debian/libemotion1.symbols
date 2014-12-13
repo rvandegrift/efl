@@ -2,6 +2,25 @@ libemotion.so.1 libemotion1 #MINVER#
  EMOTION_WEBCAM_ADD@Base 1.8.5
  EMOTION_WEBCAM_DEL@Base 1.8.5
  EMOTION_WEBCAM_UPDATE@Base 1.8.5
+ _EMOTION_OBJECT_EVENT_AUDIO_LEVEL_CHANGE@Base 1.12.0
+ _EMOTION_OBJECT_EVENT_BUTTON_CHANGE@Base 1.12.0
+ _EMOTION_OBJECT_EVENT_BUTTON_NUM_CHANGE@Base 1.12.0
+ _EMOTION_OBJECT_EVENT_CHANNELS_CHANGE@Base 1.12.0
+ _EMOTION_OBJECT_EVENT_DECODE_STOP@Base 1.12.0
+ _EMOTION_OBJECT_EVENT_FRAME_DECODE@Base 1.12.0
+ _EMOTION_OBJECT_EVENT_FRAME_RESIZE@Base 1.12.0
+ _EMOTION_OBJECT_EVENT_LENGTH_CHANGE@Base 1.12.0
+ _EMOTION_OBJECT_EVENT_OPEN_DONE@Base 1.12.0
+ _EMOTION_OBJECT_EVENT_PLAYBACK_FINISHED@Base 1.12.0
+ _EMOTION_OBJECT_EVENT_PLAYBACK_STARTED@Base 1.12.0
+ _EMOTION_OBJECT_EVENT_POSITION_LOAD_FAILED@Base 1.12.0
+ _EMOTION_OBJECT_EVENT_POSITION_LOAD_SUCCEED@Base 1.12.0
+ _EMOTION_OBJECT_EVENT_POSITION_SAVE_FAILED@Base 1.12.0
+ _EMOTION_OBJECT_EVENT_POSITION_SAVE_SUCCEED@Base 1.12.0
+ _EMOTION_OBJECT_EVENT_POSITION_UPDATE@Base 1.12.0
+ _EMOTION_OBJECT_EVENT_PROGRESS_CHANGE@Base 1.12.0
+ _EMOTION_OBJECT_EVENT_REF_CHANGE@Base 1.12.0
+ _EMOTION_OBJECT_EVENT_TITLE_CHANGE@Base 1.12.0
  _emotion_audio_level_change@Base 1.8.5
  _emotion_channels_change@Base 1.8.5
  _emotion_decode_stop@Base 1.8.5
@@ -27,6 +46,8 @@ libemotion.so.1 libemotion1 #MINVER#
  _emotion_video_get@Base 1.8.5
  _emotion_video_pos_update@Base 1.8.5
  emotion_init@Base 1.8.5
+ emotion_obj_engine_set@Base 1.12.0
+ emotion_obj_option_set@Base 1.12.0
  emotion_object_add@Base 1.8.5
  emotion_object_audio_channel_count@Base 1.8.5
  emotion_object_audio_channel_get@Base 1.8.5
@@ -46,6 +67,7 @@ libemotion.so.1 libemotion1 #MINVER#
  emotion_object_chapter_get@Base 1.8.5
  emotion_object_chapter_name_get@Base 1.8.5
  emotion_object_chapter_set@Base 1.8.5
+ emotion_object_class_get@Base 1.12.0
  emotion_object_eject@Base 1.8.5
  emotion_object_event_simple_send@Base 1.8.5
  emotion_object_extension_may_play_fast_get@Base 1.8.5

@@ -56,6 +56,8 @@ libeio.so.1 libeio1 #MINVER#
  eio_file_xattr_string_get@Base 1.7.4
  eio_file_xattr_string_set@Base 1.7.4
  eio_init@Base 1.7.4
+ eio_memory_burst_limit_get@Base 1.12.0
+ eio_memory_burst_limit_set@Base 1.12.0
  eio_monitor_add@Base 1.7.4
  eio_monitor_del@Base 1.7.4
  eio_monitor_path_get@Base 1.7.4

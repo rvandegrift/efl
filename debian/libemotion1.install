@@ -1,2 +1,2 @@
 debian/tmp/usr/lib/*/libemotion.so.*
-debian/tmp/usr/lib/*/emotion/modules/gstreamer/*/module.so
+debian/tmp/usr/lib/*/emotion/modules/gstreamer1/*/module.so

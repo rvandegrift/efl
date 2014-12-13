@@ -15,6 +15,11 @@ libecore_con.so.1 libecore-con1 #MINVER#
  ECORE_CON_EVENT_URL_COMPLETE@Base 1.7.7
  ECORE_CON_EVENT_URL_DATA@Base 1.7.7
  ECORE_CON_EVENT_URL_PROGRESS@Base 1.7.7
+ _ECORE_CON_BASE_EVENT_CONNECTION_ERROR@Base 1.12.0
+ _ECORE_CON_BASE_EVENT_CONNECTION_UPGRADED@Base 1.12.0
+ _ECORE_CON_BASE_EVENT_DATA_RECEIVED@Base 1.12.0
+ ecore_con_base_class_get@Base 1.12.0
+ ecore_con_client_class_get@Base 1.12.0
  ecore_con_client_connected_get@Base 1.7.7
  ecore_con_client_data_get@Base 1.7.7
  ecore_con_client_data_set@Base 1.7.7
@@ -22,12 +27,14 @@ libecore_con.so.1 libecore-con1 #MINVER#
  ecore_con_client_fd_get@Base 1.7.7
  ecore_con_client_flush@Base 1.7.7
  ecore_con_client_ip_get@Base 1.7.7
+ ecore_con_client_obj_server_get@Base 1.12.0
  ecore_con_client_port_get@Base 1.7.7
  ecore_con_client_send@Base 1.7.7
  ecore_con_client_server_get@Base 1.7.7
  ecore_con_client_timeout_get@Base 1.7.7
  ecore_con_client_timeout_set@Base 1.7.7
  ecore_con_client_uptime_get@Base 1.7.7
+ ecore_con_connector_class_get@Base 1.12.0
  ecore_con_eet_client_connect_callback_add@Base 1.8.0
  ecore_con_eet_client_connect_callback_del@Base 1.8.0
  ecore_con_eet_client_disconnect_callback_add@Base 1.8.0
@@ -52,7 +59,19 @@ libecore_con.so.1 libecore-con1 #MINVER#
  ecore_con_info_get@Base 1.7.7
  ecore_con_init@Base 1.7.7
  ecore_con_lookup@Base 1.7.7
+ ecore_con_obj_connected_get@Base 1.12.0
+ ecore_con_obj_fd_get@Base 1.12.0
+ ecore_con_obj_flush@Base 1.12.0
+ ecore_con_obj_ip_get@Base 1.12.0
+ ecore_con_obj_lookup@Base 1.12.0
+ ecore_con_obj_port_get@Base 1.12.0
+ ecore_con_obj_port_set@Base 1.12.0
+ ecore_con_obj_send@Base 1.12.0
+ ecore_con_obj_timeout_get@Base 1.12.0
+ ecore_con_obj_timeout_set@Base 1.12.0
+ ecore_con_obj_uptime_get@Base 1.12.0
  ecore_con_server_add@Base 1.7.7
+ ecore_con_server_class_get@Base 1.12.0
  ecore_con_server_client_limit_set@Base 1.7.7
  ecore_con_server_clients_get@Base 1.7.7
  ecore_con_server_connect@Base 1.7.7
@@ -64,6 +83,13 @@ libecore_con.so.1 libecore-con1 #MINVER#
  ecore_con_server_flush@Base 1.7.7
  ecore_con_server_ip_get@Base 1.7.7
  ecore_con_server_name_get@Base 1.7.7
+ ecore_con_server_obj_client_limit_get@Base 1.12.0
+ ecore_con_server_obj_client_limit_set@Base 1.12.0
+ ecore_con_server_obj_clients_get@Base 1.12.0
+ ecore_con_server_obj_connection_type_get@Base 1.12.0
+ ecore_con_server_obj_connection_type_set@Base 1.12.0
+ ecore_con_server_obj_name_get@Base 1.12.0
+ ecore_con_server_obj_name_set@Base 1.12.0
  ecore_con_server_port_get@Base 1.7.7
  ecore_con_server_send@Base 1.7.7
  ecore_con_server_timeout_get@Base 1.7.7
@@ -97,6 +123,7 @@ libecore_con.so.1 libecore-con1 #MINVER#
  ecore_con_ssl_server_verify_name_set@Base 1.7.7
  ecore_con_url_additional_header_add@Base 1.7.7
  ecore_con_url_additional_headers_clear@Base 1.7.7
+ ecore_con_url_class_get@Base 1.12.0
  ecore_con_url_cookies_clear@Base 1.7.7
  ecore_con_url_cookies_file_add@Base 1.7.7
  ecore_con_url_cookies_ignore_old_session_set@Base 1.7.7
@@ -116,6 +143,8 @@ libecore_con.so.1 libecore-con1 #MINVER#
  ecore_con_url_httpauth_set@Base 1.7.7
  ecore_con_url_init@Base 1.7.7
  ecore_con_url_new@Base 1.7.7
+ ecore_con_url_obj_url_get@Base 1.12.0
+ ecore_con_url_obj_url_set@Base 1.12.0
  ecore_con_url_pipeline_get@Base 1.7.7
  ecore_con_url_pipeline_set@Base 1.7.7
  ecore_con_url_post@Base 1.7.7

@@ -1,20 +1,19 @@
 libecore.so.1 libecore1 #MINVER#
- ECORE_ANIMATOR_BASE_ID@Base 1.8.0
  ECORE_EXE_EVENT_ADD@Base 1.7.7
  ECORE_EXE_EVENT_DATA@Base 1.7.7
  ECORE_EXE_EVENT_DEL@Base 1.7.7
  ECORE_EXE_EVENT_ERROR@Base 1.7.7
- ECORE_IDLER_BASE_ID@Base 1.8.0
- ECORE_IDLE_ENTERER_BASE_ID@Base 1.8.0
- ECORE_IDLE_EXITER_BASE_ID@Base 1.8.0
- ECORE_JOB_BASE_ID@Base 1.8.0
- ECORE_POLLER_BASE_ID@Base 1.8.0
- ECORE_TIMER_BASE_ID@Base 1.8.0
+ _ECORE_EXE_EVENT_DATA_ERROR@Base 1.12.0
+ _ECORE_EXE_EVENT_DATA_GET@Base 1.12.0
+ _ECORE_MAINLOOP_EVENT_IDLE@Base 1.12.0
+ _ECORE_MAINLOOP_EVENT_IDLE_ENTER@Base 1.12.0
+ _ECORE_MAINLOOP_EVENT_IDLE_EXIT@Base 1.12.0
  _ecore_event_handler_del@Base 1.7.7
  _ecore_magic_fail@Base 1.7.7
- _ecore_timer_delay@Base 1.7.7
+ _ecore_timer_util_delay@Base 1.12.0
  ecore_animator_add@Base 1.7.7
  ecore_animator_class_get@Base 1.8.0
+ ecore_animator_constructor@Base 1.12.0
  ecore_animator_custom_source_tick_begin_callback_set@Base 1.7.7
  ecore_animator_custom_source_tick_end_callback_set@Base 1.7.7
  ecore_animator_custom_tick@Base 1.7.7
@@ -23,10 +22,12 @@ libecore.so.1 libecore1 #MINVER#
  ecore_animator_frametime_set@Base 1.7.7
  ecore_animator_freeze@Base 1.7.7
  ecore_animator_pos_map@Base 1.7.7
+ ecore_animator_pos_map_n@Base 1.12.0
  ecore_animator_source_get@Base 1.7.7
  ecore_animator_source_set@Base 1.7.7
  ecore_animator_thaw@Base 1.7.7
  ecore_animator_timeline_add@Base 1.7.7
+ ecore_animator_timeline_constructor@Base 1.12.0
  ecore_app_args_get@Base 1.7.7
  ecore_app_args_set@Base 1.7.7
  ecore_app_no_system_modules@Base 1.8.0
@@ -44,6 +45,7 @@ libecore.so.1 libecore1 #MINVER#
  ecore_event_type_new@Base 1.7.7
  ecore_exe_auto_limits_set@Base 1.7.7
  ecore_exe_callback_pre_free_set@Base 1.7.7
+ ecore_exe_class_get@Base 1.12.0
  ecore_exe_close_stdin@Base 1.7.7
  ecore_exe_cmd_get@Base 1.7.7
  ecore_exe_continue@Base 1.7.7
@@ -74,24 +76,32 @@ libecore.so.1 libecore1 #MINVER#
  ecore_getopt_callback_geometry_parse@Base 1.7.7
  ecore_getopt_callback_size_parse@Base 1.7.7
  ecore_getopt_help@Base 1.7.7
+ ecore_getopt_help_category@Base 1.12.0
  ecore_getopt_list_free@Base 1.7.7
  ecore_getopt_parse@Base 1.7.7
+ ecore_getopt_parse_positional@Base 1.12.0
  ecore_getopt_parser_has_duplicates@Base 1.7.7
  ecore_idle_enterer_add@Base 1.7.7
+ ecore_idle_enterer_after_constructor@Base 1.12.0
  ecore_idle_enterer_before_add@Base 1.7.7
+ ecore_idle_enterer_before_constructor@Base 1.12.0
  ecore_idle_enterer_class_get@Base 1.8.0
  ecore_idle_enterer_del@Base 1.7.7
  ecore_idle_exiter_add@Base 1.7.7
  ecore_idle_exiter_class_get@Base 1.8.0
+ ecore_idle_exiter_constructor@Base 1.12.0
  ecore_idle_exiter_del@Base 1.7.7
  ecore_idler_add@Base 1.7.7
  ecore_idler_class_get@Base 1.8.0
+ ecore_idler_constructor@Base 1.12.0
  ecore_idler_del@Base 1.7.7
  ecore_init@Base 1.7.7
  ecore_job_add@Base 1.7.7
  ecore_job_class_get@Base 1.8.0
+ ecore_job_constructor@Base 1.12.0
  ecore_job_del@Base 1.7.7
  ecore_loop_time_get@Base 1.7.7
+ ecore_loop_time_set@Base 1.12.0
  ecore_main_fd_handler_active_get@Base 1.7.7
  ecore_main_fd_handler_active_set@Base 1.7.7
  ecore_main_fd_handler_add@Base 1.7.7
@@ -99,7 +109,9 @@ libecore.so.1 libecore1 #MINVER#
  ecore_main_fd_handler_fd_get@Base 1.7.7
  ecore_main_fd_handler_file_add@Base 1.7.7
  ecore_main_fd_handler_prepare_callback_set@Base 1.7.7
+ ecore_main_loop_animator_ticked_get@Base 1.12.0
  ecore_main_loop_begin@Base 1.7.7
+ ecore_main_loop_get@Base 1.12.0
  ecore_main_loop_glib_always_integrate_disable@Base 1.7.7
  ecore_main_loop_glib_integrate@Base 1.7.7
  ecore_main_loop_iterate@Base 1.7.7
@@ -111,8 +123,25 @@ libecore.so.1 libecore1 #MINVER#
  ecore_main_loop_thread_safe_call_sync@Base 1.7.7
  ecore_main_win32_handler_add@Base 1.7.7
  ecore_main_win32_handler_del@Base 1.7.7
+ ecore_mainloop_animator_ticked@Base 1.12.0
+ ecore_mainloop_begin@Base 1.12.0
+ ecore_mainloop_class_get@Base 1.12.0
+ ecore_mainloop_iterate@Base 1.12.0
+ ecore_mainloop_iterate_may_block@Base 1.12.0
+ ecore_mainloop_quit@Base 1.12.0
+ ecore_mainloop_select_func_get@Base 1.12.0
+ ecore_mainloop_select_func_set@Base 1.12.0
  ecore_memory_state_get@Base 1.8.0
  ecore_memory_state_set@Base 1.8.0
+ ecore_obj_exe_command_get@Base 1.12.0
+ ecore_obj_exe_command_set@Base 1.12.0
+ ecore_obj_timer_constructor@Base 1.12.0
+ ecore_obj_timer_delay@Base 1.12.0
+ ecore_obj_timer_interval_get@Base 1.12.0
+ ecore_obj_timer_interval_set@Base 1.12.0
+ ecore_obj_timer_loop_constructor@Base 1.12.0
+ ecore_obj_timer_pending_get@Base 1.12.0
+ ecore_obj_timer_reset@Base 1.12.0
  ecore_parent_class_get@Base 1.8.0
  ecore_pipe_add@Base 1.7.7
  ecore_pipe_del@Base 1.7.7
@@ -127,7 +156,10 @@ libecore.so.1 libecore1 #MINVER#
  ecore_pipe_write_fd@Base 1.8.0
  ecore_poller_add@Base 1.7.7
  ecore_poller_class_get@Base 1.8.0
+ ecore_poller_constructor@Base 1.12.0
  ecore_poller_del@Base 1.7.7
+ ecore_poller_interval_get@Base 1.12.0
+ ecore_poller_interval_set@Base 1.12.0
  ecore_poller_poll_interval_get@Base 1.7.7
  ecore_poller_poll_interval_set@Base 1.7.7
  ecore_poller_poller_interval_get@Base 1.7.7
@@ -171,6 +203,7 @@ libecore.so.1 libecore1 #MINVER#
  ecore_timer_delay@Base 1.7.7
  ecore_timer_dump@Base 1.7.7
  ecore_timer_freeze@Base 1.7.7
+ ecore_timer_freeze_get@Base 1.12.0
  ecore_timer_interval_get@Base 1.7.7
  ecore_timer_interval_set@Base 1.7.7
  ecore_timer_loop_add@Base 1.7.7
@@ -192,6 +225,7 @@ libeldbus.so.1 libecore1 #MINVER#
  eldbus_connection_get@Base 1.8.0
  eldbus_connection_ref@Base 1.8.0
  eldbus_connection_send@Base 1.8.0
+ eldbus_connection_unique_name_get@Base 1.12.0
  eldbus_connection_unref@Base 1.8.0
  eldbus_hello@Base 1.8.0
  eldbus_init@Base 1.8.0
@@ -296,6 +330,9 @@ libeldbus.so.1 libecore1 #MINVER#
  eldbus_proxy_unref@Base 1.8.0
  eldbus_proxy_vcall@Base 1.8.0
  eldbus_service_connection_get@Base 1.8.0
+ eldbus_service_interface_fallback_register2@Base 1.12.0
+ eldbus_service_interface_fallback_register@Base 1.12.0
+ eldbus_service_interface_register2@Base 1.12.0
  eldbus_service_interface_register@Base 1.8.0
  eldbus_service_interface_unregister@Base 1.8.0
  eldbus_service_object_data_del@Base 1.8.0

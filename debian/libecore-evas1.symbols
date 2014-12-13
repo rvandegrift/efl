@@ -19,6 +19,7 @@ libecore_evas.so.1 libecore-evas1 #MINVER#
  ECORE_EVAS_EXTN_CLIENT_ADD@Base 1.7.7
  ECORE_EVAS_EXTN_CLIENT_DEL@Base 1.7.7
  _ecore_evas_app_comp_sync@Base 1.8.0
+ _ecore_evas_aux_hints_string_get@Base 1.12.0
  _ecore_evas_fps_debug_init@Base 1.8.0
  _ecore_evas_fps_debug_rendertime_add@Base 1.8.0
  _ecore_evas_fps_debug_shutdown@Base 1.8.0
@@ -42,6 +43,11 @@ libecore_evas.so.1 libecore-evas1 #MINVER#
  ecore_evas_app_comp_sync_set@Base 1.7.7
  ecore_evas_aspect_get@Base 1.7.7
  ecore_evas_aspect_set@Base 1.7.7
+ ecore_evas_aux_hint_add@Base 1.12.0
+ ecore_evas_aux_hint_del@Base 1.12.0
+ ecore_evas_aux_hint_val_set@Base 1.12.0
+ ecore_evas_aux_hints_allowed_get@Base 1.12.0
+ ecore_evas_aux_hints_supported_get@Base 1.12.0
  ecore_evas_avoid_damage_get@Base 1.7.7
  ecore_evas_avoid_damage_set@Base 1.7.7
  ecore_evas_borderless_get@Base 1.7.7
@@ -73,6 +79,7 @@ libecore_evas.so.1 libecore-evas1 #MINVER#
  ecore_evas_comp_sync_set@Base 1.7.7
  ecore_evas_cursor_get@Base 1.7.7
  ecore_evas_cursor_set@Base 1.7.7
+ ecore_evas_cursor_unset@Base 1.12.0
  ecore_evas_data_get@Base 1.7.7
  ecore_evas_data_set@Base 1.7.7
  ecore_evas_demand_attention_get@Base 1.7.7
@@ -117,6 +124,7 @@ libecore_evas.so.1 libecore-evas1 #MINVER#
  ecore_evas_fullscreen_set@Base 1.7.7
  ecore_evas_geometry_get@Base 1.7.7
  ecore_evas_get@Base 1.7.7
+ ecore_evas_gl_drm_new@Base 1.12.0
  ecore_evas_gl_glew_new@Base 1.7.7
  ecore_evas_gl_sdl_new@Base 1.7.7
  ecore_evas_gl_x11_direct_resize_get@Base 1.7.7
@@ -245,6 +253,14 @@ libecore_evas.so.1 libecore-evas1 #MINVER#
  ecore_evas_window_profile_supported_get@Base 1.8.0
  ecore_evas_withdrawn_get@Base 1.7.7
  ecore_evas_withdrawn_set@Base 1.7.7
+ ecore_evas_wm_rotation_available_rotations_get@Base 1.12.0
+ ecore_evas_wm_rotation_available_rotations_set@Base 1.12.0
+ ecore_evas_wm_rotation_manual_rotation_done@Base 1.12.0
+ ecore_evas_wm_rotation_manual_rotation_done_get@Base 1.12.0
+ ecore_evas_wm_rotation_manual_rotation_done_set@Base 1.12.0
+ ecore_evas_wm_rotation_preferred_rotation_get@Base 1.12.0
+ ecore_evas_wm_rotation_preferred_rotation_set@Base 1.12.0
+ ecore_evas_wm_rotation_supported_get@Base 1.12.0
  ecore_evas_x11_leader_default_set@Base 1.7.7
  ecore_evas_x11_leader_get@Base 1.7.7
  ecore_evas_x11_leader_set@Base 1.7.7

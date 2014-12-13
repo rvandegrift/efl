@@ -93,17 +93,24 @@ libeeze.so.1 libeeze1 #MINVER#
  eeze_udev_find_by_type@Base 1.8.3
  eeze_udev_find_similar_from_syspath@Base 1.8.3
  eeze_udev_find_unlisted_similar@Base 1.8.3
+ eeze_udev_get@Base 1.12.0
+ eeze_udev_syspath_check_property@Base 1.12.0
+ eeze_udev_syspath_check_sysattr@Base 1.12.0
  eeze_udev_syspath_get_devname@Base 1.8.3
  eeze_udev_syspath_get_devpath@Base 1.8.3
  eeze_udev_syspath_get_parent@Base 1.8.3
+ eeze_udev_syspath_get_parent_filtered@Base 1.12.0
  eeze_udev_syspath_get_parents@Base 1.8.3
  eeze_udev_syspath_get_property@Base 1.8.3
  eeze_udev_syspath_get_subsystem@Base 1.8.3
  eeze_udev_syspath_get_sysattr@Base 1.8.3
+ eeze_udev_syspath_get_sysattr_list@Base 1.12.0
+ eeze_udev_syspath_get_sysnum@Base 1.12.0
  eeze_udev_syspath_is_joystick@Base 1.8.3
  eeze_udev_syspath_is_kbd@Base 1.8.3
  eeze_udev_syspath_is_mouse@Base 1.8.3
  eeze_udev_syspath_is_touchpad@Base 1.8.3
+ eeze_udev_syspath_set_sysattr@Base 1.12.0
  eeze_udev_walk_check_sysattr@Base 1.8.3
  eeze_udev_walk_get_sysattr@Base 1.8.3
  eeze_udev_watch_add@Base 1.8.3

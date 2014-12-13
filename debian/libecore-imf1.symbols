@@ -9,6 +9,8 @@ libecore_imf.so.1 libecore-imf1 #MINVER#
  ecore_imf_context_autocapital_type_set@Base 1.7.7
  ecore_imf_context_available_ids_by_canvas_type_get@Base 1.7.7
  ecore_imf_context_available_ids_get@Base 1.7.7
+ ecore_imf_context_bidi_direction_get@Base 1.12.0
+ ecore_imf_context_bidi_direction_set@Base 1.12.0
  ecore_imf_context_candidate_panel_geometry_get@Base 1.7.7
  ecore_imf_context_client_canvas_get@Base 1.7.7
  ecore_imf_context_client_canvas_set@Base 1.7.7
@@ -34,6 +36,8 @@ libecore_imf.so.1 libecore-imf1 #MINVER#
  ecore_imf_context_hide@Base 1.7.7
  ecore_imf_context_info_by_id_get@Base 1.7.7
  ecore_imf_context_info_get@Base 1.7.7
+ ecore_imf_context_input_hint_get@Base 1.12.0
+ ecore_imf_context_input_hint_set@Base 1.12.0
  ecore_imf_context_input_mode_get@Base 1.7.7
  ecore_imf_context_input_mode_set@Base 1.7.7
  ecore_imf_context_input_panel_caps_lock_mode_get@Base 1.7.7
@@ -72,7 +76,9 @@ libecore_imf.so.1 libecore-imf1 #MINVER#
  ecore_imf_context_preedit_string_get@Base 1.7.7
  ecore_imf_context_preedit_string_with_attributes_get@Base 1.7.7
  ecore_imf_context_reset@Base 1.7.7
+ ecore_imf_context_retrieve_selection_callback_set@Base 1.12.0
  ecore_imf_context_retrieve_surrounding_callback_set@Base 1.7.7
+ ecore_imf_context_selection_get@Base 1.12.0
  ecore_imf_context_show@Base 1.7.7
  ecore_imf_context_surrounding_get@Base 1.7.7
  ecore_imf_context_use_preedit_set@Base 1.7.7

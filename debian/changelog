@@ -1,4 +1,4 @@
-efl (1.12.1-0.1) UNRELEASED; urgency=medium
+efl (1.12.2-0.1) UNRELEASED; urgency=medium
 
   * Non-maintainer upload.
   * New upstream version
@@ -19,6 +19,8 @@ efl (1.12.1-0.1) UNRELEASED; urgency=medium
     OpenSSL variant).
   * 21_skip_failing_tests.diff: Skip ecore fb test (needs writeable /dev/tty0)
     and eldbus_cxx test (needs running dbus daemon and $DISPLAY).
+  * Update symbol files.
+  * Add libefl1 library package.
 
  -- Andreas Metzler <ametzler@debian.org>  Mon, 17 Nov 2014 18:50:55 +0100
 

@@ -46,6 +46,7 @@ libeina.so.1 libeina1 #MINVER#
  _eina_tracking@Base 1.2.0
  _eina_tracking_lock@Base 1.2.0
  _eina_unicode_utf8_next_get@Base 1.8.0
+ eina_accessor_clone@Base 1.12.0
  eina_accessor_container_get@Base 1.0.0~beta
  eina_accessor_data_get@Base 1.0.0~beta
  eina_accessor_free@Base 1.0.0~beta
@@ -65,6 +66,7 @@ libeina.so.1 libeina1 #MINVER#
  eina_benchmark_new@Base 1.0.0~beta
  eina_benchmark_register@Base 1.0.0~beta
  eina_benchmark_run@Base 1.0.0~beta
+ eina_binbuf_append_buffer@Base 1.12.0
  eina_binbuf_append_char@Base 1.2.0
  eina_binbuf_append_length@Base 1.2.0
  eina_binbuf_free@Base 1.2.0
@@ -72,6 +74,7 @@ libeina.so.1 libeina1 #MINVER#
  eina_binbuf_insert_length@Base 1.2.0
  eina_binbuf_length_get@Base 1.2.0
  eina_binbuf_manage_new_length@Base 1.2.0
+ eina_binbuf_manage_read_only_new_length@Base 1.12.0
  eina_binbuf_new@Base 1.2.0
  eina_binbuf_remove@Base 1.2.0
  eina_binbuf_reset@Base 1.2.0
@@ -165,6 +168,9 @@ libeina.so.1 libeina1 #MINVER#
  eina_hash_iterator_data_new@Base 1.0.0~beta
  eina_hash_iterator_key_new@Base 1.0.0~beta
  eina_hash_iterator_tuple_new@Base 1.0.0~beta
+ eina_hash_list_append@Base 1.12.0
+ eina_hash_list_prepend@Base 1.12.0
+ eina_hash_list_remove@Base 1.12.0
  eina_hash_modify@Base 1.0.0~beta
  eina_hash_modify_by_hash@Base 1.0.0~beta
  eina_hash_move@Base 1.0.0~beta
@@ -197,6 +203,7 @@ libeina.so.1 libeina1 #MINVER#
  eina_inarray_remove@Base 1.2.0
  eina_inarray_remove_at@Base 1.2.0
  eina_inarray_replace_at@Base 1.2.0
+ eina_inarray_resize@Base 1.12.0
  eina_inarray_reverse@Base 1.2.0
  eina_inarray_search@Base 1.2.0
  eina_inarray_search_sorted@Base 1.2.0
@@ -275,6 +282,7 @@ libeina.so.1 libeina1 #MINVER#
  eina_log_domain_level_set@Base 1.0.0~beta
  eina_log_domain_register@Base 1.0.0~beta
  eina_log_domain_registered_level_get@Base 1.0.0~beta
+ eina_log_domain_registered_level_set@Base 1.12.0
  eina_log_domain_unregister@Base 1.0.0~beta
  eina_log_file_disable_get@Base 1.0.0~beta
  eina_log_file_disable_set@Base 1.0.0~beta
@@ -338,6 +346,7 @@ libeina.so.1 libeina1 #MINVER#
  eina_module_load@Base 1.0.0~beta
  eina_module_new@Base 1.0.0~beta
  eina_module_symbol_get@Base 1.0.0~beta
+ eina_module_symbol_global_set@Base 1.12.0
  eina_module_symbol_path_get@Base 1.0.0~beta
  eina_module_unload@Base 1.0.0~beta
  eina_prefix_bin_get@Base 1.2.0
@@ -375,6 +384,7 @@ libeina.so.1 libeina1 #MINVER#
  eina_rectangle_pool_geometry_get@Base 1.0.0~beta
  eina_rectangle_pool_get@Base 1.0.0~beta
  eina_rectangle_pool_new@Base 1.0.0~beta
+ eina_rectangle_pool_packing_set@Base 1.12.0
  eina_rectangle_pool_release@Base 1.0.0~beta
  eina_rectangle_pool_request@Base 1.0.0~beta
  eina_sched_prio_drop@Base 1.0.0~beta
@@ -414,6 +424,7 @@ libeina.so.1 libeina1 #MINVER#
  eina_str_tolower@Base 1.0.0~beta
  eina_str_toupper@Base 1.0.0~beta
  eina_strbuf_append@Base 1.0.0~beta
+ eina_strbuf_append_buffer@Base 1.12.0
  eina_strbuf_append_char@Base 1.0.0~beta
  eina_strbuf_append_escaped@Base 1.0.0~beta
  eina_strbuf_append_length@Base 1.0.0~beta
@@ -432,6 +443,7 @@ libeina.so.1 libeina1 #MINVER#
  eina_strbuf_ltrim@Base 1.2.0
  eina_strbuf_manage_new@Base 1.2.0
  eina_strbuf_manage_new_length@Base 1.2.0
+ eina_strbuf_manage_read_only_new_length@Base 1.12.0
  eina_strbuf_new@Base 1.0.0~beta
  eina_strbuf_remove@Base 1.0.0~beta
  eina_strbuf_replace@Base 1.0.0~beta
@@ -456,6 +468,18 @@ libeina.so.1 libeina1 #MINVER#
  eina_thread_create@Base 1.8.0
  eina_thread_equal@Base 1.8.0
  eina_thread_join@Base 1.8.0
+ eina_thread_queue_fd_get@Base 1.12.0
+ eina_thread_queue_fd_set@Base 1.12.0
+ eina_thread_queue_free@Base 1.12.0
+ eina_thread_queue_new@Base 1.12.0
+ eina_thread_queue_parent_get@Base 1.12.0
+ eina_thread_queue_parent_set@Base 1.12.0
+ eina_thread_queue_pending_get@Base 1.12.0
+ eina_thread_queue_poll@Base 1.12.0
+ eina_thread_queue_send@Base 1.12.0
+ eina_thread_queue_send_done@Base 1.12.0
+ eina_thread_queue_wait@Base 1.12.0
+ eina_thread_queue_wait_done@Base 1.12.0
  eina_thread_self@Base 1.8.0
  eina_threads_init@Base 1.0.0~beta
  eina_threads_shutdown@Base 1.0.0~beta
@@ -464,13 +488,17 @@ libeina.so.1 libeina1 #MINVER#
  eina_tiler_area_size_set@Base 1.8.0
  eina_tiler_clear@Base 1.0.0~beta
  eina_tiler_empty@Base 1.8.0
+ eina_tiler_equal@Base 1.12.0
  eina_tiler_free@Base 1.0.0~beta
+ eina_tiler_intersection@Base 1.12.0
  eina_tiler_iterator_new@Base 1.0.0~beta
  eina_tiler_new@Base 1.0.0~beta
  eina_tiler_rect_add@Base 1.0.0~beta
  eina_tiler_rect_del@Base 1.0.0~beta
  eina_tiler_strict_set@Base 1.8.0
+ eina_tiler_subtract@Base 1.12.0
  eina_tiler_tile_size_set@Base 1.0.0~beta
+ eina_tiler_union@Base 1.12.0
  eina_tmpstr_add@Base 1.8.0
  eina_tmpstr_add_length@Base 1.8.0
  eina_tmpstr_del@Base 1.8.0
@@ -490,6 +518,7 @@ libeina.so.1 libeina1 #MINVER#
  eina_unicode_utf8_get_prev@Base 1.2.0
  eina_unicode_utf8_to_unicode@Base 1.2.0
  eina_ustrbuf_append@Base 1.0.0~beta
+ eina_ustrbuf_append_buffer@Base 1.12.0
  eina_ustrbuf_append_char@Base 1.0.0~beta
  eina_ustrbuf_append_escaped@Base 1.0.0~beta
  eina_ustrbuf_append_length@Base 1.0.0~beta
@@ -503,6 +532,7 @@ libeina.so.1 libeina1 #MINVER#
  eina_ustrbuf_length_get@Base 1.0.0~beta
  eina_ustrbuf_manage_new@Base 1.2.0
  eina_ustrbuf_manage_new_length@Base 1.2.0
+ eina_ustrbuf_manage_read_only_new_length@Base 1.12.0
  eina_ustrbuf_new@Base 1.0.0~beta
  eina_ustrbuf_remove@Base 1.0.0~beta
  eina_ustrbuf_reset@Base 1.0.0~beta
@@ -529,6 +559,8 @@ libeina.so.1 libeina1 #MINVER#
  eina_value_to_string@Base 1.2.0
  eina_value_type_check@Base 1.2.0
  eina_value_type_name_get@Base 1.2.0
+ eina_value_util_struct_desc_new@Base 1.12.0
+ eina_value_util_time_string_new@Base 1.12.0
  eina_version@Base 1.0.0~beta
  eina_xattr_copy@Base 1.8.0
  eina_xattr_del@Base 1.8.0
@@ -549,41 +581,68 @@ libeina.so.1 libeina1 #MINVER#
  eina_xattr_value_fd_ls@Base 1.2.0
  eina_xattr_value_ls@Base 1.2.0
 libeo.so.1 libeina1 #MINVER#
- EO_BASE_BASE_ID@Base 1.8.0
- EO_CLASS_CLASS_BASE_ID@Base 1.8.0
  EO_DBG_INFO_TYPE@Base 1.8.0
- _EO_EV_CALLBACK_ADD@Base 1.8.0
- _EO_EV_CALLBACK_DEL@Base 1.8.0
- _EO_EV_DEL@Base 1.8.0
+ _EO_BASE_EVENT_CALLBACK_ADD@Base 1.12.0
+ _EO_BASE_EVENT_CALLBACK_DEL@Base 1.12.0
+ _EO_BASE_EVENT_DEL@Base 1.12.0
+ _eo_add_internal_start@Base 1.12.0
+ _eo_api_op_id_get@Base 1.12.0
+ _eo_call_resolve@Base 1.12.0
  _eo_class_creation_lock@Base 1.8.0
- eo_add_internal@Base 1.8.0
+ _eo_do_end@Base 1.12.0
+ _eo_do_start@Base 1.12.0
+ eo_abstract_class_class_get@Base 1.12.0
  eo_base_class_get@Base 1.8.0
- eo_class_class_get@Base 1.8.0
- eo_class_funcs_set@Base 1.8.0
+ eo_base_legacy_only_event_description_get@Base 1.12.0
+ eo_children_iterator_new@Base 1.12.0
  eo_class_get@Base 1.8.0
  eo_class_name_get@Base 1.8.0
  eo_class_new@Base 1.8.0
  eo_composite_attach@Base 1.8.0
  eo_composite_detach@Base 1.8.0
- eo_composite_is@Base 1.8.0
+ eo_composite_part_is@Base 1.12.0
+ eo_constructor@Base 1.12.0
  eo_data_get@Base 1.8.0
  eo_data_scope_get@Base 1.8.0
  eo_data_xref_internal@Base 1.8.0
  eo_data_xunref_internal@Base 1.8.0
  eo_dbg_info_free@Base 1.8.0
+ eo_dbg_info_get@Base 1.12.0
  eo_del@Base 1.8.0
  eo_destructed_is@Base 1.8.0
- eo_do_internal@Base 1.8.0
- eo_do_super_internal@Base 1.8.0
+ eo_destructor@Base 1.12.0
  eo_error_set_internal@Base 1.8.0
+ eo_event_callback_array_del@Base 1.12.0
+ eo_event_callback_array_priority_add@Base 1.12.0
+ eo_event_callback_call@Base 1.12.0
+ eo_event_callback_del@Base 1.12.0
+ eo_event_callback_forwarder_add@Base 1.12.0
+ eo_event_callback_forwarder_del@Base 1.12.0
+ eo_event_callback_priority_add@Base 1.12.0
+ eo_event_freeze@Base 1.12.0
+ eo_event_freeze_count_get@Base 1.12.0
+ eo_event_global_freeze@Base 1.12.0
+ eo_event_global_freeze_count_get@Base 1.12.0
+ eo_event_global_thaw@Base 1.12.0
+ eo_event_thaw@Base 1.12.0
+ eo_finalize@Base 1.12.0
+ eo_finalized_get@Base 1.12.0
+ eo_hook_call_post@Base 1.12.0
+ eo_hook_call_pre@Base 1.12.0
  eo_init@Base 1.8.0
  eo_isa@Base 1.8.0
+ eo_key_data_del@Base 1.12.0
+ eo_key_data_get@Base 1.12.0
+ eo_key_data_set@Base 1.12.0
  eo_manual_free@Base 1.8.0
  eo_manual_free_set@Base 1.8.0
+ eo_parent_get@Base 1.12.0
+ eo_parent_set@Base 1.12.0
  eo_ref@Base 1.8.0
  eo_ref_get@Base 1.8.0
  eo_shutdown@Base 1.8.0
  eo_unref@Base 1.8.0
- eo_vdo_internal@Base 1.8.0
+ eo_wref_add@Base 1.12.0
+ eo_wref_del@Base 1.12.0
  eo_xref_internal@Base 1.8.0
  eo_xunref@Base 1.8.0

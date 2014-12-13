@@ -1,0 +1,2 @@
+usr/lib/*/libefl.so.*
+usr/share/locale/*/LC_MESSAGES/efl.mo
