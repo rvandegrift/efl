@@ -43,7 +43,7 @@ override_dh_auto_install:
 	$(MAKE) -j1 DESTDIR=$(CURDIR)/debian/tmp install
 
 override_dh_install:
-	dh_install
+	dh_install --list-missing
 ifeq ($(DEB_HOST_ARCH_OS),linux)
 	dh_install -plibecore-dev debian/tmp/usr/lib/*/libecore_fb.so
 endif
@@ -57,6 +57,3 @@ override_dh_shlibdeps:
 
 override_dh_strip:
 	dh_strip --dbg-package=efl-dbg
-
-override_dh_install:
-	dh_install --list-missing
