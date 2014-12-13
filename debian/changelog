@@ -10,8 +10,6 @@ efl (1.12.2-0.1) UNRELEASED; urgency=medium
     + libgstreamer-plugins-base0.10-dev -> libgstreamer-plugins-base1.0-dev
   * ./configure with --enable-i-really-know-what-i-am-doing-and-that-this-will-probably-break-things-and-i-will-fix-them-myself-and-send-patches-aba
   * Set --disable-silent-rules.
-  * Add 10_migrate_ecore_con_serverclient_to_eo.diff to fix GnuTLS related
-    FTBFS.
   * 20_shorter_buildlog.diff: Strip down verbosity of testsuite, taking down
     the buildlog from >= 150 MB to about 1,5 MB.
   * debian/watch: point to .xz instead of .gz.
