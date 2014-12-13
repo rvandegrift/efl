@@ -24,6 +24,7 @@ efl (1.12.2-0.1) UNRELEASED; urgency=medium
   * Consistently include cxx support files.
   * Ship newly added libefl in libeina-dev/libeina1 package.
   * Ship eolian code generator.
+  * Ship .eo files in -dev packages.
 
  -- Andreas Metzler <ametzler@debian.org>  Mon, 17 Nov 2014 18:50:55 +0100
 
