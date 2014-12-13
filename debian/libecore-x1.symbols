@@ -20,6 +20,7 @@ libecore_x.so.1 libecore-x1 #MINVER#
  ECORE_X_ATOM_E_ILLUME_ACCESS_ACTION_ENABLE@Base 1.8.0
  ECORE_X_ATOM_E_ILLUME_ACCESS_ACTION_MOUSE@Base 1.8.0
  ECORE_X_ATOM_E_ILLUME_ACCESS_ACTION_NEXT@Base 1.7.7
+ ECORE_X_ATOM_E_ILLUME_ACCESS_ACTION_OVER@Base 1.12.0
  ECORE_X_ATOM_E_ILLUME_ACCESS_ACTION_PREV@Base 1.7.7
  ECORE_X_ATOM_E_ILLUME_ACCESS_ACTION_READ@Base 1.7.7
  ECORE_X_ATOM_E_ILLUME_ACCESS_ACTION_READ_NEXT@Base 1.7.7
@@ -27,6 +28,8 @@ libecore_x.so.1 libecore-x1 #MINVER#
  ECORE_X_ATOM_E_ILLUME_ACCESS_ACTION_SCROLL@Base 1.8.0
  ECORE_X_ATOM_E_ILLUME_ACCESS_ACTION_UP@Base 1.8.0
  ECORE_X_ATOM_E_ILLUME_ACCESS_CONTROL@Base 1.7.7
+ ECORE_X_ATOM_E_ILLUME_ACCESS_DISABLE@Base 1.12.0
+ ECORE_X_ATOM_E_ILLUME_ACCESS_ENABLE@Base 1.12.0
  ECORE_X_ATOM_E_ILLUME_CLIPBOARD_GEOMETRY@Base 1.7.7
  ECORE_X_ATOM_E_ILLUME_CLIPBOARD_OFF@Base 1.7.7
  ECORE_X_ATOM_E_ILLUME_CLIPBOARD_ON@Base 1.7.7
@@ -100,12 +103,24 @@ libecore_x.so.1 libecore-x1 #MINVER#
  ECORE_X_ATOM_E_VIRTUAL_KEYBOARD_STATE@Base 1.7.7
  ECORE_X_ATOM_E_VIRTUAL_KEYBOARD_TERMINAL@Base 1.7.7
  ECORE_X_ATOM_E_VIRTUAL_KEYBOARD_URL@Base 1.7.7
+ ECORE_X_ATOM_E_WINDOW_AUX_HINT@Base 1.12.0
+ ECORE_X_ATOM_E_WINDOW_AUX_HINT_ALLOWED@Base 1.12.0
+ ECORE_X_ATOM_E_WINDOW_AUX_HINT_SUPPORT@Base 1.12.0
+ ECORE_X_ATOM_E_WINDOW_AUX_HINT_SUPPORTED_LIST@Base 1.12.0
  ECORE_X_ATOM_E_WINDOW_PROFILE@Base 1.8.0
  ECORE_X_ATOM_E_WINDOW_PROFILE_AVAILABLE_LIST@Base 1.8.0
  ECORE_X_ATOM_E_WINDOW_PROFILE_CHANGE@Base 1.8.0
  ECORE_X_ATOM_E_WINDOW_PROFILE_CHANGE_DONE@Base 1.8.0
  ECORE_X_ATOM_E_WINDOW_PROFILE_CHANGE_REQUEST@Base 1.8.0
  ECORE_X_ATOM_E_WINDOW_PROFILE_SUPPORTED@Base 1.8.0
+ ECORE_X_ATOM_E_WINDOW_ROTATION_APP_SUPPORTED@Base 1.12.0
+ ECORE_X_ATOM_E_WINDOW_ROTATION_AVAILABLE_LIST@Base 1.12.0
+ ECORE_X_ATOM_E_WINDOW_ROTATION_CHANGE_DONE@Base 1.12.0
+ ECORE_X_ATOM_E_WINDOW_ROTATION_CHANGE_PREPARE@Base 1.12.0
+ ECORE_X_ATOM_E_WINDOW_ROTATION_CHANGE_PREPARE_DONE@Base 1.12.0
+ ECORE_X_ATOM_E_WINDOW_ROTATION_CHANGE_REQUEST@Base 1.12.0
+ ECORE_X_ATOM_E_WINDOW_ROTATION_PREFERRED_ROTATION@Base 1.12.0
+ ECORE_X_ATOM_E_WINDOW_ROTATION_SUPPORTED@Base 1.12.0
  ECORE_X_ATOM_FILE_NAME@Base 1.7.7
  ECORE_X_ATOM_MOTIF_WM_HINTS@Base 1.7.7
  ECORE_X_ATOM_NET_ACTIVE_WINDOW@Base 1.7.7
@@ -270,6 +285,9 @@ libecore_x.so.1 libecore-x1 #MINVER#
  ECORE_X_EVENT_MOUSE_IN@Base 1.7.7
  ECORE_X_EVENT_MOUSE_OUT@Base 1.7.7
  ECORE_X_EVENT_PING@Base 1.7.7
+ ECORE_X_EVENT_PRESENT_COMPLETE@Base 1.12.0
+ ECORE_X_EVENT_PRESENT_CONFIGURE@Base 1.12.0
+ ECORE_X_EVENT_PRESENT_IDLE@Base 1.12.0
  ECORE_X_EVENT_RANDR_CRTC_CHANGE@Base 1.7.7
  ECORE_X_EVENT_RANDR_OUTPUT_CHANGE@Base 1.7.7
  ECORE_X_EVENT_RANDR_OUTPUT_PROPERTY_NOTIFY@Base 1.7.7
@@ -360,6 +378,7 @@ libecore_x.so.1 libecore-x1 #MINVER#
  ecore_x_default_visual_get@Base 1.7.7
  ecore_x_disconnect@Base 1.7.7
  ecore_x_display_get@Base 1.7.7
+ ecore_x_dnd_abort@Base 1.12.0
  ecore_x_dnd_actions_set@Base 1.7.7
  ecore_x_dnd_aware_set@Base 1.7.7
  ecore_x_dnd_begin@Base 1.7.7
@@ -412,6 +431,7 @@ libecore_x.so.1 libecore-x1 #MINVER#
  ecore_x_e_illume_access_action_activate_send@Base 1.7.7
  ecore_x_e_illume_access_action_down_send@Base 1.8.0
  ecore_x_e_illume_access_action_next_send@Base 1.7.7
+ ecore_x_e_illume_access_action_over_send@Base 1.12.0
  ecore_x_e_illume_access_action_prev_send@Base 1.7.7
  ecore_x_e_illume_access_action_read_next_send@Base 1.7.7
  ecore_x_e_illume_access_action_read_prev_send@Base 1.7.7
@@ -471,6 +491,7 @@ libecore_x.so.1 libecore-x1 #MINVER#
  ecore_x_e_illume_softkey_geometry_get@Base 1.7.7
  ecore_x_e_illume_softkey_geometry_set@Base 1.7.7
  ecore_x_e_illume_window_state_get@Base 1.7.7
+ ecore_x_e_illume_window_state_send@Base 1.12.0
  ecore_x_e_illume_window_state_set@Base 1.7.7
  ecore_x_e_illume_zone_get@Base 1.7.7
  ecore_x_e_illume_zone_list_set@Base 1.7.7
@@ -492,6 +513,18 @@ libecore_x.so.1 libecore-x1 #MINVER#
  ecore_x_e_window_profile_set@Base 1.7.7
  ecore_x_e_window_profile_supported_get@Base 1.8.0
  ecore_x_e_window_profile_supported_set@Base 1.8.0
+ ecore_x_e_window_rotation_app_get@Base 1.12.0
+ ecore_x_e_window_rotation_app_set@Base 1.12.0
+ ecore_x_e_window_rotation_available_rotations_get@Base 1.12.0
+ ecore_x_e_window_rotation_available_rotations_set@Base 1.12.0
+ ecore_x_e_window_rotation_change_done_send@Base 1.12.0
+ ecore_x_e_window_rotation_change_prepare_done_send@Base 1.12.0
+ ecore_x_e_window_rotation_change_prepare_send@Base 1.12.0
+ ecore_x_e_window_rotation_change_request_send@Base 1.12.0
+ ecore_x_e_window_rotation_preferred_rotation_get@Base 1.12.0
+ ecore_x_e_window_rotation_preferred_rotation_set@Base 1.12.0
+ ecore_x_e_window_rotation_supported_get@Base 1.12.0
+ ecore_x_e_window_rotation_supported_set@Base 1.12.0
  ecore_x_error_code_get@Base 1.7.7
  ecore_x_error_handler_set@Base 1.7.7
  ecore_x_error_request_get@Base 1.7.7
@@ -648,6 +681,10 @@ libecore_x.so.1 libecore-x1 #MINVER#
  ecore_x_pointer_ungrab@Base 1.7.7
  ecore_x_pointer_warp@Base 1.7.7
  ecore_x_pointer_xy_get@Base 1.7.7
+ ecore_x_present_exists@Base 1.12.0
+ ecore_x_present_notify_msc@Base 1.12.0
+ ecore_x_present_pixmap@Base 1.12.0
+ ecore_x_present_select_events@Base 1.12.0
  ecore_x_randr_config_timestamp_get@Base 1.8.0
  ecore_x_randr_crtc_border_area_get@Base 1.8.0
  ecore_x_randr_crtc_border_area_set@Base 1.8.0
@@ -777,6 +814,7 @@ libecore_x.so.1 libecore-x1 #MINVER#
  ecore_x_screen_is_composited@Base 1.7.7
  ecore_x_screen_is_composited_set@Base 1.7.7
  ecore_x_screen_size_get@Base 1.7.7
+ ecore_x_screensaver_activate@Base 1.12.0
  ecore_x_screensaver_blank_get@Base 1.7.7
  ecore_x_screensaver_blank_set@Base 1.7.7
  ecore_x_screensaver_custom_blanking_disable@Base 1.7.7
@@ -788,7 +826,10 @@ libecore_x.so.1 libecore-x1 #MINVER#
  ecore_x_screensaver_idle_time_get@Base 1.7.7
  ecore_x_screensaver_interval_get@Base 1.7.7
  ecore_x_screensaver_interval_set@Base 1.7.7
+ ecore_x_screensaver_reset@Base 1.12.0
+ ecore_x_screensaver_resume@Base 1.12.0
  ecore_x_screensaver_set@Base 1.7.7
+ ecore_x_screensaver_supend@Base 1.12.0
  ecore_x_screensaver_timeout_get@Base 1.7.7
  ecore_x_screensaver_timeout_set@Base 1.7.7
  ecore_x_selection_clipboard_clear@Base 1.7.7
@@ -860,6 +901,7 @@ libecore_x.so.1 libecore-x1 #MINVER#
  ecore_x_window_focus_at_time@Base 1.7.7
  ecore_x_window_focus_get@Base 1.7.7
  ecore_x_window_free@Base 1.7.7
+ ecore_x_window_full_new@Base 1.12.0
  ecore_x_window_geometry_get@Base 1.7.7
  ecore_x_window_gravity_set@Base 1.7.7
  ecore_x_window_hide@Base 1.7.7
@@ -878,6 +920,7 @@ libecore_x.so.1 libecore-x1 #MINVER#
  ecore_x_window_override_new@Base 1.7.7
  ecore_x_window_override_set@Base 1.7.7
  ecore_x_window_parent_get@Base 1.7.7
+ ecore_x_window_permanent_new@Base 1.12.0
  ecore_x_window_pixel_gravity_set@Base 1.7.7
  ecore_x_window_pixmap_set@Base 1.7.7
  ecore_x_window_prop_any_type@Base 1.7.7

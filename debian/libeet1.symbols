@@ -23,8 +23,10 @@ libeet.so.1 libeet1 #MINVER#
  eet_data_descriptor_stream_new@Base 1.2.3
  eet_data_dump@Base 1.0.0
  eet_data_dump_cipher@Base 1.2.0
+ eet_data_image_colorspace_get@Base 1.12.0
  eet_data_image_decode@Base 1.0.0
  eet_data_image_decode_cipher@Base 1.2.0
+ eet_data_image_decode_to_cspace_surface_cipher@Base 1.12.0
  eet_data_image_decode_to_surface@Base 1.1.0
  eet_data_image_decode_to_surface_cipher@Base 1.2.0
  eet_data_image_encode@Base 1.0.0
@@ -35,6 +37,7 @@ libeet.so.1 libeet1 #MINVER#
  eet_data_image_header_read_cipher@Base 1.2.0
  eet_data_image_read@Base 1.0.0
  eet_data_image_read_cipher@Base 1.2.0
+ eet_data_image_read_to_cspace_surface_cipher@Base 1.12.0
  eet_data_image_read_to_surface@Base 1.1.0
  eet_data_image_read_to_surface_cipher@Base 1.2.0
  eet_data_image_write@Base 1.0.0
@@ -45,6 +48,7 @@ libeet.so.1 libeet1 #MINVER#
  eet_data_node_write_cipher@Base 1.2.0
  eet_data_read@Base 1.0.0
  eet_data_read_cipher@Base 1.2.0
+ eet_data_read_cipher_buffer@Base 1.12.0
  eet_data_text_dump@Base 1.0.0
  eet_data_text_dump_cipher@Base 1.2.0
  eet_data_text_undump@Base 1.0.0

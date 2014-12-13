@@ -99,7 +99,9 @@ libefreet.so.1 libefreet1a #MINVER#, libefreet-bin
  efreet_menu_kde_legacy_init@Base 1.7.7
  efreet_menu_new@Base 1.7.7
  efreet_menu_parse@Base 1.7.7
+ efreet_menu_ref@Base 1.12.0
  efreet_menu_save@Base 1.7.7
+ efreet_menu_unref@Base 1.12.0
  efreet_music_dir_get@Base 1.8.0
  efreet_pictures_dir_get@Base 1.8.0
  efreet_public_share_dir_get@Base 1.8.0
@@ -113,6 +115,7 @@ libefreet.so.1 libefreet1a #MINVER#, libefreet-bin
  efreet_util_desktop_categories_list@Base 1.7.7
  efreet_util_desktop_category_list@Base 1.7.7
  efreet_util_desktop_comment_glob_list@Base 1.7.7
+ efreet_util_desktop_environments_list@Base 1.12.0
  efreet_util_desktop_exec_find@Base 1.7.7
  efreet_util_desktop_exec_glob_list@Base 1.7.7
  efreet_util_desktop_file_id_find@Base 1.7.7
