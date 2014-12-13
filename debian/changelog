@@ -20,7 +20,6 @@ efl (1.12.2-0.1) UNRELEASED; urgency=medium
   * 21_skip_failing_tests.diff: Skip ecore fb test (needs writeable /dev/tty0)
     and eldbus_cxx test (needs running dbus daemon and $DISPLAY).
   * Update symbol files.
-  * Add libefl1 library package.
   * Invoke dh_install with "--list-missing" option.
   * Consistently include cxx support files.
 
