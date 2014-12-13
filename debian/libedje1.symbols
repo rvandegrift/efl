@@ -139,8 +139,8 @@ libedje.so.1 libedje1 #MINVER#
  edje_edit_part_drag_y_set@Base 1.7.4
  edje_edit_part_effect_get@Base 1.7.4
  edje_edit_part_effect_set@Base 1.7.4
- edje_edit_part_entry_mode_get@Base 1.12.1-0.1
- edje_edit_part_entry_mode_set@Base 1.12.1-0.1
+ edje_edit_part_entry_mode_get@Base 1.12.1
+ edje_edit_part_entry_mode_set@Base 1.12.1
  edje_edit_part_exist@Base 1.7.4
  edje_edit_part_external_add@Base 1.7.4
  edje_edit_part_ignore_flags_get@Base 1.7.4
