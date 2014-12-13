@@ -659,6 +659,20 @@ Description: Development files for libethumb and libethumb-client
  This package contains headers and static libraries for the Ethumb and
  Ethumb-Client libraries.
 
+Package: libeolian1
+Architecture: any
+Multi-Arch: same
+Pre-Depends: ${misc:Pre-Depends}
+Depends: ${misc:Depends}, ${shlibs:Depends}
+Description: EFL's .eo parser and code generator - runtime library
+ EFL's .eo parser and code generator - runtime library
+
+Package: libeolian-dev
+Section: libdevel
+Architecture: any
+Depends: ${misc:Depends}, libeolian1 (= ${binary:Version}), pkg-config
+Description: EFL's .eo parser and code generator - headers and helper binary
+ EFL's .eo parser and code generator - headers and helper binaries.
 
 Package: efl-doc
 Architecture: all
