@@ -133,7 +133,6 @@ Architecture: any
 Depends: ${misc:Depends}, libevas1 (= ${binary:Version}), pkg-config,
  libeina-dev (>= ${source:Upstream-Version}),
  libeet-dev  (>= ${source:Upstream-Version}),
- libefl-dev  (>= ${source:Upstream-Version}),
  libjpeg-dev, libx11-dev, libfreetype6-dev, libfontconfig1-dev, libfribidi-dev,
  libluajit-5.1-dev
 Suggests: efl-doc
@@ -320,7 +319,6 @@ Depends: ${misc:Depends}, libecore1 (= ${binary:Version}), pkg-config,
          libecore-x1 (= ${binary:Version}),
          libeina-dev (>= ${source:Upstream-Version}),
          libevas-dev (>= ${source:Upstream-Version}),
-         libefl-dev (>= ${source:Upstream-Version}),
          libgnutls28-dev, libcurl4-gnutls-dev, libxcursor-dev, libxss-dev,
          libxrender-dev, libxinerama-dev, libxrandr-dev, libxext-dev, libxi-dev,
          libxp-dev, libxcomposite-dev, libxdamage-dev, x11proto-xext-dev, libxtst-dev,
@@ -492,7 +490,6 @@ Depends: ${misc:Depends}, libedje1 (= ${binary:Version}), libedje-bin, pkg-confi
  libecore-dev  (>= ${source:Upstream-Version}),
  libembryo-dev (>= ${source:Upstream-Version}),
  libeio-dev    (>= ${source:Upstream-Version}),
- libefl-dev    (>= ${source:Upstream-Version}),
  libluajit-5.1-dev
 Description: libedje headers and static libraries
  Edje is a graphical layout and animation library for animated resizable,
@@ -595,7 +592,6 @@ Depends: ${misc:Depends}, libemotion1 (= ${binary:Version}), pkg-config,
  libecore-dev (>= ${source:Upstream-Version}),
  libeio-dev   (>= ${source:Upstream-Version}),
  libeeze-dev  (>= ${source:Upstream-Version}) [linux-any],
- libefl-dev  (>= ${source:Upstream-Version}) [linux-any],
  libgstreamer1.0-dev, libgstreamer-plugins-base1.0-dev
 Description: Development files for libemotion
  Emotion is a library that allows playing audio and video files, using one of
@@ -650,8 +646,7 @@ Depends: ${misc:Depends}, libethumb1 (= ${binary:Version}), libethumb-client1 (=
  libeet-dev   (>= ${source:Upstream-Version}),
  libevas-dev  (>= ${source:Upstream-Version}),
  libecore-dev (>= ${source:Upstream-Version}),
- libedje-dev  (>= ${source:Upstream-Version}),
- libefl-dev  (>= ${source:Upstream-Version})
+ libedje-dev  (>= ${source:Upstream-Version})
 Description: Development files for libethumb and libethumb-client
  Ethumb uses Evas to generate thumbnail images of given files. The API allows
  great customization of the generated files and also helps complying to
@@ -700,7 +695,6 @@ Priority: extra
 Depends:  ${misc:Depends},
           libeina1       (= ${binary:Version}),
           libeet1        (= ${binary:Version}),
-          libefl1        (= ${binary:Version}),
           libevas1       (= ${binary:Version}),
           libecore1      (= ${binary:Version}),
           libecore-con1  (= ${binary:Version}),
@@ -736,19 +730,3 @@ Description: Debugging symbols for the Enlightenment Foundation Libraries
  to provide a backtrace with names in a debugger, this makes it somewhat easier
  to interpret core dumps. The libraries are installed in /usr/lib/debug and
  are automatically used by gdb.
-
-Package: libefl1
-Architecture: any
-Multi-Arch: same
-Depends: ${shlibs:Depends}, ${misc:Depends}
-Description: EFL's general purpose library - runtime
- EFL's general purpose library - runtime library.
-
-Package: libefl-dev
-Architecture: any
-Section: libdevel
-Priority: extra
-Depends: libefl1 (= ${binary:Version}), ${shlibs:Depends}, ${misc:Depends}
-Description: EFL's general purpose library - development
- EFL's general purpose library - development files
-
