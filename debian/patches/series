@@ -1,7 +1,6 @@
 01_restore-eina_abi.diff
 02_no_ecore_imf_test.diff
 03_no_ecore_audio_test.diff
-10_migrate_ecore_con_serverclient_to_eo.diff
 15_try_curl-gnutls.diff
 20_shorter_buildlog.diff
 21_skip_failing_tests.diff
