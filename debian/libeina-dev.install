@@ -1,5 +1,3 @@
-debian/tmp/usr/include/efl-1
-debian/tmp/usr/include/efl-cxx-1
 debian/tmp/usr/include/eina-1
 debian/tmp/usr/include/eina-cxx-1
 debian/tmp/usr/lib/*/libeina.so
@@ -10,3 +8,9 @@ debian/tmp/usr/include/eo-cxx-1
 debian/tmp/usr/lib/*/libeo.so
 debian/tmp/usr/lib/*/pkgconfig/eo.pc
 debian/tmp/usr/lib/*/pkgconfig/eo-cxx.pc
+
+#libefl
+debian/tmp/usr/include/efl-1
+debian/tmp/usr/include/efl-cxx-1
+usr/lib/*/libefl.so
+usr/lib/*/pkgconfig/efl*.pc
