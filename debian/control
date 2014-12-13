@@ -134,7 +134,8 @@ Depends: ${misc:Depends}, libevas1 (= ${binary:Version}), pkg-config,
  libeina-dev (>= ${source:Upstream-Version}),
  libeet-dev  (>= ${source:Upstream-Version}),
  libefl-dev  (>= ${source:Upstream-Version}),
- libjpeg-dev, libx11-dev, libfreetype6-dev, libfontconfig1-dev, libfribidi-dev
+ libjpeg-dev, libx11-dev, libfreetype6-dev, libfontconfig1-dev, libfribidi-dev,
+ libluajit-5.1-dev
 Suggests: efl-doc
 Description: Enlightenment DR17 advanced canvas library development files
  Evas is an advanced canvas library, providing six engines for rendering: X11,
@@ -492,7 +493,7 @@ Depends: ${misc:Depends}, libedje1 (= ${binary:Version}), libedje-bin, pkg-confi
  libembryo-dev (>= ${source:Upstream-Version}),
  libeio-dev    (>= ${source:Upstream-Version}),
  libefl-dev    (>= ${source:Upstream-Version}),
- liblua5.1-0-dev
+ libluajit-5.1-dev
 Description: libedje headers and static libraries
  Edje is a graphical layout and animation library for animated resizable,
  compressed and scalable themes. It is the theming engine behind
