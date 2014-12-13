@@ -1,0 +1,3 @@
+usr/lib/*/pkgconfig/efl.pc
+usr/lib/*/libefl.so
+usr/include/efl-1
