@@ -37,25 +37,25 @@ Forwarded: <no|not-needed|url proving that it has been forwarded>
 Reviewed-By: <name and email of someone who approved the patch>
 Last-Update: <YYYY-MM-DD>
 
---- efl-1.12.1.orig/src/tests/ecore/ecore_test_ecore_fb.c
-+++ efl-1.12.1/src/tests/ecore/ecore_test_ecore_fb.c
+--- a/src/tests/ecore/ecore_test_ecore_fb.c
++++ b/src/tests/ecore/ecore_test_ecore_fb.c
 @@ -14,6 +14,8 @@
  START_TEST(ecore_test_ecore_fb_init)
  {
     int ret, i, j;
 +   fprintf(stderr, "Skipping ecore fb test\n");
-+   return(0);
++   return(77);
  
     for (i = 1; i <= MAX_ITER; i++)
       {
---- efl-1.12.1.orig/src/tests/eldbus_cxx/eldbus_cxx_suite.cc
-+++ efl-1.12.1/src/tests/eldbus_cxx/eldbus_cxx_suite.cc
+--- a/src/tests/eldbus_cxx/eldbus_cxx_suite.cc
++++ b/src/tests/eldbus_cxx/eldbus_cxx_suite.cc
 @@ -79,6 +79,8 @@ int main(int argc, char* argv[])
     SRunner *sr;
     int i, failed_count;
  
 +   fprintf(stderr, "Skipping %s\n", argv[0]);
-+   return(0);
++   return(77);
     for (i = 1; i < argc; i++)
        if ((strcmp(argv[i], "-h") == 0) ||
            (strcmp(argv[i], "--help") == 0))
