@@ -10,6 +10,10 @@ endif
 ifeq (linux,$(DEB_HOST_ARCH_OS))
 	arch_flags += --enable-fb
 endif
+LETSBUILDINDEP := $(shell if dh_listpackages | grep -q efl-doc ; then \
+	echo yes ;\
+	else echo no ; fi)
+
 
 %:
 	dh $@ --with autoreconf --parallel
@@ -29,6 +33,12 @@ override_dh_auto_configure:
 	--disable-magic-debug \
 	--enable-i-really-know-what-i-am-doing-and-that-this-will-probably-break-things-and-i-will-fix-them-myself-and-send-patches-aba \
 	$(arch_flags)
+
+override_dh_auto_build:
+	dh_auto_build --verbose --parallel
+ifeq ($(filter yes,$(LETSBUILDINDEP)),yes)
+	$(MAKE) doc
+endif
 
 override_dh_auto_build-indep:
 	$(MAKE) doc
