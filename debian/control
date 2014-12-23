@@ -664,15 +664,22 @@ Architecture: any
 Multi-Arch: same
 Pre-Depends: ${misc:Pre-Depends}
 Depends: ${misc:Depends}, ${shlibs:Depends}
-Description: EFL's .eo parser and code generator - runtime library
- EFL's .eo parser and code generator - runtime library
+Description: EO object parser and C code generator - runtime library
+ Eolian parses Enlightenment's meta-data (.eo) files and can then
+ generate C code along with header files.
+ .
+ This package contains the runtime library.
 
 Package: libeolian-dev
 Section: libdevel
 Architecture: any
-Depends: ${misc:Depends}, libeolian1 (= ${binary:Version}), pkg-config
-Description: EFL's .eo parser and code generator - headers and helper binary
- EFL's .eo parser and code generator - headers and helper binaries.
+Depends: ${misc:Depends}, ${shlibs:Depends},
+ libeolian1 (= ${binary:Version}), pkg-config
+Description: EO object parser and C code generator - development
+ Eolian parses Enlightenment's meta-data (.eo) files and can then
+ generate C code along with header files.
+ .
+ This package contains the development files.
 
 Package: efl-doc
 Architecture: all
