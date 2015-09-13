@@ -17,7 +17,8 @@ Build-Depends: dpkg-dev (>= 1.14.8), debhelper (>= 9), dh-autoreconf,
  libluajit-5.1-dev, libdbus-1-dev, libsndfile-dev,
  libgnutls28-dev, libcurl4-gnutls-dev,
  libudev-dev [linux-any], libmount-dev [linux-any], libblkid-dev [linux-any],
- libgstreamer1.0-dev, libgstreamer-plugins-base1.0-dev, libgcrypt-dev
+ libgstreamer1.0-dev, libgstreamer-plugins-base1.0-dev, libgcrypt-dev,
+ libbullet-dev,
 Build-Depends-Indep: doxygen
 Standards-Version: 3.9.5
 Vcs-Git: git://anonscm.debian.org/pkg-e/libs/efl.git
