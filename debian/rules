@@ -65,3 +65,7 @@ override_dh_shlibdeps:
 
 override_dh_strip:
 	dh_strip --dbg-package=efl-dbg
+
+override_dh_clean:
+	dh_clean
+	find -name '*.luac' -exec rm {} \;
