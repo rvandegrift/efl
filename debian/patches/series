@@ -4,3 +4,4 @@
 21_skip_failing_tests.diff
 22_consolidate-systemd-deps.diff
 23_disable-xprint.diff
+29_fix_eio_deps.diff
