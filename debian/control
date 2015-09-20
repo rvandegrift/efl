@@ -392,15 +392,6 @@ Description: Development files for libefreet and libefreet-mime
  .
  This package contains headers and static libraries for Efreet.
 
-Package: libefreet1
-Section: oldlibs
-Priority: extra
-Architecture: all
-Depends: ${misc:Depends}, libefreet1a, libefreet-bin
-Description: dummy transitional package to libefreet1a+libefreet-bin
- This is a dummy transitional package to allow transition to the Multi-Arch
- packages libefreet1a and libefreet-bin. It can safely be removed.
-
 # EMBRYO
 
 Package: libembryo-dev
