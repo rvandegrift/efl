@@ -27,6 +27,7 @@ override_dh_auto_configure:
 	--with-tests=regular \
 	--with-crypto=gnutls \
 	--disable-tslib \
+	--enable-liblz4 \
 	--disable-magic-debug \
 	--enable-i-really-know-what-i-am-doing-and-that-this-will-probably-break-things-and-i-will-fix-them-myself-and-send-patches-aba \
 	$(arch_flags)
