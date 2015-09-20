@@ -1,0 +1,4 @@
+debian/tmp/usr/include/emotion-1
+debian/tmp/usr/lib/*/libemotion.so
+debian/tmp/usr/lib/*/pkgconfig/emotion.pc
+usr/share/eolian/include/emotion-1

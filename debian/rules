@@ -1,0 +1,69 @@
+#!/usr/bin/make -f
+
+CFLAGS += -fvisibility=hidden
+LDFLAGS += -Wl,-z,defs -Wl,--as-needed
+
+ifneq (,$(filter $(DEB_HOST_ARCH), armel armhf))
+	arch_flags += --with-opengl=es
+endif
+
+ifeq (linux,$(DEB_HOST_ARCH_OS))
+	arch_flags += --enable-fb
+endif
+LETSBUILDINDEP := $(shell if dh_listpackages | grep -q efl-doc ; then \
+	echo yes ;\
+	else echo no ; fi)
+
+
+%:
+	dh $@ --with autoreconf --parallel
+
+override_dh_auto_configure:
+	dh_auto_configure --verbose -- \
+	--disable-rpath \
+	--disable-silent-rules \
+	--enable-doc \
+	--with-profile=dev \
+	--with-tests=regular \
+	--with-crypto=gnutls \
+	--disable-cserve \
+	--disable-pulseaudio \
+	--disable-physics \
+	--disable-tslib \
+	--disable-magic-debug \
+	--enable-i-really-know-what-i-am-doing-and-that-this-will-probably-break-things-and-i-will-fix-them-myself-and-send-patches-aba \
+	$(arch_flags)
+
+override_dh_auto_build:
+	dh_auto_build --verbose --parallel
+ifeq ($(filter yes,$(LETSBUILDINDEP)),yes)
+	$(MAKE) doc
+endif
+
+override_dh_auto_build-indep:
+	$(MAKE) doc
+
+override_dh_auto_test-indep:
+override_dh_auto_test-arch:
+	CK_DEFAULT_TIMEOUT=300 $(MAKE) -j1 check VERBOSE=yes
+
+# The install phase doesn't work reliably in parallel
+# Force it to run with only 1 thread to avoid issues
+override_dh_auto_install:
+	$(MAKE) -j1 DESTDIR=$(CURDIR)/debian/tmp install
+
+override_dh_install:
+	dh_install --list-missing
+ifeq ($(DEB_HOST_ARCH_OS),linux)
+	dh_install -plibecore-dev debian/tmp/usr/lib/*/libecore_fb.so
+endif
+
+override_dh_makeshlibs:
+	dh_makeshlibs -Xmodule.so
+
+override_dh_shlibdeps:
+	dh_shlibdeps -Nlibefreet1a
+	dh_shlibdeps -plibefreet1a -- -xlibefreet-bin
+
+override_dh_strip:
+	dh_strip --dbg-package=efl-dbg

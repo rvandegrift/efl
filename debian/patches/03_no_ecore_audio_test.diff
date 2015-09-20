@@ -1,0 +1,11 @@
+--- a/src/tests/ecore/ecore_suite.c
++++ b/src/tests/ecore/ecore_suite.c
+@@ -23,7 +23,7 @@ static const Ecore_Test_Case etc[] = {
+   { "Ecore_Con_Url", ecore_test_ecore_con_url },
+   { "Ecore_X", ecore_test_ecore_x },
+   { "Ecore_Imf", ecore_test_ecore_imf },
+-#if HAVE_ECORE_AUDIO
++#if 0
+   { "Ecore Audio", ecore_test_ecore_audio},
+ #endif
+   { "Ecore_Timers", ecore_test_timer },

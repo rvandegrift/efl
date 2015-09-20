@@ -1,0 +1,5 @@
+debian/tmp/usr/lib/*/libeina.so.*
+debian/tmp/usr/lib/*/libeo.so.*
+#libefl
+usr/lib/*/libefl.so.*
+usr/share/locale/*/LC_MESSAGES/efl.mo

@@ -1,0 +1,5 @@
+debian/tmp/usr/include/evas-1
+debian/tmp/usr/include/evas-cxx-1
+debian/tmp/usr/lib/*/libevas.so
+debian/tmp/usr/lib/*/pkgconfig/evas*.pc
+usr/share/eolian/include/evas-1
