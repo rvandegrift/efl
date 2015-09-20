@@ -30,6 +30,7 @@ override_dh_auto_configure:
 	--enable-liblz4 \
 	--enable-xinput22 \
 	--enable-image-loader-webp \
+	--enable-harfbuzz \
 	--disable-magic-debug \
 	--enable-i-really-know-what-i-am-doing-and-that-this-will-probably-break-things-and-i-will-fix-them-myself-and-send-patches-aba \
 	$(arch_flags)
