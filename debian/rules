@@ -26,7 +26,6 @@ override_dh_auto_configure:
 	--with-profile=dev \
 	--with-tests=regular \
 	--with-crypto=gnutls \
-	--disable-pulseaudio \
 	--disable-tslib \
 	--disable-magic-debug \
 	--enable-i-really-know-what-i-am-doing-and-that-this-will-probably-break-things-and-i-will-fix-them-myself-and-send-patches-aba \
