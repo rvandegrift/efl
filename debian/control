@@ -625,7 +625,46 @@ Description: EEZE headers and static libraries
  .
  This package contains headers and static libraries for the Eeze library.
 
-<<<<<<< HEAD
+Package: libelua1.15
+Architecture: linux-any
+Multi-Arch: same
+Pre-Depends: ${misc:Pre-Depends}
+Depends: ${misc:Depends}, ${shlibs:Depends}
+Description: Lua wrapper and convenience layer for EFL shared objects
+ Elua is a new LuaJIT based runtime (name is temporary) for rapid
+ application development with the EFL. It counts on Eolian to provide
+ bindings. It's meant to be a high performance/low footprint runtime,
+ competitive with C applications as far as performance is
+ concerned. Currently in very early stage of development.
+
+Package: libelua-dev
+Section: libdevel
+Architecture: linux-any
+Depends: ${misc:Depends}, libeeze1.15 (= ${binary:Version}), pkg-config,
+ libeina-dev  (>= ${source:Upstream-Version}),
+ libecore-dev (>= ${source:Upstream-Version}),
+Description: Lua wrapper and convenience layer for EFL development files
+ Elua is a new LuaJIT based runtime (name is temporary) for rapid
+ application development with the EFL. It counts on Eolian to provide
+ bindings. It's meant to be a high performance/low footprint runtime,
+ competitive with C applications as far as performance is
+ concerned. Currently in very early stage of development.
+ .
+ This package contains headers and static libraries.
+
+Package: libelua-bin
+Architecture: any
+Depends: ${misc:Depends}, ${shlibs:Depends}
+Description: Lua wrapper and convenience layer for EFL
+ Elua is a new LuaJIT based runtime (name is temporary) for rapid
+ application development with the EFL. It counts on Eolian to provide
+ bindings. It's meant to be a high performance/low footprint runtime,
+ competitive with C applications as far as performance is
+ concerned. Currently in very early stage of development.
+ .
+ This package contains elua, the main entry point for all EFL/LuaJIT
+ powered applications.
+
 Package: libemile1.15
 Architecture: linux-any
 Multi-Arch: same

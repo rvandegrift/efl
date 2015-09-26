@@ -1,3 +1,4 @@
 debian/tmp/usr/lib/*/libevas.so.*
 debian/tmp/usr/lib/*/evas/modules/loaders/*/*/*.so
 debian/tmp/usr/lib/*/evas/modules/savers/*/*/*.so
+debian/tmp/usr/share/elua/modules/evas/*
