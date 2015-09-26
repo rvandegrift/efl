@@ -1,0 +1,4 @@
+debian/tmp/usr/include/ector-1
+debian/tmp/usr/lib/*/pkgconfig/ector.pc
+debian/tmp/usr/lib/*/libector.so
+debian/tmp/usr/share/eolian/include/ector-1
