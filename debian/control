@@ -377,6 +377,7 @@ Depends: ${misc:Depends}, pkg-config,
          libecore-x1.15 (= ${binary:Version}),
          libeina-dev (>= ${source:Upstream-Version}),
          libemile-dev (>= ${source:Upstream-Version}),
+         libector-dev (>= ${source:Upstream-Version}),
          libevas-dev (>= ${source:Upstream-Version}),
          libgnutls28-dev, libcurl4-gnutls-dev, libxcursor-dev, libxss-dev,
          libxrender-dev, libxinerama-dev, libxrandr-dev, libxext-dev, libxi-dev,
@@ -391,6 +392,36 @@ Description: Ecore headers and static libraries
  .
  This package contains headers and static libraries for the Ecore library.
 
+Package: libector1.15
+Architecture: any
+Multi-Arch: same
+Pre-Depends: ${misc:Pre-Depends}
+Depends: ${shlibs:Depends}, ${misc:Depends}
+Description: Library that provides vector graphics capabilities for EFL
+ Ector provides a new retained rendering library that is used by Evas
+ to provide Evas_Object_VG. This is a new Evas_Object that provides a
+ vector graphics scene graph following the SVG specification. It will
+ be considered a bug if some behaviour does not follow the SVG
+ standard. Evas_Object_VG provides 3 kind of objects for now: shape,
+ as well as linear and radial gradients.
+ .
+ This package provides the libector1 library.
+
+Package: libector-dev
+Section: libdevel
+Architecture: any
+Pre-Depends: ${misc:Pre-Depends}
+Depends: ${shlibs:Depends}, ${misc:Depends},
+ libeina-dev (>= ${source:Upstream-Version})
+Description: Library that provides vector graphics capabilities for EFL development files
+ Ector provides a new retained rendering library that is used by Evas
+ to provide Evas_Object_VG. This is a new Evas_Object that provides a
+ vector graphics scene graph following the SVG specification. It will
+ be considered a bug if some behaviour does not follow the SVG
+ standard. Evas_Object_VG provides 3 kind of objects for now: shape,
+ as well as linear and radial gradients.
+ .
+ This package provides the headers and static library.
 
 # EFREET
 
