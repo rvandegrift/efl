@@ -145,6 +145,30 @@ Description: Library providing geo information management in EFL development fil
  .
  This package contains headers and static libraries.
 
+Package: libephysics1.15
+Architecture: any
+Multi-Arch: same
+Pre-Depends: ${misc:Pre-Depends}
+Depends: ${misc:Depends}, ${shlibs:Depends}
+Description: Library providing physics functions to Evas and Edje
+ EPhysics is a new library that glues in the Bullet physics engine
+ into EFL to allow you to make use of an entire physics engine easily
+ and simply in your creations. Edje also makes use of this allowing
+ your themes to use it too.
+
+Package: libephysics-dev
+Section: libdevel
+Architecture: any
+Pre-Depends: ${misc:Pre-Depends}
+Depends: ${misc:Depends}, libephysics1.15 (= ${binary:Version}), pkg-config,
+ libecore-dev (>= ${source:Upstream-Version}),
+ libeina-dev (>= ${source:Upstream-Version}),
+ libemile-dev (>= ${source:Upstream-Version}),
+ libevas-dev (>= ${source:Upstream-Version})
+Description: Library providing physics functions to Evas and Edje development files
+ .
+ This package contains headers and static libraries.
+
 # EVAS
 
 Package: libevas1.15
@@ -878,6 +902,7 @@ Depends:  ${misc:Depends},
           libeina1.15       (= ${binary:Version}),
           libeet1.15        (= ${binary:Version}),
           libelocation1.15  (= ${binary:Version}),
+          libephysics1.15   (= ${binary:Version}),
           libevas1.15       (= ${binary:Version}),
           libevas1.15-engines-x       (= ${binary:Version}),
           libevas1.15-engines-fb      (= ${binary:Version}),
