@@ -376,6 +376,7 @@ Depends: ${misc:Depends}, pkg-config,
          libecore-ipc1.15 (= ${binary:Version}),
          libecore-x1.15 (= ${binary:Version}),
          libeina-dev (>= ${source:Upstream-Version}),
+         libemile-dev (>= ${source:Upstream-Version}),
          libevas-dev (>= ${source:Upstream-Version}),
          libgnutls28-dev, libcurl4-gnutls-dev, libxcursor-dev, libxss-dev,
          libxrender-dev, libxinerama-dev, libxrandr-dev, libxext-dev, libxi-dev,
@@ -623,6 +624,29 @@ Description: EEZE headers and static libraries
   - Monitor in realtime the status of peripheral devices
  .
  This package contains headers and static libraries for the Eeze library.
+
+<<<<<<< HEAD
+Package: libemile1.15
+Architecture: linux-any
+Multi-Arch: same
+Pre-Depends: ${misc:Pre-Depends}
+Depends: ${misc:Depends}, ${shlibs:Depends}
+Description: Compression and encryption utilities and abstractions
+ Emile provides a library to bring together serialization, compression
+ and ciphering. It is a low-level library and can be used by anything
+ above Eina.<
+
+Package: libemile-dev
+Section: libdevel
+Architecture: linux-any
+Depends: ${misc:Depends}, libemile1.15 (= ${binary:Version}), pkg-config,
+ libeina-dev  (>= ${source:Upstream-Version}), liblz4-dev
+Description: Compression and encryption utilities and abstractions development files
+ Emile provides a library to bring together serialization, compression
+ and ciphering. It is a low-level library and can be used by anything
+ above Eina.
+ .
+ This package contains headers and static libraries.
 
 # EMOTION
 
