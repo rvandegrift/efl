@@ -2,6 +2,7 @@ libedje.so.1 libedje1.15 #MINVER#
  EDJE_EDIT_ERROR_GROUP_CURRENTLY_USED@Base 1.7.4
  EDJE_EDIT_ERROR_GROUP_DOES_NOT_EXIST@Base 1.7.4
  EDJE_EDIT_ERROR_GROUP_REFERENCED@Base 1.7.4
+ _EDJE_OBJECT_EVENT_RECALC@Base 1.15.1
  _edje_cache_file_unref@Base 1.8.0
  _edje_data_font_list_desc_make@Base 1.8.0
  _edje_default_log_dom@Base 1.7.4
@@ -12,9 +13,12 @@ libedje.so.1 libedje1.15 #MINVER#
  _edje_program_insert@Base 1.7.4
  _edje_program_remove@Base 1.7.4
  _emp_BOX@Base 1.8.0
+ _emp_CAMERA@Base 1.15.1
  _emp_EXTERNAL@Base 1.8.0
  _emp_GROUP@Base 1.8.0
  _emp_IMAGE@Base 1.8.0
+ _emp_LIGHT@Base 1.15.1
+ _emp_MESH_NODE@Base 1.15.1
  _emp_PROXY@Base 1.8.0
  _emp_RECTANGLE@Base 1.8.0
  _emp_SPACER@Base 1.8.0
@@ -32,6 +36,7 @@ libedje.so.1 libedje1.15 #MINVER#
  edje_collection_cache_flush@Base 1.7.4
  edje_collection_cache_get@Base 1.7.4
  edje_collection_cache_set@Base 1.7.4
+ edje_color_class_active_iterator_new@Base 1.15.1
  edje_color_class_del@Base 1.7.4
  edje_color_class_get@Base 1.7.4
  edje_color_class_list@Base 1.7.4
@@ -42,6 +47,8 @@ libedje.so.1 libedje1.15 #MINVER#
  edje_edit_color_class_colors_get@Base 1.7.4
  edje_edit_color_class_colors_set@Base 1.7.4
  edje_edit_color_class_del@Base 1.7.4
+ edje_edit_color_class_description_get@Base 1.15.1
+ edje_edit_color_class_description_set@Base 1.15.1
  edje_edit_color_class_name_set@Base 1.7.4
  edje_edit_color_classes_list_get@Base 1.7.4
  edje_edit_compiler_get@Base 1.7.4
@@ -58,6 +65,7 @@ libedje.so.1 libedje1.15 #MINVER#
  edje_edit_font_del@Base 1.7.4
  edje_edit_font_path_get@Base 1.7.4
  edje_edit_fonts_list_get@Base 1.7.4
+ edje_edit_full_source_generate@Base 1.15.1
  edje_edit_group_add@Base 1.7.4
  edje_edit_group_alias_add@Base 1.12.0
  edje_edit_group_alias_is@Base 1.12.0
@@ -98,6 +106,7 @@ libedje.so.1 libedje1.15 #MINVER#
  edje_edit_image_data_add@Base 1.7.4
  edje_edit_image_del@Base 1.7.4
  edje_edit_image_id_get@Base 1.7.4
+ edje_edit_image_rename@Base 1.15.1
  edje_edit_image_replace@Base 1.12.0
  edje_edit_image_usage_list_free@Base 1.12.0
  edje_edit_image_usage_list_get@Base 1.12.0
@@ -108,6 +117,8 @@ libedje.so.1 libedje1.15 #MINVER#
  edje_edit_part_access_get@Base 1.12.0
  edje_edit_part_access_set@Base 1.12.0
  edje_edit_part_add@Base 1.7.4
+ edje_edit_part_anti_alias_get@Base 1.15.1
+ edje_edit_part_anti_alias_set@Base 1.15.1
  edje_edit_part_api_description_get@Base 1.7.4
  edje_edit_part_api_description_set@Base 1.7.4
  edje_edit_part_api_name_get@Base 1.7.4
@@ -186,6 +197,8 @@ libedje.so.1 libedje1.15 #MINVER#
  edje_edit_part_item_weight_y_get@Base 1.12.0
  edje_edit_part_item_weight_y_set@Base 1.12.0
  edje_edit_part_items_list_get@Base 1.12.0
+ edje_edit_part_mask_flags_get@Base 1.15.1
+ edje_edit_part_mask_flags_set@Base 1.15.1
  edje_edit_part_mouse_events_get@Base 1.7.4
  edje_edit_part_mouse_events_set@Base 1.7.4
  edje_edit_part_multiline_get@Base 1.12.0
@@ -234,6 +247,8 @@ libedje.so.1 libedje1.15 #MINVER#
  edje_edit_program_api_description_set@Base 1.7.4
  edje_edit_program_api_name_get@Base 1.7.4
  edje_edit_program_api_name_set@Base 1.7.4
+ edje_edit_program_channel_get@Base 1.15.1
+ edje_edit_program_channel_set@Base 1.15.1
  edje_edit_program_del@Base 1.7.4
  edje_edit_program_exist@Base 1.7.4
  edje_edit_program_filter_part_get@Base 1.7.4
@@ -246,6 +261,10 @@ libedje.so.1 libedje1.15 #MINVER#
  edje_edit_program_in_range_set@Base 1.7.4
  edje_edit_program_name_set@Base 1.7.4
  edje_edit_program_run@Base 1.7.4
+ edje_edit_program_sample_name_get@Base 1.15.1
+ edje_edit_program_sample_name_set@Base 1.15.1
+ edje_edit_program_sample_speed_get@Base 1.15.1
+ edje_edit_program_sample_speed_set@Base 1.15.1
  edje_edit_program_signal_get@Base 1.7.4
  edje_edit_program_signal_set@Base 1.7.4
  edje_edit_program_source_get@Base 1.7.4
@@ -259,6 +278,10 @@ libedje.so.1 libedje1.15 #MINVER#
  edje_edit_program_target_del@Base 1.7.4
  edje_edit_program_targets_clear@Base 1.7.4
  edje_edit_program_targets_get@Base 1.7.4
+ edje_edit_program_tone_duration_get@Base 1.15.1
+ edje_edit_program_tone_duration_set@Base 1.15.1
+ edje_edit_program_tone_name_get@Base 1.15.1
+ edje_edit_program_tone_name_set@Base 1.15.1
  edje_edit_program_transition_get@Base 1.7.4
  edje_edit_program_transition_set@Base 1.7.4
  edje_edit_program_transition_state_set@Base 1.12.0
@@ -311,6 +334,10 @@ libedje.so.1 libedje1.15 #MINVER#
  edje_edit_state_aspect_min_set@Base 1.7.4
  edje_edit_state_aspect_pref_get@Base 1.7.4
  edje_edit_state_aspect_pref_set@Base 1.7.4
+ edje_edit_state_box_alt_layout_get@Base 1.15.1
+ edje_edit_state_box_alt_layout_set@Base 1.15.1
+ edje_edit_state_box_layout_get@Base 1.15.1
+ edje_edit_state_box_layout_set@Base 1.15.1
  edje_edit_state_color2_get@Base 1.7.4
  edje_edit_state_color2_set@Base 1.7.4
  edje_edit_state_color3_get@Base 1.7.4
@@ -319,6 +346,12 @@ libedje.so.1 libedje1.15 #MINVER#
  edje_edit_state_color_class_set@Base 1.7.4
  edje_edit_state_color_get@Base 1.7.4
  edje_edit_state_color_set@Base 1.7.4
+ edje_edit_state_container_align_get@Base 1.15.1
+ edje_edit_state_container_align_set@Base 1.15.1
+ edje_edit_state_container_min_get@Base 1.15.1
+ edje_edit_state_container_min_set@Base 1.15.1
+ edje_edit_state_container_padding_get@Base 1.15.1
+ edje_edit_state_container_padding_set@Base 1.15.1
  edje_edit_state_copy@Base 1.7.4
  edje_edit_state_del@Base 1.7.4
  edje_edit_state_exist@Base 1.7.4
@@ -434,6 +467,8 @@ libedje.so.1 libedje1.15 #MINVER#
  edje_edit_state_rel2_to_y_set@Base 1.7.4
  edje_edit_state_step_get@Base 1.12.0
  edje_edit_state_step_set@Base 1.12.0
+ edje_edit_state_table_homogeneous_get@Base 1.15.1
+ edje_edit_state_table_homogeneous_set@Base 1.15.1
  edje_edit_state_text_align_x_get@Base 1.7.4
  edje_edit_state_text_align_x_set@Base 1.7.4
  edje_edit_state_text_align_y_get@Base 1.7.4
@@ -511,16 +546,19 @@ libedje.so.1 libedje1.15 #MINVER#
  edje_file_collection_list_free@Base 1.7.4
  edje_file_data_get@Base 1.7.4
  edje_file_group_exists@Base 1.7.4
+ edje_file_iterator_new@Base 1.15.1
  edje_fontset_append_get@Base 1.7.4
  edje_fontset_append_set@Base 1.7.4
  edje_frametime_get@Base 1.7.4
  edje_frametime_set@Base 1.7.4
  edje_freeze@Base 1.7.4
  edje_init@Base 1.7.4
+ edje_language_set@Base 1.15.1
  edje_load_error_str@Base 1.7.4
  edje_message_signal_process@Base 1.7.4
  edje_mmap_collection_list@Base 1.8.0
  edje_mmap_collection_list_free@Base 1.8.0
+ edje_mmap_color_class_iterator_new@Base 1.15.1
  edje_mmap_data_get@Base 1.8.0
  edje_mmap_group_exists@Base 1.8.0
  edje_module_load@Base 1.7.4
@@ -529,18 +567,20 @@ libedje.so.1 libedje1.15 #MINVER#
  edje_obj_animation_set@Base 1.12.0
  edje_obj_base_scale_get@Base 1.12.0
  edje_obj_calc_force@Base 1.12.0
+ edje_obj_color_class_description_get@Base 1.15.1
  edje_obj_color_class_get@Base 1.12.0
  edje_obj_color_class_set@Base 1.12.0
  edje_obj_data_get@Base 1.12.0
  edje_obj_freeze@Base 1.12.0
  edje_obj_item_provider_set@Base 1.12.0
+ edje_obj_language_get@Base 1.15.1
+ edje_obj_language_set@Base 1.15.1
  edje_obj_load_error_get@Base 1.12.0
  edje_obj_message_handler_set@Base 1.12.0
  edje_obj_message_send@Base 1.12.0
  edje_obj_message_signal_process@Base 1.12.0
  edje_obj_mirrored_get@Base 1.12.0
  edje_obj_mirrored_set@Base 1.12.0
- edje_obj_mmap_set@Base 1.12.0
  edje_obj_part_box_append@Base 1.12.0
  edje_obj_part_box_insert_at@Base 1.12.0
  edje_obj_part_box_insert_before@Base 1.12.0
@@ -656,6 +696,7 @@ libedje.so.1 libedje1.15 #MINVER#
  edje_obj_size_min_get@Base 1.12.0
  edje_obj_size_min_restricted_calc@Base 1.12.0
  edje_obj_text_change_cb_set@Base 1.12.0
+ edje_obj_text_class_get@Base 1.15.1
  edje_obj_text_class_set@Base 1.12.0
  edje_obj_text_insert_filter_callback_add@Base 1.12.0
  edje_obj_text_insert_filter_callback_del@Base 1.12.0
@@ -664,6 +705,8 @@ libedje.so.1 libedje1.15 #MINVER#
  edje_obj_text_markup_filter_callback_del@Base 1.12.0
  edje_obj_text_markup_filter_callback_del_full@Base 1.12.0
  edje_obj_thaw@Base 1.12.0
+ edje_obj_transition_duration_factor_get@Base 1.15.1
+ edje_obj_transition_duration_factor_set@Base 1.15.1
  edje_obj_update_hints_get@Base 1.12.0
  edje_obj_update_hints_set@Base 1.12.0
  edje_object_access_part_list_get@Base 1.7.4
@@ -674,6 +717,7 @@ libedje.so.1 libedje1.15 #MINVER#
  edje_object_calc_force@Base 1.7.4
  edje_object_class_get@Base 1.8.0
  edje_object_color_class_del@Base 1.7.4
+ edje_object_color_class_description_get@Base 1.15.1
  edje_object_color_class_get@Base 1.7.4
  edje_object_color_class_set@Base 1.7.4
  edje_object_data_get@Base 1.7.4
@@ -681,6 +725,8 @@ libedje.so.1 libedje1.15 #MINVER#
  edje_object_file_set@Base 1.7.4
  edje_object_freeze@Base 1.7.4
  edje_object_item_provider_set@Base 1.7.4
+ edje_object_language_get@Base 1.15.1
+ edje_object_language_set@Base 1.15.1
  edje_object_load_error_get@Base 1.7.4
  edje_object_message_handler_set@Base 1.7.4
  edje_object_message_send@Base 1.7.4
@@ -806,6 +852,7 @@ libedje.so.1 libedje1.15 #MINVER#
  edje_object_size_min_get@Base 1.7.4
  edje_object_size_min_restricted_calc@Base 1.7.4
  edje_object_text_change_cb_set@Base 1.7.4
+ edje_object_text_class_get@Base 1.15.1
  edje_object_text_class_set@Base 1.7.4
  edje_object_text_insert_filter_callback_add@Base 1.7.4
  edje_object_text_insert_filter_callback_del@Base 1.7.4
@@ -814,6 +861,8 @@ libedje.so.1 libedje1.15 #MINVER#
  edje_object_text_markup_filter_callback_del@Base 1.7.4
  edje_object_text_markup_filter_callback_del_full@Base 1.7.4
  edje_object_thaw@Base 1.7.4
+ edje_object_transition_duration_factor_get@Base 1.15.1
+ edje_object_transition_duration_factor_set@Base 1.15.1
  edje_object_update_hints_get@Base 1.7.4
  edje_object_update_hints_set@Base 1.7.4
  edje_password_show_last_set@Base 1.7.4
@@ -827,7 +876,10 @@ libedje.so.1 libedje1.15 #MINVER#
  edje_scale_set@Base 1.7.4
  edje_shutdown@Base 1.7.4
  edje_text_class_del@Base 1.7.4
+ edje_text_class_get@Base 1.15.1
  edje_text_class_list@Base 1.7.4
  edje_text_class_set@Base 1.7.4
  edje_thaw@Base 1.7.4
+ edje_transition_duration_factor_get@Base 1.15.1
+ edje_transition_duration_factor_set@Base 1.15.1
  edje_version@Base 1.7.4

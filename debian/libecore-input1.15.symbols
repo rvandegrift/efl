@@ -1,7 +1,8 @@
 libecore_input.so.1 libecore-input1.15 #MINVER#
- ECORE_EVENT_AXIS_UPDATE@Base 1.15.1-0.1
+ ECORE_EVENT_AXIS_UPDATE@Base 1.15.1
  ECORE_EVENT_KEY_DOWN@Base 1.7.7
  ECORE_EVENT_KEY_UP@Base 1.7.7
+ ECORE_EVENT_MOUSE_BUTTON_CANCEL@Base 1.15.1
  ECORE_EVENT_MOUSE_BUTTON_DOWN@Base 1.7.7
  ECORE_EVENT_MOUSE_BUTTON_UP@Base 1.7.7
  ECORE_EVENT_MOUSE_IN@Base 1.7.7
@@ -14,11 +15,12 @@ libecore_input.so.1 libecore-input1.15 #MINVER#
  ecore_event_shutdown@Base 1.7.7
  ecore_event_update_modifier@Base 1.7.7
 libecore_input_evas.so.1 libecore-input1.15 #MINVER#
- ecore_event_evas_axis_update@Base 1.15.1-0.1
+ ecore_event_evas_axis_update@Base 1.15.1
  ecore_event_evas_init@Base 1.7.7
  ecore_event_evas_key_down@Base 1.7.7
  ecore_event_evas_key_up@Base 1.7.7
  ecore_event_evas_modifier_lock_update@Base 1.7.7
+ ecore_event_evas_mouse_button_cancel@Base 1.15.1
  ecore_event_evas_mouse_button_down@Base 1.7.7
  ecore_event_evas_mouse_button_up@Base 1.7.7
  ecore_event_evas_mouse_in@Base 1.7.7

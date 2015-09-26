@@ -73,6 +73,7 @@ libeet.so.1 libeet1.15 #MINVER#
  eet_identity_set@Base 1.1.0
  eet_identity_sha1@Base 1.2.0
  eet_identity_signature@Base 1.2.0
+ eet_identity_verify@Base 1.15.1
  eet_identity_x509@Base 1.1.0
  eet_init@Base 1.0.0
  eet_list@Base 1.0.0

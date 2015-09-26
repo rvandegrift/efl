@@ -18,6 +18,9 @@ libecore_con.so.1 libecore-con1.15 #MINVER#
  _ECORE_CON_BASE_EVENT_CONNECTION_ERROR@Base 1.12.0
  _ECORE_CON_BASE_EVENT_CONNECTION_UPGRADED@Base 1.12.0
  _ECORE_CON_BASE_EVENT_DATA_RECEIVED@Base 1.12.0
+ _EFL_NETWORK_URL_EVENT_COMPLETE@Base 1.15.1
+ _EFL_NETWORK_URL_EVENT_DATA@Base 1.15.1
+ _EFL_NETWORK_URL_EVENT_PROGRESS@Base 1.15.1
  ecore_con_base_class_get@Base 1.12.0
  ecore_con_client_class_get@Base 1.12.0
  ecore_con_client_connected_get@Base 1.7.7
@@ -35,11 +38,23 @@ libecore_con.so.1 libecore-con1.15 #MINVER#
  ecore_con_client_timeout_set@Base 1.7.7
  ecore_con_client_uptime_get@Base 1.7.7
  ecore_con_connector_class_get@Base 1.12.0
+ ecore_con_eet@Base 1.15.1
+ ecore_con_eet_base_class_get@Base 1.15.1
+ ecore_con_eet_base_data_callback_del@Base 1.15.1
+ ecore_con_eet_base_data_callback_set@Base 1.15.1
+ ecore_con_eet_base_raw_data_callback_del@Base 1.15.1
+ ecore_con_eet_base_raw_data_callback_set@Base 1.15.1
+ ecore_con_eet_base_raw_send@Base 1.15.1
+ ecore_con_eet_base_register@Base 1.15.1
+ ecore_con_eet_base_send@Base 1.15.1
+ ecore_con_eet_base_server_get@Base 1.15.1
+ ecore_con_eet_base_server_set@Base 1.15.1
  ecore_con_eet_client_connect_callback_add@Base 1.8.0
  ecore_con_eet_client_connect_callback_del@Base 1.8.0
  ecore_con_eet_client_disconnect_callback_add@Base 1.8.0
  ecore_con_eet_client_disconnect_callback_del@Base 1.8.0
  ecore_con_eet_client_new@Base 1.8.0
+ ecore_con_eet_client_obj_class_get@Base 1.15.1
  ecore_con_eet_data_callback_add@Base 1.8.0
  ecore_con_eet_data_callback_del@Base 1.8.0
  ecore_con_eet_data_get@Base 1.8.0
@@ -56,7 +71,7 @@ libecore_con.so.1 libecore-con1.15 #MINVER#
  ecore_con_eet_server_disconnect_callback_del@Base 1.8.0
  ecore_con_eet_server_free@Base 1.8.0
  ecore_con_eet_server_new@Base 1.8.0
- ecore_con_info_get@Base 1.7.7
+ ecore_con_eet_server_obj_class_get@Base 1.15.1
  ecore_con_init@Base 1.7.7
  ecore_con_lookup@Base 1.7.7
  ecore_con_obj_connected_get@Base 1.12.0
@@ -123,7 +138,6 @@ libecore_con.so.1 libecore-con1.15 #MINVER#
  ecore_con_ssl_server_verify_name_set@Base 1.7.7
  ecore_con_url_additional_header_add@Base 1.7.7
  ecore_con_url_additional_headers_clear@Base 1.7.7
- ecore_con_url_class_get@Base 1.12.0
  ecore_con_url_cookies_clear@Base 1.7.7
  ecore_con_url_cookies_file_add@Base 1.7.7
  ecore_con_url_cookies_ignore_old_session_set@Base 1.7.7
@@ -139,12 +153,11 @@ libecore_con.so.1 libecore-con1.15 #MINVER#
  ecore_con_url_ftp_upload@Base 1.7.7
  ecore_con_url_ftp_use_epsv_set@Base 1.7.7
  ecore_con_url_get@Base 1.7.7
+ ecore_con_url_head@Base 1.15.1
  ecore_con_url_http_version_set@Base 1.7.7
  ecore_con_url_httpauth_set@Base 1.7.7
  ecore_con_url_init@Base 1.7.7
  ecore_con_url_new@Base 1.7.7
- ecore_con_url_obj_url_get@Base 1.12.0
- ecore_con_url_obj_url_set@Base 1.12.0
  ecore_con_url_pipeline_get@Base 1.7.7
  ecore_con_url_pipeline_set@Base 1.7.7
  ecore_con_url_post@Base 1.7.7
@@ -162,3 +175,6 @@ libecore_con.so.1 libecore-con1.15 #MINVER#
  ecore_con_url_url_get@Base 1.7.7
  ecore_con_url_url_set@Base 1.7.7
  ecore_con_url_verbose_set@Base 1.7.7
+ efl_network_url_class_get@Base 1.15.1
+ efl_network_url_get@Base 1.15.1
+ efl_network_url_set@Base 1.15.1
