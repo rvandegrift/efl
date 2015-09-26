@@ -21,7 +21,7 @@ Build-Depends: dpkg-dev (>= 1.14.8), debhelper (>= 9), dh-autoreconf,
  libbullet-dev, libpulse-dev, liblz4-dev, libwebp-dev, libharfbuzz-dev,
  libsystemd-dev, libavahi-client-dev
 Build-Depends-Indep: doxygen
-Standards-Version: 3.9.5
+Standards-Version: 3.9.6
 Vcs-Git: git://anonscm.debian.org/pkg-e/libs/efl.git
 Vcs-Browser: http://anonscm.debian.org/gitweb/?p=pkg-e/libs/efl.git
 Homepage: http://www.enlightenment.org
