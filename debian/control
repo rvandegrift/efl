@@ -271,6 +271,21 @@ Description: Ecore functions for audio playback and recording
  This package contains the Ecore wrapper and convenience functions for
  audio playback and recording.
 
+Package: libecore-avahi1.15
+Architecture: any
+Multi-Arch: same
+Pre-Depends: ${misc:Pre-Depends}
+Depends: ${misc:Depends}, ${shlibs:Depends}
+Description: Ecore functions for dealing with Avahi mDNS/DNS-SD
+ This is the core event abstraction layer and X abstraction layer that makes
+ doing selections, Xdnd, general X stuff, and event loops, timeouts and idle
+ handlers fast, optimized, and convenient. It's a separate library so anyone
+ can make use of the work put into Ecore to make this job easy for
+ applications.
+ .
+ This package contains the Ecore wrapper and convenience functions for using
+ Avahi mDNS/DNS-SD.
+
 Package: libecore-con1.15
 Architecture: any
 Multi-Arch: same
@@ -408,6 +423,7 @@ Suggests: efl-doc
 Depends: ${misc:Depends}, pkg-config,
          libecore1.15 (= ${binary:Version}),
          libecore-audio1.15 (= ${binary:Version}),
+         libecore-avahi1.15 (= ${binary:Version}),
          libecore-con1.15 (= ${binary:Version}),
          libecore-evas1.15 (= ${binary:Version}),
          libecore-fb1.15 (= ${binary:Version}) [linux-any],
