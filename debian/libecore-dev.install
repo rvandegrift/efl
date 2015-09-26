@@ -1,5 +1,6 @@
 debian/tmp/usr/include/ecore-*
 debian/tmp/usr/lib/*/libecore.so
+debian/tmp/usr/lib/*/libecore_audio.so
 debian/tmp/usr/lib/*/libecore_con.so
 debian/tmp/usr/lib/*/libecore_evas.so
 # Conditionally installed from debian/rules (Linux-only):
