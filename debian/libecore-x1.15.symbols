@@ -82,6 +82,8 @@ libecore_x.so.1 libecore-x1.15 #MINVER#
  ECORE_X_ATOM_E_ILLUME_WINDOW_STATE_NORMAL@Base 1.7.7
  ECORE_X_ATOM_E_ILLUME_ZONE@Base 1.7.7
  ECORE_X_ATOM_E_ILLUME_ZONE_LIST@Base 1.7.7
+ ECORE_X_ATOM_E_KEYROUTER_SUPPORTED@Base 1.15.1
+ ECORE_X_ATOM_E_KEYROUTER_WINDOW_KEYTABLE@Base 1.15.1
  ECORE_X_ATOM_E_PROFILE@Base 1.7.7
  ECORE_X_ATOM_E_PROFILE_LIST@Base 1.7.7
  ECORE_X_ATOM_E_VIDEO_PARENT@Base 1.7.7
@@ -484,10 +486,6 @@ libecore_x.so.1 libecore-x1.15 #MINVER#
  ecore_x_e_illume_quickpanel_state_toggle@Base 1.7.7
  ecore_x_e_illume_quickpanel_zone_get@Base 1.7.7
  ecore_x_e_illume_quickpanel_zone_set@Base 1.7.7
- ecore_x_e_illume_sliding_win_geometry_get@Base 1.7.7
- ecore_x_e_illume_sliding_win_geometry_set@Base 1.7.7
- ecore_x_e_illume_sliding_win_state_get@Base 1.7.7
- ecore_x_e_illume_sliding_win_state_set@Base 1.7.7
  ecore_x_e_illume_softkey_geometry_get@Base 1.7.7
  ecore_x_e_illume_softkey_geometry_set@Base 1.7.7
  ecore_x_e_illume_window_state_get@Base 1.7.7
@@ -497,6 +495,8 @@ libecore_x.so.1 libecore-x1.15 #MINVER#
  ecore_x_e_illume_zone_list_set@Base 1.7.7
  ecore_x_e_illume_zone_set@Base 1.7.7
  ecore_x_e_init@Base 1.7.7
+ ecore_x_e_keyrouter_get@Base 1.15.1
+ ecore_x_e_keyrouter_set@Base 1.15.1
  ecore_x_e_virtual_keyboard_get@Base 1.7.7
  ecore_x_e_virtual_keyboard_set@Base 1.7.7
  ecore_x_e_virtual_keyboard_state_get@Base 1.7.7
@@ -585,11 +585,15 @@ libecore_x.so.1 libecore-x1.15 #MINVER#
  ecore_x_image_put@Base 1.7.7
  ecore_x_image_to_argb_convert@Base 1.7.7
  ecore_x_init@Base 1.7.7
+ ecore_x_init_from_display@Base 1.15.1
  ecore_x_input_multi_select@Base 1.7.7
  ecore_x_input_raw_select@Base 1.8.0
+ ecore_x_input_touch_devices_grab@Base 1.15.1
+ ecore_x_input_touch_devices_ungrab@Base 1.15.1
  ecore_x_io_error_handler_set@Base 1.7.7
  ecore_x_keyboard_grab@Base 1.7.7
  ecore_x_keyboard_ungrab@Base 1.7.7
+ ecore_x_keysym_get@Base 1.15.1
  ecore_x_keysym_keycode_get@Base 1.7.7
  ecore_x_keysym_string_get@Base 1.7.7
  ecore_x_kill@Base 1.7.7
@@ -830,6 +834,7 @@ libecore_x.so.1 libecore-x1.15 #MINVER#
  ecore_x_screensaver_resume@Base 1.12.0
  ecore_x_screensaver_set@Base 1.7.7
  ecore_x_screensaver_supend@Base 1.12.0
+ ecore_x_screensaver_suspend@Base 1.15.1
  ecore_x_screensaver_timeout_get@Base 1.7.7
  ecore_x_screensaver_timeout_set@Base 1.7.7
  ecore_x_selection_clipboard_clear@Base 1.7.7
@@ -910,6 +915,8 @@ libecore_x.so.1 libecore-x1.15 #MINVER#
  ecore_x_window_input_new@Base 1.7.7
  ecore_x_window_key_grab@Base 1.7.7
  ecore_x_window_key_ungrab@Base 1.7.7
+ ecore_x_window_keygrab_set@Base 1.15.1
+ ecore_x_window_keygrab_unset@Base 1.15.1
  ecore_x_window_lower@Base 1.7.7
  ecore_x_window_manage@Base 1.7.7
  ecore_x_window_manager_argb_new@Base 1.7.7

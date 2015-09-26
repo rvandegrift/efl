@@ -38,6 +38,7 @@ libeina.so.1 libeina1.15 #MINVER#
  EINA_VALUE_TYPE_USHORT@Base 1.2.0
  _EINA_VALUE_TYPE_BASICS_END@Base 1.2.0
  _EINA_VALUE_TYPE_BASICS_START@Base 1.2.0
+ _eina_crc@Base 1.15.1
  _eina_log_state_init@Base 1.8.0
  _eina_log_state_shutdown@Base 1.8.0
  _eina_main_loop@Base 1.2.0
@@ -53,8 +54,7 @@ libeina.so.1 libeina1.15 #MINVER#
  eina_accessor_lock@Base 1.0.0~beta
  eina_accessor_over@Base 1.0.0~beta
  eina_accessor_unlock@Base 1.0.0~beta
- eina_array_accessor_new@Base 1.0.0~beta
- eina_array_clean@Base 1.0.0~beta
+ eina_array_accessor_new@Base 1.15.1
  eina_array_flush@Base 1.0.0~beta
  eina_array_free@Base 1.0.0~beta
  eina_array_grow@Base 1.0.0~beta
@@ -73,6 +73,7 @@ libeina.so.1 libeina1.15 #MINVER#
  eina_binbuf_insert_char@Base 1.2.0
  eina_binbuf_insert_length@Base 1.2.0
  eina_binbuf_length_get@Base 1.2.0
+ eina_binbuf_manage_new@Base 1.15.1
  eina_binbuf_manage_new_length@Base 1.2.0
  eina_binbuf_manage_read_only_new_length@Base 1.12.0
  eina_binbuf_new@Base 1.2.0
@@ -111,6 +112,8 @@ libeina.so.1 libeina1.15 #MINVER#
  eina_cpu_features@Base 1.8.0
  eina_cpu_features_get@Base 1.0.0~beta
  eina_cpu_page_size@Base 1.8.1
+ eina_environment_home_get@Base 1.15.1
+ eina_environment_tmp_get@Base 1.15.1
  eina_error_find@Base 1.2.0
  eina_error_get@Base 1.0.0~beta
  eina_error_msg_get@Base 1.0.0~beta
@@ -118,6 +121,10 @@ libeina.so.1 libeina1.15 #MINVER#
  eina_error_msg_register@Base 1.0.0~beta
  eina_error_msg_static_register@Base 1.0.0~beta
  eina_error_set@Base 1.0.0~beta
+ eina_evlog@Base 1.15.1
+ eina_evlog_start@Base 1.15.1
+ eina_evlog_steal@Base 1.15.1
+ eina_evlog_stop@Base 1.15.1
  eina_f32p32_cos@Base 1.0.0~beta
  eina_f32p32_sin@Base 1.0.0~beta
  eina_file_close@Base 1.2.0
@@ -244,6 +251,7 @@ libeina.so.1 libeina1.15 #MINVER#
  eina_list_clone@Base 1.0.0~beta
  eina_list_data_find@Base 1.0.0~beta
  eina_list_data_find_list@Base 1.0.0~beta
+ eina_list_data_idx@Base 1.15.1
  eina_list_demote_list@Base 1.0.0~beta
  eina_list_free@Base 1.0.0~beta
  eina_list_iterator_new@Base 1.0.0~beta
@@ -306,6 +314,37 @@ libeina.so.1 libeina1.15 #MINVER#
  eina_magic_string_static_set@Base 1.0.0~beta
  eina_main_loop_define@Base 1.2.0
  eina_main_loop_is@Base 1.2.0
+ eina_matrix3_adjoint@Base 1.15.1
+ eina_matrix3_cofactor@Base 1.15.1
+ eina_matrix3_compose@Base 1.15.1
+ eina_matrix3_determinant@Base 1.15.1
+ eina_matrix3_divide@Base 1.15.1
+ eina_matrix3_equal@Base 1.15.1
+ eina_matrix3_f16p16_compose@Base 1.15.1
+ eina_matrix3_f16p16_identity@Base 1.15.1
+ eina_matrix3_f16p16_type_get@Base 1.15.1
+ eina_matrix3_fixed_values_get@Base 1.15.1
+ eina_matrix3_identity@Base 1.15.1
+ eina_matrix3_inverse@Base 1.15.1
+ eina_matrix3_matrix3_f16p16_to@Base 1.15.1
+ eina_matrix3_matrix4_to@Base 1.15.1
+ eina_matrix3_point_transform@Base 1.15.1
+ eina_matrix3_quad_quad_map@Base 1.15.1
+ eina_matrix3_quad_square_map@Base 1.15.1
+ eina_matrix3_quaternion_get@Base 1.15.1
+ eina_matrix3_rectangle_transform@Base 1.15.1
+ eina_matrix3_rotate@Base 1.15.1
+ eina_matrix3_scale@Base 1.15.1
+ eina_matrix3_square_quad_map@Base 1.15.1
+ eina_matrix3_translate@Base 1.15.1
+ eina_matrix3_transpose@Base 1.15.1
+ eina_matrix3_type_get@Base 1.15.1
+ eina_matrix3_values_get@Base 1.15.1
+ eina_matrix3_values_set@Base 1.15.1
+ eina_matrix4_matrix3_to@Base 1.15.1
+ eina_matrix4_type_get@Base 1.15.1
+ eina_matrix4_values_get@Base 1.15.1
+ eina_matrix4_values_set@Base 1.15.1
  eina_matrixsparse_cell_clear@Base 1.0.0~beta
  eina_matrixsparse_cell_data_get@Base 1.0.0~beta
  eina_matrixsparse_cell_data_replace@Base 1.0.0~beta
@@ -324,6 +363,7 @@ libeina.so.1 libeina1.15 #MINVER#
  eina_matrixsparse_row_idx_clear@Base 1.0.0~beta
  eina_matrixsparse_size_get@Base 1.0.0~beta
  eina_matrixsparse_size_set@Base 1.0.0~beta
+ eina_memdup@Base 1.15.1
  eina_mempool_add@Base 1.0.0~beta
  eina_mempool_alignof@Base 1.0.0~beta
  eina_mempool_del@Base 1.0.0~beta
@@ -357,6 +397,10 @@ libeina.so.1 libeina1.15 #MINVER#
  eina_prefix_locale_get@Base 1.2.0
  eina_prefix_new@Base 1.2.0
  eina_prime_table@Base 1.0.0~beta
+ eina_quad_coords_get@Base 1.15.1
+ eina_quad_coords_set@Base 1.15.1
+ eina_quad_rectangle_from@Base 1.15.1
+ eina_quad_rectangle_to@Base 1.15.1
  eina_quadtree_add@Base 1.0.0~beta
  eina_quadtree_change@Base 1.0.0~beta
  eina_quadtree_collide@Base 1.0.0~beta
@@ -369,6 +413,34 @@ libeina.so.1 libeina1.15 #MINVER#
  eina_quadtree_object@Base 1.0.0~beta
  eina_quadtree_resize@Base 1.0.0~beta
  eina_quadtree_show@Base 1.0.0~beta
+ eina_quaternion_add@Base 1.15.1
+ eina_quaternion_conjugate@Base 1.15.1
+ eina_quaternion_dot@Base 1.15.1
+ eina_quaternion_f16p16_add@Base 1.15.1
+ eina_quaternion_f16p16_conjugate@Base 1.15.1
+ eina_quaternion_f16p16_dot@Base 1.15.1
+ eina_quaternion_f16p16_lerp@Base 1.15.1
+ eina_quaternion_f16p16_mul@Base 1.15.1
+ eina_quaternion_f16p16_negative@Base 1.15.1
+ eina_quaternion_f16p16_nlerp@Base 1.15.1
+ eina_quaternion_f16p16_norm@Base 1.15.1
+ eina_quaternion_f16p16_normalized@Base 1.15.1
+ eina_quaternion_f16p16_rotate@Base 1.15.1
+ eina_quaternion_f16p16_rotation_matrix3_get@Base 1.15.1
+ eina_quaternion_f16p16_scale@Base 1.15.1
+ eina_quaternion_f16p16_set@Base 1.15.1
+ eina_quaternion_f16p16_slerp@Base 1.15.1
+ eina_quaternion_lerp@Base 1.15.1
+ eina_quaternion_mul@Base 1.15.1
+ eina_quaternion_negative@Base 1.15.1
+ eina_quaternion_nlerp@Base 1.15.1
+ eina_quaternion_norm@Base 1.15.1
+ eina_quaternion_normalized@Base 1.15.1
+ eina_quaternion_rotate@Base 1.15.1
+ eina_quaternion_rotation_matrix3_get@Base 1.15.1
+ eina_quaternion_scale@Base 1.15.1
+ eina_quaternion_set@Base 1.15.1
+ eina_quaternion_slerp@Base 1.15.1
  eina_rbtree_delete@Base 1.0.0~beta
  eina_rbtree_inline_insert@Base 1.0.0~beta
  eina_rbtree_inline_remove@Base 1.0.0~beta
@@ -392,6 +464,7 @@ libeina.so.1 libeina1.15 #MINVER#
  eina_shutdown@Base 1.0.0~beta
  eina_simple_xml_attribute_free@Base 1.2.0
  eina_simple_xml_attribute_new@Base 1.2.0
+ eina_simple_xml_attribute_w3c_parse@Base 1.15.1
  eina_simple_xml_attributes_parse@Base 1.2.0
  eina_simple_xml_node_cdata_free@Base 1.2.0
  eina_simple_xml_node_cdata_new@Base 1.2.0
@@ -502,6 +575,7 @@ libeina.so.1 libeina1.15 #MINVER#
  eina_tmpstr_add@Base 1.8.0
  eina_tmpstr_add_length@Base 1.8.0
  eina_tmpstr_del@Base 1.8.0
+ eina_tmpstr_len@Base 1.15.1
  eina_tmpstr_strlen@Base 1.8.0
  eina_unicode_escape@Base 1.0.0~beta
  eina_unicode_strcmp@Base 1.0.0~beta
@@ -585,6 +659,7 @@ libeo.so.1 libeina1.15 #MINVER#
  _EO_BASE_EVENT_CALLBACK_ADD@Base 1.12.0
  _EO_BASE_EVENT_CALLBACK_DEL@Base 1.12.0
  _EO_BASE_EVENT_DEL@Base 1.12.0
+ _eo_add_end@Base 1.15.1
  _eo_add_internal_start@Base 1.12.0
  _eo_api_op_id_get@Base 1.12.0
  _eo_call_resolve@Base 1.12.0
@@ -611,7 +686,6 @@ libeo.so.1 libeina1.15 #MINVER#
  eo_del@Base 1.8.0
  eo_destructed_is@Base 1.8.0
  eo_destructor@Base 1.12.0
- eo_error_set_internal@Base 1.8.0
  eo_event_callback_array_del@Base 1.12.0
  eo_event_callback_array_priority_add@Base 1.12.0
  eo_event_callback_call@Base 1.12.0
@@ -647,25 +721,119 @@ libeo.so.1 libeina1.15 #MINVER#
  eo_xref_internal@Base 1.8.0
  eo_xunref@Base 1.8.0
 libefl.so.1 libeina1.15 #MINVER#
- _EFL_FILE_EVENT_ASYNC_ERROR@Base 1.15.1-0.1
- _EFL_FILE_EVENT_ASYNC_OPENED@Base 1.15.1-0.1
- _EFL_GFX_CHANGED@Base 1.15.1-0.1
- _EFL_GFX_PATH_CHANGED@Base 1.15.1-0.1
- _EFL_MODEL_BASE_EVENT_CHILDREN_COUNT_CHANGED@Base 1.15.1-0.1
- _EFL_MODEL_BASE_EVENT_CHILD_ADDED@Base 1.15.1-0.1
- _EFL_MODEL_BASE_EVENT_CHILD_REMOVED@Base 1.15.1-0.1
- _EFL_MODEL_BASE_EVENT_LOAD_STATUS@Base 1.15.1-0.1
- _EFL_MODEL_BASE_EVENT_PROPERTIES_CHANGED@Base 1.15.1-0.1
+ _EFL_FILE_EVENT_ASYNC_ERROR@Base 1.15.1
+ _EFL_FILE_EVENT_ASYNC_OPENED@Base 1.15.1
+ _EFL_GFX_CHANGED@Base 1.15.1
+ _EFL_GFX_PATH_CHANGED@Base 1.15.1
+ _EFL_MODEL_BASE_EVENT_CHILDREN_COUNT_CHANGED@Base 1.15.1
+ _EFL_MODEL_BASE_EVENT_CHILD_ADDED@Base 1.15.1
+ _EFL_MODEL_BASE_EVENT_CHILD_REMOVED@Base 1.15.1
+ _EFL_MODEL_BASE_EVENT_LOAD_STATUS@Base 1.15.1
+ _EFL_MODEL_BASE_EVENT_PROPERTIES_CHANGED@Base 1.15.1
  efl_control_interface_get@Base 1.12.1
  efl_control_priority_get@Base 1.12.1
  efl_control_priority_set@Base 1.12.1
  efl_control_suspend_get@Base 1.12.1
  efl_control_suspend_set@Base 1.12.1
+ efl_file_async_get@Base 1.15.1
+ efl_file_async_set@Base 1.15.1
+ efl_file_async_wait@Base 1.15.1
  efl_file_eject@Base 1.12.1
  efl_file_get@Base 1.12.1
  efl_file_interface_get@Base 1.12.1
+ efl_file_mmap_get@Base 1.15.1
+ efl_file_mmap_set@Base 1.15.1
  efl_file_save@Base 1.12.1
  efl_file_set@Base 1.12.1
+ efl_gfx_base_interface_get@Base 1.15.1
+ efl_gfx_color_get@Base 1.15.1
+ efl_gfx_color_part_get@Base 1.15.1
+ efl_gfx_color_part_set@Base 1.15.1
+ efl_gfx_color_set@Base 1.15.1
+ efl_gfx_fill_get@Base 1.15.1
+ efl_gfx_fill_interface_get@Base 1.15.1
+ efl_gfx_fill_set@Base 1.15.1
+ efl_gfx_fill_spread_get@Base 1.15.1
+ efl_gfx_fill_spread_set@Base 1.15.1
+ efl_gfx_filter_data_set@Base 1.15.1
+ efl_gfx_filter_interface_get@Base 1.15.1
+ efl_gfx_filter_padding_get@Base 1.15.1
+ efl_gfx_filter_program_get@Base 1.15.1
+ efl_gfx_filter_program_set@Base 1.15.1
+ efl_gfx_filter_source_get@Base 1.15.1
+ efl_gfx_filter_source_set@Base 1.15.1
+ efl_gfx_filter_state_set@Base 1.15.1
+ efl_gfx_gradient_base_interface_get@Base 1.15.1
+ efl_gfx_gradient_linear_end_get@Base 1.15.1
+ efl_gfx_gradient_linear_end_set@Base 1.15.1
+ efl_gfx_gradient_linear_interface_get@Base 1.15.1
+ efl_gfx_gradient_linear_start_get@Base 1.15.1
+ efl_gfx_gradient_linear_start_set@Base 1.15.1
+ efl_gfx_gradient_radial_center_get@Base 1.15.1
+ efl_gfx_gradient_radial_center_set@Base 1.15.1
+ efl_gfx_gradient_radial_focal_get@Base 1.15.1
+ efl_gfx_gradient_radial_focal_set@Base 1.15.1
+ efl_gfx_gradient_radial_interface_get@Base 1.15.1
+ efl_gfx_gradient_radial_radius_get@Base 1.15.1
+ efl_gfx_gradient_radial_radius_set@Base 1.15.1
+ efl_gfx_gradient_spread_get@Base 1.15.1
+ efl_gfx_gradient_spread_set@Base 1.15.1
+ efl_gfx_gradient_stop_get@Base 1.15.1
+ efl_gfx_gradient_stop_set@Base 1.15.1
+ efl_gfx_position_get@Base 1.15.1
+ efl_gfx_position_set@Base 1.15.1
+ efl_gfx_shape_append_arc_to@Base 1.15.1
+ efl_gfx_shape_append_circle@Base 1.15.1
+ efl_gfx_shape_append_close@Base 1.15.1
+ efl_gfx_shape_append_cubic_to@Base 1.15.1
+ efl_gfx_shape_append_line_to@Base 1.15.1
+ efl_gfx_shape_append_move_to@Base 1.15.1
+ efl_gfx_shape_append_quadratic_to@Base 1.15.1
+ efl_gfx_shape_append_rect@Base 1.15.1
+ efl_gfx_shape_append_scubic_to@Base 1.15.1
+ efl_gfx_shape_append_squadratic_to@Base 1.15.1
+ efl_gfx_shape_append_svg_path@Base 1.15.1
+ efl_gfx_shape_bounds_get@Base 1.15.1
+ efl_gfx_shape_current_ctrl_get@Base 1.15.1
+ efl_gfx_shape_current_get@Base 1.15.1
+ efl_gfx_shape_dup@Base 1.15.1
+ efl_gfx_shape_equal_commands@Base 1.15.1
+ efl_gfx_shape_interpolate@Base 1.15.1
+ efl_gfx_shape_mixin_get@Base 1.15.1
+ efl_gfx_shape_path_get@Base 1.15.1
+ efl_gfx_shape_path_length_get@Base 1.15.1
+ efl_gfx_shape_path_set@Base 1.15.1
+ efl_gfx_shape_reset@Base 1.15.1
+ efl_gfx_shape_stroke_cap_get@Base 1.15.1
+ efl_gfx_shape_stroke_cap_set@Base 1.15.1
+ efl_gfx_shape_stroke_color_get@Base 1.15.1
+ efl_gfx_shape_stroke_color_set@Base 1.15.1
+ efl_gfx_shape_stroke_dash_get@Base 1.15.1
+ efl_gfx_shape_stroke_dash_set@Base 1.15.1
+ efl_gfx_shape_stroke_join_get@Base 1.15.1
+ efl_gfx_shape_stroke_join_set@Base 1.15.1
+ efl_gfx_shape_stroke_location_get@Base 1.15.1
+ efl_gfx_shape_stroke_location_set@Base 1.15.1
+ efl_gfx_shape_stroke_scale_get@Base 1.15.1
+ efl_gfx_shape_stroke_scale_set@Base 1.15.1
+ efl_gfx_shape_stroke_width_get@Base 1.15.1
+ efl_gfx_shape_stroke_width_set@Base 1.15.1
+ efl_gfx_size_get@Base 1.15.1
+ efl_gfx_size_set@Base 1.15.1
+ efl_gfx_stack_above@Base 1.15.1
+ efl_gfx_stack_above_get@Base 1.15.1
+ efl_gfx_stack_below@Base 1.15.1
+ efl_gfx_stack_below_get@Base 1.15.1
+ efl_gfx_stack_interface_get@Base 1.15.1
+ efl_gfx_stack_layer_get@Base 1.15.1
+ efl_gfx_stack_layer_set@Base 1.15.1
+ efl_gfx_stack_lower@Base 1.15.1
+ efl_gfx_stack_raise@Base 1.15.1
+ efl_gfx_view_interface_get@Base 1.15.1
+ efl_gfx_view_size_get@Base 1.15.1
+ efl_gfx_view_size_set@Base 1.15.1
+ efl_gfx_visible_get@Base 1.15.1
+ efl_gfx_visible_set@Base 1.15.1
  efl_image_animated_get@Base 1.12.1
  efl_image_interface_get@Base 1.12.1
  efl_image_load_size_get@Base 1.12.1
@@ -673,18 +841,34 @@ libefl.so.1 libeina1.15 #MINVER#
  efl_image_ratio_get@Base 1.12.1
  efl_image_smooth_scale_get@Base 1.12.1
  efl_image_smooth_scale_set@Base 1.12.1
+ efl_model_base_interface_get@Base 1.15.1
+ efl_model_child_add@Base 1.15.1
+ efl_model_child_del@Base 1.15.1
+ efl_model_children_count_get@Base 1.15.1
+ efl_model_children_load@Base 1.15.1
+ efl_model_children_slice_get@Base 1.15.1
+ efl_model_load@Base 1.15.1
+ efl_model_load_status_get@Base 1.15.1
+ efl_model_properties_get@Base 1.15.1
+ efl_model_properties_load@Base 1.15.1
+ efl_model_property_get@Base 1.15.1
+ efl_model_property_set@Base 1.15.1
+ efl_model_unload@Base 1.15.1
  efl_player_audio_mute_get@Base 1.12.1
  efl_player_audio_mute_set@Base 1.12.1
  efl_player_audio_volume_get@Base 1.12.1
  efl_player_audio_volume_set@Base 1.12.1
  efl_player_interface_get@Base 1.12.1
+ efl_player_length_get@Base 1.15.1
  efl_player_play_get@Base 1.12.1
  efl_player_play_set@Base 1.12.1
  efl_player_play_speed_get@Base 1.12.1
  efl_player_play_speed_set@Base 1.12.1
+ efl_player_playable_get@Base 1.15.1
  efl_player_position_get@Base 1.12.1
  efl_player_position_set@Base 1.12.1
  efl_player_progress_get@Base 1.12.1
+ efl_player_seekable_get@Base 1.15.1
  efl_text_get@Base 1.12.1
  efl_text_interface_get@Base 1.12.1
  efl_text_properties_font_get@Base 1.12.1

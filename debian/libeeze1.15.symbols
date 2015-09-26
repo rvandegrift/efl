@@ -89,6 +89,7 @@ libeeze.so.1 libeeze1.15 #MINVER#
  eeze_shutdown@Base 1.8.3
  eeze_udev_devpath_get_syspath@Base 1.8.3
  eeze_udev_find_by_filter@Base 1.8.3
+ eeze_udev_find_by_subsystem_sysname@Base 1.15.1
  eeze_udev_find_by_sysattr@Base 1.8.3
  eeze_udev_find_by_type@Base 1.8.3
  eeze_udev_find_similar_from_syspath@Base 1.8.3

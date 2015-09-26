@@ -8,9 +8,7 @@ libecore.so.1 libecore1.15 #MINVER#
  _ECORE_MAINLOOP_EVENT_IDLE@Base 1.12.0
  _ECORE_MAINLOOP_EVENT_IDLE_ENTER@Base 1.12.0
  _ECORE_MAINLOOP_EVENT_IDLE_EXIT@Base 1.12.0
- _ecore_event_handler_del@Base 1.7.7
  _ecore_magic_fail@Base 1.7.7
- _ecore_timer_util_delay@Base 1.12.0
  ecore_animator_add@Base 1.7.7
  ecore_animator_class_get@Base 1.8.0
  ecore_animator_constructor@Base 1.12.0
@@ -116,11 +114,13 @@ libecore.so.1 libecore1.15 #MINVER#
  ecore_main_loop_glib_integrate@Base 1.7.7
  ecore_main_loop_iterate@Base 1.7.7
  ecore_main_loop_iterate_may_block@Base 1.7.7
+ ecore_main_loop_nested_get@Base 1.15.1
  ecore_main_loop_quit@Base 1.7.7
  ecore_main_loop_select_func_get@Base 1.7.7
  ecore_main_loop_select_func_set@Base 1.7.7
  ecore_main_loop_thread_safe_call_async@Base 1.7.7
  ecore_main_loop_thread_safe_call_sync@Base 1.7.7
+ ecore_main_loop_thread_safe_call_wait@Base 1.15.1
  ecore_main_win32_handler_add@Base 1.7.7
  ecore_main_win32_handler_del@Base 1.7.7
  ecore_mainloop_animator_ticked@Base 1.12.0
@@ -142,7 +142,6 @@ libecore.so.1 libecore1.15 #MINVER#
  ecore_obj_timer_loop_constructor@Base 1.12.0
  ecore_obj_timer_pending_get@Base 1.12.0
  ecore_obj_timer_reset@Base 1.12.0
- ecore_parent_class_get@Base 1.8.0
  ecore_pipe_add@Base 1.7.7
  ecore_pipe_del@Base 1.7.7
  ecore_pipe_freeze@Base 1.7.7
@@ -193,6 +192,7 @@ libecore.so.1 libecore1.15 #MINVER#
  ecore_thread_pending_total_get@Base 1.7.7
  ecore_thread_reschedule@Base 1.7.7
  ecore_thread_run@Base 1.7.7
+ ecore_thread_wait@Base 1.15.1
  ecore_throttle_adjust@Base 1.7.7
  ecore_throttle_get@Base 1.7.7
  ecore_time_get@Base 1.7.7
@@ -261,7 +261,6 @@ libeldbus.so.1 libecore1.15 #MINVER#
  eldbus_message_path_get@Base 1.8.0
  eldbus_message_ref@Base 1.8.0
  eldbus_message_sender_get@Base 1.8.0
- eldbus_message_signal_new@Base 1.8.0
  eldbus_message_signature_get@Base 1.8.0
  eldbus_message_to_eina_value@Base 1.8.0
  eldbus_message_unref@Base 1.8.0
@@ -326,6 +325,7 @@ libeldbus.so.1 libecore1.15 #MINVER#
  eldbus_proxy_property_set@Base 1.8.0
  eldbus_proxy_ref@Base 1.8.0
  eldbus_proxy_send@Base 1.8.0
+ eldbus_proxy_send_and_block@Base 1.15.1
  eldbus_proxy_signal_handler_add@Base 1.8.0
  eldbus_proxy_unref@Base 1.8.0
  eldbus_proxy_vcall@Base 1.8.0
