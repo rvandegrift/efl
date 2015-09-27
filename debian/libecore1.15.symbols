@@ -1,4 +1,4 @@
-libecore.so.1 libecore1 #MINVER#
+libecore.so.1 libecore1.15 #MINVER#
  ECORE_EXE_EVENT_ADD@Base 1.7.7
  ECORE_EXE_EVENT_DATA@Base 1.7.7
  ECORE_EXE_EVENT_DEL@Base 1.7.7
@@ -213,7 +213,7 @@ libecore.so.1 libecore1 #MINVER#
  ecore_timer_reset@Base 1.7.7
  ecore_timer_thaw@Base 1.7.7
  ecore_version@Base 1.7.7
-libeldbus.so.1 libecore1 #MINVER#
+libeldbus.so.1 libecore1.15 #MINVER#
  eldbus_address_connection_get@Base 1.8.0
  eldbus_connection_data_del@Base 1.8.0
  eldbus_connection_data_get@Base 1.8.0

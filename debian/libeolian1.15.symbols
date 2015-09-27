@@ -1,4 +1,4 @@
-libeolian.so.1 libeolian1 #MINVER#
+libeolian.so.1 libeolian1.15 #MINVER#
  eolian_all_classes_get@Base 1.12.2
  eolian_all_eo_files_parse@Base 1.12.2
  eolian_all_eot_files_parse@Base 1.12.2

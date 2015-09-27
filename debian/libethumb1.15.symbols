@@ -1,4 +1,4 @@
-libethumb.so.1 libethumb1 #MINVER#
+libethumb.so.1 libethumb1.15 #MINVER#
  ethumb_calculate_aspect@Base 1.8.5
  ethumb_calculate_aspect_from_ratio@Base 1.8.5
  ethumb_calculate_fill@Base 1.8.5

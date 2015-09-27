@@ -1,4 +1,4 @@
-libeeze.so.1 libeeze1 #MINVER#
+libeeze.so.1 libeeze1.15 #MINVER#
  EEZE_EVENT_DISK_EJECT@Base 1.8.3
  EEZE_EVENT_DISK_ERROR@Base 1.8.3
  EEZE_EVENT_DISK_MOUNT@Base 1.8.3

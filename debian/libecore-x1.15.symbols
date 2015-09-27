@@ -1,4 +1,4 @@
-libecore_x.so.1 libecore-x1 #MINVER#
+libecore_x.so.1 libecore-x1.15 #MINVER#
  ECORE_X_ATOM_ATOM@Base 1.7.7
  ECORE_X_ATOM_CARDINAL@Base 1.7.7
  ECORE_X_ATOM_COMPOUND_TEXT@Base 1.7.7
