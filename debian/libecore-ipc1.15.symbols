@@ -1,4 +1,4 @@
-libecore_ipc.so.1 libecore-ipc1 #MINVER#
+libecore_ipc.so.1 libecore-ipc1.15 #MINVER#
  ECORE_IPC_EVENT_CLIENT_ADD@Base 1.7.7
  ECORE_IPC_EVENT_CLIENT_DATA@Base 1.7.7
  ECORE_IPC_EVENT_CLIENT_DEL@Base 1.7.7

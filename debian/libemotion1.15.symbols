@@ -1,4 +1,4 @@
-libemotion.so.1 libemotion1 #MINVER#
+libemotion.so.1 libemotion1.15 #MINVER#
  EMOTION_WEBCAM_ADD@Base 1.8.5
  EMOTION_WEBCAM_DEL@Base 1.8.5
  EMOTION_WEBCAM_UPDATE@Base 1.8.5

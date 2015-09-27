@@ -1,4 +1,4 @@
-libeet.so.1 libeet1 #MINVER#
+libeet.so.1 libeet1.15 #MINVER#
  eet_alias@Base 1.4.0~beta
  eet_alias_get@Base 1.6.0
  eet_clearcache@Base 1.0.0

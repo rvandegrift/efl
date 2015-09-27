@@ -1,4 +1,4 @@
-libecore_fb.so.1 libecore-fb1 #MINVER#
+libecore_fb.so.1 libecore-fb1.15 #MINVER#
  ecore_fb_callback_gain_set@Base 1.7.7
  ecore_fb_callback_lose_set@Base 1.7.7
  ecore_fb_init@Base 1.7.7
