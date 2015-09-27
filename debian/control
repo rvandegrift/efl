@@ -416,6 +416,18 @@ Description: Ecore functions for dealing with the X Window System
  This package contains the Ecore wrapper and convenience functions for using
  the X Window System.
 
+Package: libecore-bin
+Architecture: any
+Depends: ${misc:Depends}, ${shlibs:Depends}
+Description: Core abstraction layer for enlightenment DR 0.17 binary utilities
+ This is the core event abstraction layer and X abstraction layer that makes
+ doing selections, Xdnd, general X stuff, and event loops, timeouts and idle
+ handlers fast, optimized, and convenient. It's a separate library so anyone
+ can make use of the work put into Ecore to make this job easy for
+ applications.
+ .
+ This package contains code generation utilities used in building EFL apps.
+
 Package: libecore-dev
 Architecture: any
 Section: libdevel
