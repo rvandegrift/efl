@@ -9,6 +9,8 @@ debian/tmp/usr/lib/*/libeo.so
 debian/tmp/usr/lib/*/pkgconfig/eo.pc
 debian/tmp/usr/lib/*/pkgconfig/eo-cxx.pc
 usr/share/eolian/include/eo-1
+debian/tmp/usr/share/gdb/auto-load/usr/lib/*/libeo.so.*.py
+debian/tmp/usr/share/eo/gdb/eo_gdb.py
 
 #libefl
 debian/tmp/usr/include/efl-1
