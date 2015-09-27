@@ -193,7 +193,8 @@ Package: libevas1.15
 Architecture: any
 Multi-Arch: same
 Pre-Depends: ${misc:Pre-Depends}
-Depends: ${shlibs:Depends}, ${misc:Depends}, libevas-loaders
+Depends: ${shlibs:Depends}, ${misc:Depends}
+Recommends: libevas-loaders
 Breaks: libevas1
 Replaces: libevas1
 Description: Enlightenment DR17 advanced canvas library
