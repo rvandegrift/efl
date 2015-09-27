@@ -522,6 +522,37 @@ Description: Library that provides vector graphics capabilities for EFL developm
  .
  This package provides the headers and static library.
 
+Package: libefl-core-dev
+Section: libdevel
+Architecture: any
+Pre-Depends: ${misc:Pre-Depends}
+Depends: ${shlibs:Depends}, ${misc:Depends},
+ libecore-dev (>= ${source:Upstream-Version}),
+ libector-dev (>= ${source:Upstream-Version}),
+ libedje-dev (>= ${source:Upstream-Version}),
+ libeet-dev (>= ${source:Upstream-Version}),
+ libeeze-dev (>= ${source:Upstream-Version}),
+ libefreet-dev (>= ${source:Upstream-Version}),
+ libeina-dev (>= ${source:Upstream-Version}),
+ libeio-dev (>= ${source:Upstream-Version}),
+ libelocation-dev (>= ${source:Upstream-Version}),
+ libelua-dev (>= ${source:Upstream-Version}),
+ libembryo-dev (>= ${source:Upstream-Version}),
+ libemile-dev (>= ${source:Upstream-Version}),
+ libemotion-dev (>= ${source:Upstream-Version}),
+ libeolian-dev (>= ${source:Upstream-Version}),
+ libephysics-dev (>= ${source:Upstream-Version}),
+ libethumb-dev (>= ${source:Upstream-Version}),
+ libevas-dev (>= ${source:Upstream-Version})
+Description: Enlightenment Foundation Libraries core development files
+ The Enlightenment Foundation Libraries (EFL) is a stack of libraries
+ providing a wide degree of functionality.  Originally written to
+ support development of the Enlightenment window manager, the
+ libraries have increasingly been used in embedded systems.
+ .
+ This metapackage provides the development files for the core EFL
+ libraries.  That is, all of them except Elementary.
+
 # EFREET
 
 Package: libefreet1.15
