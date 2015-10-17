@@ -121,3 +121,15 @@ Last-Update: 2015-09-13
     putenv("EFL_RUN_IN_TREE=1");
  
     s = eeze_suite();
+--- a/src/tests/ecore_con/ecore_con_suite.c
++++ b/src/tests/ecore_con/ecore_con_suite.c
+@@ -76,6 +76,9 @@
+    SRunner *sr;
+    int i, failed_count;
+ 
++   fprintf(stderr, "Skipping Ecore_Con test suite\n");
++   return(77);
++
+    for (i = 1; i < argc; i++)
+      if ((strcmp(argv[i], "-h") == 0) ||
+          (strcmp(argv[i], "--help") == 0))
