@@ -226,7 +226,7 @@ Depends: ${misc:Depends}, libevas1.15 (= ${binary:Version}), pkg-config,
  libeina-dev (>= ${source:Upstream-Version}),
  libeet-dev  (>= ${source:Upstream-Version}),
  libjpeg-dev, libx11-dev, libfreetype6-dev, libfontconfig1-dev, libfribidi-dev,
- libluajit-5.1-dev
+ libluajit-5.1-dev, libharfbuzz-dev
 Suggests: efl-doc
 Description: Enlightenment DR17 advanced canvas library development files
  Evas is an advanced canvas library, providing six engines for rendering: X11,
