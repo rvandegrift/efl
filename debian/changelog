@@ -1,7 +1,8 @@
-efl (1.12.2-0.1) UNRELEASED; urgency=medium
+efl (1.15.1-0.1) UNRELEASED; urgency=medium
 
+  [ Andreas Metzler ]
   * Non-maintainer upload.
-  * New upstream version
+  * New upstream version 1.12.2
     + Unfuzz 03_no_ecore_audio_test.diff.
     + Drop 04_eina_suite_lockup.diff. (Previously cherry-picked.)
   * Update (build-)dependencies:
@@ -29,7 +30,58 @@ efl (1.12.2-0.1) UNRELEASED; urgency=medium
     regular build.
   * Run dh_auto_configure with --verbose.
 
- -- Andreas Metzler <ametzler@debian.org>  Mon, 17 Nov 2014 18:50:55 +0100
+  [ Ross Vandegrift ]
+  * Drop Xprint from build deps
+  * Drop cares from build deps, it's only used on Windows
+  * Re-enable cserve2, without isn't well-tested
+  * Re-enable physics, without isn't well-tested
+  * Remove compiled lua files on clean
+  * Remove libefreet1 transitional package, it was in jessie
+  * Enable pulseaudio support
+  * Build with system liblz4
+  * Build with XInput v2.2+ support
+  * Enable webp image loader
+  * Build with harfbuzz support
+  * Build with systemd support
+  * Add avahi-client-dev build dep
+  * patches/01_restore-eina_abi.diff: don't try to save ancient abi
+  * patches/02_no_ecore_imf_test.diff: defuzz
+  * patches/03_no_ecore_audio_test.diff: defuzz
+  * patches/15_try_curl-gnutls.diff: refresh
+  * patches/20_shorter_buildlog.diff: drop, upstream does this now
+  * patches/21_skip_failing_tests.diff: refresh, drop more tests
+  * patches/22_consolidate-systemd-deps.diff: cherry-pick 46e9eed
+  * patches/23_disable-xprint.diff: cherry-pick 9e0cd04
+  * patches/29_fix_eio_deps.diff: cherry-pick 99c0c1cb
+  * patches/33_fix_ecore_fb_eapi.diff: fix EAPI in ecore_fb
+  * patches/35_adjust_lz4_deps.diff: fix emile finding liblz4
+  * patches/40_fix_elocation_pc.diff: fix pkgconfig file generation
+  * Rename packages (libe.*)1a? -> \1.15 for abi break
+  * Update symbols of existing libs with new abi
+  * libelocation: ship new library
+  * libemile: ship new library
+  * libelua: ship new library
+  * libector: ship new library
+  * libephysics: ship new library
+  * libecore-audio: ship new library
+  * libecore-avahi: ship new library
+  * libecore-dev: Add missing dep on libeet-dev
+  * Update files installed for existing packages
+  * libecore-bin: add package for ecore utilities
+  * Bump standards version to 3.9.6
+  * debian/copyright: fix wildcard
+  * libevas-bin: add package for evas utilities
+  * libeeze-bin: add package for eeze utilities
+  * libeina-bin: add package for eina utilities
+  * libefl-core-dev: metapackage for the dev pkgs here
+  * Weaken libevas-loaders to a Recommends
+  * Skip eeze tests - fails without running dbus
+  * Skip Ecore_Con tests - requires running dbus
+  * libevas-dev: depends on libharfbuzz-dev
+  * patches/45_disable_doc_pack: don't build extra binary doc package
+  * Update depends to enable building in clean chroots
+
+ -- Ross Vandegrift <ross@kallisti.us>  Sun, 18 Oct 2015 22:04:06 -0400
 
 efl (1.8.6-2.1) unstable; urgency=medium
 
