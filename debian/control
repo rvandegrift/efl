@@ -69,7 +69,8 @@ Description: Enlightenment Foundation Library providing optimized data types ext
 Package: libeina-dev
 Section: libdevel
 Architecture: any
-Depends: ${misc:Depends}, libeina1.15 (= ${binary:Version}), pkg-config
+Depends: ${misc:Depends}, libeina1.15 (= ${binary:Version}), pkg-config,
+ libsystemd-dev
 Recommends: efl-doc
 Description: Development files for libeina
  Eina is a multi-platform library that provides optimized data types and a few
@@ -152,7 +153,8 @@ Architecture: any
 Pre-Depends: ${misc:Pre-Depends}
 Depends: ${misc:Depends}, libelocation1.15 (= ${binary:Version}), pkg-config,
  libecore-dev (>= ${source:Upstream-Version}),
- libeina-dev (>= ${source:Upstream-Version})
+ libeina-dev (>= ${source:Upstream-Version}),
+ libluajit-5.1-dev
 Description: Library providing geo information management in EFL development files
  Elocation is meant as a convenience library to ease application
  developers the usage of geo information in their apps. Adding a geo
@@ -182,7 +184,8 @@ Depends: ${misc:Depends}, libephysics1.15 (= ${binary:Version}), pkg-config,
  libecore-dev (>= ${source:Upstream-Version}),
  libeina-dev (>= ${source:Upstream-Version}),
  libemile-dev (>= ${source:Upstream-Version}),
- libevas-dev (>= ${source:Upstream-Version})
+ libevas-dev (>= ${source:Upstream-Version}),
+ libbullet-dev
 Description: Library providing physics functions to Evas and Edje development files
  .
  This package contains headers and static libraries.
@@ -482,7 +485,8 @@ Depends: ${misc:Depends}, pkg-config,
          libgnutls28-dev, libcurl4-gnutls-dev, libxcursor-dev, libxss-dev,
          libxrender-dev, libxinerama-dev, libxrandr-dev, libxext-dev, libxi-dev,
          libxcomposite-dev, libxdamage-dev, x11proto-xext-dev, libxtst-dev,
-         libglib2.0-dev, libdbus-1-dev
+         libglib2.0-dev, libdbus-1-dev, libpulse-dev, libavahi-client-dev,
+         libsndfile-dev
 Description: Ecore headers and static libraries
  This is the core event abstraction layer and X abstraction layer that makes
  doing selections, Xdnd, general X stuff, and event loops, timeouts and idle
@@ -822,6 +826,7 @@ Architecture: linux-any
 Depends: ${misc:Depends}, libeeze1.15 (= ${binary:Version}), pkg-config,
  libeina-dev  (>= ${source:Upstream-Version}),
  libecore-dev (>= ${source:Upstream-Version}),
+ libluajit-5.1-dev
 Description: Lua wrapper and convenience layer for EFL development files
  Elua is a new LuaJIT based runtime (name is temporary) for rapid
  application development with the EFL. It counts on Eolian to provide
@@ -858,7 +863,8 @@ Package: libemile-dev
 Section: libdevel
 Architecture: linux-any
 Depends: ${misc:Depends}, libemile1.15 (= ${binary:Version}), pkg-config,
- libeina-dev  (>= ${source:Upstream-Version}), liblz4-dev
+ libeina-dev  (>= ${source:Upstream-Version}), liblz4-dev,
+ libjpeg-dev, zlib1g-dev
 Description: Compression and encryption utilities and abstractions development files
  Emile provides a library to bring together serialization, compression
  and ciphering. It is a low-level library and can be used by anything
