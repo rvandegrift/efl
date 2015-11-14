@@ -1,2 +1,0 @@
-libefreet1.15: package-name-doesnt-match-sonames libefreet1.15
-libefreet1.15: symbols-declares-dependency-on-other-package libefreet-bin

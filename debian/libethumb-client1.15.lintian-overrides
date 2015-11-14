@@ -1,2 +1,0 @@
-libethumb-client1.15: package-name-doesnt-match-sonames libethumb-client1.15
-libethumb-client1.15: symbols-declares-dependency-on-other-package libethumb-client-bin
