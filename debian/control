@@ -34,7 +34,8 @@ Multi-Arch: same
 Pre-Depends: ${misc:Pre-Depends}
 Depends: ${shlibs:Depends}, ${misc:Depends}
 Conflicts: libeina0
-Breaks: libeet1 (<= 1.4.0~beta+1.4.0), libeina1
+Provides: libefl-abi1.15 (= 1.15.1)
+Breaks: libeet1 (<= 1.4.0~beta+1.4.0), libeina1, libefl-abi1.15 (<< 1.15.1)
 Replaces: libeina1
 Description: Enlightenment Foundation Library providing optimized data types
  Eina is a multi-platform library that provides optimized data types and a few
@@ -110,7 +111,8 @@ Architecture: any
 Multi-Arch: same
 Pre-Depends: ${misc:Pre-Depends}
 Depends: ${misc:Depends}, ${shlibs:Depends}
-Breaks: libeet1
+Provides: libefl-abi1.15 (= 1.15.1)
+Breaks: libeet1, libefl-abi1.15 (<< 1.15.1)
 Replaces: libeet1
 Description: Enlightenment DR17 file chunk reading/writing library
  Eet is a tiny library designed to write an arbitrary set of chunks of data to a
@@ -139,6 +141,8 @@ Architecture: any
 Multi-Arch: same
 Pre-Depends: ${misc:Pre-Depends}
 Depends: ${misc:Depends}, ${shlibs:Depends}
+Provides: libefl-abi1.15 (= 1.15.1)
+Breaks: libefl-abi1.15 (<< 1.15.1)
 Description: Library providing geo information management in EFL
  Elocation is meant as a convenience library to ease application
  developers the usage of geo information in their apps. Adding a geo
@@ -170,6 +174,8 @@ Architecture: any
 Multi-Arch: same
 Pre-Depends: ${misc:Pre-Depends}
 Depends: ${misc:Depends}, ${shlibs:Depends}
+Provides: libefl-abi1.15 (= 1.15.1)
+Breaks: libefl-abi1.15 (<< 1.15.1)
 Description: Library providing physics functions to Evas and Edje
  EPhysics is a new library that glues in the Bullet physics engine
  into EFL to allow you to make use of an entire physics engine easily
@@ -198,7 +204,8 @@ Multi-Arch: same
 Pre-Depends: ${misc:Pre-Depends}
 Depends: ${shlibs:Depends}, ${misc:Depends}
 Recommends: libevas-loaders
-Breaks: libevas1
+Provides: libefl-abi1.15 (= 1.15.1)
+Breaks: libevas1, libefl-abi1.15 (<< 1.15.1)
 Replaces: libevas1
 Description: Enlightenment DR17 advanced canvas library
  Evas is an advanced canvas library, providing six engines for rendering: X11,
@@ -246,9 +253,9 @@ Architecture: any
 Multi-Arch: same
 Depends: ${shlibs:Depends}, ${misc:Depends}
 Conflicts: libevas-0.9.9.050a-engines
-Breaks: libevas1-engines-x
+Breaks: libevas1-engines-x, libefl-abi1.15 (<< 1.15.1)
 Replaces: libevas-engines, libevas-engines-extras, libevas1-engines-x
-Provides: libevas1-engine-software-x11, libevas1-engine-gl-x11
+Provides: libevas1-engine-software-x11, libevas1-engine-gl-x11, libefl-abi1.15 (= 1.15.1)
 Description: Evas module providing the X11 engines
  Evas is an advanced canvas library, providing six engines for rendering: X11,
  OpenGL (hardware accelerated), DirectFB, the framebuffer, Microsoft Windows
@@ -264,7 +271,8 @@ Architecture: linux-any
 Multi-Arch: same
 Depends: ${shlibs:Depends}, ${misc:Depends}
 Conflicts: libevas-0.9.9.050a-engines-extras
-Breaks: libevas1-engine-fb
+Provides: libefl-abi1.15 (= 1.15.1)
+Breaks: libevas1-engine-fb, libefl-abi1.15 (<< 1.15.1)
 Replaces: libevas-engines-extras, libevas1-engine-fb
 Description: Evas module providing the Framebuffer engine
  Evas is an advanced canvas library, providing six engines for rendering: X11,
@@ -281,7 +289,8 @@ Architecture: any
 Multi-Arch: same
 Pre-Depends: ${misc:Pre-Depends}
 Depends: ${misc:Depends}, ${shlibs:Depends}
-Breaks: libecore1
+Provides: libefl-abi1.15 (= 1.15.1)
+Breaks: libecore1, libefl-abi1.15 (<< 1.15.1)
 Replaces: libecore1
 Description: Core abstraction layer for enlightenment DR 0.17
  This is the core event abstraction layer and X abstraction layer that makes
@@ -295,6 +304,8 @@ Architecture: any
 Multi-Arch: same
 Pre-Depends: ${misc:Pre-Depends}
 Depends: ${misc:Depends}, ${shlibs:Depends}
+Provides: libefl-abi1.15 (= 1.15.1)
+Breaks: libefl-abi1.15 (<< 1.15.1)
 Description: Ecore functions for audio playback and recording
  This is the core event abstraction layer and X abstraction layer that makes
  doing selections, Xdnd, general X stuff, and event loops, timeouts and idle
@@ -310,6 +321,8 @@ Architecture: any
 Multi-Arch: same
 Pre-Depends: ${misc:Pre-Depends}
 Depends: ${misc:Depends}, ${shlibs:Depends}
+Provides: libefl-abi1.15 (= 1.15.1)
+Breaks: libefl-abi1.15 (<< 1.15.1)
 Description: Ecore functions for dealing with Avahi mDNS/DNS-SD
  This is the core event abstraction layer and X abstraction layer that makes
  doing selections, Xdnd, general X stuff, and event loops, timeouts and idle
@@ -325,7 +338,8 @@ Architecture: any
 Multi-Arch: same
 Pre-Depends: ${misc:Pre-Depends}
 Depends: ${misc:Depends}, ${shlibs:Depends}
-Breaks: libecore-con1
+Provides: libefl-abi1.15 (= 1.15.1)
+Breaks: libecore-con1, libefl-abi1.15 (<< 1.15.1)
 Replaces: libecore-con1
 Description: Ecore Connection Library
  This is the core event abstraction layer and X abstraction layer that makes
@@ -341,7 +355,8 @@ Architecture: any
 Multi-Arch: same
 Pre-Depends: ${misc:Pre-Depends}
 Depends: ${misc:Depends}, ${shlibs:Depends}
-Breaks: libecore-evas1
+Provides: libefl-abi1.15 (= 1.15.1)
+Breaks: libecore-evas1, libefl-abi1.15 (<< 1.15.1)
 Replaces: libecore-evas1
 Description: Ecore Evas Wrapper Library
  This is the core event abstraction layer and X abstraction layer that makes
@@ -357,7 +372,8 @@ Architecture: linux-any
 Multi-Arch: same
 Pre-Depends: ${misc:Pre-Depends}
 Depends: ${misc:Depends}, ${shlibs:Depends}
-Breaks: libecore-fb1
+Provides: libefl-abi1.15 (= 1.15.1)
+Breaks: libecore-fb1, libefl-abi1.15 (<< 1.15.1)
 Replaces: libecore-fb1
 Description: Ecore frame buffer system functions
  This is the core event abstraction layer and X abstraction layer that makes
@@ -373,7 +389,8 @@ Architecture: any
 Multi-Arch: same
 Pre-Depends: ${misc:Pre-Depends}
 Depends: ${misc:Depends}, ${shlibs:Depends}
-Breaks: libecore-file1
+Provides: libefl-abi1.15 (= 1.15.1)
+Breaks: libecore-file1, libefl-abi1.15 (<< 1.15.1)
 Replaces: libecore-file1
 Description: Ecore File Library
  This is the core event abstraction layer and X abstraction layer that makes
@@ -389,7 +406,8 @@ Architecture: any
 Multi-Arch: same
 Pre-Depends: ${misc:Pre-Depends}
 Depends: ${misc:Depends}, ${shlibs:Depends}
-Breaks: libecore-imf1
+Provides: libefl-abi1.15 (= 1.15.1)
+Breaks: libecore-imf1, libefl-abi1.15 (<< 1.15.1)
 Replaces: libecore-imf1
 Description: Ecore Input Method Framework module
  This is the core event abstraction layer and X abstraction layer that makes
@@ -406,7 +424,8 @@ Architecture: any
 Multi-Arch: same
 Pre-Depends: ${misc:Pre-Depends}
 Depends: ${misc:Depends}, ${shlibs:Depends}
-Breaks: libecore-input1
+Provides: libefl-abi1.15 (= 1.15.1)
+Breaks: libecore-input1, libefl-abi1.15 (<< 1.15.1)
 Replaces: libecore-input1
 Description: Ecore input module
  This is the core event abstraction layer and X abstraction layer that makes
@@ -422,7 +441,8 @@ Architecture: any
 Multi-Arch: same
 Pre-Depends: ${misc:Pre-Depends}
 Depends: ${misc:Depends}, ${shlibs:Depends}
-Breaks: libecore-ipc1
+Provides: libefl-abi1.15 (= 1.15.1)
+Breaks: libecore-ipc1, libefl-abi1.15 (<< 1.15.1)
 Replaces: libecore-ipc1
 Description: Ecore inter-process communication functions
  This is the core event abstraction layer and X abstraction layer that makes
@@ -438,7 +458,8 @@ Architecture: any
 Multi-Arch: same
 Pre-Depends: ${misc:Pre-Depends}
 Depends: ${misc:Depends}, ${shlibs:Depends}
-Breaks: libecore-x1
+Provides: libefl-abi1.15 (= 1.15.1)
+Breaks: libecore-x1, libefl-abi1.15 (<< 1.15.1)
 Replaces: libecore-x1
 Description: Ecore functions for dealing with the X Window System
  This is the core event abstraction layer and X abstraction layer that makes
@@ -501,6 +522,8 @@ Architecture: any
 Multi-Arch: same
 Pre-Depends: ${misc:Pre-Depends}
 Depends: ${shlibs:Depends}, ${misc:Depends}
+Provides: libefl-abi1.15 (= 1.15.1)
+Breaks: libefl-abi1.15 (<< 1.15.1)
 Description: Library that provides vector graphics capabilities for EFL
  Ector provides a new retained rendering library that is used by Evas
  to provide Evas_Object_VG. This is a new Evas_Object that provides a
@@ -565,7 +588,8 @@ Architecture: any
 Multi-Arch: same
 Pre-Depends: ${misc:Pre-Depends}
 Depends: ${shlibs:Depends}, ${misc:Depends}
-Breaks: libefreet1 (<= 1.8.4-1), libefreet1a
+Provides: libefl-abi1.15 (= 1.15.1)
+Breaks: libefreet1 (<= 1.8.4-1), libefreet1a, libefl-abi1.15 (<< 1.15.1)
 Replaces: libefreet1 (<= 1.8.4-1), libefreet1a
 Description: Library that implements freedesktop.org specs for use with E17/EFL
  An implementation of several specifications from freedesktop.org intended for
@@ -638,7 +662,8 @@ Architecture: any
 Multi-Arch: same
 Pre-Depends: ${misc:Pre-Depends}
 Depends: ${misc:Depends}, ${shlibs:Depends}
-Breaks: libembryo1
+Provides: libefl-abi1.15 (= 1.15.1)
+Breaks: libembryo1, libefl-abi1.15 (<< 1.15.1)
 Replaces: libembryo1
 Suggests: libembryo-bin
 Description: SMALL-based abstract machine (AMX) bytecode interpreter
@@ -692,7 +717,8 @@ Architecture: any
 Multi-Arch: same
 Pre-Depends: ${misc:Pre-Depends}
 Depends: ${misc:Depends}, ${shlibs:Depends}
-Breaks: libelementary1 (<= 1.7.7-1), libedje1
+Provides: libefl-abi1.15 (= 1.15.1)
+Breaks: libelementary1 (<= 1.7.7-1), libedje1, libefl-abi1.15 (<< 1.15.1)
 Replaces: libedje1
 Suggests: libedje-bin (= ${binary:Version})
 Description: Graphical layout and animation library
@@ -726,7 +752,8 @@ Architecture: any
 Multi-Arch: same
 Pre-Depends: ${misc:Pre-Depends}
 Depends: ${misc:Depends}, ${shlibs:Depends}
-Breaks: libeio1
+Provides: libefl-abi1.15 (= 1.15.1)
+Breaks: libeio1, libefl-abi1.15 (<< 1.15.1)
 Replaces: libeio1
 Description: Library providing non-blocking I/O using threads
  This library is part of the Enlightenment Foundation Libraries (EFL). It is
@@ -757,7 +784,8 @@ Architecture: linux-any
 Multi-Arch: same
 Pre-Depends: ${misc:Pre-Depends}
 Depends: ${misc:Depends}, ${shlibs:Depends}
-Breaks: libeeze1
+Provides: libefl-abi1.15 (= 1.15.1)
+Breaks: libeeze1, libefl-abi1.15 (<< 1.15.1)
 Replaces: libeeze1
 Description: Library for manipulating devices through udev
  This library is part of the Enlightenment Foundation Libraries (EFL). It
@@ -813,6 +841,8 @@ Architecture: linux-any
 Multi-Arch: same
 Pre-Depends: ${misc:Pre-Depends}
 Depends: ${misc:Depends}, ${shlibs:Depends}
+Provides: libefl-abi1.15 (= 1.15.1)
+Breaks: libefl-abi1.15 (<< 1.15.1)
 Description: Lua wrapper and convenience layer for EFL shared objects
  Elua is a new LuaJIT based runtime (name is temporary) for rapid
  application development with the EFL. It counts on Eolian to provide
@@ -854,6 +884,8 @@ Architecture: linux-any
 Multi-Arch: same
 Pre-Depends: ${misc:Pre-Depends}
 Depends: ${misc:Depends}, ${shlibs:Depends}
+Provides: libefl-abi1.15 (= 1.15.1)
+Breaks: libefl-abi1.15 (<< 1.15.1)
 Description: Compression and encryption utilities and abstractions
  Emile provides a library to bring together serialization, compression
  and ciphering. It is a low-level library and can be used by anything
@@ -879,7 +911,8 @@ Architecture: any
 Multi-Arch: same
 Pre-Depends: ${misc:Pre-Depends}
 Depends: ${misc:Depends}, ${shlibs:Depends}
-Breaks: libemotion1
+Provides: libefl-abi1.15 (= 1.15.1)
+Breaks: libemotion1, libefl-abi1.15 (<< 1.15.1)
 Replaces: libemotion1
 Description: Media object creation/manipulation library
  Emotion is a library that allows playing audio and video files, using one of
@@ -919,7 +952,8 @@ Architecture: any
 Multi-Arch: same
 Pre-Depends: ${misc:Pre-Depends}
 Depends: ${misc:Depends}, ${shlibs:Depends}
-Breaks: libethumb1
+Provides: libefl-abi1.15 (= 1.15.1)
+Breaks: libethumb1, libefl-abi1.15 (<< 1.15.1)
 Replaces: libethumb1
 Description: Library to create thumbnails for images and documents
  Ethumb uses Evas to generate thumbnail images of given files. The API allows
@@ -931,7 +965,8 @@ Architecture: any
 Multi-Arch: same
 Pre-Depends: ${misc:Pre-Depends}
 Depends: ${misc:Depends}, ${shlibs:Depends}
-Breaks: libethumb-client1
+Provides: libefl-abi1.15 (= 1.15.1)
+Breaks: libethumb-client1, libefl-abi1.15 (<< 1.15.1)
 Replaces: libethumb-client1
 Description: Library to create thumbnails using a D-Bus-actived server
  Ethumb-Client creates thumbnails by communicating with a thumbnail generation
@@ -977,7 +1012,8 @@ Architecture: any
 Multi-Arch: same
 Pre-Depends: ${misc:Pre-Depends}
 Depends: ${misc:Depends}, ${shlibs:Depends}
-Breaks: libeolian1
+Provides: libefl-abi1.15 (= 1.15.1)
+Breaks: libeolian1, libefl-abi1.15 (<< 1.15.1)
 Replaces: libeolian1
 Description: EO object parser and C code generator - runtime library
  Eolian parses Enlightenment's meta-data (.eo) files and can then
