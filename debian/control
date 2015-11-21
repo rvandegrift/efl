@@ -520,7 +520,7 @@ Description: Library that provides vector graphics capabilities for EFL developm
  .
  This package provides the headers and static library.
 
-Package: libefl-core-dev
+Package: libefl-all-dev
 Section: libdevel
 Architecture: any
 Pre-Depends: ${misc:Pre-Depends}
