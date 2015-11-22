@@ -45,9 +45,8 @@ endif
 override_dh_auto_build-indep:
 	$(MAKE) doc
 
-override_dh_auto_test-indep:
-override_dh_auto_test-arch:
-	CK_DEFAULT_TIMEOUT=300 $(MAKE) -j1 check VERBOSE=yes
+override_dh_auto_test:
+	env CK_DEFAULT_TIMEOUT=300 dh_auto_test --verbose -- -j1 VERBOSE=yes
 
 # The install phase doesn't work reliably in parallel
 # Force it to run with only 1 thread to avoid issues
