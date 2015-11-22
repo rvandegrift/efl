@@ -1,4 +1,5 @@
 libedje.so.1 libedje1 #MINVER#
+* Build-Depends-Package: libedje-dev
  EDJE_EDIT_ERROR_GROUP_CURRENTLY_USED@Base 1.7.4
  EDJE_EDIT_ERROR_GROUP_DOES_NOT_EXIST@Base 1.7.4
  EDJE_EDIT_ERROR_GROUP_REFERENCED@Base 1.7.4

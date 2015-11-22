@@ -1,4 +1,5 @@
 libevas.so.1 libevas1 #MINVER#
+* Build-Depends-Package: libevas-dev
  (regex|optional)"^_EVAS_CANVAS_.*" 1.8.0
  (regex|optional)"^_EVAS_OBJECT_.*" 1.8.0
  (regex|optional)"^evas_common_.*" 1.7.7
