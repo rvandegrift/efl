@@ -29,6 +29,7 @@ efl (1.15.1-1) UNRELEASED; urgency=medium
   * Fix FTBFS on arch-all builds when "make doc" was invoked *before* the
     regular build.
   * Run dh_auto_configure with --verbose.
+  * Use ${source:Upstream-Version} for Breaks.
 
   [ Ross Vandegrift ]
   * Drop Xprint from build deps
