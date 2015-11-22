@@ -1,4 +1,5 @@
 libecore_x.so.1 libecore-x1 #MINVER#
+* Build-Depends-Package: libecore-dev
  ECORE_X_ATOM_ATOM@Base 1.7.7
  ECORE_X_ATOM_CARDINAL@Base 1.7.7
  ECORE_X_ATOM_COMPOUND_TEXT@Base 1.7.7

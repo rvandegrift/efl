@@ -1,4 +1,5 @@
 libethumb_client.so.1 libethumb-client1 #MINVER#, libethumb-client-bin
+* Build-Depends-Package: libethumb-dev
  ethumb_client_aspect_get@Base 1.8.5
  ethumb_client_aspect_set@Base 1.8.5
  ethumb_client_category_get@Base 1.8.5

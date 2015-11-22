@@ -1,4 +1,5 @@
 libector.so.1 libector1 #MINVER#
+* Build-Depends-Package: libector-dev
  ector_cairo_surface_class_get@Base 1.15.1
  ector_cairo_surface_context_get@Base 1.15.1
  ector_cairo_surface_context_set@Base 1.15.1

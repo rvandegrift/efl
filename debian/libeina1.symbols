@@ -1,4 +1,5 @@
 libeina.so.1 libeina1 #MINVER#
+* Build-Depends-Package: libeina-dev
  EINA_ERROR_CONVERT_0X_NOT_FOUND@Base 1.0.0~beta
  EINA_ERROR_CONVERT_OUTRUN_STRING_LENGTH@Base 1.0.0~beta
  EINA_ERROR_CONVERT_P_NOT_FOUND@Base 1.0.0~beta
@@ -655,6 +656,7 @@ libeina.so.1 libeina1 #MINVER#
  eina_xattr_value_fd_ls@Base 1.2.0
  eina_xattr_value_ls@Base 1.2.0
 libeo.so.1 libeina1 #MINVER#
+* Build-Depends-Package: libeina-dev
  EO_DBG_INFO_TYPE@Base 1.8.0
  _EO_BASE_EVENT_CALLBACK_ADD@Base 1.12.0
  _EO_BASE_EVENT_CALLBACK_DEL@Base 1.12.0
@@ -721,6 +723,7 @@ libeo.so.1 libeina1 #MINVER#
  eo_xref_internal@Base 1.8.0
  eo_xunref@Base 1.8.0
 libefl.so.1 libeina1 #MINVER#
+* Build-Depends-Package: libeina-dev
  _EFL_FILE_EVENT_ASYNC_ERROR@Base 1.15.1
  _EFL_FILE_EVENT_ASYNC_OPENED@Base 1.15.1
  _EFL_GFX_CHANGED@Base 1.15.1

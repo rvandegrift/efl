@@ -1,4 +1,5 @@
 libelua.so.1 libelua1 #MINVER#
+* Build-Depends-Package: libelua-dev
  elua_init@Base 1.15.1
  elua_io_loadfile@Base 1.15.1
  elua_shutdown@Base 1.15.1

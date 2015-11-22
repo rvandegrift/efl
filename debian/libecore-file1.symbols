@@ -1,4 +1,5 @@
 libecore_file.so.1 libecore-file1 #MINVER#
+* Build-Depends-Package: libecore-dev
  ecore_file_app_exe_get@Base 1.7.7
  ecore_file_app_installed@Base 1.7.7
  ecore_file_app_list@Base 1.7.7

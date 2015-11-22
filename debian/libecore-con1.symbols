@@ -1,4 +1,5 @@
 libecore_con.so.1 libecore-con1 #MINVER#
+* Build-Depends-Package: libecore-dev
  ECORE_CON_EVENT_CLIENT_ADD@Base 1.7.7
  ECORE_CON_EVENT_CLIENT_DATA@Base 1.7.7
  ECORE_CON_EVENT_CLIENT_DEL@Base 1.7.7

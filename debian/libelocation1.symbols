@@ -1,4 +1,5 @@
 libelocation.so.1 libelocation1 #MINVER#
+* Build-Depends-Package: libelocation-dev
  ELOCATION_EVENT_ADDRESS@Base 1.15.1
  ELOCATION_EVENT_GEOCODE@Base 1.15.1
  ELOCATION_EVENT_META_READY@Base 1.15.1

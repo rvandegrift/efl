@@ -1,4 +1,5 @@
 libecore_input.so.1 libecore-input1 #MINVER#
+* Build-Depends-Package: libecore-dev
  ECORE_EVENT_AXIS_UPDATE@Base 1.15.1
  ECORE_EVENT_KEY_DOWN@Base 1.7.7
  ECORE_EVENT_KEY_UP@Base 1.7.7
@@ -15,6 +16,7 @@ libecore_input.so.1 libecore-input1 #MINVER#
  ecore_event_shutdown@Base 1.7.7
  ecore_event_update_modifier@Base 1.7.7
 libecore_input_evas.so.1 libecore-input1 #MINVER#
+* Build-Depends-Package: libecore-dev
  ecore_event_evas_axis_update@Base 1.15.1
  ecore_event_evas_init@Base 1.7.7
  ecore_event_evas_key_down@Base 1.7.7

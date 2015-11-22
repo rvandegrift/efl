@@ -1,4 +1,5 @@
 libethumb.so.1 libethumb1 #MINVER#
+* Build-Depends-Package: libethumb-dev
  ethumb_calculate_aspect@Base 1.8.5
  ethumb_calculate_aspect_from_ratio@Base 1.8.5
  ethumb_calculate_fill@Base 1.8.5

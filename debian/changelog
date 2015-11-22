@@ -31,6 +31,7 @@ efl (1.15.1-1) UNRELEASED; urgency=medium
   * Run dh_auto_configure with --verbose.
   * Use ${source:Upstream-Version} for Breaks.
   * Support DEB_BUILD_OPTIONS=nocheck.
+  * Add Build-Depends-Package entries to symbol files.
 
   [ Ross Vandegrift ]
   * Drop Xprint from build deps
