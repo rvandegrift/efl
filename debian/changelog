@@ -85,6 +85,7 @@ efl (1.15.1-1) UNRELEASED; urgency=medium
   * Update depends to enable building in clean chroots
   * Add build-depend on systemd
   * Add build-depend on autopoint (Closes: #757934)
+  * Make evas require an engine to be installed (Closes: #665951, #626009)
 
  -- Ross Vandegrift <ross@kallisti.us>  Sat, 07 Nov 2015 17:41:56 -0500
 
