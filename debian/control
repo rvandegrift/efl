@@ -155,6 +155,10 @@ Depends: ${misc:Depends}, libephysics1 (= ${binary:Version}), pkg-config,
  libevas-dev (>= ${source:Upstream-Version}),
  libbullet-dev
 Description: Library providing physics functions to Evas and Edje development files
+ EPhysics is a new library that glues in the Bullet physics engine
+ into EFL to allow you to make use of an entire physics engine easily
+ and simply in your creations. Edje also makes use of this allowing
+ your themes to use it too.
  .
  This package contains headers and static libraries.
 
