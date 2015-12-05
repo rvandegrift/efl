@@ -7,7 +7,7 @@ efl (1.15.1-1) UNRELEASED; urgency=medium
     + Drop 04_eina_suite_lockup.diff. (Previously cherry-picked.)
   * Update (build-)dependencies:
     + liblua5.1-0-dev -> libluajit-5.1-dev.
-    + libgstreamer0.10-dev ->  libgstreamer1.0-dev
+    + libgstreamer0.10-dev ->  libgstreamer1.0-dev (Closes: #785845)
     + libgstreamer-plugins-base0.10-dev -> libgstreamer-plugins-base1.0-dev
   * ./configure with --enable-i-really-know-what-i-am-doing-and-that-this-
     will-probably-break-things-and-i-will-fix-them-myself-and-send-patches
@@ -87,6 +87,8 @@ efl (1.15.1-1) UNRELEASED; urgency=medium
   * Add build-depend on autopoint (Closes: #757934)
   * Make evas require an engine to be installed (Closes: #665951, #626009)
   * patches/50-fix-edje_recc-bashism.diff: fix bashism (Closes: #772322)
+  * New upstream release 1.15.1
+    - includes giflib5 support (Closes: #803278)
 
  -- Ross Vandegrift <ross@kallisti.us>  Sat, 07 Nov 2015 17:41:56 -0500
 
