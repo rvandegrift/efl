@@ -1,34 +1,6 @@
 efl (1.15.1-1) UNRELEASED; urgency=medium
 
   [ Andreas Metzler ]
-  * Non-maintainer upload.
-  * New upstream version 1.12.2
-    + Unfuzz 03_no_ecore_audio_test.diff.
-    + Drop 04_eina_suite_lockup.diff. (Previously cherry-picked.)
-  * Update (build-)dependencies:
-    + liblua5.1-0-dev -> libluajit-5.1-dev.
-    + libgstreamer0.10-dev ->  libgstreamer1.0-dev (Closes: #785845)
-    + libgstreamer-plugins-base0.10-dev -> libgstreamer-plugins-base1.0-dev
-  * ./configure with --enable-i-really-know-what-i-am-doing-and-that-this-
-    will-probably-break-things-and-i-will-fix-them-myself-and-send-patches
-    -aba.
-  * Set --disable-silent-rules.
-  * 20_shorter_buildlog.diff: Strip down verbosity of testsuite, taking down
-    the buildlog from >= 150 MB to about 1,5 MB.
-  * debian/watch: point to .xz instead of .gz.
-  * 15_try_curl-gnutls.diff: Try to dlopen curl-gnutls (in addition to the
-    OpenSSL variant).
-  * 21_skip_failing_tests.diff: Skip ecore fb test (needs writeable /dev/tty0)
-    and eldbus_cxx test (needs running dbus daemon and $DISPLAY).
-  * Update symbol files.
-  * Invoke dh_install with "--list-missing" option.
-  * Consistently include cxx support files.
-  * Ship newly added libefl in libeina-dev/libeina1 package.
-  * Ship eolian code generator.
-  * Ship .eo files in -dev packages.
-  * Fix FTBFS on arch-all builds when "make doc" was invoked *before* the
-    regular build.
-  * Run dh_auto_configure with --verbose.
   * Use ${source:Upstream-Version} for Breaks.
   * Support DEB_BUILD_OPTIONS=nocheck.
   * Add Build-Depends-Package entries to symbol files.
@@ -92,6 +64,39 @@ efl (1.15.1-1) UNRELEASED; urgency=medium
   * Add missing libephysics-dev extended description
 
  -- Ross Vandegrift <ross@kallisti.us>  Sat, 07 Nov 2015 17:41:56 -0500
+
+efl (1.12.2-0.1) UNRELEASED; urgency=medium
+
+  * Non-maintainer upload.
+  * New upstream version
+    + Unfuzz 03_no_ecore_audio_test.diff.
+    + Drop 04_eina_suite_lockup.diff. (Previously cherry-picked.)
+  * Update (build-)dependencies:
+    + liblua5.1-0-dev -> libluajit-5.1-dev.
+    + libgstreamer0.10-dev ->  libgstreamer1.0-dev (Closes: #785845)
+    + libgstreamer-plugins-base0.10-dev -> libgstreamer-plugins-base1.0-dev
+  * ./configure with --enable-i-really-know-what-i-am-doing-and-that-this-
+    will-probably-break-things-and-i-will-fix-them-myself-and-send-patches
+    -aba.
+  * Set --disable-silent-rules.
+  * 20_shorter_buildlog.diff: Strip down verbosity of testsuite, taking down
+    the buildlog from >= 150 MB to about 1,5 MB.
+  * debian/watch: point to .xz instead of .gz.
+  * 15_try_curl-gnutls.diff: Try to dlopen curl-gnutls (in addition to the
+    OpenSSL variant).
+  * 21_skip_failing_tests.diff: Skip ecore fb test (needs writeable /dev/tty0)
+    and eldbus_cxx test (needs running dbus daemon and $DISPLAY).
+  * Update symbol files.
+  * Invoke dh_install with "--list-missing" option.
+  * Consistently include cxx support files.
+  * Ship newly added libefl in libeina-dev/libeina1 package.
+  * Ship eolian code generator.
+  * Ship .eo files in -dev packages.
+  * Fix FTBFS on arch-all builds when "make doc" was invoked *before* the
+    regular build.
+  * Run dh_auto_configure with --verbose.
+
+ -- Andreas Metzler <ametzler@debian.org>  Mon, 17 Nov 2014 18:50:55 +0100
 
 efl (1.8.6-2.1) unstable; urgency=medium
 
