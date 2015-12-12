@@ -3,7 +3,6 @@
 15_try_curl-gnutls.diff
 21_skip_failing_tests.diff
 22_consolidate-systemd-deps.diff
-23_disable-xprint.diff
 29_fix_eio_deps.diff
 33_fix_ecore_fb_eapi.diff
 35_adjust_lz4_deps.diff
