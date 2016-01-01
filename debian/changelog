@@ -1,9 +1,14 @@
 efl (1.15.3-1) UNRELEASED; urgency=medium
 
+  [ Ross Vandegrift ]
   * Non-maintainer upload.
   * New upstream version
+  * Update symbols to include eolian version information
 
- -- Ross Vandegrift <ross@kallisti.us>  Sat, 12 Dec 2015 13:38:46 -0500
+  [ Andreas Metzler ]
+  * Drop duplicate entries in efl build-deps.
+
+ -- Ross Vandegrift <ross@kallisti.us>  Fri, 01 Jan 2016 14:50:53 -0500
 
 efl (1.15.1-1) UNRELEASED; urgency=medium
 
