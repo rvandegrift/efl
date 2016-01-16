@@ -1,2 +1,2 @@
 debian/tmp/usr/lib/*/libecore_x.so.*
-debian/tmp/usr/lib/*/ecore_x/bin/v-1.15/ecore_x*
+debian/tmp/usr/lib/*/ecore_x/bin/*/ecore_x*
