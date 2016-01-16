@@ -1,7 +1,6 @@
 02_no_ecore_imf_test.diff
 15_try_curl-gnutls.diff
 21_skip_failing_tests.diff
-22_consolidate-systemd-deps.diff
 40_fix_elocation_pc.diff
 45_disable_doc_pack.diff
 50-fix-edje_recc-bashism.diff
