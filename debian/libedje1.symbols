@@ -22,6 +22,7 @@ libedje.so.1 libedje1 #MINVER#
  _emp_MESH_NODE@Base 1.15.3+eo+1
  _emp_PROXY@Base 1.15.3+eo+1
  _emp_RECTANGLE@Base 1.15.3+eo+1
+ _emp_SNAPSHOT@Base 1.16.1+eo+1
  _emp_SPACER@Base 1.15.3+eo+1
  _emp_SWALLOW@Base 1.15.3+eo+1
  _emp_TABLE@Base 1.15.3+eo+1
@@ -179,7 +180,11 @@ libedje.so.1 libedje1 #MINVER#
  edje_edit_part_item_min_w_set@Base 1.15.3+eo+1
  edje_edit_part_item_padding_get@Base 1.15.3+eo+1
  edje_edit_part_item_padding_set@Base 1.15.3+eo+1
+ edje_edit_part_item_position_col_get@Base 1.16.1+eo+1
+ edje_edit_part_item_position_col_set@Base 1.16.1+eo+1
  edje_edit_part_item_position_get@Base 1.15.3+eo+1
+ edje_edit_part_item_position_row_get@Base 1.16.1+eo+1
+ edje_edit_part_item_position_row_set@Base 1.16.1+eo+1
  edje_edit_part_item_position_set@Base 1.15.3+eo+1
  edje_edit_part_item_prefer_h_get@Base 1.15.3+eo+1
  edje_edit_part_item_prefer_h_set@Base 1.15.3+eo+1
@@ -187,7 +192,11 @@ libedje.so.1 libedje1 #MINVER#
  edje_edit_part_item_prefer_w_set@Base 1.15.3+eo+1
  edje_edit_part_item_source_get@Base 1.15.3+eo+1
  edje_edit_part_item_source_set@Base 1.15.3+eo+1
+ edje_edit_part_item_span_col_get@Base 1.16.1+eo+1
+ edje_edit_part_item_span_col_set@Base 1.16.1+eo+1
  edje_edit_part_item_span_get@Base 1.15.3+eo+1
+ edje_edit_part_item_span_row_get@Base 1.16.1+eo+1
+ edje_edit_part_item_span_row_set@Base 1.16.1+eo+1
  edje_edit_part_item_span_set@Base 1.15.3+eo+1
  edje_edit_part_item_spread_h_get@Base 1.15.3+eo+1
  edje_edit_part_item_spread_h_set@Base 1.15.3+eo+1
@@ -349,10 +358,22 @@ libedje.so.1 libedje1 #MINVER#
  edje_edit_state_color_set@Base 1.15.3+eo+1
  edje_edit_state_container_align_get@Base 1.15.3+eo+1
  edje_edit_state_container_align_set@Base 1.15.3+eo+1
+ edje_edit_state_container_align_x_get@Base 1.16.1+eo+1
+ edje_edit_state_container_align_x_set@Base 1.16.1+eo+1
+ edje_edit_state_container_align_y_get@Base 1.16.1+eo+1
+ edje_edit_state_container_align_y_set@Base 1.16.1+eo+1
  edje_edit_state_container_min_get@Base 1.15.3+eo+1
+ edje_edit_state_container_min_h_get@Base 1.16.1+eo+1
+ edje_edit_state_container_min_h_set@Base 1.16.1+eo+1
  edje_edit_state_container_min_set@Base 1.15.3+eo+1
+ edje_edit_state_container_min_v_get@Base 1.16.1+eo+1
+ edje_edit_state_container_min_v_set@Base 1.16.1+eo+1
  edje_edit_state_container_padding_get@Base 1.15.3+eo+1
  edje_edit_state_container_padding_set@Base 1.15.3+eo+1
+ edje_edit_state_container_padding_x_get@Base 1.16.1+eo+1
+ edje_edit_state_container_padding_x_set@Base 1.16.1+eo+1
+ edje_edit_state_container_padding_y_get@Base 1.16.1+eo+1
+ edje_edit_state_container_padding_y_set@Base 1.16.1+eo+1
  edje_edit_state_copy@Base 1.15.3+eo+1
  edje_edit_state_del@Base 1.15.3+eo+1
  edje_edit_state_exist@Base 1.15.3+eo+1

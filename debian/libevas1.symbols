@@ -48,12 +48,18 @@ libevas.so.1 libevas1 #MINVER#
  ector_cairo_software_surface_set@Base 1.15.3+eo+1
  efl_vg_base_class_get@Base 1.15.3+eo+1
  efl_vg_bounds_get@Base 1.15.3+eo+1
+ efl_vg_container_child_get@Base 1.16.1+eo+1
+ efl_vg_container_children_get@Base 1.16.1+eo+1
  efl_vg_container_class_get@Base 1.15.3+eo+1
+ efl_vg_dup@Base 1.16.1+eo+1
  efl_vg_gradient_class_get@Base 1.15.3+eo+1
  efl_vg_gradient_linear_class_get@Base 1.15.3+eo+1
  efl_vg_gradient_radial_class_get@Base 1.15.3+eo+1
+ efl_vg_interpolate@Base 1.16.1+eo+1
  efl_vg_mask_get@Base 1.15.3+eo+1
  efl_vg_mask_set@Base 1.15.3+eo+1
+ efl_vg_name_get@Base 1.16.1+eo+1
+ efl_vg_name_set@Base 1.16.1+eo+1
  efl_vg_origin_get@Base 1.15.3+eo+1
  efl_vg_origin_set@Base 1.15.3+eo+1
  efl_vg_root_node_class_get@Base 1.15.3+eo+1
@@ -208,6 +214,7 @@ libevas.so.1 libevas1 #MINVER#
  evas_canvas3d_mesh_fog_enable_set@Base 1.15.3+eo+1
  evas_canvas3d_mesh_frame_add@Base 1.15.3+eo+1
  evas_canvas3d_mesh_frame_del@Base 1.15.3+eo+1
+ evas_canvas3d_mesh_frame_exist@Base 1.16.1+eo+1
  evas_canvas3d_mesh_frame_material_get@Base 1.15.3+eo+1
  evas_canvas3d_mesh_frame_material_set@Base 1.15.3+eo+1
  evas_canvas3d_mesh_frame_vertex_data_copy_set@Base 1.15.3+eo+1
@@ -224,6 +231,10 @@ libevas.so.1 libevas1 #MINVER#
  evas_canvas3d_mesh_index_format_get@Base 1.15.3+eo+1
  evas_canvas3d_mesh_shade_mode_get@Base 1.15.3+eo+1
  evas_canvas3d_mesh_shade_mode_set@Base 1.15.3+eo+1
+ evas_canvas3d_mesh_shadows_constant_bias_get@Base 1.16.1+eo+1
+ evas_canvas3d_mesh_shadows_constant_bias_set@Base 1.16.1+eo+1
+ evas_canvas3d_mesh_shadows_edges_filtering_get@Base 1.16.1+eo+1
+ evas_canvas3d_mesh_shadows_edges_filtering_set@Base 1.16.1+eo+1
  evas_canvas3d_mesh_vertex_assembly_get@Base 1.15.3+eo+1
  evas_canvas3d_mesh_vertex_assembly_set@Base 1.15.3+eo+1
  evas_canvas3d_mesh_vertex_count_get@Base 1.15.3+eo+1
@@ -299,6 +310,8 @@ libevas.so.1 libevas1 #MINVER#
  evas_canvas3d_scene_pick_member_list_get@Base 1.15.3+eo+1
  evas_canvas3d_scene_root_node_get@Base 1.15.3+eo+1
  evas_canvas3d_scene_root_node_set@Base 1.15.3+eo+1
+ evas_canvas3d_scene_shadows_depth_get@Base 1.16.1+eo+1
+ evas_canvas3d_scene_shadows_depth_set@Base 1.16.1+eo+1
  evas_canvas3d_scene_shadows_enable_get@Base 1.15.3+eo+1
  evas_canvas3d_scene_shadows_enable_set@Base 1.15.3+eo+1
  evas_canvas3d_scene_size_get@Base 1.15.3+eo+1
@@ -509,6 +522,7 @@ libevas.so.1 libevas1 #MINVER#
  evas_filter_input_render@Base 1.15.3+eo+1
  evas_filter_invalid_set@Base 1.15.3+eo+1
  evas_filter_mixin_get@Base 1.15.3+eo+1
+ evas_filter_output_buffer_get@Base 1.16.1+eo+1
  evas_filter_program_del@Base 1.15.3+eo+1
  evas_filter_program_new@Base 1.15.3+eo+1
  evas_filter_program_padding_get@Base 1.15.3+eo+1
@@ -545,6 +559,7 @@ libevas.so.1 libevas1 #MINVER#
  evas_gl_context_destroy@Base 1.15.3+eo+1
  evas_gl_context_version_create@Base 1.15.3+eo+1
  evas_gl_current_context_get@Base 1.15.3+eo+1
+ evas_gl_current_evas_gl_get@Base 1.16.1+eo+1
  evas_gl_current_surface_get@Base 1.15.3+eo+1
  evas_gl_error_get@Base 1.15.3+eo+1
  evas_gl_free@Base 1.15.3+eo+1
@@ -721,6 +736,8 @@ libevas.so.1 libevas1 #MINVER#
  evas_obj_image_scale_hint_set@Base 1.15.3+eo+1
  evas_obj_image_scene_get@Base 1.15.3+eo+1
  evas_obj_image_scene_set@Base 1.15.3+eo+1
+ evas_obj_image_snapshot_get@Base 1.16.1+eo+1
+ evas_obj_image_snapshot_set@Base 1.16.1+eo+1
  evas_obj_image_source_clip_get@Base 1.15.3+eo+1
  evas_obj_image_source_clip_set@Base 1.15.3+eo+1
  evas_obj_image_source_events_get@Base 1.15.3+eo+1
@@ -1043,6 +1060,8 @@ libevas.so.1 libevas1 #MINVER#
  evas_object_image_size_set@Base 1.15.3+eo+1
  evas_object_image_smooth_scale_get@Base 1.15.3+eo+1
  evas_object_image_smooth_scale_set@Base 1.15.3+eo+1
+ evas_object_image_snapshot_get@Base 1.16.1+eo+1
+ evas_object_image_snapshot_set@Base 1.16.1+eo+1
  evas_object_image_source_clip_get@Base 1.15.3+eo+1
  evas_object_image_source_clip_set@Base 1.15.3+eo+1
  evas_object_image_source_events_get@Base 1.15.3+eo+1
@@ -1421,6 +1440,8 @@ libevas.so.1 libevas1 #MINVER#
  evas_version@Base 1.15.3+eo+1
  evas_vg_class_get@Base 1.15.3+eo+1
  evas_vg_container_add@Base 1.15.3+eo+1
+ evas_vg_container_child_get@Base 1.16.1+eo+1
+ evas_vg_container_children_get@Base 1.16.1+eo+1
  evas_vg_gradient_linear_end_get@Base 1.15.3+eo+1
  evas_vg_gradient_linear_end_set@Base 1.15.3+eo+1
  evas_vg_gradient_linear_start_get@Base 1.15.3+eo+1
@@ -1438,11 +1459,15 @@ libevas.so.1 libevas1 #MINVER#
  evas_vg_node_bounds_get@Base 1.15.3+eo+1
  evas_vg_node_color_get@Base 1.15.3+eo+1
  evas_vg_node_color_set@Base 1.15.3+eo+1
+ evas_vg_node_dup@Base 1.16.1+eo+1
  evas_vg_node_geometry_get@Base 1.15.3+eo+1
  evas_vg_node_geometry_set@Base 1.15.3+eo+1
+ evas_vg_node_interpolate@Base 1.16.1+eo+1
  evas_vg_node_lower@Base 1.15.3+eo+1
  evas_vg_node_mask_get@Base 1.15.3+eo+1
  evas_vg_node_mask_set@Base 1.15.3+eo+1
+ evas_vg_node_name_get@Base 1.16.1+eo+1
+ evas_vg_node_name_set@Base 1.16.1+eo+1
  evas_vg_node_origin_get@Base 1.15.3+eo+1
  evas_vg_node_origin_set@Base 1.15.3+eo+1
  evas_vg_node_raise@Base 1.15.3+eo+1
