@@ -263,6 +263,7 @@ libeldbus.so.1 libecore1 #MINVER#
  eldbus_message_path_get@Base 1.15.3+eo+1
  eldbus_message_ref@Base 1.15.3+eo+1
  eldbus_message_sender_get@Base 1.15.3+eo+1
+ eldbus_message_signal_new@Base 1.16.1+eo+1
  eldbus_message_signature_get@Base 1.15.3+eo+1
  eldbus_message_to_eina_value@Base 1.15.3+eo+1
  eldbus_message_unref@Base 1.15.3+eo+1

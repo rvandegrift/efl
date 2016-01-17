@@ -18,6 +18,7 @@ libector.so.1 libector1 #MINVER#
  ector_renderer_cairo_shape_class_get@Base 1.15.3+eo+1
  ector_renderer_color_get@Base 1.15.3+eo+1
  ector_renderer_color_set@Base 1.15.3+eo+1
+ ector_renderer_crc_get@Base 1.16.1+eo+1
  ector_renderer_done@Base 1.15.3+eo+1
  ector_renderer_draw@Base 1.15.3+eo+1
  ector_renderer_generic_base_class_get@Base 1.15.3+eo+1

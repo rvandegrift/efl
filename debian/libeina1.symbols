@@ -67,6 +67,13 @@ libeina.so.1 libeina1 #MINVER#
  eina_benchmark_new@Base 1.15.3+eo+1
  eina_benchmark_register@Base 1.15.3+eo+1
  eina_benchmark_run@Base 1.15.3+eo+1
+ eina_bezier_angle_at@Base 1.16.1+eo+1
+ eina_bezier_length_get@Base 1.16.1+eo+1
+ eina_bezier_point_at@Base 1.16.1+eo+1
+ eina_bezier_split_at_length@Base 1.16.1+eo+1
+ eina_bezier_t_at@Base 1.16.1+eo+1
+ eina_bezier_values_get@Base 1.16.1+eo+1
+ eina_bezier_values_set@Base 1.16.1+eo+1
  eina_binbuf_append_buffer@Base 1.15.3+eo+1
  eina_binbuf_append_char@Base 1.15.3+eo+1
  eina_binbuf_append_length@Base 1.15.3+eo+1
@@ -342,7 +349,14 @@ libeina.so.1 libeina1 #MINVER#
  eina_matrix3_type_get@Base 1.15.3+eo+1
  eina_matrix3_values_get@Base 1.15.3+eo+1
  eina_matrix3_values_set@Base 1.15.3+eo+1
+ eina_matrix4_determinant@Base 1.16.1+eo+1
+ eina_matrix4_identity@Base 1.16.1+eo+1
+ eina_matrix4_inverse@Base 1.16.1+eo+1
  eina_matrix4_matrix3_to@Base 1.15.3+eo+1
+ eina_matrix4_multiply@Base 1.16.1+eo+1
+ eina_matrix4_normalized@Base 1.16.1+eo+1
+ eina_matrix4_quaternion_to@Base 1.16.1+eo+1
+ eina_matrix4_transpose@Base 1.16.1+eo+1
  eina_matrix4_type_get@Base 1.15.3+eo+1
  eina_matrix4_values_get@Base 1.15.3+eo+1
  eina_matrix4_values_set@Base 1.15.3+eo+1
@@ -432,6 +446,7 @@ libeina.so.1 libeina1 #MINVER#
  eina_quaternion_f16p16_set@Base 1.15.3+eo+1
  eina_quaternion_f16p16_slerp@Base 1.15.3+eo+1
  eina_quaternion_lerp@Base 1.15.3+eo+1
+ eina_quaternion_matrix4_to@Base 1.16.1+eo+1
  eina_quaternion_mul@Base 1.15.3+eo+1
  eina_quaternion_negative@Base 1.15.3+eo+1
  eina_quaternion_nlerp@Base 1.15.3+eo+1
@@ -542,6 +557,7 @@ libeina.so.1 libeina1 #MINVER#
  eina_thread_create@Base 1.15.3+eo+1
  eina_thread_equal@Base 1.15.3+eo+1
  eina_thread_join@Base 1.15.3+eo+1
+ eina_thread_name_set@Base 1.16.1+eo+1
  eina_thread_queue_fd_get@Base 1.15.3+eo+1
  eina_thread_queue_fd_set@Base 1.15.3+eo+1
  eina_thread_queue_free@Base 1.15.3+eo+1
@@ -668,6 +684,7 @@ libeo.so.1 libeina1 #MINVER#
  _eo_class_creation_lock@Base 1.15.3+eo+1
  _eo_do_end@Base 1.15.3+eo+1
  _eo_do_start@Base 1.15.3+eo+1
+ _eo_stack_get@Base 1.16.1+eo+1
  eo_abstract_class_class_get@Base 1.15.3+eo+1
  eo_base_class_get@Base 1.15.3+eo+1
  eo_base_legacy_only_event_description_get@Base 1.15.3+eo+1
