@@ -9,3 +9,4 @@
 50-fix-edje_recc-bashism.diff
 55-emile_remove_sslv3.diff
 60-fix_evas_double_free.diff
+65-adjust_eldbus_deps.diff
