@@ -11,7 +11,6 @@ libeolian.so.1 libeolian1 #MINVER#
  eolian_class_constructors_get@Base 1.15.3+eo+1
  eolian_class_ctor_enable_get@Base 1.15.3+eo+1
  eolian_class_data_type_get@Base 1.15.3+eo+1
- eolian_class_description_get@Base 1.15.3+eo+1
  eolian_class_documentation_get@Base 1.15.3+eo+1
  eolian_class_dtor_enable_get@Base 1.15.3+eo+1
  eolian_class_eo_prefix_get@Base 1.15.3+eo+1
@@ -64,7 +63,6 @@ libeolian.so.1 libeolian1 #MINVER#
  eolian_expression_value_to_literal@Base 1.15.3+eo+1
  eolian_file_parse@Base 1.15.3+eo+1
  eolian_function_class_get@Base 1.15.3+eo+1
- eolian_function_description_get@Base 1.15.3+eo+1
  eolian_function_documentation_get@Base 1.15.3+eo+1
  eolian_function_full_c_name_get@Base 1.15.3+eo+1
  eolian_function_is_auto@Base 1.15.3+eo+1
@@ -80,7 +78,6 @@ libeolian.so.1 libeolian1 #MINVER#
  eolian_function_name_get@Base 1.15.3+eo+1
  eolian_function_object_is_const@Base 1.15.3+eo+1
  eolian_function_parameters_get@Base 1.15.3+eo+1
- eolian_function_return_comment_get@Base 1.15.3+eo+1
  eolian_function_return_default_value_get@Base 1.15.3+eo+1
  eolian_function_return_documentation_get@Base 1.15.3+eo+1
  eolian_function_return_is_warn_unused@Base 1.15.3+eo+1
@@ -97,7 +94,6 @@ libeolian.so.1 libeolian1 #MINVER#
  eolian_implement_is_virtual@Base 1.15.3+eo+1
  eolian_init@Base 1.15.3+eo+1
  eolian_parameter_default_value_get@Base 1.15.3+eo+1
- eolian_parameter_description_get@Base 1.15.3+eo+1
  eolian_parameter_direction_get@Base 1.15.3+eo+1
  eolian_parameter_documentation_get@Base 1.15.3+eo+1
  eolian_parameter_is_nonull@Base 1.15.3+eo+1
