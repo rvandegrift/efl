@@ -6,3 +6,5 @@ debian/tmp/usr/lib/*/libethumb_client.so
 
 debian/tmp/usr/lib/*/pkgconfig/ethumb.pc
 debian/tmp/usr/lib/*/pkgconfig/ethumb_client.pc
+usr/lib/*/cmake/Ethumb/*.cmake
+usr/lib/*/cmake/EthumbClient/*.cmake
