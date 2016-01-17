@@ -720,8 +720,6 @@ libeo.so.1 libeina1 #MINVER#
  eo_event_thaw@Base 1.15.3+eo+1
  eo_finalize@Base 1.15.3+eo+1
  eo_finalized_get@Base 1.15.3+eo+1
- eo_hook_call_post@Base 1.15.3+eo+1
- eo_hook_call_pre@Base 1.15.3+eo+1
  eo_init@Base 1.15.3+eo+1
  eo_isa@Base 1.15.3+eo+1
  eo_key_data_del@Base 1.15.3+eo+1
