@@ -15,8 +15,11 @@ debian/tmp/usr/lib/*/libecore_ipc.so
 debian/tmp/usr/lib/*/libecore_x.so
 debian/tmp/usr/lib/*/pkgconfig/ecore*.pc
 usr/share/eolian/include/ecore-1
+usr/lib/*/cmake/Ecore/*.cmake
+usr/lib/*/cmake/EcoreCxx/*.cmake
 
 debian/tmp/usr/include/eldbus-*
 debian/tmp/usr/include/eldbus_cxx-*
 debian/tmp/usr/lib/*/libeldbus.so
 debian/tmp/usr/lib/*/pkgconfig/eldbus.pc
+usr/lib/*/cmake/Eldbus/*.cmake
