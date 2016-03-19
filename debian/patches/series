@@ -1,5 +1,4 @@
 02_no_ecore_imf_test.diff
-03_no_ecore_audio_test.diff
 15_try_curl-gnutls.diff
 21_skip_failing_tests.diff
 22_consolidate-systemd-deps.diff
