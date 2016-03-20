@@ -1,3 +1,31 @@
+efl (1.16.1-1) UNRELEASED; urgency=medium
+
+  [ Ross Vandegrift]
+  * Non-maintainer upload.
+  * New upstream version
+  * Remove explicit version from module paths in install files
+  * patches/03_no_ecore_audio_test.diff: drop, test is working again
+  * patches/15_try_curl-gnutls.diff: update target file, defuzz
+  * patches/29_fix_eio_deps.diff: drop, applied upstream
+  * pathces/35_adjust_lz4_deps.diff: drop, fixed upstream
+  * patches/22_consolidate-systemd-deps.diff: drop, applied upstream
+  * patches/55-emile_remove_sslv3.diff: remove last occurrence of EMILE_SSLv3
+  * patches/21_skip_failing_tests.diff: drop to replace with smaller patches
+  * patches/20-skip_dbus_tests.diff: skip tests that require dbus connection
+  * patches/22-skip-fb-tests.diff: skip tests that require writable /dev/tty0
+  * patches/24-skip_gnutls_broken.diff: skip tests that don't work with gnutls
+  * patches/26-skip_filter_tests.diff: skip failing filter test
+  * patches/60-fix-evas_double_free.diff: fix double free in evas tests
+  * update emotion install file to ship new edje module
+  * Add new 1.16 symbols
+  * Remove eo/eolian symbols dropped in 1.16
+  * Bump symbol versions for new release of eolian generator
+  * Add cmake files to dev packages
+  * patches/65-adjust_eldbus_deps.diff: add missing libefl dep to eldbus build
+  * patches/70-gnutls3.4.diff: fix build with gnutls 3.4
+
+ -- Ross Vandegrift <ross@kallisti.us>  Sun, 20 Mar 2016 17:52:56 -0400
+
 efl (1.15.3-1) UNRELEASED; urgency=medium
 
   [ Ross Vandegrift ]
