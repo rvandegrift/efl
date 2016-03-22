@@ -1165,15 +1165,15 @@ EAPI Emotion_Vis  emotion_object_vis_get               (const Evas_Object *obj);
 EAPI Eina_Bool    emotion_object_vis_supported         (const Evas_Object *obj, Emotion_Vis visualization);
 
 /**
- * @brief Raise priority of an object so it will have a priviledged access to hardware ressource.
+ * @brief Raise priority of an object so it will have a priviledged access to hardware resources.
  *
  * @param obj The object which the query is being ran on.
- * @param priority EINA_TRUE means give me a priority access to the hardware ressource.
+ * @param priority EINA_TRUE means give me a priority access to the hardware resources.
  *
  * Hardware have a few dedicated hardware pipeline that process the video at no cost for the CPU.
  * Especially on SoC, you mostly have one (on mobile phone SoC) or two (on Set Top Box SoC) when
  * Picture in Picture is needed. And most application just have a few video stream that really
- * deserve high frame rate, hiogh quality output. That's why this call is for.
+ * deserve high frame rate, high quality output. That's why this call is for.
  *
  * Please note that if Emotion can't acquire a priviledged hardware ressource, it will fallback
  * to the no-priority path. This work on the first asking first get basis system.
@@ -1266,7 +1266,7 @@ EAPI void         emotion_object_last_position_save(Evas_Object *obj);
  *
  * @param file A stringshared filename that we want to know if Emotion can play.
  *
- * This just actually look at the extention of the file, it doesn't check the mime-type
+ * This just actually look at the extension of the file, it doesn't check the mime-type
  * nor if the file is actually sane. So this is just an hint for your application.
  *
  * @see emotion_object_extension_may_play_get()
@@ -1278,7 +1278,7 @@ EAPI Eina_Bool    emotion_object_extension_may_play_fast_get(const char *file);
  *
  * @param file A filename that we want to know if Emotion can play.
  *
- * This just actually look at the extention of the file, it doesn't check the mime-type
+ * This just actually look at the extension of the file, it doesn't check the mime-type
  * nor if the file is actually sane. So this is just an hint for your application.
  *
  * @see emotion_object_extension_may_play_fast_get()
@@ -1290,7 +1290,7 @@ EAPI Eina_Bool    emotion_object_extension_may_play_get(const char *file);
  *
  * @param obj The object which the query is being ran on.
  *
- * This function is usefull when you want to get a direct access to the pixels.
+ * This function is useful when you want to get a direct access to the pixels.
  *
  * @see emotion_object_image_get()
  */

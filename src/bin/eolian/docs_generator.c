@@ -122,11 +122,38 @@ static int
 _append_section(const char *desc, int ind, int curl, Eina_Strbuf *buf,
                 Eina_Strbuf *wbuf, Eina_Bool use_legacy)
 {
+   Eina_Bool try_note = EINA_TRUE;
    while (*desc)
      {
         eina_strbuf_reset(wbuf);
         while (*desc && isspace(*desc) && (*desc != '\n'))
           eina_strbuf_append_char(wbuf, *desc++);
+        if (try_note)
+          {
+#define CHECK_NOTE(str) !strncmp(desc, str ": ", sizeof(str ":"))
+             if (CHECK_NOTE("Note"))
+               {
+                  eina_strbuf_append(wbuf, "@note ");
+                  desc += sizeof("Note:");
+               }
+             else if (CHECK_NOTE("Warning"))
+               {
+                  eina_strbuf_append(wbuf, "@warning ");
+                  desc += sizeof("Warning:");
+               }
+             else if (CHECK_NOTE("Remark"))
+               {
+                  eina_strbuf_append(wbuf, "@remark ");
+                  desc += sizeof("Remark:");
+               }
+             else if (CHECK_NOTE("TODO"))
+               {
+                  eina_strbuf_append(wbuf, "@todo ");
+                  desc += sizeof("TODO:");
+               }
+#undef CHECK_NOTE
+             try_note = EINA_FALSE;
+          }
         if (*desc == '\\')
           {
              desc++;
@@ -182,6 +209,7 @@ _append_section(const char *desc, int ind, int curl, Eina_Strbuf *buf,
                   _indent_line(buf, ind);
                   eina_strbuf_append(buf, " *\n");
                   desc++;
+                  try_note = EINA_TRUE;
                }
              curl = _indent_line(buf, ind) + 3;
              eina_strbuf_append(buf, " * ");
@@ -371,7 +399,7 @@ docs_generate_function(const Eolian_Function *fid, Eolian_Function_Type ftype,
          }
      }
 
-   if (!itr || !eina_iterator_next(itr, (void**)&par))
+   if (itr && !eina_iterator_next(itr, (void**)&par))
      {
         eina_iterator_free(itr);
         itr = NULL;
@@ -380,11 +408,12 @@ docs_generate_function(const Eolian_Function *fid, Eolian_Function_Type ftype,
    /* when return is not set on getter, value becomes return instead of param */
    if (ftype == EOLIAN_PROP_GET && !eolian_function_return_type_get(fid, ftype))
      {
+        const Eolian_Function_Parameter *rvpar = vpar;
         if (!eina_iterator_next(vitr, (void**)&vpar))
           {
              /* one value - not out param */
              eina_iterator_free(vitr);
-             rdoc = eolian_parameter_documentation_get(vpar);
+             rdoc = rvpar ? eolian_parameter_documentation_get(rvpar) : NULL;
              vitr = NULL;
              vpar = NULL;
           }

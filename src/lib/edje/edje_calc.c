@@ -271,6 +271,52 @@ _edje_part_make_rtl(Edje_Part_Description_Common *desc)
    desc->rel2.id_x = i;
 }
 
+static Edje_Part_Description_Common *
+_edje_get_custom_description_by_orientation(Edje *ed, Edje_Part_Description_Common *src, Edje_Part_Description_Common **dst, unsigned char type)
+{
+   Edje_Part_Description_Common *ret;
+   size_t memsize = 0;
+
+   if (!(*dst))
+     {
+        ret = _edje_get_description_by_orientation(ed, src, dst, type);
+        return ret;
+     }
+
+#define POPULATE_MEMSIZE_RTL(Short, Type)                        \
+case EDJE_PART_TYPE_##Short:                                          \
+{                                                                     \
+   memsize = sizeof(Edje_Part_Description_##Type);                    \
+   break;                                                             \
+}
+
+   switch (type)
+     {
+        POPULATE_MEMSIZE_RTL(RECTANGLE, Common);
+        POPULATE_MEMSIZE_RTL(SNAPSHOT, Snapshot);
+        POPULATE_MEMSIZE_RTL(SWALLOW, Common);
+        POPULATE_MEMSIZE_RTL(GROUP, Common);
+        POPULATE_MEMSIZE_RTL(SPACER, Common);
+        POPULATE_MEMSIZE_RTL(TEXT, Text);
+        POPULATE_MEMSIZE_RTL(TEXTBLOCK, Text);
+        POPULATE_MEMSIZE_RTL(IMAGE, Image);
+        POPULATE_MEMSIZE_RTL(PROXY, Proxy);
+        POPULATE_MEMSIZE_RTL(BOX, Box);
+        POPULATE_MEMSIZE_RTL(TABLE, Table);
+        POPULATE_MEMSIZE_RTL(EXTERNAL, External);
+        POPULATE_MEMSIZE_RTL(CAMERA, Camera);
+        POPULATE_MEMSIZE_RTL(LIGHT, Light);
+        POPULATE_MEMSIZE_RTL(MESH_NODE, Mesh_Node);
+     }
+#undef POPULATE_MEMSIZE_RTL
+
+   ret = *dst;
+   memcpy(ret, src, memsize);
+   _edje_part_make_rtl(ret);
+
+   return ret;
+}
+
 /**
  * Returns part description
  *
@@ -324,6 +370,13 @@ case EDJE_PART_TYPE_##Short:                                          \
                                        sizeof (Edje_Part_Description_Common));
         ce->count.RECTANGLE++;
         memsize = sizeof(Edje_Part_Description_Common);
+        break;
+
+      case EDJE_PART_TYPE_SNAPSHOT:
+        desc_rtl = eina_mempool_malloc(ce->mp_rtl.SNAPSHOT,
+                                       sizeof (Edje_Part_Description_Snapshot));
+        ce->count.SNAPSHOT++;
+        memsize = sizeof(Edje_Part_Description_Snapshot);
         break;
 
       case EDJE_PART_TYPE_SWALLOW:
@@ -391,8 +444,8 @@ _edje_part_description_find(Edje *ed, Edje_Real_Part *rp, const char *state_name
 
    if (!strcmp(state_name, "custom"))
      return rp->custom ?
-            _edje_get_description_by_orientation(ed, rp->custom->description,
-                                                 &rp->custom->description_rtl, ep->type) : NULL;
+            _edje_get_custom_description_by_orientation(ed, rp->custom->description,
+                                                       &rp->custom->description_rtl, ep->type) : NULL;
 
    if (!strcmp(state_name, "default") && approximate)
      {
@@ -2170,7 +2223,7 @@ _edje_part_recalc_single_min_max(FLOAT_T sc,
    if ((ep->type == EDJE_RP_TYPE_SWALLOW) &&
        (ep->typedata.swallow))
      {
-        if (ep->typedata.swallow->swallow_params.min.w > desc->min.w)
+        if (ep->typedata.swallow->swallow_params.min.w > *minw)
           *minw = ep->typedata.swallow->swallow_params.min.w;
      }
 
@@ -2235,7 +2288,7 @@ _edje_part_recalc_single_min_max(FLOAT_T sc,
    if ((ep->type == EDJE_RP_TYPE_SWALLOW) &&
        (ep->typedata.swallow))
      {
-        if (ep->typedata.swallow->swallow_params.min.h > desc->min.h)
+        if (ep->typedata.swallow->swallow_params.min.h > *minh)
           *minh = ep->typedata.swallow->swallow_params.min.h;
      }
 
@@ -2447,34 +2500,56 @@ _edje_part_recalc_single_filter(Edje *ed,
                                 Edje_Part_Description_Common *chosen_desc,
                                 double pos)
 {
-   Edje_Part_Description_Spec_Filter *filter;
+   Edje_Part_Description_Spec_Filter *filter, *prevfilter;
    Eina_List *filter_sources = NULL, *prev_sources = NULL;
    const char *src1, *src2, *part, *code;
    Evas_Object *obj = ep->object;
    Eina_List *li1, *li2;
 
-   /* handle TEXT and IMAGE part types here */
+   /* handle TEXT, IMAGE, PROXY, SNAPSHOT part types here */
    if (ep->part->type == EDJE_PART_TYPE_TEXT)
      {
         Edje_Part_Description_Text *chosen_edt = (Edje_Part_Description_Text *) chosen_desc;
         Edje_Part_Description_Text *edt = (Edje_Part_Description_Text *) desc;
-        filter = &chosen_edt->text.filter;
-        prev_sources = edt->text.filter.sources;
-        filter_sources = chosen_edt->text.filter.sources;
+        filter = &chosen_edt->filter;
+        prev_sources = edt->filter.sources;
+        filter_sources = chosen_edt->filter.sources;
+        prevfilter = &(edt->filter);
      }
    else if (ep->part->type == EDJE_PART_TYPE_IMAGE)
      {
         Edje_Part_Description_Image *chosen_edi = (Edje_Part_Description_Image *) chosen_desc;
         Edje_Part_Description_Image *edi = (Edje_Part_Description_Image *) desc;
-        filter = &chosen_edi->image.filter;
-        prev_sources = edi->image.filter.sources;
-        filter_sources = chosen_edi->image.filter.sources;
+        filter = &chosen_edi->filter;
+        prev_sources = edi->filter.sources;
+        filter_sources = chosen_edi->filter.sources;
+        prevfilter = &(edi->filter);
+     }
+   else if (ep->part->type == EDJE_PART_TYPE_PROXY)
+     {
+        Edje_Part_Description_Proxy *chosen_edp = (Edje_Part_Description_Proxy *) chosen_desc;
+        Edje_Part_Description_Proxy *edp = (Edje_Part_Description_Proxy *) desc;
+        filter = &chosen_edp->filter;
+        prev_sources = edp->filter.sources;
+        filter_sources = chosen_edp->filter.sources;
+        prevfilter = &(edp->filter);
+     }
+   else if (ep->part->type == EDJE_PART_TYPE_SNAPSHOT)
+     {
+        Edje_Part_Description_Snapshot *chosen_eds = (Edje_Part_Description_Snapshot *) chosen_desc;
+        Edje_Part_Description_Snapshot *eds = (Edje_Part_Description_Snapshot *) desc;
+        filter = &chosen_eds->filter;
+        prev_sources = eds->filter.sources;
+        filter_sources = chosen_eds->filter.sources;
+        prevfilter = &(eds->filter);
      }
    else
      {
         CRI("Invalid call to filter recalc");
         return;
      }
+
+   if ((!filter->code) && (!prevfilter->code)) return;
 
    /* common code below */
    code = _edje_filter_get(ed, filter);
@@ -2762,6 +2837,7 @@ _edje_part_recalc_single(Edje *ed,
       case EDJE_PART_TYPE_MESH_NODE:
       case EDJE_PART_TYPE_LIGHT:
       case EDJE_PART_TYPE_CAMERA:
+      case EDJE_PART_TYPE_SNAPSHOT:
         break;
 
       case EDJE_PART_TYPE_GRADIENT:
@@ -2819,29 +2895,38 @@ _edje_part_recalc_single(Edje *ed,
              if (lminh > minh) minh = lminh;
           }
      }
-   else if ((ep->part->type == EDJE_PART_TYPE_IMAGE) &&
-            (chosen_desc->min.limit || chosen_desc->max.limit))
+   else if (ep->part->type == EDJE_PART_TYPE_IMAGE)
      {
-        Evas_Coord w, h;
+        if (chosen_desc->min.limit || chosen_desc->max.limit)
+          {
+             Evas_Coord w, h;
 
-        /* We only need pos to find the right image that would be displayed */
-        /* Yes, if someone set aspect preference to SOURCE and also max,min
+             /* We only need pos to find the right image that would be displayed */
+             /* Yes, if someone set aspect preference to SOURCE and also max,min
            to SOURCE, it will be under efficient, but who cares at the
            moment. */
-        _edje_real_part_image_set(ed, ep, NULL, pos);
-        evas_object_image_size_get(ep->object, &w, &h);
+             _edje_real_part_image_set(ed, ep, NULL, pos);
+             evas_object_image_size_get(ep->object, &w, &h);
 
-        if (chosen_desc->min.limit)
-          {
-             if (w > minw) minw = w;
-             if (h > minh) minh = h;
+             if (chosen_desc->min.limit)
+               {
+                  if (w > minw) minw = w;
+                  if (h > minh) minh = h;
+               }
+             if (chosen_desc->max.limit)
+               {
+                  if ((maxw <= 0) || (w < maxw)) maxw = w;
+                  if ((maxh <= 0) || (h < maxh)) maxh = h;
+               }
           }
-        if (chosen_desc->max.limit)
-          {
-             if ((maxw <= 0) || (w < maxw)) maxw = w;
-             if ((maxh <= 0) || (h < maxh)) maxh = h;
-          }
-
+        _edje_part_recalc_single_filter(ed, ep, desc, chosen_desc, pos);
+     }
+   else if (ep->part->type == EDJE_PART_TYPE_PROXY)
+     {
+        _edje_part_recalc_single_filter(ed, ep, desc, chosen_desc, pos);
+     }
+   else if (ep->part->type == EDJE_PART_TYPE_SNAPSHOT)
+     {
         _edje_part_recalc_single_filter(ed, ep, desc, chosen_desc, pos);
      }
 
@@ -3006,6 +3091,7 @@ _edje_proxy_recalc_apply(Edje *ed, Edje_Real_Part *ep, Edje_Calc_Params *p3, Edj
            case EDJE_PART_TYPE_BOX:
            case EDJE_PART_TYPE_TABLE:
            case EDJE_PART_TYPE_PROXY:
+           case EDJE_PART_TYPE_SNAPSHOT:
              evas_object_image_source_set(ep->object, pp->object);
              break;
 
@@ -4268,6 +4354,7 @@ _edje_part_recalc(Edje *ed, Edje_Real_Part *ep, int flags, Edje_Calc_Params *sta
            case EDJE_PART_TYPE_TEXTBLOCK:
            case EDJE_PART_TYPE_BOX:
            case EDJE_PART_TYPE_TABLE:
+           case EDJE_PART_TYPE_SNAPSHOT:
              evas_object_color_set(ep->object,
                                    (pf->color.r * pf->color.a) / 255,
                                    (pf->color.g * pf->color.a) / 255,
@@ -4459,26 +4546,26 @@ _edje_part_recalc(Edje *ed, Edje_Real_Part *ep, int flags, Edje_Calc_Params *sta
                 EINA_LIST_FOREACH(meshes, list, mesh)
                   {
                      eo_do(mesh,  material = evas_canvas3d_mesh_frame_material_get(0));
-                     eo_do(material,  texture = evas_canvas3d_material_texture_get(EVAS_CANVAS3D_MATERIAL_DIFFUSE));
+                     eo_do(material,  texture = evas_canvas3d_material_texture_get(EVAS_CANVAS3D_MATERIAL_ATTRIB_DIFFUSE));
 
                      pd_mesh_node = (Edje_Part_Description_Mesh_Node*) ep->chosen_description;
 
                      eo_do(material,
-                           evas_canvas3d_material_enable_set(EVAS_CANVAS3D_MATERIAL_AMBIENT, EINA_TRUE),
-                           evas_canvas3d_material_enable_set(EVAS_CANVAS3D_MATERIAL_DIFFUSE, EINA_TRUE),
-                           evas_canvas3d_material_enable_set(EVAS_CANVAS3D_MATERIAL_SPECULAR, EINA_TRUE),
-                           evas_canvas3d_material_enable_set(EVAS_CANVAS3D_MATERIAL_NORMAL, pd_mesh_node->mesh_node.properties.normal),
-                           evas_canvas3d_material_color_set(EVAS_CANVAS3D_MATERIAL_AMBIENT,
+                           evas_canvas3d_material_enable_set(EVAS_CANVAS3D_MATERIAL_ATTRIB_AMBIENT, EINA_TRUE),
+                           evas_canvas3d_material_enable_set(EVAS_CANVAS3D_MATERIAL_ATTRIB_DIFFUSE, EINA_TRUE),
+                           evas_canvas3d_material_enable_set(EVAS_CANVAS3D_MATERIAL_ATTRIB_SPECULAR, EINA_TRUE),
+                           evas_canvas3d_material_enable_set(EVAS_CANVAS3D_MATERIAL_ATTRIB_NORMAL, pd_mesh_node->mesh_node.properties.normal),
+                           evas_canvas3d_material_color_set(EVAS_CANVAS3D_MATERIAL_ATTRIB_AMBIENT,
                                                       pd_mesh_node->mesh_node.properties.ambient.r / 255,
                                                       pd_mesh_node->mesh_node.properties.ambient.g / 255,
                                                       pd_mesh_node->mesh_node.properties.ambient.b / 255,
                                                       pd_mesh_node->mesh_node.properties.ambient.a / 255),
-                           evas_canvas3d_material_color_set(EVAS_CANVAS3D_MATERIAL_DIFFUSE,
+                           evas_canvas3d_material_color_set(EVAS_CANVAS3D_MATERIAL_ATTRIB_DIFFUSE,
                                                       pd_mesh_node->mesh_node.properties.diffuse.r / 255,
                                                       pd_mesh_node->mesh_node.properties.diffuse.g / 255,
                                                       pd_mesh_node->mesh_node.properties.diffuse.b / 255,
                                                       pd_mesh_node->mesh_node.properties.diffuse.a / 255),
-                           evas_canvas3d_material_color_set(EVAS_CANVAS3D_MATERIAL_SPECULAR,
+                           evas_canvas3d_material_color_set(EVAS_CANVAS3D_MATERIAL_ATTRIB_SPECULAR,
                                                       pd_mesh_node->mesh_node.properties.specular.r / 255,
                                                       pd_mesh_node->mesh_node.properties.specular.g / 255,
                                                       pd_mesh_node->mesh_node.properties.specular.b / 255,
@@ -4519,7 +4606,7 @@ _edje_part_recalc(Edje *ed, Edje_Real_Part *ep, int flags, Edje_Calc_Params *sta
                           proxy = NULL;
 
                           eo_do(material,
-                                texture = evas_canvas3d_material_texture_get(EVAS_CANVAS3D_MATERIAL_DIFFUSE));
+                                texture = evas_canvas3d_material_texture_get(EVAS_CANVAS3D_MATERIAL_ATTRIB_DIFFUSE));
 
                           //proxy = _edje_image_name_find(ed, pd_mesh_node->mesh_node.texture.id);
                           /*FIXME Conflict with function _edje_image_name_find (two places in edje_utils and edje_edit.c,
@@ -4665,25 +4752,30 @@ _edje_part_recalc(Edje *ed, Edje_Real_Part *ep, int flags, Edje_Calc_Params *sta
           }
         else
           {
-             if (ep->nested_smart) /* Cancel map of smart obj holding nested parts */
+             if ((ep->param1.p.mapped) ||
+                 ((ep->param2) && (ep->param2->p.mapped)) ||
+                 ((ep->custom) && (ep->custom->p.mapped)))
                {
-                  eo_do(ep->nested_smart,
-                        evas_obj_map_enable_set(EINA_FALSE),
-                        evas_obj_map_set(NULL));
-               }
-             else
-               {
-#ifdef HAVE_EPHYSICS
-                  if (!ep->body)
+                  if (ep->nested_smart) /* Cancel map of smart obj holding nested parts */
                     {
-#endif
-                  if (mo)
-                    eo_do(mo,
-                          evas_obj_map_enable_set(0),
-                          evas_obj_map_set(NULL));
+                       eo_do(ep->nested_smart,
+                             evas_obj_map_enable_set(EINA_FALSE),
+                             evas_obj_map_set(NULL));
+                    }
+                  else
+                    {
 #ifdef HAVE_EPHYSICS
-               }
+                       if (!ep->body)
+                         {
 #endif
+                            if (mo)
+                              eo_do(mo,
+                                    evas_obj_map_enable_set(0),
+                                    evas_obj_map_set(NULL));
+#ifdef HAVE_EPHYSICS
+                         }
+#endif
+                    }
                }
           }
      }
@@ -4695,12 +4787,12 @@ _edje_part_recalc(Edje *ed, Edje_Real_Part *ep, int flags, Edje_Calc_Params *sta
    if (!ep->body)
      {
 #endif
-   ep->x = pf->final.x;
-   ep->y = pf->final.y;
-   ep->w = pf->final.w;
-   ep->h = pf->final.h;
+        ep->x = pf->final.x;
+        ep->y = pf->final.y;
+        ep->w = pf->final.w;
+        ep->h = pf->final.h;
 #ifdef HAVE_EPHYSICS
-}
+     }
 
 #endif
 

@@ -1,6 +1,8 @@
 #include "evas_engine.h"
 #include "../gl_common/evas_gl_define.h"
 
+# define SET_RESTORE_CONTEXT() do { if (glsym_evas_gl_context_restore_set) glsym_evas_gl_context_restore_set(EINA_TRUE); } while(0)
+
 static Eina_TLS _outbuf_key = 0;
 static Eina_TLS _context_key = 0;
 
@@ -263,6 +265,7 @@ try_gles2:
    if (context == EGL_NO_CONTEXT)
      _tls_context_set(gw->egl_context[0]);
    
+   SET_RESTORE_CONTEXT();
    if (eglMakeCurrent(gw->egl_disp,
                       gw->egl_surface[0],
                       gw->egl_surface[0],
@@ -487,7 +490,7 @@ try_gles2:
    // vendor: VMware, Inc.
    // renderer: Gallium 0.4 on softpipe
    // version: 2.1 Mesa 7.9-devel
-   // 
+   //
    if (strstr((const char *)vendor, "Mesa Project"))
      {
         if (strstr((const char *)renderer, "Software Rasterizer"))
@@ -577,6 +580,7 @@ eng_window_free(Outbuf *gw)
         glsym_evas_gl_common_context_free(gw->gl_context);
      }
 #ifdef GL_GLES
+   SET_RESTORE_CONTEXT();
    eglMakeCurrent(gw->egl_disp, EGL_NO_SURFACE, EGL_NO_SURFACE, EGL_NO_CONTEXT);
    if (gw->egl_surface[0] != EGL_NO_SURFACE)
       eglDestroySurface(gw->egl_disp, gw->egl_surface[0]);
@@ -615,6 +619,7 @@ eng_window_make_current(void *data, void *doit)
    Outbuf *gw = data;
 
 #ifdef GL_GLES
+   SET_RESTORE_CONTEXT();
    if (doit)
      {
         if (!eglMakeCurrent(gw->egl_disp, gw->egl_surface[0], gw->egl_surface[0], gw->egl_context[0]))
@@ -690,6 +695,7 @@ eng_window_use(Outbuf *gw)
 #ifdef GL_GLES
              if (gw->egl_surface[0] != EGL_NO_SURFACE)
                {
+                  SET_RESTORE_CONTEXT();
                   if (eglMakeCurrent(gw->egl_disp,
                                      gw->egl_surface[0],
                                      gw->egl_surface[0],
@@ -725,6 +731,7 @@ eng_window_unsurf(Outbuf *gw)
       glsym_evas_gl_common_context_flush(xwin->gl_context);
    if (xwin == gw)
      {
+        SET_RESTORE_CONTEXT();
         eglMakeCurrent(gw->egl_disp, EGL_NO_SURFACE, EGL_NO_SURFACE, EGL_NO_CONTEXT);
         if (gw->egl_surface[0] != EGL_NO_SURFACE)
            eglDestroySurface(gw->egl_disp, gw->egl_surface[0]);
@@ -759,6 +766,7 @@ eng_window_resurf(Outbuf *gw)
             (unsigned int)gw->win, eglGetError());
         return;
      }
+   SET_RESTORE_CONTEXT();
    if (eglMakeCurrent(gw->egl_disp,
                       gw->egl_surface[0],
                       gw->egl_surface[0],
@@ -1313,6 +1321,7 @@ void
 eng_gl_context_use(Context_3D *ctx)
 {
 #if GL_GLES
+    SET_RESTORE_CONTEXT();
    if (eglMakeCurrent(ctx->display, ctx->surface,
                       ctx->surface, ctx->context) == EGL_FALSE)
      {
@@ -1406,6 +1415,63 @@ eng_outbuf_region_first_rect(Outbuf *ob)
    return EINA_FALSE;
 }
 
+#ifdef GL_GLES
+static void
+_convert_to_glcoords(int *result, Outbuf *ob, int x, int y, int w, int h)
+{
+
+   switch (ob->rot)
+     {
+      case 0:
+        result[0] = x;
+        result[1] = ob->gl_context->h - (y + h);
+        result[2] = w;
+        result[3] = h;
+        break;
+      case 90:
+        result[0] = y;
+        result[1] = x;
+        result[2] = h;
+        result[3] = w;
+        break;
+      case 180:
+        result[0] = ob->gl_context->w - (x + w);
+        result[1] = y;
+        result[2] = w;
+        result[3] = h;
+        break;
+      case 270:
+        result[0] = ob->gl_context->h - (y + h);
+        result[1] = ob->gl_context->w - (x + w);
+        result[2] = h;
+        result[3] = w;
+        break;
+      default:
+        result[0] = x;
+        result[1] = ob->gl_context->h - (y + h);
+        result[2] = w;
+        result[3] = h;
+        break;
+     }
+}
+
+static void
+_set_damage_rect(Outbuf *ob, int x, int y, int w, int h)
+{
+   int rects[4];
+
+   if ((x==0) && (y==0) &&
+       (((w == ob->gl_context->w) && (h == ob->gl_context->h))
+        || ((h == ob->gl_context->w) && (w == ob->gl_context->h))))
+     {
+        return;
+     }
+
+   _convert_to_glcoords(rects, ob, x, y, w, h);
+   glsym_eglSetDamageRegionKHR(ob->egl_disp, ob->egl_surface[0], rects, 1);
+}
+#endif
+
 void*
 eng_outbuf_new_region_for_update(Outbuf *ob,
                                  int x, int y, int w, int h,
@@ -1423,6 +1489,10 @@ eng_outbuf_new_region_for_update(Outbuf *ob,
         ob->gl_context->master_clip.y = y;
         ob->gl_context->master_clip.w = w;
         ob->gl_context->master_clip.h = h;
+#ifdef GL_GLES
+        if (glsym_eglSetDamageRegionKHR)
+          _set_damage_rect(ob, x, y, w, h);
+#endif
      }
    return ob->gl_context->def_surface;
 }
@@ -1486,7 +1556,8 @@ eng_outbuf_flush(Outbuf *ob, Tilebuf_Rect *rects, Evas_Render_Mode render_mode)
      {
         ob->info->callback.pre_swap(ob->info->callback.data, ob->evas);
      }
-   if ((glsym_eglSwapBuffersWithDamage) && (ob->swap_mode != MODE_FULL))
+   if ((glsym_eglSwapBuffersWithDamage) && (rects) &&
+       (ob->swap_mode != MODE_FULL))
      {
         EGLint num = 0, *result = NULL, i = 0;
         Tilebuf_Rect *r;
@@ -1498,43 +1569,7 @@ eng_outbuf_flush(Outbuf *ob, Tilebuf_Rect *rects, Evas_Render_Mode render_mode)
              result = alloca(sizeof(EGLint) * 4 * num);
              EINA_INLIST_FOREACH(EINA_INLIST_GET(rects), r)
                {
-                  int gw, gh;
-
-                  gw = ob->gl_context->w;
-                  gh = ob->gl_context->h;
-                  switch (ob->rot)
-                    {
-                     case 0:
-                       result[i + 0] = r->x;
-                       result[i + 1] = gh - (r->y + r->h);
-                       result[i + 2] = r->w;
-                       result[i + 3] = r->h;
-                       break;
-                     case 90:
-                       result[i + 0] = r->y;
-                       result[i + 1] = r->x;
-                       result[i + 2] = r->h;
-                       result[i + 3] = r->w;
-                       break;
-                     case 180:
-                       result[i + 0] = gw - (r->x + r->w);
-                       result[i + 1] = r->y;
-                       result[i + 2] = r->w;
-                       result[i + 3] = r->h;
-                       break;
-                     case 270:
-                       result[i + 0] = gh - (r->y + r->h);
-                       result[i + 1] = gw - (r->x + r->w);
-                       result[i + 2] = r->h;
-                       result[i + 3] = r->w;
-                       break;
-                     default:
-                       result[i + 0] = r->x;
-                       result[i + 1] = gh - (r->y + r->h);
-                       result[i + 2] = r->w;
-                       result[i + 3] = r->h;
-                       break;
-                    }
+                  _convert_to_glcoords(&result[i], ob, r->x, r->y, r->w, r->h);
                   i += 4;
                }
              glsym_eglSwapBuffersWithDamage(ob->egl_disp,
@@ -1543,7 +1578,7 @@ eng_outbuf_flush(Outbuf *ob, Tilebuf_Rect *rects, Evas_Render_Mode render_mode)
           }
      }
    else
-      eglSwapBuffers(ob->egl_disp, ob->egl_surface[0]);
+     eglSwapBuffers(ob->egl_disp, ob->egl_surface[0]);
 
 //xx   if (!safe_native) eglWaitGL();
    if (ob->info->callback.post_swap)

@@ -64,6 +64,7 @@ struct _Region_Data
 
 struct _Region
 {
+   int w, h;
    struct {
       int          x, y;
       unsigned int w, h;
@@ -712,12 +713,14 @@ _region_del(Region *region, Box *r1, Box *r1end, Box *r2, Box *r2end,
 ///////////////////////////////////////////////////////////////////////////
 
 Region *
-region_new(void)
+region_new(int w, int h)
 {
    Region *region = calloc(1, sizeof(Region));
    if (!region) return NULL;
    region->bound = _region_emptybox;
    region->data = &_region_emptydata;
+   region->w = w;
+   region->h = h;
    return region;
 }
 
@@ -727,6 +730,13 @@ region_free(Region *region)
    if (!region) return;
    FREE_DATA(region);
    free(region);
+}
+
+void
+region_size_get(Region *region, int *w, int *h)
+{
+   *w = region->w;
+   *h = region->h;
 }
 
 int
@@ -744,10 +754,11 @@ region_rects(Region *region)
 Eina_Bool
 region_copy(Region *dest, Region *src)
 {
-   if (dest == src) return EINA_TRUE;
-
    dest->last_del.w = 0;
    dest->last_add.w = 0;
+
+   dest->w = src->w;
+   dest->h = src->h;
 
    dest->bound = src->bound;
    if ((!src->data) || (!src->data->size))
@@ -827,9 +838,6 @@ region_add(Region *dest, Region *source)
    // Return EINA_TRUE if some overlap between dest, source
    // checks all the simple cases
 
-   // Region 1 and 2 are the same
-   if (dest == source) return region_copy(dest, dest);
-
    dest->last_del.w = 0;
    dest->last_add.w = 0;
 
@@ -880,6 +888,8 @@ region_rect_add(Region *dest, int x, int y, unsigned int w, unsigned int h)
    Region region;
    Eina_Bool ret;
 
+   RECTS_CLIP_TO_RECT(x, y, w, h, 0, 0, dest->w, dest->h);
+
    if (!w || !h) return EINA_FALSE;
 
    if (dest->last_add.w > 0)
@@ -889,6 +899,8 @@ region_rect_add(Region *dest, int x, int y, unsigned int w, unsigned int h)
           return EINA_TRUE;
      }
 
+   region.w = dest->w;
+   region.h = dest->h;
    region.data = NULL;
    region.bound.x1 = x;
    region.bound.y1 = y;
@@ -1031,16 +1043,16 @@ region_validate(Region *region, Eina_Bool *overlap_ret)
 
    // Set up the first region to be the first rectangle in region
    // Note that step 2 code will never overflow the ri[0].reg rects array
-   ri = malloc(4 * sizeof(Region_Info));
+   ri = calloc(1, 4 * sizeof(Region_Info));
    if (!ri) return _region_break(region);
    size_ri = 4;
    num_ri = 1;
-   ri[0].prev_band = 0;
-   ri[0].cur_band = 0;
    ri[0].reg = *region;
    box = PIXREGION_BOXPTR(&ri[0].reg);
    ri[0].reg.bound = *box;
    ri[0].reg.data->num = 1;
+   ri[0].reg.w = region->w;
+   ri[0].reg.h = region->h;
 
    // Now scatter rectangles into the minimum set of valid regions.  If the
    // next rectangle to be added to a region would force an existing rectangle
@@ -1104,6 +1116,8 @@ region_validate(Region *region, Eina_Bool *overlap_ret)
         rit->cur_band = 0;
         rit->reg.bound = *box;
         rit->reg.data = NULL;
+        rit->reg.w = region->w;
+        rit->reg.h = region->h;
         // MUST force allocation
         if (!_region_rect_alloc(&rit->reg, (i + num_ri) / num_ri)) goto bail;
         next_rect: ;
@@ -1204,6 +1218,8 @@ region_rect_del(Region *dest, int x, int y, unsigned int w, unsigned int h)
    Region region;
    Eina_Bool ret;
 
+   RECTS_CLIP_TO_RECT(x, y, w, h, 0, 0, dest->w, dest->h);
+
    if (!w || !h) return EINA_FALSE;
 
    if (dest->last_del.w > 0)
@@ -1213,6 +1229,8 @@ region_rect_del(Region *dest, int x, int y, unsigned int w, unsigned int h)
           return EINA_TRUE;
      }
 
+   region.w = dest->w;
+   region.h = dest->h;
    region.data = NULL;
    region.bound.x1 = x;
    region.bound.y1 = y;
@@ -1343,7 +1361,7 @@ region_point_inside(Region *region, int x, int y, Box *box)
    if ((!num) || (!INBOX(&region->bound, x, y))) return EINA_FALSE;
    if (num == 1)
      {
-        *box = region->bound;
+        if (box) *box = region->bound;
         return EINA_TRUE;
      }
    for (bx = PIXREGION_BOXPTR(region), bxend = bx + num; bx != bxend; bx++)
@@ -1351,7 +1369,7 @@ region_point_inside(Region *region, int x, int y, Box *box)
         if (y >= bx->y2) continue; // not there yet
         if ((y < bx->y1) || (x < bx->x1)) break; // missed it
         if (x >= bx->x2) continue; // not there yet
-        *box = *bx;
+        if (box) *box = *bx;
         return EINA_TRUE;
      }
    return EINA_FALSE;
@@ -1370,6 +1388,8 @@ region_empty(Region *region)
    region->bound.x2 = region->bound.x1;
    region->bound.y2 = region->bound.y1;
    region->data = &_region_emptydata;
+   region->last_del.w = 0;
+   region->last_add.w = 0;
 }
 
 Box *

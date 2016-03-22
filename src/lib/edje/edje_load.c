@@ -713,6 +713,11 @@ _edje_object_file_set_internal(Evas_Object *obj, const Eina_File *file, const ch
                        rp->object = evas_object_image_add(ed->base->evas);
                        break;
 
+                     case EDJE_PART_TYPE_SNAPSHOT:
+                       rp->object = evas_object_image_filled_add(ed->base->evas);
+                       evas_object_image_snapshot_set(rp->object, EINA_TRUE);
+                       break;
+
                      case EDJE_PART_TYPE_TEXT:
                        _edje_text_part_on_add(ed, rp);
                        rp->object = evas_object_text_add(ed->base->evas);
@@ -945,7 +950,7 @@ _edje_object_file_set_internal(Evas_Object *obj, const Eina_File *file, const ch
 #ifdef EDJE_CALC_CACHE
              ed->all_part_change = EINA_TRUE;
 #endif
-             if ((evas_object_clipees_get(ed->base->clipper)) &&
+             if ((evas_object_clipees_has(ed->base->clipper)) &&
                  (evas_object_visible_get(obj)))
                evas_object_show(ed->base->clipper);
 
@@ -1958,6 +1963,8 @@ case EDJE_PART_TYPE_##Type: eina_mempool_free(Ce->mp.Type, Desc); \
         FREE_POOL(BOX, ce, desc);
         FREE_POOL(TABLE, ce, desc);
         FREE_POOL(EXTERNAL, ce, desc);
+        FREE_POOL(SNAPSHOT, ce, desc);
+        FREE_POOL(SPACER, ce, desc);
      }
 }
 

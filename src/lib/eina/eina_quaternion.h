@@ -87,7 +87,7 @@ EAPI void eina_quaternion_f16p16_nlerp(Eina_Quaternion_F16p16 *out,
 EAPI void eina_quaternion_f16p16_rotate(Eina_Point_3D_F16p16 *p,
                                         const Eina_Point_3D_F16p16 *center,
                                         const Eina_Quaternion_F16p16 *q); /**< @since 1.15 */
-EAPI void eina_quaternion_f16p16_rotation_matri3_get(Eina_Matrix3_F16p16 *m,
+EAPI void eina_quaternion_f16p16_rotation_matrix3_get(Eina_Matrix3_F16p16 *m,
                                                      const Eina_Quaternion_F16p16 *q); /**< @since 1.15 */
 
 EAPI void eina_quaternion_set(Eina_Quaternion *q, double x,
@@ -129,5 +129,17 @@ EAPI void eina_quaternion_rotation_matrix3_get(Eina_Matrix3 *m,
                                                const Eina_Quaternion *q); /**< @since 1.15 */
 EAPI void eina_matrix3_quaternion_get(Eina_Quaternion *q,
                                       const Eina_Matrix3 *m); /**< @since 1.15 */
+EAPI Eina_Bool eina_matrix4_quaternion_to(Eina_Quaternion *rotation,
+                                          Eina_Quaternion *perspective,
+                                          Eina_Point_3D *translation,
+                                          Eina_Point_3D *scale,
+                                          Eina_Point_3D *skew,
+                                          const Eina_Matrix4 *m); /**< @since 1.16 */
+EAPI void eina_quaternion_matrix4_to(Eina_Matrix4 *m,
+                                     const Eina_Quaternion *rotation,
+                                     const Eina_Quaternion *perspective,
+                                     const Eina_Point_3D *translation,
+                                     const Eina_Point_3D *scale,
+                                     const Eina_Point_3D *skew); /**< @since 1.16 */
 
 #endif

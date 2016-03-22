@@ -2,6 +2,14 @@
 
 #include <stdarg.h>
 
+// Lua breaks API all the time
+#ifdef ENABLE_LUA_OLD
+// For 5.2 --> 5.1 compatibility
+# define LUA_COMPAT_ALL
+// For 5.3 --> 5.1 compatibility
+# define LUA_COMPAT_5_1
+#endif
+
 #include <lua.h>
 #include <lualib.h>
 #include <lauxlib.h>
@@ -27,9 +35,15 @@
 /**
   @page evasfiltersref Evas filters reference
 
+  @warning A new online documentation is available on the Wiki under
+  <a href="https://www.enlightenment.org/docs/efl/advanced/eflgfxfilters">
+  EFL Graphics Filters</a>. The documentation below is mostly still valid
+  but incomplete. This page may be removed in the future.
+
   The Evas filters are a combination of filters used to apply specific effects
   to an @ref Evas_Object "Evas Object". For the moment, these effects are
-  specific to the @ref Evas_Object_Text "Text Objects".
+  specific to the @ref Evas_Object_Text "Text" and @ref Evas_Object_Image
+  "Image Objects".
 
   The filters can be applied to an object using simple Lua scripts. A script
   will contain a series of buffer declarations and filter commands to apply
@@ -705,7 +719,7 @@ _lua_implicit_metatable_drop(lua_State *L, const char *name)
    if (lua_istable(L, 1) && lua_getmetatable(L, 1))
      {
         luaL_getmetatable(L, name);
-        if (lua_equal(L, -1, -2))
+        if (lua_rawequal(L, -1, -2))
           {
              lua_remove(L, 1);
              ret = 1;
@@ -717,16 +731,43 @@ _lua_implicit_metatable_drop(lua_State *L, const char *name)
 
 // End of all lua metamethods and stuff
 
+static inline void
+_buffer_name_format(char *name /*[64]*/, Evas_Filter_Program *pgm, const char *src)
+{
+   unsigned i;
+
+   if (src)
+     {
+        // Cleanup name and avoid overriding existing globals
+        snprintf(name, 64, "__source_%s", src);
+        name[63] = '\0';
+        for (i = 0; name[i]; i++)
+          {
+             if (!isdigit(name[i]) && !isalpha(name[i]))
+               name[i] = '_';
+          }
+     }
+   else
+     {
+        sprintf(name, "__buffer_%02d", ++pgm->last_bufid);
+     }
+}
+
 static Buffer *
 _buffer_add(Evas_Filter_Program *pgm, const char *name, Eina_Bool alpha,
             const char *src, Eina_Bool manual)
 {
    Buffer *buf;
 
-   if (_buffer_get(pgm, name))
+   buf = _buffer_get(pgm, name);
+   if (buf)
      {
-        ERR("Buffer '%s' already exists", name);
-        return NULL;
+        if (!src)
+          {
+             ERR("Buffer '%s' already exists", name);
+             return NULL;
+          }
+        else return buf;
      }
 
    if (alpha && src)
@@ -741,8 +782,8 @@ _buffer_add(Evas_Filter_Program *pgm, const char *name, Eina_Bool alpha,
    buf->manual = manual;
    if (!name)
      {
-        char bufname[32];
-        snprintf(bufname, sizeof(bufname), "__buffer%02d", ++pgm->last_bufid);
+        char bufname[64];
+        _buffer_name_format(bufname, pgm, src);
         buf->name = eina_stringshare_add(bufname);
      }
    else
@@ -821,9 +862,10 @@ _buffer_instruction_parse_run(lua_State *L,
                               Evas_Filter_Program *pgm,
                               Evas_Filter_Instruction *instr)
 {
-   char bufname[32] = {0};
-   const char *src, *rgba;
-   Eina_Bool ok, alpha = EINA_FALSE;
+   char bufname[64] = {0};
+   const char *src, *type;
+   Eina_Bool alpha = EINA_FALSE;
+   Buffer *buf;
 
    EINA_SAFETY_ON_NULL_RETURN_VAL(pgm, EINA_FALSE);
    EINA_SAFETY_ON_NULL_RETURN_VAL(instr, EINA_FALSE);
@@ -831,20 +873,25 @@ _buffer_instruction_parse_run(lua_State *L,
    // FIXME: Buffers are still referred to internally by name.
    // This is pretty bad with the switch to Lua.
 
-   rgba = _instruction_param_gets(instr, "type", NULL);
+   type = _instruction_param_gets(instr, "type", NULL);
    src = _instruction_param_gets(instr, "src", NULL);
 
-   alpha = (rgba && !strcasecmp(rgba, "alpha"));
+   alpha = (type && !strcasecmp(type, "alpha"));
 
-   snprintf(bufname, sizeof(bufname), "__buffer%02d", ++pgm->last_bufid);
-   ok = (_buffer_add(pgm, bufname, alpha, src, EINA_TRUE) != NULL);
+   if (src)
+     {
+        if (alpha) WRN("Proxy buffers can't be alpha. Disarding alpha flag.");
+        alpha = EINA_FALSE;
+     }
 
-   if (!ok) return EINA_FALSE;
+   _buffer_name_format(bufname, pgm, src);
+   buf = _buffer_add(pgm, bufname, alpha, src, EINA_TRUE);
+   if (!buf) return EINA_FALSE;
 
    lua_getglobal(L, bufname);
    instr->return_count = 1;
 
-   return ok;
+   return EINA_TRUE;
 }
 
 static int
@@ -1869,7 +1916,11 @@ _lua_convert_color(lua_State *L)
    lua_pushvalue(L, -2); //+1 (mt)
    lua_pushvalue(L, top); //+1 (argument)
    if (lua_pcall(L, 2, 1, top + 1) != 0)
-     return EINA_FALSE;
+     {
+        ERR("Failed to call metamethod __call: %s", lua_tostring(L, -1));
+        lua_settop(L, top);
+        return EINA_FALSE;
+     }
    lua_insert(L, top);
    lua_settop(L, top);
    return EINA_TRUE;
@@ -1931,7 +1982,7 @@ _lua_parameter_parse(Evas_Filter_Program *pgm, lua_State *L,
              {
                 luaL_getmetatable(L, _lua_color_meta);
                 lua_getmetatable(L, i);
-                if (!lua_isnil(L, -1) && lua_equal(L, -2, -1))
+                if (!lua_isnil(L, -1) && lua_rawequal(L, -2, -1))
                   {
                      // this is a color already
                      cid = i;
@@ -2164,11 +2215,6 @@ _lua_print(lua_State *L)
    return 0;
 }
 
-static const struct luaL_Reg printlib[] = {
-  { "print", _lua_print },
-  { NULL, NULL }
-};
-
 #define LUA_GENERIC_FUNCTION(name) \
 static int \
 _lua_##name(lua_State *L) \
@@ -2265,8 +2311,7 @@ _lua_import_class(lua_State *L, const char *name, char **code)
         lua_rawget(L, -3); //-1/+1
         if (lua_isfunction(L, -1))
           {
-             lua_getglobal(L, "_G"); //+1
-             if (lua_pcall(L, 1, 0, -3) != 0) //-2
+             if (lua_pcall(L, 0, 0, -2) != 0) //-1
                {
                   ERR("Failed to register globals for '%s': %s", name, lua_tostring(L, -1));
                   lua_pop(L, 1);
@@ -2294,22 +2339,26 @@ _filter_program_buffers_set(Evas_Filter_Program *pgm)
    // Register proxies
    if (pgm->proxies)
      {
-        Eina_Iterator *it = eina_hash_iterator_key_new(pgm->proxies);
-        const char *source;
+        Eina_Iterator *it = eina_hash_iterator_tuple_new(pgm->proxies);
+        Eina_Hash_Tuple *tup;
 
-        EINA_ITERATOR_FOREACH(it, source)
+        EINA_ITERATOR_FOREACH(it, tup)
           {
-             // Cleanup name and avoid overriding existing globals
+             const char *source = tup->key;
              char name[64];
-             unsigned i;
-             snprintf(name, 64, "__source_%s", source);
-             name[63] = '\0';
-             for (i = 0; name[i]; i++)
+             Buffer *buf;
+
+             _buffer_name_format(name, pgm, source);
+             buf = _buffer_add(pgm, name, EINA_FALSE, source, EINA_FALSE);
+             if (buf)
                {
-                  if (!isdigit(name[i]) && !isalpha(name[i]))
-                    name[i] = '_';
+                  Evas_Filter_Proxy_Binding *bind = tup->data;
+                  Evas_Object_Protected_Data *obj;
+
+                  obj = eo_data_scope_get(bind->eo_source, EVAS_OBJECT_CLASS);
+                  buf->w = obj->cur->geometry.w;
+                  buf->h = obj->cur->geometry.h;
                }
-             _buffer_add(pgm, name, EINA_FALSE, source, EINA_FALSE);
           }
 
         eina_iterator_free(it);
@@ -2337,6 +2386,39 @@ _lua_class_create(lua_State *L, const char *name,
    lua_setglobal(L, name);
 }
 
+#if LUA_VERSION_NUM < 502
+// From LuaJIT/src/lib_init.c
+// Prevent loading package, IO and OS libs (mini-sandbox)
+static const luaL_Reg lj_lib_load[] = {
+  { "",                 luaopen_base },
+  //{ LUA_LOADLIBNAME,    luaopen_package },
+  { LUA_TABLIBNAME,     luaopen_table },
+  //{ LUA_IOLIBNAME,      luaopen_io },
+  //{ LUA_OSLIBNAME,      luaopen_os },
+  { LUA_STRLIBNAME,     luaopen_string },
+  { LUA_MATHLIBNAME,    luaopen_math },
+  { LUA_DBLIBNAME,      luaopen_debug },
+#ifdef LUA_BITLIBNAME
+  { LUA_BITLIBNAME,     luaopen_bit },
+#endif
+#ifdef LUA_JITLIBNAME
+  { LUA_JITLIBNAME,     luaopen_jit },
+#endif
+  { NULL,               NULL }
+};
+
+static void
+_luaL_openlibs(lua_State *L)
+{
+  const luaL_Reg *lib;
+  for (lib = lj_lib_load; lib->func; lib++) {
+    lua_pushcfunction(L, lib->func);
+    lua_pushstring(L, lib->name);
+    lua_call(L, 1, 0);
+  }
+}
+#endif
+
 static lua_State *
 _lua_state_create(Evas_Filter_Program *pgm)
 {
@@ -2349,17 +2431,20 @@ _lua_state_create(Evas_Filter_Program *pgm)
         return NULL;
      }
 
-   luaopen_base(L);
-   luaopen_table(L);
-   luaopen_string(L);
-   luaopen_math(L);
-   luaopen_debug(L);
+#if LUA_VERSION_NUM >= 502
+   luaL_requiref(L, "",       luaopen_base, 1);
+   luaL_requiref(L, "table",  luaopen_table, 1);
+   luaL_requiref(L, "string", luaopen_string, 1);
+   luaL_requiref(L, "math",   luaopen_math, 1);
+   luaL_requiref(L, "debug",  luaopen_debug, 1);
+#else
+   _luaL_openlibs(L);
+#endif
    lua_settop(L, 0);
 
    // Implement print
-   lua_getglobal(L, "_G");
-   luaL_register(L, NULL, printlib);
-   lua_pop(L, 1);
+   lua_pushcfunction(L, _lua_print);
+   lua_setglobal(L, "print");
 
    // Add backtrace error function
    lua_pushcfunction(L, _lua_backtrace);
@@ -2431,7 +2516,7 @@ _lua_backtrace(lua_State *L)
    if (!lua_isstring(L, 1))  /* 'message' not a string? */
      return 1;  /* keep it intact */
    ERR("Lua error: %s", lua_tolstring(L, 1, NULL));
-   lua_getfield(L, LUA_GLOBALSINDEX, "debug");
+   lua_getglobal(L, "debug");
    if (!lua_istable(L, -1))
      {
         lua_pop(L, 1);

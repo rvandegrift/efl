@@ -735,6 +735,7 @@ edje_color_class_del(const char *color_class)
    free(cc);
 
    members = eina_hash_find(_edje_color_class_member_hash, color_class);
+   if (!members) return;
    it = eina_hash_iterator_data_new(members);
    EINA_ITERATOR_FOREACH(it, er)
      {
@@ -5638,7 +5639,7 @@ _edje_program_remove(Edje_Part_Collection *edc, Edje_Program *p)
 EAPI void
 _edje_program_insert(Edje_Part_Collection *edc, Edje_Program *p)
 {
-   Edje_Program ***array;
+   Edje_Program ***array, **temp;
    unsigned int *count;
 
    if (!p->signal && !p->source)
@@ -5670,8 +5671,16 @@ _edje_program_insert(Edje_Part_Collection *edc, Edje_Program *p)
         count = &edc->programs.fnmatch_count;
      }
 
+   temp = *array;
    *array = realloc(*array, sizeof (Edje_Program *) * (*count + 1));
-   (*array)[(*count)++] = p;
+   if (*array)
+     {
+        (*array)[(*count)++] = p;
+     }
+   else
+     {
+        *array = temp;
+     }
 }
 
 const char *
@@ -5768,6 +5777,38 @@ _edje_part_repeat_events_set(Edje *ed EINA_UNUSED, Edje_Real_Part *rp, Eina_Bool
      evas_object_repeat_events_set(rp->object, 1);
    else
      evas_object_repeat_events_set(rp->object, 0);
+}
+
+Evas_Event_Flags
+_edje_part_ignore_flags_get(Edje *ed EINA_UNUSED, Edje_Real_Part *rp)
+{
+   if (!rp) return EVAS_EVENT_FLAG_NONE;
+
+   return rp->part->ignore_flags;
+}
+
+void
+_edje_part_ignore_flags_set(Edje *ed EINA_UNUSED, Edje_Real_Part *rp, Evas_Event_Flags ignore_flags)
+{
+   if (!rp) return;
+
+   rp->part->ignore_flags = ignore_flags;
+}
+
+Evas_Event_Flags
+_edje_part_mask_flags_get(Edje *ed EINA_UNUSED, Edje_Real_Part *rp)
+{
+   if (!rp) return EVAS_EVENT_FLAG_NONE;
+
+   return rp->part->mask_flags;
+}
+
+void
+_edje_part_mask_flags_set(Edje *ed EINA_UNUSED, Edje_Real_Part *rp, Evas_Event_Flags mask_flags)
+{
+   if (!rp) return;
+
+   rp->part->mask_flags = mask_flags;
 }
 
 /* vim:set ts=8 sw=3 sts=3 expandtab cino=>5n-2f0^-2{2(0W1st0 :*/

@@ -298,7 +298,6 @@ lib/evas/common/evas_scale_smooth.c \
 lib/evas/common/evas_scale_span.c \
 lib/evas/common/evas_thread_render.c \
 lib/evas/common/evas_tiler.c \
-lib/evas/common/evas_regionbuf.c \
 lib/evas/common/evas_pipe.c \
 lib/evas/common/language/evas_bidi_utils.c \
 lib/evas/common/language/evas_language_utils.c \
@@ -676,9 +675,12 @@ modules/evas/engines/gl_common/evas_gl_api_ext_def.h \
 modules/evas/engines/gl_common/evas_gl_core.h \
 modules/evas/engines/gl_common/evas_gl_core_private.h \
 modules/evas/engines/gl_common/evas_gl_api.c \
+modules/evas/engines/gl_common/evas_gl_api_def.h \
 modules/evas/engines/gl_common/evas_gl_api_gles1.c \
+modules/evas/engines/gl_common/evas_gl_api_gles3_def.h \
 modules/evas/engines/gl_common/evas_gl_api_ext.c \
 modules/evas/engines/gl_common/shader/evas_gl_shaders.x \
+modules/evas/engines/gl_common/shader/evas_gl_shaders_bigendian.x \
 modules/evas/engines/gl_common/shader_3d/evas_gl_3d_shaders.x \
 modules/evas/engines/gl_common/shader/evas_gl_enum.x
 
@@ -704,7 +706,11 @@ modules/evas/engines/gl_common/shader/evas_gl_shaders.x: $(GL_SHADERS_GEN)
 	@echo "  SHADERS  $@"
 	@bash $(srcdir)/modules/evas/engines/gl_common/shader/gen_shaders.sh
 
-modules/evas/engines/gl_common/shader/evas_gl_enum.x: modules/evas/engines/gl_common/shader/evas_gl_shaders.x
+modules/evas/engines/gl_common/shader/evas_gl_shaders_bigendian.x: $(GL_SHADERS_GEN)
+	@echo "  SHADERS  $@"
+	@bash $(srcdir)/modules/evas/engines/gl_common/shader/gen_shaders.sh _bigendian
+
+modules/evas/engines/gl_common/shader/evas_gl_enum.x: modules/evas/engines/gl_common/shader/evas_gl_shaders.x modules/evas/engines/gl_common/shader/evas_gl_shaders_bigendian.x
 
 # NOTE: order here should be equal with modes in file Evas_Eo.h
 GL_SHADERS_3D_GEN = \
@@ -2126,6 +2132,7 @@ tests/evas/evas_test_filters.c \
 tests/evas/evas_test_image.c \
 tests/evas/evas_test_mesh.c \
 tests/evas/evas_test_mask.c \
+tests/evas/evas_test_evasgl.c \
 tests/evas/evas_tests_helpers.h \
 tests/evas/evas_suite.h
 

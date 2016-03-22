@@ -134,10 +134,14 @@ START_TEST(eo_signals)
 
         /* Call Eo event with legacy and non-legacy callbacks. */
         _eo_signals_cb_current = 0;
+        eo_do(obj, eo_event_callback_priority_add(EV_A_CHANGED2, -1000, _eo_signals_a_changed_never, (void *) 1));
         eo_do(obj, eo_event_callback_priority_add(EV_A_CHANGED, -100, _eo_signals_a_changed_cb, (void *) 1));
         eo_do(obj, eo_event_callback_add(a_desc, _eo_signals_a_changed_cb2, NULL));
         eo_do(obj, simple_a_set(1));
         ck_assert_int_eq(_eo_signals_cb_flag, 0x3);
+
+        /* We don't need this one anymore. */
+        eo_do(obj, eo_event_callback_del(EV_A_CHANGED2, _eo_signals_a_changed_never, (void *) 1));
 
         /* Call legacy event with legacy and non-legacy callbacks. */
         int a = 3;
@@ -315,7 +319,6 @@ _man_des(Eo *obj, void *data EINA_UNUSED, va_list *list EINA_UNUSED)
 static Eo_Op_Description op_descs[] = {
      EO_OP_FUNC_OVERRIDE(eo_constructor, _man_con),
      EO_OP_FUNC_OVERRIDE(eo_destructor, _man_des),
-     EO_OP_SENTINEL
 };
 
 START_TEST(eo_man_free)
@@ -464,6 +467,29 @@ START_TEST(eo_refs)
    ck_assert_int_eq(eo_ref_get(obj2), 1);
    ck_assert_int_eq(eo_ref_get(obj3), 2);
 
+   /* Setting and removing parents. */
+   obj = eo_add(SIMPLE_CLASS, NULL);
+   obj2 = eo_ref(eo_add(SIMPLE_CLASS, obj));
+   obj3 = eo_ref(eo_add(SIMPLE_CLASS, NULL));
+
+   eo_do(obj2, eo_parent_set(obj3));
+   eo_do(obj3, eo_parent_set(obj));
+   ck_assert_int_eq(eo_ref_get(obj2), 2);
+   ck_assert_int_eq(eo_ref_get(obj3), 2);
+
+   eo_do(obj2, eo_parent_set(NULL));
+   eo_do(obj3, eo_parent_set(NULL));
+   ck_assert_int_eq(eo_ref_get(obj2), 1);
+   ck_assert_int_eq(eo_ref_get(obj3), 1);
+
+   eo_do(obj2, eo_parent_set(obj));
+   eo_do(obj3, eo_parent_set(obj));
+   ck_assert_int_eq(eo_ref_get(obj2), 1);
+   ck_assert_int_eq(eo_ref_get(obj3), 1);
+
+   eo_del(obj);
+   eo_del(obj2);
+   eo_del(obj3);
 
    /* Just check it doesn't seg atm. */
    obj = eo_add(SIMPLE_CLASS, NULL);
@@ -699,9 +725,8 @@ EO_FUNC_BODY(multi_a_print, Eina_Bool, EINA_FALSE);
 EO_FUNC_BODY(multi_class_hi_print, Eina_Bool, EINA_FALSE);
 
 static Eo_Op_Description _multi_do_op_descs[] = {
-     EO_OP_FUNC(multi_a_print, _a_print, "Print property a"),
-     EO_OP_FUNC(multi_class_hi_print, _class_hi_print, "Print Hi"),
-     EO_OP_SENTINEL
+     EO_OP_FUNC(multi_a_print, _a_print),
+     EO_OP_FUNC(multi_class_hi_print, _class_hi_print),
 };
 
 START_TEST(eo_multiple_do)
@@ -873,7 +898,6 @@ _eo_add_failures_finalize(Eo *obj EINA_UNUSED, void *class_data EINA_UNUSED)
 
 static Eo_Op_Description _eo_add_failures_op_descs[] = {
      EO_OP_FUNC_OVERRIDE(eo_finalize, _eo_add_failures_finalize),
-     EO_OP_SENTINEL
 };
 
 START_TEST(eo_add_failures)

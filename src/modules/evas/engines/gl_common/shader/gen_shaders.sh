@@ -2,8 +2,9 @@
 
 set -e
 
+ENDIAN="$1"
 DIR=`dirname $0`
-OUTPUT=${DIR}/evas_gl_shaders.x
+OUTPUT=${DIR}/evas_gl_shaders"$1".x
 OUTPUT_ENUM=${DIR}/evas_gl_enum.x
 CPP="cpp -P"
 
@@ -82,6 +83,7 @@ for (( i = 0; i < ${#SHADERS[@]} ; i++ )) ; do
   echo "  SHADER   $name"
   UNAME=`echo ${name} |tr "[:lower:]" "[:upper:]"`
   OPTS=""
+  if [[ "$1" == "_bigendian" ]] ; then OPTS="-DBIGENDIAN"; fi
   FGM=${FGM_HEADER}
   TYPE=`echo ${name} |cut -d '_' -f 1 |tr '[:lower:]' '[:upper:]'`
   bgra=0
@@ -89,11 +91,13 @@ for (( i = 0; i < ${#SHADERS[@]} ; i++ )) ; do
   nomul=0
   afill=0
   sam="SAM11"
+  masksam="SAM11"
   tex=""
 
   # Urgh. Some fixups
   case $TYPE in
    IMG) TYPE="IMAGE";;
+   IMGNAT) TYPE="IMAGENATIVE";;
    RGB) TYPE="RGB_A_PAIR";;
    TEX) TYPE="TEX_EXTERNAL";;
   esac
@@ -115,6 +119,9 @@ for (( i = 0; i < ${#SHADERS[@]} ; i++ )) ; do
      sam12) sam="SAM12";;
      sam21) sam="SAM21";;
      sam22) sam="SAM22";;
+     masksam12) masksam="SAM12";;
+     masksam21) masksam="SAM21";;
+     masksam22) masksam="SAM22";;
     esac
   done
 
@@ -135,17 +142,15 @@ for (( i = 0; i < ${#SHADERS[@]} ; i++ )) ; do
 
     OIFS=$IFS
     IFS=$'\n'
-    printf "static const char ${shdname}_glsl[] =" >> ${OUTPUT}
+    printf "static const char ${shdname}_src[] =" >> ${OUTPUT}
     for line in `cat ${shd}` ; do
       printf "\n   \"${line}\\\n\"" >> ${OUTPUT}
     done
-    printf ";\n" >> ${OUTPUT}
+    printf ";\n\n" >> ${OUTPUT}
     IFS=${OIFS}
-
-    printf "Evas_GL_Program_Source shader_${shdname}_src =\n{\n   ${shdname}_glsl,\n   NULL, 0\n};\n\n" >> ${OUTPUT}
   done
 
-  shaders_source="${shaders_source}   { SHADER_${UNAME}, &(shader_${name}_vert_src), &(shader_${name}_frag_src), \"${name}\", SHD_${TYPE}, SHD_${sam}, ${bgra}, ${mask}, ${nomul}, ${afill} },\n"
+  shaders_source="${shaders_source}   { SHADER_${UNAME}, ${name}_vert_src, ${name}_frag_src, \"${name}\", SHD_${TYPE}, SHD_${sam}, SHD_${masksam}, ${bgra}, ${mask}, ${nomul}, ${afill} },\n"
   shaders_enum="${shaders_enum}   SHADER_${UNAME},\n"
 
   # Bind textures to the programs. Only if there is more than 1 texture.
@@ -160,11 +165,12 @@ done
 printf "
 static const struct {
    Evas_GL_Shader id;
-   Evas_GL_Program_Source *vert;
-   Evas_GL_Program_Source *frag;
+   const char *vert;
+   const char *frag;
    const char *name;
    Shader_Type type;
    Shader_Sampling sam;
+   Shader_Sampling masksam;
    Eina_Bool bgra : 1;
    Eina_Bool mask : 1;
    Eina_Bool nomul : 1;

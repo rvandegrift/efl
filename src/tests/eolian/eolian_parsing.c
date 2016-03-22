@@ -647,6 +647,7 @@ START_TEST(eolian_struct)
    const Eolian_Struct_Type_Field *field = NULL;
    const Eolian_Type *type = NULL, *ftype = NULL;
    const Eolian_Class *class;
+   const Eolian_Function *func;
    const char *type_name;
    const char *file;
 
@@ -696,6 +697,15 @@ START_TEST(eolian_struct)
    /* opaque struct */
    fail_if(!(type = eolian_type_struct_get_by_name("Opaque")));
    fail_if(eolian_type_type_get(type) != EOLIAN_TYPE_STRUCT_OPAQUE);
+
+   /* use in function */
+   fail_if(!(func = eolian_class_function_get_by_name(class, "bar", EOLIAN_METHOD)));
+   fail_if(!(type = eolian_function_return_type_get(func, EOLIAN_METHOD)));
+   fail_if(eolian_type_type_get(type) != EOLIAN_TYPE_POINTER);
+   fail_if(!(type = eolian_type_base_type_get(type)));
+   fail_if(eolian_type_type_get(type) != EOLIAN_TYPE_REGULAR);
+   fail_if(!(type = eolian_type_base_type_get(type)));
+   fail_if(eolian_type_type_get(type) != EOLIAN_TYPE_STRUCT);
 
    eolian_shutdown();
 }
@@ -1131,7 +1141,10 @@ START_TEST(eolian_docs)
    fail_if(strcmp(eolian_documentation_summary_get(doc),
                   "This is struct Foo. It does stuff."));
    fail_if(strcmp(eolian_documentation_description_get(doc),
+                  "Note: This is a note.\n\n"
                   "This is a longer description for struct Foo.\n\n"
+                  "Warning: This is a warning. You can only use Warning: "
+                  "and Note: at the beginning of a paragraph.\n\n"
                   "This is another paragraph."));
    fail_if(strcmp(eolian_documentation_since_get(doc),
                   "1.66"));

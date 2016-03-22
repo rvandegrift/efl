@@ -1351,6 +1351,7 @@ _ecore_x_event_handle_property_notify(XEvent *xevent)
       e->win = xevent->xproperty.window;
       e->atom = xevent->xproperty.atom;
       e->time = xevent->xproperty.time;
+      e->state = !!xevent->xproperty.state;
       _ecore_x_event_last_time = e->time;
       ecore_event_add(ECORE_X_EVENT_WINDOW_PROPERTY, e, NULL, NULL);
    }
@@ -1509,6 +1510,7 @@ _ecore_x_event_handle_selection_notify(XEvent *xevent)
    e->win = xevent->xselection.requestor;
    e->time = xevent->xselection.time;
    e->atom = selection;
+   e->property = xevent->xselection.property;
    e->target = _ecore_x_selection_target_get(xevent->xselection.target);
 
    if (selection == ECORE_X_ATOM_SELECTION_PRIMARY)
@@ -2118,7 +2120,7 @@ _ecore_x_event_handle_screensaver_notify(XEvent *xevent)
    e->time = screensaver_event->time;
    ecore_event_add(ECORE_X_EVENT_SCREENSAVER_NOTIFY, e, NULL, NULL);
 #else /* ifdef ECORE_XSS */
-   xevent = NULL;
+   (void) xevent;
 #endif /* ifdef ECORE_XSS */
 }
 

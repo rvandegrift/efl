@@ -125,7 +125,11 @@ _eo_base_parent_set(Eo *obj, Eo_Base_Data *pd, Eo *parent_id)
                  pd->parent, obj);
           }
 
-        eo_xunref(obj, pd->parent);
+        /* Only unref if we don't have a new parent instead. */
+        if (!parent_id)
+          {
+             eo_unref(obj);
+          }
      }
 
    /* Set new parent */
@@ -137,10 +141,8 @@ _eo_base_parent_set(Eo *obj, Eo_Base_Data *pd, Eo *parent_id)
         if (EINA_LIKELY(parent_pd != NULL))
           {
              pd->parent = parent_id;
-             parent_pd->children = eina_list_append(parent_pd->children,
-                   obj);
+             parent_pd->children = eina_list_append(parent_pd->children, obj);
              pd->parent_list = eina_list_last(parent_pd->children);
-             eo_xref(obj, pd->parent);
           }
         else
           {
@@ -399,18 +401,20 @@ _wref_destruct(Eo_Base_Data *pd)
 
 /* XXX: Legacy support, remove when legacy is dead. */
 static Eina_Hash *_legacy_events_hash = NULL;
-static const char *_legacy_event_desc = "Dynamically generated legacy event";
 
 EAPI const Eo_Event_Description *
 eo_base_legacy_only_event_description_get(const char *_event_name)
 {
-   Eina_Stringshare *event_name = eina_stringshare_add(_event_name);
+   char buf[1024];
+   strncpy(buf, _event_name, sizeof(buf) - 1);
+   buf[sizeof(buf) - 1] = '\0';
+   Eina_Stringshare *event_name = eina_stringshare_add(buf);
    Eo_Event_Description *event_desc = eina_hash_find(_legacy_events_hash, event_name);
    if (!event_desc)
      {
         event_desc = calloc(1, sizeof(Eo_Event_Description));
         event_desc->name = event_name;
-        event_desc->doc = _legacy_event_desc;
+        event_desc->legacy_is = EINA_TRUE;
         eina_hash_add(_legacy_events_hash, event_name, event_desc);
      }
    else
@@ -419,6 +423,12 @@ eo_base_legacy_only_event_description_get(const char *_event_name)
      }
 
    return event_desc;
+}
+
+static inline Eina_Bool
+_legacy_event_desc_is(const Eo_Event_Description *desc)
+{
+   return desc->legacy_is;
 }
 
 static void
@@ -574,8 +584,8 @@ _eo_base_event_callback_del(Eo *obj, Eo_Base_Data *pd,
 
    for (cb = pd->callbacks; cb; cb = cb->next)
      {
-        if ((cb->items.item.desc == desc) && (cb->items.item.func == func) &&
-              (cb->func_data == user_data))
+        if (!cb->delete_me && (cb->items.item.desc == desc) &&
+              (cb->items.item.func == func) && (cb->func_data == user_data))
           {
              const Eo_Callback_Array_Item arr[] = { {desc, func}, {NULL, NULL}};
 
@@ -620,7 +630,8 @@ _eo_base_event_callback_array_del(Eo *obj, Eo_Base_Data *pd,
 
    for (cb = pd->callbacks; cb; cb = cb->next)
      {
-        if ((cb->items.item_array == array) && (cb->func_data == user_data))
+        if (!cb->delete_me &&
+              (cb->items.item_array == array) && (cb->func_data == user_data))
           {
              cb->delete_me = EINA_TRUE;
              pd->deletions_waiting = EINA_TRUE;
@@ -640,18 +651,13 @@ _cb_desc_match(const Eo_Event_Description *a, const Eo_Event_Description *b)
    if (!a)
       return EINA_FALSE;
 
-   /* If either is legacy, fallback to string comparison. */
-   if ((a->doc == _legacy_event_desc) || (b->doc == _legacy_event_desc))
+   if (_legacy_event_desc_is(a) && _legacy_event_desc_is(b))
      {
-        /* Take stringshare shortcut if both are legacy */
-        if (a->doc == b->doc)
-          {
-             return (a->name == b->name);
-          }
-        else
-          {
-             return !strcmp(a->name, b->name);
-          }
+        return (a->name == b->name);
+     }
+   else if (_legacy_event_desc_is(a) || _legacy_event_desc_is(b))
+     {
+        return !strcmp(a->name, b->name);
      }
    else
      {
@@ -980,8 +986,21 @@ _eo_base_destructor(Eo *obj, Eo_Base_Data *pd)
 
    DBG("%p - %s.", obj, eo_class_name_get(MY_CLASS));
 
-   EINA_LIST_FREE(pd->children, child)
-      eo_do(child, eo_parent_set(NULL));
+   // special removal - remove from children list by hand after getting
+   // child handle in case unparent method is overridden and does
+   // extra things like removes other children too later on in the list
+   while (pd->children)
+     {
+        child = eina_list_data_get(pd->children);
+        eo_do(child, eo_parent_set(NULL));
+     }
+
+   if (pd->parent)
+     {
+        ERR("Object '%p' still has a parent at the time of destruction.", obj);
+        eo_ref(obj);
+        eo_do(obj, eo_parent_set(NULL));
+     }
 
    _eo_generic_data_del_all(pd);
    _wref_destruct(pd);

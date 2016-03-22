@@ -2,7 +2,12 @@ struct Foo {
     [[This is struct Foo.
       It does stuff.
 
+      Note: This is a note.
+
       This is a longer description for struct Foo.
+
+      Warning: This is a warning. You can only use Warning: and
+      Note: at the beginning of a paragraph.
 
       This is another paragraph.
 
@@ -23,9 +28,7 @@ enum Bar {
 type Alias: Bar; [[Docs for typedef.
 
                    More docs for typedef.
-                   See @Bar.
-
-                   @since 2.0
+                   See @Bar. @since 2.0
                  ]]
 
 var pants: int = 150; [[Docs for var.]]
@@ -47,6 +50,8 @@ class Docs {
       @Foo.field1
       @Bar.foo
       @Docs
+
+      @since 1.18
     ]]
     methods {
         meth {

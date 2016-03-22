@@ -75,7 +75,8 @@ evas_common_pipe_thread(void *data, Eina_Thread t EINA_UNUSED)
 {
    Thinfo *thinfo;
 
-// INF("TH [...........");
+   eina_thread_name_set(eina_thread_self(), "Eecore-pipe");
+   // INF("TH [...........");
    thinfo = data;
    for (;;)
      {
@@ -186,8 +187,14 @@ evas_common_pipe_begin(RGBA_Image *im)
    needed_size = ((im->cache_entry.w / estimatex) + 1 ) * ((im->cache_entry.h /  estimatey) + 1);
    if (buf_size < needed_size)
      {
-        buf = realloc(buf, sizeof (RGBA_Pipe_Thread_Info) * needed_size);
-        buf_size = needed_size;
+        RGBA_Pipe_Thread_Info *temp;
+
+        temp = realloc(buf, sizeof (RGBA_Pipe_Thread_Info) * needed_size);
+        if (temp)
+          {
+             buf = temp;
+             buf_size = needed_size;
+          }
      }
 
    info = buf;

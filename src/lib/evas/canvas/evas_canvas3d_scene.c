@@ -74,6 +74,8 @@ _evas_canvas3d_scene_eo_base_constructor(Eo *obj, Evas_Canvas3D_Scene_Data *pd)
    pd->color_pick_enabled = EINA_FALSE;
    pd->node_mesh_colors = NULL;
    pd->colors_node_mesh = NULL;
+   pd->depth_offset = 4.0;
+   pd->depth_constant = 100.0;
 
    return obj;
 }
@@ -293,10 +295,10 @@ _pick_data_mesh_add(Evas_Canvas3D_Pick_Data *data, const Evas_Ray3 *ray,
    memset(&tex0, 0x00, sizeof(Evas_Canvas3D_Vertex_Buffer));
    memset(&tex1, 0x00, sizeof(Evas_Canvas3D_Vertex_Buffer));
 
-   evas_canvas3d_mesh_interpolate_vertex_buffer_get(mesh, frame, EVAS_CANVAS3D_VERTEX_POSITION,
+   evas_canvas3d_mesh_interpolate_vertex_buffer_get(mesh, frame, EVAS_CANVAS3D_VERTEX_ATTRIB_POSITION,
                                               &pos0, &pos1, &pos_weight);
 
-   evas_canvas3d_mesh_interpolate_vertex_buffer_get(mesh, frame, EVAS_CANVAS3D_VERTEX_TEXCOORD,
+   evas_canvas3d_mesh_interpolate_vertex_buffer_get(mesh, frame, EVAS_CANVAS3D_VERTEX_ATTRIB_TEXCOORD,
                                               &tex0, &tex1, &tex_weight);
    Evas_Canvas3D_Mesh_Data *pdmesh = eo_data_scope_get(mesh, EVAS_CANVAS3D_MESH_CLASS);
    if (pdmesh->indices)
@@ -608,8 +610,8 @@ _evas_canvas3d_scene_pick(const Eo *obj, Evas_Canvas3D_Scene_Data *pd, Evas_Real
    pd_parent = eo_data_scope_get(obj, EVAS_CANVAS3D_OBJECT_CLASS);
    e = eo_data_scope_get(pd_parent->evas, EVAS_CANVAS_CLASS);
 
-   data.x      = ((x * 2.0) / (Evas_Real)pd->w) - 1.0;
-   data.y      = (((pd->h - y - 1) * 2.0) / ((Evas_Real)pd->h)) - 1.0;
+   data.x      = ((x * 2.0) / ((Evas_Real)e->viewport.w)) - 1.0;
+   data.y      = ((((Evas_Real)e->viewport.h - y - 1) * 2.0) / ((Evas_Real)e->viewport.h)) - 1.0;
    data.picked = EINA_FALSE;
    data.z      = 1.0;
    data.node   = NULL;
@@ -802,6 +804,23 @@ _evas_canvas3d_scene_color_pick_enable_set(Eo *obj EINA_UNUSED, Evas_Canvas3D_Sc
 
    eo_do(obj, evas_canvas3d_object_change(EVAS_CANVAS3D_STATE_SCENE_UPDATED, NULL));
    return EINA_TRUE;
+}
+
+EOLIAN static void
+_evas_canvas3d_scene_shadows_depth_set(Eo *obj EINA_UNUSED, Evas_Canvas3D_Scene_Data *pd,
+                                       Evas_Real depth_offset, Evas_Real depth_constant)
+{
+   pd->depth_offset = depth_offset;
+   pd->depth_constant = depth_constant;
+   eo_do(obj, evas_canvas3d_object_change(EVAS_CANVAS3D_STATE_SCENE_SHADOWS_DEPTH, NULL));
+}
+
+EOLIAN static void
+_evas_canvas3d_scene_shadows_depth_get(Eo *obj EINA_UNUSED, Evas_Canvas3D_Scene_Data *pd,
+                                       Evas_Real *depth_offset, Evas_Real *depth_constant)
+{
+   if (depth_offset) *depth_offset = pd->depth_offset;
+   if (depth_constant) *depth_constant = pd->depth_constant;
 }
 
 #include "canvas/evas_canvas3d_scene.eo.c"

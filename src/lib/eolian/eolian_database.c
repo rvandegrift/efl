@@ -27,6 +27,8 @@ Eina_Hash *_declsf     = NULL;
 Eina_Hash *_parsedeos  = NULL;
 Eina_Hash *_parsingeos = NULL;
 
+Eina_Hash *_defereos = NULL;
+
 static int _database_init_count = 0;
 
 static void
@@ -58,6 +60,7 @@ database_init()
    _declsf     = eina_hash_stringshared_new(_hashlist_free);
    _parsedeos  = eina_hash_string_small_new(NULL);
    _parsingeos = eina_hash_string_small_new(NULL);
+   _defereos   = eina_hash_string_small_new(NULL);
    return ++_database_init_count;
 }
 
@@ -91,6 +94,7 @@ database_shutdown()
         eina_hash_free(_declsf    ); _declsf     = NULL;
         eina_hash_free(_parsedeos ); _parsedeos  = NULL;
         eina_hash_free(_parsingeos); _parsingeos = NULL;
+        eina_hash_free(_defereos  ); _defereos   = NULL;
         eina_shutdown();
      }
    return _database_init_count;
@@ -214,7 +218,7 @@ join_path(const char *path, const char *file)
    eina_strbuf_append_char(buf, '/');
    eina_strbuf_append(buf, file);
 
-   ret = eina_strbuf_string_steal(buf);
+   ret = eina_file_path_sanitize(eina_strbuf_string_get(buf));
    eina_strbuf_free(buf);
    return ret;
 }
@@ -317,7 +321,12 @@ eolian_file_parse(const char *filepath)
         return EINA_FALSE;
      }
    if (!(eopath = eina_hash_find(is_eo ? _filenames : _tfilenames, filepath)))
-     eopath = filepath;
+     {
+        char *vpath = eina_file_path_sanitize(filepath);
+        Eina_Bool ret = eo_parser_database_fill(vpath, !is_eo);
+        free(vpath);
+        return ret;
+     }
    return eo_parser_database_fill(eopath, !is_eo);
 }
 

@@ -1095,7 +1095,7 @@ _ecore_exe_data_generic_handler(void             *data,
    if ((fd_handler)
        && (ecore_main_fd_handler_active_get(fd_handler, ECORE_FD_READ)))
    {
-      unsigned char *inbuf;
+      unsigned char *inbuf, *temp;
       int inbuf_num;
 
       /* Get any left over data from last time. */
@@ -1135,9 +1135,15 @@ _ecore_exe_data_generic_handler(void             *data,
          }
          if (num > 0) /* data got read. */
          {
+            temp = inbuf;
             inbuf = realloc(inbuf, inbuf_num + num);
-            memcpy(inbuf + inbuf_num, buf, num);
-            inbuf_num += num;
+            if (inbuf)
+              {
+                 memcpy(inbuf + inbuf_num, buf, num);
+                 inbuf_num += num;
+              }
+            else // realloc fails and returns NULL.
+               inbuf = temp;
          }
          else
          { /* No more data to read. */
@@ -1187,7 +1193,7 @@ _ecore_exe_data_generic_handler(void             *data,
                 * died, this won't do any harm as it must have died
                 * recently and the pid has not had a chance to recycle.
                 * It is also a paranoid catchall, coz the usual ecore_signal
-                * mechenism should kick in.  But let's give it a good
+                * mechanism should kick in.  But let's give it a good
                 * kick in the head anyway.
                 */
                ecore_exe_terminate(obj);

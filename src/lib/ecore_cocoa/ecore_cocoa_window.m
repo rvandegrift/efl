@@ -122,6 +122,12 @@
    int x = pt.x;
    int y = h - pt.y;
 
+   //we ignore left click in titlebar as it is handled by the OS (to move window)
+   //and the corresponding mouseUp event isn't sent
+   if (y <= 0 && [event buttonNumber] == 0) {
+	 return;
+   }
+
    Ecore_Event_Mouse_Button * ev = calloc(1, sizeof(Ecore_Event_Mouse_Button));
    if (!ev) return;
 
@@ -218,6 +224,7 @@
 
 - (void) mouseMoved:(NSEvent*) event
 {
+   unsigned int time = (unsigned int)((unsigned long long)(ecore_time_get() * 1000.0) & 0xffffffff);
    Ecore_Event_Mouse_Move * ev = calloc(1, sizeof(Ecore_Event_Mouse_Move));
    if (!ev) return;
 

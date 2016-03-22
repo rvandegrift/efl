@@ -58,7 +58,8 @@ evas_thread_queue_flush(Evas_Thread_Command_Cb cb, void *data)
 static void*
 evas_thread_worker_func(void *data EINA_UNUSED, Eina_Thread thread EINA_UNUSED)
 {
-    while (1)
+   eina_thread_name_set(eina_thread_self(), "Eevas-thread-wk");
+   while (1)
       {
          Evas_Thread_Command *cmd;
          unsigned int len, max;
@@ -100,15 +101,19 @@ evas_thread_worker_func(void *data EINA_UNUSED, Eina_Thread thread EINA_UNUSED)
 
          DBG("Evas render thread command queue length: %u", len);
 
+         eina_evlog("+thread", NULL, 0.0, NULL);
          while (len)
            {
               assert(cmd->cb);
 
+              eina_evlog("+thread_do", cmd->data, 0.0, NULL);
               cmd->cb(cmd->data);
+              eina_evlog("-thread_do", cmd->data, 0.0, NULL);
 
               cmd++;
               len--;
            }
+         eina_evlog("-thread", NULL, 0.0, NULL);
       }
 
 out:

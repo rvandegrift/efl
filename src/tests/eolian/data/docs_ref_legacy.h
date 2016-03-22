@@ -14,7 +14,12 @@ typedef Eo Docs;
 /**
  * @brief This is struct Foo. It does stuff.
  *
+ * @note This is a note.
+ *
  * This is a longer description for struct Foo.
+ *
+ * @warning This is a warning. You can only use Warning: and Note: at the
+ * beginning of a paragraph.
  *
  * This is another paragraph.
  *
@@ -66,6 +71,8 @@ typedef struct _Opaque Opaque;
  * @ref pants @ref docs_meth @ref docs_prop_get @ref docs_prop_get
  * @ref docs_prop_set @ref Foo.field1 @ref Bar.BAR_FOO @ref Docs
  *
+ * @since 1.18
+ *
  * @ingroup Docs
  */
 
@@ -102,6 +109,8 @@ EAPI int docs_prop_get(const Docs *obj);
  * @param[out] c Another param documentation.
  *
  * @return Return documentation.
+ *
+ * @since 1.18
  *
  * @ingroup Docs
  */

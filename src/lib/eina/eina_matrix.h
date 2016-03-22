@@ -512,6 +512,56 @@ EAPI void eina_matrix4_values_get(const Eina_Matrix4 *m,
                                   double *wx, double *wy, double *wz, double *ww);
 
 /**
+ * @brief Return the determinant of the given matrix.
+ *
+ * @param m The matrix.
+ * @return The determinant.
+ *
+ * This function returns the determinant of the matrix @p m. No check
+ * is done on @p m.
+ *
+ * @since 1.16
+ */
+EAPI double eina_matrix4_determinant(const Eina_Matrix4 *m);
+
+/**
+ * @brief Return the determinant of the given matrix.
+ *
+ * @param m The matrix.
+ * @return The determinant.
+ *
+ * This function returns the determinant of the matrix @p m. No check
+ * is done on @p m.
+ *
+ * @since 1.16
+ */
+EAPI Eina_Bool eina_matrix4_normalized(Eina_Matrix4 *out,
+                                       const Eina_Matrix4 *in);
+
+/**
+ * @brief Return the inverse of the given matrix.
+ *
+ * @param out The inverse matrix
+ * @param in The matrix.
+ * @return @c EINA_TRUE on success, @c EINA_FALSE otherwise.
+ *
+ * @since 1.16
+ */
+EAPI Eina_Bool eina_matrix4_inverse(Eina_Matrix4 *out, const Eina_Matrix4 *in);
+
+/**
+ * @brief Return the transpose of the given matrix.
+ *
+ * @param out The transpose matrix
+ * @param in The matrix.
+ *
+ * Just going to swap row and column.
+ *
+ * @since 1.16
+ */
+EAPI void eina_matrix4_transpose(Eina_Matrix4 *out, const Eina_Matrix4 *in);
+
+/**
  * @brief Convert an Eina_Matrix4 into an Eina_Matrix3.
  *
  * @param m3 The destination Eina_Matrix3.
@@ -530,6 +580,28 @@ EAPI void eina_matrix4_matrix3_to(Eina_Matrix3 *m3, const Eina_Matrix4 *m4);
  * @since 1.15
  */
 EAPI void eina_matrix3_matrix4_to(Eina_Matrix4 *m4, const Eina_Matrix3 *m3);
+
+/**
+ * @brief Set an identity matrix
+ *
+ * @param out The matrix to set
+ *
+ * @since 1.16
+ */
+EAPI void eina_matrix4_identity(Eina_Matrix4 *out);
+
+/**
+ * @brief Multiply two matrix
+ *
+ * @param out The resulting matrix
+ * @param a The first member of the multiplication
+ * @param b The second member of the multiplication
+ *
+ * @since 1.16
+ */
+EAPI void eina_matrix4_multiply(Eina_Matrix4 *out,
+                                const Eina_Matrix4 *a, const Eina_Matrix4 *b);
+
 
 /**
  * @}

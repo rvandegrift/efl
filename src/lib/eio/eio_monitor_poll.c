@@ -148,29 +148,29 @@ _eio_monitor_fallback_heavy_cb(void *data, Ecore_Thread *thread)
 
         if (!backend->initialised)
           {
-             eina_hash_add(backend->children, info->path + info->name_start, cmp);
+             eina_hash_add(backend->children, info->path, cmp);
           }
         else
           {
-             cmp = eina_hash_find(backend->children, info->path + info->name_start);
+             cmp = eina_hash_find(backend->children, info->path);
              if (!cmp)
                {
                   /* New file or new directory added */
                   ecore_thread_main_loop_begin();
-                  _eio_monitor_send(backend->parent, info->path + info->name_start,
+                  _eio_monitor_send(backend->parent, info->path,
                                     info->type != EINA_FILE_DIR ? EIO_MONITOR_FILE_CREATED : EIO_MONITOR_DIRECTORY_CREATED);
                   ecore_thread_main_loop_end();
 
                   cmp = malloc(sizeof (Eio_Monitor_Stat));
                   memcpy(cmp, &buffer, sizeof (Eina_Stat));
 
-                  eina_hash_add(backend->children, info->path + info->name_start, cmp);
+                  eina_hash_add(backend->children, info->path, cmp);
                }
              else if (memcmp(cmp, &buffer, sizeof (Eina_Stat)) != 0)
                {
                   /* file has been modified */
                   ecore_thread_main_loop_begin();
-                  _eio_monitor_send(backend->parent, info->path + info->name_start,
+                  _eio_monitor_send(backend->parent, info->path,
                                     info->type != EINA_FILE_DIR ? EIO_MONITOR_FILE_MODIFIED : EIO_MONITOR_DIRECTORY_MODIFIED);
                   ecore_thread_main_loop_end();
 
@@ -270,7 +270,8 @@ _eio_monitor_fallback_timer_cb(void *data)
  * @cond LOCAL
  */
 
-#if !defined HAVE_SYS_INOTIFY_H && !defined HAVE_NOTIFY_WIN32 && !defined HAVE_NOTIFY_COCOA
+#if !defined HAVE_SYS_INOTIFY_H && !defined HAVE_NOTIFY_WIN32 && !defined HAVE_NOTIFY_COCOA \
+    && !defined HAVE_NOTIFY_KEVENT
 void eio_monitor_backend_init(void)
 {
 }
@@ -329,17 +330,20 @@ eio_monitor_fallback_del(Eio_Monitor *monitor)
 
    if (!backend) return;
 
-   backend->parent = NULL;
+   if (backend->work) ecore_thread_cancel(backend->work);
+
    if (backend->timer) ecore_timer_del(backend->timer);
    backend->timer = NULL;
    if (backend->idler) ecore_idler_del(backend->idler);
    backend->idler = NULL;
-   if (backend->work)
+
+   if (backend->work && !ecore_thread_wait(backend->work, 0.3))
      {
         backend->delete_me = EINA_TRUE;
-        ecore_thread_cancel(backend->work);
         return;
      }
+
+   backend->parent = NULL;
    eina_hash_free(backend->children);
    free(backend);
 }

@@ -382,6 +382,89 @@ check_image_part_desc(Edje_Part_Collection *pc, Edje_Part *ep,
     }
 }
 
+static Edje_Part_Collection *
+_source_group_find(const char *source)
+{
+   Edje_Part_Collection *pc2;
+   Eina_List *l;
+   if (!source) return NULL;
+   EINA_LIST_FOREACH(edje_collections, l, pc2)
+     {
+        if (!strcmp(pc2->part, source))
+          return pc2;
+     }
+   return NULL;
+}
+
+static Edje_Part *
+_aliased_text_part_find(Edje_Part_Collection *pc,
+                        int id_source, const char *id_source_part)
+{
+   Edje_Part_Collection *group;
+   unsigned int i;
+
+   if (!pc->parts[id_source]->source)
+     return NULL;
+
+   group = _source_group_find(pc->parts[id_source]->source);
+   if (!group) return NULL;
+
+   for (i = 0; i < group->parts_count; i++)
+     {
+        if (!strcmp(group->parts[i]->name, id_source_part))
+          return group->parts[i];
+     }
+   return NULL;
+}
+
+static void
+check_text_part_desc(Edje_Part_Collection *pc, Edje_Part *ep,
+                     Edje_Part_Description_Text *epd, Eet_File *ef)
+{
+   Edje_Part *ep2;
+
+   if (epd->text.id_source != -1)
+     {
+        if ((pc->parts[epd->text.id_source]->type == EDJE_PART_TYPE_TEXT) ||
+            (pc->parts[epd->text.id_source]->type == EDJE_PART_TYPE_TEXTBLOCK))
+          return;
+
+        if (epd->text.id_source_part)
+          {
+             ep2 = _aliased_text_part_find(pc, epd->text.id_source, epd->text.id_source_part);
+             if (ep2 && ((ep2->type == EDJE_PART_TYPE_TEXT) ||
+                         (ep2->type == EDJE_PART_TYPE_TEXTBLOCK)))
+               return;
+          }
+
+        error_and_abort(ef, "Collection \"%s\" Part \"%s\" Description \"%s\" [%.3f]: "
+                            "text.source point to a non TEXT part \"%s\"!",
+                        pc->part, ep->name, epd->common.state.name,
+                        epd->common.state.value, pc->parts[epd->text.id_source]->name);
+     }
+
+   if (epd->text.id_text_source != -1)
+     {
+
+        if ((pc->parts[epd->text.id_text_source]->type == EDJE_PART_TYPE_TEXT) ||
+            (pc->parts[epd->text.id_text_source]->type == EDJE_PART_TYPE_TEXTBLOCK))
+          return;
+
+        if (epd->text.id_text_source_part)
+          {
+             ep2 = _aliased_text_part_find(pc, epd->text.id_text_source, epd->text.id_text_source_part);
+             if (ep2 && ((ep2->type == EDJE_PART_TYPE_TEXT) ||
+                         (ep2->type == EDJE_PART_TYPE_TEXTBLOCK)))
+               return;
+          }
+
+        error_and_abort(ef, "Collection \"%s\" Part \"%s\" Description \"%s\" [%.3f]: "
+                            "text.text_source point to a non TEXT part \"%s\"!",
+                        pc->part, ep->name,epd->common.state.name,
+                        epd->common.state.value, pc->parts[epd->text.id_text_source]->name);
+     }
+}
+
 /* This function check loops between groups.
    For example:
    > part in group A. It's source is B.
@@ -470,9 +553,12 @@ check_state(Edje_Part_Collection *pc, Edje_Part *ep, Edje_Part_Description_Commo
    /* FIXME: When smart masks are supported, remove this check */
    if (ed->clip_to_id != -1 &&
        (pc->parts[ed->clip_to_id]->type != EDJE_PART_TYPE_RECTANGLE) &&
-       (pc->parts[ed->clip_to_id]->type != EDJE_PART_TYPE_IMAGE))
-     error_and_abort(ef, "Collection %i: description.clip_to point to a non RECT/IMAGE part '%s' !",
-                     pc->id, pc->parts[ed->clip_to_id]->name);
+       (pc->parts[ed->clip_to_id]->type != EDJE_PART_TYPE_IMAGE) &&
+       (pc->parts[ed->clip_to_id]->type != EDJE_PART_TYPE_PROXY))
+     error_and_abort(ef, "Collection %i: part: '%s' state: '%s' %g clip_to points to "
+                         "a non RECT/IMAGE part '%s'!",
+                     pc->id, ep->name, ed->state.name, ed->state.value,
+                     pc->parts[ed->clip_to_id]->name);
 
    check_nameless_state(pc, ep, ed, ef);
 }
@@ -487,6 +573,7 @@ check_part(Edje_Part_Collection *pc, Edje_Part *ep, Eet_File *ef)
      error_and_abort(ef, "Collection %i: default description missing "
                          "for part \"%s\"", pc->id, ep->name);
 
+   check_state(pc, ep, ep->default_desc, ef);
    for (i = 0; i < ep->other.desc_count; ++i)
      check_state(pc, ep, ep->other.desc[i], ef);
 
@@ -502,11 +589,20 @@ check_part(Edje_Part_Collection *pc, Edje_Part *ep, Eet_File *ef)
      check_packed_items(pc, ep, ef);
    else if (ep->type == EDJE_PART_TYPE_GROUP)
      check_source_links(pc, ep, ef, group_path);
+   else if (ep->type == EDJE_PART_TYPE_TEXT)
+     {
+        check_text_part_desc(pc, ep, (Edje_Part_Description_Text*) ep->default_desc, ef);
+
+        for (i = 0; i < ep->other.desc_count; ++i)
+          check_text_part_desc(pc, ep, (Edje_Part_Description_Text*) ep->other.desc[i], ef);
+     }
+
 
    /* FIXME: When smart masks are supported, remove this check */
    if (ep->clip_to_id != -1 &&
        (pc->parts[ep->clip_to_id]->type != EDJE_PART_TYPE_RECTANGLE) &&
-       (pc->parts[ep->clip_to_id]->type != EDJE_PART_TYPE_IMAGE))
+       (pc->parts[ep->clip_to_id]->type != EDJE_PART_TYPE_IMAGE) &&
+       (pc->parts[ep->clip_to_id]->type != EDJE_PART_TYPE_PROXY))
      error_and_abort(ef, "Collection %i: clip_to point to a non RECT/IMAGE part '%s' !",
                      pc->id, pc->parts[ep->clip_to_id]->name);
 }
@@ -535,7 +631,7 @@ data_thread_head(void *data, Ecore_Thread *thread EINA_UNUSED)
 {
    Head_Write *hw = data;
    int bytes = 0;
-   char buf[PATH_MAX];
+   char buf[EINA_PATH_MAX];
 
    if (edje_file)
      {
@@ -628,8 +724,8 @@ data_thread_fonts(void *data, Ecore_Thread *thread EINA_UNUSED)
    Eina_File *f = NULL;
    void *m = NULL;
    int bytes = 0;
-   char buf[PATH_MAX];
-   char buf2[PATH_MAX];
+   char buf[EINA_PATH_MAX];
+   char buf2[EINA_PATH_MAX];
 
    f = eina_file_open(fc->fn->file, 0);
    if (f)
@@ -821,7 +917,7 @@ static void
 data_thread_image(void *data, Ecore_Thread *thread EINA_UNUSED)
 {
    Image_Write *iw = data;
-   char buf[PATH_MAX], buf2[PATH_MAX];
+   char buf[PATH_MAX], buf2[EINA_PATH_MAX];
    unsigned int *start, *end;
    Eina_Bool opaque = EINA_TRUE;
    int bytes = 0;
@@ -1199,7 +1295,7 @@ static void
 data_thread_mo(void *data, Ecore_Thread *thread EINA_UNUSED)
 {
    Mo_Write *mw = data;
-   char buf[PATH_MAX];
+   char buf[EINA_PATH_MAX];
    Eina_List *ll;
 
    char *dir_path = NULL;
@@ -1309,7 +1405,7 @@ data_write_mo(Eet_File *ef, int *mo_num)
         int i;
         char *po_entry;
         char *sub_str;
-        char buf[PATH_MAX];
+        char buf[EINA_PATH_MAX];
         Eina_List *ll;
         char *dir_path = NULL;
         char mo_path[PATH_MAX];
@@ -1664,7 +1760,6 @@ data_thread_script(void *data, Ecore_Thread *thread EINA_UNUSED)
              return;
           }
      }
-   fclose(f);
 
    if (no_save)
      WRN("You are removing the source from this Edje file. This may break some use cases.\nBe aware of your choice and the poor kitten you are harming with it!");
@@ -1688,13 +1783,16 @@ data_thread_script(void *data, Ecore_Thread *thread EINA_UNUSED)
                        strlen(cp->original) + 1, compress_mode);
           }
      }
+   fclose(f);
 
    unlink(sc->tmpn);
    unlink(sc->tmpo);
    eina_tmpstr_del(sc->tmpn);
    eina_tmpstr_del(sc->tmpo);
-   close(sc->tmpn_fd);
-   close(sc->tmpo_fd);
+// closed by fclose(f) in create_script_file()
+//   close(sc->tmpn_fd);
+// closed by fclose(f) above
+//   close(sc->tmpo_fd);
 }
 
 static void
@@ -1776,7 +1874,7 @@ data_write_scripts(Eet_File *ef)
      {
 	Code *cd = eina_list_data_get(l);
         Script_Write *sc;
-        char buf[PATH_MAX];
+        char buf[EINA_PATH_MAX];
 
 	if (cd->is_lua)
 	  continue;

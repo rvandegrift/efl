@@ -28,12 +28,6 @@ static Eina_Bool initted = EINA_FALSE;
 static int gl_wins = 0;
 
 /* local structures */
-typedef struct _Render_Engine Render_Engine;
-struct _Render_Engine
-{
-   Render_Engine_GL_Generic generic;
-};
-
 typedef struct _Native Native;
 struct _Native
 {
@@ -83,9 +77,10 @@ glsym_func_void_ptr glsym_evas_gl_common_current_context_get = NULL;
 _eng_fn (*glsym_eglGetProcAddress)(const char *a) = NULL;
 void *(*glsym_eglCreateImage)(EGLDisplay a, EGLContext b, EGLenum c, EGLClientBuffer d, const int *e) = NULL;
 void (*glsym_eglDestroyImage)(EGLDisplay a, void *b) = NULL;
-void (*glsym_glEGLImageTargetTexture2DOES)(int a, void *b)  = NULL;
+void (*glsym_glEGLImageTargetTexture2DOES)(int a, void *b) = NULL;
 unsigned int (*glsym_eglSwapBuffersWithDamage)(EGLDisplay a, void *b, const EGLint *d, EGLint c) = NULL;
 unsigned int (*glsym_eglQueryWaylandBufferWL)(EGLDisplay a, struct wl_resource *b, EGLint c, EGLint *d) = NULL;
+unsigned int (*glsym_eglSetDamageRegionKHR)(EGLDisplay a, EGLSurface b, EGLint *c, EGLint d) = NULL;
 
 /* local function prototypes */
 static void gl_symbols(void);
@@ -235,6 +230,9 @@ gl_symbols(void)
    FINDSYM(glsym_eglSwapBuffersWithDamage, "eglSwapBuffersWithDamage",
            glsym_func_uint);
 
+   FINDSYM(glsym_eglSetDamageRegionKHR, "eglSetDamageRegionKHR",
+           glsym_func_uint);
+
    FINDSYM(glsym_eglQueryWaylandBufferWL, "eglQueryWaylandBufferWL",
            glsym_func_uint);
 
@@ -259,8 +257,17 @@ gl_extn_veto(Render_Engine *re)
           {
              _extn_have_buffer_age = 0;
              glsym_eglSwapBuffersWithDamage = NULL;
+             glsym_eglSetDamageRegionKHR = NULL;
           }
-        if (!strstr(str, "EGL_EXT_buffer_age")) _extn_have_buffer_age = 0;
+        if (!strstr(str, "EGL_EXT_buffer_age"))
+          {
+             if (!strstr(str, "EGL_KHR_partial_update"))
+               _extn_have_buffer_age = 0;
+          }
+
+        if (!strstr(str, "EGL_KHR_partial_update"))
+          glsym_eglSetDamageRegionKHR = NULL;
+
         if (!strstr(str, "EGL_EXT_swap_buffers_with_damage"))
           glsym_eglSwapBuffersWithDamage = NULL;
      }
@@ -408,8 +415,6 @@ evgl_eng_native_window_destroy(void *data, void *native_window)
      }
 
    gbm_surface_destroy((struct gbm_surface *)native_window);
-
-   native_window = NULL;
 
    return 1;
 }
@@ -802,7 +807,7 @@ eng_setup(Evas *evas, void *in)
    if (!(re = epd->engine.data.output))
      {
         Outbuf *ob;
-        Render_Engine_Merge_Mode merge_mode = MERGE_BOUNDING;
+        Render_Engine_Merge_Mode merge_mode = MERGE_SMART;
 
         if (!initted)
           {
@@ -864,6 +869,8 @@ eng_setup(Evas *evas, void *in)
                merge_mode = MERGE_BOUNDING;
              else if ((!strcmp(s, "full")) || (!strcmp(s, "f")))
                merge_mode = MERGE_FULL;
+             else if ((!strcmp(s, "smart")) || (!strcmp(s, "s")))
+               merge_mode = MERGE_SMART;
           }
 
         evas_render_engine_software_generic_merge_mode_set(&re->generic.software, merge_mode);
@@ -965,15 +972,17 @@ eng_output_free(void *data)
    re = (Render_Engine *)data;
    if (re)
      {
+        Evas_Engine_Info_GL_Drm *info;
+
         glsym_evas_gl_preload_render_relax(eng_preload_make_current, eng_get_ob(re));
 
         if (gl_wins == 1) glsym_evgl_engine_shutdown(re);
 
+        info = eng_get_ob(re)->info;
         /* NB: evas_render_engine_software_generic_clean() frees ob */
         evas_render_engine_software_generic_clean(&re->generic.software);
 
-        eng_gbm_shutdown(eng_get_ob(re)->info);
-
+        eng_gbm_shutdown(info);
         gl_wins--;
 
         free(re);
@@ -1153,9 +1162,10 @@ eng_image_native_set(void *data, void *image, void *native)
                   attribs[2] = EGL_NONE;
 
                   memcpy(&(n->ns), ns, sizeof(Evas_Native_Surface));
-                  glsym_eglQueryWaylandBufferWL(ob->egl.disp, wl_buf,
-                                                EGL_WAYLAND_Y_INVERTED_WL,
-                                                &yinvert);
+                  if (glsym_eglQueryWaylandBufferWL(ob->egl.disp, wl_buf,
+                                                    EGL_WAYLAND_Y_INVERTED_WL,
+                                                    &yinvert) == EGL_FALSE)
+                    yinvert = 1;
                   eina_hash_add(ob->gl_context->shared->native_wl_hash,
                                 &wlid, img);
 

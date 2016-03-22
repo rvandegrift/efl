@@ -225,7 +225,6 @@ _ecore_con_local_win32_client_read_server_thread(void *data)
           }
      }
 
-   printf(" ### %s\n", __FUNCTION__);
    svr->read_stopped = EINA_TRUE;
    _endthreadex(0);
    return 0;
@@ -264,7 +263,6 @@ _ecore_con_local_win32_server_read_client_thread(void *data)
           }
      }
 
-   printf(" ### %s\n", __FUNCTION__);
    host_svr->read_stopped = EINA_TRUE;
    _endthreadex(0);
    return 0;
@@ -384,7 +382,6 @@ _ecore_con_local_win32_listening(void *data)
 
    DBG("Client connected");
 
-   printf(" ### %s\n", __FUNCTION__);
    _endthreadex(0);
    return 0;
 }
@@ -404,13 +401,13 @@ ecore_con_local_listen(Ecore_Con_Server *obj)
      }
 
    if ((svr->type & ECORE_CON_TYPE) == ECORE_CON_LOCAL_USER)
-     snprintf(buf, sizeof(buf), "\\\\.\\pipe\\%s", svr->name);
+     snprintf(buf, sizeof(buf), "\\\\.\\pipe\\%s%ld", svr->name, GetProcessId(GetCurrentProcess()));
    else if ((svr->type & ECORE_CON_TYPE) == ECORE_CON_LOCAL_SYSTEM)
      {
         const char *computername;
 
         computername = getenv("COMPUTERNAME");
-        snprintf(buf, sizeof(buf), "\\\\%s\\pipe\\%s", computername, svr->name);
+        snprintf(buf, sizeof(buf), "\\\\%s\\pipe\\%s%ld", computername, svr->name, GetProcessId(GetCurrentProcess()));
      }
 
    svr->path = strdup(buf);

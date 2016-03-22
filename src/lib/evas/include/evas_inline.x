@@ -49,7 +49,7 @@ evas_common_draw_context_cutouts_add(Cutout_Rects* rects,
 
    if (rects->max < (rects->active + 1))
      {
-        rects->max += 128;
+        rects->max += 512;
         rects->rects = (Cutout_Rect *)realloc(rects->rects, sizeof(Cutout_Rect) * rects->max);
      }
 
@@ -74,6 +74,9 @@ evas_object_is_opaque(Evas_Object *eo_obj, Evas_Object_Protected_Data *obj)
         if ((obj->cur->clipper && obj->cur->clipper->mask->is_mask) ||
             (obj->clip.mask))
           return 0;
+        /* Non masked snapshot are supposed to be opaque */
+        if (obj->cur->snapshot)
+          return 1;
         if (obj->func->is_opaque)
           return obj->func->is_opaque(eo_obj, obj, obj->private_data);
         return 1;
@@ -371,7 +374,7 @@ evas_object_clip_recalc(Evas_Object_Protected_Data *obj)
 static inline void
 evas_object_async_block(Evas_Object_Protected_Data *obj)
 {
-   if ((obj) && (obj->layer))
+   if ((obj) && (obj->layer) && (obj->layer->evas))
      {
         eina_lock_take(&(obj->layer->evas->lock_objects));
         eina_lock_release(&(obj->layer->evas->lock_objects));

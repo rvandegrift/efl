@@ -5,291 +5,257 @@ class Evas.Canvas (Eo.Base, Evas.Common_Interface)
    methods {
       @property output_framespace {
          set {
-            /*@
-            Sets the output framespace size of the render engine of the given evas.
+            [[Sets the output framespace size of the render engine of the
+              given evas.
 
-            The framespace size is used in the Wayland engines to denote space where
-            the output is not drawn. This is mainly used in ecore_evas to draw borders
+              The framespace size is used in the Wayland engines to denote
+              space where the output is not drawn. This is mainly used in
+              ecore_evas to draw borders.
 
-            The units used for @p w and @p h depend on the engine used by the
-            evas.
+              The units used for $w and $h depend on the engine used by the
+              evas.
 
-            @ingroup Evas_Output_Size
-            @since 1.1 */
+              @since 1.1
+            ]]
          }
          get {
-            /*@
-            Get the render engine's output framespace co-ordinates in canvas units.
+            [[Get the render engine's output framespace coordinates in
+              canvas units.
 
-            @ingroup Evas_Output_Size
-            @since 1.1 */
+              @since 1.1
+            ]]
          }
          values {
-            x: Evas.Coord; /*@ The left coordinate in output units, usually pixels. */
-            y: Evas.Coord; /*@ The top coordinate in output units, usually pixels. */
-            w: Evas.Coord; /*@ The width in output units, usually pixels. */
-            h: Evas.Coord; /*@ The height in output units, usually pixels. */
+            x: Evas.Coord; [[The left coordinate in output units, usually pixels.]]
+            y: Evas.Coord; [[The top coordinate in output units, usually pixels.]]
+            w: Evas.Coord; [[The width in output units, usually pixels.]]
+            h: Evas.Coord; [[The height in output units, usually pixels.]]
          }
       }
       @property output_viewport {
          set {
-            /*@
-            Sets the output viewport of the given evas in evas units.
+            [[Sets the output viewport of the given evas in evas units.
 
-            The output viewport is the area of the evas that will be visible to
-            the viewer.  The viewport will be stretched to fit the output
-            target of the evas when rendering is performed.
+              The output viewport is the area of the evas that will be
+              visible to the viewer.  The viewport will be stretched to
+              fit the output target of the evas when rendering is performed.
 
-            @note The coordinate values do not have to map 1-to-1 with the output
-            target.  However, it is generally advised that it is done for ease
-            of use.
-
-            @ingroup Evas_Output_Size */
+              Note: The coordinate values do not have to map 1-to-1 with
+              the output target. However, it is generally advised that it
+              is done for ease of use.
+            ]]
          }
          get {
-            /*@
-            Get the render engine's output viewport co-ordinates in canvas units.
-            Calling this function writes the current canvas output viewport
-            size and location values into the variables pointed to by @p x, @p
-            y, @p w and @p h.  On success the variables have the output
-            location and size values written to them in canvas units. Any of @p
-            x, @p y, @p w or @p h that are @c NULL will not be written to. If @p e
-            is invalid, the results are undefined.
+            [[Get the render engine's output viewport coordinates in
+              canvas units.
 
+              Calling this function writes the current canvas output
+              viewport size and location values into the variables pointed
+              to by $x, $y, $w and $h.  On success the variables have the
+              output location and size values written to them in canvas
+              units. Any of $x, $y, $w or $h that are $null will not be
+              written to. If $e is invalid, the results are undefined.
+            ]]
+            /* FIXME-doc
             Example:
             @code
             extern Evas *evas;
             Evas_Coord x, y, width, height;
 
             evas_output_viewport_get(evas, &x, &y, &w, &h);
-            @endcode */
+            @endcode
+            */
          }
          values {
-            x: Evas.Coord; /*@ The top-left corner x value of the viewport. */
-            y: Evas.Coord; /*@ The top-left corner y value of the viewport. */
-            w: Evas.Coord; /*@ The width of the viewport.  Must be greater than 0. */
-            h: Evas.Coord; /*@ The height of the viewport.  Must be greater than 0. */
+            x: Evas.Coord; [[The top-left corner x value of the viewport.]]
+            y: Evas.Coord; [[The top-left corner y value of the viewport.]]
+            w: Evas.Coord; [[The width of the viewport.  Must be greater than 0.]]
+            h: Evas.Coord; [[The height of the viewport.  Must be greater than 0.]]
          }
       }
       @property image_cache {
          set {
-            /*@
-            Set the image cache.
+            [[Set the image cache.
 
-            This function sets the image cache of canvas in bytes. */
+              This function sets the image cache of canvas in bytes.
+            ]]
          }
          get {
-            /*@
-            Get the image cache
+            [[Get the image cache.
 
-            This function returns the image cache size of canvas in bytes. */
+              This function returns the image cache size of canvas in bytes.
+            ]]
          }
          values {
-            size: int; /*@ The cache size. */
+            size: int; [[The cache size.]]
          }
       }
       @property event_default_flags {
          set {
-            /*@
-            Set the default set of flags an event begins with
+            [[Set the default set of flags an event begins with
 
-            Events in evas can have an event_flags member. This starts out with
-            and initial value (no flags). This lets you set the default flags that
-            an event begins with to be @p flags
+              Events in evas can have an event_flags member. This starts
+              out with  and initial value (no flags). This lets you set
+              the default flags that an event begins with to be $flags.
 
-            @since 1.2 */
+              @since 1.2
+            ]]
          }
          get {
-            /*@
-            Get the default set of flags an event begins with
+            [[Get the default set of flags an event begins with
 
-            @return The default event flags for that canvas
+              This gets the default event flags events are produced with
+              when fed in.
 
-            This gets the default event flags events are produced with when fed in.
-
-            @see evas_event_default_flags_set()
-            @since 1.2 */
+              @since 1.2
+            ]]
          }
          values {
-            flags: Evas.Event_Flags; /*@ The default flags to use */
+            flags: Evas.Event_Flags; [[The default flags to use.]]
          }
       }
       @property output_method {
          set {
-            /*@
-            Sets the output engine for the given evas.
+            [[Sets the output engine for the given evas.
 
-            Once the output engine for an evas is set, any attempt to change it
-            will be ignored.  The value for @p render_method can be found using
-            @ref evas_render_method_lookup .
+              Once the output engine for an evas is set, any attempt to
+              change it  will be ignored. The value for $render_method can
+              be found using \@ref evas_render_method_lookup.
 
-            @attention it is mandatory that one calls evas_init() before
-            setting the output method.
-
-            @ingroup Evas_Output_Method */
+              Note: it is mandatory that one calls \@ref evas_init before
+              setting the output method.
+            ]]
          }
          get {
-            /*@
-            Retrieves the number of the output engine used for the given evas.
-            @return  The ID number of the output engine being used.  @c 0 is
-            returned if there is an error.
-            @ingroup Evas_Output_Method */
+            [[Retrieves the number of the output engine used for the given
+              evas.
+            ]]
          }
          values {
-            render_method: int; /*@ The numeric engine value to use. */
+            render_method: int; [[The numeric engine value to use.]]
          }
       }
       @property font_cache {
          set {
-            /*@
-            Changes the size of font cache of the given evas.
-
-            @ingroup Evas_Font_Group */
+            [[Changes the size of font cache of the given evas.]]
          }
          get {
-            /*@
-            Changes the size of font cache of the given evas.
-
-            @return The size, in bytes.
-
-            @ingroup Evas_Font_Group */
+            [[Get the size of font cache of the given evas in bytes.]]
          }
          values {
-            size: int; /*@ The size, in bytes. */
+            size: int; [[The size in bytes.]]
          }
       }
       @property output_size {
          set {
-            /*@
-            Sets the output size of the render engine of the given evas.
+            [[Sets the output size of the render engine of the given evas.
 
-            The evas will render to a rectangle of the given size once this
-            function is called.  The output size is independent of the viewport
-            size.  The viewport will be stretched to fill the given rectangle.
+              The evas will render to a rectangle of the given size once
+              this function is called.  The output size is independent of
+              the viewport size. The viewport will be stretched to fill
+              the given rectangle.
 
-            The units used for @p w and @p h depend on the engine used by the
-            evas.
-
-            @ingroup Evas_Output_Size */
+              The units used for $w and $h depend on the engine used by the
+              evas.
+            ]]
          }
          get {
-            /*@
-            Retrieve the output size of the render engine of the given evas.
+            [[Retrieve the output size of the render engine of the given
+              evas.
 
-            The output size is given in whatever the output units are for the
-            engine.
+              The output size is given in whatever the output units are for
+              the engine.
 
-            If either @p w or @p h is @c NULL, then it is ignored.  If @p e is
-            invalid, the returned results are undefined.
-
-            @ingroup Evas_Output_Size */
+              If either $w or $h is $null, then it is ignored.  If $e is
+              invalid, the returned results are undefined.
+            ]]
          }
          values {
-            w: int; /*@ The width in output units, usually pixels. */
-            h: int; /*@ The height in output units, usually pixels. */
+            w: int; [[The width in output units, usually pixels.]]
+            h: int; [[The height in output units, usually pixels.]]
          }
       }
       @property data_attach {
          set {
-            /*@
-            Attaches a specific pointer to the evas for fetching later
-
-            @ingroup Evas_Canvas */
+            [[Attaches a specific pointer to the evas for fetching later.]]
          }
          get {
-            /*@
-            Returns the pointer attached by evas_data_attach_set()
-
-            @return The pointer attached
-            @ingroup Evas_Canvas */
+            [[Returns the pointer attached by @.data_attach.set.]]
          }
          values {
-            data: void *; /*@ The pointer to attach */
+            data: void *; [[The attached pointer.]]
          }
       }
       @property font_hinting {
          set {
-            /*@
-            Changes the font hinting for the given evas.
+            [[Changes the font hinting for the given evas.
 
-            #EVAS_FONT_HINTING_AUTO, #EVAS_FONT_HINTING_BYTECODE.
-            @ingroup Evas_Font_Group */
+              #EVAS_FONT_HINTING_AUTO, #EVAS_FONT_HINTING_BYTECODE.
+            ]]
          }
          get {
-            /*@
-            Retrieves the font hinting used by the given evas.
-
-            @return The hinting in use, one of #EVAS_FONT_HINTING_NONE,
-            #EVAS_FONT_HINTING_AUTO, #EVAS_FONT_HINTING_BYTECODE.
-            @ingroup Evas_Font_Group */
+            [[Retrieves the font hinting used by the given evas.]]
          }
          values {
-            hinting: Evas.Font.Hinting_Flags; /*@ The hinting to use, one of #EVAS_FONT_HINTING_NONE, */
+            hinting: Evas.Font.Hinting_Flags; [[
+               The used hinting, one of #EVAS_FONT_HINTING_NONE,
+               #EVAS_FONT_HINTING_AUTO, #EVAS_FONT_HINTING_BYTECODE.
+            ]]
          }
       }
       @property engine_info {
          set {
-            /*@
-            Applies the engine settings for the given evas from the given @c
-            Evas_Engine_Info structure.
+            [[Applies the engine settings for the given evas from the
+              given $Evas_Engine_Info structure.
 
-            To get the Evas_Engine_Info structure to use, call @ref
-            evas_engine_info_get .  Do not try to obtain a pointer to an
-            @c Evas_Engine_Info structure in any other way.
+              To get the Evas_Engine_Info structure to use, call
+              @.engine_info.get. Do not try to obtain a pointer to an
+              $Evas_Engine_Info structure in any other way.
 
-            You will need to call this function at least once before you can
-            create objects on an evas or render that evas.  Some engines allow
-            their settings to be changed more than once.
+              You will need to call this function at least once before you
+              can create objects on an evas or render that evas. Some
+              engines allow their settings to be changed more than once.
 
-            Once called, the @p info pointer should be considered invalid.
-
-            @return  @c EINA_TRUE if no error occurred, @c EINA_FALSE otherwise.
-            @ingroup Evas_Output_Method */
-            return: bool;
+              Once called, the $info pointer should be considered invalid.
+            ]]
+            return: bool; [[$true if no error occurred, $false otherwise.]]
          }
          get {
-            /*@
-            Retrieves the current render engine info struct from the given evas.
+            [[Retrieves the current render engine info struct from the given
+              evas.
 
-            The returned structure is publicly modifiable.  The contents are
-            valid until either @ref evas_engine_info_set or @ref evas_render
-            are called.
+              The returned structure is publicly modifiable.  The contents
+              are valid until either @.engine_info.set or @.render are called.
 
-            This structure does not need to be freed by the caller.
-
-            @return  A pointer to the Engine Info structure.  @c NULL is returned if
-            an engine has not yet been assigned.
-            @ingroup Evas_Output_Method */
+              This structure does not need to be freed by the caller.
+            ]]
          }
          values {
-            info: Evas.Engine_Info *; /*@ The pointer to the Engine Info to use */
+            info: Evas.Engine_Info *; [[The pointer to the engine info to use.]]
          }
       }
       @property focus {
          get {
-            /*@
-            Retrieve the object that currently has focus.
+            [[Retrieve the object that currently has focus.
 
-            @return The object that has focus or @c NULL if there is not one.
+              Evas can have (at most) one of its objects focused at a time.
+              Focused objects will be the ones having key events delivered
+              to, which the programmer can act upon by means of
+              \@ref evas_object_event_callback_add usage.
 
-            Evas can have (at most) one of its objects focused at a time.
-            Focused objects will be the ones having <b>key events</b> delivered
-            to, which the programmer can act upon by means of
-            evas_object_event_callback_add() usage.
+              Note: Most users wouldn't be dealing directly with Evas'
+              focused objects. Instead, they would be using a higher level
+              library for that (like a toolkit, as Elementary) to handle
+              focus and who's receiving input for them.
 
-            @note Most users wouldn't be dealing directly with Evas' focused
-            objects. Instead, they would be using a higher level library for
-            that (like a toolkit, as Elementary) to handle focus and who's
-            receiving input for them.
+              This call returns the object that currently has focus on the
+              canvas $e or $null, if none.
 
-            This call returns the object that currently has focus on the canvas
-            @p e or @c NULL, if none.
-
-            @see evas_object_focus_set
-            @see evas_object_focus_get
-            @see evas_object_key_grab
-            @see evas_object_key_ungrab
-
+              See also \@ref evas_object_focus_set,
+              \@ref evas_object_focus_get, \@ref evas_object_key_grab,
+              \@ref evas_object_key_ungrab.
+            ]]
+            /* FIXME-doc
             Example:
             @dontinclude evas-events.c
             @skip evas_event_callback_add(d.canvas, EVAS_CALLBACK_CANVAS_OBJECT_FOCUS_IN,
@@ -298,64 +264,58 @@ class Evas.Canvas (Eo.Base, Evas.Common_Interface)
             @skip called when our rectangle gets focus
             @until }
 
-            In this example the @c event_info is exactly a pointer to that
+            In this example the $event_info is exactly a pointer to that
             focused rectangle. See the full @ref Example_Evas_Events "example".
-
-            @ingroup Evas_Object_Group_Find */
-            return: Evas.Object * @warn_unused;
+            */
+            return: Evas.Object * @warn_unused; [[The object that has focus
+                                                  or $null if there is not one.]]
          }
       }
       @property object_top {
          get {
-            /*@
-            Get the highest (stacked) Evas object on the canvas @p e.
+            [[Get the highest (stacked) Evas object on the canvas $e.
 
-            @return a pointer to the highest object on it, if any, or @c NULL,
-            otherwise
+              This function will take all populated layers in the canvas
+              into account, getting the highest object for the highest
+              layer, naturally.
 
-            This function will take all populated layers in the canvas into
-            account, getting the highest object for the highest layer,
-            naturally.
+              Warning: This function will skip objects parented by smart
+              objects, acting only on the ones at the "top level", with
+              regard to object parenting.
 
-            @see evas_object_layer_get()
-            @see evas_object_layer_set()
-            @see evas_object_below_get()
-            @see evas_object_above_get()
-
-            @warning This function will @b skip objects parented by smart
-            objects, acting only on the ones at the "top level", with regard to
-            object parenting. */
-            return: Evas.Object * @warn_unused;
+              See also \@ref evas_object_layer_get,
+              \@ref evas_object_layer_set, \@ref evas_object_below_get,
+              \@ref evas_object_above_get.
+            ]]
+            return: Evas.Object * @warn_unused; [[A pointer to the highest object
+                                                  on it (if any) or $null otherwise.]]
          }
       }
       @property key_lock {
          get {
-            /*@
-            Returns a handle to the list of lock keys registered in the canvas
-            @p e. This is required to check for which locks are set at a given
-            time with the evas_key_lock_is_set() function.
+            [[Returns a handle to the list of lock keys registered in the
+              canvas $e.
 
-            @see evas_key_lock_add
-            @see evas_key_lock_del
-            @see evas_key_lock_on
-            @see evas_key_lock_off
-            @see evas_key_lock_is_set
-
-            @return An .Evas_Lock handle to query Evas' keys subsystem with
-            evas_key_lock_is_set(), or @c NULL on error. */
-            return: const(Evas.Lock)* @warn_unused;
+              This is required to check for which locks are set at a given
+              time with the \@ref evas_key_lock_is_set function.
+            ]]
+            return: const(Evas.Lock)* @warn_unused; [[
+               An Evas_Lock handle to query Evas' keys subsystem with
+               \@ref evas_key_lock_is_set, or $null on error.
+            ]]
          }
       }
       @property pointer_canvas_xy {
          get {
-            /*@
-            This function returns the current known pointer co-ordinates
+            [[This function returns the current known pointer coordinates
 
-            This function returns the current known canvas unit co-ordinates of
-            the mouse pointer and sets the contents of the Evas_Coords pointed
-            to by @p x and @p y to contain these co-ordinates. If @p e is not a
-            valid canvas the results of this function are undefined.
-
+              This function returns the current known canvas unit
+              coordinates of the mouse pointer and sets the contents of
+              the Evas_Coords pointed to by $x and $y to contain these
+              coordinates. If $e is not a valid canvas the results of
+              this function are undefined.
+            ]]
+            /* FIXME-doc
             Example:
             @code
             extern Evas *evas;
@@ -363,76 +323,69 @@ class Evas.Canvas (Eo.Base, Evas.Common_Interface)
 
             evas_pointer_output_xy_get(evas, &mouse_x, &mouse_y);
             printf("Mouse is at canvas position %d, %d\n", mouse_x, mouse_y);
-            @endcode */
+            @endcode
+            */
          }
          values {
-            x: Evas.Coord; /*@ The pointer to a Evas_Coord to be filled in */
-            y: Evas.Coord; /*@ The pointer to a Evas_Coord to be filled in
-            @ingroup Evas_Pointer_Group */
+            x: Evas.Coord; [[The pointer to a Evas_Coord to be filled in.]]
+            y: Evas.Coord; [[The pointer to a Evas_Coord to be filled in.]]
          }
       }
       @property event_down_count {
          get {
-            /*@
-            Get the number of mouse or multi presses currently active
+            [[Get the number of mouse or multi presses currently active.
 
-            @p e The given canvas pointer.
-            @return The number of presses (0 if none active).
-
-            @since 1.2 */
+              @since 1.2
+            ]]
             return: int;
          }
       }
       @property smart_objects_calculate_count {
          get {
-            /*@
-            This gets the internal counter that counts the number of smart calculations
+            [[This gets the internal counter that counts the number of
+              smart calculations.
 
-            Whenever evas performs smart object calculations on the whole canvas
-            it increments a counter by 1. This is the smart object calculate counter
-            that this function returns the value of. It starts at the value of 0 and
-            will increase (and eventually wrap around to negative values and so on) by
-            1 every time objects are calculated. You can use this counter to ensure
-            you don't re-do calculations withint the same calculation generation/run
-            if the calculations maybe cause self-feeding effects.
+              Whenever evas performs smart object calculations on the whole
+              canvas it increments a counter by 1. This is the smart object
+              calculate counter that this function returns the value of.
+              It starts at the value of 0 and will increase (and eventually
+              wrap around to negative values and so on) by 1 every time
+              objects are calculated. You can use this counter to ensure
+              you don't re-do calculations withint the same calculation
+              generation/run if the calculations maybe cause self-feeding
+              effects.
 
-            @ingroup Evas_Smart_Object_Group
-            @since 1.1 */
+              @since 1.1
+            ]]
             return: int;
          }
       }
       @property focus_state {
          get {
-            /*@
-            Get the focus state known by the given evas
-
-            @return @c EINA_TRUE if it got the focus, @c EINA_FALSE otherwise.
-            @ingroup Evas_Canvas */
+            [[Get the focus state known by the given evas.]]
             return: bool;
          }
       }
       @property changed {
          get {
-            /*@
-            Get the changed marker for the canvas
+            [[Get the changed marker for the canvas.
 
-            @return @c EINA_TRUE if something has been marked as changed, @c EINA_FALSE otherwise.
-            @ingroup Evas_Canvas
-            @since 1.11
-             */
+              @since 1.11
+            ]]
             return: bool;
          }
       }
       @property pointer_output_xy {
          get {
-            /*@
-            This function returns the current known pointer co-ordinates
+            [[This function returns the current known pointer coordinates.
 
-            This function returns the current known screen/output co-ordinates
-            of the mouse pointer and sets the contents of the integers pointed
-            to by @p x and @p y to contain these co-ordinates. If @p e is not a
-            valid canvas the results of this function are undefined.
-
+              This function returns the current known screen/output
+              coordinates of the mouse pointer and sets the contents of
+              the integers pointed to by $x and $y to contain these
+              coordinates. If $e is not a valid canvas the results of
+              this function are undefined.
+            ]]
+            /* FIXME-doc
             Example:
             @code
             extern Evas *evas;
@@ -440,129 +393,124 @@ class Evas.Canvas (Eo.Base, Evas.Common_Interface)
 
             evas_pointer_output_xy_get(evas, &mouse_x, &mouse_y);
             printf("Mouse is at screen position %i, %i\n", mouse_x, mouse_y);
-            @endcode */
+            @endcode
+            */
          }
          values {
-            x: int; /*@ The pointer to an integer to be filled in */
-            y: int; /*@ The pointer to an integer to be filled in
-            @ingroup Evas_Pointer_Group */
+            x: int; [[The pointer to an integer to be filled in.]]
+            y: int; [[The pointer to an integer to be filled in.]]
          }
       }
       @property pointer_inside {
          get {
-            /*@
-            Returns whether the mouse pointer is logically inside the canvas
+            [[Returns whether the mouse pointer is logically inside the
+              canvas.
 
-            @return An integer that is 1 if the mouse is inside the canvas, 0 otherwise
-            @ingroup Evas_Pointer_Group
+              When this function is called it will return a value of either
+              $false or $true, depending on if @.event_feed_mouse_in or
+              @.event_feed_mouse_out have been called to feed in a  mouse
+              enter event into the canvas.
 
-            When this function is called it will return a value of either 0 or
-            1, depending on if evas_event_feed_mouse_in(),
-            evas_event_feed_mouse_in_data(), or evas_event_feed_mouse_out(),
-            evas_event_feed_mouse_out_data() have been called to feed in a
-            mouse enter event into the canvas.
+              A return value of $true indicates the mouse is logically
+              inside the canvas, and $false implies it is logically
+              outside the canvas.
 
-            A return value of 1 indicates the mouse is logically inside the
-            canvas, and 0 implies it is logically outside the canvas.
+              A canvas begins with the mouse being assumed outside ($false).
 
-            A canvas begins with the mouse being assumed outside (0).
-
-            If @p e is not a valid canvas, the return value is undefined.
-
+              If $e is not a valid canvas, the return value is undefined.
+            ]]
+            /* FIXME-doc
             Example:
             @code
             extern Evas *evas;
 
             if (evas_pointer_inside_get(evas)) printf("Mouse is in!\n");
             else printf("Mouse is out!\n");
-            @endcode */
+            @endcode
+            */
             return: bool @warn_unused;
          }
       }
       @property image_max_size {
          get {
-            /*@
-            Get the maximum image size evas can possibly handle
+            [[Get the maximum image size evas can possibly handle.
 
-            This function returns the larges image or surface size that evas can handle
-            in pixels, and if there is one, returns @c EINA_TRUE. It returns
-            @c EINA_FALSE if no extra constraint on maximum image size exists. You still
-            should check the return values of @p maxw and @p maxh as there may still be
-            a limit, just a much higher one.
+              This function returns the largest image or surface size that
+              evas can handle in pixels, and if there is one, returns $true.
+              It returns $false if no extra constraint on maximum image
+              size exists. You still should check the return values of
+              $maxw and $maxh as there may still be a limit, just a
+              much higher one.
 
-            @since 1.1 */
+              @since 1.1
+            ]]
             return: bool;
          }
          values {
-            maxw: int; /*@ Pointer to hold the return value in pixels of the maximum width */
-            maxh: int; /*@ Pointer to hold the return value in pixels of the maximum height */
+            maxw: int; [[Pointer to hold the return value in pixels of the maximum width.]]
+            maxh: int; [[Pointer to hold the return value in pixels of the maximum height.]]
          }
       }
       @property object_bottom {
          get {
-            /*@
-            Get the lowest (stacked) Evas object on the canvas @p e.
+            [[Get the lowest (stacked) Evas object on the canvas $e.
 
-            @return a pointer to the lowest object on it, if any, or @c NULL,
-            otherwise
+              This function will take all populated layers in the canvas
+              into account, getting the lowest object for the lowest layer,
+              naturally.
 
-            This function will take all populated layers in the canvas into
-            account, getting the lowest object for the lowest layer, naturally.
+              Warning: This function will skip objects parented by smart
+              objects, acting only on the ones at the "top level", with
+              regard to object parenting.
 
-            @see evas_object_layer_get()
-            @see evas_object_layer_set()
-            @see evas_object_below_get()
-            @see evas_object_above_get()
-
-            @warning This function will @b skip objects parented by smart
-            objects, acting only on the ones at the "top level", with regard to
-            object parenting. */
-            return: Evas.Object * @warn_unused;
+              See also \@ref evas_object_layer_get, \@ref evas_object_layer_set,
+              \@ref evas_object_below_get, \@ref evas_object_below_set.
+            ]]
+            return: Evas.Object * @warn_unused; [[
+               A pointer to the lowest object on it, if any, or $null
+               otherwise.
+            ]]
          }
       }
       @property key_modifier {
          get {
-            /*@
-            Returns a handle to the list of modifier keys registered in the
-            canvas @p e. This is required to check for which modifiers are set
-            at a given time with the evas_key_modifier_is_set() function.
+            [[Returns a handle to the list of modifier keys registered in
+              the canvas $e.
 
-            @see evas_key_modifier_add
-            @see evas_key_modifier_del
-            @see evas_key_modifier_on
-            @see evas_key_modifier_off
-            @see evas_key_modifier_is_set
+              This is required to check for which modifiers are set at a
+              given time with the \@ref evas_key_modifier_is_set function.
 
-            @return An .Evas_Modifier handle to query Evas' keys subsystem
-            with evas_key_modifier_is_set(), or @c NULL on error. */
-            return: const(Evas.Modifier)* @warn_unused;
+              See also @.key_modifier_add, @.key_modifier_del,
+              @.key_modifier_on, @.key_modifier_off.
+            ]]
+            return: const(Evas.Modifier)* @warn_unused; [[
+               An Evas_Modifier handle to query Evas' keys subsystem
+               with \@ref evas_key_modifier_is_set, or $null on error.
+            ]]
          }
       }
       @property pointer_button_down_mask {
          get {
-            /*@
-            Returns a bitmask with the mouse buttons currently pressed, set to 1
+            [[Returns a bitmask with the mouse buttons currently pressed,
+              set to 1.
 
-            @return A bitmask of the currently depressed buttons on the canvas
-            @ingroup Evas_Pointer_Group
+              Calling this function will return a 32-bit integer with the
+              appropriate bits set to 1 that correspond to a mouse button
+              being depressed. This limits Evas to a mouse devices with a
+              maximum of 32 buttons, but that is generally in excess of
+              any host system's pointing device abilities.
 
-            Calling this function will return a 32-bit integer with the
-            appropriate bits set to 1 that correspond to a mouse button being
-            depressed. This limits Evas to a mouse devices with a maximum of 32
-            buttons, but that is generally in excess of any host system's
-            pointing device abilities.
+              A canvas by default begins with no mouse buttons being
+              pressed and only calls to @.event_feed_mouse_down
+              and @.event_feed_mouse_up will alter that.
 
-            A canvas by default begins with no mouse buttons being pressed and
-            only calls to evas_event_feed_mouse_down(),
-            evas_event_feed_mouse_down_data(), evas_event_feed_mouse_up() and
-            evas_event_feed_mouse_up_data() will alter that.
+              The least significant bit corresponds to the first mouse
+              button (button 1) and the most significant bit corresponds
+              to the last mouse button (button 32).
 
-            The least significant bit corresponds to the first mouse button
-            (button 1) and the most significant bit corresponds to the last
-            mouse button (button 32).
-
-            If @p e is not a valid canvas, the return value is undefined.
-
+              If $e is not a valid canvas, the return value is undefined.
+            ]]
+            /* FIXME-doc
             Example:
             @code
             extern Evas *evas;
@@ -574,207 +522,186 @@ class Evas.Canvas (Eo.Base, Evas.Common_Interface)
             {
             if ((button_mask & (1 << i)) != 0) printf("Button %i\n", i + 1);
             }
-            @endcode */
-            return: int @warn_unused;
+            @endcode
+            */
+            return: int @warn_unused; [[A bitmask of the currently depressed buttons on the canvas.]]
          }
       }
 
       tree_objects_at_xy_get {
-         /*@
-         Retrieve a list of Evas objects lying over a given position in
-         a canvas.
+         [[Retrieve a list of Evas objects lying over a given position in
+           a canvas.
 
-         This function will traverse all the layers of the given canvas,
-         from top to bottom, querying for objects with areas covering the
-         given position. It will enter the smart objects.
-         It will not append to the list pass events as hidden objects.
-         Call eina_list_free on the returned list after usage. */
-
+           This function will traverse all the layers of the given canvas,
+           from top to bottom, querying for objects with areas covering the
+           given position. It will enter the smart objects.
+           It will not append to the list pass events as hidden objects.
+           Call eina_list_free on the returned list after usage.
+         ]]
          return: list<Evas.Object *> * @warn_unused;
          params {
-            @in stop: Evas.Object *; /*@ An Evas Object where to stop searching. */
-            @in x: int; /*@ The horizontal coordinate of the position. */
-            @in y: int; /*@ The vertical coordinate of the position. */
+            @in stop: Evas.Object *; [[An Evas Object where to stop searching.]]
+            @in x: int; [[The horizontal coordinate of the position.]]
+            @in y: int; [[The vertical coordinate of the position.]]
          }
       }
       event_feed_mouse_wheel {
-         /*@
-         Mouse wheel event feed.
+         [[Mouse wheel event feed.
 
-         This function will set some evas properties that is necessary when
-         the mouse wheel is scrolled up or down. It prepares information to
-         be treated by the callback function. */
-
+           This function will set some evas properties that is necessary
+           when the mouse wheel is scrolled up or down. It prepares
+           information to  be treated by the callback function.
+         ]]
          params {
-            @in direction: int; /*@ The wheel mouse direction. */
-            @in z: int; /*@ How much mouse wheel was scrolled up or down. */
-            @in timestamp: uint; /*@ The timestamp of the mouse up event. */
-            @in data: const(void)*; /*@ The data for canvas. */
+            @in direction: int; [[The wheel mouse direction.]]
+            @in z: int; [[How much mouse wheel was scrolled up or down.]]
+            @in timestamp: uint; [[The timestamp of the mouse up event.]]
+            @in data: const(void)*; [[The data for canvas.]]
          }
       }
       key_lock_on {
-         /*@
-         Enables or turns on programmatically the lock key with name @p
-         keyname.
+         [[Enables or turns on programmatically the lock key with name
+           $keyname.
 
-         The effect will be as if the key was put on its active state after
-         this call.
+           The effect will be as if the key was put on its active state
+           after this call.
 
-         @see evas_key_lock_get
-         @see evas_key_lock_add
-         @see evas_key_lock_del
-         @see evas_key_lock_off */
-
+              See also @.key_lock_add, @.key_lock_del, @.key_lock_del,
+              @.key_lock_off.
+         ]]
          params {
-            @in keyname: const(char)* @nonull; /*@ The name of the lock to enable. */
+            @in keyname: const(char)* @nonull; [[The name of the lock to enable.]]
          }
       }
       event_feed_key_down {
-         /*@
-         Key down event feed
+         [[Key down event feed.
 
-         This function will set some evas properties that is necessary when
-         a key is pressed. It prepares information to be treated by the
-         callback function. */
-
+           This function will set some evas properties that is necessary
+           when a key is pressed. It prepares information to be treated
+           by the callback function.
+         ]]
          params {
-            @in keyname: const(char)*; /*@ Name of the key */
-            @in key: const(char)*; /*@ The key pressed. */
-            @in string: const(char)*; /*@ A String */
-            @in compose: const(char)*; /*@ The compose string */
-            @in timestamp: uint; /*@ Timestamp of the mouse up event */
-            @in data: const(void)*; /*@ Data for canvas. */
+            @in keyname: const(char)*; [[Name of the key.]]
+            @in key: const(char)*; [[The key pressed.]]
+            @in string: const(char)*; [[A string.]]
+            @in compose: const(char)*; [[The compose string.]]
+            @in timestamp: uint; [[Timestamp of the mouse up event.]]
+            @in data: const(void)*; [[Data for canvas.]]
          }
       }
       key_modifier_mask_get @const {
-         /*@
-         Creates a bit mask from the @p keyname @b modifier key. Values
-         returned from different calls to it may be ORed together,
-         naturally.
+         [[Creates a bit mask from the $keyname modifier key. Values
+           returned from different calls to it may be ORed together,
+           naturally.
 
-         @returns the bit mask or 0 if the @p keyname key wasn't registered as a
-         modifier for canvas @p e.
+           This function is meant to be using in conjunction with
+           \@ref evas_object_key_grab/\@ref evas_object_key_ungrab.
+           Go check their documentation for more information.
 
-         This function is meant to be using in conjunction with
-         evas_object_key_grab()/evas_object_key_ungrab(). Go check their
-         documentation for more information.
-
-         @see evas_key_modifier_add
-         @see evas_key_modifier_get
-         @see evas_key_modifier_on
-         @see evas_key_modifier_off
-         @see evas_key_modifier_is_set
-         @see evas_object_key_grab
-         @see evas_object_key_ungrab */
-         return: Evas.Modifier_Mask @warn_unused;
+           See also @.key_modifier_add, \@ref evas_key_modifier_get,
+           @.key_modifier_on, @.key_modifier_off,
+           \@ref evas_key_modifier_is_set.
+         ]]
+         return: Evas.Modifier_Mask @warn_unused; [[
+            The bit mask or 0 if the $keyname key wasn't registered as a
+            modifier for canvas $e.
+         ]]
          params {
-            @in keyname: const(char)* @nonull; /*@ The name of the modifier key to create the mask for. */
+            @in keyname: const(char)* @nonull; [[The name of the modifier key to create the mask for.]]
          }
       }
       key_modifier_add {
-         /*@
-         Adds the @p keyname key to the current list of modifier keys.
+         [[Adds the $keyname key to the current list of modifier keys.
 
-         Modifiers are keys like shift, alt and ctrl, i.e., keys which are
-         meant to be pressed together with others, altering the behavior of
-         the secondly pressed keys somehow. Evas is so that these keys can
-         be user defined.
+           Modifiers are keys like shift, alt and ctrl, i.e., keys which
+           are meant to be pressed together with others, altering the
+           behavior of the secondly pressed keys somehow. Evas is so that
+           these keys can be user defined.
 
-         This call allows custom modifiers to be added to the Evas system at
-         run time. It is then possible to set and unset modifier keys
-         programmatically for other parts of the program to check and act
-         on. Programmers using Evas would check for modifier keys on key
-         event callbacks using evas_key_modifier_is_set().
+           This call allows custom modifiers to be added to the Evas system
+           at run time. It is then possible to set and unset modifier keys
+           programmatically for other parts of the program to check and act
+           on. Programmers using Evas would check for modifier keys on key
+           event callbacks using \@ref evas_key_modifier_is_set.
 
-         @see evas_key_modifier_del
-         @see evas_key_modifier_get
-         @see evas_key_modifier_on
-         @see evas_key_modifier_off
-         @see evas_key_modifier_is_set
-
-         @note If the programmer instantiates the canvas by means of the
-         ecore_evas_new() family of helper functions, Ecore will take
-         care of registering on it all standard modifiers: "Shift",
-         "Control", "Alt", "Meta", "Hyper", "Super". */
-
+           Note: If the programmer instantiates the canvas by means of the
+           \@ref ecore_evas_new family of helper functions, Ecore will take
+           care of registering on it all standard modifiers: "Shift",
+           "Control", "Alt", "Meta", "Hyper", "Super".
+         ]]
          params {
-            @in keyname: const(char)* @nonull; /*@ The name of the modifier key to add to the list of
-            Evas modifiers. */
+            @in keyname: const(char)* @nonull; [[
+               The name of the modifier key to add to the list of
+               Evas modifiers.
+            ]]
          }
       }
       key_modifier_off {
-         /*@
-         Disables or turns off programmatically the modifier key with name
-         @p keyname.
+         [[Disables or turns off programmatically the modifier key with
+           name $keyname.
 
-         @see evas_key_modifier_add
-         @see evas_key_modifier_get
-         @see evas_key_modifier_on
-         @see evas_key_modifier_is_set */
-
+           See also @.key_modifier_add, \@ref evas_key_modifier_get,
+           @.key_modifier_on, @.key_modifier_mask_get,
+           \@ref evas_key_modifier_is_set.
+         ]]
          params {
-            @in keyname: const(char)* @nonull; /*@ The name of the modifier to disable. */
+            @in keyname: const(char)* @nonull; [[The name of the modifier to disable.]]
          }
       }
       event_feed_hold {
-         /*@
-         Hold event feed
+         [[Hold event feed.
 
-         This function makes the object to stop sending events. */
-
+           This function makes the object to stop sending events.
+         ]]
          params {
-            @in hold: int; /*@ The hold. */
-            @in timestamp: uint; /*@ The timestamp of the mouse up event. */
-            @in data: const(void)*; /*@ The data for canvas. */
+            @in hold: int; [[The hold.]]
+            @in timestamp: uint; [[The timestamp of the mouse up event.]]
+            @in data: const(void)*; [[The data for canvas.]]
          }
       }
       event_feed_mouse_move {
-         /*@
-         Mouse move event feed.
+         [[Mouse move event feed.
 
-         This function will set some evas properties that is necessary when
-         the mouse is moved from its last position. It prepares information
-         to be treated by the callback function. */
-
+           This function will set some evas properties that is necessary
+           when the mouse is moved from its last position. It prepares
+           information to be treated by the callback function.
+         ]]
          params {
-            @in x: int; /*@ The horizontal position of the mouse pointer. */
-            @in y: int; /*@ The vertical position of the mouse pointer. */
-            @in timestamp: uint; /*@ The timestamp of the mouse up event. */
-            @in data: const(void)*; /*@ The data for canvas. */
+            @in x: int; [[The horizontal position of the mouse pointer.]]
+            @in y: int; [[The vertical position of the mouse pointer.]]
+            @in timestamp: uint; [[The timestamp of the mouse up event.]]
+            @in data: const(void)*; [[The data for canvas.]]
          }
       }
       event_feed_key_up {
-         /*@
-         Key up event feed
+         [[Key up event feed.
 
-         This function will set some evas properties that is necessary when
-         a key is released. It prepares information to be treated by the
-         callback function. */
-
+           This function will set some evas properties that is necessary
+           when a key is released. It prepares information to be treated
+           by the callback function.
+         ]]
          params {
-            @in keyname: const(char)*; /*@ Name of the key */
-            @in key: const(char)*; /*@ The key released. */
-            @in string: const(char)*; /*@ string */
-            @in compose: const(char)*; /*@ compose */
-            @in timestamp: uint; /*@ Timestamp of the mouse up event */
-            @in data: const(void)*; /*@ Data for canvas. */
+            @in keyname: const(char)*; [[Name of the key.]]
+            @in key: const(char)*; [[The key released.]]
+            @in string: const(char)*; [[A string.]]
+            @in compose: const(char)*; [[Compose.]]
+            @in timestamp: uint; [[Timestamp of the mouse up event.]]
+            @in data: const(void)*; [[Data for canvas.]]
          }
       }
       event_feed_mouse_out {
-         /*@
-         Mouse out event feed.
+         [[Mouse out event feed.
 
-         This function will set some evas properties that is necessary when
-         the mouse out event happens. It prepares information to be treated
-         by the callback function. */
-
+           This function will set some evas properties that is necessar
+           when the mouse out event happens. It prepares information to
+           be treated by the callback function.
+         ]]
          params {
-            @in timestamp: uint; /*@ Timestamp of the mouse up event. */
-            @in data: const(void)*; /*@ The data for canvas. */
+            @in timestamp: uint; [[Timestamp of the mouse up event.]]
+            @in data: const(void)*; [[The data for canvas.]]
          }
       }
       event_input_multi_move {
-         /*@ No description supplied by the EAPI. */
          params {
             @in d: int;
             @in x: int;
@@ -791,33 +718,35 @@ class Evas.Canvas (Eo.Base, Evas.Common_Interface)
          }
       }
       objects_at_xy_get @const {
-         /*@
-         Retrieve a list of Evas objects lying over a given position in
-         a canvas
+         [[Retrieve a list of Evas objects lying over a given position in
+           a canvas.
 
-         @return  The list of Evas objects that are over the given position
-         in @p e
+           This function will traverse all the layers of the given canvas,
+           from top to bottom, querying for objects with areas covering the
+           given position. The user can remove from query objects which are
+           hidden and/or which are set to pass events.
 
-         This function will traverse all the layers of the given canvas,
-         from top to bottom, querying for objects with areas covering the
-         given position. The user can remove from query
-         objects which are hidden and/or which are set to pass events.
-
-         @warning This function will @b skip objects parented by smart
-         objects, acting only on the ones at the "top level", with regard to
-         object parenting. */
-         return: list<Evas.Object *> * @warn_unused;
+           Warning: This function will skip objects parented by smart
+           objects, acting only on the ones at the "top level", with
+           regard to object parenting.
+         ]]
+         return: list<Evas.Object *> * @warn_unused; [[
+            The list of Evas objects that are over the given position in $e.
+         ]]
          params {
-            @in x: Evas.Coord; /*@ The horizontal coordinate of the position */
-            @in y: Evas.Coord; /*@ The vertical coordinate of the position */
-            @in include_pass_events_objects: bool; /*@ Boolean flag to include or not
-            objects which pass events in this calculation */
-            @in include_hidden_objects: bool; /*@ Boolean flag to include or not hidden
-            objects in this calculation */
+            @in x: Evas.Coord; [[The horizontal coordinate of the position.]]
+            @in y: Evas.Coord; [[The vertical coordinate of the position.]]
+            @in include_pass_events_objects: bool; [[
+               Boolean flag to include or not objects which pass events
+               in this calculation.
+            ]]
+            @in include_hidden_objects: bool; [[
+               Boolean flag to include or not hidden objects in this
+               calculation.
+            ]]
          }
       }
       event_input_multi_up {
-         /*@ No description supplied by the EAPI. */
          params {
             @in d: int;
             @in x: int;
@@ -835,7 +764,6 @@ class Evas.Canvas (Eo.Base, Evas.Common_Interface)
          }
       }
       event_feed_multi_down {
-         /*@ No description supplied by the EAPI. */
          params {
             @in d: int;
             @in x: int;
@@ -853,112 +781,93 @@ class Evas.Canvas (Eo.Base, Evas.Common_Interface)
          }
       }
       render_async {
-         /*@
-         Render the given Evas canvas asynchronously.
+         [[Render the given Evas canvas asynchronously.
 
-         @return EINA_TRUE if the canvas will render, EINA_FALSE otherwise.
+           This function only returns $true when a frame will be rendered.
+           If the previous frame is still rendering, $false will be
+           returned  so the users know not to wait for the updates
+           callback and just  return to their main loop.
 
-         This function only returns EINA_TRUE when a frame will be rendered. If the
-         previous frame is still rendering, EINA_FALSE will be returned so the users
-         know not to wait for the updates callback and just return to their main
-         loop.
+           If a $func callback is given, a list of updated areas will be
+           generated and the function will be called from the main thread
+           after the rendered frame is flushed to the screen. The resulting
+           list should be freed with \@ref evas_render_updates_free.
 
-         If a @p func callback is given, a list of updated areas will be generated
-         and the function will be called from the main thread after the rendered
-         frame is flushed to the screen. The resulting list should be freed with
-         @f evas_render_updates_free().
-         The list is given in the @p event_info parameter of the callback function.
+           The list is given in the $event_info parameter of the callback
+           function.
 
-         @ingroup Evas_Canvas
-         @since 1.8 */
-
-         return: bool;
+           @since 1.8
+         ]]
+         return: bool; [[$true if the canvas will render, $false otherwise.]]
       }
       render2 {
-         /*@
-         Render the given Evas canvas using the new rendering infra.
+         [[Render the given Evas canvas using the new rendering infra.
 
-         This is experimental and will change over time until noted here.
+           This is experimental and will change over time until noted here.
 
-         @return EINA_TRUE if the canvas will render, EINA_FALSE otherwise.
+           This function only returns $true when a frame will be rendered.
+           If the previous frame is still rendering, $false will be
+           returned so the users know not to wait for the updates
+           callback and just return to their main loop.
 
-         This function only returns EINA_TRUE when a frame will be rendered. If the
-         previous frame is still rendering, EINA_FALSE will be returned so the users
-         know not to wait for the updates callback and just return to their main
-         loop.
-
-         @ingroup Evas_Canvas
-         @since 1.14 */
-
-         return: bool;
+           @since 1.14
+         ]]
+         return: bool; [[$true if the canvas will render, $false otherwise.]]
       }
       render2_updates {
-         /*@
-         Render the given Evas canvas using the new rendering infra.
+         [[Render the given Evas canvas using the new rendering infra.
 
-         This is experimental and will change over time until noted here.
+           This is experimental and will change over time until noted here.
 
-         @return A newly allocated list of updated rectangles of thecanvas
-         (@c Eina.Rectangle structs). Free this list with
-         evas_render_updates_free().
-
-         @ingroup Evas_Canvas
-         @since 1.15 */
-
+           @since 1.15
+         ]]
          return: free(own(list<Eina.Rectangle *> *), evas_render_updates_free)
-            @warn_unused;
+            @warn_unused; [[
+            A newly allocated list of updated rectangles of the canvas
+            ($Eina.Rectangle structs). Free this list with
+            \@ref evas_render_updates_free.
+         ]]
       }
       focus_out {
-         /*@
-         Inform to the evas that it lost the focus.
-
-         @ingroup Evas_Canvas */
-
+         [[Inform to the evas that it lost the focus.]]
       }
       event_input_mouse_move {
-         /*@
-         Mouse move event feed from input.
+         [[Mouse move event feed from input.
 
-         Similar to the evas_event_feed_mouse_move(), this function will inform Evas
-         about mouse move events which were received by the input system, relative to
-         the 0,0 of the window, not to the canvas 0,0. It will take care of doing any
-         special transformation like adding the framespace offset to the mouse event.
+           Similar to the @.event_feed_mouse_move, this function will
+           inform Evas about mouse move events which were received by
+           the input system, relative to the 0,0 of the window, not to the
+           canvas 0,0. It will take care of doing any special transformation
+           like adding the framespace offset to the mouse event.
 
-         @since 1.8
-         @see evas_event_feed_mouse_move */
-
+           @since 1.8
+         ]]
          params {
-            @in x: int; /*@ The horizontal position of the mouse pointer relative to the 0,0 of
-            the window/surface. */
-            @in y: int; /*@ The vertical position of the mouse pointer relative to the 0,0 of
-            the window/surface. */
-            @in timestamp: uint; /*@ The timestamp of the mouse move event. */
-            @in data: const(void)*; /*@ The data for canvas. */
+            @in x: int; [[The horizontal position of the mouse pointer
+                          relative to the 0,0 of the window/surface.]]
+            @in y: int; [[The vertical position of the mouse pointer
+                          relative to the 0,0 of the window/surface.]]
+            @in timestamp: uint; [[The timestamp of the mouse move event.]]
+            @in data: const(void)*; [[The data for canvas.]]
          }
       }
       norender {
-         /*@
-         Update the canvas internal objects but not triggering immediate
-         renderization.
+         [[Update the canvas internal objects but not triggering immediate
+           renderization.
 
-         This function updates the canvas internal objects not triggering
-         renderization. To force renderization function evas_render() should
-         be used.
-
-         @see evas_render.
-
-         @ingroup Evas_Canvas */
-
+           This function updates the canvas internal objects not triggering
+           renderization. To force renderization function @.render
+           should be used.
+         ]]
       }
       touch_point_list_count {
-         /*@
-         Get the number of touched point in the evas.
+         [[Get the number of touched point in the evas.
 
-         @return The number of touched point on the evas.
-
-         New touched point is added to the list whenever touching the evas
-         and point is removed whenever removing touched point from the evas.
-
+           New touched point is added to the list whenever touching the
+           evas and point is removed whenever removing touched point from
+           the evas.
+         ]]
+         /* FIXME-doc
          Example:
          @code
          extern Evas *evas;
@@ -967,15 +876,10 @@ class Evas.Canvas (Eo.Base, Evas.Common_Interface)
          count = evas_touch_point_list_count(evas);
          printf("The count of touch points: %i\n", count);
          @endcode
-
-         @see evas_touch_point_list_nth_xy_get()
-         @see evas_touch_point_list_nth_id_get()
-         @see evas_touch_point_list_nth_state_get() */
-
-         return: uint;
+         */
+         return: uint; [[The number of touched point on the evas.]]
       }
       event_input_multi_down {
-         /*@ No description supplied by the EAPI. */
          params {
             @in d: int;
             @in x: int;
@@ -993,168 +897,146 @@ class Evas.Canvas (Eo.Base, Evas.Common_Interface)
          }
       }
       nochange_pop {
-         /*@
-         Pop the nochange flag down 1
+         [[Pop the nochange flag down 1.
 
-         This tells evas, that while the nochange flag is greater than 0, do not
-         mark objects as "changed" when making changes.
+           This tells evas, that while the nochange flag is greater than 0,
+           do not mark objects as "changed" when making changes.
 
-         @warning Do not use this function unless you know what Evas exactly
-         works with "changed" state.
-
-         @ingroup Evas_Canvas */
-
+           Warning: Do not use this function unless you know what Evas
+           exactly works with "changed" state.
+         ]]
       }
       key_lock_off {
-         /*@
-         Disables or turns off programmatically the lock key with name @p
-         keyname.
+         [[Disables or turns off programmatically the lock key with name
+           $keyname.
 
-         The effect will be as if the key was put on its inactive state
-         after this call.
+           The effect will be as if the key was put on its inactive state
+           after this call.
 
-         @see evas_key_lock_get
-         @see evas_key_lock_add
-         @see evas_key_lock_del
-         @see evas_key_lock_on */
-
+            See also @.key_lock_on.
+         ]]
          params {
-            @in keyname: const(char)* @nonull; /*@ The name of the lock to disable. */
+            @in keyname: const(char)* @nonull; [[The name of the lock to disable.]]
          }
       }
       nochange_push {
-         /*@
-         Push the nochange flag up 1
+         [[Push the nochange flag up 1
 
-         This tells evas, that while the nochange flag is greater than 0, do not
-         mark objects as "changed" when making changes.
+           This tells evas, that while the nochange flag is greater than 0,
+           do not mark objects as "changed" when making changes.
 
-         @warning Do not use this function unless you know what Evas exactly
-         works with "changed" state.
-
-         @ingroup Evas_Canvas */
-
+           Warning: Do not use this function unless you know what Evas
+           exactly works with "changed" state.
+         ]]
       }
       font_cache_flush {
-         /*@
-         Force the given evas and associated engine to flush its font cache.
-
-         @ingroup Evas_Font_Group */
+         [[Force the given evas and associated engine to flush its font cache.]]
 
       }
       font_hinting_can_hint @const {
-         /*@
-         Checks if the font hinting is supported by the given evas.
+         [[Checks if the font hinting is supported by the given evas.
 
-         #EVAS_FONT_HINTING_AUTO, #EVAS_FONT_HINTING_BYTECODE.
-         @return @c EINA_TRUE if it is supported, @c EINA_FALSE otherwise.
-         @ingroup Evas_Font_Group */
-         return: bool @warn_unused;
+           One of #EVAS_FONT_HINTING_NONE, #EVAS_FONT_HINTING_AUTO,
+           #EVAS_FONT_HINTING_BYTECODE.
+         ]]
+         return: bool @warn_unused; [[$true if it is supported, $false otherwise.]]
          params {
-            @in hinting: Evas.Font.Hinting_Flags; /*@ The hinting to use, one of #EVAS_FONT_HINTING_NONE, */
+            @in hinting: Evas.Font.Hinting_Flags; [[The hinting to use.]]
          }
       }
       object_top_at_xy_get @const {
-         /*@
-         Retrieve the Evas object stacked at the top of a given position in
-         a canvas
+         [[Retrieve the Evas object stacked at the top of a given position
+           in a canvas.
 
-         @return  The Evas object that is over all other objects at the given
-         position.
+           This function will traverse all the layers of the given canvas,
+           from top to bottom, querying for objects with areas covering the
+           given position. The user can remove from the query
+           objects which are hidden and/or which are set to pass events.
 
-         This function will traverse all the layers of the given canvas,
-         from top to bottom, querying for objects with areas covering the
-         given position. The user can remove from the query
-         objects which are hidden and/or which are set to pass events.
-
-         @warning This function will @b skip objects parented by smart
-         objects, acting only on the ones at the "top level", with regard to
-         object parenting. */
-         return: Evas.Object * @warn_unused;
+           Warning: This function will skip objects parented by smart
+           objects, acting only on the ones at the "top level", with
+           regard to object parenting.
+         ]]
+         return: Evas.Object * @warn_unused; [[The Evas object that is over all other objects at the given position.]]
          params {
-            @in x: Evas.Coord; /*@ The horizontal coordinate of the position */
-            @in y: Evas.Coord; /*@ The vertical coordinate of the position */
-            @in include_pass_events_objects: bool; /*@ Boolean flag to include or not
-            objects which pass events in this calculation */
-            @in include_hidden_objects: bool; /*@ Boolean flag to include or not hidden
-            objects in this calculation */
+            @in x: Evas.Coord; [[The horizontal coordinate of the position.]]
+            @in y: Evas.Coord; [[The vertical coordinate of the position.]]
+            @in include_pass_events_objects: bool; [[
+               Boolean flag to include or not objects which pass events
+               in this calculation.
+            ]]
+            @in include_hidden_objects: bool; [[
+               Boolean flag to include or not hidden objects in this
+               calculation.
+            ]]
          }
       }
       key_modifier_on {
-         /*@
-         Enables or turns on programmatically the modifier key with name @p
-         keyname.
+         [[Enables or turns on programmatically the modifier key with name
+           $keyname.
 
-         The effect will be as if the key was pressed for the whole time
-         between this call and a matching evas_key_modifier_off().
+           The effect will be as if the key was pressed for the whole time
+           between this call and a matching evas_key_modifier_off().
 
-         @see evas_key_modifier_add
-         @see evas_key_modifier_get
-         @see evas_key_modifier_off
-         @see evas_key_modifier_is_set */
-
+           See also @.key_modifier_off.
+         ]]
          params {
-            @in keyname: const(char)* @nonull; /*@ The name of the modifier to enable. */
+            @in keyname: const(char)* @nonull; [[The name of the modifier to enable.]]
          }
       }
       event_feed_mouse_up {
-         /*@
-         Mouse up event feed.
+         [[Mouse up event feed.
 
-         This function will set some evas properties that is necessary when
-         the mouse button is released. It prepares information to be treated
-         by the callback function. */
-
+           This function will set some evas properties that is necessary
+           when the mouse button is released. It prepares information to
+           be treated by the callback function.
+         ]]
          params {
-            @in b: int; /*@ The button number. */
-            @in flags: Evas.Button_Flags; /*@ evas button flags. */
-            @in timestamp: uint; /*@ The timestamp of the mouse up event. */
-            @in data: const(void)*; /*@ The data for canvas. */
+            @in b: int; [[The button number.]]
+            @in flags: Evas.Button_Flags; [[Evas button flags.]]
+            @in timestamp: uint; [[The timestamp of the mouse up event.]]
+            @in data: const(void)*; [[The data for canvas.]]
          }
       }
       event_feed_mouse_down {
-         /*@
-         Mouse down event feed.
+         [[Mouse down event feed.
 
-         This function will set some evas properties that is necessary when
-         the mouse button is pressed. It prepares information to be treated
-         by the callback function. */
-
+           This function will set some evas properties that is necessary
+           when the mouse button is pressed. It prepares information to
+           be treated by the callback function.
+         ]]
          params {
-            @in b: int; /*@ The button number. */
-            @in flags: Evas.Button_Flags; /*@ The evas button flags. */
-            @in timestamp: uint; /*@ The timestamp of the mouse down event. */
-            @in data: const(void)*; /*@ The data for canvas. */
+            @in b: int; [[The button number.]]
+            @in flags: Evas.Button_Flags; [[Evas button flags.]]
+            @in timestamp: uint; [[The timestamp of the mouse up event.]]
+            @in data: const(void)*; [[The data for canvas.]]
          }
       }
       event_refeed_event {
-         /*@
-         Re feed event.
+         [[Re feed event.
 
-         This function re-feeds the event pointed by event_copy
+           This function re-feeds the event pointed by event_copy.
 
-         This function call evas_event_feed_* functions, so it can
-         cause havoc if not used wisely. Please use it responsibly. */
-
+           This function call evas_event_feed_* functions, so it can
+           cause havoc if not used wisely. Please use it responsibly.
+         ]]
          params {
-            @in event_copy: void *; /*@ the event to refeed */
-            @in event_type: Evas.Callback_Type; /*@ Event type */
+            @in event_copy: void *; [[The event to refeed.]]
+            @in event_type: Evas.Callback_Type; [[Event type.]]
          }
       }
       font_available_list @const {
-         /*@
-         List of available font descriptions known or found by this evas.
+         [[List of available font descriptions known or found by this evas.
 
-         The list depends on Evas compile time configuration, such as
-         fontconfig support, and the paths provided at runtime as explained
-         in @ref Evas_Font_Path_Group.
-
-         @return a newly allocated list of strings. Do not change the
-         strings.  Be sure to call evas_font_available_list_free()
-         after you're done.
-
-         @ingroup Evas_Font_Group */
-         return: list<const(char) *> * @warn_unused;
+           The list depends on Evas compile time configuration, such as
+           fontconfig support, and the paths provided at runtime as
+           explained in \@ref Evas_Font_Path_Group.
+         ]]
+         return: list<const(char) *> * @warn_unused; [[
+            A newly allocated list of strings. Do not change the
+            strings. Be sure to call \@ref evas_font_available_list_free
+            after you're done.
+         ]]
       }
       objects_in_rectangle_get @const {
          return: list<Evas.Object *> * @warn_unused;
@@ -1168,41 +1050,38 @@ class Evas.Canvas (Eo.Base, Evas.Common_Interface)
          }
       }
       object_name_find @const {
-         /*@
-         Retrieves the object on the given evas with the given name.
-         @return  If successful, the Evas object with the given name.  Otherwise,
-         @c NULL.
+         [[Retrieves the object on the given evas with the given name.
 
-         This looks for the evas object given a name by evas_object_name_set(). If
-         the name is not unique canvas-wide, then which one of the many objects
-         with that name is returned is undefined, so only use this if you can ensure
-         the object name is unique.
-
-         @ingroup Evas_Object_Group_Find */
-         return: Evas.Object * @warn_unused;
+           This looks for the evas object given a name by
+           \@ref evas_object_name_set. If the name is not unique
+           canvas-wide, then which one of the many objects with that
+           name is returned is undefined, so only use this if you can
+           ensure the object name is unique.
+         ]]
+         return: Evas.Object * @warn_unused; [[
+            If successful, the Evas object with the given name. Otherwise,
+            $null.
+         ]]
          params {
-            @in name: const(char)*; /*@ The given name. */
+            @in name: const(char)*; [[The given name.]]
          }
       }
       font_path_append {
-         /*@
-         Appends a font path to the list of font paths used by the given evas.
-         @ingroup Evas_Font_Path_Group */
-
+         [[Appends a font path to the list of font paths used by the
+           given evas.
+         ]]
          params {
-            @in path: const(char)* @nonull; /*@ The new font path. */
+            @in path: const(char)* @nonull; [[The new font path.]]
          }
       }
       touch_point_list_nth_id_get {
-         /*@
-         This function returns the @p id of nth touch point.
+         [[This function returns the $id of nth touch point.
 
-         @return id of nth touch point, if the call succeeded, -1 otherwise.
-
-         The point which comes from Mouse Event has @p id 0 and The point
-         which comes from Multi Event has @p id that is same as Multi
-         Event's device id.
-
+           The point which comes from Mouse Event has $id 0 and The point
+           which comes from Multi Event has $id that is same as Multi
+           Event's device id.
+         ]]
+         /* FIXME-doc
          Example:
          @code
          extern Evas *evas;
@@ -1214,40 +1093,28 @@ class Evas.Canvas (Eo.Base, Evas.Common_Interface)
          printf("The first touch point's id: %i\n", id);
          }
          @endcode
-
-         @see evas_touch_point_list_count()
-         @see evas_touch_point_list_nth_xy_get()
-         @see evas_touch_point_list_nth_state_get() */
-
-         return: int;
+         */
+         return: int; [[id of nth touch point, if the call succeeded, -1 otherwise.]]
          params {
-            @in n: uint; /*@ The number of the touched point (0 being the first). */
+            @in n: uint; [[The number of the touched point (0 being the first).]]
          }
       }
       font_path_clear {
-         /*@
-         Removes all font paths loaded into memory for the given evas.
-         @ingroup Evas_Font_Path_Group */
-
+         [[Removes all font paths loaded into memory for the given evas.]]
       }
       smart_objects_calculate {
-         /*@
-         Call user-provided @c calculate() smart functions and unset the
-         flag signalling that the object needs to get recalculated to @b all
-         smart objects in the canvas.
-
-         @see evas_object_smart_need_recalculate_set()
-
-         @ingroup Evas_Smart_Object_Group */
-
+         [[Call user-provided $calculate smart functions and unset the
+           flag signalling that the object needs to get recalculated to
+           all smart objects in the canvas.
+         ]]
       }
       touch_point_list_nth_xy_get {
-         /*@
-         This function returns the nth touch point's co-ordinates.
+         [[This function returns the nth touch point's coordinates.
 
-         Touch point's co-ordinates is updated whenever moving that point
-         on the canvas.
-
+           Touch point's coordinates is updated whenever moving that point
+           on the canvas.
+         ]]
+         /* FIXME-doc
          Example:
          @code
          extern Evas *evas;
@@ -1256,81 +1123,64 @@ class Evas.Canvas (Eo.Base, Evas.Common_Interface)
          if (evas_touch_point_list_count(evas))
          {
          evas_touch_point_nth_xy_get(evas, 0, &x, &y);
-         printf("The first touch point's co-ordinate: (%i, %i)\n", x, y);
+         printf("The first touch point's coordinate: (%i, %i)\n", x, y);
          }
          @endcode
-
-         @see evas_touch_point_list_count()
-         @see evas_touch_point_list_nth_id_get()
-         @see evas_touch_point_list_nth_state_get() */
-
+         */
          params {
-            @in n: uint; /*@ The number of the touched point (0 being the first). */
-            @out x: Evas.Coord; /*@ The pointer to a Evas_Coord to be filled in. */
-            @out y: Evas.Coord; /*@ The pointer to a Evas_Coord to be filled in. */
+            @in n: uint; [[The number of the touched point (0 being the first).]]
+            @out x: Evas.Coord; [[The pointer to a Evas_Coord to be filled in.]]
+            @out y: Evas.Coord; [[The pointer to a Evas_Coord to be filled in.]]
          }
       }
       key_lock_del {
-         /*@
-         Removes the @p keyname key from the current list of lock keys on
-         canvas @p e.
-
-         @see evas_key_lock_get
-         @see evas_key_lock_add
-         @see evas_key_lock_on
-         @see evas_key_lock_off */
-
+         [[Removes the $keyname key from the current list of lock keys on
+           canvas $e.
+         ]]
          params {
-            @in keyname: const(char)* @nonull; /*@ The name of the key to remove from the locks list. */
+            @in keyname: const(char)* @nonull; [[The name of the key to remove from the locks list.]]
          }
       }
       damage_rectangle_add {
-         /*@
-         Add a damage rectangle.
+         [[Add a damage rectangle.
 
-         This is the function by which one tells evas that a part of the
-         canvas has to be repainted.
+           This is the function by which one tells evas that a part of the
+           canvas has to be repainted.
 
-         @note All newly created Evas rectangles get the default color values of 255 255 255 255 (opaque white).
-
-         @ingroup Evas_Canvas */
-
+           Note: All newly created Evas rectangles get the default color
+           values of 255 255 255 255 (opaque white).
+         ]]
          params {
-            @in x: int; /*@ The rectangle's left position. */
-            @in y: int; /*@ The rectangle's top position. */
-            @in w: int; /*@ The rectangle's width. */
-            @in h: int; /*@ The rectangle's height. */
+            @in x: int; [[The rectangle's left position.]]
+            @in y: int; [[The rectangle's top position.]]
+            @in w: int; [[The rectangle's width.]]
+            @in h: int; [[The rectangle's height.]]
          }
       }
       sync {
-         /*@ No description supplied by the EAPI. */
       }
       font_path_list @const {
-         /*@
-         Retrieves the list of font paths used by the given evas.
-         @return  The list of font paths used.
-         @ingroup Evas_Font_Path_Group */
-         return: const(list<const(char) *>)* @warn_unused;
+         [[Retrieves the list of font paths used by the given evas.]]
+         return: const(list<const(char) *>)* @warn_unused; [[The list of font paths used.]]
       }
       image_cache_reload {
-         /*@
-         Reload the image cache
+         [[Reload the image cache.
 
-         This function reloads the image cache of canvas. */
+           This function reloads the image cache of canvas.
+         ]]
 
       }
       coord_world_x_to_screen @const {
-         /*@
-         Convert/scale a canvas co-ordinate into output screen co-ordinates
+         [[Convert/scale a canvas coordinate into output screen
+           coordinates.
 
-         @return The output/screen co-ordinate translated to output co-ordinates
-         @ingroup Evas_Coord_Mapping_Group
-
-         This function takes in a horizontal co-ordinate as the @p x
-         parameter and converts it into output units, accounting for output
-         size, viewport size and location, returning it as the function
-         return value. If @p e is invalid, the results are undefined.
-
+           This function takes in a horizontal coordinate as the $x
+           parameter and converts it into output units, accounting for
+           output size, viewport size and location, returning it as the
+           function  return value. If $e is invalid, the results are
+           undefined.
+         ]]
+         /* FIXME-doc
          Example:
          @code
          extern Evas *evas;
@@ -1338,14 +1188,14 @@ class Evas.Canvas (Eo.Base, Evas.Common_Interface)
          extern Evas_Coord canvas_x;
 
          screen_x = evas_coord_world_x_to_screen(evas, canvas_x);
-         @endcode */
-         return: int @warn_unused;
+         @endcode
+         */
+         return: int @warn_unused; [[The output/screen coordinate translated to output coordinates.]]
          params {
-            @in x: Evas.Coord; /*@ The canvas x co-ordinate */
+            @in x: Evas.Coord; [[The canvas x coordinate.]]
          }
       }
       event_feed_multi_move {
-         /*@ No description supplied by the EAPI. */
          params {
             @in d: int;
             @in x: int;
@@ -1362,56 +1212,51 @@ class Evas.Canvas (Eo.Base, Evas.Common_Interface)
          }
       }
       render_updates {
-         /*@
-         Force immediate renderization of the given Evas canvas.
+         [[Force immediate renderization of the given Evas canvas.
 
-         @return A newly allocated list of updated rectangles of the canvas
-         (@c Eina.Rectangle structs). Free this list with
-         evas_render_updates_free().
+           This function forces an immediate renderization update of
+           the given canvas $e.
 
-         This function forces an immediate renderization update of the given
-         canvas @p e.
+           Note: This is a very low level function, which most of Evas'
+           users wouldn't care about. One would use it, for example, to
+           grab an Evas' canvas update regions and paint them back, using
+           the canvas' pixmap, on a displaying system working below Evas.
 
-         @note This is a <b>very low level function</b>, which most of
-         Evas' users wouldn't care about. One would use it, for example, to
-         grab an Evas' canvas update regions and paint them back, using the
-         canvas' pixmap, on a displaying system working below Evas.
-
-         @note Evas is a stateful canvas. If no operations changing its
-         state took place since the last rendering action, you won't see no
-         changes and this call will be a no-op.
-
+           Note: Evas is a stateful canvas. If no operations changing its
+           state took place since the last rendering action, you won't see
+           no changes and this call will be a no-op.
+         ]]
+         /* FIXME-doc
          Example code follows.
          @dontinclude evas-events.c
          @skip add an obscured
          @until d.obscured = !d.obscured;
 
          See the full @ref Example_Evas_Events "example".
-
-         @ingroup Evas_Canvas */
-
+         */
          return: free(own(list<Eina.Rectangle *> *), evas_render_updates_free)
-            @warn_unused;
+            @warn_unused; [[
+            A newly allocated list of updated rectangles of the canvas
+            ($Eina.Rectangle structs). Free this list with
+            \@ref evas_render_updates_free.
+         ]]
       }
       image_cache_flush {
-         /*@
-         Flush the image cache of the canvas.
+         [[Flush the image cache of the canvas.
 
-         This function flushes image cache of canvas. */
-
+           This function flushes image cache of canvas.
+         ]]
       }
       coord_screen_y_to_world @const {
-         /*@
-         Convert/scale an output screen co-ordinate into canvas co-ordinates
+         [[Convert/scale an output screen coordinate into canvas
+           coordinates.
 
-         @return The screen co-ordinate translated to canvas unit co-ordinates
-         @ingroup Evas_Coord_Mapping_Group
-
-         This function takes in a vertical co-ordinate as the @p y parameter
-         and converts it into canvas units, accounting for output size,
-         viewport size and location, returning it as the function return
-         value. If @p e is invalid, the results are undefined.
-
+           This function takes in a vertical coordinate as the $y parameter
+           and converts it into canvas units, accounting for output size,
+           viewport size and location, returning it as the function return
+           value. If $e is invalid, the results are undefined.
+         ]]
+         /* FIXME-doc
          Example:
          @code
          extern Evas *evas;
@@ -1419,39 +1264,32 @@ class Evas.Canvas (Eo.Base, Evas.Common_Interface)
          Evas_Coord canvas_y;
 
          canvas_y = evas_coord_screen_y_to_world(evas, screen_y);
-         @endcode */
-         return: Evas.Coord @warn_unused;
+         @endcode
+         */
+         return: Evas.Coord @warn_unused; [[The screen coordinate translated to canvas unit coordinates.]]
          params {
-            @in y: int; /*@ The screen/output y co-ordinate */
+            @in y: int; [[The screen/output y coordinate.]]
          }
       }
       key_modifier_del {
-         /*@
-         Removes the @p keyname key from the current list of modifier keys
-         on canvas @p e.
+         [[Removes the $keyname key from the current list of modifier keys
+           on canvas $e.
 
-         @see evas_key_modifier_add
-         @see evas_key_modifier_get
-         @see evas_key_modifier_on
-         @see evas_key_modifier_off
-         @see evas_key_modifier_is_set */
-
+           See also @.key_modifier_add.
+         ]]
          params {
-            @in keyname: const(char)* @nonull; /*@ The name of the key to remove from the modifiers list. */
+            @in keyname: const(char)* @nonull; [[The name of the key to remove from the modifiers list.]]
          }
       }
       touch_point_list_nth_state_get {
-         /*@
-         This function returns the @p state of nth touch point.
+         [[This function returns the $state of nth touch point.
 
-         @return @p state of nth touch point, if the call succeeded,
-         EVAS_TOUCH_POINT_CANCEL otherwise.
-
-         The point's @p state is EVAS_TOUCH_POINT_DOWN when pressed,
-         EVAS_TOUCH_POINT_STILL when the point is not moved after pressed,
-         EVAS_TOUCH_POINT_MOVE when moved at least once after pressed and
-         EVAS_TOUCH_POINT_UP when released.
-
+           The point's $state is EVAS_TOUCH_POINT_DOWN when pressed,
+           EVAS_TOUCH_POINT_STILL when the point is not moved after pressed,
+           EVAS_TOUCH_POINT_MOVE when moved at least once after pressed and
+           EVAS_TOUCH_POINT_UP when released.
+         ]]
+         /* FIXME-doc
          Example:
          @code
          extern Evas *evas;
@@ -1463,61 +1301,54 @@ class Evas.Canvas (Eo.Base, Evas.Common_Interface)
          printf("The first touch point's state: %i\n", state);
          }
          @endcode
-
-         @see evas_touch_point_list_count()
-         @see evas_touch_point_list_nth_xy_get()
-         @see evas_touch_point_list_nth_id_get() */
-
-         return: Evas.Touch_Point_State;
+         */
+         return: Evas.Touch_Point_State; [[
+            $state of nth touch point, if the call succeeded,
+            EVAS_TOUCH_POINT_CANCEL otherwise.
+         ]]
          params {
-            @in n: uint; /*@ The number of the touched point (0 being the first). */
+            @in n: uint; [[The number of the touched point (0 being the first).]]
          }
       }
       focus_in {
-         /*@
-         Inform to the evas that it got the focus.
-
-         @ingroup Evas_Canvas */
-
+         [[Inform to the evas that it got the focus.]]
       }
       obscured_rectangle_add {
-         /*@
-         Add an "obscured region" to an Evas canvas.
+         [[Add an "obscured region" to an Evas canvas.
 
-         This is the function by which one tells an Evas canvas that a part
-         of it <b>must not</b> be repainted. The region must be
-         rectangular and its coordinates inside the canvas viewport are
-         passed in the call. After this call, the region specified won't
-         participate in any form in Evas' calculations and actions during
-         its rendering updates, having its displaying content frozen as it
-         was just after this function took place.
+           This is the function by which one tells an Evas canvas that a
+           part of it must not be repainted. The region must be rectangular
+           and its coordinates inside the canvas viewport are passed in the
+           call. After this call, the region specified won't participate
+           in any form in Evas' calculations and actions during its
+           rendering updates, having its displaying content frozen as
+           it was just after this function took place.
 
-         We call it "obscured region" because the most common use case for
-         this rendering (partial) freeze is something else (most probably
-         other canvas) being on top of the specified rectangular region,
-         thus shading it completely from the user's final scene in a
-         display. To avoid unnecessary processing, one should indicate to the
-         obscured canvas not to bother about the non-important area.
+           We call it "obscured region" because the most common use case
+           for this rendering (partial) freeze is something else (most
+           probably other canvas) being on top of the specified rectangular
+           region, thus shading it completely from the user's final scene
+           in a display. To avoid unnecessary processing, one should
+           indicate to the obscured canvas not to bother about the
+           non-important area.
 
-         The majority of users won't have to worry about this function, as
-         they'll be using just one canvas in their applications, with
-         nothing inset or on top of it in any form.
+           The majority of users won't have to worry about this function,
+           as they'll be using just one canvas in their applications, with
+           nothing inset or on top of it in any form.
 
-         To make this region one that @b has to be repainted again, call the
-         function evas_obscured_clear().
+           To make this region one that has to be repainted again, call the
+           function \@ref evas_obscured_clear.
 
-         @note This is a <b>very low level function</b>, which most of
-         Evas' users wouldn't care about.
+           Note: This is a very low level function, which most of
+           Evas' users wouldn't care about.
 
-         @note This function does @b not flag the canvas as having its state
-         changed. If you want to re-render it afterwards expecting new
-         contents, you have to add "damage" regions yourself (see
-         evas_damage_rectangle_add()).
-
-         @see evas_obscured_clear()
-         @see evas_render_updates()
-
-         Example code follows.
+           Note: This function does not flag the canvas as having its state
+           changed. If you want to re-render it afterwards expecting new
+           contents, you have to add "damage" regions yourself (see
+           \@ref evas_damage_rectangle_add).
+         ]]
+         /* FIXME-doc
+          Example code follows.
          @dontinclude evas-events.c
          @skip add an obscured
          @until evas_obscured_clear(evas);
@@ -1528,83 +1359,81 @@ class Evas.Canvas (Eo.Base, Evas.Common_Interface)
          on, until you toggle it off again (make sure the animation is
          running on to get the idea better). See the full @ref
          Example_Evas_Events "example".
-
-         @ingroup Evas_Canvas */
-
+         */
          params {
-            @in x: int; /*@ The rectangle's top left corner's horizontal coordinate. */
-            @in y: int; /*@ The rectangle's top left corner's vertical coordinate */
-            @in w: int; /*@ The rectangle's width. */
-            @in h: int; /*@ The rectangle's height. */
+            @in x: int; [[The rectangle's top left corner's horizontal coordinate.]]
+            @in y: int; [[The rectangle's top left corner's vertical coordinate.]]
+            @in w: int; [[The rectangle's width.]]
+            @in h: int; [[The rectangle's height.]]
          }
       }
       render_dump {
-         /*@
-         Make the canvas discard as much data as possible used by the engine at
-         runtime.
+         [[Make the canvas discard as much data as possible used by the
+           engine at runtime.
 
-         This function will unload images, delete textures and much more, where
-         possible. You may also want to call evas_render_idle_flush() immediately
-         prior to this to perhaps discard a little more, though evas_render_dump()
-         should implicitly delete most of what evas_render_idle_flush() might
-         discard too.
-
-         @ingroup Evas_Canvas */
-
+           This function will unload images, delete textures and much more,
+           where possible. You may also want to call @.render_idle_flush
+           immediately prior to this to perhaps discard a little more,
+           though this function should implicitly delete most of what
+           @.render_idle_flush might discard too.
+         ]]
       }
       event_feed_mouse_in {
-         /*@
-         Mouse in event feed.
+         [[Mouse in event feed.
 
-         This function will set some evas properties that is necessary when
-         the mouse in event happens. It prepares information to be treated
-         by the callback function. */
-
+           This function will set some evas properties that is necessary
+           when the mouse in event happens. It prepares information to be
+           treated by the callback function.
+         ]]
          params {
-            @in timestamp: uint; /*@ The timestamp of the mouse up event. */
-            @in data: const(void)*; /*@ The data for canvas. */
+            @in timestamp: uint; [[The timestamp of the mouse up event.]]
+            @in data: const(void)*; [[The data for canvas.]]
          }
       }
       object_top_in_rectangle_get @const {
-         /*@
-         Retrieve the Evas object stacked at the top of a given rectangular
-         region in a canvas
+         [[Retrieve the Evas object stacked at the top of a given
+           rectangular region in a canvas
 
-         @return  The Evas object that is over all other objects at the given
-         rectangular region.
+           This function will traverse all the layers of the given canvas,
+           from top to bottom, querying for objects with areas overlapping
+           with the given rectangular region inside $e. The user can remove
+           from the query objects which are hidden and/or which are set to
+           pass events.
 
-         This function will traverse all the layers of the given canvas,
-         from top to bottom, querying for objects with areas overlapping
-         with the given rectangular region inside @p e. The user can remove
-         from the query objects which are hidden and/or which are set to
-         pass events.
-
-         @warning This function will @b skip objects parented by smart
-         objects, acting only on the ones at the "top level", with regard to
-         object parenting. */
-         return: Evas.Object * @warn_unused;
+           Warning: This function will skip objects parented by smart
+           objects, acting only on the ones at the "top level", with
+           regard to object parenting.
+         ]]
+         return: Evas.Object * @warn_unused; [[
+            The Evas object that is over all other objects at the given
+            rectangular region.
+         ]]
          params {
-            @in x: Evas.Coord; /*@ The top left corner's horizontal coordinate for the
-            rectangular region */
-            @in y: Evas.Coord; /*@ The top left corner's vertical coordinate for the
-            rectangular region */
-            @in w: Evas.Coord; /*@ The width of the rectangular region */
-            @in h: Evas.Coord; /*@ The height of the rectangular region */
-            @in include_pass_events_objects: bool; /*@ Boolean flag to include or not
-            objects which pass events in this calculation */
-            @in include_hidden_objects: bool; /*@ Boolean flag to include or not hidden
-            objects in this calculation */
+            @in x: Evas.Coord; [[
+               The top left corner's horizontal coordinate for the
+               rectangular region.
+            ]]
+            @in y: Evas.Coord; [[
+               The top left corner's vertical coordinate for the
+               rectangular region.
+            ]]
+            @in w: Evas.Coord; [[The width of the rectangular region.]]
+            @in h: Evas.Coord; [[The height of the rectangular region.]]
+            @in include_pass_events_objects: bool; [[
+               Boolean flag to include or not objects which pass events
+               in this calculation.
+            ]]
+            @in include_hidden_objects: bool; [[
+               Boolean flag to include or not hidden objects in this
+               calculation.
+            ]]
          }
       }
       render {
-         /*@
-         Force renderization of the given canvas.
-
-         @ingroup Evas_Canvas */
+         [[Force renderization of the given canvas.]]
 
       }
       event_feed_multi_up {
-         /*@ No description supplied by the EAPI. */
          params {
             @in d: int;
             @in x: int;
@@ -1622,61 +1451,52 @@ class Evas.Canvas (Eo.Base, Evas.Common_Interface)
          }
       }
       font_path_prepend {
-         /*@
-         Prepends a font path to the list of font paths used by the given evas.
-         @ingroup Evas_Font_Path_Group */
-
+         [[Prepends a font path to the list of font paths used by the
+           given evas.
+         ]]
          params {
-            @in path: const(char)* @nonull; /*@ The new font path. */
+            @in path: const(char)* @nonull; [[The new font path.]]
          }
       }
       obscured_clear {
-         /*@
-         Remove all "obscured regions" from an Evas canvas.
+         [[Remove all "obscured regions" from an Evas canvas.
 
-         This function removes all the rectangles from the obscured regions
-         list of the canvas @p e. It takes obscured areas added with
-         evas_obscured_rectangle_add() and make them again a regions that @b
-         have to be repainted on rendering updates.
+           This function removes all the rectangles from the obscured
+           regions list of the canvas $e. It takes obscured areas added
+           with @.obscured_rectangle_add and make them again a regions
+           that have to be repainted on rendering updates.
 
-         @note This is a <b>very low level function</b>, which most of
-         Evas' users wouldn't care about.
+           Note: This is a very low level function, which most of
+           Evas' users wouldn't care about.
 
-         @note This function does @b not flag the canvas as having its state
-         changed. If you want to re-render it afterwards expecting new
-         contents, you have to add "damage" regions yourself (see
-         evas_damage_rectangle_add()).
-
-         @see evas_obscured_rectangle_add() for an example
-         @see evas_render_updates()
-
-         @ingroup Evas_Canvas */
-
+           Note: This function does not flag the canvas as having its state
+           changed. If you want to re-render it afterwards expecting new
+           contents, you have to add "damage" regions yourself (see
+           @.damage_rectangle_add).
+         ]]
       }
       event_feed_mouse_cancel {
-         /*@
-         Mouse cancel event feed.
+         [[Mouse cancel event feed.
 
-         This function will call evas_event_feed_mouse_up() when a
-         mouse cancel event happens. */
-
+           This function will call @.event_feed_mouse_up when a
+           mouse cancel event happens.
+         ]]
          params {
-            @in timestamp: uint; /*@ The timestamp of the mouse up event. */
-            @in data: const(void)*; /*@ The data for canvas. */
+            @in timestamp: uint; [[The timestamp of the mouse up event.]]
+            @in data: const(void)*; [[The data for canvas.]]
          }
       }
       coord_screen_x_to_world @const {
-         /*@
-         Convert/scale an output screen co-ordinate into canvas co-ordinates
+         [[Convert/scale an output screen coordinate into canvas
+           coordinates.
 
-         @return The screen co-ordinate translated to canvas unit co-ordinates
-         @ingroup Evas_Coord_Mapping_Group
-
-         This function takes in a horizontal co-ordinate as the @p x
-         parameter and converts it into canvas units, accounting for output
-         size, viewport size and location, returning it as the function
-         return value. If @p e is invalid, the results are undefined.
-
+           This function takes in a horizontal coordinate as the $x
+           parameter and converts it into canvas units, accounting for
+           output size, viewport size and location, returning it as the
+           function return value. If $e is invalid, the results are
+           undefined.
+         ]]
+         /* FIXME-doc
          Example:
          @code
          extern Evas *evas;
@@ -1684,66 +1504,60 @@ class Evas.Canvas (Eo.Base, Evas.Common_Interface)
          Evas_Coord canvas_x;
 
          canvas_x = evas_coord_screen_x_to_world(evas, screen_x);
-         @endcode */
-         return: Evas.Coord @warn_unused;
+         @endcode
+         */
+         return: Evas.Coord @warn_unused; [[
+            The screen coordinate translated to canvas unit coordinates.
+         ]]
          params {
-            @in x: int; /*@ The screen/output x co-ordinate */
+            @in x: int; [[The screen/output x coordinate.]]
          }
       }
       key_lock_add {
-         /*@
-         Adds the @p keyname key to the current list of lock keys.
+         [[Adds the $keyname key to the current list of lock keys.
 
-         Locks are keys like caps lock, num lock or scroll lock, i.e., keys
-         which are meant to be pressed once -- toggling a binary state which
-         is bound to it -- and thus altering the behavior of all
-         subsequently pressed keys somehow, depending on its state. Evas is
-         so that these keys can be defined by the user.
+           Locks are keys like caps lock, num lock or scroll lock, i.e.,
+           keys which are meant to be pressed once -- toggling a binary
+           state which is bound to it -- and thus altering the behavior
+           of all  subsequently pressed keys somehow, depending on its
+           state. Evas is so that these keys can be defined by the user.
 
-         This allows custom locks to be added to the evas system at run
-         time. It is then possible to set and unset lock keys
-         programmatically for other parts of the program to check and act
-         on. Programmers using Evas would check for lock keys on key event
-         callbacks using evas_key_lock_is_set().
+           This allows custom locks to be added to the evas system at run
+           time. It is then possible to set and unset lock keys
+           programmatically for other parts of the program to check and act
+           on. Programmers using Evas would check for lock keys on key
+           event callbacks using \@ref evas_key_lock_is_set.
 
-         @see evas_key_lock_get
-         @see evas_key_lock_del
-         @see evas_key_lock_on
-         @see evas_key_lock_off
-         @see evas_key_lock_is_set
-
-         @note If the programmer instantiates the canvas by means of the
-         ecore_evas_new() family of helper functions, Ecore will take
-         care of registering on it all standard lock keys: "Caps_Lock",
-         "Num_Lock", "Scroll_Lock". */
-
+           Note: If the programmer instantiates the canvas by means of the
+           ecore_evas_new() family of helper functions, Ecore will take
+           care of registering on it all standard lock keys: "Caps_Lock",
+           "Num_Lock", "Scroll_Lock".
+         ]]
          params {
-            @in keyname: const(char)* @nonull; /*@ The name of the key to add to the locks list. */
+            @in keyname: const(char)* @nonull; [[The name of the key to add to the locks list.]]
          }
       }
       render_idle_flush {
-         /*@
-         Make the canvas discard internally cached data used for rendering.
+         [[Make the canvas discard internally cached data used for
+           rendering.
 
-         This function flushes the arrays of delete, active and render objects.
-         Other things it may also discard are: shared memory segments,
-         temporary scratch buffers, cached data to avoid re-compute of that data etc.
-
-         @ingroup Evas_Canvas */
-
+           This function flushes the arrays of delete, active and render
+           objects. Other things it may also discard are: shared memory
+           segments, temporary scratch buffers, cached data to avoid
+           re-compute of that data etc.
+         ]]
       }
       coord_world_y_to_screen @const {
-         /*@
-         Convert/scale a canvas co-ordinate into output screen co-ordinates
+         [[Convert/scale a canvas coordinate into output screen
+           coordinates.
 
-         @return The output/screen co-ordinate translated to output co-ordinates
-         @ingroup Evas_Coord_Mapping_Group
-
-         This function takes in a vertical co-ordinate as the @p x parameter
-         and converts it into output units, accounting for output size,
-         viewport size and location, returning it as the function return
-         value. If @p e is invalid, the results are undefined.
-
+           This function takes in a vertical coordinate as the $x
+           parameter and converts it into output units, accounting for
+           output size, viewport size and location, returning it as the
+           function return value. If $e is invalid, the results are
+           undefined.
+         ]]
+         /* FIXME-doc
          Example:
          @code
          extern Evas *evas;
@@ -1751,69 +1565,67 @@ class Evas.Canvas (Eo.Base, Evas.Common_Interface)
          extern Evas_Coord canvas_y;
 
          screen_y = evas_coord_world_y_to_screen(evas, canvas_y);
-         @endcode */
-         return: int @warn_unused;
+         @endcode
+         */
+         return: int @warn_unused; [[The output/screen coordinate translated to output coordinates.]]
          params {
-            @in y: Evas.Coord; /*@ The canvas y co-ordinate */
+            @in y: Evas.Coord; [[The canvas y coordinate.]]
          }
       }
       event_feed_key_down_with_keycode {
-         /*@
-         Key down event feed with keycode
+         [[Key down event feed with keycode.
 
-         This function will set some evas properties that is necessary when
-         a key is pressed. It prepares information to be treated by the
-         callback function.
+           This function will set some evas properties that is necessary
+           when a key is pressed. It prepares information to be treated
+           by the callback function.
 
-         @since 1.10 */
-
+           @since 1.10
+         ]]
          params {
-            @in keyname: const(char)*; /*@ Name of the key */
-            @in key: const(char)*; /*@ The key pressed. */
-            @in string: const(char)*; /*@ A String */
-            @in compose: const(char)*; /*@ The compose string */
-            @in timestamp: uint; /*@ Timestamp of the mouse up event */
-            @in data: const(void)*; /*@ Data for canvas. */
-            @in keycode: uint; /*@ Key scan code numeric value for canvas. */
+            @in keyname: const(char)*; [[Name of the key.]]
+            @in key: const(char)*; [[The key released.]]
+            @in string: const(char)*; [[A string.]]
+            @in compose: const(char)*; [[Compose.]]
+            @in timestamp: uint; [[Timestamp of the mouse up event.]]
+            @in data: const(void)*; [[Data for canvas.]]
+            @in keycode: uint; [[Key scan code numeric value for canvas.]]
          }
       }
       event_feed_key_up_with_keycode {
-         /*@
-         Key up event feed with keycode
+         [[Key up event feed with keycode.
 
-         This function will set some evas properties that is necessary when
-         a key is released. It prepares information to be treated by the
-         callback function.
+           This function will set some evas properties that is necessary
+           when a key is released. It prepares information to be treated
+           by the callback function.
 
-         @since 1.10 */
-
+           @since 1.10
+         ]]
          params {
-            @in keyname: const(char)*; /*@ Name of the key */
-            @in key: const(char)*; /*@ The key released. */
-            @in string: const(char)*; /*@ string */
-            @in compose: const(char)*; /*@ compose */
-            @in timestamp: uint; /*@ Timestamp of the mouse up event */
-            @in data: const(void)*; /*@ Data for canvas. */
-            @in keycode: uint; /*@ Key scan code numeric value for canvas. */
+            @in keyname: const(char)*; [[Name of the key.]]
+            @in key: const(char)*; [[The key released.]]
+            @in string: const(char)*; [[A string.]]
+            @in compose: const(char)*; [[Compose.]]
+            @in timestamp: uint; [[Timestamp of the mouse up event.]]
+            @in data: const(void)*; [[Data for canvas.]]
+            @in keycode: uint; [[Key scan code numeric value for canvas.]]
          }
       }
       event_feed_axis_update {
-         /*@
-         Input device axis update event feed.
+         [[Input device axis update event feed.
 
-         This function will set some evas properties that is necessary when
-         an e.g. stylus axis is updated. It prepares information to be treated
-         by the callback function.
+           This function will set some evas properties that is necessary
+           when an e.g. stylus axis is updated. It prepares information
+           to be treated by the callback function.
 
-         @since 1.13 */
-
+           @since 1.13
+         ]]
          params {
-            @in timestamp: uint; /*@ Timestamp of the axis event */
-            @in device: int; /*@ System-provided device identifier */
-            @in toolid: int; /*@ Type of tool currently being used */
-            @in naxes: int; /*@ Number of elements in the \p axis array */
-            @in axis: const(Evas.Axis)*; /*@ Array containing the current value of all updated axes */
-            @in data: const(void)*; /*@ Data for canvas. */
+            @in timestamp: uint; [[Timestamp of the axis event.]]
+            @in device: int; [[System-provided device identifier.]]
+            @in toolid: int; [[Type of tool currently being used.]]
+            @in naxes: int; [[Number of elements in the \p axis array.]]
+            @in axis: const(Evas.Axis)*; [[Array containing the current value of all updated axes.]]
+            @in data: const(void)*; [[Data for canvas.]]
          }
       }
    }

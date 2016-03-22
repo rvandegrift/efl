@@ -60,6 +60,12 @@ extern Evas_GL_Common_Buffer_Dump_Call glsym_evas_gl_common_buffer_dump;
 extern Evas_GL_Preload_Render_Call glsym_evas_gl_preload_render_lock;
 extern Evas_GL_Preload_Render_Call glsym_evas_gl_preload_render_unlock;
 
+typedef struct _Render_Engine Render_Engine;
+struct _Render_Engine
+{
+   Render_Engine_GL_Generic generic;
+};
+
 struct _Context_3D
 {
    EGLDisplay display;
@@ -136,5 +142,6 @@ _re_wincheck(Outbuf *ob)
 }
 
 extern unsigned int (*glsym_eglSwapBuffersWithDamage)(EGLDisplay a, void *b, const EGLint *d, EGLint c);
+extern unsigned int (*glsym_eglSetDamageRegionKHR)(EGLDisplay a, EGLSurface b, EGLint *c, EGLint d);
 
 #endif

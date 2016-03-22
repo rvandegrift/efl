@@ -276,9 +276,6 @@ e3d_drawable_new(int w, int h, int alpha, GLenum depth_format, GLenum stencil_fo
    GLuint         depth_stencil_buf = 0;
    GLuint         depth_buf = 0;
    GLuint         stencil_buf = 0;
-#ifdef GL_GLES
-   GLuint         shadow_fbo, depth_render_buf;
-#endif
    Eina_Bool      depth_stencil = EINA_FALSE;
 
    glGenTextures(1, &tex);
@@ -299,13 +296,7 @@ e3d_drawable_new(int w, int h, int alpha, GLenum depth_format, GLenum stencil_fo
    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_T, GL_CLAMP_TO_EDGE);
    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_NEAREST);
    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_NEAREST);
-#ifndef GL_GLES
-   glTexImage2D(GL_TEXTURE_2D, 0, GL_R16, w, h, 0, GL_RED, GL_UNSIGNED_SHORT, 0);
-#else
-   glGenFramebuffers(1, &shadow_fbo);
-   glGenFramebuffers(1, &depth_render_buf);
    glTexImage2D(GL_TEXTURE_2D, 0, GL_RGBA, w, h, 0, GL_RGBA, GL_UNSIGNED_BYTE, NULL);
-#endif
 
    glGenFramebuffers(1, &color_pick_fb_id);
    glGenTextures(1, &texcolorpick);
@@ -401,10 +392,7 @@ e3d_drawable_new(int w, int h, int alpha, GLenum depth_format, GLenum stencil_fo
    drawable->depth_buf = depth_buf;
    drawable->stencil_buf = stencil_buf;
    drawable->texDepth = texDepth;
-#ifdef GL_GLES
-   drawable->shadow_fbo = shadow_fbo;
-   drawable->depth_render_buf = depth_render_buf;
-#endif
+
    return drawable;
 
 error:
@@ -437,12 +425,6 @@ error:
    if (stencil_buf)
      glDeleteRenderbuffers(1, &stencil_buf);
 
-#ifdef GL_GLES
-   if (shadow_fbo)
-     glDeleteFramebuffers(1, &shadow_fbo);
-   if (depth_render_buf)
-     glDeleteFramebuffers(1, &depth_render_buf);
-#endif
 
    return NULL;
 }
@@ -558,31 +540,31 @@ _vertex_attrib_flag_add(E3D_Draw_Data *data,
 {
    switch (attrib)
      {
-      case EVAS_CANVAS3D_VERTEX_POSITION:
+      case EVAS_CANVAS3D_VERTEX_ATTRIB_POSITION:
          data->flags |= E3D_SHADER_FLAG_VERTEX_POSITION;
 
          if (blend)
            data->flags |= E3D_SHADER_FLAG_VERTEX_POSITION_BLEND;
          break;
-      case EVAS_CANVAS3D_VERTEX_NORMAL:
+      case EVAS_CANVAS3D_VERTEX_ATTRIB_NORMAL:
          data->flags |= E3D_SHADER_FLAG_VERTEX_NORMAL;
 
          if (blend)
            data->flags |= E3D_SHADER_FLAG_VERTEX_NORMAL_BLEND;
          break;
-      case EVAS_CANVAS3D_VERTEX_TANGENT:
+      case EVAS_CANVAS3D_VERTEX_ATTRIB_TANGENT:
          data->flags |= E3D_SHADER_FLAG_VERTEX_TANGENT;
 
          if (blend)
            data->flags |= E3D_SHADER_FLAG_VERTEX_TANGENT_BLEND;
          break;
-      case EVAS_CANVAS3D_VERTEX_COLOR:
+      case EVAS_CANVAS3D_VERTEX_ATTRIB_COLOR:
          data->flags |= E3D_SHADER_FLAG_VERTEX_COLOR;
 
          if (blend)
            data->flags |= E3D_SHADER_FLAG_VERTEX_COLOR_BLEND;
          break;
-      case EVAS_CANVAS3D_VERTEX_TEXCOORD:
+      case EVAS_CANVAS3D_VERTEX_ATTRIB_TEXCOORD:
          data->flags |= E3D_SHADER_FLAG_VERTEX_TEXCOORD;
 
          if (blend)
@@ -599,19 +581,19 @@ _material_color_flag_add(E3D_Draw_Data *data, Evas_Canvas3D_Material_Attrib attr
 {
    switch (attrib)
      {
-      case EVAS_CANVAS3D_MATERIAL_AMBIENT:
+      case EVAS_CANVAS3D_MATERIAL_ATTRIB_AMBIENT:
          data->flags |= E3D_SHADER_FLAG_AMBIENT;
          break;
-      case EVAS_CANVAS3D_MATERIAL_DIFFUSE:
+      case EVAS_CANVAS3D_MATERIAL_ATTRIB_DIFFUSE:
          data->flags |= E3D_SHADER_FLAG_DIFFUSE;
          break;
-      case EVAS_CANVAS3D_MATERIAL_SPECULAR:
+      case EVAS_CANVAS3D_MATERIAL_ATTRIB_SPECULAR:
          data->flags |= E3D_SHADER_FLAG_SPECULAR;
          break;
-      case EVAS_CANVAS3D_MATERIAL_EMISSION:
+      case EVAS_CANVAS3D_MATERIAL_ATTRIB_EMISSION:
          data->flags |= E3D_SHADER_FLAG_EMISSION;
          break;
-      case EVAS_CANVAS3D_MATERIAL_NORMAL:
+      case EVAS_CANVAS3D_MATERIAL_ATTRIB_NORMAL:
          ERR("Material attribute normal should not be used with color values.");
          break;
       default:
@@ -625,35 +607,35 @@ _material_texture_flag_add(E3D_Draw_Data *data, Evas_Canvas3D_Material_Attrib at
 {
    switch (attrib)
      {
-      case EVAS_CANVAS3D_MATERIAL_AMBIENT:
+      case EVAS_CANVAS3D_MATERIAL_ATTRIB_AMBIENT:
          data->flags |= E3D_SHADER_FLAG_AMBIENT;
          data->flags |= E3D_SHADER_FLAG_AMBIENT_TEXTURE;
 
          if (blend)
            data->flags |= E3D_SHADER_FLAG_AMBIENT_TEXTURE_BLEND;
          break;
-      case EVAS_CANVAS3D_MATERIAL_DIFFUSE:
+      case EVAS_CANVAS3D_MATERIAL_ATTRIB_DIFFUSE:
          data->flags |= E3D_SHADER_FLAG_DIFFUSE;
          data->flags |= E3D_SHADER_FLAG_DIFFUSE_TEXTURE;
 
          if (blend)
            data->flags |= E3D_SHADER_FLAG_DIFFUSE_TEXTURE_BLEND;
          break;
-      case EVAS_CANVAS3D_MATERIAL_SPECULAR:
+      case EVAS_CANVAS3D_MATERIAL_ATTRIB_SPECULAR:
          data->flags |= E3D_SHADER_FLAG_SPECULAR;
          data->flags |= E3D_SHADER_FLAG_SPECULAR_TEXTURE;
 
          if (blend)
            data->flags |= E3D_SHADER_FLAG_SPECULAR_TEXTURE_BLEND;
          break;
-      case EVAS_CANVAS3D_MATERIAL_EMISSION:
+      case EVAS_CANVAS3D_MATERIAL_ATTRIB_EMISSION:
          data->flags |= E3D_SHADER_FLAG_EMISSION;
          data->flags |= E3D_SHADER_FLAG_EMISSION_TEXTURE;
 
          if (blend)
            data->flags |= E3D_SHADER_FLAG_EMISSION_TEXTURE_BLEND;
          break;
-      case EVAS_CANVAS3D_MATERIAL_NORMAL:
+      case EVAS_CANVAS3D_MATERIAL_ATTRIB_NORMAL:
          data->flags |= E3D_SHADER_FLAG_NORMAL_TEXTURE;
 
          if (blend)
@@ -795,7 +777,7 @@ _material_color_build(E3D_Draw_Data *data, int frame,
      {
         data->materials[attrib].color = pdmf0->attribs[attrib].color;
 
-        if (attrib == EVAS_CANVAS3D_MATERIAL_SPECULAR)
+        if (attrib == EVAS_CANVAS3D_MATERIAL_ATTRIB_SPECULAR)
           data->shininess = pdmf0->shininess;
      }
    else
@@ -809,7 +791,7 @@ _material_color_build(E3D_Draw_Data *data, int frame,
                          &pdmf0->attribs[attrib].color,
                          weight);
 
-        if (attrib == EVAS_CANVAS3D_MATERIAL_SPECULAR)
+        if (attrib == EVAS_CANVAS3D_MATERIAL_ATTRIB_SPECULAR)
           {
              data->shininess = pdmf0->shininess * weight +
                 pdmf1->shininess * (1.0 - weight);
@@ -894,7 +876,7 @@ _material_texture_build(E3D_Draw_Data *data, int frame,
 
         data->materials[attrib].texture_weight = weight;
 
-        if (attrib == EVAS_CANVAS3D_MATERIAL_SPECULAR)
+        if (attrib == EVAS_CANVAS3D_MATERIAL_ATTRIB_SPECULAR)
           {
              data->shininess = pdmf0->shininess * weight +
                 pdmf1->shininess * (1.0 - weight);
@@ -904,7 +886,7 @@ _material_texture_build(E3D_Draw_Data *data, int frame,
      }
    else
      {
-        if (attrib == EVAS_CANVAS3D_MATERIAL_SPECULAR)
+        if (attrib == EVAS_CANVAS3D_MATERIAL_ATTRIB_SPECULAR)
           data->shininess = pdmf0->shininess;
 
         _material_texture_flag_add(data, attrib, EINA_FALSE);
@@ -1005,7 +987,12 @@ _mesh_draw_data_build(E3D_Draw_Data *data,
      data->flags |= E3D_SHADER_FLAG_ALPHA_TEST_ENABLED;
 
    if (pdmesh->shadowed)
-     data->flags |= E3D_SHADER_FLAG_SHADOWED;
+     {
+        data->flags |= E3D_SHADER_FLAG_SHADOWED;
+        data->pcf_size = 1 / pdmesh->shadows_edges_size;
+        data->pcf_step = (Evas_Real)pdmesh->shadows_edges_filtering_level;
+        data->constant_bias = pdmesh->shadows_constant_bias;
+     }
 
    if (pdmesh->color_pick_enabled)
      data->color_pick_key = pdmesh->color_pick_key;
@@ -1043,98 +1030,98 @@ _mesh_draw_data_build(E3D_Draw_Data *data,
 
    if (pdmesh->shade_mode == EVAS_CANVAS3D_SHADE_MODE_VERTEX_COLOR)
      {
-        BUILD(vertex_attrib,     VERTEX_POSITION,     EINA_TRUE);
-        BUILD(vertex_attrib,     VERTEX_COLOR,        EINA_TRUE);
+        BUILD(vertex_attrib,     VERTEX_ATTRIB_POSITION,     EINA_TRUE);
+        BUILD(vertex_attrib,     VERTEX_ATTRIB_COLOR,        EINA_TRUE);
      }
    else if (pdmesh->shade_mode == EVAS_CANVAS3D_SHADE_MODE_SHADOW_MAP_RENDER)
      {
-        BUILD(vertex_attrib,     VERTEX_POSITION,     EINA_TRUE);
+        BUILD(vertex_attrib,     VERTEX_ATTRIB_POSITION,     EINA_TRUE);
         if (pdmesh->alpha_test_enabled)
           {
-             BUILD(material_texture,  MATERIAL_DIFFUSE,    EINA_FALSE);
+             BUILD(material_texture,  MATERIAL_ATTRIB_DIFFUSE,    EINA_FALSE);
 
              if (_flags_need_tex_coord(data->flags))
-               BUILD(vertex_attrib,     VERTEX_TEXCOORD,     EINA_FALSE);
+               BUILD(vertex_attrib,     VERTEX_ATTRIB_TEXCOORD,     EINA_FALSE);
           }
      }
    else if (pdmesh->shade_mode == EVAS_CANVAS3D_SHADE_MODE_COLOR_PICK)
      {
-        BUILD(vertex_attrib,     VERTEX_POSITION,     EINA_TRUE);
+        BUILD(vertex_attrib,     VERTEX_ATTRIB_POSITION,     EINA_TRUE);
      }
    else if (pdmesh->shade_mode == EVAS_CANVAS3D_SHADE_MODE_DIFFUSE)
      {
-        BUILD(vertex_attrib,     VERTEX_POSITION,     EINA_TRUE);
-        BUILD(material_color,    MATERIAL_DIFFUSE,    EINA_TRUE);
-        BUILD(material_texture,  MATERIAL_DIFFUSE,    EINA_FALSE);
+        BUILD(vertex_attrib,     VERTEX_ATTRIB_POSITION,     EINA_TRUE);
+        BUILD(material_color,    MATERIAL_ATTRIB_DIFFUSE,    EINA_TRUE);
+        BUILD(material_texture,  MATERIAL_ATTRIB_DIFFUSE,    EINA_FALSE);
 
         if (_flags_need_tex_coord(data->flags))
-          BUILD(vertex_attrib,     VERTEX_TEXCOORD,     EINA_FALSE);
+          BUILD(vertex_attrib,     VERTEX_ATTRIB_TEXCOORD,     EINA_FALSE);
      }
    else if (pdmesh->shade_mode == EVAS_CANVAS3D_SHADE_MODE_FLAT)
      {
-        BUILD(vertex_attrib,     VERTEX_POSITION,     EINA_TRUE);
-        BUILD(vertex_attrib,     VERTEX_NORMAL,       EINA_TRUE);
+        BUILD(vertex_attrib,     VERTEX_ATTRIB_POSITION,     EINA_TRUE);
+        BUILD(vertex_attrib,     VERTEX_ATTRIB_NORMAL,       EINA_TRUE);
 
-        BUILD(material_color,    MATERIAL_AMBIENT,    EINA_FALSE);
-        BUILD(material_color,    MATERIAL_DIFFUSE,    EINA_FALSE);
-        BUILD(material_color,    MATERIAL_SPECULAR,   EINA_FALSE);
-        BUILD(material_color,    MATERIAL_EMISSION,   EINA_FALSE);
+        BUILD(material_color,    MATERIAL_ATTRIB_AMBIENT,    EINA_FALSE);
+        BUILD(material_color,    MATERIAL_ATTRIB_DIFFUSE,    EINA_FALSE);
+        BUILD(material_color,    MATERIAL_ATTRIB_SPECULAR,   EINA_FALSE);
+        BUILD(material_color,    MATERIAL_ATTRIB_EMISSION,   EINA_FALSE);
 
-        BUILD(material_texture,  MATERIAL_AMBIENT,    EINA_FALSE);
-        BUILD(material_texture,  MATERIAL_DIFFUSE,    EINA_FALSE);
-        BUILD(material_texture,  MATERIAL_SPECULAR,   EINA_FALSE);
-        BUILD(material_texture,  MATERIAL_EMISSION,   EINA_FALSE);
+        BUILD(material_texture,  MATERIAL_ATTRIB_AMBIENT,    EINA_FALSE);
+        BUILD(material_texture,  MATERIAL_ATTRIB_DIFFUSE,    EINA_FALSE);
+        BUILD(material_texture,  MATERIAL_ATTRIB_SPECULAR,   EINA_FALSE);
+        BUILD(material_texture,  MATERIAL_ATTRIB_EMISSION,   EINA_FALSE);
 
         _light_build(data, light, matrix_eye);
         evas_normal_matrix_get(&data->matrix_normal, matrix_mv);
 
         if (_flags_need_tex_coord(data->flags))
-          BUILD(vertex_attrib,     VERTEX_TEXCOORD,     EINA_FALSE);
+          BUILD(vertex_attrib,     VERTEX_ATTRIB_TEXCOORD,     EINA_FALSE);
      }
    else if (pdmesh->shade_mode == EVAS_CANVAS3D_SHADE_MODE_PHONG)
      {
-        BUILD(vertex_attrib,     VERTEX_POSITION,     EINA_TRUE);
-        BUILD(vertex_attrib,     VERTEX_NORMAL,       EINA_TRUE);
+        BUILD(vertex_attrib,     VERTEX_ATTRIB_POSITION,     EINA_TRUE);
+        BUILD(vertex_attrib,     VERTEX_ATTRIB_NORMAL,       EINA_TRUE);
 
-        BUILD(material_color,    MATERIAL_AMBIENT,    EINA_FALSE);
-        BUILD(material_color,    MATERIAL_DIFFUSE,    EINA_FALSE);
-        BUILD(material_color,    MATERIAL_SPECULAR,   EINA_FALSE);
-        BUILD(material_color,    MATERIAL_EMISSION,   EINA_FALSE);
+        BUILD(material_color,    MATERIAL_ATTRIB_AMBIENT,    EINA_FALSE);
+        BUILD(material_color,    MATERIAL_ATTRIB_DIFFUSE,    EINA_FALSE);
+        BUILD(material_color,    MATERIAL_ATTRIB_SPECULAR,   EINA_FALSE);
+        BUILD(material_color,    MATERIAL_ATTRIB_EMISSION,   EINA_FALSE);
 
-        BUILD(material_texture,  MATERIAL_AMBIENT,    EINA_FALSE);
-        BUILD(material_texture,  MATERIAL_DIFFUSE,    EINA_FALSE);
-        BUILD(material_texture,  MATERIAL_SPECULAR,   EINA_FALSE);
-        BUILD(material_texture,  MATERIAL_EMISSION,   EINA_FALSE);
+        BUILD(material_texture,  MATERIAL_ATTRIB_AMBIENT,    EINA_FALSE);
+        BUILD(material_texture,  MATERIAL_ATTRIB_DIFFUSE,    EINA_FALSE);
+        BUILD(material_texture,  MATERIAL_ATTRIB_SPECULAR,   EINA_FALSE);
+        BUILD(material_texture,  MATERIAL_ATTRIB_EMISSION,   EINA_FALSE);
 
         _light_build(data, light, matrix_eye);
         evas_normal_matrix_get(&data->matrix_normal, matrix_mv);
 
         if (_flags_need_tex_coord(data->flags))
-          BUILD(vertex_attrib,     VERTEX_TEXCOORD,     EINA_FALSE);
+          BUILD(vertex_attrib,     VERTEX_ATTRIB_TEXCOORD,     EINA_FALSE);
      }
    else if ((pdmesh->shade_mode == EVAS_CANVAS3D_SHADE_MODE_NORMAL_MAP) ||
             (pdmesh->shade_mode == EVAS_CANVAS3D_SHADE_MODE_PARALLAX_OCCLUSION))
      {
-        BUILD(vertex_attrib,     VERTEX_POSITION,     EINA_TRUE);
-        BUILD(vertex_attrib,     VERTEX_NORMAL,       EINA_TRUE);
-        BUILD(vertex_attrib,     VERTEX_TEXCOORD,     EINA_TRUE);
-        BUILD(material_texture,  MATERIAL_NORMAL,     EINA_TRUE);
-        BUILD(vertex_attrib,     VERTEX_TANGENT,      EINA_FALSE);
+        BUILD(vertex_attrib,     VERTEX_ATTRIB_POSITION,     EINA_TRUE);
+        BUILD(vertex_attrib,     VERTEX_ATTRIB_NORMAL,       EINA_TRUE);
+        BUILD(vertex_attrib,     VERTEX_ATTRIB_TEXCOORD,     EINA_TRUE);
+        BUILD(material_texture,  MATERIAL_ATTRIB_NORMAL,     EINA_TRUE);
+        BUILD(vertex_attrib,     VERTEX_ATTRIB_TANGENT,      EINA_FALSE);
 
 
         if (pdmesh->shade_mode == EVAS_CANVAS3D_SHADE_MODE_NORMAL_MAP)
-          BUILD(vertex_attrib,     VERTEX_TANGENT,      EINA_FALSE);
-        else BUILD(vertex_attrib,     VERTEX_TANGENT,      EINA_TRUE);
+          BUILD(vertex_attrib,     VERTEX_ATTRIB_TANGENT,      EINA_FALSE);
+        else BUILD(vertex_attrib,     VERTEX_ATTRIB_TANGENT,      EINA_TRUE);
 
-        BUILD(material_color,    MATERIAL_AMBIENT,    EINA_FALSE);
-        BUILD(material_color,    MATERIAL_DIFFUSE,    EINA_FALSE);
-        BUILD(material_color,    MATERIAL_SPECULAR,   EINA_FALSE);
-        BUILD(material_color,    MATERIAL_EMISSION,   EINA_FALSE);
+        BUILD(material_color,    MATERIAL_ATTRIB_AMBIENT,    EINA_FALSE);
+        BUILD(material_color,    MATERIAL_ATTRIB_DIFFUSE,    EINA_FALSE);
+        BUILD(material_color,    MATERIAL_ATTRIB_SPECULAR,   EINA_FALSE);
+        BUILD(material_color,    MATERIAL_ATTRIB_EMISSION,   EINA_FALSE);
 
-        BUILD(material_texture,  MATERIAL_AMBIENT,    EINA_FALSE);
-        BUILD(material_texture,  MATERIAL_DIFFUSE,    EINA_FALSE);
-        BUILD(material_texture,  MATERIAL_SPECULAR,   EINA_FALSE);
-        BUILD(material_texture,  MATERIAL_EMISSION,   EINA_FALSE);
+        BUILD(material_texture,  MATERIAL_ATTRIB_AMBIENT,    EINA_FALSE);
+        BUILD(material_texture,  MATERIAL_ATTRIB_DIFFUSE,    EINA_FALSE);
+        BUILD(material_texture,  MATERIAL_ATTRIB_SPECULAR,   EINA_FALSE);
+        BUILD(material_texture,  MATERIAL_ATTRIB_EMISSION,   EINA_FALSE);
 
         _light_build(data, light, matrix_eye);
         evas_normal_matrix_get(&data->matrix_normal, matrix_mv);
@@ -1178,19 +1165,11 @@ void _shadowmap_render(E3D_Drawable *drawable, E3D_Renderer *renderer,
    Evas_Mat4 matrix_vp;
 
    glEnable(GL_POLYGON_OFFSET_FILL);
-   glPolygonOffset(4.0, 100.0);
-#ifdef GL_GLES
-   glBindFramebuffer(GL_FRAMEBUFFER, drawable->shadow_fbo);
-   glBindRenderbuffer(GL_RENDERBUFFER, drawable->depth_render_buf);
-#endif
+   glPolygonOffset(data->depth_offset, data->depth_constant);
+
    glFramebufferTexture2D(GL_FRAMEBUFFER, GL_COLOR_ATTACHMENT0, GL_TEXTURE_2D,
                           drawable->texDepth, 0);
-#ifdef GL_GLES
-   glRenderbufferStorage(GL_RENDERBUFFER, GL_DEPTH_COMPONENT16, drawable->w,
-                         drawable->h);
-   glFramebufferRenderbuffer(GL_FRAMEBUFFER, GL_DEPTH_ATTACHMENT, GL_RENDERBUFFER,
-                             drawable->depth_render_buf);
-#endif
+
    e3d_renderer_target_set(renderer, drawable);
    e3d_renderer_clear(renderer, &c);
 
@@ -1224,9 +1203,7 @@ void _shadowmap_render(E3D_Drawable *drawable, E3D_Renderer *renderer,
      }
 
      glDisable(GL_POLYGON_OFFSET_FILL);
-#ifdef GL_GLES
-     glBindFramebuffer(GL_FRAMEBUFFER, drawable->fbo);
-#endif
+
      glFramebufferTexture2D(GL_FRAMEBUFFER, GL_COLOR_ATTACHMENT0, GL_TEXTURE_2D, drawable->tex, 0);
 }
 

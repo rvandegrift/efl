@@ -43,8 +43,6 @@
 
 #define RENDER_METHOD_INVALID            0x00000000
 
-//#define REND_DBG 1
-
 typedef struct _Evas_Layer                  Evas_Layer;
 typedef struct _Evas_Size                   Evas_Size;
 typedef struct _Evas_Aspect                 Evas_Aspect;
@@ -231,6 +229,9 @@ struct _Evas_Canvas3D_Scene
 
    Eina_Hash        *node_mesh_colors;
    Eina_Hash        *colors_node_mesh;
+   /*sets constant for shadow rendering*/
+   Evas_Real depth_offset;
+   Evas_Real depth_constant;
 };
 
 struct _Evas_Canvas3D_Node_Mesh
@@ -389,6 +390,10 @@ struct _Evas_Canvas3D_Mesh
    Evas_Color              color_pick_key;
 #endif
    Eina_Bool               color_pick_enabled :1;
+   /*sets of the quality and offsets for shadow rendering*/
+   int                     shadows_edges_filtering_level;
+   Evas_Real               shadows_edges_size;
+   Evas_Real               shadows_constant_bias;
 };
 
 struct _Evas_Canvas3D_Texture
@@ -442,6 +447,10 @@ struct _Evas_Canvas3D_Scene_Public_Data
 
    Eina_Hash        *node_mesh_colors;
    Eina_Hash        *colors_node_mesh;
+
+   /*sets constant for shadow rendering*/
+   Evas_Real depth_offset;
+   Evas_Real depth_constant;
 };
 
 struct _Evas_Canvas3D_Pick_Data
@@ -786,7 +795,7 @@ struct _Evas_Public_Data
    struct {
       Evas_Module *module;
       Evas_Func *func;
-      Ector_Surface *surface;
+      Ector_Surface *ector;
       struct {
          void *output;
 
@@ -799,6 +808,7 @@ struct _Evas_Public_Data
 
    struct {
       Eina_List *updates;
+      Eina_Spinlock lock;
    } render;
 
    Eina_Array     delete_objects;
@@ -808,6 +818,7 @@ struct _Evas_Public_Data
    Eina_Array     pending_objects;
    Eina_Array     obscuring_objects;
    Eina_Array     temporary_objects;
+   Eina_Array     snapshot_objects;
    Eina_Array     clip_changes;
    Eina_Array     scie_unref_queue;
    Eina_Array     image_unref_queue;
@@ -1001,9 +1012,7 @@ struct _Evas_Object_Protected_State
    Eina_Bool             have_clipees : 1;
    Eina_Bool             anti_alias : 1;
    Eina_Bool             valid_bounding_box : 1;
-
-   Eina_Bool             cached_surface : 1;
-   Eina_Bool             parent_cached_surface : 1;
+   Eina_Bool             snapshot : 1;
 };
 
 struct _Evas_Object_Protected_Data
@@ -1262,12 +1271,13 @@ struct _Evas_Func
    void (*output_dump)                     (void *data);
 
    void *(*context_new)                    (void *data);
+   void *(*context_dup)                    (void *data, void *context);
    Eina_Bool (*canvas_alpha_get)           (void *data, void *context);
    void (*context_free)                    (void *data, void *context);
    void (*context_clip_set)                (void *data, void *context, int x, int y, int w, int h);
    void (*context_clip_image_set)          (void *data, void *context, void *surface, int x, int y, Evas_Public_Data *evas, Eina_Bool do_async);
    void (*context_clip_image_unset)        (void *data, void *context);
-   void (*context_clip_image_get)          (void *data, void *context, void **surface, int *x, int *y);
+   void (*context_clip_image_get)          (void *data, void *context, void **surface, int *x, int *y); /* incref surface if not NULL */
    void (*context_clip_clip)               (void *data, void *context, int x, int y, int w, int h);
    void (*context_clip_unset)              (void *data, void *context);
    int  (*context_clip_get)                (void *data, void *context, int *x, int *y, int *w, int *h);
@@ -1298,6 +1308,7 @@ struct _Evas_Func
    void *(*image_new_from_data)            (void *data, int w, int h, DATA32 *image_data, int alpha, Evas_Colorspace cspace);
    void *(*image_new_from_copied_data)     (void *data, int w, int h, DATA32 *image_data, int alpha, Evas_Colorspace cspace);
    void (*image_free)                      (void *data, void *image);
+   void *(*image_ref)                      (void *data, void *image);
    void (*image_size_get)                  (void *data, void *image, int *w, int *h);
    void *(*image_size_set)                 (void *data, void *image, int w, int h);
    void (*image_stride_get)                (void *data, void *image, int *stride);
@@ -1437,10 +1448,11 @@ struct _Evas_Func
    void  (*texture_image_set)            (void *data, void *texture, void *image);
    void *(*texture_image_get)            (void *data, void *texture);
 
-   Ector_Surface *(*ector_get)           (void *data);
-   void  (*ector_begin)                  (void *data, void *context, void *surface, int x, int y, Eina_Bool do_async);
+   Ector_Surface *(*ector_create)        (void *data);
+   void  (*ector_destroy)                (void *data, Ector_Surface *surface);
+   void  (*ector_begin)                  (void *data, void *context, Ector_Surface *ector, void *surface, int x, int y, Eina_Bool do_async);
    void  (*ector_renderer_draw)          (void *data, void *context, void *surface, Ector_Renderer *r, Eina_Array *clips, Eina_Bool do_async);
-   void  (*ector_end)                    (void *data, void *context, void *surface, Eina_Bool do_async);
+   void  (*ector_end)                    (void *data, void *context, Ector_Surface *ector, void *surface, Eina_Bool do_async);
 };
 
 struct _Evas_Image_Save_Func
@@ -1778,6 +1790,9 @@ void _evas_canvas3d_eet_file_free(void);
 void evas_filter_init(void);
 void evas_filter_shutdown(void);
 
+/* Ector */
+Ector_Surface *evas_ector_get(Evas_Public_Data *evas);
+
 /* Temporary save/load functions */
 void evas_common_load_model_from_file(Evas_Canvas3D_Mesh *model, const char *file);
 void evas_common_load_model_from_eina_file(Evas_Canvas3D_Mesh *model, const Eina_File *file);
@@ -1822,6 +1837,7 @@ struct _Evas_Proxy_Render_Data
    Evas_Object *eo_proxy;
    Evas_Object_Protected_Data *proxy_obj;
    Evas_Object *eo_src;
+   Evas_Object_Protected_Data *src_obj;
    Eina_Bool source_clip : 1;
 };
 
@@ -1878,6 +1894,8 @@ void _evas_device_ref(Evas_Device *dev);
 void _evas_device_unref(Evas_Device *dev);
 
 Eina_Bool evas_vg_loader_svg(Evas_Object *vg, const Eina_File *f, const char *key EINA_UNUSED);
+
+void *_evas_object_image_surface_get(Evas_Object *eo, Evas_Object_Protected_Data *obj);
 
 extern Eina_Cow *evas_object_proxy_cow;
 extern Eina_Cow *evas_object_map_cow;

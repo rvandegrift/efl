@@ -28,11 +28,12 @@ struct _Outbuf_Region
 
 static Eina_List *shmpool = NULL;
 static int shmsize = 0;
-static int shmmemlimit = 10 * 1024 * 1024;
-static const unsigned int shmcountlimit = 32;
+static int shmmemlimit = 20 * 1024 * 1024;
+static const unsigned int shmcountlimit = 128;
 
-#define SHMPOOL_LOCK()
-#define SHMPOOL_UNLOCK()
+static Eina_Spinlock shmpool_lock;
+#define SHMPOOL_LOCK() eina_spinlock_take(&shmpool_lock)
+#define SHMPOOL_UNLOCK() eina_spinlock_release(&shmpool_lock)
 
 static X_Output_Buffer *
 _find_xob(Display *d, Visual *v, int depth, int w, int h, int shm, void *data)
@@ -77,7 +78,10 @@ _find_xob(Display *d, Visual *v, int depth, int w, int h, int shm, void *data)
 	     xl = l;
 	  }
      }
-   if ((fitness > (100 * 100)) || (!xob))
+   if (
+       (fitness > (400 * 400)) ||
+       (!xob)
+      )
      {
         SHMPOOL_UNLOCK();
         xob = evas_software_xlib_x_output_buffer_new(d, v, depth, w, h, shm, data);
@@ -146,6 +150,7 @@ _clear_xob(int psync)
 void
 evas_software_xlib_outbuf_init(void)
 {
+   eina_spinlock_new(&shmpool_lock);
 }
 
 void
@@ -187,6 +192,7 @@ evas_software_xlib_outbuf_free(Outbuf *buf)
    eina_array_flush(&buf->priv.onebuf_regions);
    free(buf);
    _clear_xob(0);
+   eina_spinlock_free(&shmpool_lock);
 }
 
 Outbuf *

@@ -19,8 +19,7 @@ _prot_print(Eo *obj, void *class_data EINA_UNUSED)
 EAPI EO_VOID_FUNC_BODY(inherit_prot_print);
 
 static Eo_Op_Description op_descs[] = {
-     EO_OP_FUNC(inherit_prot_print, _prot_print, "Print protected var x1."),
-     EO_OP_SENTINEL
+     EO_OP_FUNC(inherit_prot_print, _prot_print),
 };
 
 static const Eo_Class_Description class_desc = {

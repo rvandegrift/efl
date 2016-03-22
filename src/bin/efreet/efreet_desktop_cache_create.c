@@ -10,10 +10,19 @@
 #include <sys/resource.h>
 #endif
 
+#ifdef _WIN32
+# include <winsock2.h>
+# include <libgen.h>
+#endif
+
 #include <Eina.h>
 #include <Eet.h>
 #include <Ecore.h>
 #include <Ecore_File.h>
+
+#ifndef O_BINARY
+# define O_BINARY 0
+#endif
 
 #define EFREET_MODULE_LOG_DOM _efreet_desktop_cache_log_dom
 static int _efreet_desktop_cache_log_dom = -1;
@@ -23,8 +32,6 @@ static int _efreet_desktop_cache_log_dom = -1;
 #include "efreet_cache_private.h"
 
 static Eet_Data_Descriptor *edd = NULL;
-static Eet_File *ef = NULL;
-static Eet_File *util_ef = NULL;
 
 static Eina_Hash *desktops = NULL;
 
@@ -43,7 +50,7 @@ static Eina_Hash *environments = NULL;
 static Eina_Hash *keywords = NULL;
 
 static int
-cache_add(const char *path, const char *file_id, int priority EINA_UNUSED, int *changed)
+cache_add(Eet_File *ef, const char *path, const char *file_id, int priority EINA_UNUSED, int *changed)
 {
     Efreet_Desktop *desk;
     char *ext;
@@ -145,7 +152,8 @@ stat_cmp(const void *a, const void *b)
 }
 
 static int
-cache_scan(Eina_Inarray *stack, const char *path, const char *base_id,
+cache_scan(Eet_File *ef,
+           Eina_Inarray *stack, const char *path, const char *base_id,
            int priority, int recurse, int *changed)
 {
     char *file_id = NULL;
@@ -184,13 +192,13 @@ cache_scan(Eina_Inarray *stack, const char *path, const char *base_id,
         {
            if (recurse)
              {
-                ret = cache_scan(stack, info->path, file_id, priority, recurse, changed);
+                ret = cache_scan(ef, stack, info->path, file_id, priority, recurse, changed);
                 if (!ret) break;
              }
         }
         else
         {
-           ret = cache_add(info->path, file_id, priority, changed);
+           ret = cache_add(ef, info->path, file_id, priority, changed);
            if (!ret) break;
         }
     }
@@ -208,7 +216,7 @@ cache_lock_file(void)
     int lockfd;
 
     snprintf(file, sizeof(file), "%s/efreet/desktop_data.lock", efreet_cache_home_get());
-    lockfd = open(file, O_CREAT | O_RDWR, S_IRUSR | S_IWUSR);
+    lockfd = open(file, O_CREAT | O_BINARY | O_RDWR, S_IRUSR | S_IWUSR);
     if (lockfd < 0) return -1;
     efreet_fsetowner(lockfd);
 
@@ -257,6 +265,47 @@ changed:
    return 1;
 }
 
+static Eet_File *
+_open_temp_eet(Eina_Tmpstr **path, const char *rel)
+{
+   Eet_File *ef;
+   int tmpfd;
+   char buffer[PATH_MAX];
+
+   {
+      char *tmp;
+
+      tmp = strdup(rel);
+      snprintf(buffer, sizeof(buffer), "%s.XXXXXX.cache", basename(tmp));
+      free(tmp);
+   }
+
+   tmpfd = eina_file_mkstemp(buffer, path);
+   if (tmpfd < 0) return NULL;
+   close(tmpfd);
+
+   ef = eet_open(*path, EET_FILE_MODE_READ_WRITE);
+   if (!ef) goto on_error;
+
+   return ef;
+
+ on_error:
+   eina_tmpstr_del(*path);
+   *path = NULL;
+
+   return NULL;
+}
+
+static Eina_Bool
+_file_move(const char *src, const char *dst)
+{
+   if (rename(src, dst) == 0) return EINA_TRUE;
+
+   return eina_file_copy(src, dst,
+                         EINA_FILE_COPY_DATA | EINA_FILE_COPY_PERMISSION,
+                         NULL, NULL);
+}
+
 int
 main(int argc, char **argv)
 {
@@ -272,15 +321,17 @@ main(int argc, char **argv)
     Eina_List *extra_dirs = NULL;
     Eina_List *l = NULL;
     Eina_Inarray *stack = NULL;
+    Eet_File *ef = NULL;
+    Eet_File *util_ef = NULL;
     int priority = 0;
     char *dir = NULL;
     char *path;
-    int lockfd = -1, tmpfd;
+    int lockfd = -1;
     int changed = 0;
     int i;
-    char file[PATH_MAX] = { '\0' };
-    char util_file[PATH_MAX] = { '\0' };
-    mode_t um;
+    char buffer[PATH_MAX];
+    Eina_Tmpstr *tmpc = NULL;
+    Eina_Tmpstr *tmpuc = NULL;
 
     if (!eina_init()) goto eina_error;
     _efreet_desktop_cache_log_dom =
@@ -328,11 +379,11 @@ main(int argc, char **argv)
     if (!efreet_init()) goto efreet_error;
 
     /* create homedir */
-    snprintf(file, sizeof(file), "%s/efreet", efreet_cache_home_get());
-    if (!ecore_file_exists(file))
+    snprintf(buffer, sizeof(buffer), "%s/efreet", efreet_cache_home_get());
+    if (!ecore_file_exists(buffer))
     {
-        if (!ecore_file_mkpath(file)) goto efreet_error;
-        efreet_setowner(file);
+        if (!ecore_file_mkpath(buffer)) goto efreet_error;
+        efreet_setowner(buffer);
     }
 
     /* lock process, so that we only run one copy of this program */
@@ -351,24 +402,10 @@ main(int argc, char **argv)
     }
 
     /* create cache */
-    snprintf(file, sizeof(file), "%s.XXXXXX", efreet_desktop_cache_file());
-    /* set secure umask for temporary files */
-    um = umask(0077);
-    tmpfd = mkstemp(file);
-    umask(um);
-    if (tmpfd < 0) goto error;
-    close(tmpfd);
-    ef = eet_open(file, EET_FILE_MODE_READ_WRITE);
+    ef = _open_temp_eet(&tmpc, efreet_desktop_cache_file());
     if (!ef) goto error;
 
-    snprintf(util_file, sizeof(util_file), "%s.XXXXXX", efreet_desktop_util_cache_file());
-    /* set secure umask for temporary files */
-    um = umask(0077);
-    tmpfd = mkstemp(util_file);
-    umask(um);
-    if (tmpfd < 0) goto error;
-    close(tmpfd);
-    util_ef = eet_open(util_file, EET_FILE_MODE_READ_WRITE);
+    util_ef = _open_temp_eet(&tmpuc, efreet_desktop_util_cache_file());
     if (!util_ef) goto error;
 
     /* write cache version */
@@ -397,6 +434,7 @@ main(int argc, char **argv)
     dirs = efreet_default_dirs_get(efreet_data_home_get(), efreet_data_dirs_get(),
                                                                     "applications");
     if (!dirs) goto error;
+
     stack = eina_inarray_new(sizeof(struct stat), 16);
     if (!stack) goto error;
 
@@ -405,7 +443,7 @@ main(int argc, char **argv)
         char file_id[PATH_MAX] = { '\0' };
 
         eina_inarray_flush(stack);
-        if (!cache_scan(stack, path, file_id, priority++, 1, &changed))
+        if (!cache_scan(ef, stack, path, file_id, priority++, 1, &changed))
           goto error;
         systemdirs = eina_list_append(systemdirs, path);
      }
@@ -413,7 +451,7 @@ main(int argc, char **argv)
     EINA_LIST_FOREACH(extra_dirs, l, path)
     {
         eina_inarray_flush(stack);
-        if (!cache_scan(stack, path, NULL, priority, 0, &changed)) goto error;
+        if (!cache_scan(ef, stack, path, NULL, priority, 0, &changed)) goto error;
     }
 
     /* store util */
@@ -492,18 +530,18 @@ main(int argc, char **argv)
 
     /* unlink old cache files */
     if (changed)
-    {
-        /* rename tmp files to real files */
-        if (rename(util_file, efreet_desktop_util_cache_file()) < 0) goto error;
-        efreet_setowner(efreet_desktop_util_cache_file());
-        if (rename(file, efreet_desktop_cache_file()) < 0) goto error;
-        efreet_setowner(efreet_desktop_cache_file());
-    }
+      {
+         /* rename tmp files to real files */
+         if (!_file_move(tmpuc, efreet_desktop_util_cache_file())) goto error;
+         efreet_setowner(efreet_desktop_util_cache_file());
+         if (!_file_move(tmpc, efreet_desktop_cache_file())) goto error;
+         efreet_setowner(efreet_desktop_cache_file());
+      }
     else
-    {
-        unlink(util_file);
-        unlink(file);
-    }
+      {
+         unlink(tmpuc);
+         unlink(tmpc);
+      }
 
     {
         char c = 'n';
@@ -512,8 +550,10 @@ main(int argc, char **argv)
         printf("%c\n", c);
     }
 
+    eina_tmpstr_del(tmpuc);
+    eina_tmpstr_del(tmpc);
     EINA_LIST_FREE(systemdirs, dir)
-        eina_stringshare_del(dir);
+      eina_stringshare_del(dir);
     eina_list_free(extra_dirs);
     eina_inarray_free(stack);
     efreet_shutdown();
@@ -523,7 +563,11 @@ main(int argc, char **argv)
     eina_shutdown();
     close(lockfd);
     return 0;
+
 error:
+    eina_tmpstr_del(tmpuc);
+    eina_tmpstr_del(tmpc);
+
     if (stack) eina_inarray_free(stack);
     IF_FREE(dir);
 edd_error:

@@ -4,29 +4,23 @@
 
 #include "ecore_wl_private.h"
 #include "xdg-shell-client-protocol.h"
+#include "session-recovery-client-protocol.h"
 
 /* local function prototypes */
 static void _ecore_wl_window_cb_ping(void *data EINA_UNUSED, struct wl_shell_surface *shell_surface, unsigned int serial);
 static void _ecore_wl_window_cb_configure(void *data, struct wl_shell_surface *shell_surface EINA_UNUSED, unsigned int edges, int w, int h);
 static void _ecore_wl_window_cb_popup_done(void *data, struct wl_shell_surface *shell_surface EINA_UNUSED);
-static void _ecore_wl_window_cb_surface_enter(void *data, struct wl_surface *surface, struct wl_output *output EINA_UNUSED);
-static void _ecore_wl_window_cb_surface_leave(void *data, struct wl_surface *surface, struct wl_output *output EINA_UNUSED);
 static void _ecore_wl_window_configure_send(Ecore_Wl_Window *win, int w, int h, int edges);
 static char *_ecore_wl_window_id_str_get(unsigned int win_id);
 static void _ecore_xdg_handle_surface_configure(void *data, struct xdg_surface *xdg_surface, int32_t width, int32_t height,struct wl_array *states, uint32_t serial);
 static void _ecore_xdg_handle_surface_delete(void *data, struct xdg_surface *xdg_surface);
 static void _ecore_xdg_handle_popup_done(void *data, struct xdg_popup *xdg_popup);
+static void _ecore_session_recovery_uuid(void *data, struct session_recovery *session_recovery, const char *uuid);
 
 /* local variables */
 static Eina_Hash *_windows = NULL;
 
 /* wayland listeners */
-static const struct wl_surface_listener _ecore_wl_surface_listener =
-{
-   _ecore_wl_window_cb_surface_enter,
-   _ecore_wl_window_cb_surface_leave
-};
-
 static const struct wl_shell_surface_listener _ecore_wl_shell_surface_listener =
 {
    _ecore_wl_window_cb_ping,
@@ -43,6 +37,11 @@ static const struct xdg_surface_listener _ecore_xdg_surface_listener =
 static const struct xdg_popup_listener _ecore_xdg_popup_listener =
 {
    _ecore_xdg_handle_popup_done,
+};
+
+static const struct session_recovery_listener _ecore_session_recovery_listener =
+{
+   _ecore_session_recovery_uuid,
 };
 
 /* internal functions */
@@ -64,6 +63,131 @@ Eina_Hash *
 _ecore_wl_window_hash_get(void)
 {
    return _windows;
+}
+
+void
+_ecore_wl_window_shell_surface_init(Ecore_Wl_Window *win)
+{
+#ifdef USE_IVI_SHELL
+   char *env;
+#endif
+
+   if ((win->type == ECORE_WL_WINDOW_TYPE_DND) ||
+       (win->type == ECORE_WL_WINDOW_TYPE_NONE)) return;
+#ifdef USE_IVI_SHELL
+   if ((!win->ivi_surface) && (_ecore_wl_disp->wl.ivi_application))
+     {
+        if (win->parent && win->parent->ivi_surface)
+          win->ivi_surface_id = win->parent->ivi_surface_id + 1;
+        else if ((env = getenv("ECORE_IVI_SURFACE_ID")))
+          win->ivi_surface_id = atoi(env);
+        else
+          win->ivi_surface_id = IVI_SURFACE_ID + getpid();
+
+        win->ivi_surface =
+          ivi_application_surface_create(_ecore_wl_disp->wl.ivi_application,
+                                         win->ivi_surface_id, win->surface);
+     }
+
+   if (!win->ivi_surface)
+     {
+#endif
+        if (_ecore_wl_disp->wl.xdg_shell)
+          {
+             if (win->xdg_surface) return;
+             win->xdg_surface =
+               xdg_shell_get_xdg_surface(_ecore_wl_disp->wl.xdg_shell,
+                                         win->surface);
+             if (!win->xdg_surface) return;
+             if (win->title)
+               xdg_surface_set_title(win->xdg_surface, win->title);
+             if (win->class_name)
+               xdg_surface_set_app_id(win->xdg_surface, win->class_name);
+             xdg_surface_set_user_data(win->xdg_surface, win);
+             xdg_surface_add_listener(win->xdg_surface,
+                                      &_ecore_xdg_surface_listener, win);
+          }
+        else if (_ecore_wl_disp->wl.shell)
+          {
+             if (win->shell_surface) return;
+             win->shell_surface =
+               wl_shell_get_shell_surface(_ecore_wl_disp->wl.shell,
+                                          win->surface);
+             if (!win->shell_surface) return;
+
+             if (win->title)
+               wl_shell_surface_set_title(win->shell_surface, win->title);
+
+             if (win->class_name)
+               wl_shell_surface_set_class(win->shell_surface, win->class_name);
+          }
+
+        if (win->shell_surface)
+          wl_shell_surface_add_listener(win->shell_surface,
+                                        &_ecore_wl_shell_surface_listener, win);
+#ifdef USE_IVI_SHELL
+     }
+#endif
+
+   /* trap for valid shell surface */
+   if ((!win->xdg_surface) && (!win->shell_surface)) return;
+
+   switch (win->type)
+     {
+      case ECORE_WL_WINDOW_TYPE_FULLSCREEN:
+        if (win->xdg_surface)
+          xdg_surface_set_fullscreen(win->xdg_surface, NULL);
+        else if (win->shell_surface)
+          wl_shell_surface_set_fullscreen(win->shell_surface,
+                                          WL_SHELL_SURFACE_FULLSCREEN_METHOD_DEFAULT,
+                                          0, NULL);
+        break;
+      case ECORE_WL_WINDOW_TYPE_MAXIMIZED:
+        if (win->xdg_surface)
+          xdg_surface_set_maximized(win->xdg_surface);
+        else if (win->shell_surface)
+          wl_shell_surface_set_maximized(win->shell_surface, NULL);
+        break;
+      case ECORE_WL_WINDOW_TYPE_TRANSIENT:
+        if (win->xdg_surface)
+          xdg_surface_set_parent(win->xdg_surface, win->parent->xdg_surface);
+        else if (win->shell_surface)
+          wl_shell_surface_set_transient(win->shell_surface,
+                                         win->parent->surface,
+                                         win->allocation.x,
+                                         win->allocation.y, 0);
+        break;
+      case ECORE_WL_WINDOW_TYPE_MENU:
+        if (win->xdg_surface)
+          {
+             win->xdg_popup =
+               xdg_shell_get_xdg_popup(_ecore_wl_disp->wl.xdg_shell,
+                                       win->surface,
+                                       win->parent->surface,
+                                       _ecore_wl_disp->input->seat,
+                                       _ecore_wl_disp->serial,
+                                       win->allocation.x, win->allocation.y);
+             if (!win->xdg_popup) return;
+             xdg_popup_set_user_data(win->xdg_popup, win);
+             xdg_popup_add_listener(win->xdg_popup,
+                                    &_ecore_xdg_popup_listener, win);
+          }
+        else if (win->shell_surface)
+          wl_shell_surface_set_popup(win->shell_surface,
+                                     _ecore_wl_disp->input->seat,
+                                     _ecore_wl_disp->serial,
+                                     win->parent->surface,
+                                     win->allocation.x, win->allocation.y, 0);
+        break;
+      case ECORE_WL_WINDOW_TYPE_TOPLEVEL:
+        if (win->xdg_surface)
+          xdg_surface_set_parent(win->xdg_surface, NULL);
+        else if (win->shell_surface)
+          wl_shell_surface_set_toplevel(win->shell_surface);
+        break;
+      default:
+        break;
+     }
 }
 
 EAPI Ecore_Wl_Window *
@@ -185,7 +309,7 @@ ecore_wl_window_move(Ecore_Wl_Window *win, int x, int y)
 }
 
 EAPI void
-ecore_wl_window_resize(Ecore_Wl_Window *win, int w, int h, int location)
+ecore_wl_window_resize(Ecore_Wl_Window *win, int w EINA_UNUSED, int h EINA_UNUSED, int location)
 {
    Ecore_Wl_Input *input;
 
@@ -194,8 +318,6 @@ ecore_wl_window_resize(Ecore_Wl_Window *win, int w, int h, int location)
    if (!win) return;
 
    input = win->keyboard_device;
-
-   ecore_wl_window_update_size(win, w, h);
 
    if ((!input) && (win->parent))
      {
@@ -231,7 +353,7 @@ ecore_wl_window_commit(Ecore_Wl_Window *win)
 
    if (!win) return;
 
-   if ((win->surface) && (win->has_buffer))
+   if ((win->surface))// && (win->has_buffer))
      wl_surface_commit(win->surface);
 }
 
@@ -271,6 +393,8 @@ ecore_wl_window_surface_create(Ecore_Wl_Window *win)
 
    if (!win) return NULL;
    if (win->surface) return win->surface;
+   if (_ecore_wl_disp->wl.session_recovery)
+     session_recovery_add_listener(_ecore_wl_disp->wl.session_recovery, &_ecore_session_recovery_listener, win);
    win->surface = wl_compositor_create_surface(_ecore_wl_compositor_get());
    if (!win->surface) return NULL;
    win->surface_id = wl_proxy_get_id((struct wl_proxy *)win->surface);
@@ -280,132 +404,13 @@ ecore_wl_window_surface_create(Ecore_Wl_Window *win)
 EAPI void
 ecore_wl_window_show(Ecore_Wl_Window *win)
 {
-#ifdef USE_IVI_SHELL
-   char *env;
-#endif
-
    LOGFN(__FILE__, __LINE__, __FUNCTION__);
 
    if (!win) return;
 
    ecore_wl_window_surface_create(win);
 
-   if ((win->type != ECORE_WL_WINDOW_TYPE_DND) &&
-       (win->type != ECORE_WL_WINDOW_TYPE_NONE))
-     {
-#ifdef USE_IVI_SHELL
-        if ((!win->ivi_surface) && (_ecore_wl_disp->wl.ivi_application))
-          {
-             if (win->parent && win->parent->ivi_surface)
-               win->ivi_surface_id = win->parent->ivi_surface_id + 1;
-             else if ((env = getenv("ECORE_IVI_SURFACE_ID")))
-               win->ivi_surface_id = atoi(env);
-             else
-               win->ivi_surface_id = IVI_SURFACE_ID + getpid();
-
-             win->ivi_surface =
-               ivi_application_surface_create(_ecore_wl_disp->wl.ivi_application,
-                                              win->ivi_surface_id, win->surface);
-          }
-
-        if (!win->ivi_surface)
-          {
-#endif
-             if ((!win->xdg_surface) && (_ecore_wl_disp->wl.xdg_shell))
-               {
-                  win->xdg_surface =
-                    xdg_shell_get_xdg_surface(_ecore_wl_disp->wl.xdg_shell,
-                                              win->surface);
-                  if (!win->xdg_surface) return;
-                  if (win->title)
-                    xdg_surface_set_title(win->xdg_surface, win->title);
-                  if (win->class_name)
-                    xdg_surface_set_app_id(win->xdg_surface, win->class_name);
-                  xdg_surface_set_user_data(win->xdg_surface, win);
-                  xdg_surface_add_listener(win->xdg_surface,
-                                           &_ecore_xdg_surface_listener, win);
-               }
-             else if ((!win->shell_surface) && (_ecore_wl_disp->wl.shell))
-               {
-                  win->shell_surface =
-                    wl_shell_get_shell_surface(_ecore_wl_disp->wl.shell,
-                                               win->surface);
-                  if (!win->shell_surface) return;
-
-                  if (win->title)
-                    wl_shell_surface_set_title(win->shell_surface, win->title);
-
-                  if (win->class_name)
-                    wl_shell_surface_set_class(win->shell_surface, win->class_name);
-               }
-
-             if (win->shell_surface)
-               wl_shell_surface_add_listener(win->shell_surface,
-                                             &_ecore_wl_shell_surface_listener, win);
-#ifdef USE_IVI_SHELL
-          }
-#endif
-     }
-
-   /* trap for valid shell surface */
-   if ((!win->xdg_surface) && (!win->shell_surface)) return;
-
-   switch (win->type)
-     {
-      case ECORE_WL_WINDOW_TYPE_FULLSCREEN:
-        if (win->xdg_surface)
-          xdg_surface_set_fullscreen(win->xdg_surface, NULL);
-        else if (win->shell_surface)
-          wl_shell_surface_set_fullscreen(win->shell_surface,
-                                          WL_SHELL_SURFACE_FULLSCREEN_METHOD_DEFAULT,
-                                          0, NULL);
-        break;
-      case ECORE_WL_WINDOW_TYPE_MAXIMIZED:
-        if (win->xdg_surface)
-          xdg_surface_set_maximized(win->xdg_surface);
-        else if (win->shell_surface)
-          wl_shell_surface_set_maximized(win->shell_surface, NULL);
-        break;
-      case ECORE_WL_WINDOW_TYPE_TRANSIENT:
-        if (win->xdg_surface)
-          xdg_surface_set_parent(win->xdg_surface, win->parent->xdg_surface);
-        else if (win->shell_surface)
-          wl_shell_surface_set_transient(win->shell_surface,
-                                         win->parent->surface,
-                                         win->allocation.x,
-                                         win->allocation.y, 0);
-        break;
-      case ECORE_WL_WINDOW_TYPE_MENU:
-        if (win->xdg_surface)
-          {
-             win->xdg_popup =
-               xdg_shell_get_xdg_popup(_ecore_wl_disp->wl.xdg_shell,
-                                       win->surface,
-                                       win->parent->surface,
-                                       _ecore_wl_disp->input->seat,
-                                       _ecore_wl_disp->serial,
-                                       win->allocation.x, win->allocation.y);
-             if (!win->xdg_popup) return;
-             xdg_popup_set_user_data(win->xdg_popup, win);
-             xdg_popup_add_listener(win->xdg_popup,
-                                    &_ecore_xdg_popup_listener, win);
-          }
-        else if (win->shell_surface)
-          wl_shell_surface_set_popup(win->shell_surface,
-                                     _ecore_wl_disp->input->seat,
-                                     _ecore_wl_disp->serial,
-                                     win->parent->surface,
-                                     win->allocation.x, win->allocation.y, 0);
-        break;
-      case ECORE_WL_WINDOW_TYPE_TOPLEVEL:
-        if (win->xdg_surface)
-          xdg_surface_set_parent(win->xdg_surface, NULL);
-        else if (win->shell_surface)
-          wl_shell_surface_set_toplevel(win->shell_surface);
-        break;
-      default:
-        break;
-     }
+   _ecore_wl_window_shell_surface_init(win);
 }
 
 EAPI void
@@ -442,40 +447,34 @@ ecore_wl_window_raise(Ecore_Wl_Window *win)
 EAPI void
 ecore_wl_window_maximized_set(Ecore_Wl_Window *win, Eina_Bool maximized)
 {
+   Eina_Bool prev;
+
    LOGFN(__FILE__, __LINE__, __FUNCTION__);
 
-   if (!win) return;
+   EINA_SAFETY_ON_NULL_RETURN(win);
+   prev = ecore_wl_window_maximized_get(win);
 
-   if ((win->type == ECORE_WL_WINDOW_TYPE_MAXIMIZED) == maximized) return;
+   maximized = !!maximized;
 
-   if (win->type == ECORE_WL_WINDOW_TYPE_TOPLEVEL)
+   if (prev == maximized) return;
+
+   if (maximized)
      {
         if (win->xdg_surface)
-          {
-             xdg_surface_set_maximized(win->xdg_surface);
-             win->type = ECORE_WL_WINDOW_TYPE_MAXIMIZED;
-          }
+          xdg_surface_set_maximized(win->xdg_surface);
         else if (win->shell_surface)
-          {
-             wl_shell_surface_set_maximized(win->shell_surface, NULL);
-             win->type = ECORE_WL_WINDOW_TYPE_MAXIMIZED;
-          }
+          wl_shell_surface_set_maximized(win->shell_surface, NULL);
+        win->type = ECORE_WL_WINDOW_TYPE_MAXIMIZED;
      }
-   else if (win->type == ECORE_WL_WINDOW_TYPE_MAXIMIZED)
+   else
      {
         if (win->xdg_surface)
-          {
-             xdg_surface_unset_maximized(win->xdg_surface);
-             win->type = ECORE_WL_WINDOW_TYPE_TOPLEVEL;
-             _ecore_wl_window_configure_send(win, win->saved.w, win->saved.h, 0);
-          }
+          xdg_surface_unset_maximized(win->xdg_surface);
         else if (win->shell_surface)
-          {
-             wl_shell_surface_set_toplevel(win->shell_surface);
-             win->type = ECORE_WL_WINDOW_TYPE_TOPLEVEL;
-             _ecore_wl_window_configure_send(win, win->saved.w, win->saved.h, 0);
-          }
+          wl_shell_surface_set_toplevel(win->shell_surface);
+        win->type = ECORE_WL_WINDOW_TYPE_TOPLEVEL;
      }
+   win->maximized = maximized;
 }
 
 EAPI Eina_Bool
@@ -485,19 +484,23 @@ ecore_wl_window_maximized_get(Ecore_Wl_Window *win)
 
    if (!win) return EINA_FALSE;
 
-   if (win->type == ECORE_WL_WINDOW_TYPE_MAXIMIZED)
-     return EINA_TRUE;
-
-   return EINA_FALSE;
+   return win->maximized;
 }
 
 EAPI void
 ecore_wl_window_fullscreen_set(Ecore_Wl_Window *win, Eina_Bool fullscreen)
 {
+   Eina_Bool prev;
+
    LOGFN(__FILE__, __LINE__, __FUNCTION__);
 
-   if (!win) return;
-   if ((win->type == ECORE_WL_WINDOW_TYPE_FULLSCREEN) == fullscreen) return;
+   EINA_SAFETY_ON_NULL_RETURN(win);
+
+   prev = ecore_wl_window_fullscreen_get(win);
+
+   fullscreen = !!fullscreen;
+
+   if (prev == fullscreen) return;
    if (fullscreen)
      {
         win->type = ECORE_WL_WINDOW_TYPE_FULLSCREEN;
@@ -518,8 +521,8 @@ ecore_wl_window_fullscreen_set(Ecore_Wl_Window *win, Eina_Bool fullscreen)
           wl_shell_surface_set_toplevel(win->shell_surface);
 
         win->type = ECORE_WL_WINDOW_TYPE_TOPLEVEL;
-        _ecore_wl_window_configure_send(win, win->saved.w, win->saved.h, 0);
      }
+   win->fullscreen = fullscreen;
 }
 
 EAPI Eina_Bool
@@ -529,7 +532,7 @@ ecore_wl_window_fullscreen_get(Ecore_Wl_Window *win)
 
    if (!win) return EINA_FALSE;
 
-   return win->fullscreen || (win->type == ECORE_WL_WINDOW_TYPE_FULLSCREEN);
+   return win->fullscreen;
 }
 
 EAPI void
@@ -593,6 +596,7 @@ ecore_wl_window_update_size(Ecore_Wl_Window *win, int w, int h)
         win->saved.w = w;
         win->saved.h = h;
      }
+
    if (win->xdg_surface)
      xdg_surface_set_window_geometry(win->xdg_surface,
                                      win->allocation.x, win->allocation.y,
@@ -607,6 +611,7 @@ ecore_wl_window_update_location(Ecore_Wl_Window *win, int x, int y)
    if (!win) return;
    win->allocation.x = x;
    win->allocation.y = y;
+
    if (win->xdg_surface)
      xdg_surface_set_window_geometry(win->xdg_surface,
                                      win->allocation.x, win->allocation.y,
@@ -1063,25 +1068,12 @@ _ecore_xdg_handle_popup_done(void *data, struct xdg_popup *xdg_popup)
 }
 
 static void
-_ecore_wl_window_cb_surface_enter(void *data, struct wl_surface *surface, struct wl_output *output EINA_UNUSED)
+_ecore_session_recovery_uuid(void *data EINA_UNUSED, struct session_recovery *session_recovery, const char *uuid)
 {
-   Ecore_Wl_Window *win;
-
    LOGFN(__FILE__, __LINE__, __FUNCTION__);
 
-   if (!surface) return;
-   if (!(win = data)) return;
-}
-
-static void
-_ecore_wl_window_cb_surface_leave(void *data, struct wl_surface *surface, struct wl_output *output EINA_UNUSED)
-{
-   Ecore_Wl_Window *win;
-
-   LOGFN(__FILE__, __LINE__, __FUNCTION__);
-
-   if (!surface) return;
-   if (!(win = data)) return;
+   if (!session_recovery) return;
+   DBG("UUID event received from compositor with UUID: %s", uuid);
 }
 
 static void
@@ -1099,6 +1091,7 @@ _ecore_wl_window_configure_send(Ecore_Wl_Window *win, int w, int h, int edges)
    ev->w = w;
    ev->h = h;
    ev->edges = edges;
+
    ecore_event_add(ECORE_WL_EVENT_WINDOW_CONFIGURE, ev, NULL, NULL);
 }
 

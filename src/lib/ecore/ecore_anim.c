@@ -115,6 +115,7 @@ _timer_tick_core(void *data EINA_UNUSED, Ecore_Thread *thread)
    double t0, d;
    int ret;
 
+   eina_thread_name_set(eina_thread_self(), "Eanimator-timer");
    while (!ecore_thread_check(thread))
      {
         DBG("------- timer_event_is_busy=%i", timer_event_is_busy);
@@ -247,6 +248,7 @@ static void
 _begin_tick(void)
 {
    if (ticking) return;
+   eina_evlog(">animator", NULL, 0.0, NULL);
    ticking = 1;
    switch (src)
      {
@@ -267,6 +269,7 @@ static void
 _end_tick(void)
 {
    if (!ticking) return;
+   eina_evlog("<animator", NULL, 0.0, NULL);
    ticking = 0;
 
    _timer_tick_end();

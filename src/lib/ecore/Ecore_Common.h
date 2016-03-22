@@ -248,6 +248,10 @@ EAPI void ecore_main_loop_glib_always_integrate_disable(void);
  * handlers, etc. Once everything is done, before entering again on idle state,
  * any callback set as @c Idle_Enterer will be called.
  *
+ * This function should be called once only from the same thread that
+ * initted ecore, eina etc. (ecore_init(), eina_init(), ...) and should never
+ * be nested. Never call it from within an instance of itself.
+ *
  * Each main loop iteration is done by calling ecore_main_loop_iterate()
  * internally.
  *
@@ -953,7 +957,7 @@ typedef enum _Ecore_Exe_Flags Ecore_Exe_Flags;
 
 /**
  * @enum _Ecore_Exe_Win32_Priority
- * Defines the priority of the proccess.
+ * Defines the priority of the process.
  */
 enum _Ecore_Exe_Win32_Priority
 {
@@ -1053,7 +1057,7 @@ EAPI void ecore_exe_run_priority_set(int pri);
 /**
  * Gets the priority at which to launch processes
  *
- * This gets ths priority of launched processes. See
+ * This gets the priority of launched processes. See
  * ecore_exe_run_priority_set() for details. This just returns the value set
  * by this call.
  *
@@ -2481,7 +2485,7 @@ EAPI void ecore_app_args_set(int argc, const char **argv);
  * @param argc A pointer to the return value to hold argc
  * @param argv A pointer to the return value to hold argv
  *
- * When called, this funciton returns the arguments for the program stored by
+ * When called, this function returns the arguments for the program stored by
  * ecore_app_args_set(). The integer pointed to by @p argc will be filled, if
  * the pointer is not NULL, and the string array pointer @p argv will be filled
  * also if the pointer is not NULL. The values they are filled with will be the

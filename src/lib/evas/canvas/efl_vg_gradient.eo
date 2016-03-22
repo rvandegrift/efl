@@ -6,5 +6,7 @@ abstract Efl.VG.Gradient (Efl.VG.Base, Efl.Gfx.Gradient.Base)
       Efl.Gfx.Gradient.Base.stop.get;
       Efl.Gfx.Gradient.Base.spread.set;
       Efl.Gfx.Gradient.Base.spread.get;
+      Efl.VG.Base.interpolate;
+      Efl.VG.Base.dup;
    }
 }

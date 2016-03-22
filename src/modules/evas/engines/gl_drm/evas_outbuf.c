@@ -1,4 +1,5 @@
 #include "evas_engine.h"
+#include "../gl_common/evas_gl_define.h"
 
 /* local variables */
 static Outbuf *_evas_gl_drm_window = NULL;
@@ -191,24 +192,18 @@ _evas_outbuf_egl_setup(Outbuf *ob)
    ctx_attr[1] = 2;
    ctx_attr[2] = EGL_NONE;
 
-   cfg_attr[n++] = EGL_BUFFER_SIZE;
-   cfg_attr[n++] = 32;
-   cfg_attr[n++] = EGL_DEPTH_SIZE;
-   cfg_attr[n++] = EGL_DONT_CARE;
-   cfg_attr[n++] = EGL_STENCIL_SIZE;
-   cfg_attr[n++] = EGL_DONT_CARE;
    cfg_attr[n++] = EGL_RENDERABLE_TYPE;
    cfg_attr[n++] = EGL_OPENGL_ES2_BIT;
    cfg_attr[n++] = EGL_SURFACE_TYPE;
    cfg_attr[n++] = EGL_WINDOW_BIT;
-#if 0
+
    cfg_attr[n++] = EGL_RED_SIZE;
    cfg_attr[n++] = 1;
    cfg_attr[n++] = EGL_GREEN_SIZE;
    cfg_attr[n++] = 1;
    cfg_attr[n++] = EGL_BLUE_SIZE;
    cfg_attr[n++] = 1;
-#endif
+
 
    cfg_attr[n++] = EGL_ALPHA_SIZE;
    if (ob->destination_alpha) cfg_attr[n++] = 1;
@@ -396,8 +391,8 @@ evas_outbuf_new(Evas_Engine_Info_GL_Drm *info, int w, int h, Render_Engine_Swap_
         else if (ob->priv.num > 4) ob->priv.num = 4;
      }
 
-   if ((num = getenv("EVAS_GL_DRM_VSYNC")))
-     ob->vsync = atoi(num);
+   /* if ((num = getenv("EVAS_GL_DRM_VSYNC"))) */
+   /*   ob->vsync = atoi(num); */
 
    if ((ob->rotation == 0) || (ob->rotation == 180))
      _evas_outbuf_gbm_surface_create(ob, w, h);
@@ -538,28 +533,46 @@ evas_outbuf_unsurf(Outbuf *ob)
 void
 evas_outbuf_reconfigure(Outbuf *ob, int w, int h, int rot, Outbuf_Depth depth)
 {
+   Evas_Public_Data *epd;
+   Evas_Engine_Info_GL_Drm *einfo;
+   Render_Engine *re;
+   struct gbm_surface *osurface;
+   Outbuf *nob;
+
    if (depth == OUTBUF_DEPTH_INHERIT) depth = ob->depth;
 
-   /* check for changes */
-   /* if ((ob->w == w) && (ob->h == h) && */
-   /*     (ob->destination_alpha == ob->info->info.destination_alpha) && */
-   /*     ((int)ob->rotation == rot) && (ob->depth == depth)) */
-   /*   return; */
+   epd = eo_data_scope_get(ob->evas, EVAS_CANVAS_CLASS);
+   EINA_SAFETY_ON_NULL_RETURN(epd);
 
-   ob->w = w;
-   ob->h = h;
-   ob->depth = depth;
-   ob->rotation = rot;
+   re = epd->engine.data.output;
+   EINA_SAFETY_ON_NULL_RETURN(re);
 
-   /* _evas_outbuf_gbm_surface_destroy(ob); */
+   einfo = ob->info;
+   osurface = ob->surface;
 
-   /* if ((ob->rotation == 0) || (ob->rotation == 180)) */
-   /*   _evas_outbuf_gbm_surface_create(ob, w, h); */
-   /* else if ((ob->rotation == 90) || (ob->rotation == 270)) */
-   /*   _evas_outbuf_gbm_surface_create(ob, h, w); */
+   if ((ob->rotation == 0) || (ob->rotation == 180))
+     nob = evas_outbuf_new(einfo, w, h, ob->swap_mode);
+   else
+     nob = evas_outbuf_new(einfo, h, w, ob->swap_mode);
 
-   evas_outbuf_use(ob);
-   glsym_evas_gl_common_context_resize(ob->gl_context, w, h, rot);
+   if (!nob)
+     {
+        ERR("Could not create new Outbuf");
+        return;
+     }
+
+   re->generic.software.ob->gl_context->references++;
+
+   evas_outbuf_free(ob);
+   re->generic.software.ob = NULL;
+
+   evas_outbuf_use(nob);
+
+   evas_render_engine_software_generic_update(&re->generic.software, nob, w, h);
+
+   re->generic.software.ob->gl_context->references--;
+
+   glsym_evas_gl_common_context_resize(nob->gl_context, w, h, rot);
 }
 
 Render_Engine_Swap_Mode
@@ -636,6 +649,58 @@ evas_outbuf_update_region_first_rect(Outbuf *ob)
    return EINA_FALSE;
 }
 
+static void
+_glcoords_convert(int *result, Outbuf *ob, int x, int y, int w, int h)
+{
+   switch (ob->rotation)
+     {
+      case 0:
+        result[0] = x;
+        result[1] = ob->gl_context->h - (y + h);
+        result[2] = w;
+        result[3] = h;
+        break;
+      case 90:
+        result[0] = y;
+        result[1] = x;
+        result[2] = h;
+        result[3] = w;
+        break;
+      case 180:
+        result[0] = ob->gl_context->w - (x + w);
+        result[1] = y;
+        result[2] = w;
+        result[3] = h;
+        break;
+      case 270:
+        result[0] = ob->gl_context->h - (y + h);
+        result[1] = ob->gl_context->w - (x + w);
+        result[2] = h;
+        result[3] = w;
+        break;
+      default:
+        result[0] = x;
+        result[1] = ob->gl_context->h - (y + h);
+        result[2] = w;
+        result[3] = h;
+        break;
+     }
+}
+
+static void
+_damage_rect_set(Outbuf *ob, int x, int y, int w, int h)
+{
+   int rects[4];
+
+   if ((x == 0) && (y == 0) &&
+       (((w == ob->gl_context->w) && (h == ob->gl_context->h)) ||
+           ((h == ob->gl_context->w) && (w == ob->gl_context->h))))
+     return;
+
+   _glcoords_convert(rects, ob, x, y, w, h);
+   glsym_eglSetDamageRegionKHR(ob->egl.disp, ob->egl.surface[0], rects, 1);
+}
+
 void *
 evas_outbuf_update_region_new(Outbuf *ob, int x, int y, int w, int h, int *cx EINA_UNUSED, int *cy EINA_UNUSED, int *cw EINA_UNUSED, int *ch EINA_UNUSED)
 {
@@ -648,6 +713,9 @@ evas_outbuf_update_region_new(Outbuf *ob, int x, int y, int w, int h, int *cx EI
         ob->gl_context->master_clip.y = y;
         ob->gl_context->master_clip.w = w;
         ob->gl_context->master_clip.h = h;
+
+        if (glsym_eglSetDamageRegionKHR)
+          _damage_rect_set(ob, x, y, w, h);
      }
 
    return ob->gl_context->def_surface;
@@ -670,7 +738,7 @@ evas_outbuf_update_region_free(Outbuf *ob EINA_UNUSED, RGBA_Image *update EINA_U
 }
 
 void
-evas_outbuf_flush(Outbuf *ob, Tilebuf_Rect *rects EINA_UNUSED, Evas_Render_Mode render_mode)
+evas_outbuf_flush(Outbuf *ob, Tilebuf_Rect *rects, Evas_Render_Mode render_mode)
 {
    if (render_mode == EVAS_RENDER_MODE_ASYNC_INIT) goto end;
 
@@ -691,9 +759,8 @@ evas_outbuf_flush(Outbuf *ob, Tilebuf_Rect *rects EINA_UNUSED, Evas_Render_Mode 
    if (ob->info->callback.pre_swap)
      ob->info->callback.pre_swap(ob->info->callback.data, ob->evas);
 
-// TODO: Check eglSwapBuffersWithDamage for gl_drm and apply
-#if 0
-   if ((glsym_eglSwapBuffersWithDamage) && (ob->swap_mode != MODE_FULL))
+   if ((glsym_eglSwapBuffersWithDamage) && (rects) &&
+       (ob->swap_mode != MODE_FULL))
      {
         EGLint num = 0, *result = NULL, i = 0;
         Tilebuf_Rect *r;
@@ -705,43 +772,7 @@ evas_outbuf_flush(Outbuf *ob, Tilebuf_Rect *rects EINA_UNUSED, Evas_Render_Mode 
              result = alloca(sizeof(EGLint) * 4 * num);
              EINA_INLIST_FOREACH(EINA_INLIST_GET(rects), r)
                {
-                  int gw, gh;
-
-                  gw = ob->gl_context->w;
-                  gh = ob->gl_context->h;
-                  switch (ob->rotation)
-                    {
-                     case 0:
-                       result[i + 0] = r->x;
-                       result[i + 1] = gh - (r->y + r->h);
-                       result[i + 2] = r->w;
-                       result[i + 3] = r->h;
-                       break;
-                     case 90:
-                       result[i + 0] = r->y;
-                       result[i + 1] = r->x;
-                       result[i + 2] = r->h;
-                       result[i + 3] = r->w;
-                       break;
-                     case 180:
-                       result[i + 0] = gw - (r->x + r->w);
-                       result[i + 1] = r->y;
-                       result[i + 2] = r->w;
-                       result[i + 3] = r->h;
-                       break;
-                     case 270:
-                       result[i + 0] = gh - (r->y + r->h);
-                       result[i + 1] = gw - (r->x + r->w);
-                       result[i + 2] = r->h;
-                       result[i + 3] = r->w;
-                       break;
-                     default:
-                       result[i + 0] = r->x;
-                       result[i + 1] = gh - (r->y + r->h);
-                       result[i + 2] = r->w;
-                       result[i + 3] = r->h;
-                       break;
-                    }
+                  _glcoords_convert(&result[i], ob, r->x, r->y, r->w, r->h);
                   i += 4;
                }
              glsym_eglSwapBuffersWithDamage(ob->egl.disp, ob->egl.surface[0],
@@ -749,14 +780,33 @@ evas_outbuf_flush(Outbuf *ob, Tilebuf_Rect *rects EINA_UNUSED, Evas_Render_Mode 
           }
      }
    else
-#endif
       eglSwapBuffers(ob->egl.disp, ob->egl.surface[0]);
 
    if (ob->info->callback.post_swap)
      ob->info->callback.post_swap(ob->info->callback.data, ob->evas);
 
-   //Flush GL Surface data to Framebuffer
-   _evas_outbuf_buffer_swap(ob, NULL, 0);
+   if (rects)
+     {
+        Tilebuf_Rect *r;
+        Eina_Rectangle *res;
+        int num, i = 0;
+
+        num = eina_inlist_count(EINA_INLIST_GET(rects));
+        res = alloca(sizeof(Eina_Rectangle) * num);
+        EINA_INLIST_FOREACH(EINA_INLIST_GET(rects), r)
+          {
+             res[i].x = r->x;
+             res[i].y = r->y;
+             res[i].w = r->w;
+             res[i].h = r->h;
+             i++;
+          }
+
+        _evas_outbuf_buffer_swap(ob, res, num);
+     }
+   else
+     //Flush GL Surface data to Framebuffer
+     _evas_outbuf_buffer_swap(ob, NULL, 0);
 
    ob->priv.frame_cnt++;
 

@@ -162,9 +162,9 @@ static void
 subdir_cache_save(void)
 {
    char buf[PATH_MAX], buf2[PATH_MAX];
-   int tmpfd;
-   mode_t um;
    Eet_File *ef;
+   Eina_Tmpstr *tmpstr = NULL;
+   int tmpfd;
 
    // only if subdirs need saving... and we have subdirs.
    if (!subdir_need_save) return;
@@ -172,16 +172,24 @@ subdir_cache_save(void)
    if (!subdir_cache->dirs) return;
 
    // save to tmp file first
-   snprintf(buf2, sizeof(buf2), "%s/efreet/subdirs_%s.eet.XXXXXX", efreet_cache_home_get(), efreet_hostname_get());
-   um = umask(0077);
-   tmpfd = mkstemp(buf2);
-   umask(um);
+   snprintf(buf2, sizeof(buf2), "%s/efreet/subdirs_%s.eet.XXXXXX.cache", efreet_cache_home_get(), efreet_hostname_get());
+   tmpfd = eina_file_mkstemp(buf2, &tmpstr);
    if (tmpfd < 0) return;
 
-   // write out eetf ile to tmp file
+   // write out eet file to tmp file
    ef = eet_open(buf2, EET_FILE_MODE_WRITE);
    eet_data_write(ef, subdir_edd, "subdirs", subdir_cache, EET_COMPRESSION_SUPERFAST);
    eet_close(ef);
+   eina_tmpstr_del(tmpstr);
+
+   /*
+    * On Windows, buf2 has one remaining ref, hence it can not be renamed below.
+    * Stupid NTFS... So we close it first. "Magically", on Windows, this
+    * temporary file is not deleted...
+    */
+#ifdef _WIN32
+   close(tmpfd);
+#endif
 
    // atomically rename subdirs file on top from tmp file
    snprintf(buf, sizeof(buf), "%s/efreet/subdirs_%s.eet", efreet_cache_home_get(), efreet_hostname_get());
@@ -513,12 +521,8 @@ _check_recurse_monitor_sanity(Eina_Inarray *stack, const char *path, unsigned in
    // detect if we start recursing at $HOME - a sign of something wrong
    if ((home) && (!strcmp(home, path)))
      {
-        char buf[PATH_MAX];
-
-        ERR("Recursively monitor homedir! Remove cache and exit.");
-        snprintf(buf, sizeof(buf), "%s/efreet", efreet_cache_home_get());
-        if (!ecore_file_recursive_rm(buf)) ERR("Can't delete efreet cache dir");
-        exit(-1);
+        ERR("Recursively monitor homedir! Ignore.");
+        return EINA_FALSE;
      }
    return EINA_TRUE;
 }
@@ -731,6 +735,8 @@ cache_exe_data_cb(void *data EINA_UNUSED, int type EINA_UNUSED, void *event)
         Eina_Bool update = EINA_FALSE;
 
         if ((ev->lines) && (*ev->lines->line == 'c')) update = EINA_TRUE;
+        if (!desktop_exists)
+          send_signal_desktop_cache_build();
         desktop_exists = EINA_TRUE;
         send_signal_desktop_cache_update(update);
      }

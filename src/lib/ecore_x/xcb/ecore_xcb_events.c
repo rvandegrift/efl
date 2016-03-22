@@ -1235,6 +1235,7 @@ _ecore_xcb_event_handle_property_notify(xcb_generic_event_t *event)
    e->win = ev->window;
    e->atom = ev->atom;
    e->time = ev->time;
+   e->state = !!ev->state;
    _ecore_xcb_event_last_time = e->time;
 
    ecore_event_add(ECORE_X_EVENT_WINDOW_PROPERTY, e, NULL, NULL);
@@ -1366,6 +1367,7 @@ _ecore_xcb_event_handle_selection_notify(xcb_generic_event_t *event)
    e->win = ev->requestor;
    e->time = ev->time;
    e->atom = selection;
+   e->property = ev->property;
    e->target = _ecore_xcb_selection_target_get(ev->target);
 
    if (selection == ECORE_X_ATOM_SELECTION_PRIMARY)

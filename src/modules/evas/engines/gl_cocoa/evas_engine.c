@@ -60,7 +60,12 @@ static Evas_Func func, pfunc;
 /* Function table for GL APIs */
 static Evas_GL_API gl_funcs;
 
+Eina_Bool _need_context_restore = EINA_FALSE;
 
+void
+_context_restore(void)
+{
+}
 
 static void *
 eng_info(Evas *e EINA_UNUSED)
@@ -665,15 +670,12 @@ eng_image_size_set(void *data, void *image, int w, int h)
        ((int)im_old->im->cache_entry.w == w) &&
        ((int)im_old->im->cache_entry.h == h))
      return image;
-   if (im_old)
-     {
-   	im = evas_gl_common_image_new(re->win->gl_context, w, h,
-   				      eng_image_alpha_get(data, image),
-   				      eng_image_colorspace_get(data, image));
-        evas_gl_common_image_free(im_old);
-     }
-   else
-     im = evas_gl_common_image_new(re->win->gl_context, w, h, 1, EVAS_COLORSPACE_ARGB8888);
+
+   im = evas_gl_common_image_new(re->win->gl_context, w, h,
+                                 eng_image_alpha_get(data, image),
+                                 eng_image_colorspace_get(data, image));
+   evas_gl_common_image_free(im_old);
+
    return im;
 }
 

@@ -30,10 +30,10 @@ static const Evas_Object_Protected_State default_state = {
   NULL, { 0, 0, 0, 0 },
   { { 0, 0, 0, 0, 0, 0, 0, 0, EINA_FALSE, EINA_FALSE } },
   { 255, 255, 255, 255 },
-  1.0, 0, EVAS_RENDER_BLEND, EINA_FALSE, EINA_FALSE, EINA_FALSE, EINA_FALSE, EINA_FALSE, EINA_FALSE
+  1.0, 0, EVAS_RENDER_BLEND, EINA_FALSE, EINA_FALSE, EINA_FALSE, EINA_FALSE, EINA_FALSE
 };
 static const Evas_Object_Filter_Data default_filter = {
-  NULL, NULL, NULL, NULL, NULL, NULL, { { "default", 0.0 }, { "default", 0.0 }, 0.0 }, EINA_FALSE, EINA_FALSE
+  NULL, NULL, NULL, NULL, NULL, NULL, { { "default", 0.0 }, { "default", 0.0 }, 0.0 }, EINA_FALSE, EINA_FALSE, EINA_TRUE
 };
 const void * const evas_object_filter_cow_default = &default_filter;
 static const Evas_Object_Mask_Data default_mask = {
@@ -254,8 +254,7 @@ evas_object_change(Evas_Object *eo_obj, Evas_Object_Protected_Data *obj)
    Eina_Bool movch = EINA_FALSE;
    Evas_Canvas3D_Texture *texture;
 
-   if (!obj->layer) return;
-   if (!obj->layer->evas) return;
+   if ((!obj->layer) || (!obj->layer->evas)) return;
    if (obj->layer->evas->nochange) return;
    obj->layer->evas->changed = EINA_TRUE;
 
@@ -680,20 +679,20 @@ _evas_object_eo_base_destructor(Eo *eo_obj, Evas_Object_Protected_Data *obj)
    if (obj->focused)
      {
         obj->focused = EINA_FALSE;
-        if (obj->layer)
+        if ((obj->layer) && (obj->layer->evas))
           obj->layer->evas->focused = NULL;
         _evas_object_event_new();
         evas_object_event_callback_call(eo_obj, obj, EVAS_CALLBACK_FOCUS_OUT, NULL, _evas_event_counter);
-        if (obj->layer)
+        if ((obj->layer) && (obj->layer->evas))
           _evas_post_event_callback_call(obj->layer->evas->evas, obj->layer->evas);
      }
    _evas_object_event_new();
    evas_object_event_callback_call(eo_obj, obj, EVAS_CALLBACK_DEL, NULL, _evas_event_counter);
-   if (obj->layer)
+   if ((obj->layer) && (obj->layer->evas))
      _evas_post_event_callback_call(obj->layer->evas->evas, obj->layer->evas);
-   if ((obj->mouse_grabbed > 0) && (obj->layer))
+   if ((obj->mouse_grabbed > 0) && (obj->layer) && (obj->layer->evas))
       obj->layer->evas->pointer.mouse_grabbed -= obj->mouse_grabbed;
-   if (((obj->mouse_in) || (obj->mouse_grabbed > 0)) && (obj->layer))
+   if (((obj->mouse_in) || (obj->mouse_grabbed > 0)) && (obj->layer) && (obj->layer->evas))
       obj->layer->evas->pointer.object.in = eina_list_remove(obj->layer->evas->pointer.object.in, eo_obj);
    obj->mouse_grabbed = 0;
    obj->mouse_in = 0;
@@ -739,7 +738,7 @@ _evas_object_eo_base_destructor(Eo *eo_obj, Evas_Object_Protected_Data *obj)
    if (obj->is_smart) evas_object_smart_del(eo_obj);
    _evas_object_event_new();
    evas_object_event_callback_call(eo_obj, obj, EVAS_CALLBACK_FREE, NULL, _evas_event_counter);
-   if (obj->layer)
+   if ((obj->layer) && (obj->layer->evas))
      _evas_post_event_callback_call(obj->layer->evas->evas, obj->layer->evas);
    evas_object_smart_cleanup(eo_obj);
    obj->delete_me = 1;

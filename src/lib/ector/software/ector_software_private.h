@@ -42,6 +42,7 @@ typedef struct _Ector_Renderer_Software_Gradient_Data
       Software_Gradient_Linear_Data linear;
       Software_Gradient_Radial_Data radial;
    };
+   Eina_Bool alpha;
    uint* color_table;
 } Ector_Renderer_Software_Gradient_Data;
 
@@ -56,6 +57,7 @@ typedef struct _Raster_Buffer
 
 typedef struct _Shape_Rle_Data
 {
+   Eina_Rectangle   bbox;
    unsigned short   alloc;
    unsigned short   size;
    SW_FT_Span      *spans;// array of Scanlines.

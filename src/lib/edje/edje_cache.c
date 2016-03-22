@@ -33,6 +33,7 @@ edje_cache_emp_alloc(Edje_Part_Collection_Directory_Entry *ce)
   INIT_EMP_BOTH(TABLE, Edje_Part_Description_Table, ce);
   INIT_EMP_BOTH(EXTERNAL, Edje_Part_Description_External, ce);
   INIT_EMP_BOTH(SPACER, Edje_Part_Description_Common, ce);
+  INIT_EMP_BOTH(SNAPSHOT, Edje_Part_Description_Snapshot, ce);
   INIT_EMP(part, Edje_Part, ce);
 }
 
@@ -51,6 +52,7 @@ edje_cache_emp_free(Edje_Part_Collection_Directory_Entry *ce)
   eina_mempool_del(ce->mp.TABLE);
   eina_mempool_del(ce->mp.EXTERNAL);
   eina_mempool_del(ce->mp.SPACER);
+  eina_mempool_del(ce->mp.SNAPSHOT);
   eina_mempool_del(ce->mp.part);
   memset(&ce->mp, 0, sizeof (ce->mp));
 
@@ -65,6 +67,7 @@ edje_cache_emp_free(Edje_Part_Collection_Directory_Entry *ce)
   eina_mempool_del(ce->mp_rtl.TABLE);
   eina_mempool_del(ce->mp_rtl.EXTERNAL);
   eina_mempool_del(ce->mp_rtl.SPACER);
+  eina_mempool_del(ce->mp_rtl.SNAPSHOT);
   memset(&ce->mp_rtl, 0, sizeof (ce->mp_rtl));
   ce->ref = NULL;
 }
@@ -256,12 +259,11 @@ _edje_file_coll_open(Edje_File *edf, const char *coll)
 }
 
 static Edje_File *
-_edje_file_open(const Eina_File *f, const char *coll, int *error_ret, Edje_Part_Collection **edc_ret, time_t mtime)
+_edje_file_open(const Eina_File *f, int *error_ret, time_t mtime)
 {
    Edje_Color_Class *cc;
    Edje_File *edf;
    Eina_List *l;
-   Edje_Part_Collection *edc;
    Eet_File *ef;
 
    ef = eet_mmap(f);
@@ -315,16 +317,6 @@ _edje_file_open(const Eina_File *f, const char *coll, int *error_ret, Edje_Part_
    EINA_LIST_FOREACH(edf->color_classes, l, cc)
      if (cc->name)
        eina_hash_direct_add(edf->color_hash, cc->name, cc);
-
-   if (coll)
-     {
-        edc = _edje_file_coll_open(edf, coll);
-        if (!edc)
-          {
-             *error_ret = EDJE_LOAD_ERROR_UNKNOWN_COLLECTION;
-          }
-        if (edc_ret) *edc_ret = edc;
-     }
 
    return edf;
 }
@@ -380,7 +372,7 @@ find_list:
           }
      }
 
-   edf = _edje_file_open(file, coll, error_ret, edc_ret, eina_file_mtime_get(file));
+   edf = _edje_file_open(file, error_ret, eina_file_mtime_get(file));
    if (!edf) return NULL;
 
    eina_hash_direct_add(_edje_file_hash, &edf->f, edf);

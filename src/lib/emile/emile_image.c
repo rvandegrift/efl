@@ -177,27 +177,28 @@ _roundup(int val, int rup)
 
 /* TGV Handling */
 
-static const Emile_Colorspace cspaces_etc1[2] = {
+static const Emile_Colorspace cspaces_etc1[] = {
    EMILE_COLORSPACE_ETC1,
-   EMILE_COLORSPACE_ARGB8888
-};
-
-static const Emile_Colorspace cspaces_rgb8_etc2[2] = {
    EMILE_COLORSPACE_RGB8_ETC2,
    EMILE_COLORSPACE_ARGB8888
 };
 
-static const Emile_Colorspace cspaces_rgba8_etc2_eac[2] = {
+static const Emile_Colorspace cspaces_rgb8_etc2[] = {
+   EMILE_COLORSPACE_RGB8_ETC2,
+   EMILE_COLORSPACE_ARGB8888
+};
+
+static const Emile_Colorspace cspaces_rgba8_etc2_eac[] = {
    EMILE_COLORSPACE_RGBA8_ETC2_EAC,
    EMILE_COLORSPACE_ARGB8888
 };
 
-static const Emile_Colorspace cspaces_etc1_alpha[2] = {
+static const Emile_Colorspace cspaces_etc1_alpha[] = {
    EMILE_COLORSPACE_ETC1_ALPHA,
    EMILE_COLORSPACE_ARGB8888
 };
 
-static const Emile_Colorspace cspaces_agry[3] = {
+static const Emile_Colorspace cspaces_gry[] = {
    EMILE_COLORSPACE_GRY8,
    EMILE_COLORSPACE_AGRY88,
    EMILE_COLORSPACE_ARGB8888
@@ -335,7 +336,9 @@ _emile_tgv_head(Emile_Image *image,
                       0, 0,
                       image->size.width, image->size.height);
    if (image->load_opts &&
-       (image->opts.region.w > 0 && image->opts.region.h > 0))
+       ((image->opts.region.w > 0) && (image->opts.region.h > 0) &&
+        (image->opts.region.w != (int) image->size.width) &&
+        (image->opts.region.h != (int) image->size.height)))
      {
         /* ETC colorspace doesn't work with region for now */
         prop->cspaces = NULL;
@@ -872,10 +875,10 @@ _get_orientation_app1(const unsigned char *map,
                       Eina_Bool *flipped)
 {
    const unsigned char *app1_head, *buf;
-   unsigned char orientation[2];
+   unsigned char orientation[2];  //orientation tag
    ExifByteAlign byte_align;
    unsigned int num_directory = 0;
-   unsigned int ifd_offset = 10; //IFD offset start at 10th byte
+   unsigned int ifd_offset = 10; //IFD offset start at 10th byte (mark:2 + data_size:2 + exif:6)
    unsigned int i, j;
    int direction;
    unsigned int data_size = 0;
@@ -897,14 +900,15 @@ _get_orientation_app1(const unsigned char *map,
         return EINA_TRUE;
      }
 
-   /* 2. get 14th byte get info for IFD offset */
-   /* 3. get 10&11 byte  get info of "II(0x4949)" or "MM(0x4d4d)" */
+   /* 2. get 10&11 byte  get info of "II(0x4949)" or "MM(0x4d4d)" */
+   /* 3. get 14th - 17th byte get info for IFD offset */
    /* 4. get directory entry IFD */
 
-   ifd_offset += *(buf + 14);
 
    if (!memcmp(buf + 10, MM, sizeof(MM)))
      {
+        // get 4byte by little endian
+        ifd_offset += (*(buf + 14) << 24) + (*(buf + 15) << 16) + (*(buf + 16) << 8) + (*(buf + 17));
         byte_align = EXIF_BYTE_ALIGN_MM;
         num_directory = ((*(buf + ifd_offset) << 8) + *(buf + ifd_offset + 1));
         orientation[0] = 0x01;
@@ -912,6 +916,8 @@ _get_orientation_app1(const unsigned char *map,
      }
    else if (!memcmp(buf + 10, II, sizeof(II)))
      {
+        // get 4byte by big endian
+        ifd_offset += (*(buf + 14))  + (*(buf + 15) << 8) + (*(buf + 16) << 16) + (*(buf + 17) << 24);
         byte_align = EXIF_BYTE_ALIGN_II;
         num_directory = ((*(buf + ifd_offset + 1) << 8) + *(buf + ifd_offset));
         orientation[0] = 0x12;
@@ -924,7 +930,7 @@ _get_orientation_app1(const unsigned char *map,
    if ((*position + (12 * num_directory + 20)) > fsize)
      return EINA_FALSE;
 
-   buf = app1_head + ifd_offset + 2;
+   buf = app1_head + ifd_offset + 2;  //next to 0th ifd (1st tag)
 
    j = 0;
 
@@ -1409,7 +1415,7 @@ _emile_jpeg_head(Emile_Image *image,
    if (cinfo.jpeg_color_space == JCS_GRAYSCALE)
      {
         /* We do handle GRY8 and AGRY88 (with FF for alpha) colorspace as an output for JPEG */
-        prop->cspaces = cspaces_agry;
+        prop->cspaces = cspaces_gry;
      }
 
    /* rotation decoding */
@@ -1630,7 +1636,7 @@ _emile_jpeg_data(Emile_Image *image,
    memset(&cinfo, 0, sizeof(cinfo));
    if (prop->rotated)
      {
-        degree = opts->degree;
+        degree = opts ? opts->degree : 0;
         if (degree == 90 || degree == 270)
           change_wh = EINA_TRUE;
      }

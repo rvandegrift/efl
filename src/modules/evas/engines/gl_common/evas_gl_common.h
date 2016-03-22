@@ -3,7 +3,6 @@
 
 #include "evas_common_private.h"
 #include "evas_private.h"
-#include "config.h"
 
 #include <stdio.h>
 #include <stdlib.h>
@@ -52,9 +51,9 @@
 #define SHAD_TEXA   5
 #define SHAD_TEXSAM 6
 #define SHAD_MASK   7
+#define SHAD_MASKSAM 8
 
 typedef struct _Evas_GL_Program               Evas_GL_Program;
-typedef struct _Evas_GL_Program_Source        Evas_GL_Program_Source;
 typedef struct _Evas_GL_Shared                Evas_GL_Shared;
 typedef struct _Evas_Engine_GL_Context        Evas_Engine_GL_Context;
 typedef struct _Evas_GL_Texture_Pool          Evas_GL_Texture_Pool;
@@ -105,13 +104,6 @@ struct _Evas_GL_Program
    Eina_Bool reset;
 };
 
-struct _Evas_GL_Program_Source
-{
-   const char *src;
-   const unsigned int *bin;
-   int bin_size;
-};
-
 struct _Evas_GL_Shared
 {
    Eina_List          *images;
@@ -136,8 +128,7 @@ struct _Evas_GL_Shared
       Eina_Bool etc1_subimage : 1;
       Eina_Bool s3tc : 1;
       // tuning params - per gpu/cpu combo?
-#define MAX_CUTOUT             512
-#define DEF_CUTOUT                  512
+#define DEF_CUTOUT                  4096
 
 #define MAX_PIPES              128
 #define DEF_PIPES                    32
@@ -223,6 +214,7 @@ enum _Shader_Type {
    SHD_RECT,
    SHD_FONT,
    SHD_IMAGE,
+   SHD_IMAGENATIVE,
    SHD_YUV,
    SHD_YUY2,
    SHD_NV12,
@@ -303,6 +295,7 @@ struct _Evas_Engine_GL_Context
          GLfloat *texa;
          GLfloat *texsam;
          GLfloat *mask;
+         GLfloat *masksam;
          Eina_Bool line: 1;
          Eina_Bool use_vertex : 1; // always true
          Eina_Bool use_color : 1;
@@ -312,6 +305,7 @@ struct _Evas_Engine_GL_Context
          Eina_Bool use_texa : 1;
          Eina_Bool use_texsam : 1;
          Eina_Bool use_mask : 1;
+         Eina_Bool use_masksam : 1;
          Eina_Bool anti_alias : 1;
          Evas_GL_Image *im;
          GLuint buffer;
@@ -377,6 +371,7 @@ struct _Evas_GL_Texture
    Evas_Engine_GL_Context *gc;
    Evas_GL_Image   *im;
    Evas_GL_Texture_Pool *pt, *ptu, *ptv, *ptt;
+   Evas_GL_Texture_Pool *pt2, *ptu2, *ptv2;
    union {
       Evas_GL_Texture_Pool *ptuv;
       Evas_GL_Texture_Pool *pta;
@@ -601,7 +596,7 @@ void             evas_gl_common_context_image_map_push(Evas_Engine_GL_Context *g
 int               evas_gl_common_shader_program_init(Evas_GL_Shared *shared);
 void              evas_gl_common_shader_program_init_done(void);
 void              evas_gl_common_shader_program_shutdown(Evas_GL_Program *p);
-Evas_GL_Shader    evas_gl_common_img_shader_select(Shader_Sampling sam, int nomul, int afill, int bgra, int mask);
+Evas_GL_Shader    evas_gl_common_img_shader_select(Shader_Type type, Shader_Sampling sam, int nomul, int afill, int bgra, int mask, int masksam);
 const char       *evas_gl_common_shader_name_get(Evas_GL_Shader shd);
 
 Eina_Bool         evas_gl_common_file_cache_is_dir(const char *file);
@@ -866,5 +861,9 @@ _comp_tex_sub_2d(Evas_Engine_GL_Context *gc, int x, int y, int w, int h, int fmt
 
 #undef EAPI
 #define EAPI
+
+extern Eina_Bool _need_context_restore;
+extern void _context_restore(void);
+EAPI void evas_gl_context_restore_set(Eina_Bool enable);
 
 #endif

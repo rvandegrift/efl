@@ -18,7 +18,7 @@ ector_eolian_files_cairo = \
 	lib/ector/cairo/ector_renderer_cairo_gradient_radial.eo
 ector_eolian_cairo_h = $(ector_eolian_files_cairo:%.eo=%.eo.h)
 
-# Handle FreeType rasterizer
+# Handle default software backend
 ector_eolian_files_software = \
 	lib/ector/software/ector_software_surface.eo \
 	lib/ector/software/ector_renderer_software_base.eo \
@@ -84,8 +84,7 @@ lib/ector/cairo/ector_cairo_surface.c
 installed_ectorcairoheadersdir = $(includedir)/ector-@VMAJ@/cairo
 nodist_installed_ectorcairoheaders_DATA = $(ector_eolian_cairo_h)
 
-# And the Freetype rasterizer
-
+# And the default software backend
 lib_ector_libector_la_SOURCES += \
 lib/ector/software/ector_renderer_software_gradient_linear.c \
 lib/ector/software/ector_renderer_software_gradient_radial.c \
@@ -95,7 +94,10 @@ lib/ector/software/ector_software_rasterizer.c \
 lib/ector/software/ector_software_surface.c \
 lib/ector/software/sw_ft_math.c \
 lib/ector/software/sw_ft_raster.c \
-lib/ector/software/sw_ft_stroker.c
+lib/ector/software/sw_ft_stroker.c \
+lib/ector/software/ector_drawhelper.c \
+lib/ector/software/ector_drawhelper_sse2.c \
+lib/ector/software/ector_drawhelper_neon.c
 
 installed_ectorsoftwareheadersdir = $(includedir)/ector-@VMAJ@/software
 nodist_installed_ectorsoftwareheaders_DATA = $(ector_eolian_software_h)
@@ -108,7 +110,8 @@ lib_ector_libector_la_CPPFLAGS = -I$(top_builddir)/src/lib/efl \
 -DPACKAGE_BIN_DIR=\"$(bindir)\" \
 -DPACKAGE_LIB_DIR=\"$(libdir)\" \
 -DPACKAGE_DATA_DIR=\"$(datadir)/ector\" \
-@VALGRIND_CFLAGS@
+@VALGRIND_CFLAGS@ \
+@SSE3_CFLAGS@
 
 lib_ector_libector_la_LIBADD = @ECTOR_LIBS@ @DL_LIBS@
 lib_ector_libector_la_DEPENDENCIES = @ECTOR_INTERNAL_LIBS@ @DL_INTERNAL_LIBS@
@@ -147,7 +150,7 @@ endif
 EXTRA_DIST += \
 lib/ector/ector_private.h \
 lib/ector/cairo/ector_cairo_private.h \
-lib/ector/software/ector_blend_private.h \
+lib/ector/software/ector_drawhelper_private.h \
 lib/ector/software/ector_software_private.h \
 lib/ector/software/sw_ft_math.h \
 lib/ector/software/sw_ft_raster.h \

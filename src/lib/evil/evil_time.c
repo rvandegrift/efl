@@ -13,7 +13,9 @@
 struct tm *
 evil_localtime_r(const time_t *timep, struct tm *result)
 {
-   _localtime64_s(result, timep);
+   __time64_t t = *timep;
+
+   _localtime64_s(result, &t);
 
    return result;
 }
@@ -310,7 +312,11 @@ strptime(const char *buf, const char *fmt, struct tm *tm)
               continue;
 
 #ifndef TIME_MAX
-# define TIME_MAX	INT64_MAX
+# if INTPTR_MAX == 0xffffffffffffffff
+#  define TIME_MAX INT64_MAX
+# else
+#  define TIME_MAX INT32_MAX
+# endif
 #endif
            case 's':	/* seconds since the epoch */
              {
@@ -331,7 +337,7 @@ strptime(const char *buf, const char *fmt, struct tm *tm)
                   } while ((sse * 10 <= TIME_MAX) &&
                            rulim && *bp >= '0' && *bp <= '9');
 
-                if (sse < 0 || (__int64)sse > TIME_MAX)
+                if (sse < 0 || sse > TIME_MAX)
                   {
                      bp = NULL;
                      continue;

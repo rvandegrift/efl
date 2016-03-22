@@ -923,7 +923,6 @@ parse_variable(Eo_Lexer *ls, Eina_Bool global)
 typedef struct _Eo_Ret_Def
 {
    Eolian_Type *type;
-   Eina_Stringshare *comment;
    Eolian_Documentation *doc;
    Eolian_Expression *default_ret_val;
    Eina_Bool warn_unused:1;
@@ -938,7 +937,6 @@ parse_return(Eo_Lexer *ls, Eo_Ret_Def *ret, Eina_Bool allow_void)
      ret->type = parse_type_void(ls);
    else
      ret->type = parse_type(ls);
-   ret->comment = NULL;
    ret->doc = NULL;
    ret->default_ret_val = NULL;
    ret->warn_unused = EINA_FALSE;
@@ -957,11 +955,6 @@ parse_return(Eo_Lexer *ls, Eo_Ret_Def *ret, Eina_Bool allow_void)
         eo_lexer_get(ls);
      }
    check_next(ls, ';');
-   if (ls->t.token == TOK_COMMENT)
-     {
-        ret->comment = eina_stringshare_ref(ls->t.value.s);
-        eo_lexer_get(ls);
-     }
    FILL_DOC(ls, ret, doc);
 }
 
@@ -1039,11 +1032,6 @@ parse_param(Eo_Lexer *ls, Eina_List **params, Eina_Bool allow_inout,
      }
 end:
    check_next(ls, ';');
-   if (ls->t.token == TOK_COMMENT)
-     {
-        par->description = eina_stringshare_ref(ls->t.value.s);
-        eo_lexer_get(ls);
-     }
    FILL_DOC(ls, par, doc);
 }
 
@@ -1101,14 +1089,6 @@ parse_accessor(Eo_Lexer *ls, Eolian_Function *prop)
    line = ls->line_number;
    col = ls->column;
    check_next(ls, '{');
-   if (ls->t.token == TOK_COMMENT)
-     {
-        if (is_get)
-          prop->get_description = eina_stringshare_ref(ls->t.value.s);
-        else
-          prop->set_description = eina_stringshare_ref(ls->t.value.s);
-        eo_lexer_get(ls);
-     }
    if (is_get)
      {
         FILL_DOC(ls, prop, get_doc);
@@ -1128,7 +1108,6 @@ parse_accessor(Eo_Lexer *ls, Eolian_Function *prop)
         if (is_get)
           {
              prop->get_ret_type = ret.type;
-             prop->get_return_comment = ret.comment;
              prop->get_return_doc = ret.doc;
              prop->get_ret_val = ret.default_ret_val;
              prop->get_return_warn_unused = ret.warn_unused;
@@ -1136,7 +1115,6 @@ parse_accessor(Eo_Lexer *ls, Eolian_Function *prop)
         else
           {
              prop->set_ret_type = ret.type;
-             prop->set_return_comment = ret.comment;
              prop->set_return_doc = ret.doc;
              prop->set_ret_val = ret.default_ret_val;
              prop->set_return_warn_unused = ret.warn_unused;
@@ -1243,11 +1221,6 @@ body:
    line = ls->line_number;
    col = ls->column;
    check_next(ls, '{');
-   if (ls->t.token == TOK_COMMENT)
-     {
-        prop->common_description = eina_stringshare_ref(ls->t.value.s);
-        eo_lexer_get(ls);
-     }
    FILL_DOC(ls, prop, common_doc);
    for (;;) switch (ls->t.kw)
      {
@@ -1329,11 +1302,6 @@ body:
    line = ls->line_number;
    col = ls->column;
    check_next(ls, '{');
-   if (ls->t.token == TOK_COMMENT)
-     {
-        meth->common_description = eina_stringshare_ref(ls->t.value.s);
-        eo_lexer_get(ls);
-     }
    FILL_DOC(ls, meth, common_doc);
    for (;;) switch (ls->t.kw)
      {
@@ -1344,7 +1312,6 @@ body:
         pop_type(ls);
         if (ret.default_ret_val) pop_expr(ls);
         meth->get_ret_type = ret.type;
-        meth->get_return_comment = ret.comment;
         meth->get_return_doc = ret.doc;
         meth->get_ret_val = ret.default_ret_val;
         meth->get_return_warn_unused = ret.warn_unused;
@@ -1655,11 +1622,6 @@ parse_class_body(Eo_Lexer *ls, Eolian_Class_Type type)
              has_implements    = EINA_FALSE,
              has_constructors  = EINA_FALSE,
              has_events        = EINA_FALSE;
-   if (ls->t.token == TOK_COMMENT)
-     {
-        ls->tmp.kls->description = eina_stringshare_ref(ls->t.value.s);
-        eo_lexer_get(ls);
-     }
    FILL_DOC(ls, ls->tmp.kls, doc);
    if (type == EOLIAN_CLASS_INTERFACE)
      {

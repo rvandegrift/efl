@@ -82,7 +82,7 @@ _evas_outbuf_free(Outbuf *ob)
         eina_rectangle_free(rect);
      }
 
-   _evas_outbuf_flush(ob, NULL, MODE_FULL);
+   _evas_outbuf_flush(ob, NULL, EVAS_RENDER_MODE_UNDEF);
    _evas_outbuf_idle_flush(ob);
 
    if (ob->surface) _evas_shm_surface_destroy(ob->surface);
@@ -160,7 +160,10 @@ _evas_outbuf_flush(Outbuf *ob, Tilebuf_Rect *rects EINA_UNUSED, Evas_Render_Mode
 
         /* loop the buffer regions and assign to result */
         EINA_ARRAY_ITER_NEXT(&ob->priv.onebuf_regions, i, rect, it)
-          result[i] = *rect;
+          {
+             result[i] = *rect;
+             eina_rectangle_free(rect);
+          }
 
         _evas_shm_surface_post(ob->surface, result, n);
 

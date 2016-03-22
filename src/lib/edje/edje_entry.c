@@ -207,6 +207,13 @@ _text_filter_markup_prepend_internal(Edje *ed, Entry *en, Evas_Textblock_Cursor 
 {
    Edje_Markup_Filter_Callback *cb;
    Eina_List *l;
+   Eina_Bool have_sel = EINA_FALSE;
+
+   if ((clearsel) && (en->have_selection))
+     {
+        _range_del_emit(ed, en->cursor, en->rp->object, en);
+        have_sel = EINA_TRUE;
+     }
 
    EINA_LIST_FOREACH(ed->markup_filter_callbacks, l, cb)
      {
@@ -238,14 +245,15 @@ _text_filter_markup_prepend_internal(Edje *ed, Entry *en, Evas_Textblock_Cursor 
                     eina_unicode_utf8_get_len(info->change.insert.content);
                }
           }
-        if ((clearsel) && (en->have_selection))
-          {
-             _range_del_emit(ed, en->cursor, en->rp->object, en);
-             if (info) info->merge = EINA_TRUE;
-          }
         if (info)
-          info->change.insert.pos =
-            evas_textblock_cursor_pos_get(en->cursor);
+          {
+             if (have_sel)
+               {
+                  info->merge = EINA_TRUE;
+               }
+             info->change.insert.pos =
+                evas_textblock_cursor_pos_get(en->cursor);
+          }
         if (fmtpre) _text_filter_format_prepend(ed, en, en->cursor, fmtpre);
         evas_object_textblock_text_markup_prepend(c, text);
         free(text);
@@ -266,6 +274,12 @@ _text_filter_text_prepend(Edje *ed, Entry *en, Evas_Textblock_Cursor *c,
    Eina_List *l;
 
    EINA_SAFETY_ON_NULL_RETURN_VAL(text, NULL);
+
+   if ((clearsel) && (en->have_selection))
+     {
+        _range_del_emit(ed, en->cursor, en->rp->object, en);
+     }
+
    text2 = strdup(text);
    EINA_LIST_FOREACH(ed->text_insert_filter_callbacks, l, cb)
      {
@@ -383,6 +397,12 @@ _text_filter_markup_prepend(Edje *ed, Entry *en, Evas_Textblock_Cursor *c,
    Eina_List *l;
 
    EINA_SAFETY_ON_NULL_RETURN_VAL(text, NULL);
+
+   if ((clearsel) && (en->have_selection))
+     {
+        _range_del_emit(ed, en->cursor, en->rp->object, en);
+     }
+
    text2 = strdup(text);
    EINA_LIST_FOREACH(ed->text_insert_filter_callbacks, l, cb)
      {
@@ -1080,8 +1100,6 @@ _anchors_clear(Evas_Textblock_Cursor *c EINA_UNUSED, Evas_Object *o EINA_UNUSED,
      {
         Anchor *an = en->anchors->data;
 
-        evas_textblock_cursor_free(an->start);
-        evas_textblock_cursor_free(an->end);
         while (an->sel)
           {
              Sel *sel = an->sel->data;
@@ -1091,6 +1109,8 @@ _anchors_clear(Evas_Textblock_Cursor *c EINA_UNUSED, Evas_Object *o EINA_UNUSED,
              free(sel);
              an->sel = eina_list_remove_list(an->sel, an->sel);
           }
+        evas_textblock_cursor_free(an->start);
+        evas_textblock_cursor_free(an->end);
         free(an->name);
         free(an);
         en->anchors = eina_list_remove_list(en->anchors, en->anchors);
@@ -1441,7 +1461,7 @@ _edje_key_down_cb(void *data, Evas *e EINA_UNUSED, Evas_Object *obj EINA_UNUSED,
                        _sel_start(en->cursor, rp->object, en);
                        ev->event_flags |= EVAS_EVENT_FLAG_ON_HOLD;
                     }
-                  else
+                  else if (en->have_selection)
                     {
                        if (evas_textblock_cursor_compare(en->sel_start, en->sel_end) < 0)
                          evas_textblock_cursor_copy(en->sel_start, en->cursor);
@@ -1477,7 +1497,7 @@ _edje_key_down_cb(void *data, Evas *e EINA_UNUSED, Evas_Object *obj EINA_UNUSED,
                        _sel_start(en->cursor, rp->object, en);
                        ev->event_flags |= EVAS_EVENT_FLAG_ON_HOLD;
                     }
-                  else
+                  else if (en->have_selection)
                     {
                        if (evas_textblock_cursor_compare(en->sel_start, en->sel_end) < 0)
                          evas_textblock_cursor_copy(en->sel_end, en->cursor);
@@ -1666,6 +1686,7 @@ _edje_key_down_cb(void *data, Evas *e EINA_UNUSED, Evas_Object *obj EINA_UNUSED,
              if (shift) _sel_extend(ed, en->cursor, rp->object, en);
           }
         _edje_emit(ed, "entry,key,home", rp->part->name);
+        _edje_emit(ed, "cursor,changed,manual", rp->part->name);
         ev->event_flags |= EVAS_EVENT_FLAG_ON_HOLD;
      }
    else if ((!alt) &&
@@ -1687,6 +1708,7 @@ _edje_key_down_cb(void *data, Evas *e EINA_UNUSED, Evas_Object *obj EINA_UNUSED,
              if (shift) _sel_extend(ed, en->cursor, rp->object, en);
           }
         _edje_emit(ed, "entry,key,end", rp->part->name);
+        _edje_emit(ed, "cursor,changed,manual", rp->part->name);
         ev->event_flags |= EVAS_EVENT_FLAG_ON_HOLD;
      }
    else if ((control) && (!shift) && (!strcmp(ev->keyname, "v")))
@@ -1810,6 +1832,7 @@ _edje_key_down_cb(void *data, Evas *e EINA_UNUSED, Evas_Object *obj EINA_UNUSED,
              else _sel_clear(ed, en->cursor, rp->object, en);
           }
         _edje_emit(ed, "entry,key,pgup", rp->part->name);
+        _edje_emit(ed, "cursor,changed,manual", rp->part->name);
         ev->event_flags |= EVAS_EVENT_FLAG_ON_HOLD;
      }
    else if (!strcmp(ev->key, "Next") ||
@@ -1833,6 +1856,7 @@ _edje_key_down_cb(void *data, Evas *e EINA_UNUSED, Evas_Object *obj EINA_UNUSED,
              else _sel_clear(ed, en->cursor, rp->object, en);
           }
         _edje_emit(ed, "entry,key,pgdn", rp->part->name);
+        _edje_emit(ed, "cursor,changed,manual", rp->part->name);
         ev->event_flags |= EVAS_EVENT_FLAG_ON_HOLD;
      }
    else if ((!strcmp(ev->key, "Return")) || (!strcmp(ev->key, "KP_Enter")))
@@ -2855,9 +2879,6 @@ _edje_entry_text_markup_insert(Edje_Real_Part *rp, const char *text)
    if (!en) return;
    _edje_entry_imf_context_reset(rp);
 
-   // prepend markup @ cursor pos .. XXX: do we need to do this? maybe not?
-//   if (en->have_selection)
-//     _range_del(en->cursor, rp->object, en);
    _text_filter_markup_prepend(en->ed, en, en->cursor, text, NULL, NULL,
                                EINA_TRUE, EINA_FALSE);
    _anchors_get(en->cursor, rp->object, en);
@@ -4198,6 +4219,9 @@ _edje_entry_imf_event_preedit_changed_cb(void *data, Ecore_IMF_Context *ctx EINA
 
    if (!strcmp(preedit_string, ""))
      preedit_end_state = EINA_TRUE;
+
+   if (en->have_selection && !preedit_end_state)
+     _range_del_emit(ed, en->cursor, rp->object, en);
 
    /* delete preedit characters */
    _preedit_del(en);

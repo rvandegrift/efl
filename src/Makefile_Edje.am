@@ -55,13 +55,11 @@ nodist_installed_edjemainheaders_DATA = \
 
 lib_edje_libedje_la_SOURCES = \
 lib/edje/edje_private.h \
-lib/edje/edje_container.h \
 lib/edje/edje_convert.h \
 lib/edje/edje_box_layout.c \
 lib/edje/edje_cache.c \
 lib/edje/edje_calc.c \
 lib/edje/edje_callbacks.c \
-lib/edje/edje_container.c \
 lib/edje/edje_data.c \
 lib/edje/edje_edit.c \
 lib/edje/edje_embryo.c \
@@ -256,6 +254,7 @@ tests/edje/data/test_layout.edc \
 tests/edje/data/test_parens.edc \
 tests/edje/data/test_masking.edc \
 tests/edje/data/test_filters.edc \
+tests/edje/data/test_snapshot.edc \
 tests/edje/data/filter.lua
 
 
@@ -297,6 +296,7 @@ EDJE_DATA_FILES = tests/edje/data/test_layout.edc \
                   tests/edje/data/test_parens.edc \
                   tests/edje/data/test_masking.edc \
                   tests/edje/data/test_filters.edc \
+                  tests/edje/data/test_snapshot.edc \
                   tests/edje/data/filter.lua
 
 edjedatafilesdir = $(datadir)/edje/data
@@ -304,13 +304,15 @@ edjedatafiles_DATA = tests/edje/data/test_layout.edj \
                      tests/edje/data/complex_layout.edj \
                      tests/edje/data/test_parens.edj \
                      tests/edje/data/test_masking.edj \
-                     tests/edje/data/test_filters.edj
+                     tests/edje/data/test_filters.edj \
+                     tests/edje/data/test_snapshot.edj
 
 CLEANFILES += tests/edje/data/test_layout.edj \
               tests/edje/data/complex_layout.edj \
               tests/edje/data/test_parens.edj \
               tests/edje/data/test_masking.edj \
-              tests/edje/data/test_filters.edj
+              tests/edje/data/test_filters.edj \
+              tests/edje/data/test_snapshot.edj
 
 endif
 

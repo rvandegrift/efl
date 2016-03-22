@@ -1,4 +1,9 @@
-#include "shader/evas_gl_shaders.x"
+#include "config.h"
+#ifdef WORDS_BIGENDIAN
+# include "shader/evas_gl_shaders_bigendian.x"
+#else
+# include "shader/evas_gl_shaders.x"
+#endif
 
 /////////////////////////////////////////////
 static void
@@ -79,6 +84,7 @@ _evas_gl_common_shader_program_binary_init(Evas_GL_Program *p,
    glBindAttribLocation(p->prog, SHAD_TEXA,   "tex_coorda");
    glBindAttribLocation(p->prog, SHAD_TEXSAM, "tex_sample");
    glBindAttribLocation(p->prog, SHAD_MASK,   "mask_coord");
+   glBindAttribLocation(p->prog, SHAD_MASKSAM, "tex_masksample");
 
    glGetProgramiv(p->prog, GL_LINK_STATUS, &ok);
    if (!ok)
@@ -137,8 +143,8 @@ _evas_gl_common_shader_program_binary_save(Evas_GL_Program *p,
 
 static int
 _evas_gl_common_shader_program_source_init(Evas_GL_Program *p,
-                                           Evas_GL_Program_Source *vert,
-                                           Evas_GL_Program_Source *frag,
+                                           const char *vert,
+                                           const char *frag,
                                            const char *name)
 {
    GLint ok;
@@ -146,26 +152,24 @@ _evas_gl_common_shader_program_source_init(Evas_GL_Program *p,
    p->vert = glCreateShader(GL_VERTEX_SHADER);
    p->frag = glCreateShader(GL_FRAGMENT_SHADER);
 
-   glShaderSource(p->vert, 1,
-                  (const char **)&(vert->src), NULL);
+   glShaderSource(p->vert, 1, &vert, NULL);
    glCompileShader(p->vert);
    ok = 0;
    glGetShaderiv(p->vert, GL_COMPILE_STATUS, &ok);
    if (!ok)
      {
         gl_compile_link_error(p->vert, "compile vertex shader");
-        ERR("Abort compile of shader vert (%s): %s", name, vert->src);
+        ERR("Abort compile of shader vert (%s): %s", name, vert);
         return 0;
      }
-   glShaderSource(p->frag, 1,
-                  (const char **)&(frag->src), NULL);
+   glShaderSource(p->frag, 1, &frag, NULL);
    glCompileShader(p->frag);
    ok = 0;
    glGetShaderiv(p->frag, GL_COMPILE_STATUS, &ok);
    if (!ok)
      {
         gl_compile_link_error(p->frag, "compile fragment shader");
-        ERR("Abort compile of shader frag (%s): %s", name, frag->src);
+        ERR("Abort compile of shader frag (%s): %s", name, frag);
         return 0;
      }
 
@@ -189,6 +193,7 @@ _evas_gl_common_shader_program_source_init(Evas_GL_Program *p,
    glBindAttribLocation(p->prog, SHAD_TEXA,   "tex_coorda");
    glBindAttribLocation(p->prog, SHAD_TEXSAM, "tex_sample");
    glBindAttribLocation(p->prog, SHAD_MASK,   "mask_coord");
+   glBindAttribLocation(p->prog, SHAD_MASKSAM, "tex_masksample");
 
    glLinkProgram(p->prog);
    ok = 0;
@@ -196,8 +201,8 @@ _evas_gl_common_shader_program_source_init(Evas_GL_Program *p,
    if (!ok)
      {
         gl_compile_link_error(p->prog, "link fragment and vertex shaders");
-        ERR("Abort compile of shader frag (%s): %s", name, frag->src);
-        ERR("Abort compile of shader vert (%s): %s", name, vert->src);
+        ERR("Abort compile of shader frag (%s): %s", name, frag);
+        ERR("Abort compile of shader vert (%s): %s", name, vert);
         return 0;
      }
 
@@ -350,15 +355,16 @@ evas_gl_common_shader_program_shutdown(Evas_GL_Program *p)
 }
 
 Evas_GL_Shader
-evas_gl_common_img_shader_select(Shader_Sampling sam, int nomul, int afill, int bgra, int mask)
+evas_gl_common_img_shader_select(Shader_Type type, Shader_Sampling sam, int nomul, int afill, int bgra, int mask, int masksam)
 {
-   static Evas_GL_Shader _shaders[4 * 2 * 2 * 2 * 2]; // 128 possibilities
+   // 256 combinaisons including many impossible
+   static Evas_GL_Shader _shaders[4 * 2 * 2 * 2 * 2 * 4 * 2];
    static Eina_Bool init = EINA_FALSE;
    int idx;
 
    if (EINA_UNLIKELY(!init))
      {
-        unsigned k;
+        unsigned int k;
 
         init = EINA_TRUE;
         for (k = 0; k < (sizeof(_shaders) / sizeof(_shaders[0])); k++)
@@ -366,21 +372,37 @@ evas_gl_common_img_shader_select(Shader_Sampling sam, int nomul, int afill, int 
 
         for (k = 0; k < (sizeof(_shaders_source) / sizeof(_shaders_source[0])); k++)
           {
-             if (_shaders_source[k].type != SHD_IMAGE) continue;
-             idx = _shaders_source[k].sam << 4;
-             idx |= _shaders_source[k].bgra << 3;
-             idx |= _shaders_source[k].mask << 2;
-             idx |= _shaders_source[k].nomul << 1;
-             idx |= _shaders_source[k].afill;
-             _shaders[idx] = _shaders_source[k].id;
+             if (_shaders_source[k].type == SHD_IMAGE)
+               {
+                  idx = _shaders_source[k].sam << 6;       // 2 bits
+                  idx |= _shaders_source[k].masksam << 4;  // 2 bits
+                  idx |= _shaders_source[k].bgra << 3;     // bool
+                  idx |= _shaders_source[k].mask << 2;     // bool
+                  idx |= _shaders_source[k].nomul << 1;    // bool
+                  idx |= _shaders_source[k].afill;         // bool
+                  _shaders[idx] = _shaders_source[k].id;
+               }
+             else if (_shaders_source[k].type == SHD_IMAGENATIVE)
+               {
+                  idx = _shaders_source[k].sam << 6;       // 2 bits
+                  idx |= _shaders_source[k].masksam << 4;  // 2 bits
+                  idx |= _shaders_source[k].bgra << 3;     // bool
+                  idx |= _shaders_source[k].mask << 2;     // bool
+                  idx |= _shaders_source[k].nomul << 1;    // bool
+                  idx |= _shaders_source[k].afill;         // bool
+                  idx += (4 * 2 * 2 * 2 * 2 * 4);
+                  _shaders[idx] = _shaders_source[k].id;
+               }
           }
      }
 
-   idx = sam << 4;
+   idx = sam << 6;
+   idx |= masksam << 4;
    idx |= bgra << 3;
    idx |= mask << 2;
    idx |= nomul << 1;
    idx |= afill;
+   if (type == SHD_IMAGENATIVE) idx += (4 * 2 * 2 * 2 * 2 * 4);
    return _shaders[idx];
 }
 

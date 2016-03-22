@@ -56,12 +56,33 @@ pthread_barrier_init(&barrier, NULL, 1);
 #include <stdlib.h>
 #include <pthread.h>
 #include <sched.h>
+#ifndef __linux__
+#include <pthread_np.h>
+#endif
                        ]],
                        [[
 pthread_attr_setaffinity_np(NULL, 0, NULL);
                        ]])],
       [efl_have_setaffinity="yes"],
       [efl_have_setaffinity="no"])
+   AC_LINK_IFELSE(
+      [AC_LANG_PROGRAM([[
+#define _GNU_SOURCE
+#include <stdlib.h>
+#include <pthread.h>
+#ifndef __linux__
+#include <pthread_np.h>
+#endif
+                       ]],
+                       [[
+#ifndef __linux__
+pthread_set_name_np(NULL, NULL);
+#else
+pthread_setname_np(NULL, NULL);
+#endif
+                       ]])],
+      [efl_have_setname="yes"],
+      [efl_have_setname="no"])
    LIBS=${SAVE_LIBS}
 fi
 
@@ -71,10 +92,14 @@ if test "x${_efl_have_posix_threads}" = "xyes" ; then
 else
    if test "x${_efl_have_win32_threads}" = "xyes" ; then
       efl_have_threads="Windows"
+      efl_have_pthread_affinity="no"
       efl_have_pthread_barrier="no"
+      efl_have_pthread_setname="no"
    else
       efl_have_threads="no"
+      efl_have_pthread_affinity="no"
       efl_have_pthread_barrier="no"
+      efl_have_pthread_setname="no"
    fi
 fi
 AC_MSG_RESULT([${efl_have_threads}])

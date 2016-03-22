@@ -94,12 +94,11 @@
  *            <ul>
  *              <li>@ref sec_collections_group_parts_description_relatives "Relatives (rel1/rel2)"</li>
  *              <li>@ref sec_collections_group_parts_description_image "Image"</li>
+ *              <li>@ref sec_collections_group_parts_description_proxy "Proxy"</li>
+ *              <li>@ref sec_collections_group_parts_description_fill "Fill"</li>
  *              <ul>
- *                <li>@ref sec_collections_group_parts_description_image_fill "Fill"</li>
- *                <ul>
- *                  <li>@ref sec_collections_group_parts_description_image_fill_origin "Origin"</li>
- *                  <li>@ref sec_collections_group_parts_description_image_fill_size "Size"</li>
- *                </ul>
+ *                <li>@ref sec_collections_group_parts_description_fill_origin "Origin"</li>
+ *                <li>@ref sec_collections_group_parts_description_fill_size "Size"</li>
  *              </ul>
  *              <li>@ref sec_collections_group_parts_description_text "Text"</li>
  *              <li>@ref sec_collections_group_parts_description_box "Box"</li>
@@ -126,7 +125,16 @@
  *        <li>@ref sec_collections_group_programs "Programs"</li>
  *        <ul>
  *          <li>@ref sec_collections_group_script "Script"</li>
- *          <li>@ref sec_collections_group_program_sequence "Sequence"</li>
+ *          <li>@ref sec_collections_group_programs_program "Program"</li>
+ *          <ul>
+ *            <li>@ref sec_collections_group_script "Script"</li>
+ *            <li>@ref sec_collections_group_program_sequence "Sequence"</li>
+ *            <ul>
+ *              <li>@ref sec_collections_group_script "Script"</li>
+ *            </ul>
+ *          </ul>
+ *          <li>@ref sec_collections_group_script "Script"</li>
+ *          <li>@ref sec_toplevel_fonts "Fonts"</li>
  *        </ul>
  *        <li>@ref sec_collections_group_physics "Physics"</li>
  *        <ul>
@@ -159,6 +167,8 @@ static Edje_Program *sequencing = NULL;
 static Eina_List *sequencing_lookups = NULL;
 
 Eina_List *po_files;
+
+static Eina_Hash *desc_hash = NULL;
 
 struct _Edje_Cc_Handlers_Hierarchy_Info
 {  /* Struct that keeps globals value to impl hierarchy */
@@ -268,6 +278,7 @@ static void st_collections_group_parts_part_pointer_mode(void);
 static void st_collections_group_parts_part_precise_is_inside(void);
 static void st_collections_group_parts_part_use_alternate_font_metrics(void);
 static void st_collections_group_parts_part_clip_to_id(void);
+static void st_collections_group_parts_part_render(void);
 static void st_collections_group_parts_part_no_render(void);
 static void st_collections_group_parts_part_source(void);
 static void st_collections_group_parts_part_source2(void);
@@ -1052,6 +1063,8 @@ New_Statement_Handler statement_handlers_short[] =
              norepeat; -> repeat_events: 0;
              precise; -> precise_is_inside: 1;
              noprecise; -> precise_is_inside: 0;
+             render; -> no_render: 0;
+             norender; -> no_render: 1;
              scale; -> scale: 1;
              noscale; -> scale: 0;
              desc {
@@ -1078,6 +1091,8 @@ New_Statement_Handler statement_handlers_short_single[] =
      {"collections.group.parts.part.noprecise", st_collections_group_parts_part_noprecise},
      {"collections.group.parts.part.scale", st_collections_group_parts_part_scale},
      {"collections.group.parts.part.noscale", st_collections_group_parts_part_noscale},
+     {"collections.group.parts.part.render", st_collections_group_parts_part_render},
+     {"collections.group.parts.part.norender", st_collections_group_parts_part_no_render},
      {"collections.group.parts.part.description.vis", st_collections_group_parts_part_description_vis},
      {"collections.group.parts.part.description.hid", st_collections_group_parts_part_description_hid},
      {"collections.group.mouse", st_collections_group_mouse},
@@ -1270,6 +1285,7 @@ New_Object_Handler object_handlers[] =
        external{}
        proxy{}
        spacer{}
+       snapshot{}
        part {
           desc {
           }
@@ -1455,7 +1471,16 @@ _edje_part_description_alloc(unsigned char type, const char *collection, const c
 
 	   result = &ed->common;
 	   break;
-	}
+        }
+      case EDJE_PART_TYPE_SNAPSHOT:
+        {
+           Edje_Part_Description_Snapshot *ed;
+
+           ed = mem_alloc(SZ(Edje_Part_Description_Snapshot));
+
+           result = &ed->common;
+           break;
+        }
       case EDJE_PART_TYPE_PROXY:
         {
            Edje_Part_Description_Proxy *ed;
@@ -2728,6 +2753,7 @@ ob_collections(void)
      {
         edje_file->collection = eina_hash_string_small_new(NULL);
         edje_collections_lookup = eina_hash_int32_new(NULL);
+        desc_hash = eina_hash_pointer_new(NULL);
      }
 }
 
@@ -4529,8 +4555,7 @@ st_filters_filter_file(void)
         exit(-1);
      }
 
-   current_filter->script = mem_alloc(sz);
-   memcpy((char *) current_filter->script, script, sz);
+   current_filter->script = (char*)eina_memdup((unsigned char*)script, sz, 1);
    eina_file_map_free(f, script);
    eina_file_close(f);
 
@@ -4812,28 +4837,96 @@ edje_cc_handlers_part_make(int id)
    return ep;
 }
 
+static void *
+_part_desc_free(Edje_Part_Collection *pc,
+                Edje_Part *ep,
+                Edje_Part_Description_Common *ed)
+{
+   if (!ed) return NULL;
+
+   eina_hash_del_by_key(desc_hash, &ed);
+
+   part_lookup_del(pc, &(ed->rel1.id_x));
+   part_lookup_del(pc, &(ed->rel1.id_y));
+   part_lookup_del(pc, &(ed->rel2.id_x));
+   part_lookup_del(pc, &(ed->rel2.id_y));
+   part_lookup_del(pc, &(ed->clip_to_id));
+   part_lookup_del(pc, &(ed->map.id_persp));
+   part_lookup_del(pc, &(ed->map.id_light));
+   part_lookup_del(pc, &(ed->map.rot.id_center));
+
+   switch (ep->type)
+     {
+      case EDJE_PART_TYPE_SPACER:
+      case EDJE_PART_TYPE_RECTANGLE:
+      case EDJE_PART_TYPE_SWALLOW:
+      case EDJE_PART_TYPE_GROUP:
+         /* Nothing todo, this part only have a common description. */
+         break;
+      case EDJE_PART_TYPE_BOX:
+      case EDJE_PART_TYPE_TABLE:
+      case EDJE_PART_TYPE_IMAGE:
+      case EDJE_PART_TYPE_SNAPSHOT:
+         /* Nothing todo here */
+         break;
+      case EDJE_PART_TYPE_TEXT:
+      case EDJE_PART_TYPE_TEXTBLOCK:
+        {
+           Edje_Part_Description_Text *ted = (Edje_Part_Description_Text*) ed;
+
+           part_lookup_del(pc, &(ted->text.id_source));
+           part_lookup_del(pc, &(ted->text.id_text_source));
+           break;
+        }
+      case EDJE_PART_TYPE_PROXY:
+        {
+           Edje_Part_Description_Proxy *ped = (Edje_Part_Description_Proxy*) ed;
+
+           part_lookup_del(pc, &(ped->proxy.id));
+           break;
+        }
+     }
+
+   free((void*)ed->state.name);
+   free(ed);
+   return NULL;
+}
+
 static void
 _part_type_set(unsigned int type)
 {
    /* handle type change of inherited part */
    if (type != current_part->type)
      {
-        Edje_Part_Description_Common *new, *previous;
+        Edje_Part_Description_Common *new, *previous, *cur;
         Edje_Part_Collection *pc;
-        Edje_Part *ep;
+        Edje_Part *ep, *dummy;
         unsigned int i;
 
         /* we don't free old part as we don't remove all reference to them */
         part_description_image_cleanup(current_part);
+        current_part->type = type;
 
         pc = eina_list_data_get(eina_list_last(edje_collections));
         ep = current_part;
 
         previous = ep->default_desc;
+        cur = current_desc;
+        dummy = mem_alloc(SZ(Edje_Part));
+        /* ensure type is incompatible with new type */
+        dummy->type = ep->type + 2;
         if (previous)
           {
              new = _edje_part_description_alloc(type, pc->part, ep->name);
-             memcpy(new, previous, sizeof (Edje_Part_Description_Common));
+             eina_hash_add(desc_hash, &new, ep);
+             eina_hash_set(desc_hash, &previous, dummy);
+             parent_desc = previous;
+             current_desc = new;
+             new->state.name = strdup(previous->state.name);
+             new->state.value = previous->state.value;
+             st_collections_group_parts_part_description_inherit();
+             parent_desc = NULL;
+             _part_desc_free(pc, ep, previous);
 
              ep->default_desc = new;
           }
@@ -4842,12 +4935,20 @@ _part_type_set(unsigned int type)
           {
              previous = ep->other.desc[i];
              new = _edje_part_description_alloc(type, pc->part, ep->name);
-             memcpy(new, previous, sizeof (Edje_Part_Description_Common));
+             eina_hash_add(desc_hash, &new, ep);
+             eina_hash_set(desc_hash, &previous, dummy);
+             parent_desc = previous;
+             current_desc = new;
+             new->state.name = strdup(previous->state.name);
+             new->state.value = previous->state.value;
+             st_collections_group_parts_part_description_inherit();
+             parent_desc = NULL;
+             _part_desc_free(pc, ep, previous);
              ep->other.desc[i] = new;
           }
+        free(dummy);
+        current_desc = cur;
      }
-
-   current_part->type = type;
 }
 
 static void
@@ -4883,6 +4984,7 @@ ob_collections_group_parts_part_short(void)
                   "external", EDJE_PART_TYPE_EXTERNAL,
                   "proxy", EDJE_PART_TYPE_PROXY,
                   "spacer", EDJE_PART_TYPE_SPACER,
+                  "snapshot", EDJE_PART_TYPE_SNAPSHOT,
                   NULL);
 
    stack_pop_quick(EINA_TRUE, EINA_TRUE);
@@ -4895,58 +4997,6 @@ static void
 ob_collections_group_parts_part(void)
 {
    _part_create();
-}
-
-static void *
-_part_desc_free(Edje_Part_Collection *pc,
-                Edje_Part *ep,
-                Edje_Part_Description_Common *ed)
-{
-   if (!ed) return NULL;
-
-   part_lookup_del(pc, &(ed->rel1.id_x));
-   part_lookup_del(pc, &(ed->rel1.id_y));
-   part_lookup_del(pc, &(ed->rel2.id_x));
-   part_lookup_del(pc, &(ed->rel2.id_y));
-   part_lookup_del(pc, &(ed->clip_to_id));
-   part_lookup_del(pc, &(ed->map.id_persp));
-   part_lookup_del(pc, &(ed->map.id_light));
-   part_lookup_del(pc, &(ed->map.rot.id_center));
-
-   switch (ep->type)
-     {
-      case EDJE_PART_TYPE_SPACER:
-      case EDJE_PART_TYPE_RECTANGLE:
-      case EDJE_PART_TYPE_SWALLOW:
-      case EDJE_PART_TYPE_GROUP:
-         /* Nothing todo, this part only have a common description. */
-         break;
-      case EDJE_PART_TYPE_BOX:
-      case EDJE_PART_TYPE_TABLE:
-      case EDJE_PART_TYPE_IMAGE:
-         /* Nothing todo here */
-         break;
-      case EDJE_PART_TYPE_TEXT:
-      case EDJE_PART_TYPE_TEXTBLOCK:
-        {
-           Edje_Part_Description_Text *ted = (Edje_Part_Description_Text*) ed;
-
-           part_lookup_del(pc, &(ted->text.id_source));
-           part_lookup_del(pc, &(ted->text.id_text_source));
-           break;
-        }
-      case EDJE_PART_TYPE_PROXY:
-        {
-           Edje_Part_Description_Proxy *ped = (Edje_Part_Description_Proxy*) ed;
-
-           part_lookup_del(pc, &(ped->proxy.id));
-           break;
-        }
-     }
-
-   free((void*)ed->state.name);
-   free(ed);
-   return NULL;
 }
 
 static void *
@@ -5055,7 +5105,7 @@ _program_free(Edje_Program *pr)
    free((void*)pr->state2);
    free((void*)pr->sample_name);
    free((void*)pr->tone_name);
-   EINA_LIST_FREE(pr->targets, prt);
+   EINA_LIST_FREE(pr->targets, prt)
       free(prt);
    EINA_LIST_FREE(pr->after, pa)
       free(pa);
@@ -5290,6 +5340,7 @@ st_collections_group_parts_part_name(void)
             @li EXTERNAL
             @li PROXY
             @li SPACER
+            @li SNAPSHOT
     @endproperty
 */
 static void
@@ -5311,7 +5362,8 @@ st_collections_group_parts_part_type(void)
                      "TABLE", EDJE_PART_TYPE_TABLE,
                      "EXTERNAL", EDJE_PART_TYPE_EXTERNAL,
                      "PROXY", EDJE_PART_TYPE_PROXY,
-		     "SPACER", EDJE_PART_TYPE_SPACER,
+                     "SPACER", EDJE_PART_TYPE_SPACER,
+                     "SNAPSHOT", EDJE_PART_TYPE_SNAPSHOT,
                      NULL);
 
    _part_type_set(type);
@@ -5760,9 +5812,16 @@ st_collections_group_parts_part_clip_to_id(void)
 static void
 st_collections_group_parts_part_no_render(void)
 {
-   check_arg_count(1);
+   if (check_range_arg_count(0, 1) == 1)
+     current_part->no_render = parse_bool(0);
+   else /* lazEDC form */
+     current_part->no_render = EINA_TRUE;
+}
 
-   current_part->no_render = parse_bool(0);
+static void
+st_collections_group_parts_part_render(void)
+{
+   current_part->no_render = EINA_FALSE;
 }
 
 /**
@@ -6800,6 +6859,7 @@ ob_collections_group_parts_part_description(void)
    ep = current_part;
 
    ed = _edje_part_description_alloc(ep->type, pc->part, ep->name);
+   eina_hash_add(desc_hash, &ed, ep);
 
    ed->rel1.id_x = -1;
    ed->rel1.id_y = -1;
@@ -6903,7 +6963,7 @@ static void
 st_collections_group_parts_part_description_inherit(void)
 {
    Edje_Part_Collection *pc;
-   Edje_Part *ep;
+   Edje_Part *ep, *parent_ep = NULL;
    Edje_Part_Description_Common *ed, *parent = NULL;
    Edje_Part_Image_Id *iid;
    char *parent_name;
@@ -6915,7 +6975,9 @@ st_collections_group_parts_part_description_inherit(void)
    ed = current_desc;
 
    parent = parent_desc;
-   if (!parent)
+   if (parent)
+     parent_ep = eina_hash_find(desc_hash, &parent);
+   else
      {
         /* inherit may not be used in the default description */
         if (!ep->other.desc_count)
@@ -7020,6 +7082,14 @@ st_collections_group_parts_part_description_inherit(void)
    ed->color_class = STRDUP(ed->color_class);
    ed->map.colors = _copied_map_colors_get(parent);
 
+   if (parent_ep && (parent_ep->type != ep->type))
+     {
+        /* ensure parent's owner is a compatible type of part */
+        if (((ep->type != EDJE_PART_TYPE_TEXT) && (ep->type != EDJE_PART_TYPE_TEXTBLOCK)) ||
+            ((parent_ep->type != EDJE_PART_TYPE_TEXT) && (parent_ep->type != EDJE_PART_TYPE_TEXTBLOCK)))
+          return;
+     }
+
    switch (ep->type)
      {
       case EDJE_PART_TYPE_SPACER:
@@ -7042,15 +7112,15 @@ st_collections_group_parts_part_description_inherit(void)
               ted->text.font.str = STRDUP(ted->text.font.str);
 
               /* Filters stuff */
-              ted->text.filter.code = STRDUP(ted->text.filter.code);
-              if (ted->text.filter.code)
+              ted->filter.code = STRDUP(ted->filter.code);
+              if (ted->filter.code)
                 {
                    Eina_List *list, *l;
                    const char *name;
-                   list = ted->text.filter.sources;
-                   ted->text.filter.sources = NULL;
+                   list = ted->filter.sources;
+                   ted->filter.sources = NULL;
                    EINA_LIST_FOREACH(list, l, name)
-                     ted->text.filter.sources = eina_list_append(ted->text.filter.sources, STRDUP(name));
+                     ted->filter.sources = eina_list_append(ted->filter.sources, STRDUP(name));
                 }
 
               data_queue_copied_part_nest_lookup(pc, &(tparent->text.id_source), &(ted->text.id_source), &ted->text.id_source_part);
@@ -7083,6 +7153,37 @@ st_collections_group_parts_part_description_inherit(void)
                    ied->image.tweens[i] = iid_new;
                 }
 
+              /* Filters stuff */
+              ied->filter.code = STRDUP(iparent->filter.code);
+              if (ied->filter.code)
+                {
+                   Eina_List *list, *l;
+                   const char *name;
+                   list = iparent->filter.sources;
+                   ied->filter.sources = NULL;
+                   EINA_LIST_FOREACH(list, l, name)
+                     ied->filter.sources = eina_list_append(ied->filter.sources, STRDUP(name));
+                }
+
+              break;
+           }
+      case EDJE_PART_TYPE_SNAPSHOT:
+           {
+              Edje_Part_Description_Snapshot *sed = (Edje_Part_Description_Snapshot*) ed;
+              Edje_Part_Description_Snapshot *sparent = (Edje_Part_Description_Snapshot*) parent;
+
+              /* Filters stuff */
+              sed->filter.code = STRDUP(sparent->filter.code);
+              if (sed->filter.code)
+                {
+                   Eina_List *list, *l;
+                   const char *name;
+                   list = sparent->filter.sources;
+                   sed->filter.sources = NULL;
+                   EINA_LIST_FOREACH(list, l, name)
+                     sed->filter.sources = eina_list_append(sed->filter.sources, STRDUP(name));
+                }
+
               break;
            }
       case EDJE_PART_TYPE_PROXY:
@@ -7091,6 +7192,18 @@ st_collections_group_parts_part_description_inherit(void)
               Edje_Part_Description_Proxy *pparent = (Edje_Part_Description_Proxy*) parent;
 
               data_queue_copied_part_lookup(pc, &(pparent->proxy.id), &(ped->proxy.id));
+
+              /* Filters stuff */
+              ped->filter.code = STRDUP(pparent->filter.code);
+              if (ped->filter.code)
+                {
+                   Eina_List *list, *l;
+                   const char *name;
+                   list = pparent->filter.sources;
+                   ped->filter.sources = NULL;
+                   EINA_LIST_FOREACH(list, l, name)
+                     ped->filter.sources = eina_list_append(ped->filter.sources, STRDUP(name));
+                }
 
               break;
            }
@@ -8330,27 +8443,30 @@ st_collections_group_parts_part_description_image_scale_hint(void)
 				      NULL);
 }
 
-/** @edcsubsection{collections_group_parts_description_image_fill,
- *                 Group.Parts.Part.Description.Image.Fill} */
+/** @edcsubsection{collections_group_parts_description_fill,
+ *                 Group.Parts.Part.Description.Fill} */
 
 /**
     @page edcref
     @block
         fill
     @context
-        image {
-            ..
-            fill {
-                type: SCALE;
-                smooth: 0-1;
-                origin { }
-                size { }
+        part { type: [IMAGE or PROXY];
+            description {
+                ..
+                fill {
+                    type: SCALE;
+                    smooth: 0-1;
+                    origin { }
+                    size { }
+                }
+                ..
             }
             ..
         }
     @description
-        The fill method is an optional block that defines the way an IMAGE part
-        is going to be displayed inside its container.
+        The fill method is an optional block that defines the way an IMAGE or
+        PROXY part is going to be displayed inside its container.
         It can be used for tiling (repeating the image) or displaying only
         part of an image. See @ref evas_object_image_fill_set() documentation
         for more details.
@@ -8514,8 +8630,8 @@ st_collections_group_parts_part_description_fill_type(void)
                            NULL);
 }
 
-/** @edcsubsection{collections_group_parts_description_image_fill_origin,
- *                 Group.Parts.Part.Description.Image.Fill.Origin} */
+/** @edcsubsection{collections_group_parts_description_fill_origin,
+ *                 Group.Parts.Part.Description.Fill.Origin} */
 
 /**
     @page edcref
@@ -8638,8 +8754,8 @@ st_collections_group_parts_part_description_fill_origin_offset(void)
    fill->pos_abs_y = parse_int(1);
 }
 
-/** @edcsubsection{collections_group_parts_description_image_fill_size,
- *                 Group.Parts.Part.Description.Image.Fill.Size} */
+/** @edcsubsection{collections_group_parts_description_fill_size,
+ *                 Group.Parts.Part.Description.Fill.Size} */
 
 /**
     @page edcref
@@ -9602,6 +9718,52 @@ static void st_collections_group_parts_part_description_table_padding(void)
    ed->table.padding.y = parse_int_range(1, 0, 0x7fffffff);
 }
 
+/**
+   @edcsubsection{collections_group_parts_description_proxy,
+                  Group.Parts.Part.Description.Proxy}
+ */
+
+/**
+    @page edcref
+
+    @block
+        proxy
+    @context
+        part { type: PROXY;
+            description {
+                ..
+                proxy {
+                    source_clip:    1;
+                    source_visible: 1;
+                }
+                ..
+            }
+        }
+    @description
+        State flags used for proxy objects.
+    @endblock
+
+    @property
+        source_clip
+    @parameters
+        [0 or 1]
+    @effect
+        Sets the 'source_clip' property on this PROXY object. True by default,
+        this means the proxy will be clipped by its source clipper. False
+        means the source clipper is ignored when rendering the proxy.
+    @endproperty
+
+    @property
+        source_visible
+    @parameters
+        [0 or 1]
+    @effect
+        Sets the 'source_visible' property on this PROXY object. True by
+        default, meaning both the proxy and its source object will be visible.
+        If false, the source object will not be visible. False is equivalent
+        to setting the 'no_render' flag on the source object itself.
+    @endproperty
+*/
 static void
 st_collections_group_parts_part_description_proxy_source_clip(void)
 {
@@ -9620,8 +9782,27 @@ st_collections_group_parts_part_description_proxy_source_clip(void)
    ed->proxy.source_clip = parse_bool(0);
 }
 
+static void
+st_collections_group_parts_part_description_proxy_source_visible(void)
+{
+   Edje_Part_Description_Proxy *ed;
+
+   check_arg_count(1);
+
+   if (current_part->type != EDJE_PART_TYPE_PROXY)
+     {
+        ERR("parse error %s:%i. proxy attributes in non-PROXY part.",
+            file_in, line - 1);
+        exit(-1);
+     }
+
+   ed = (Edje_Part_Description_Proxy*) current_desc;
+   ed->proxy.source_visible = parse_bool(0);
+}
+
 /**
-   @edcsubsection{collections_group_parts_description_positon,Position}
+   @edcsubsection{collections_group_parts_description_positon,
+                  Group.Parts.Part.Description.Position}
  */
 
 /**
@@ -9769,7 +9950,8 @@ st_collections_group_parts_part_description_position_space(void)
 }
 
 /**
-   @edcsubsection{collections_group_parts_description_camera,Properties}
+   @edcsubsection{collections_group_parts_description_camera,
+                  Group.Parts.Part.Description.Properties}
  */
 
 /**
@@ -9778,7 +9960,7 @@ st_collections_group_parts_part_description_position_space(void)
     @block
         properties
     @context
-        part {
+        part { type: CAMERA;
             description {
                 ..
                 properties {
@@ -9821,7 +10003,8 @@ st_collections_group_parts_part_description_camera_properties(void)
 }
 
 /**
-   @edcsubsection{collections_group_parts_description_properties,Properties}
+   @edcsubsection{collections_group_parts_description_properties,
+                  Group.Parts.Part.Description.Properties}
  */
 
 /**
@@ -9830,7 +10013,7 @@ st_collections_group_parts_part_description_camera_properties(void)
     @block
         properties
     @context
-        part {
+        part { type: [LIGHT or MESH_NODE];
             description {
                 ..
                 properties {
@@ -10019,11 +10202,11 @@ st_collections_group_parts_part_description_properties_material(void)
    check_arg_count(1);
 
    material_attrib = parse_enum(0,
-                     "AMBIENT", EVAS_CANVAS3D_MATERIAL_AMBIENT,
-                     "DIFFUSE", EVAS_CANVAS3D_MATERIAL_DIFFUSE,
-                     "SPECULAR", EVAS_CANVAS3D_MATERIAL_SPECULAR,
-                     "EMISSION", EVAS_CANVAS3D_MATERIAL_EMISSION,
-                     "NORMAL", EVAS_CANVAS3D_MATERIAL_NORMAL,
+                     "AMBIENT", EVAS_CANVAS3D_MATERIAL_ATTRIB_AMBIENT,
+                     "DIFFUSE", EVAS_CANVAS3D_MATERIAL_ATTRIB_DIFFUSE,
+                     "SPECULAR", EVAS_CANVAS3D_MATERIAL_ATTRIB_SPECULAR,
+                     "EMISSION", EVAS_CANVAS3D_MATERIAL_ATTRIB_EMISSION,
+                     "NORMAL", EVAS_CANVAS3D_MATERIAL_ATTRIB_NORMAL,
                      NULL);
 
    if (current_part->type == EDJE_PART_TYPE_MESH_NODE)
@@ -10154,7 +10337,8 @@ st_collections_group_parts_part_description_properties_shade(void)
 }
 
 /**
-   @edcsubsection{collections_group_parts_description_orientation,Orientation}
+   @edcsubsection{collections_group_parts_description_orientation,
+                  Group.Parts.Part.Description.Orientation}
  */
 
 /**
@@ -10163,7 +10347,7 @@ st_collections_group_parts_part_description_properties_shade(void)
     @block
         orientation
     @context
-        part {
+        part { type: [CAMERA or MESH_NODE or LIGHT];
             description {
                 ..
                 orientation {
@@ -10185,7 +10369,7 @@ st_collections_group_parts_part_description_properties_shade(void)
     @parameters
         [x] [y] [z]
     @effect
-        Indicates a target point for CAMERA and MESH_NODE or for LIGHt to see or
+        Indicates a target point for CAMERA and MESH_NODE or for LIGHT to see or
         to illuminate.
     @endproperty
 */
@@ -10379,7 +10563,8 @@ st_collections_group_parts_part_description_orientation_quaternion(void)
 }
 
 /**
-   @edcsubsection{collections_group_parts_description_texture,Texture}
+   @edcsubsection{collections_group_parts_description_texture,
+                  Group.Parts.Part.Description.Texture}
  */
 
 /**
@@ -10745,24 +10930,6 @@ st_collections_group_parts_part_description_mesh_geometry(void)
             file_in, line - 1);
         exit(-1);
      }
-}
-
-static void
-st_collections_group_parts_part_description_proxy_source_visible(void)
-{
-   Edje_Part_Description_Proxy *ed;
-
-   check_arg_count(1);
-
-   if (current_part->type != EDJE_PART_TYPE_PROXY)
-     {
-        ERR("parse error %s:%i. proxy attributes in non-PROXY part.",
-            file_in, line - 1);
-        exit(-1);
-     }
-
-   ed = (Edje_Part_Description_Proxy*) current_desc;
-   ed->proxy.source_visible = parse_bool(0);
 }
 
 static void
@@ -11171,7 +11338,7 @@ st_collections_group_parts_part_description_physics_backface_cull(void)
 #endif
 
 /** @edcsubsection{collections_group_parts_description_physics_movement_freedom,
- *                 Group.Parts.Part.Description.Physics.Movement Freedom} */
+ *                 Group.Parts.Part.Description.Physics.Movement_Freedom} */
 
 /**
     @page edcref
@@ -11844,7 +12011,7 @@ st_collections_group_parts_part_description_perspective_focal(void)
         filter
     @context
         part {
-            type: [IMAGE or TEXT];
+            type: [IMAGE or TEXT or PROXY or SNAPSHOT];
             ..
             description {
                 ..
@@ -11867,7 +12034,7 @@ st_collections_group_parts_part_description_perspective_focal(void)
             }
         }
     @description
-        Applies a series of image filters to a TEXT or IMAGE part.
+        Applies a series of image filters to a TEXT, IMAGE, PROXY or SNAPSHOT part.
         For more information, please refer to the page
         @ref evasfiltersref "Evas filters reference".
     @endblock
@@ -11890,12 +12057,16 @@ st_collections_group_parts_part_description_filter_code(void)
    check_arg_count(1);
 
    if (current_part->type == EDJE_PART_TYPE_TEXT)
-     filter = &(((Edje_Part_Description_Text *)current_desc)->text.filter);
+     filter = &(((Edje_Part_Description_Text *)current_desc)->filter);
    else if (current_part->type == EDJE_PART_TYPE_IMAGE)
-     filter = &(((Edje_Part_Description_Image *)current_desc)->image.filter);
+     filter = &(((Edje_Part_Description_Image *)current_desc)->filter);
+   else if (current_part->type == EDJE_PART_TYPE_PROXY)
+     filter = &(((Edje_Part_Description_Proxy *)current_desc)->filter);
+   else if (current_part->type == EDJE_PART_TYPE_SNAPSHOT)
+     filter = &(((Edje_Part_Description_Snapshot *)current_desc)->filter);
    else
      {
-        ERR("parse error %s:%i. filter set for non-TEXT and non-IMAGE part.",
+        ERR("parse error %s:%i. filter only supported for: TEXT, IMAGE, PROXY, SNAPSHOT.",
             file_in, line - 1);
         exit(-1);
      }
@@ -11931,12 +12102,16 @@ st_collections_group_parts_part_description_filter_source(void)
          "abcdefghijklmnopqrstuvwxyzABCDEFGHJIKLMNOPQRSTUVWXYZ0123456789_";
 
    if (current_part->type == EDJE_PART_TYPE_TEXT)
-     filter = &(((Edje_Part_Description_Text *)current_desc)->text.filter);
+     filter = &(((Edje_Part_Description_Text *)current_desc)->filter);
    else if (current_part->type == EDJE_PART_TYPE_IMAGE)
-     filter = &(((Edje_Part_Description_Image *)current_desc)->image.filter);
+     filter = &(((Edje_Part_Description_Image *)current_desc)->filter);
+   else if (current_part->type == EDJE_PART_TYPE_PROXY)
+     filter = &(((Edje_Part_Description_Proxy *)current_desc)->filter);
+   else if (current_part->type == EDJE_PART_TYPE_SNAPSHOT)
+     filter = &(((Edje_Part_Description_Snapshot *)current_desc)->filter);
    else
      {
-        ERR("parse error %s:%i. filter set for non-TEXT and non-IMAGE part.",
+        ERR("parse error %s:%i. filter only supported for: TEXT, IMAGE, PROXY, SNAPSHOT.",
             file_in, line - 1);
         exit(-1);
      }
@@ -12024,12 +12199,16 @@ st_collections_group_parts_part_description_filter_data(void)
    unsigned k;
 
    if (current_part->type == EDJE_PART_TYPE_TEXT)
-     filter = &(((Edje_Part_Description_Text *)current_desc)->text.filter);
+     filter = &(((Edje_Part_Description_Text *)current_desc)->filter);
    else if (current_part->type == EDJE_PART_TYPE_IMAGE)
-     filter = &(((Edje_Part_Description_Image *)current_desc)->image.filter);
+     filter = &(((Edje_Part_Description_Image *)current_desc)->filter);
+   else if (current_part->type == EDJE_PART_TYPE_PROXY)
+     filter = &(((Edje_Part_Description_Proxy *)current_desc)->filter);
+   else if (current_part->type == EDJE_PART_TYPE_SNAPSHOT)
+     filter = &(((Edje_Part_Description_Snapshot *)current_desc)->filter);
    else
      {
-        ERR("parse error %s:%i. filter set for non-TEXT and non-IMAGE part.",
+        ERR("parse error %s:%i. filter only supported for: TEXT, IMAGE, PROXY, SNAPSHOT.",
             file_in, line - 1);
         exit(-1);
      }
@@ -12531,8 +12710,8 @@ st_collections_group_programs_program_name(void)
         A list of global signal, that edje provide:
           - hold,on;
           - hold,off;
-          - mounse,in;
-          - mounse,out;
+          - mouse,in;
+          - mouse,out;
           - mouse,down,N: where N - mouse button number;
           - mouse,down,N,double: where N - mouse button number;
           - mouse,down,N,triple: where N - mouse button number;
@@ -12691,6 +12870,7 @@ st_collections_group_programs_program_action(void)
    Edje_Part_Collection *pc;
    Edje_Program *ep;
    int i;
+   Eina_Bool found = EINA_FALSE;
 
    pc = eina_list_data_get(eina_list_last(edje_collections));
    if (sequencing)
@@ -12738,15 +12918,21 @@ st_collections_group_programs_program_action(void)
    else if (ep->action == EDJE_ACTION_TYPE_SOUND_SAMPLE)
      {
         ep->sample_name = parse_str(1);
-        for (i = 0; i < (int)edje_file->sound_dir->samples_count; i++)
+        if (edje_file->sound_dir)
           {
-             if (!strcmp(edje_file->sound_dir->samples[i].name, ep->sample_name))
-               break;
-             if (i == (int)(edje_file->sound_dir->samples_count - 1))
+             for (i = 0; i < (int)edje_file->sound_dir->samples_count; i++)
                {
-                  ERR("No Sample name %s exist.", ep->sample_name);
-                  exit(-1);
+                  if (!strcmp(edje_file->sound_dir->samples[i].name, ep->sample_name))
+                    {
+                       found = EINA_TRUE;
+                       break;
+                    }
                }
+          }
+        if (!found)
+          {
+             ERR("No Sample name %s exist.", ep->sample_name);
+             exit(-1);
           }
         ep->speed = parse_float_range(2, 0.0, 100.0);
         if (get_arg_count() >= 4)
@@ -12763,15 +12949,21 @@ st_collections_group_programs_program_action(void)
    else if (ep->action == EDJE_ACTION_TYPE_SOUND_TONE)
      {
         ep->tone_name = parse_str(1);
-        for (i = 0; i < (int)edje_file->sound_dir->tones_count; i++)
+        if (edje_file->sound_dir)
           {
-             if (!strcmp(edje_file->sound_dir->tones[i].name, ep->tone_name))
-               break;
-             if (i == (int)(edje_file->sound_dir->tones_count - 1))
+             for (i = 0; i < (int)edje_file->sound_dir->tones_count; i++)
                {
-                  ERR("No Tone name %s exist.", ep->tone_name);
-                  exit(-1);
+                  if (!strcmp(edje_file->sound_dir->tones[i].name, ep->tone_name))
+                    {
+                       found = EINA_TRUE;
+                       break;
+                    }
                }
+          }
+        if (!found)
+          {
+             ERR("No Tone name %s exist.", ep->tone_name);
+             exit(-1);
           }
         ep->duration = parse_float_range(2, 0.1, 10.0);
      }

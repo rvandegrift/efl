@@ -337,7 +337,7 @@ ecore_x_window_override_argb_new(Ecore_X_Window parent, int x, int y, int w, int
 EAPI Ecore_X_Window
 ecore_x_window_permanent_new(Ecore_X_Window parent, Ecore_X_Atom unique_atom)
 {
-   Ecore_X_Window win, win2, realwin;
+   Ecore_X_Window win, win2, realwin = NULL;
    uint32_t mask, mask_list[9];
    xcb_get_property_reply_t *reply;
    xcb_get_property_cookie_t cookie;
@@ -1430,6 +1430,7 @@ ecore_x_window_ignore_set(Ecore_X_Window win,
                           int            ignore)
 {
    int i = 0, j = 0, count = 0;
+   Ecore_X_Window *temp = ignore_list;
 
    LOGFN(__FILE__, __LINE__, __FUNCTION__);
    CHECK_XCB_CONN;
@@ -1443,7 +1444,11 @@ ecore_x_window_ignore_set(Ecore_X_Window win,
 
              ignore_list =
                realloc(ignore_list, (ignore_num + 1) * sizeof(Ecore_X_Window));
-             if (!ignore_list) return;
+             if (!ignore_list)
+               {
+                  ignore_list = temp;
+                  return;
+               }
 
              ignore_list[ignore_num++] = win;
           }
@@ -1474,6 +1479,8 @@ ecore_x_window_ignore_set(Ecore_X_Window win,
 
         ignore_list =
           realloc(ignore_list, ignore_num * sizeof(Ecore_X_Window));
+        if (!ignore_list)
+           ignore_list = temp;
      }
 }
 

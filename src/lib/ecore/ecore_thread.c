@@ -417,6 +417,7 @@ _ecore_feedback_job(PH(thread))
 static void *
 _ecore_direct_worker(Ecore_Pthread_Worker *work)
 {
+   eina_thread_name_set(eina_thread_self(), "Ethread-feedback");
    work->self = PHS();
    if (work->message_run)
      work->u.message_run.func_main((void *) work->data, (Ecore_Thread *) work);
@@ -439,6 +440,7 @@ restart:
    _ecore_feedback_job(PHS());
 
    /* FIXME: Check if there is feedback running task todo, and switch to feedback run handler. */
+   eina_thread_name_set(eina_thread_self(), "Ethread-worker");
 
    SLKL(_ecore_pending_job_threads_mutex);
    if (_ecore_pending_job_threads || _ecore_pending_job_threads_feedback)
@@ -1396,7 +1398,7 @@ ecore_thread_global_data_wait(const char *key,
         if ((ret) || (!seconds) || ((seconds > 0) && (tm <= ecore_time_get())))
           break;
         LKL(_ecore_thread_global_hash_mutex);
-        CDW(_ecore_thread_global_hash_cond, tm);
+        CDW(_ecore_thread_global_hash_cond, tm - ecore_time_get());
         LKU(_ecore_thread_global_hash_mutex);
      }
    if (ret) return ret->data;

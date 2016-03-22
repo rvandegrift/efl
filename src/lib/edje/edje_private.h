@@ -350,6 +350,7 @@ typedef struct _Edje_Part_Description_External       Edje_Part_Description_Exter
 typedef struct _Edje_Part_Description_Mesh_Node      Edje_Part_Description_Mesh_Node;
 typedef struct _Edje_Part_Description_Light          Edje_Part_Description_Light;
 typedef struct _Edje_Part_Description_Camera         Edje_Part_Description_Camera;
+typedef struct _Edje_Part_Description_Snapshot       Edje_Part_Description_Snapshot;
 typedef struct _Edje_Part_Description_Common         Edje_Part_Description_Common;
 typedef struct _Edje_Part_Description_Spec_Fill      Edje_Part_Description_Spec_Fill;
 typedef struct _Edje_Part_Description_Spec_Border    Edje_Part_Description_Spec_Border;
@@ -837,7 +838,8 @@ struct _Edje_Limit
       TYPE      EXTERNAL;         \
       TYPE      MESH_NODE;        \
       TYPE      LIGHT;            \
-      TYPE      CAMERA;
+      TYPE      CAMERA;           \
+      TYPE      SNAPSHOT;
 
 struct _Edje_Part_Collection_Directory_Entry
 {
@@ -1191,7 +1193,7 @@ struct _Edje_Part_Description_Common
    Edje_Position step; /* size stepping by n pixels, 0 = none */
    Edje_Aspect_Prefer aspect;
 
-   char      *color_class; /* how to modify the color */
+   const char      *color_class; /* how to modify the color */
    Edje_Color color;
    Edje_Color color2;
 
@@ -1329,7 +1331,6 @@ struct _Edje_Part_Description_Spec_Image
    Eina_Bool      set; /* if image condition it's content */
 
    Edje_Part_Description_Spec_Border border;
-   Edje_Part_Description_Spec_Filter filter;
 };
 
 struct _Edje_Part_Description_Spec_Proxy
@@ -1349,7 +1350,6 @@ struct _Edje_Part_Description_Spec_Text
    Edje_String    style; /* the text style if a textblock */
    Edje_String    font; /* if a specific font is asked for */
    Edje_String    repch; /* replacement char for password mode entry */
-   Edje_Part_Description_Spec_Filter filter;
 
    Edje_Alignment align; /* text alignment within bounds */
    Edje_Color     color3;
@@ -1496,18 +1496,27 @@ struct _Edje_Part_Description_Image
 {
    Edje_Part_Description_Common common;
    Edje_Part_Description_Spec_Image image;
+   Edje_Part_Description_Spec_Filter filter;
 };
 
 struct _Edje_Part_Description_Proxy
 {
    Edje_Part_Description_Common common;
    Edje_Part_Description_Spec_Proxy proxy;
+   Edje_Part_Description_Spec_Filter filter;
+};
+
+struct _Edje_Part_Description_Snapshot
+{
+   Edje_Part_Description_Common common;
+   Edje_Part_Description_Spec_Filter filter;
 };
 
 struct _Edje_Part_Description_Text
 {
    Edje_Part_Description_Common common;
    Edje_Part_Description_Spec_Text text;
+   Edje_Part_Description_Spec_Filter filter;
 };
 
 struct _Edje_Part_Description_Box
@@ -2239,6 +2248,7 @@ EAPI extern Eina_Mempool *_emp_SPACER;
 EAPI extern Eina_Mempool *_emp_MESH_NODE;
 EAPI extern Eina_Mempool *_emp_LIGHT;
 EAPI extern Eina_Mempool *_emp_CAMERA;
+EAPI extern Eina_Mempool *_emp_SNAPSHOT;
 EAPI extern Eina_Mempool *_emp_part;
 
 void  _edje_part_pos_set(Edje *ed, Edje_Real_Part *ep, int mode, FLOAT_T pos, FLOAT_T v1, FLOAT_T v2, FLOAT_T v3, FLOAT_T v4);
@@ -2881,6 +2891,10 @@ Eina_Bool _edje_part_mouse_events_get(Edje *ed, Edje_Real_Part *rp);
 void _edje_part_mouse_events_set(Edje *ed, Edje_Real_Part *rp, Eina_Bool mouse_events);
 Eina_Bool _edje_part_repeat_events_get(Edje *ed, Edje_Real_Part *rp);
 void _edje_part_repeat_events_set(Edje *ed, Edje_Real_Part *rp, Eina_Bool repeat_events);
+Evas_Event_Flags _edje_part_ignore_flags_get(Edje *ed, Edje_Real_Part *rp);
+void _edje_part_ignore_flags_set(Edje *ed, Edje_Real_Part *rp, Evas_Event_Flags ignore_flags);
+Evas_Event_Flags _edje_part_mask_flags_get(Edje *ed, Edje_Real_Part *rp);
+void _edje_part_mask_flags_set(Edje *ed, Edje_Real_Part *rp, Evas_Event_Flags mask_flags);
 
 #ifdef HAVE_LIBREMIX
 #include <remix/remix.h>

@@ -217,8 +217,7 @@ START_TEST(eo_null_api)
    const Eo_Class *klass;
 
    static Eo_Op_Description op_descs[] = {
-        EO_OP_FUNC(NULL, _null_fct, "NULL API function"),
-        EO_OP_SENTINEL
+        EO_OP_FUNC(NULL, _null_fct),
    };
    static Eo_Class_Description class_desc = {
         EO_VERSION,
@@ -231,7 +230,7 @@ START_TEST(eo_null_api)
         NULL
    };
 
-   TEST_EO_ERROR("_eo_class_funcs_set", "Class '%s': NULL API not allowed (%d NULL->%p '%s').");
+   TEST_EO_ERROR("_eo_class_funcs_set", "Class '%s': NULL API not allowed (NULL->%p '%s').");
    klass = eo_class_new(&class_desc, NULL, NULL);
    fail_if(klass);
    fail_unless(ctx.did);
@@ -251,7 +250,6 @@ START_TEST(eo_wrong_override)
 
    static Eo_Op_Description op_descs[] = {
         EO_OP_FUNC_OVERRIDE(null_fct, _null_fct),
-        EO_OP_SENTINEL
    };
    static Eo_Class_Description class_desc = {
         EO_VERSION,
@@ -283,9 +281,8 @@ START_TEST(eo_api_redefined)
    const Eo_Class *klass;
 
    static Eo_Op_Description op_descs[] = {
-        EO_OP_FUNC(null_fct, _null_fct, "API function"),
-        EO_OP_FUNC(null_fct, NULL, "Redefining API function"),
-        EO_OP_SENTINEL
+        EO_OP_FUNC(null_fct, _null_fct),
+        EO_OP_FUNC(null_fct, NULL),
    };
    static Eo_Class_Description class_desc = {
         EO_VERSION,
@@ -298,7 +295,7 @@ START_TEST(eo_api_redefined)
         NULL
    };
 
-   TEST_EO_ERROR("_eo_class_funcs_set", "Class '%s': API previously defined (%d %p->%p '%s').");
+   TEST_EO_ERROR("_eo_class_funcs_set", "Class '%s': API previously defined (%p->%p '%s').");
    klass = eo_class_new(&class_desc, NULL, NULL);
    fail_if(klass);
    fail_unless(ctx.did);
@@ -319,7 +316,6 @@ START_TEST(eo_dich_func_override)
    static Eo_Op_Description op_descs[] = {
         EO_OP_FUNC_OVERRIDE(simple_a_set, _null_fct),
         EO_OP_FUNC_OVERRIDE(simple_a_set, NULL),
-        EO_OP_SENTINEL
    };
    static Eo_Class_Description class_desc = {
         EO_VERSION,
@@ -332,7 +328,7 @@ START_TEST(eo_dich_func_override)
         NULL
    };
 
-   TEST_EO_ERROR("_dich_func_set", "Class '%s': Overriding func %p for op %d (%s:'%s') with %p.");
+   TEST_EO_ERROR("_dich_func_set", "Class '%s': Overriding func %p for op %d (%s) with %p.");
    klass = eo_class_new(&class_desc, SIMPLE_CLASS, NULL);
    fail_if(klass);
    fail_unless(ctx.did);
@@ -348,7 +344,10 @@ void eo_test_class_errors(TCase *tc)
    tcase_add_test(tc, eo_inherit_errors);
    tcase_add_test(tc, eo_inconsistent_mro);
    tcase_add_test(tc, eo_bad_interface);
+#ifndef _WIN32
+   /* This test is not relevant for WIN32. */
    tcase_add_test(tc, eo_null_api);
+#endif
    tcase_add_test(tc, eo_wrong_override);
    tcase_add_test(tc, eo_api_redefined);
    tcase_add_test(tc, eo_dich_func_override);

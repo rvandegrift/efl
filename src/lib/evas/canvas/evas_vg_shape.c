@@ -341,6 +341,81 @@ _efl_vg_shape_eo_base_destructor(Eo *obj, Efl_VG_Shape_Data *pd EINA_UNUSED)
    eo_do_super(obj, MY_CLASS, eo_destructor());
 }
 
+static Eina_Bool
+_efl_vg_shape_efl_vg_base_interpolate(Eo *obj,
+                                      Efl_VG_Shape_Data *pd,
+                                      const Efl_VG_Base *from, const Efl_VG_Base *to,
+                                      double pos_map)
+{
+   Efl_VG_Shape_Data *fromd, *tod;
+   Eina_Bool r;
+
+   fromd = eo_data_scope_get(from, EFL_VG_SHAPE_CLASS);
+   tod = eo_data_scope_get(to, EFL_VG_SHAPE_CLASS);
+
+   eo_do_super(obj, MY_CLASS, r = efl_vg_interpolate(from, to, pos_map));
+
+   eo_do(obj, r &= efl_gfx_shape_interpolate(from, to, pos_map));
+
+   if (fromd->fill && tod->fill && pd->fill)
+     {
+        eo_do(pd->fill, r &= efl_vg_interpolate(fromd->fill, tod->fill, pos_map));
+     }
+   if (fromd->stroke.fill && tod->stroke.fill && pd->stroke.fill)
+     {
+        eo_do(pd->stroke.fill,
+              r &= efl_vg_interpolate(fromd->stroke.fill, tod->stroke.fill, pos_map));
+     }
+   if (fromd->stroke.marker && tod->stroke.marker && pd->stroke.marker)
+     {
+        eo_do(pd->stroke.marker,
+              r &= efl_vg_interpolate(fromd->stroke.marker, tod->stroke.marker, pos_map));
+     }
+
+   return r;
+}
+
+static void
+_efl_vg_shape_efl_vg_base_dup(Eo *obj, Efl_VG_Shape_Data *pd EINA_UNUSED, const Efl_VG_Base *from)
+{
+   Efl_VG_Shape_Data *fromd;
+   Eo *parent;
+   Eo *fill = NULL, *stroke_fill = NULL, *stroke_marker = NULL;
+
+   eo_do_super(obj, MY_CLASS, efl_vg_dup(from));
+
+   eo_do(obj, parent = eo_parent_get());
+
+   fromd = eo_data_scope_get(from, MY_CLASS);
+
+   if (fromd->fill)
+     {
+        fill = eo_add(eo_class_get(fromd->fill),
+                      parent,
+                      efl_vg_dup(fromd->fill));
+     }
+
+   if (fromd->stroke.fill)
+     {
+        stroke_fill = eo_add(eo_class_get(fromd->stroke.fill),
+                             parent,
+                             efl_vg_dup(fromd->stroke.fill));
+     }
+
+   if (fromd->stroke.marker)
+     {
+        stroke_marker = eo_add(eo_class_get(fromd->stroke.marker),
+                               parent,
+                               efl_vg_dup(fromd->stroke.marker));
+     }
+
+   eo_do(obj,
+         efl_vg_shape_fill_set(fill),
+         efl_vg_shape_stroke_fill_set(stroke_fill),
+         efl_vg_shape_stroke_marker_set(stroke_marker),
+         efl_gfx_shape_dup(from));
+}
+
 EAPI double
 evas_vg_shape_stroke_scale_get(Eo *obj)
 {

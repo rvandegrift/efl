@@ -1,4 +1,4 @@
-EFL_VERSION([1], [15], [3], [release])
+EFL_VERSION([1], [16], [1], [release])
 AC_INIT([efl], [efl_version], [enlightenment-devel@lists.sourceforge.net])
 
 AC_PREREQ([2.60])
@@ -696,16 +696,10 @@ AM_CONDITIONAL([HAVE_SYSTEMD_USER_SESSION], [test "x${have_systemd_user_session}
 AC_SUBST([USER_SESSION_DIR])
 
 if test "x${have_systemd_pkg}" = "xauto" -o "x${have_systemd_pkg}" = "xyes"; then
-   PKG_CHECK_MODULES([SYSTEMD], [libsystemd-daemon >= 192 libsystemd-journal >= 192],
+   PKG_CHECK_MODULES([SYSTEMD], [libsystemd >= 209],
    [have_systemd_pkg="yes"],
    [have_systemd_pkg="no"])
 fi
-
-PKG_CHECK_MODULES(SYSTEMD_LOGIN, [libsystemd-login >= 198],
-                  [have_systemd_login=yes], [have_systemd_login=no])
-AS_IF([test "x$have_systemd_login" = "xyes"],
-      [AC_DEFINE([HAVE_SYSTEMD_LOGIN], [1], [Have systemd-login])])
-AM_CONDITIONAL(HAVE_SYSTEMD_LOGIN, test "x$have_systemd_login" = "xyes")
 
 # check for systemd library if requested
 if test "x${want_systemd}" = "xyes" -a "x${have_systemd_pkg}" = "xno"; then
@@ -713,7 +707,7 @@ if test "x${want_systemd}" = "xyes" -a "x${have_systemd_pkg}" = "xno"; then
 fi
 
 AM_CONDITIONAL([WANT_SYSTEMD], [test "${want_systemd}" = "yes"])
-
+AM_CONDITIONAL([HAVE_SYSTEMD], [test "${want_systemd}" = "yes" -a "${have_systemd_pkg}" = "yes"])
 #### Platform-dependent
 DL_LIBS=""
 DL_INTERNAL_LIBS=""
@@ -925,7 +919,7 @@ AC_DEFINE_IF([EINA_COW_MAGIC_ON],
    [test "x${want_cow_magic}" = "xyes" ],
    [1], [Turn on Eina_Magic in Eina_Cow])
 
-EFL_OPTIONAL_DEPEND_PKG([EINA], [${want_systemd}], [SYSTEMD], [libsystemd-journal])
+EFL_OPTIONAL_DEPEND_PKG([EINA], [${want_systemd}], [SYSTEMD], [libsystemd])
 
 EFL_EVAL_PKGS([EINA])
 
@@ -995,6 +989,7 @@ EFL_ADD_CFLAGS([EINA], [${EFL_PTHREAD_CFLAGS}])
 
 EINA_CONFIG([HAVE_PTHREAD_BARRIER], [test "x${efl_have_pthread_barrier}" = "xyes"])
 EINA_CONFIG([HAVE_PTHREAD_AFFINITY], [test "x${efl_have_setaffinity}" = "xyes"])
+EINA_CONFIG([HAVE_PTHREAD_SETNAME], [test "x${efl_have_setname}" = "xyes"])
 EINA_CONFIG([HAVE_DEBUG_THREADS], [test "x${want_debug_threads}" = "xyes"])
 EINA_CONFIG([HAVE_POSIX_SPINLOCK], [test "x${efl_have_posix_threads_spinlock}" = "xyes"])
 EINA_CONFIG([HAVE_OSX_SPINLOCK], [test "x${efl_have_osx_spinlock}" = "xyes"])
@@ -2357,7 +2352,7 @@ if test "x${have_glib}" = "xno"; then
    want_g_main_loop="no"
 fi
 
-EFL_OPTIONAL_DEPEND_PKG([ECORE], [${want_systemd}], [SYSTEMD], [libsystemd-daemon])
+EFL_OPTIONAL_DEPEND_PKG([ECORE], [${want_systemd}], [SYSTEMD], [libsystemd])
 
 EFL_ADD_FEATURE([ECORE], [systemd-daemon], [${want_systemd}])
 EFL_ADD_FEATURE([ECORE], [glib])
@@ -2591,7 +2586,7 @@ else
    ecore_con_resolver="fork"
 fi
 
-EFL_OPTIONAL_DEPEND_PKG([ECORE_CON], [${want_systemd}], [SYSTEMD], [libsystemd-daemon])
+EFL_OPTIONAL_DEPEND_PKG([ECORE_CON], [${want_systemd}], [SYSTEMD], [libsystemd])
 
 EFL_ADD_FEATURE([ECORE_CON], [cares])
 EFL_ADD_FEATURE([ECORE_CON], [local-sockets], [${want_ecore_con_local_sockets}])
@@ -4013,7 +4008,7 @@ if test "x${have_ecore_evas_opengl_x11}" = "xyes" || test "x${have_ecore_evas_op
          [have_ecore_x_opengl_xcb="no"])
     else
       have_ecore_x_opengl_xcb="no"
-      AC_MSG_NOTICE(["XCB-based OpenGL explicitly disabled"])
+      AC_MSG_NOTICE([XCB-based OpenGL explicitly disabled])
     fi
 fi
 
@@ -4060,6 +4055,7 @@ EFL_INTERNAL_DEPEND_PKG([EIO], [ecore])
 EFL_INTERNAL_DEPEND_PKG([EIO], [eet])
 EFL_INTERNAL_DEPEND_PKG([EIO], [eo])
 EFL_INTERNAL_DEPEND_PKG([EIO], [eina])
+EFL_INTERNAL_DEPEND_PKG([EIO], [efl])
 EFL_INTERNAL_DEPEND_PKG([EIO], [emile])
 
 EFL_ADD_LIBS([EIO], [-lm])
@@ -4088,6 +4084,13 @@ AC_DEFINE_IF([HAVE_NOTIFY_COCOA],
    [test "x${have_darwin}" = "xyes"], [1],
    [File monitoring with fsevent notification])
 AM_CONDITIONAL([HAVE_NOTIFY_COCOA], [test "x${have_darwin}" = "xyes"])
+
+AC_CHECK_FUNC([kevent])
+have_notify_kevent="${ac_cv_func_kevent}"
+AC_DEFINE_IF([HAVE_NOTIFY_KEVENT],
+   [test "x${have_notify_kevent}" = "xyes"], [1],
+   [File monitoring with kqueue/kevent mechanism])
+AM_CONDITIONAL([HAVE_NOTIFY_KEVENT], [test "x${have_notify_kevent}" = "xyes"])
 
 
 EFL_LIB_END([Eio])
@@ -4335,6 +4338,17 @@ AC_ARG_ENABLE([v4l2],
    ],
    [want_v4l2="${efl_lib_optional_eeze}"])
 
+AC_ARG_ENABLE([libvlc],
+   [AS_HELP_STRING([--enable-libvlc],[enable libvlc support. @<:@default=disabled@:>@])],
+   [
+    if test "x${enableval}" = "xyes" ; then
+       want_libvlc="yes"
+    else
+       want_libvlc="no"
+    fi
+   ],
+   [want_libvlc="no"])
+
 ### Checks for programs
 
 ### Checks for libraries
@@ -4357,11 +4371,13 @@ have_gst_xoverlay="no"
 EMOTION_MODULE([xine], [${want_xine}])
 EMOTION_MODULE([gstreamer], [${want_gstreamer}])
 EMOTION_MODULE([gstreamer1], [${want_gstreamer1}])
+EMOTION_MODULE([libvlc], [${want_libvlc}])
 EMOTION_MODULE([generic], [${want_emotion_generic}])
 
 EFL_ADD_FEATURE([EMOTION], [xine])
 EFL_ADD_FEATURE([EMOTION], [gstreamer])
 EFL_ADD_FEATURE([EMOTION], [gstreamer1])
+EFL_ADD_FEATURE([EMOTION], [libvlc])
 EFL_ADD_FEATURE([EMOTION], [generic], [${want_emotion_generic}])
 
 EFL_EVAL_PKGS([EMOTION])
@@ -4851,6 +4867,7 @@ fi
 EFL_ADD_FEATURE([thread], [spinlocks], [${efl_have_spinlock}])
 EFL_ADD_FEATURE([thread], [barrier], [${efl_have_pthread_barrier}])
 EFL_ADD_FEATURE([thread], [affinity], [${efl_have_setaffinity}])
+EFL_ADD_FEATURE([thread], [setname], [${efl_have_setname}])
 
 echo
 echo

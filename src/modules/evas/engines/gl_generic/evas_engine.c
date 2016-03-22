@@ -1,12 +1,6 @@
 #include "evas_common_private.h"
 #include "evas_gl_core_private.h"
 
-//#define TIMDBG 1
-#ifdef TIMDBG
-# include <sys/time.h>
-# include <unistd.h>
-#endif
-
 #include "software/Ector_Software.h"
 
 #include "ector_cairo_software_surface.eo.h"
@@ -58,6 +52,55 @@ static int eng_gl_surface_destroy(void *data, void *surface);
 static Eina_Bool eng_gl_surface_lock(void *data, void *surface);
 static Eina_Bool eng_gl_surface_unlock(void *data, void *surface);
 static Eina_Bool eng_gl_surface_read_pixels(void *data, void *surface, int x, int y, int w, int h, Evas_Colorspace cspace, void *pixels);
+
+Eina_Bool _need_context_restore = EINA_FALSE;
+
+void
+_context_restore(void)
+{
+   EVGL_Resource *rsc = _evgl_tls_resource_get();
+   if (rsc)
+     {
+        if (rsc->id == evgl_engine->main_tid)
+          {
+             evgl_make_current(rsc->stored.data, rsc->stored.surface, rsc->stored.context);
+             _need_context_restore = EINA_FALSE;
+          }
+     }
+}
+
+static inline void
+_context_store(void *data, void *surface, void *context)
+{
+   EVGL_Resource *rsc = _evgl_tls_resource_get();
+   if (rsc)
+     {
+        if (rsc->id == evgl_engine->main_tid)
+          {
+             _need_context_restore = EINA_FALSE;
+    
+             rsc->stored.data = data;
+             rsc->stored.surface = surface;
+             rsc->stored.context = context;
+          }
+     }
+}
+
+static inline void
+_context_stored_reset(void *data EINA_UNUSED, void *surface)
+{
+   EVGL_Resource *rsc = _evgl_tls_resource_get();
+   if (rsc && rsc->stored.surface == surface)
+     {
+        _need_context_restore = EINA_FALSE;
+        rsc->stored.data = NULL;
+        rsc->stored.surface = NULL;
+        rsc->stored.context = NULL;
+     }
+}
+
+#define CONTEXT_STORE(data, surface, context) _context_store(data, surface, context)
+#define CONTEXT_STORED_RESET(data, surface) _context_stored_reset(data, surface)
 
 static void
 eng_rectangle_draw(void *data, void *context, void *surface, int x, int y, int w, int h, Eina_Bool do_async EINA_UNUSED)
@@ -482,6 +525,15 @@ eng_image_free(void *data, void *image)
    if (!image) return;
    re->window_use(re->software.ob);
    evas_gl_common_image_free(image);
+}
+
+static void *
+eng_image_ref(void *data EINA_UNUSED, void *image)
+{
+   Evas_GL_Image *im = image;
+   if (!im) return NULL;
+   im->references++;
+   return im;
 }
 
 static void
@@ -1180,7 +1232,7 @@ eng_image_scaled_update(void *data EINA_UNUSED, void *scaled, void *image,
                         Eina_Bool smooth, Eina_Bool alpha,
                         Evas_Colorspace cspace EINA_UNUSED)
 {
-   Evas_GL_Image *dst = scaled;
+   Evas_GL_Image *dst = scaled, *newdst;
    Evas_GL_Image *src = image;
    Evas_Engine_GL_Context *gc;
    Eina_Bool reffed = EINA_FALSE;
@@ -1217,6 +1269,9 @@ eng_image_scaled_update(void *data EINA_UNUSED, void *scaled, void *image,
         return NULL;
      }
 
+   newdst = calloc(1, sizeof(Evas_GL_Image));
+   if (!newdst) return NULL;
+
    if (dst)
      {
         if (dst->scaled.origin == src)
@@ -1226,6 +1281,7 @@ eng_image_scaled_update(void *data EINA_UNUSED, void *scaled, void *image,
                   dst->w = dst_w;
                   dst->h = dst_h;
                   dst->scaled.smooth = smooth;
+                  free(newdst);
                   return dst;
                }
              src->references++;
@@ -1234,24 +1290,21 @@ eng_image_scaled_update(void *data EINA_UNUSED, void *scaled, void *image,
         evas_gl_common_image_free(dst);
      }
 
-   dst = calloc(1, sizeof(Evas_GL_Image));
-   if (!dst) return NULL;
-
-   dst->references = 1;
-   dst->gc = gc;
-   dst->cs.space = src->cs.space;
-   dst->alpha = alpha;
-   dst->w = dst_w;
-   dst->h = dst_h;
-   dst->tex = src->tex;
-   dst->tex->references++;
-   dst->tex_only = 1;
+   newdst->references = 1;
+   newdst->gc = gc;
+   newdst->cs.space = src->cs.space;
+   newdst->alpha = alpha;
+   newdst->w = dst_w;
+   newdst->h = dst_h;
+   newdst->tex = src->tex;
+   newdst->tex->references++;
+   newdst->tex_only = 1;
 
    if (!reffed) src->references++;
-   dst->scaled.origin = src;
-   dst->scaled.smooth = smooth;
+   newdst->scaled.origin = src;
+   newdst->scaled.smooth = smooth;
 
-   return dst;
+   return newdst;
 }
 
 static void
@@ -1334,6 +1387,22 @@ eng_image_stride_get(void *data EINA_UNUSED, void *image, int *stride)
            case EVAS_COLORSPACE_YCBCR420NV12601_PL:
            case EVAS_COLORSPACE_YCBCR420TM12601_PL:
              *stride = im->w * 1;
+             return;
+             /* the strides below are approximations, since stride doesn't
+              * really make sense for ETC & S3TC */
+           case EVAS_COLORSPACE_ETC1:
+           case EVAS_COLORSPACE_RGB8_ETC2:
+           case EVAS_COLORSPACE_RGB_S3TC_DXT1:
+           case EVAS_COLORSPACE_RGBA_S3TC_DXT1:
+             *stride = (im->w + 2 + 3) / 4 * (8 / 4);
+             return;
+           case EVAS_COLORSPACE_ETC1_ALPHA:
+           case EVAS_COLORSPACE_RGBA8_ETC2_EAC:
+           case EVAS_COLORSPACE_RGBA_S3TC_DXT2:
+           case EVAS_COLORSPACE_RGBA_S3TC_DXT3:
+           case EVAS_COLORSPACE_RGBA_S3TC_DXT4:
+           case EVAS_COLORSPACE_RGBA_S3TC_DXT5:
+             *stride = (im->w + 2 + 3) / 4 * (16 / 4);
              return;
            default:
              ERR("Requested stride on an invalid format %d", im->cs.space);
@@ -1420,6 +1489,7 @@ eng_gl_surface_destroy(void *data, void *surface)
    EVGL_Surface  *sfc = (EVGL_Surface *)surface;
 
    EVGLINIT(data, 0);
+   CONTEXT_STORED_RESET(data, surface);
    return evgl_surface_destroy(data, sfc);
 }
 
@@ -1456,6 +1526,7 @@ eng_gl_make_current(void *data, void *surface, void *context)
    if (ctx)
      {
         Evas_Engine_GL_Context *gl_context;
+        CONTEXT_STORE(data, surface, context);
 
         gl_context = re->window_gl_context_get(re->software.ob);
         if ((gl_context->havestuff) ||
@@ -1605,8 +1676,9 @@ eng_gl_get_pixels_set(void *data, void *get_pixels, void *get_pixels_data, void 
 }
 
 static void
-eng_gl_get_pixels_pre(void *data EINA_UNUSED)
+eng_gl_get_pixels_pre(void *data)
 {
+   EVGLINIT(data, );
    evgl_get_pixels_pre();
 }
 
@@ -2109,7 +2181,13 @@ eng_context_clip_image_get(void *data EINA_UNUSED, void *context, void **ie, int
 {
    RGBA_Draw_Context *ctx = context;
 
-   if (ie) *ie = ctx->clip.mask;
+   if (ie)
+     {
+        Evas_GL_Image *im = ctx->clip.mask;
+
+        *ie = im;
+        if (im) evas_gl_common_image_ref(im);
+     }
    if (x) *x = ctx->clip.mask_x;
    if (y) *y = ctx->clip.mask_y;
 }
@@ -2123,6 +2201,18 @@ eng_context_free(void *data, void *context)
    if (ctx->clip.mask)
      eng_context_clip_image_unset(data, context);
    evas_common_draw_context_free(context);
+}
+
+static void *
+eng_context_dup(void *data EINA_UNUSED, void *context)
+{
+   RGBA_Draw_Context *ctx;
+
+   ctx = evas_common_draw_context_dup(context);
+   if (ctx->clip.mask)
+     evas_gl_common_image_ref(ctx->clip.mask);
+
+   return ctx;
 }
 
 static void
@@ -2300,29 +2390,31 @@ eng_texture_image_get(void *data EINA_UNUSED, void *texture)
    return e3d_texture_get((E3D_Texture *)texture);
 }
 
-static Ector_Surface *_software_ector = NULL;
 static Eina_Bool use_cairo;
 
 static Ector_Surface *
-eng_ector_get(void *data EINA_UNUSED)
+eng_ector_create(void *data EINA_UNUSED)
 {
-   if (!_software_ector)
+   Ector_Surface *ector;
+   const char *ector_backend;
+   ector_backend = getenv("ECTOR_BACKEND");
+   if (ector_backend && !strcasecmp(ector_backend, "default"))
      {
-        const char *ector_backend;
-
-        ector_backend = getenv("ECTOR_BACKEND");
-        if (ector_backend && !strcasecmp(ector_backend, "default"))
-          {
-             _software_ector = eo_add(ECTOR_SOFTWARE_SURFACE_CLASS, NULL);
-             use_cairo = EINA_FALSE;
-          }
-        else
-          {
-             _software_ector = eo_add(ECTOR_CAIRO_SOFTWARE_SURFACE_CLASS, NULL);
-             use_cairo = EINA_TRUE;
-          }
+        ector = eo_add(ECTOR_SOFTWARE_SURFACE_CLASS, NULL);
+        use_cairo = EINA_FALSE;
      }
-   return _software_ector;
+   else
+     {
+        ector = eo_add(ECTOR_CAIRO_SOFTWARE_SURFACE_CLASS, NULL);
+        use_cairo = EINA_TRUE;
+     }
+   return ector;
+}
+
+static void
+eng_ector_destroy(void *data EINA_UNUSED, Ector_Surface *ector)
+{
+   if (ector) eo_del(ector);
 }
 
 static Ector_Rop
@@ -2340,7 +2432,7 @@ _evas_render_op_to_ector_rop(Evas_Render_Op op)
 }
 
 static void
-eng_ector_renderer_draw(void *data, void *context EINA_UNUSED, void *surface, Ector_Renderer *renderer, Eina_Array *clips, Eina_Bool do_async EINA_UNUSED)
+eng_ector_renderer_draw(void *data, void *context, void *surface, Ector_Renderer *renderer, Eina_Array *clips, Eina_Bool do_async EINA_UNUSED)
 {
    Evas_GL_Image *dst = surface;
    Evas_Engine_GL_Context *gc;
@@ -2352,6 +2444,7 @@ eng_ector_renderer_draw(void *data, void *context EINA_UNUSED, void *surface, Ec
    unsigned int i;
 
    gc = re->window_gl_context_get(re->software.ob);
+   gc->dc = context;
    if (gc->dc->clip.use)
      {
         clip.x = gc->dc->clip.x;
@@ -2408,11 +2501,13 @@ eng_ector_renderer_draw(void *data, void *context EINA_UNUSED, void *surface, Ec
 static void *software_buffer = NULL;
 
 static void
-eng_ector_begin(void *data EINA_UNUSED, void *context EINA_UNUSED, void *surface, int x, int y, Eina_Bool do_async EINA_UNUSED)
+eng_ector_begin(void *data EINA_UNUSED, void *context EINA_UNUSED, Ector_Surface *ector,
+                void *surface, int x, int y, Eina_Bool do_async EINA_UNUSED)
 {
    Evas_Engine_GL_Context *gl_context;
    Render_Engine_GL_Generic *re = data;
    int w, h;
+   void *temp;
 
    re->window_use(re->software.ob);
    gl_context = re->window_gl_context_get(re->software.ob);
@@ -2421,24 +2516,32 @@ eng_ector_begin(void *data EINA_UNUSED, void *context EINA_UNUSED, void *surface
 
    w = gl_context->w; h = gl_context->h;
 
+   temp = software_buffer;
    software_buffer = realloc(software_buffer, sizeof (unsigned int) * w * h);
+   if (!software_buffer)
+     {
+        ERR("Realloc failed!!");
+        software_buffer = temp;
+        return;
+     }
    memset(software_buffer, 0, sizeof (unsigned int) * w * h);
    if (use_cairo)
      {
-        eo_do(_software_ector,
+        eo_do(ector,
               ector_cairo_software_surface_set(software_buffer, w, h),
               ector_surface_reference_point_set(x, y));
      }
    else
      {
-        eo_do(_software_ector,
+        eo_do(ector,
               ector_software_surface_set(software_buffer, w, h),
               ector_surface_reference_point_set(x, y));
      }
 }
 
 static void
-eng_ector_end(void *data, void *context EINA_UNUSED, void *surface EINA_UNUSED, Eina_Bool do_async EINA_UNUSED)
+eng_ector_end(void *data, void *context EINA_UNUSED, Ector_Surface *ector,
+              void *surface EINA_UNUSED, Eina_Bool do_async EINA_UNUSED)
 {
    Evas_Engine_GL_Context *gl_context;
    Render_Engine_GL_Generic *re = data;
@@ -2452,12 +2555,12 @@ eng_ector_end(void *data, void *context EINA_UNUSED, void *surface EINA_UNUSED, 
 
    if (use_cairo)
      {
-        eo_do(_software_ector,
+        eo_do(ector,
               ector_cairo_software_surface_set(NULL, 0, 0));
      }
    else
      {
-        eo_do(_software_ector,
+        eo_do(ector,
               ector_software_surface_set(NULL, 0, 0));
      }
 
@@ -2508,6 +2611,7 @@ module_open(Evas_Module *em)
    ORD(context_clip_image_set);
    ORD(context_clip_image_unset);
    ORD(context_clip_image_get);
+   ORD(context_dup);
    ORD(context_free);
 
    ORD(rectangle_draw);
@@ -2521,6 +2625,7 @@ module_open(Evas_Module *em)
    ORD(image_new_from_data);
    ORD(image_new_from_copied_data);
    ORD(image_free);
+   ORD(image_ref);
    ORD(image_size_get);
    ORD(image_size_set);
    ORD(image_dirty_region);
@@ -2625,7 +2730,8 @@ module_open(Evas_Module *em)
    ORD(texture_image_set);
    ORD(texture_image_get);
 
-   ORD(ector_get);
+   ORD(ector_create);
+   ORD(ector_destroy);
    ORD(ector_begin);
    ORD(ector_renderer_draw);
    ORD(ector_end);

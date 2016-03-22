@@ -219,7 +219,6 @@ ecore_con_local_listen(
    struct linger lin;
    mode_t pmode;
    const char *homedir;
-   struct stat st;
    mode_t mask;
    int socket_unix_len;
    Eina_Bool abstract_socket;
@@ -244,15 +243,21 @@ ecore_con_local_listen(
 #endif
         mask = S_IRUSR | S_IWUSR | S_IXUSR;
         snprintf(buf, sizeof(buf), "%s/.ecore", homedir);
-        if (stat(buf, &st) < 0)
+        if (mkdir(buf, mask) < 0)
           {
-             if (mkdir(buf, mask) < 0) ERR("mkdir '%s' failed", buf);
+             if (errno != EEXIST)
+               {
+                  ERR("mkdir '%s' failed", buf);
+               }
           }
 
         snprintf(buf, sizeof(buf), "%s/.ecore/%s", homedir, svr->name);
-        if (stat(buf, &st) < 0)
+        if (mkdir(buf, mask) < 0)
           {
-             if (mkdir(buf, mask) < 0) ERR("mkdir '%s' failed", buf);
+             if (errno != EEXIST)
+               {
+                  ERR("mkdir '%s' failed", buf);
+               }
           }
 
         if (svr->port < 0)
@@ -297,6 +302,10 @@ ecore_con_local_listen(
      {
         strncpy(buf, svr->name, sizeof(buf) - 1);
         buf[sizeof(buf) - 1] = 0;
+     }
+   else
+     {
+        buf[0] = '\0';
      }
 
    pmode = umask(mask);

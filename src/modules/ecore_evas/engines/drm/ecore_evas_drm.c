@@ -322,6 +322,25 @@ ecore_evas_drm_new_internal(const char *device, unsigned int parent EINA_UNUSED,
                                (Ecore_Event_Multi_Down_Cb)_ecore_evas_mouse_multi_down_process,
                                (Ecore_Event_Multi_Up_Cb)_ecore_evas_mouse_multi_up_process);
 
+   /* NB: Send a fake mouse move event so that E-Wl gets an updated
+    * pointer position, else we end up with buggers (ref: T2854) */
+     {
+        Ecore_Event_Mouse_Move *ev;
+
+        ev = calloc(1, sizeof(Ecore_Event_Mouse_Move));
+        ev->window = ee->prop.window;
+        ev->event_window = ee->prop.window;
+        ev->root_window = ee->prop.window;
+        ev->same_screen = 1;
+
+        ecore_drm_device_pointer_xy_get(dev, &ev->x, &ev->y);
+
+        ev->root.x = ev->x;
+        ev->root.y = ev->y;
+
+        ecore_event_evas_mouse_move(NULL, ECORE_EVENT_MOUSE_MOVE, ev);
+     }
+
    return ee;
 
 eng_err:
@@ -341,7 +360,7 @@ ecore_evas_gl_drm_new_internal(const char *device, unsigned int parent EINA_UNUS
    Ecore_Evas_Interface_Drm *iface;
    Ecore_Evas_Engine_Drm_Data *edata;
    int method;
-   uint32_t format = GBM_FORMAT_ARGB8888;
+   uint32_t format = GBM_FORMAT_XRGB8888;
    uint32_t flags  = GBM_BO_USE_SCANOUT | GBM_BO_USE_RENDERING;
    char *num;
 
@@ -354,12 +373,6 @@ ecore_evas_gl_drm_new_internal(const char *device, unsigned int parent EINA_UNUS
 
    /* try to init drm */
    if (_ecore_evas_drm_init(device) < 1) return NULL;
-
-   if (!ecore_drm_device_software_setup(dev))
-     {
-        ERR("Could not setup device for software");
-        goto soft_err;
-     }
 
    /* try to load gl libary, gbm libary */
    /* Typically, gbm loads the dri driver However some versions of Mesa
@@ -419,9 +432,10 @@ ecore_evas_gl_drm_new_internal(const char *device, unsigned int parent EINA_UNUS
    ee->prop.withdrawn = EINA_TRUE;
    ee->alpha = EINA_FALSE;
 
-   ee->can_async_render = 1;
-   if (getenv("ECORE_EVAS_FORCE_SYNC_RENDER"))
-     ee->can_async_render = 0;
+   /* NB: Disable async rendering for egl. Not Applicable as EGL is sync only */
+   ee->can_async_render = 0;
+   /* if (getenv("ECORE_EVAS_FORCE_SYNC_RENDER")) */
+   /*   ee->can_async_render = 0; */
 
    /* try to initialize evas */
    ee->evas = evas_new();
@@ -500,7 +514,6 @@ ecore_evas_gl_drm_new_internal(const char *device, unsigned int parent EINA_UNUS
 
 eng_err:
    ecore_evas_free(ee);
-soft_err:
 ee_err:
    _ecore_evas_drm_shutdown();
    return NULL;
@@ -581,6 +594,7 @@ sprite_err:
 dev_open_err:
    ecore_drm_launcher_disconnect(dev);
    ecore_drm_device_free(dev);
+   dev = NULL;
 launcher_err:
 dev_err:
    ecore_drm_shutdown();
@@ -598,6 +612,7 @@ _ecore_evas_drm_shutdown(void)
    ecore_drm_device_close(dev);
    ecore_drm_launcher_disconnect(dev);
    ecore_drm_device_free(dev);
+   dev = NULL;
    ecore_drm_shutdown();
 
    ecore_event_evas_shutdown();

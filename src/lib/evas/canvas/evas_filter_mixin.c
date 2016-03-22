@@ -238,8 +238,7 @@ evas_filter_object_render(Eo *eo_obj, Evas_Object_Protected_Data *obj,
 
         // Steal output and release previous
         filter_output = evas_filter_buffer_backing_steal(filter, EVAS_FILTER_BUFFER_OUTPUT_ID);
-        if (filter_output != previous)
-          evas_filter_buffer_backing_release(filter, previous);
+        evas_filter_buffer_backing_release(filter, previous);
 
         // Request rendering from the object itself (child class)
         evas_filter_program_padding_get(pd->data->chain, &l, &r, &t, &b);
@@ -294,7 +293,7 @@ _evas_filter_efl_gfx_filter_program_set(Eo *eo_obj, Evas_Filter_Data *pd,
         eina_stringshare_replace(&fcow->name, name);
         if (code)
           {
-             alpha = eo_do_ret(eo_obj, alpha, evas_filter_input_alpha());
+             eo_do(eo_obj, alpha = evas_filter_input_alpha());
              pgm = evas_filter_program_new(fcow->name, alpha);
              evas_filter_program_source_set_all(pgm, fcow->sources);
              evas_filter_program_data_set_all(pgm, fcow->data);
@@ -582,6 +581,12 @@ _evas_filter_efl_gfx_filter_data_set(Eo *obj EINA_UNUSED, Evas_Filter_Data *pd,
         fcow->changed = 1;
      }
    FCOW_END(fcow, pd);
+}
+
+EOLIAN void *
+_evas_filter_output_buffer_get(Eo *obj EINA_UNUSED, Evas_Filter_Data *pd)
+{
+   return pd->data->output;
 }
 
 #include "evas_filter.eo.c"

@@ -53,6 +53,9 @@ extern Eina_Hash *_decls;
 extern Eina_Hash *_parsedeos;
 extern Eina_Hash *_parsingeos;
 
+/* for deferred dependency parsing */
+extern Eina_Hash *_defereos;
+
 typedef struct _Eolian_Object
 {
    const char *file;
@@ -82,7 +85,6 @@ struct _Eolian_Class
    Eina_List *namespaces; /* List Eina_Stringshare * */
    Eina_Stringshare *name;
    Eolian_Class_Type type;
-   Eina_Stringshare *description;
    Eolian_Documentation *doc;
    Eina_Stringshare *legacy_prefix;
    Eina_Stringshare *eo_prefix;
@@ -123,11 +125,6 @@ struct _Eolian_Function
    Eolian_Implement *set_impl;
    Eina_Stringshare *get_legacy;
    Eina_Stringshare *set_legacy;
-   Eina_Stringshare *common_description;
-   Eina_Stringshare *get_description;
-   Eina_Stringshare *set_description;
-   Eina_Stringshare *get_return_comment;
-   Eina_Stringshare *set_return_comment;
    Eolian_Documentation *common_doc;
    Eolian_Documentation *get_doc;
    Eolian_Documentation *set_doc;
@@ -157,7 +154,6 @@ struct _Eolian_Function_Parameter
    Eina_Stringshare *name;
    Eolian_Type *type;
    Eolian_Expression *value;
-   Eina_Stringshare *description;
    Eolian_Documentation *doc;
    Eolian_Parameter_Dir param_dir;
    Eina_Bool nonull :1; /* True if this argument cannot be NULL - deprecated */

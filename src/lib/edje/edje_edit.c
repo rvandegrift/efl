@@ -22,10 +22,6 @@
 
 #define MY_CLASS EDJE_EDIT_CLASS
 
-static const char EDJE_EDIT_ERROR_GROUP_CURRENTLY_USED_STR[] = "Current group cannot be deleted";
-static const char EDJE_EDIT_ERROR_GROUP_REFERENCED_STR[] = "Group still in use";
-static const char EDJE_EDIT_ERROR_GROUP_DOES_NOT_EXIST_STR[] = "Group does not exist";
-
 EAPI Eina_Error EDJE_EDIT_ERROR_GROUP_CURRENTLY_USED = 0;
 EAPI Eina_Error EDJE_EDIT_ERROR_GROUP_REFERENCED = 0;
 EAPI Eina_Error EDJE_EDIT_ERROR_GROUP_DOES_NOT_EXIST = 0;
@@ -1693,10 +1689,6 @@ edje_edit_group_copy(Evas_Object *obj, const char *group_name, const char *copy_
 
    eet_close(eetf);
 
-   /* we need to save everything to make sure the file won't have broken
-    * references the next time is loaded */
-   edje_edit_save_all(obj);
-
    return EINA_TRUE;
 }
 
@@ -1870,10 +1862,6 @@ edje_edit_group_del(Evas_Object *obj, const char *group_name)
      }
    if (die) _edje_collection_free(ed->file, die, e);
    eina_hash_del(ed->file->collection, group_name, e);
-
-   /* we need to save everything to make sure the file won't have broken
-    * references the next time is loaded */
-   edje_edit_save_all(obj);
 
    return EINA_TRUE;
 }
@@ -4312,6 +4300,180 @@ edje_edit_state_table_homogeneous_set(Evas_Object *obj, const char *part, const 
 /*     BOX & TABLE API     */
 /***************************/
 
+#define FUNC_CONTAINER_BOOL(CLASS, VALUE) \
+EAPI Eina_Bool \
+edje_edit_state_container_##CLASS##_##VALUE##_get(Evas_Object *obj, const char *part, const char *state, double value) \
+{ \
+   Eina_Bool val; \
+   GET_PD_OR_RETURN(EINA_FALSE) \
+   switch (rp->part->type) \
+     { \
+      case EDJE_PART_TYPE_TABLE: \
+      { \
+         Edje_Part_Description_Table *table; \
+         table = (Edje_Part_Description_Table *)pd; \
+         val = table->table.CLASS.VALUE; \
+         break; \
+      } \
+      case EDJE_PART_TYPE_BOX: \
+      { \
+         Edje_Part_Description_Box *box; \
+         box = (Edje_Part_Description_Box *)pd; \
+         val = box->box.CLASS.VALUE; \
+         break; \
+      } \
+      default: \
+       val = EINA_FALSE; \
+     } \
+   return val; \
+} \
+EAPI Eina_Bool \
+edje_edit_state_container_##CLASS##_##VALUE##_set(Evas_Object *obj, const char *part, const char *state, double value, Eina_Bool new_val) \
+{ \
+   GET_PD_OR_RETURN(EINA_FALSE) \
+   switch (rp->part->type) \
+     { \
+      case EDJE_PART_TYPE_TABLE: \
+      { \
+         Edje_Part_Description_Table *table; \
+         table = (Edje_Part_Description_Table *)pd; \
+         table->table.CLASS.VALUE = new_val; \
+         break; \
+      } \
+      case EDJE_PART_TYPE_BOX: \
+      { \
+         Edje_Part_Description_Box *box; \
+         box = (Edje_Part_Description_Box *)pd; \
+         box->box.CLASS.VALUE = new_val; \
+         break; \
+      } \
+      default: \
+        return EINA_FALSE; \
+     } \
+   return EINA_TRUE; \
+}
+
+FUNC_CONTAINER_BOOL(min, v)
+FUNC_CONTAINER_BOOL(min, h)
+
+#undef FUNC_CONTAINER_BOOL
+
+#define FUNC_CONTAINER_INT(CLASS, VALUE) \
+EAPI int \
+edje_edit_state_container_##CLASS##_##VALUE##_get(Evas_Object *obj, const char *part, const char *state, double value) \
+{ \
+   int val; \
+   GET_PD_OR_RETURN(EINA_FALSE) \
+   switch (rp->part->type) \
+     { \
+      case EDJE_PART_TYPE_TABLE: \
+      { \
+         Edje_Part_Description_Table *table; \
+         table = (Edje_Part_Description_Table *)pd; \
+         val = table->table.CLASS.VALUE; \
+         break; \
+      } \
+      case EDJE_PART_TYPE_BOX: \
+      { \
+         Edje_Part_Description_Box *box; \
+         box = (Edje_Part_Description_Box *)pd; \
+         val = box->box.CLASS.VALUE; \
+         break; \
+      } \
+      default: \
+        val = 0; \
+     } \
+   return val; \
+} \
+EAPI Eina_Bool \
+edje_edit_state_container_##CLASS##_##VALUE##_set(Evas_Object *obj, const char *part, const char *state, double value, int new_val) \
+{ \
+   GET_PD_OR_RETURN(EINA_FALSE) \
+   switch (rp->part->type) \
+     { \
+      case EDJE_PART_TYPE_TABLE: \
+      { \
+         Edje_Part_Description_Table *table; \
+         table = (Edje_Part_Description_Table *)pd; \
+         table->table.CLASS.VALUE = new_val; \
+         break; \
+      } \
+      case EDJE_PART_TYPE_BOX: \
+      { \
+         Edje_Part_Description_Box *box; \
+         box = (Edje_Part_Description_Box *)pd; \
+         box->box.CLASS.VALUE = new_val; \
+         break; \
+      } \
+      default: \
+        return EINA_FALSE; \
+     } \
+   return EINA_TRUE; \
+}
+
+FUNC_CONTAINER_INT(padding, x)
+FUNC_CONTAINER_INT(padding, y)
+
+#undef FUNC_CONTAINER_INT
+
+#define FUNC_CONTAINER_DOUBLE(CLASS, VALUE) \
+EAPI double \
+edje_edit_state_container_##CLASS##_##VALUE##_get(Evas_Object *obj, const char *part, const char *state, double value) \
+{ \
+   double val; \
+   GET_PD_OR_RETURN(0.0) \
+   switch (rp->part->type) \
+     { \
+      case EDJE_PART_TYPE_TABLE: \
+      { \
+         Edje_Part_Description_Table *table; \
+         table = (Edje_Part_Description_Table *)pd; \
+         val = FROM_DOUBLE(table->table.CLASS.VALUE); \
+         break; \
+      } \
+      case EDJE_PART_TYPE_BOX: \
+      { \
+         Edje_Part_Description_Box *box; \
+         box = (Edje_Part_Description_Box *)pd; \
+         val = FROM_DOUBLE(box->box.CLASS.VALUE); \
+         break; \
+      } \
+      default: \
+         val = 0.0; \
+     } \
+   return val; \
+} \
+EAPI Eina_Bool \
+edje_edit_state_container_##CLASS##_##VALUE##_set(Evas_Object *obj, const char *part, const char *state, double value, double new_val) \
+{ \
+   GET_PD_OR_RETURN(EINA_FALSE) \
+   switch (rp->part->type) \
+     { \
+      case EDJE_PART_TYPE_TABLE: \
+      { \
+         Edje_Part_Description_Table *table; \
+         table = (Edje_Part_Description_Table *)pd; \
+         table->table.CLASS.VALUE = TO_DOUBLE(new_val); \
+         break; \
+      } \
+      case EDJE_PART_TYPE_BOX: \
+      { \
+         Edje_Part_Description_Box *box; \
+         box = (Edje_Part_Description_Box *)pd; \
+         box->box.CLASS.VALUE = TO_DOUBLE(new_val); \
+         break; \
+      } \
+      default: \
+        return EINA_FALSE; \
+     } \
+   return EINA_TRUE; \
+}
+
+FUNC_CONTAINER_DOUBLE(align, x)
+FUNC_CONTAINER_DOUBLE(align, y)
+
+#undef FUNC_CONTAINER_DOUBLE
+
 EAPI Eina_Bool
 edje_edit_state_container_align_get(Evas_Object *obj, const char *part, const char *state, double value, double *x, double *y)
 {
@@ -5008,6 +5170,56 @@ edje_edit_part_item_position_set(Evas_Object *obj, const char *part, const char 
    return EINA_TRUE;
 }
 
+#define FUNC_PART_ITEM_USHORT(CLASS, VALUE) \
+EAPI unsigned short \
+edje_edit_part_item_##CLASS##_##VALUE##_get(Evas_Object *obj, const char *part, const char *item_name) \
+{ \
+   Edje_Part *ep; \
+   unsigned int i; \
+   Edje_Pack_Element *item = NULL; \
+   GET_RP_OR_RETURN(0); \
+   if (!item_name) return 0; \
+   ep = rp->part; \
+   if (rp->part->type != EDJE_PART_TYPE_TABLE) return 0; \
+   for (i = 0; i < ep->items_count; ++i) \
+     { \
+        if (ep->items[i]->name && (!strcmp(ep->items[i]->name, item_name))) \
+          { \
+             item = ep->items[i]; \
+             break; \
+          } \
+     } \
+   if (!item) return 0; \
+   return item->VALUE; \
+} \
+EAPI Eina_Bool \
+edje_edit_part_item_##CLASS##_##VALUE##_set(Evas_Object *obj, const char *part, const char *item_name, unsigned short new_val) \
+{ \
+   Edje_Part *ep; \
+   unsigned int i; \
+   Edje_Pack_Element *item = NULL; \
+   GET_RP_OR_RETURN(EINA_FALSE); \
+   if (!item_name) return EINA_FALSE; \
+   ep = rp->part; \
+   if (rp->part->type != EDJE_PART_TYPE_TABLE) return EINA_FALSE; \
+   for (i = 0; i < ep->items_count; ++i) \
+     { \
+        if (ep->items[i]->name && (!strcmp(ep->items[i]->name, item_name))) \
+          { \
+             item = ep->items[i]; \
+             break; \
+          } \
+     } \
+   if (!item) return EINA_FALSE; \
+   item->VALUE = new_val; \
+   return EINA_TRUE; \
+}
+
+FUNC_PART_ITEM_USHORT(position, col)
+FUNC_PART_ITEM_USHORT(position, row)
+
+#undef FUNC_PART_ITEM_USHORT
+
 EAPI void
 edje_edit_part_item_span_get(Evas_Object *obj, const char *part, const char *item_name, unsigned char *col, unsigned char *row)
 {
@@ -5058,6 +5270,56 @@ edje_edit_part_item_span_set(Evas_Object *obj, const char *part, const char *ite
    item->rowspan = row;
    return EINA_TRUE;
 }
+
+#define FUNC_PART_ITEM_USHORT(CLASS, VALUE, MEMBER) \
+EAPI unsigned short \
+edje_edit_part_item_##CLASS##_##VALUE##_get(Evas_Object *obj, const char *part, const char *item_name) \
+{ \
+   Edje_Part *ep; \
+   unsigned int i; \
+   Edje_Pack_Element *item = NULL; \
+   GET_RP_OR_RETURN(0); \
+   if (!item_name) return 0; \
+   ep = rp->part; \
+   if (rp->part->type != EDJE_PART_TYPE_TABLE) return EINA_FALSE; \
+   for (i = 0; i < ep->items_count; ++i) \
+     { \
+        if ((ep->items[i]->name) && (!strcmp(ep->items[i]->name, item_name))) \
+          { \
+             item = ep->items[i]; \
+             break; \
+          } \
+     } \
+   if (!item) return 0; \
+   return  item->MEMBER; \
+} \
+EAPI Eina_Bool \
+edje_edit_part_item_##CLASS##_##VALUE##_set(Evas_Object *obj, const char *part, const char *item_name, unsigned short new_val) \
+{ \
+   Edje_Part *ep; \
+   unsigned int i; \
+   Edje_Pack_Element *item = NULL; \
+   GET_RP_OR_RETURN(EINA_FALSE); \
+   if (!item_name) return EINA_FALSE; \
+   ep = rp->part; \
+   if (rp->part->type != EDJE_PART_TYPE_TABLE) return EINA_FALSE; \
+   for (i = 0; i < ep->items_count; i++) \
+     { \
+        if ((ep->items[i]->name) && (!strcmp(ep->items[i]->name, item_name))) \
+          { \
+             item = ep->items[i]; \
+             break; \
+          } \
+     } \
+   if (!item) return EINA_FALSE; \
+   item->MEMBER = new_val; \
+   return EINA_TRUE; \
+}
+
+FUNC_PART_ITEM_USHORT(span, col, colspan)
+FUNC_PART_ITEM_USHORT(span, row, rowspan)
+
+#undef FUNC_PART_ITEM_USHORT
 
 /*********************/
 /*  PART STATES API  */
@@ -6182,7 +6444,7 @@ edje_edit_state_color_class_set(Evas_Object *obj, const char *part, const char *
      {
         if (strcmp(cc->name, color_class) == 0)
           {
-             pd->color_class = (char *)eina_stringshare_add(color_class);
+             pd->color_class = eina_stringshare_add(color_class);
              edje_object_calc_force(obj);
              return EINA_TRUE;
           }
@@ -12302,7 +12564,7 @@ edje_edit_clean_save_as(Evas_Object *obj, const char *new_file_name)
 
    if (ecore_file_exists(new_file_name))
      {
-        ERR("Error. file \"%s\" allready exists",
+        ERR("Error. file \"%s\" already exists",
             new_file_name);
         return EINA_FALSE;
      }

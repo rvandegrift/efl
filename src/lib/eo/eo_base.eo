@@ -6,8 +6,8 @@ type @extern Eo.Event_Cb: __builtin_event_cb;
 struct Eo.Event_Description {
     [[This struct holds the description of a specific event.]]
     name: const(char) *; [[name of the event.]]
-    doc: const(char) *; [[Explanation about the event.]]
     unfreezable: bool; [[Eina_True if the event cannot be frozen.]]
+    legacy_is: bool; [[Internal use: if is a legacy event.]]
 }
 
 struct Eo.Callback_Array_Item {
@@ -258,7 +258,7 @@ abstract Eo.Base ()
            params {
                 @in comp_obj: Eo.Base *; [[the object that will be used to composite the parent.]]
            }
-           return: bool; [[$true if successfull. $false otherwise.]]
+           return: bool; [[$true if successful. $false otherwise.]]
       }
       composite_detach @beta {
            [[Detach a composite object from another object.
@@ -270,7 +270,7 @@ abstract Eo.Base ()
            params {
                 @in comp_obj: Eo.Base *; [[the object that will be removed from the parent.]]
            }
-           return: bool; [[$true if successfull. $false otherwise.]]
+           return: bool; [[$true if successful. $false otherwise.]]
       }
       composite_part_is @beta {
            [[Check if an object is part of a composite object.

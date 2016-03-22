@@ -73,7 +73,7 @@
  * @defgroup Ecore_Con_Events_Group Ecore Connection Events Functions
  * @ingroup Ecore_Con_Group
  *
- * The Ecore Con events can be catagorized into Server side events
+ * The Ecore Con events can be categorized into Server side events
  * and Client side events.
  * Server side events:
  * @li ECORE_CON_CLIENT_ADD: Whenever a client connection is made to an
@@ -299,7 +299,7 @@ typedef enum _Ecore_Con_Type
    ECORE_CON_REMOTE_CORK = 8,
    /** Use SSL2: UNSUPPORTED. **/
    ECORE_CON_USE_SSL2 = (1 << 4),
-   /** Use SSL3 */
+   /** Use SSL3: UNSUPPORTED. **/
    ECORE_CON_USE_SSL3 = (1 << 5),
    /** Use TLS */
    ECORE_CON_USE_TLS = (1 << 6),
@@ -1228,6 +1228,9 @@ EAPI Ecore_Con_Server *ecore_con_server_add(Ecore_Con_Type type,
  * connection will only be successfully completed if an event of type
  * @ref ECORE_CON_EVENT_SERVER_ADD is received. If it fails to complete, an
  * @ref ECORE_CON_EVENT_SERVER_DEL will be received.
+ *
+ * The created object gets deleted automatically if the connection to the
+ * server is lost.
  *
  * The @p data parameter can be fetched later using ecore_con_server_data_get()
  * or changed with ecore_con_server_data_set().

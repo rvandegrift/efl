@@ -98,9 +98,8 @@ ecore_drm_fb_create(Ecore_Drm_Device *dev, int width, int height)
         goto map_err;
      }
 
-   fb->mmap = 
-     mmap(0, fb->size, PROT_WRITE | PROT_READ, MAP_SHARED, 
-          dev->drm.fd, marg.offset);
+   fb->mmap =
+     mmap(0, fb->size, PROT_WRITE, MAP_SHARED, dev->drm.fd, marg.offset);
    if (fb->mmap == MAP_FAILED)
      {
         ERR("Could not mmap framebuffer space: %m");
@@ -176,11 +175,14 @@ ecore_drm_fb_set(Ecore_Drm_Device *dev, Ecore_Drm_Fb *fb)
    EINA_SAFETY_ON_NULL_RETURN(dev);
    EINA_SAFETY_ON_NULL_RETURN(fb);
 
-   if ((fb->w != dev->dumb[0]->w) || (fb->h != dev->dumb[0]->h))
+   if (dev->dumb[0])
      {
-        /* we need to copy from fb to dev->dumb */
-        WRN("Trying to set a Framebuffer of improper size !!");
-        return;
+        if ((fb->w != dev->dumb[0]->w) || (fb->h != dev->dumb[0]->h))
+          {
+             /* we need to copy from fb to dev->dumb */
+             WRN("Trying to set a Framebuffer of improper size !!");
+             return;
+          }
      }
 
    if (!dev->next) dev->next = fb;
@@ -228,6 +230,8 @@ ecore_drm_fb_send(Ecore_Drm_Device *dev, Ecore_Drm_Fb *fb, Ecore_Drm_Pageflip_Cb
 
    if (eina_list_count(dev->outputs) < 1) return;
 
+   if (fb->pending_flip) return;
+
    if (!(cb = calloc(1, sizeof(Ecore_Drm_Pageflip_Callback))))
      return;
 
@@ -254,5 +258,15 @@ ecore_drm_fb_send(Ecore_Drm_Device *dev, Ecore_Drm_Fb *fb, Ecore_Drm_Pageflip_Cb
      }
 
    while (fb->pending_flip)
-     drmHandleEvent(dev->drm.fd, &dev->drm_ctx);
+     {
+        int ret = 0;
+
+        ret = drmHandleEvent(dev->drm.fd, &dev->drm_ctx);
+        if (ret < 0)
+          {
+             ERR("drmHandleEvent Failed: %m");
+             free(cb);
+             break;
+          }
+     }
 }

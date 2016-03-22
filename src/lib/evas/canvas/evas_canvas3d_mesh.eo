@@ -1,3 +1,5 @@
+import evas_types;
+
 class Evas.Canvas3D.Mesh (Evas.Canvas3D.Object, Evas.Common_Interface, Efl.File)
 {
    legacy_prefix: null;
@@ -103,7 +105,7 @@ class Evas.Canvas3D.Mesh (Evas.Canvas3D.Object, Evas.Common_Interface, Efl.File)
            buffer.
 
            This function allocates internal index buffer any copy data from
-           the given buffer. Futher modifications can be made within
+           the given buffer. Further modifications can be made within
            map/unmap pair.
 
            See also @.index_data_set.
@@ -154,6 +156,14 @@ class Evas.Canvas3D.Mesh (Evas.Canvas3D.Object, Evas.Common_Interface, Efl.File)
          ]]
       }
 
+      frame_exist {
+         [[Returns EINA_TRUE if frame was added and EINA_FALSE in other case.]]
+         params {
+            @in frame: int; [[Frame number.]]
+         }
+         return: Eina_Bool;
+      }
+
       frame_add {
          [[Add a key frame to the given mesh.
 
@@ -174,19 +184,19 @@ class Evas.Canvas3D.Mesh (Evas.Canvas3D.Object, Evas.Common_Interface, Efl.File)
       fog_color_set {
          [[Set the fog color and density for the given mesh.]]
          params {
-            @in r: Evas_Real; [[The red component of the fog color.]]
-            @in g: Evas_Real; [[The green component of the fog color.]]
-            @in b: Evas_Real; [[The blue component of the fog color.]]
-            @in a: Evas_Real; [[The transparency of fog.]]
+            @in r: Evas.Real; [[The red component of the fog color.]]
+            @in g: Evas.Real; [[The green component of the fog color.]]
+            @in b: Evas.Real; [[The blue component of the fog color.]]
+            @in a: Evas.Real; [[The transparency of fog.]]
          }
       }
       fog_color_get {
          [[Set the fog color and density for the given mesh.]]
          params {
-            @out r: Evas_Real; [[Pointer to receive red component of the fog color.]]
-            @out g: Evas_Real; [[Pointer to receive green component of the fog color.]]
-            @out b: Evas_Real; [[Pointer to receive blue component of the fog color.]]
-            @out a: Evas_Real; [[Pointer to receive transparency of fog.]]
+            @out r: Evas.Real; [[Pointer to receive red component of the fog color.]]
+            @out g: Evas.Real; [[Pointer to receive green component of the fog color.]]
+            @out b: Evas.Real; [[Pointer to receive blue component of the fog color.]]
+            @out a: Evas.Real; [[Pointer to receive transparency of fog.]]
          }
       }
       blending_func_set {
@@ -306,7 +316,7 @@ class Evas.Canvas3D.Mesh (Evas.Canvas3D.Object, Evas.Common_Interface, Efl.File)
         }
         values {
            comparison_func: Evas.Canvas3D.Comparison; [[The alpha comparison function.]]
-           ref_value: Evas_Real; [[The reference value that incoming alpha values are compared to.]]
+           ref_value: Evas.Real; [[The reference value that incoming alpha values are compared to.]]
         }
       }
 
@@ -358,7 +368,33 @@ class Evas.Canvas3D.Mesh (Evas.Canvas3D.Object, Evas.Common_Interface, Efl.File)
             assembly: Evas.Canvas3D.Vertex_Assembly; [[The vertex assembly.]]
          }
       }
+      @property shadows_edges_filtering {
+        set {
+           [[Set the shadow edges blur parameters. 
 
+             The averaging values in window is used for blurring. 
+             User can set the size of window and num of points in window.
+           ]]
+        }
+        get {
+            [[Get the shadow edges blur parameters.]]
+        }
+        values {
+           blur_level: int; [[Number of points within a bluring radius.]]
+           edges_size: Evas.Real; [[The bluring radius.]]
+        }
+      }
+      @property shadows_constant_bias {
+        set {
+           [[Set offset shadow toward object.]]
+        }
+        get {
+            [[Get offset shadow toward object.]]
+        }
+        values {
+           bias: Evas.Real; [[Offset.]]
+        }
+      }
    }
    implements {
       Eo.Base.constructor;

@@ -222,6 +222,9 @@ ecore_evas_wayland_shm_new_internal(const char *disp_name, unsigned int parent, 
      evas_event_callback_add(ee->evas, EVAS_CALLBACK_RENDER_POST,
 			     _ecore_evas_wl_common_render_updates, ee);
 
+   evas_event_callback_add(ee->evas, EVAS_CALLBACK_RENDER_PRE,
+			     _ecore_evas_wl_common_render_pre, ee);
+
    /* FIXME: This needs to be set based on theme & scale */
    if (ee->prop.draw_frame)
      evas_output_framespace_set(ee->evas, fx, fy, fw, fh);
@@ -244,6 +247,8 @@ ecore_evas_wayland_shm_new_internal(const char *disp_name, unsigned int parent, 
         ERR("Failed to get Evas Engine Info for '%s'", ee->driver);
         goto err;
      }
+
+   /* ecore_wl_animator_source_set(ECORE_ANIMATOR_SOURCE_CUSTOM); */
 
    ecore_evas_callback_pre_free_set(ee, _ecore_evas_wl_common_pre_free);
 
@@ -327,7 +332,6 @@ _ecore_evas_wl_show(Ecore_Evas *ee)
      {
         ecore_wl_window_show(wdata->win);
         ecore_wl_window_alpha_set(wdata->win, ee->alpha);
-        ecore_wl_window_update_size(wdata->win, ee->w + fw, ee->h + fh);
 
         einfo = (Evas_Engine_Info_Wayland_Shm *)evas_engine_info_get(ee->evas);
         if (einfo)
@@ -355,6 +359,8 @@ _ecore_evas_wl_show(Ecore_Evas *ee)
 
    if (ee->visible) return;
    ee->visible = 1;
+   ee->should_be_visible = 1;
+   ee->draw_ok = EINA_TRUE;
    if (ee->func.fn_show) ee->func.fn_show(ee);
 }
 
@@ -390,6 +396,7 @@ _ecore_evas_wl_hide(Ecore_Evas *ee)
    if (!ee->visible) return;
    ee->visible = 0;
    ee->should_be_visible = 0;
+   ee->draw_ok = EINA_FALSE;
 
    if (ee->func.fn_hide) ee->func.fn_hide(ee);
 }
@@ -484,16 +491,12 @@ _ecore_evas_wayland_shm_resize(Ecore_Evas *ee, int location)
    wdata = ee->engine.data;
    if (wdata->win) 
      {
-        int fw, fh;
-
         _ecore_evas_wayland_shm_resize_edge_set(ee, location);
 
-        evas_output_framespace_get(ee->evas, NULL, NULL, &fw, &fh);
-
         if (ECORE_EVAS_PORTRAIT(ee))
-          ecore_wl_window_resize(wdata->win, ee->w + fw, ee->h + fh, location);
+          ecore_wl_window_resize(wdata->win, ee->w, ee->h, location);
         else
-          ecore_wl_window_resize(wdata->win, ee->w + fh, ee->h + fw, location);
+          ecore_wl_window_resize(wdata->win, ee->w, ee->h, location);
      }
 }
 
