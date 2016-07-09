@@ -17,6 +17,10 @@
 
 #include "eet_suite.h"
 
+#ifndef O_BINARY
+# define O_BINARY 0
+#endif
+
 static char _key_pem[PATH_MAX] = "";
 static char _cert_pem[PATH_MAX] = "";
 static char _key_enc[PATH_MAX] = "";
@@ -827,6 +831,8 @@ append_string(void       *data,
 
    length = *string ? strlen(*string) : 0;
    *string = realloc(*string, strlen(str) + length + 1);
+
+   fail_unless(*string); // Fail test case if realloc fails.
 
    memcpy((*string) + length, str, strlen(str) + 1);
 } /* append_string */
@@ -1732,7 +1738,7 @@ START_TEST(eet_identity_simple)
 
    fail_if(-1 == (fd = mkstemp(file)));
    fail_if(!!close(fd));
-   fail_if(!(noread = fopen("/dev/null", "w")));
+   fail_if(!(noread = fopen("/dev/null", "wb")));
 
    /* Sign an eet file. */
    ef = eet_open(file, EET_FILE_MODE_WRITE);
@@ -1773,7 +1779,7 @@ START_TEST(eet_identity_simple)
    eet_clearcache();
 
    /* Corrupting the file. */
-   fd = open(file, O_WRONLY);
+   fd = open(file, O_WRONLY | O_BINARY);
    fail_if(fd < 0);
 
    fail_if(lseek(fd, 200, SEEK_SET) != 200);

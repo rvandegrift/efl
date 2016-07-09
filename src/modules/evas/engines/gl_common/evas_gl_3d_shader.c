@@ -68,6 +68,7 @@ typedef enum _E3D_Uniform
    E3D_UNIFORM_COLOR_PICK,
    E3D_UNIFORM_ALPHATEST_COMPARISON,
    E3D_UNIFORM_ALPHATEST_REFVALUE,
+   E3D_UNIFORM_RENDER_TO_TEXTURE,
 
    E3D_UNIFORM_COUNT,
 } E3D_Uniform;
@@ -190,7 +191,7 @@ void _shader_flags_add(E3D_Shader_String *shader, E3D_Shader_Flag flags)
 static inline Eina_Bool
 _shader_compile(GLuint shader, const char *src)
 {
-   GLint ok;
+   GLint ok = 0;
 
    glShaderSource(shader, 1, &src, NULL);
    glCompileShader(shader);
@@ -217,7 +218,7 @@ _shader_compile(GLuint shader, const char *src)
 static inline Eina_Bool
 _program_build(E3D_Program *program, const char *vert_src, const char *frag_src)
 {
-   GLint ok;
+   GLint ok = 0;
 
    /* Create OpenGL vertex & fragment shader object. */
    program->vert = glCreateShader(GL_VERTEX_SHADER);
@@ -253,7 +254,7 @@ _program_build(E3D_Program *program, const char *vert_src, const char *frag_src)
    if (!ok)
      {
         GLchar   *log_str;
-        GLint     len;
+        GLint     len = 0;
         GLsizei   info_len;
 
         glGetProgramiv(program->prog, GL_INFO_LOG_LENGTH, &len);
@@ -361,6 +362,7 @@ static const char *uniform_names[] =
    "uColorPick",
    "uAlphaTestComparison",
    "uAlphaTestRefValue",
+   "uColorTexture",
 };
 
 static inline void
@@ -373,6 +375,35 @@ _program_uniform_init(E3D_Program *program)
      }
 }
 
+#define UNIFORM_MATRIX3_FOREACH(m, data)     \
+        m[0] = data.xx;                      \
+        m[1] = data.xy;                      \
+        m[2] = data.xz;                      \
+        m[3] = data.yx;                      \
+        m[4] = data.yy;                      \
+        m[5] = data.yz;                      \
+        m[6] = data.zx;                      \
+        m[7] = data.zy;                      \
+        m[8] = data.zz;
+
+#define UNIFORM_MATRIX4_FOREACH(m, data)     \
+        m[0] = data.xx;                      \
+        m[1] = data.xy;                      \
+        m[2] = data.xz;                      \
+        m[3] = data.xw;                      \
+        m[4] = data.yx;                      \
+        m[5] = data.yy;                      \
+        m[6] = data.yz;                      \
+        m[7] = data.yw;                      \
+        m[8] = data.zx;                      \
+        m[9] = data.zy;                      \
+        m[10] = data.zz;                     \
+        m[11] = data.zw;                     \
+        m[12] = data.wx;                     \
+        m[13] = data.wy;                     \
+        m[14] = data.wz;                     \
+        m[15] = data.ww;
+
 static inline void
 _uniform_upload(E3D_Uniform u, GLint loc, const E3D_Draw_Data *data)
 {
@@ -380,8 +411,7 @@ _uniform_upload(E3D_Uniform u, GLint loc, const E3D_Draw_Data *data)
    if (data->materials[attrib].tex##tn)                                        \
      {                                                                         \
         float   m[9];                                                          \
-        for(int i = 0 ; i < 9 ; i++)                                           \
-          m[i] = data->materials[attrib].tex##tn->trans.m[i];                  \
+        UNIFORM_MATRIX3_FOREACH(m, data->materials[attrib].tex##tn->trans);    \
         glUniformMatrix3fv(loc, 1, EINA_FALSE, &m[0]);                         \
      }
 
@@ -389,29 +419,25 @@ _uniform_upload(E3D_Uniform u, GLint loc, const E3D_Draw_Data *data)
      {
       case E3D_UNIFORM_MATRIX_MVP: {
          float   m[16];
-         for(int i = 0 ; i <16 ; i++)
-            m[i] = data->matrix_mvp.m[i];
+         UNIFORM_MATRIX4_FOREACH(m, data->matrix_mvp);
          glUniformMatrix4fv(loc, 1, EINA_FALSE, &m[0]);
          break;
       }
       case E3D_UNIFORM_MATRIX_MV: {
          float   m[16];
-         for(int i = 0 ; i <16 ; i++)
-            m[i] = data->matrix_mv.m[i];
+         UNIFORM_MATRIX4_FOREACH(m, data->matrix_mv);
          glUniformMatrix4fv(loc, 1, EINA_FALSE, &m[0]);
          break;
       }
       case E3D_UNIFORM_MATRIX_NORMAL: {
          float   m[9];
-         for(int i = 0 ; i <9 ; i++)
-            m[i] = data->matrix_normal.m[i];
+         UNIFORM_MATRIX3_FOREACH(m, data->matrix_normal);
          glUniformMatrix3fv(loc, 1, EINA_FALSE, &m[0]);
          break;
       }
       case E3D_UNIFORM_MATRIX_LIGHT: {
          float   m[16];
-         for(int i = 0 ; i <16 ; i++)
-            m[i] = data->matrix_light.m[i];
+         UNIFORM_MATRIX4_FOREACH(m, data->matrix_light);
          glUniformMatrix4fv(loc, 1, EINA_FALSE, &m[0]);
          break;
       }
@@ -595,22 +621,19 @@ _uniform_upload(E3D_Uniform u, GLint loc, const E3D_Draw_Data *data)
       case E3D_UNIFORM_FOG_COLOR:
          glUniform4f(loc, data->fog_color.r, data->fog_color.g, data->fog_color.b, 1);
          break;
-#ifndef GL_GLES
-      case E3D_UNIFORM_COLOR_PICK:
-         glUniform1f(loc, data->color_pick_key);
-         break;
-#else
       case E3D_UNIFORM_COLOR_PICK:
          glUniform4f(loc, data->color_pick_key.r, data->color_pick_key.g,
                      data->color_pick_key.b, 1.0);
          break;
-#endif
       case E3D_UNIFORM_ALPHATEST_COMPARISON:
          glUniform1i(loc,
                     (data->alpha_comparison ? data->alpha_comparison : EVAS_CANVAS3D_COMPARISON_GREATER));
          break;
       case E3D_UNIFORM_ALPHATEST_REFVALUE:
          glUniform1f(loc, (data->alpha_ref_value ? data->alpha_ref_value : 0.0));
+         break;
+      case E3D_UNIFORM_RENDER_TO_TEXTURE:
+         glUniform1i(loc, data->colortex_sampler);
          break;
       default:
          ERR("Invalid uniform ID.");

@@ -59,28 +59,15 @@ writef(lua_State *L EINA_UNUSED, const void *p, size_t size, void *ud)
 static FILE *
 bc_tmp_open(const char *fname, char *buf, size_t buflen)
 {
+   Eina_Tmpstr *tmp_file;
    int fd;
-#ifndef _WIN32
-   mode_t old_umask;
-#endif
-   char *fs = strrchr(fname, '/'), *bs = strrchr(fname, '\\');
-   if (!fs && !bs)
-     snprintf(buf, buflen, "./XXXXXX");
-   else
-     {
-        char *ss = (fs > bs) ? fs : bs;
-        snprintf(buf, buflen, "%.*sXXXXXX", (int)(ss - fname + 1), fname);
-     }
-#ifndef _WIN32
-   old_umask = umask(S_IRWXG|S_IRWXO);
-#endif
-   fd = mkstemp(buf);
-#ifndef _WIN32
-   umask(old_umask);
-#endif
+   snprintf(buf, buflen, "%s.XXXXXX.cache", fname);
+   fd = eina_file_mkstemp(buf, &tmp_file);
    if (fd < 0)
      return NULL;
-   return fdopen(fd, "w");
+   eina_strlcpy(buf, tmp_file, buflen);
+   eina_tmpstr_del(tmp_file);
+   return fdopen(fd, "wb");
 }
 
 static void
@@ -96,6 +83,7 @@ write_bc(lua_State *L, const char *fname)
              fclose(f);
              /* there really is nothing to handle here */
              (void)!!remove(buf);
+             return;
           }
         else fclose(f);
         snprintf(buf2, sizeof(buf2), "%sc", fname);

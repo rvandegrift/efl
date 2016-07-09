@@ -1,7 +1,7 @@
 
 ### Library
 
-evas_eolian_files = \
+evas_eolian_pub_files = \
 	lib/evas/canvas/evas_object.eo \
 	lib/evas/canvas/evas_line.eo \
 	lib/evas/canvas/evas_polygon.eo \
@@ -44,13 +44,24 @@ evas_eolian_files = \
 	lib/evas/canvas/evas_filter.eo \
 	$(NULL)
 
+evas_eolian_priv_files = \
+	lib/evas/include/evas_ector_buffer.eo \
+	$(NULL)
+
 evas_eolian_type_files = \
     lib/evas/canvas/evas_types.eot
 
-evas_eolian_c = $(evas_eolian_files:%.eo=%.eo.c)
-evas_eolian_h = $(evas_eolian_files:%.eo=%.eo.h) \
-                $(evas_eolian_files:%.eo=%.eo.legacy.h) \
-                $(evas_eolian_type_files:%.eot=%.eot.h)
+evas_eolian_priv_c = $(evas_eolian_priv_files:%.eo=%.eo.c)
+evas_eolian_priv_h = $(evas_eolian_priv_files:%.eo=%.eo.h)
+
+evas_eolian_pub_c = $(evas_eolian_pub_files:%.eo=%.eo.c)
+evas_eolian_pub_h = $(evas_eolian_pub_files:%.eo=%.eo.h) \
+                    $(evas_eolian_pub_files:%.eo=%.eo.legacy.h) \
+                    $(evas_eolian_type_files:%.eot=%.eot.h)
+
+evas_eolian_files = $(evas_eolian_pub_files) $(evas_eolian_priv_files) $(evas_eolian_type_files)
+evas_eolian_c = $(evas_eolian_pub_c) $(evas_eolian_priv_c)
+evas_eolian_h = $(evas_eolian_pub_h) $(evas_eolian_priv_h)
 
 BUILT_SOURCES += \
                  $(evas_eolian_c) \
@@ -61,9 +72,7 @@ CLEANFILES += \
               $(evas_eolian_h)
 
 evaseolianfilesdir = $(datadir)/eolian/include/evas-@VMAJ@
-evaseolianfiles_DATA = \
-              $(evas_eolian_files) \
-              $(evas_eolian_type_files)
+evaseolianfiles_DATA = $(evas_eolian_files)
 
 EXTRA_DIST += \
               ${evaseolianfiles_DATA}
@@ -81,8 +90,8 @@ lib/evas/Evas_GL.h \
 lib/evas/Evas_Loader.h
 
 installed_evascanvasheadersdir = $(includedir)/evas-@VMAJ@/canvas
-nodist_installed_evascanvasheaders_DATA = \
-                                          $(evas_eolian_h)
+nodist_installed_evascanvasheaders_DATA = $(evas_eolian_pub_h)
+noinst_DATA = $(evas_eolian_priv_h)
 
 noinst_HEADERS = \
 lib/evas/include/evas_inline.x \
@@ -148,6 +157,7 @@ lib/evas/canvas/evas_object_box.c \
 lib/evas/canvas/evas_object_table.c \
 lib/evas/canvas/evas_object_text.c \
 lib/evas/canvas/evas_object_textblock.c \
+lib/evas/canvas/evas_textblock_hyphenation.x \
 lib/evas/canvas/evas_object_textgrid.c \
 lib/evas/canvas/evas_object_grid.c \
 lib/evas/canvas/evas_font_dir.c \
@@ -221,6 +231,10 @@ lib/evas/canvas/evas_canvas3d_node_callback.h
 
 # Model savers/loaders (will be replaced to modules in next commits)
 lib_evas_libevas_la_SOURCES += \
+lib/evas/common3d/save_load/evas_model_load.c \
+lib/evas/common3d/save_load/evas_model_save.c \
+lib/evas/common3d/save_load/evas_model_load_save_common.c \
+lib/evas/common3d/save_load/evas_model_load_save_common.h \
 modules/evas/model_loaders/eet/evas_model_load_eet.c \
 modules/evas/model_loaders/md2/evas_model_load_md2.c \
 modules/evas/model_loaders/obj/evas_model_load_obj.c \
@@ -254,6 +268,12 @@ lib/evas/canvas/evas_vg_gradient_radial.c \
 lib/evas/canvas/evas_vg_utils.c \
 lib/evas/canvas/evas_vg_shape.c
 
+# Static draw lib
+lib_evas_libevas_la_SOURCES += \
+static_libs/draw/draw_alpha_main.c \
+static_libs/draw/draw_main_neon.c \
+static_libs/draw/draw_main.c
+
 # Engine
 lib_evas_libevas_la_SOURCES += \
 lib/evas/common/evas_op_copy_main_.c \
@@ -262,7 +282,6 @@ lib/evas/common/evas_op_add_main_.c \
 lib/evas/common/evas_op_sub_main_.c \
 lib/evas/common/evas_op_mask_main_.c \
 lib/evas/common/evas_op_mul_main_.c \
-lib/evas/common/evas_alpha_main.c \
 lib/evas/common/evas_blend_main.c \
 lib/evas/common/evas_blit_main.c \
 lib/evas/common/evas_convert_color.c \
@@ -287,8 +306,6 @@ lib/evas/common/evas_image_save.c \
 lib/evas/common/evas_image_main.c \
 lib/evas/common/evas_image_data.c \
 lib/evas/common/evas_image_scalecache.c \
-lib/evas/common/evas_model_load.c \
-lib/evas/common/evas_model_save.c \
 lib/evas/common/evas_line_main.c \
 lib/evas/common/evas_polygon_main.c \
 lib/evas/common/evas_rectangle_main.c \
@@ -341,11 +358,14 @@ lib_evas_libevas_la_CPPFLAGS = -I$(top_builddir)/src/lib/efl \
 -I$(top_srcdir)/src/lib/evas/canvas \
 -I$(top_srcdir)/src/lib/evas/canvas/render2 \
 -I$(top_srcdir)/src/lib/evas/common \
+-I$(top_srcdir)/src/lib/evas/common3d/save_load \
 -I$(top_srcdir)/src/lib/evas/cserve2 \
 -I$(top_srcdir)/src/lib/evas/file \
 -I$(top_srcdir)/src/lib/evas/include \
 -I$(top_srcdir)/src/static_libs/libunibreak \
+-I$(top_srcdir)/src/static_libs/draw \
 -I$(top_builddir)/src/lib/evas/canvas \
+-I$(top_builddir)/src/lib/evas/include \
 -I$(top_builddir)/src/modules/evas/engines/software_generic \
 -I$(top_builddir)/src/modules/evas/engines/gl_generic \
 -DPACKAGE_BIN_DIR=\"$(bindir)\" \
@@ -362,7 +382,8 @@ lib_evas_libevas_la_CPPFLAGS = -I$(top_builddir)/src/lib/efl \
 noinst_LTLIBRARIES += lib/evas/common/libevas_op_blend_sse3.la
 
 lib_evas_common_libevas_op_blend_sse3_la_SOURCES = \
-lib/evas/common/evas_op_blend/op_blend_master_sse3.c
+lib/evas/common/evas_op_blend/op_blend_master_sse3.c \
+static_libs/draw/draw_main_sse2.c
 
 lib_evas_common_libevas_op_blend_sse3_la_CPPFLAGS = -I$(top_builddir)/src/lib/efl \
 $(lib_evas_libevas_la_CPPFLAGS) \
@@ -532,6 +553,7 @@ lib/evas/filters/evas_filter_blur.c \
 lib/evas/filters/evas_filter_bump.c \
 lib/evas/filters/evas_filter_curve.c \
 lib/evas/filters/evas_filter_displace.c \
+lib/evas/filters/evas_filter_fill.c \
 lib/evas/filters/evas_filter_mask.c \
 lib/evas/filters/evas_filter_parser.c \
 lib/evas/filters/evas_filter_transform.c \
@@ -550,20 +572,36 @@ lib/evas/filters/blur/blur_box_rgba_i386.c \
 lib/evas/filters/blur/blur_box_rgba_sse3.c \
 lib/evas/filters/blur/blur_box_rgba_neon.c
 
-### Vector surface helper
 
-EXTRA_DIST += \
-modules/evas/engines/software_generic/ector_cairo_software_surface.eo \
-modules/evas/engines/gl_generic/ector_cairo_software_surface.eo
+### Engine Ector stuff
+
+evas_software_generic_eolian_files = \
+modules/evas/engines/software_generic/evas_ector_software_buffer.eo
+
+EXTRA_DIST += $(evas_software_generic_eolian_files)
+
+evas_software_generic_eolian_c = $(evas_software_generic_eolian_files:%.eo=%.eo.c)
+evas_software_generic_eolian_h = $(evas_software_generic_eolian_files:%.eo=%.eo.h)
+
+BUILT_SOURCES += \
+$(evas_software_generic_eolian_c) \
+$(evas_software_generic_eolian_h)
+
+CLEANFILES += \
+$(evas_software_generic_eolian_c) \
+$(evas_software_generic_eolian_h)
 
 ### Engines
 
 if EVAS_STATIC_BUILD_SOFTWARE_GENERIC
-BUILT_SOURCES += \
-modules/evas/engines/software_generic/ector_cairo_software_surface.eo.c \
-modules/evas/engines/software_generic/ector_cairo_software_surface.eo.h
-lib_evas_libevas_la_SOURCES += modules/evas/engines/software_generic/evas_engine.c modules/evas/engines/software_generic/ector_surface.c modules/evas/engines/software_generic/Evas_Engine_Software_Generic.h
+lib_evas_libevas_la_SOURCES += \
+modules/evas/engines/software_generic/evas_engine.c \
+modules/evas/engines/software_generic/Evas_Engine_Software_Generic.h \
+modules/evas/engines/software_generic/evas_native_tbm.c \
+modules/evas/engines/software_generic/evas_ector_software_buffer.c \
+modules/evas/engines/software_generic/evas_native_common.h
 lib_evas_libevas_la_LIBADD +=
+lib_evas_libevas_la_CPPFLAGS += -I$(top_srcdir)/src/lib/ector
 else
 enginesoftwaregenericpkgdir = $(libdir)/evas/modules/engines/software_generic/$(MODULE_ARCH)
 enginesoftwaregenericpkg_LTLIBRARIES = modules/evas/engines/software_generic/module.la
@@ -573,7 +611,12 @@ enginesoftwaregenericpkg_LTLIBRARIES = modules/evas/engines/software_generic/mod
 install_enginesoftwaregenericpkgLTLIBRARIES = install-enginesoftwaregenericpkgLTLIBRARIES
 $(install_enginesoftwaregenericpkgLTLIBRARIES): install-libLTLIBRARIES
 
-modules_evas_engines_software_generic_module_la_SOURCES = modules/evas/engines/software_generic/evas_engine.c modules/evas/engines/software_generic/Evas_Engine_Software_Generic.h
+modules_evas_engines_software_generic_module_la_SOURCES = \
+modules/evas/engines/software_generic/evas_engine.c \
+modules/evas/engines/software_generic/Evas_Engine_Software_Generic.h \
+modules/evas/engines/software_generic/evas_native_tbm.c \
+modules/evas/engines/software_generic/evas_ector_software_buffer.c \
+modules/evas/engines/software_generic/evas_native_common.h
 modules_evas_engines_software_generic_module_la_CPPFLAGS = -I$(top_builddir)/src/lib/efl \
 -I$(top_srcdir)/src/lib/evas/include \
 -I$(top_srcdir)/src/lib/evas/cserve2 \
@@ -651,10 +694,6 @@ endif
 endif
 
 if BUILD_ENGINE_GL_COMMON
-BUILT_SOURCES += \
-modules/evas/engines/gl_generic/ector_cairo_software_surface.eo.c \
-modules/evas/engines/gl_generic/ector_cairo_software_surface.eo.h
-
 GL_COMMON_SOURCES = \
 modules/evas/engines/gl_common/evas_gl_private.h \
 modules/evas/engines/gl_common/evas_gl_common.h \
@@ -680,9 +719,8 @@ modules/evas/engines/gl_common/evas_gl_api_gles1.c \
 modules/evas/engines/gl_common/evas_gl_api_gles3_def.h \
 modules/evas/engines/gl_common/evas_gl_api_ext.c \
 modules/evas/engines/gl_common/shader/evas_gl_shaders.x \
-modules/evas/engines/gl_common/shader/evas_gl_shaders_bigendian.x \
 modules/evas/engines/gl_common/shader_3d/evas_gl_3d_shaders.x \
-modules/evas/engines/gl_common/shader/evas_gl_enum.x
+$(NULL)
 
 # 3D
 GL_COMMON_SOURCES += \
@@ -694,23 +732,16 @@ modules/evas/engines/gl_common/evas_gl_3d_shader.c
 
 GL_SHADERS_GEN = \
 modules/evas/engines/gl_common/shader/gen_shaders.sh \
-modules/evas/engines/gl_common/shader/shaders.txt \
 modules/evas/engines/gl_common/shader/fragment.glsl \
 modules/evas/engines/gl_common/shader/vertex.glsl \
+modules/evas/engines/gl_common/shader/include.glsl \
 $(NULL)
 
 EXTRA_DIST += $(GL_SHADERS_GEN)
-EXTRA_lib_evas_libevas_la_DEPENDENCIES = modules/evas/engines/gl_common/shader/evas_gl_enum.x
 
 modules/evas/engines/gl_common/shader/evas_gl_shaders.x: $(GL_SHADERS_GEN)
 	@echo "  SHADERS  $@"
 	@bash $(srcdir)/modules/evas/engines/gl_common/shader/gen_shaders.sh
-
-modules/evas/engines/gl_common/shader/evas_gl_shaders_bigendian.x: $(GL_SHADERS_GEN)
-	@echo "  SHADERS  $@"
-	@bash $(srcdir)/modules/evas/engines/gl_common/shader/gen_shaders.sh _bigendian
-
-modules/evas/engines/gl_common/shader/evas_gl_enum.x: modules/evas/engines/gl_common/shader/evas_gl_shaders.x modules/evas/engines/gl_common/shader/evas_gl_shaders_bigendian.x
 
 # NOTE: order here should be equal with modes in file Evas_Eo.h
 GL_SHADERS_3D_GEN = \
@@ -743,8 +774,36 @@ modules/evas/engines/gl_common/shader_3d/evas_gl_3d_shaders.x: modules/evas/engi
 
 GL_GENERIC_SOURCES = \
 modules/evas/engines/gl_generic/evas_engine.c \
-modules/evas/engines/gl_generic/ector_surface.c \
-modules/evas/engines/gl_generic/Evas_Engine_GL_Generic.h
+modules/evas/engines/gl_generic/Evas_Engine_GL_Generic.h \
+modules/evas/engines/gl_generic/evas_ector_gl_buffer.c \
+modules/evas/engines/gl_generic/evas_ector_gl_image_buffer.c \
+modules/evas/engines/gl_generic/evas_ector_gl_rgbaimage_buffer.c \
+$(NULL)
+
+evas_gl_generic_eolian_files = \
+modules/evas/engines/gl_generic/evas_ector_gl_buffer.eo \
+modules/evas/engines/gl_generic/evas_ector_gl_image_buffer.eo \
+modules/evas/engines/gl_generic/evas_ector_gl_rgbaimage_buffer.eo \
+$(NULL)
+
+evas_gl_generic_eolian_c = $(evas_gl_generic_eolian_files:%.eo=%.eo.c)
+evas_gl_generic_eolian_h = $(evas_gl_generic_eolian_files:%.eo=%.eo.h) \
+                $(evas_gl_generic_eolian_files:%.eo=%.eo.legacy.h) \
+                $(evas_gl_generic_eolian_type_files:%.eot=%.eot.h)
+
+BUILT_SOURCES += \
+                 $(evas_gl_generic_eolian_c) \
+                 $(evas_gl_generic_eolian_h)
+
+CLEANFILES += \
+              $(evas_gl_generic_eolian_c) \
+              $(evas_gl_generic_eolian_h)
+
+EXTRA_DIST += $(evas_gl_generic_eolian_files)
+
+#evaseolianfilesdir = $(datadir)/eolian/include/evas-@VMAJ@
+#evaseolianfiles_DATA += $(evas_gl_generic_eolian_files)
+
 
 if EVAS_STATIC_BUILD_GL_COMMON
 lib_evas_libevas_la_SOURCES += $(GL_COMMON_SOURCES) $(GL_GENERIC_SOURCES)
@@ -770,6 +829,7 @@ modules_evas_engines_gl_generic_module_la_SOURCES = $(GL_GENERIC_SOURCES)
 modules_evas_engines_gl_generic_module_la_CFLAGS = \
 -I$(top_builddir)/src/lib/efl \
 -I$(top_srcdir)/src/lib/evas/include \
+-I$(top_builddir)/src/lib/evas/include \
 -I$(top_srcdir)/src/lib/evas/cserve2 \
 -I$(top_srcdir)/src/modules/evas/engines/gl_common \
 -I$(top_builddir)/src/modules/evas/engines/gl_generic \
@@ -1036,8 +1096,7 @@ SOFTWARE_X11_SOURCES = \
 modules/evas/engines/software_x11/evas_engine.c \
 modules/evas/engines/software_x11/evas_engine.h \
 modules/evas/engines/software_x11/evas_x_egl.c \
-modules/evas/engines/software_x11/evas_x_egl.h \
-modules/evas/engines/software_x11/evas_native_tbm.c
+modules/evas/engines/software_x11/evas_x_egl.h
 SOFTWARE_X11_CPPFLAGS = -I$(top_builddir)/src/lib/efl \
 -I$(top_srcdir)/src/lib/evas/include \
 -I$(top_srcdir)/src/lib/evas/cserve2 \
@@ -1053,12 +1112,14 @@ modules/evas/engines/software_x11/evas_xlib_color.c \
 modules/evas/engines/software_x11/evas_xlib_main.c \
 modules/evas/engines/software_x11/evas_xlib_swapper.c \
 modules/evas/engines/software_x11/evas_xlib_image.c \
+modules/evas/engines/software_x11/evas_xlib_dri_image.c \
 modules/evas/engines/software_x11/evas_xlib_outbuf.h \
 modules/evas/engines/software_x11/evas_xlib_swapbuf.h \
 modules/evas/engines/software_x11/evas_xlib_buffer.h \
 modules/evas/engines/software_x11/evas_xlib_color.h \
 modules/evas/engines/software_x11/evas_xlib_swapper.h \
-modules/evas/engines/software_x11/evas_xlib_image.h
+modules/evas/engines/software_x11/evas_xlib_image.h \
+modules/evas/engines/software_x11/evas_xlib_dri_image.h
 SOFTWARE_X11_CPPFLAGS += @evas_engine_software_xlib_cflags@
 SOFTWARE_X11_LIBADD += @evas_engine_software_xlib_libs@
 endif
@@ -1202,9 +1263,8 @@ modules_evas_engines_drm_module_la_CPPFLAGS = -I$(top_builddir)/src/lib/efl \
 modules_evas_engines_drm_module_la_LIBADD = \
 @USE_EVAS_LIBS@ \
 @USE_ECORE_DRM_LIBS@ \
-@evas_engine_drm_libs@ \
-@USE_EEZE_INTERNAL_LIBS@
-modules_evas_engines_drm_module_la_DEPENDENCIES = @USE_EVAS_INTERNAL_LIBS@ @USE_EEZE_INTERNAL_LIBS@ @USE_ECORE_DRM_INTERNAL_LIBS@
+@evas_engine_drm_libs@
+modules_evas_engines_drm_module_la_DEPENDENCIES = @USE_EVAS_INTERNAL_LIBS@ @USE_ECORE_DRM_INTERNAL_LIBS@
 modules_evas_engines_drm_module_la_LDFLAGS = -module @EFL_LTMODULE_FLAGS@
 modules_evas_engines_drm_module_la_LIBTOOLFLAGS = --tag=disable-static
 endif
@@ -1241,9 +1301,8 @@ modules_evas_engines_gl_drm_module_la_CPPFLAGS = -I$(top_builddir)/src/lib/efl \
 modules_evas_engines_gl_drm_module_la_LIBADD = \
 @USE_EVAS_LIBS@ \
 @USE_ECORE_DRM_LIBS@ \
-@evas_engine_gl_drm_libs@ \
-@USE_EEZE_INTERNAL_LIBS@
-modules_evas_engines_gl_drm_module_la_DEPENDENCIES = @USE_EVAS_INTERNAL_LIBS@ @USE_EEZE_INTERNAL_LIBS@ @USE_ECORE_DRM_INTERNAL_LIBS@
+@evas_engine_gl_drm_libs@
+modules_evas_engines_gl_drm_module_la_DEPENDENCIES = @USE_EVAS_INTERNAL_LIBS@ @USE_ECORE_DRM_INTERNAL_LIBS@
 modules_evas_engines_gl_drm_module_la_LDFLAGS = -module @EFL_LTMODULE_FLAGS@
 modules_evas_engines_gl_drm_module_la_LIBTOOLFLAGS = --tag=disable-static
 endif
@@ -2124,6 +2183,7 @@ tests_evas_evas_suite_SOURCES = \
 tests/evas/evas_suite.c \
 tests/evas/evas_test_init.c \
 tests/evas/evas_test_object.c \
+tests/evas/evas_test_object_smart.c \
 tests/evas/evas_test_textblock.c \
 tests/evas/evas_test_text.c \
 tests/evas/evas_test_callbacks.c \
@@ -2133,6 +2193,7 @@ tests/evas/evas_test_image.c \
 tests/evas/evas_test_mesh.c \
 tests/evas/evas_test_mask.c \
 tests/evas/evas_test_evasgl.c \
+tests/evas/evas_test_matrix.c \
 tests/evas/evas_tests_helpers.h \
 tests/evas/evas_suite.h
 
@@ -2209,7 +2270,7 @@ tests/evas/images/bg_gray.png
 
 if HAVE_ELUA
 
-evas_eolian_lua = $(evas_eolian_files:%.eo=%.eo.lua)
+evas_eolian_lua = $(evas_eolian_pub_files:%.eo=%.eo.lua)
 
 generated_evas_lua_all = $(evas_eolian_lua)
 
@@ -2227,3 +2288,13 @@ $(NULL)
 
 installed_evasfiltersdir = $(datadir)/evas/filters/lua
 dist_installed_evasfilters_DATA = $(evas_filters_lua)
+
+if HAVE_JS
+
+generated_evas_js_bindings = $(evas_eolian_pub_files:%.eo=%.eo.js.cc)
+
+CLEANFILES += $(generated_evas_js_bindings)
+
+GENERATED_JS_BINDINGS += $(generated_evas_js_bindings)
+
+endif

@@ -53,12 +53,6 @@ _alpha_to_greyscale_convert(uint32_t *data, int len)
 static int
 _save_direct_tgv(RGBA_Image *im, const char *file, int compress)
 {
-   // FIXME: Now we have border information, this comment isn't valid anymore:
-
-   // In case we are directly copying ETC1/2 data, we can't properly
-   // duplicate the 1 pixel borders. So we just assume the image contains
-   // them already.
-
    // TODO: Add block by block compression.
 
    int image_width, image_height, planes = 1;
@@ -69,8 +63,12 @@ _save_direct_tgv(RGBA_Image *im, const char *file, int compress)
    uint8_t *data, *ptr;
    FILE *f;
 
-   image_width = im->cache_entry.w;
-   image_height = im->cache_entry.h;
+   if (!im->cache_entry.borders.l || !im->cache_entry.borders.t ||
+       !im->cache_entry.borders.r || !im->cache_entry.borders.b)
+     WRN("No im->cache_entry.borders on ETC image. Final image may have wrong dimensions.");
+
+   image_width = im->cache_entry.w + im->cache_entry.borders.l + im->cache_entry.borders.r;
+   image_height = im->cache_entry.h + im->cache_entry.borders.t + im->cache_entry.borders.b;
    data = im->image.data8;
    width = htonl(image_width);
    height = htonl(image_height);
@@ -113,7 +111,7 @@ _save_direct_tgv(RGBA_Image *im, const char *file, int compress)
    // header[7]: options (unused)
    header[7] = 0;
 
-   f = fopen(file, "w");
+   f = fopen(file, "wb");
    if (!f) return 0;
 
    // Write header
@@ -302,7 +300,7 @@ evas_image_save_file_tgv(RGBA_Image *im,
    // Note: consider extending the header instead of filling all the bits here
    header[7] = 0;
 
-   f = fopen(file, "w");
+   f = fopen(file, "wb");
    if (!f) return 0;
 
    // Write header
@@ -444,7 +442,7 @@ evas_image_save_file_tgv(RGBA_Image *im,
                                case EVAS_COLORSPACE_RGBA8_ETC2_EAC:
                                  etc2_rgba8_block_pack(offset, (uint32_t *) todo, &param);
                                  break;
-                               default: return 0;
+                               default: goto on_error;
                               }
 
 #ifdef DEBUG_STATS

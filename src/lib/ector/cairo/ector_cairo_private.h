@@ -1,6 +1,8 @@
 #ifndef ECTOR_CAIRO_PRIVATE_H_
 # define ECTOR_CAIRO_PRIVATE_H_
 
+#include "draw.h"
+
 typedef void cairo_pattern_t;
 
 typedef struct {
@@ -58,15 +60,12 @@ _ector_cairo_extent_get(Efl_Gfx_Gradient_Spread s)
   if (!Sym) return Error;
 
 static inline void *
-_ector_cairo_symbol_get(Eo *obj, const char *name)
+_ector_cairo_symbol_get(Ector_Renderer_Generic_Base_Data *base,
+                        const char *name)
 {
-   Eo *parent;
    void *sym;
 
-   eo_do(obj, parent = eo_parent_get());
-   if (!parent) return NULL;
-
-   eo_do(parent, sym = ector_cairo_surface_symbol_get(name));
+   eo_do(base->surface, sym = ector_cairo_surface_symbol_get(name));
    return sym;
 }
 
@@ -74,14 +73,11 @@ extern void (*cairo_pattern_add_color_stop_rgba)(cairo_pattern_t *pattern, doubl
                                                  double red, double green, double blue, double alpha);
 
 static inline void
-_ector_renderer_cairo_gradient_prepare(Eo *obj,
-                                       cairo_pattern_t *pat,
+_ector_renderer_cairo_gradient_prepare(cairo_pattern_t *pat,
                                        Ector_Renderer_Generic_Gradient_Data *src,
                                        unsigned int mul_col)
 {
    unsigned int i;
-
-   USE(obj, cairo_pattern_add_color_stop_rgba, );
 
    for (i = 0; i < src->colors_count; i++)
      {

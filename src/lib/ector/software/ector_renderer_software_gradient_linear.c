@@ -9,46 +9,37 @@
 #include "ector_private.h"
 #include "ector_software_private.h"
 
-
-static void
-_update_linear_data(Ector_Renderer_Software_Gradient_Data *gdata)
-{
-   update_color_table(gdata);
-   gdata->linear.x1 = gdata->gld->start.x;
-   gdata->linear.y1 = gdata->gld->start.y;
-
-   gdata->linear.x2 = gdata->gld->end.x;
-   gdata->linear.y2 = gdata->gld->end.y;
-
-   gdata->linear.dx = gdata->linear.x2 - gdata->linear.x1;
-   gdata->linear.dy = gdata->linear.y2 - gdata->linear.y1;
-   gdata->linear.l = gdata->linear.dx * gdata->linear.dx + gdata->linear.dy * gdata->linear.dy;
-   gdata->linear.off = 0;
-
-   if (gdata->linear.l != 0)
-     {
-        gdata->linear.dx /= gdata->linear.l;
-        gdata->linear.dy /= gdata->linear.l;
-        gdata->linear.off = -gdata->linear.dx * gdata->linear.x1 - gdata->linear.dy * gdata->linear.y1;
-     }
-}
-
-
 static Eina_Bool
 _ector_renderer_software_gradient_linear_ector_renderer_generic_base_prepare(Eo *obj,
                                                                              Ector_Renderer_Software_Gradient_Data *pd)
 {
    if (!pd->surface)
      {
-        Eo *parent;
+        Ector_Renderer_Generic_Base_Data *base;
 
-        eo_do(obj, parent = eo_parent_get());
-        if (!parent) return EINA_FALSE;
-        pd->surface = eo_data_xref(parent, ECTOR_SOFTWARE_SURFACE_CLASS, obj);
+        base = eo_data_scope_get(obj, ECTOR_RENDERER_GENERIC_BASE_CLASS);
+        pd->surface = eo_data_xref(base->surface, ECTOR_SOFTWARE_SURFACE_CLASS, obj);
      }
 
-   _update_linear_data(pd);
+   update_color_table(pd);
 
+   pd->linear.x1 = pd->gld->start.x;
+   pd->linear.y1 = pd->gld->start.y;
+
+   pd->linear.x2 = pd->gld->end.x;
+   pd->linear.y2 = pd->gld->end.y;
+
+   pd->linear.dx = pd->linear.x2 - pd->linear.x1;
+   pd->linear.dy = pd->linear.y2 - pd->linear.y1;
+   pd->linear.l = pd->linear.dx * pd->linear.dx + pd->linear.dy * pd->linear.dy;
+   pd->linear.off = 0;
+
+   if (pd->linear.l != 0)
+     {
+        pd->linear.dx /= pd->linear.l;
+        pd->linear.dy /= pd->linear.l;
+        pd->linear.off = -pd->linear.dx * pd->linear.x1 - pd->linear.dy * pd->linear.y1;
+     }
 
    return EINA_FALSE;
 }
@@ -56,7 +47,7 @@ _ector_renderer_software_gradient_linear_ector_renderer_generic_base_prepare(Eo 
 static Eina_Bool
 _ector_renderer_software_gradient_linear_ector_renderer_generic_base_draw(Eo *obj EINA_UNUSED,
                                                                           Ector_Renderer_Software_Gradient_Data *pd EINA_UNUSED,
-                                                                          Ector_Rop op EINA_UNUSED, Eina_Array *clips EINA_UNUSED,
+                                                                          Efl_Gfx_Render_Op op EINA_UNUSED, Eina_Array *clips EINA_UNUSED,
                                                                           unsigned int mul_col EINA_UNUSED)
 {
    return EINA_TRUE;
@@ -66,32 +57,34 @@ static Eina_Bool
 _ector_renderer_software_gradient_linear_ector_renderer_software_base_fill(Eo *obj EINA_UNUSED,
                                                                            Ector_Renderer_Software_Gradient_Data *pd)
 {
-   ector_software_rasterizer_linear_gradient_set(pd->surface->software, pd);
+   ector_software_rasterizer_linear_gradient_set(pd->surface->rasterizer, pd);
 
    return EINA_TRUE;
 }
 
-Eo *
+static Eo *
 _ector_renderer_software_gradient_linear_eo_base_constructor(Eo *obj,
                                                              Ector_Renderer_Software_Gradient_Data *pd)
 {
    obj = eo_do_super_ret(obj, ECTOR_RENDERER_SOFTWARE_GRADIENT_LINEAR_CLASS, obj, eo_constructor());
+   if (!obj) return NULL;
+
    pd->gd  = eo_data_xref(obj, ECTOR_RENDERER_GENERIC_GRADIENT_MIXIN, obj);
    pd->gld = eo_data_xref(obj, ECTOR_RENDERER_GENERIC_GRADIENT_LINEAR_MIXIN, obj);
 
    return obj;
 }
 
-void
+static void
 _ector_renderer_software_gradient_linear_eo_base_destructor(Eo *obj,
                                                             Ector_Renderer_Software_Gradient_Data *pd)
 {
-   Eo *parent;
+   Ector_Renderer_Generic_Base_Data *base;
 
    destroy_color_table(pd);
 
-   eo_do(obj, parent = eo_parent_get());
-   eo_data_xunref(parent, pd->surface, obj);
+   base = eo_data_scope_get(obj, ECTOR_RENDERER_GENERIC_BASE_CLASS);
+   eo_data_xunref(base->surface, pd->surface, obj);
 
    eo_data_xunref(obj, pd->gd, obj);
    eo_data_xunref(obj, pd->gld, obj);

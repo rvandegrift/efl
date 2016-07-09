@@ -143,4 +143,31 @@ EAPI double eina_bezier_angle_at(const Eina_Bezier *b, double t) EINA_ARG_NONNUL
  */
 EAPI void eina_bezier_split_at_length(const Eina_Bezier *b, double len, Eina_Bezier *left, Eina_Bezier *right) EINA_ARG_NONNULL(1);
 
+/**
+ * @brief get the bound of the the bezier.
+ *
+ * @param b The floating point bezier.
+ * @param x x coordinate of bounding box.
+ * @param y y coordinate of bounding box.
+ * @param w width of bounding box.
+ * @param h height of bounding box.
+ *
+ * @p b. No check is done on @p b.
+ * @since 1.17
+ */
+EAPI void eina_bezier_bounds_get(const Eina_Bezier *b, double *x, double *y, double *w, double *h) EINA_ARG_NONNULL(1);
+
+/**
+ * @brief find the bezier at given interval.
+ *
+ * @param b The floating point bezier.
+ * @param t0 The start interval.
+ * @param t1 The end interval.
+ * @param result The result bezier.
+ *
+ * @p b. No check is done on @p b.
+ * @since 1.17
+ */
+EAPI void eina_bezier_on_interval(Eina_Bezier *b, double t0, double t1, Eina_Bezier *result);
+
 #endif // EINA_BEZIER_H

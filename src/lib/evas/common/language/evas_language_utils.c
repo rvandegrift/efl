@@ -21,6 +21,11 @@
 #endif
 
 #include <stdlib.h>
+#include <locale.h>
+
+#ifdef HAVE_EVIL
+# include <Evil.h>
+#endif
 
 #include <Eina.h>
 
@@ -134,7 +139,7 @@ evas_common_language_from_locale_get(void)
    if (*lang) return lang;
 
    const char *locale;
-   locale = getenv("LANG");
+   locale = setlocale(LC_MESSAGES, NULL);
    if (locale && *locale)
      {
         char *itr;
@@ -149,6 +154,31 @@ evas_common_language_from_locale_get(void)
                }
              itr++;
           }
+        return lang;
+     }
+
+   return "";
+}
+
+const char *
+evas_common_language_from_locale_full_get(void)
+{
+   static char lang[32];
+   if (*lang) return lang;
+
+   const char *locale;
+   locale = setlocale(LC_MESSAGES, NULL);
+   if (locale && *locale)
+     {
+        size_t i;
+        for (i = 0 ; locale[i] ; i++)
+          {
+             const char c = locale[i];
+             if ((c == '.') || (c == '@') || (c == ' ')) /* Looks like en_US.UTF8 or de_DE@euro or aa_ER UTF-8*/
+                break;
+          }
+        strncpy(lang, locale, i);
+        lang[i] = '\0';
         return lang;
      }
 

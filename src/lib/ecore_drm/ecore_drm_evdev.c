@@ -4,6 +4,7 @@
 
 #include "ecore_drm_private.h"
 #include <ctype.h>
+#include <math.h>
 
 static void  _device_modifiers_update(Ecore_Drm_Evdev *edev);
 
@@ -80,8 +81,10 @@ _device_output_set(Ecore_Drm_Evdev *edev)
    if (libinput_device_has_capability(edev->device, 
                                       LIBINPUT_DEVICE_CAP_POINTER))
      {
-        edev->mouse.dx = edev->output->current_mode->width / 2;
-        edev->mouse.dy = edev->output->current_mode->height / 2;
+        edev->seat->ptr.ix = edev->seat->ptr.dx = edev->output->current_mode->width / 2;
+        edev->seat->ptr.iy = edev->seat->ptr.dy = edev->output->current_mode->height / 2;
+        edev->mouse.dx = edev->seat->ptr.dx;
+        edev->mouse.dy = edev->seat->ptr.dy;
      }
 }
 
@@ -114,17 +117,17 @@ _device_keyboard_setup(Ecore_Drm_Evdev *edev)
    if (!input->dev->xkb_ctx) return;
 
    /* create keymap from xkb context */
-   edev->xkb.keymap = xkb_map_new_from_names(input->dev->xkb_ctx, NULL, 0);
+   edev->xkb.keymap = _ecore_drm_device_cached_keymap_get(input->dev->xkb_ctx, NULL, 0);
    if (!edev->xkb.keymap)
      {
-        ERR("Failed to create keymap: %m");
+        ERR("Failed to create keymap");
         return;
      }
 
    /* create xkb state */
    if (!(edev->xkb.state = xkb_state_new(edev->xkb.keymap)))
      {
-        ERR("Failed to create xkb state: %m");
+        ERR("Failed to create xkb state");
         return;
      }
 
@@ -245,13 +248,29 @@ _device_modifiers_update(Ecore_Drm_Evdev *edev)
 
 }
 
+static int
+_device_remapped_key_get(Ecore_Drm_Evdev *edev, int code)
+{
+   void *ret = NULL;
+
+   EINA_SAFETY_ON_NULL_RETURN_VAL(edev, code);
+   if (!edev->key_remap_enabled) return code;
+   EINA_SAFETY_ON_NULL_RETURN_VAL(edev->key_remap_hash, code);
+
+   ret = eina_hash_find(edev->key_remap_hash, &code);
+
+   if (ret) code = (int)(intptr_t)ret;
+
+   return code;
+}
+
 static void
 _device_handle_key(struct libinput_device *device, struct libinput_event_keyboard *event)
 {
    Ecore_Drm_Evdev *edev;
    Ecore_Drm_Input *input;
-   uint32_t timestamp;
-   uint32_t code, nsyms;
+   uint32_t timestamp, nsyms;
+   uint32_t code = 0;
    const xkb_keysym_t *syms;
    enum libinput_key_state state;
    int key_count;
@@ -265,7 +284,12 @@ _device_handle_key(struct libinput_device *device, struct libinput_event_keyboar
    if (!(input = edev->seat->input)) return;
 
    timestamp = libinput_event_keyboard_get_time(event);
-   code = libinput_event_keyboard_get_key(event) + 8;
+   code = libinput_event_keyboard_get_key(event);
+
+   if (!code) return;
+
+   code = _device_remapped_key_get(edev, code) + 8;
+
    state = libinput_event_keyboard_get_key_state(event);
    key_count = libinput_event_keyboard_get_seat_key_count(event);
 
@@ -359,15 +383,18 @@ _device_pointer_motion(Ecore_Drm_Evdev *edev, struct libinput_event_pointer *eve
 
    if (!(ev = calloc(1, sizeof(Ecore_Event_Mouse_Move)))) return;
 
-   if (edev->mouse.ix < edev->mouse.minx)
-     edev->mouse.dx = edev->mouse.ix = edev->mouse.minx;
-   else if (edev->mouse.ix >= (edev->mouse.minx + edev->mouse.maxw))
-     edev->mouse.dx = edev->mouse.ix = (edev->mouse.minx + edev->mouse.maxw - 1);
+   if (edev->seat->ptr.ix < edev->mouse.minx)
+     edev->seat->ptr.dx = edev->seat->ptr.ix = edev->mouse.minx;
+   else if (edev->seat->ptr.ix >= (edev->mouse.minx + edev->mouse.maxw))
+     edev->seat->ptr.dx = edev->seat->ptr.ix = (edev->mouse.minx + edev->mouse.maxw - 1);
 
-   if (edev->mouse.iy < edev->mouse.miny)
-     edev->mouse.dy = edev->mouse.iy = edev->mouse.miny;
-   else if (edev->mouse.iy >= (edev->mouse.miny + edev->mouse.maxh))
-     edev->mouse.dy = edev->mouse.iy = (edev->mouse.miny + edev->mouse.maxh - 1);
+   if (edev->seat->ptr.iy < edev->mouse.miny)
+     edev->seat->ptr.dy = edev->seat->ptr.iy = edev->mouse.miny;
+   else if (edev->seat->ptr.iy >= (edev->mouse.miny + edev->mouse.maxh))
+     edev->seat->ptr.dy = edev->seat->ptr.iy = (edev->mouse.miny + edev->mouse.maxh - 1);
+
+   edev->mouse.dx = edev->seat->ptr.dx;
+   edev->mouse.dy = edev->seat->ptr.dy;
 
    ev->window = (Ecore_Window)input->dev->window;
    ev->event_window = (Ecore_Window)input->dev->window;
@@ -378,8 +405,8 @@ _device_pointer_motion(Ecore_Drm_Evdev *edev, struct libinput_event_pointer *eve
    _device_modifiers_update(edev);
    ev->modifiers = edev->xkb.modifiers;
 
-   ev->x = edev->mouse.ix;
-   ev->y = edev->mouse.iy;
+   ev->x = edev->seat->ptr.ix;
+   ev->y = edev->seat->ptr.iy;
    ev->root.x = ev->x;
    ev->root.y = ev->y;
 
@@ -404,14 +431,17 @@ _device_handle_pointer_motion(struct libinput_device *device, struct libinput_ev
 
    if (!(edev = libinput_device_get_user_data(device))) return;
 
-   edev->mouse.dx += libinput_event_pointer_get_dx(event);
-   edev->mouse.dy += libinput_event_pointer_get_dy(event);
+   edev->seat->ptr.dx += libinput_event_pointer_get_dx(event);
+   edev->seat->ptr.dy += libinput_event_pointer_get_dy(event);
 
-   if (floor(edev->mouse.dx) == edev->mouse.ix &&
-       floor(edev->mouse.dy) == edev->mouse.iy) return;
+   edev->mouse.dx = edev->seat->ptr.dx;
+   edev->mouse.dy = edev->seat->ptr.dy;
 
-   edev->mouse.ix = edev->mouse.dx;
-   edev->mouse.iy = edev->mouse.dy;
+   if (floor(edev->seat->ptr.dx) == edev->seat->ptr.ix &&
+       floor(edev->seat->ptr.dy) == edev->seat->ptr.iy) return;
+
+   edev->seat->ptr.ix = edev->seat->ptr.dx;
+   edev->seat->ptr.iy = edev->seat->ptr.dy;
   _device_pointer_motion(edev, event);
 }
 
@@ -422,16 +452,18 @@ _device_handle_pointer_motion_absolute(struct libinput_device *device, struct li
 
    if (!(edev = libinput_device_get_user_data(device))) return;
 
-   edev->mouse.dx =
+   edev->mouse.dx = edev->seat->ptr.dx =
      libinput_event_pointer_get_absolute_x_transformed(event,
                                                        edev->output->current_mode->width);
-   edev->mouse.dy =
+   edev->mouse.dy = edev->seat->ptr.dy =
      libinput_event_pointer_get_absolute_y_transformed(event,
                                                        edev->output->current_mode->height);
 
-   if (floor(edev->mouse.dx) == edev->mouse.ix &&
-       floor(edev->mouse.dy) == edev->mouse.iy) return;
+   if (floor(edev->seat->ptr.dx) == edev->seat->ptr.ix &&
+       floor(edev->seat->ptr.dy) == edev->seat->ptr.iy) return;
 
+   edev->seat->ptr.ix = edev->seat->ptr.dx;
+   edev->seat->ptr.iy = edev->seat->ptr.dy;
    _device_pointer_motion(edev, event);
 }
 
@@ -466,8 +498,8 @@ _device_handle_button(struct libinput_device *device, struct libinput_event_poin
    _device_modifiers_update(edev);
    ev->modifiers = edev->xkb.modifiers;
 
-   ev->x = edev->mouse.ix;
-   ev->y = edev->mouse.iy;
+   ev->x = edev->seat->ptr.ix;
+   ev->y = edev->seat->ptr.iy;
    ev->root.x = ev->x;
    ev->root.y = ev->y;
 
@@ -548,8 +580,8 @@ _device_handle_axis(struct libinput_device *device, struct libinput_event_pointe
    _device_modifiers_update(edev);
    ev->modifiers = edev->xkb.modifiers;
 
-   ev->x = edev->mouse.ix;
-   ev->y = edev->mouse.iy;
+   ev->x = edev->seat->ptr.ix;
+   ev->y = edev->seat->ptr.iy;
    ev->root.x = ev->x;
    ev->root.y = ev->y;
 
@@ -616,10 +648,23 @@ _ecore_drm_evdev_device_create(Ecore_Drm_Seat *seat, struct libinput_device *dev
 
    if (libinput_device_has_capability(device, LIBINPUT_DEVICE_CAP_POINTER))
      {
+        Ecore_Drm_Device *dev;
+
         edev->seat_caps |= EVDEV_SEAT_POINTER;
 
         /* TODO: make this configurable */
         edev->mouse.threshold = 250;
+
+        dev = seat->input->dev;
+        if (dev->left_handed == EINA_TRUE)
+          {
+             if (libinput_device_config_left_handed_set(device, 1) !=
+                 LIBINPUT_CONFIG_STATUS_SUCCESS)
+               {
+                  WRN("Failed to set left hand mode about device: %s\n",
+                      libinput_device_get_name(device));
+               }
+          }
      }
 
    if (libinput_device_has_capability(device, LIBINPUT_DEVICE_CAP_TOUCH))
@@ -659,8 +704,8 @@ _device_handle_touch_event_send(Ecore_Drm_Evdev *edev, struct libinput_event_tou
    _device_modifiers_update(edev);
    ev->modifiers = edev->xkb.modifiers;
 
-   ev->x = edev->mouse.ix;
-   ev->y = edev->mouse.iy;
+   ev->x = edev->seat->ptr.ix;
+   ev->y = edev->seat->ptr.iy;
    ev->root.x = ev->x;
    ev->root.y = ev->y;
 
@@ -734,8 +779,8 @@ _device_handle_touch_motion_send(Ecore_Drm_Evdev *edev, struct libinput_event_to
    ev->modifiers = edev->xkb.modifiers;
    ev->modifiers = 0;
 
-   ev->x = edev->mouse.ix;
-   ev->y = edev->mouse.iy;
+   ev->x = edev->seat->ptr.ix;
+   ev->y = edev->seat->ptr.iy;
    ev->root.x = ev->x;
    ev->root.y = ev->y;
 
@@ -760,9 +805,9 @@ _device_handle_touch_down(struct libinput_device *device, struct libinput_event_
 
    if (!(edev = libinput_device_get_user_data(device))) return;
 
-   edev->mouse.ix = edev->mouse.dx =
+   edev->mouse.dx = edev->seat->ptr.ix = edev->seat->ptr.dx =
      libinput_event_touch_get_x_transformed(event, edev->output->current_mode->width);
-   edev->mouse.iy = edev->mouse.dy =
+   edev->mouse.dy = edev->seat->ptr.iy = edev->seat->ptr.dy =
      libinput_event_touch_get_y_transformed(event, edev->output->current_mode->height);
 
    edev->mt_slot = libinput_event_touch_get_seat_slot(event);
@@ -778,16 +823,16 @@ _device_handle_touch_motion(struct libinput_device *device, struct libinput_even
 
    if (!(edev = libinput_device_get_user_data(device))) return;
 
-   edev->mouse.dx =
+   edev->mouse.dx = edev->seat->ptr.dx =
      libinput_event_touch_get_x_transformed(event, edev->output->current_mode->width);
-   edev->mouse.dy =
+   edev->mouse.dy = edev->seat->ptr.dy =
      libinput_event_touch_get_y_transformed(event, edev->output->current_mode->height);
 
-   if (floor(edev->mouse.dx) == edev->mouse.ix &&
-       floor(edev->mouse.dy) == edev->mouse.iy) return;
+   if (floor(edev->seat->ptr.dx) == edev->seat->ptr.ix &&
+       floor(edev->seat->ptr.dy) == edev->seat->ptr.iy) return;
 
-   edev->mouse.ix = edev->mouse.dx;
-   edev->mouse.iy = edev->mouse.dy;
+   edev->seat->ptr.ix = edev->seat->ptr.dx;
+   edev->seat->ptr.iy = edev->seat->ptr.dy;
 
    edev->mt_slot = libinput_event_touch_get_seat_slot(event);
 
@@ -825,6 +870,7 @@ _ecore_drm_evdev_device_destroy(Ecore_Drm_Evdev *edev)
 
    if (edev->path) eina_stringshare_del(edev->path);
    if (edev->device) libinput_device_unref(edev->device);
+   if (edev->key_remap_hash) eina_hash_free(edev->key_remap_hash);
 
    free(edev);
 }
@@ -931,4 +977,85 @@ cont:
         eina_stringshare_del(device);
         continue;
      }
+}
+
+/**
+ * @brief Enable key remap functionality on the given device
+ *
+ * @param edev The Ecore_Drm_Evdev to enable the key remap on.
+ * @param enable An Eina_Bool value to enable or disable the key remap on the device.
+ * @return EINA_FALSE is returned if the Ecore_Drm_Evdev is not valid, or if no libinput device has been
+ * assigned to it yet. EINA_TRUE will be returned if enabling key remap for this device succeeded.
+ *
+ * This function enables/disables key remap functionality with the given enable value.
+ * If the given enable value is EINA_FALSE, the key remap functionality wil be disable and
+ * the existing hash table for remapping keys will be freed.
+ */
+EAPI Eina_Bool
+ecore_drm_evdev_key_remap_enable(Ecore_Drm_Evdev *edev, Eina_Bool enable)
+{
+   EINA_SAFETY_ON_NULL_RETURN_VAL(edev, EINA_FALSE);
+   EINA_SAFETY_ON_NULL_RETURN_VAL(edev->device, EINA_FALSE);
+
+   edev->key_remap_enabled = enable;
+
+   if (enable == EINA_FALSE && edev->key_remap_hash)
+     {
+        eina_hash_free(edev->key_remap_hash);
+        edev->key_remap_hash = NULL;
+     }
+
+   return EINA_TRUE;
+}
+
+/**
+ * @brief Set a set of keys as remapping keys on the given device.
+ *
+ * @param edev The Ecore_Drm_Evdev to set the remapping keys on
+ * @param from_keys A set of keys which contains the original keycodes
+ * @param to_keys A set of keys which contains the keycodes to be remapped
+ * @param num The number of keys to be applied
+ * @return EINA_FALSE is returned if the Ecore_Drm_Evdev is not valid, if no libinput device has been
+ * assigned to it yet, if key remap is not enabled yet, or the some of the given parameters such as
+ * from_keys, to_keys, num are not valid. EINA_TRUE will be returned if setting key remap for this device succeeded.
+ *
+ * This function will create a hash table of remapping keys as a member of the given device.
+ * This hash table will be used in _device_remapped_key_get() later on.
+ * Whenever a key event is coming from the the backend of ecore drm layer
+ * the keycode of it can be replaced with the key found in the hash table.
+ * If there is no key found, the coming keycode will be used.
+ */
+EAPI Eina_Bool
+ecore_drm_evdev_key_remap_set(Ecore_Drm_Evdev *edev, int *from_keys, int *to_keys, int num)
+{
+   int i;
+
+   EINA_SAFETY_ON_NULL_RETURN_VAL(edev, EINA_FALSE);
+   EINA_SAFETY_ON_NULL_RETURN_VAL(edev->device, EINA_FALSE);
+   EINA_SAFETY_ON_NULL_RETURN_VAL(from_keys, EINA_FALSE);
+   EINA_SAFETY_ON_NULL_RETURN_VAL(to_keys, EINA_FALSE);
+   EINA_SAFETY_ON_TRUE_RETURN_VAL(num <= 0, EINA_FALSE);
+   EINA_SAFETY_ON_TRUE_RETURN_VAL(!edev->key_remap_enabled, EINA_FALSE);
+
+   if (!edev->key_remap_hash) edev->key_remap_hash = eina_hash_int32_new(NULL);
+
+   if (!edev->key_remap_hash)
+     {
+        ERR("Failed to set remap key information : creating a hash is failed.");
+        return EINA_FALSE;
+     }
+
+   for (i = 0; i < num ; i++)
+     {
+        if ((!from_keys[i]) || (!to_keys[i]))
+          {
+             ERR("Failed to set remap key information : given arguments are invalid.");
+             return EINA_FALSE;
+          }
+     }
+
+   for (i = 0; i < num ; i++)
+     eina_hash_add(edev->key_remap_hash, &from_keys[i], (void *)(intptr_t)to_keys[i]);
+
+   return EINA_TRUE;
 }

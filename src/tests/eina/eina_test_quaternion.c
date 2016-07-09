@@ -180,7 +180,7 @@ START_TEST(eina_test_quaternion_f16p16)
    fail_if(!eina_quaternion_cmp(&p, &q));
 
    res = eina_quaternion_f16p16_norm(&r);
-   fail_if(res != 131072);
+   fail_if(res != 131070);
 
    eina_quaternion_f16p16_negative(&s, &r);
    fail_if(s.x != s.y ||
@@ -473,6 +473,71 @@ START_TEST(eina_test_quaternion_rotate)
 }
 END_TEST
 
+START_TEST(eina_test_quaternion_operations)
+{
+   Eina_Quaternion in = {2, 2, 1, 1};
+   Eina_Quaternion in2 = {5, 5, 5, 5};
+   Eina_Quaternion out;
+   const double v[] = {0, 1, 2, 3};
+   double angle;
+   Eina_Matrix4 m;
+   eina_init();
+
+   eina_quaternion_inverse(&out, &in);
+   fail_if((out.x + 0.2 > DBL_EPSILON) || (out.y + 0.2 > DBL_EPSILON) ||
+           (out.z + 0.1 > DBL_EPSILON) || (out.w - 0.1 > DBL_EPSILON));
+
+   eina_quaternion_array_set(&out, v);
+   fail_if((out.x != 0) || (out.y != 1) ||
+           (out.z != 2) || (out.w != 3));
+
+   eina_quaternion_copy(&out, &in);
+   fail_if((out.x != 2) || (out.y != 2) ||
+           (out.z != 1) || (out.w != 1));
+
+   eina_quaternion_homogeneous_regulate(&out, &in2);
+   fail_if((out.x != 1) || (out.y != 1) ||
+           (out.z != 1) || (out.w != 1));
+
+   eina_quaternion_subtract(&out, &in2, &in);
+   fail_if((out.x != 3) || (out.y != 3) ||
+           (out.z != 4) || (out.w != 4));
+
+   fail_if(eina_quaternion_length_get(&in2) != 10);
+   fail_if(eina_quaternion_length_square_get(&in) != 10);
+   fail_if((eina_quaternion_distance_get(&in2, &in) - sqrt(50)) > DBL_EPSILON);
+   fail_if(eina_quaternion_distance_square_get(&in2, &in) != 50);
+
+   angle = eina_quaternion_angle_plains(&in, &in2);
+   fail_if(angle - 0.963 > DBL_EPSILON);
+
+   eina_matrix4_values_set(&m,
+                           1, 0, 0, 0,
+                           0, 1, 0, 0,
+                           0, 0, 1, 0,
+                           0, 0, 0, 1);
+   eina_quaternion_transform(&out, &in, &m);
+   fail_if((fabs(out.x) - 2.0) > DBL_EPSILON ||
+           (fabs(out.y) - 2.0) > DBL_EPSILON ||
+           (fabs(out.z) - 1.0) > DBL_EPSILON ||
+           (fabs(out.w) - 1.0) > DBL_EPSILON
+          );
+
+   eina_matrix4_values_set(&m,
+                           0.5, 0, 0, 0,
+                           0, 0.5, 0, 0,
+                           0, 0, 1, 0,
+                           0, 0, 0, 1);
+   eina_quaternion_transform(&out, &in, &m);
+   fail_if((fabs(out.x) - 1.0) > DBL_EPSILON ||
+           (fabs(out.y) - 1.0) > DBL_EPSILON ||
+           (fabs(out.z) - 1.0) > DBL_EPSILON ||
+           (fabs(out.w) - 1.0) > DBL_EPSILON
+          );
+   eina_shutdown();
+}
+END_TEST
+
 void
 eina_test_quaternion(TCase *tc)
 {
@@ -492,4 +557,5 @@ eina_test_quaternion(TCase *tc)
    tcase_add_test(tc, eina_test_quaternion_lerp);
    tcase_add_test(tc, eina_test_quaternion_f16p16_rotate_matrix);
    tcase_add_test(tc, eina_test_quaternion_rotate);
+   tcase_add_test(tc, eina_test_quaternion_operations);
 }

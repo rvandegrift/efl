@@ -3,6 +3,7 @@
 
 # include <limits.h>
 # include <unistd.h>
+# include <uuid/uuid.h>
 
 # include "Ecore.h"
 # include "Ecore_Input.h"
@@ -22,6 +23,7 @@
 # endif
 
 extern int _ecore_wl_log_dom;
+extern Eina_Bool _ecore_wl_server_mode;
 
 # ifdef ECORE_WL_DEFAULT_LOG_COLOR
 #  undef ECORE_WL_DEFAULT_LOG_COLOR
@@ -71,7 +73,7 @@ struct _Ecore_Wl_Display
         struct wl_shell *shell;
         struct xdg_shell *xdg_shell;
         struct wl_shell *desktop_shell;
-        struct session_recovery *session_recovery;
+        struct zwp_e_session_recovery *session_recovery;
 # ifdef USE_IVI_SHELL
         struct ivi_application *ivi_application;
 # endif
@@ -172,6 +174,8 @@ struct _Ecore_Wl_Window
    Ecore_Wl_Subsurf *subsurfs;
 
    void *data;
+
+   uuid_t uuid;
 };
 
 struct _Ecore_Wl_Input

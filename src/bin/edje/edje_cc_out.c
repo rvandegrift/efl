@@ -151,6 +151,9 @@ struct _Image_Write
    Eet_File *ef;
    Edje_Image_Directory_Entry *img;
    Evas_Object *im;
+   Emile_Image_Property prop;
+   Eina_File *f;
+   Emile_Image *emi;
    int w, h;
    int alpha;
    unsigned int *data;
@@ -514,16 +517,9 @@ static void
 check_packed_items(Edje_Part_Collection *pc, Edje_Part *ep, Eet_File *ef)
 {
    unsigned int i;
-   char *def_name;
 
    for (i = 0; i < ep->items_count; ++i)
      {
-        if (!ep->items[i]->name)
-          {
-             def_name = alloca(strlen("item_") + strlen("0xFFFFFFFFFFFFFFFF") + 1);
-             sprintf(def_name, "item_%p", def_name);
-             ep->items[i]->name = strdup(def_name);
-          }
 	if (ep->items[i]->type == EDJE_PART_TYPE_GROUP && !ep->items[i]->source)
 	  error_and_abort(ef, "Collection %i: missing source on packed item "
 			  "of type GROUP in part \"%s\"",
@@ -623,6 +619,30 @@ check_program(Edje_Part_Collection *pc, Edje_Program *ep, Eet_File *ef)
 	 break;
       default:
 	 break;
+     }
+   Edje_Program_Target *et;
+   Eina_List *l;
+   unsigned int i = 0;
+   int camera_id = -1;
+
+   for (i = 0; (i < pc->parts_count) && (camera_id < 0); i++)
+     {
+        if (pc->parts[i]->type == EDJE_PART_TYPE_CAMERA)
+          camera_id = i;
+     }
+
+   EINA_LIST_FOREACH(ep->targets, l, et)
+     {
+        if (((ep->action == EDJE_ACTION_TYPE_STATE_SET) || (ep->action == EDJE_ACTION_TYPE_SIGNAL_EMIT)) &&
+            (pc->parts[et->id]->type == EDJE_PART_TYPE_MESH_NODE) && strstr(ep->signal, "mouse"))
+          {
+             for (i = 0; (i < pc->parts_count) && (ep->source_3d_id < 0); i++)
+               {
+                  if (!strcmp(pc->parts[i]->name, ep->source))
+                    ep->source_3d_id = i;
+               }
+             ep->source = mem_strdup(pc->parts[camera_id]->name);
+          }
      }
 }
 
@@ -1061,7 +1081,7 @@ data_thread_image_end(void *data, Ecore_Thread *thread EINA_UNUSED)
         error_and_abort(iw->ef, iw->errstr);
         free(iw->errstr);
      }
-   if (iw->path) free(iw->path);
+   free(iw->path);
    evas_object_del(iw->im);
    free(iw);
 }
@@ -1084,6 +1104,127 @@ data_image_preload_done(void *data, Evas *e EINA_UNUSED, Evas_Object *o, void *e
 }
 
 static void
+tgv_file_thread(void *data, Ecore_Thread *thread EINA_UNUSED)
+{
+   Image_Write *iw = data;
+   char buf[256];
+   size_t len;
+
+   snprintf(buf, sizeof(buf), "edje/images/%i", iw->img->id);
+
+   len = eina_file_size_get(iw->f);
+   eet_write_cipher(iw->ef, buf, iw->data, len, EINA_FALSE /*!no_comp*/, NULL);
+}
+
+static void
+tgv_file_thread_end(void *data, Ecore_Thread *thread EINA_UNUSED)
+{
+   Image_Write *iw = data;
+
+   pending_threads--;
+   if (pending_threads <= 0) ecore_main_loop_quit();
+   if (iw->errstr)
+     {
+        error_and_abort(iw->ef, iw->errstr);
+        free(iw->errstr);
+     }
+   free(iw->path);
+   emile_image_close(iw->emi);
+   eina_file_map_free(iw->f, iw->data);
+   eina_file_close(iw->f);
+   free(iw);
+}
+
+static Eina_Bool
+tgv_file_check_and_add(Eet_File *ef, Edje_Image_Directory_Entry *img, int *image_num)
+{
+   Emile_Image_Load_Error err;
+   Emile_Image *emi = NULL;
+   Image_Write *iw = NULL;
+   Eina_List *li;
+   const char *s;
+   Eina_File *f;
+   void *data;
+
+   EINA_LIST_FOREACH(img_dirs, li, s)
+     {
+        char buf[PATH_MAX];
+        snprintf(buf, sizeof(buf), "%s/%s", s, img->entry);
+        f = eina_file_open(buf, EINA_FALSE);
+        if (f) break;
+     }
+   if (!f) return EINA_FALSE;
+
+   data = eina_file_map_all(f, EINA_FILE_SEQUENTIAL);
+   if (!data) goto on_error;
+
+   using_file(img->entry, 'I');
+
+   emi = emile_image_tgv_file_open(f, NULL, NULL, &err);
+   if (!emi || (err != EMILE_IMAGE_LOAD_ERROR_NONE)) goto on_error;
+
+   iw = calloc(1, sizeof(*iw));
+
+   if (!emile_image_head(emi, &iw->prop, sizeof(iw->prop), &err) ||
+       (err != EMILE_IMAGE_LOAD_ERROR_NONE))
+     goto on_error;
+
+   if (!iw->prop.cspaces || !iw->prop.w || !iw->prop.h)
+     goto on_error;
+
+   iw->f = f;
+   iw->ef = ef;
+   iw->img = img;
+   iw->emi = emi;
+   iw->data = (unsigned int *) data;
+   iw->w = iw->prop.w;
+   iw->h = iw->prop.h;
+
+   iw->prop.cspace = iw->prop.cspaces[0];
+   if (img->source_type == EDJE_IMAGE_SOURCE_TYPE_INLINE_LOSSY_ETC1)
+     {
+        if (no_etc1) goto on_error;
+        if (iw->prop.cspace == EMILE_COLORSPACE_ETC1)
+          iw->alpha = 0;
+        else if (iw->prop.cspace == EMILE_COLORSPACE_ETC1_ALPHA)
+          iw->alpha = 1;
+        else
+          goto on_error;
+     }
+   else if (img->source_type == EDJE_IMAGE_SOURCE_TYPE_INLINE_LOSSY_ETC2)
+     {
+        if (no_etc2) goto on_error;
+        if (iw->prop.cspace == EMILE_COLORSPACE_RGB8_ETC2)
+          iw->alpha = 0;
+        else if (iw->prop.cspace == EMILE_COLORSPACE_RGBA8_ETC2_EAC)
+          iw->alpha = 1;
+        else
+          goto on_error;
+     }
+
+   *image_num += 1;
+   iw->path = strdup(img->entry);
+
+   pending_threads++;
+   if (threads)
+     ecore_thread_run(tgv_file_thread, tgv_file_thread_end, NULL, iw);
+   else
+     {
+        tgv_file_thread(iw, NULL);
+        tgv_file_thread_end(iw, NULL);
+     }
+
+   return EINA_TRUE;
+
+on_error:
+   free(iw);
+   emile_image_close(emi);
+   if (data) eina_file_map_free(f, data);
+   eina_file_close(f);
+   return EINA_FALSE;
+}
+
+static void
 data_write_images(Eet_File *ef, int *image_num)
 {
    int i;
@@ -1101,73 +1242,117 @@ data_write_images(Eet_File *ef, int *image_num)
    for (i = 0; i < (int)edje_file->image_dir->entries_count; i++)
      {
         Edje_Image_Directory_Entry *img;
+        Evas_Object *im;
+        Eina_List *ll;
+        char *s;
+        int load_err = EVAS_LOAD_ERROR_NONE;
+        Image_Write *iw;
 
         img = &edje_file->image_dir->entries[i];
-        if ((img->source_type == EDJE_IMAGE_SOURCE_TYPE_EXTERNAL) ||
-            (img->entry == NULL))
-          {
-          }
-        else
-          {
-             Evas_Object *im;
-             Eina_List *ll;
-             char *s;
-             int load_err = EVAS_LOAD_ERROR_NONE;
-             Image_Write *iw;
+        if ((img->source_type == EDJE_IMAGE_SOURCE_TYPE_EXTERNAL) || !img->entry)
+          continue;
 
-             iw = calloc(1, sizeof(Image_Write));
-             iw->ef = ef;
-             iw->img = img;
-             iw->im = im = evas_object_image_add(evas);
-             if (threads)
-               evas_object_event_callback_add(im,
-                                              EVAS_CALLBACK_IMAGE_PRELOADED,
-                                              data_image_preload_done,
-                                              iw);
-             EINA_LIST_FOREACH(img_dirs, ll, s)
+        if (img->source_type == EDJE_IMAGE_SOURCE_TYPE_INLINE_LOSSY_ETC1 ||
+            img->source_type == EDJE_IMAGE_SOURCE_TYPE_INLINE_LOSSY_ETC2)
+          {
+             const char *ext = strrchr(img->entry, '.');
+             if (ext && !strcasecmp(ext, ".tgv"))
                {
-                  char buf[PATH_MAX];
-
-                  snprintf(buf, sizeof(buf), "%s/%s", s, img->entry);
-                  evas_object_image_file_set(im, buf, NULL);
-                  load_err = evas_object_image_load_error_get(im);
-                  if (load_err == EVAS_LOAD_ERROR_NONE)
+                  if (tgv_file_check_and_add(ef, img, image_num))
                     {
-                       *image_num += 1;
-                       iw->path = strdup(buf);
-                       pending_threads++;
-                       if (threads)
-                         evas_object_image_preload(im, 0);
-                       using_file(buf, 'I');
-                       if (!threads)
-                         data_image_preload_done(iw, evas, im, NULL);
-                       break;
-                    }
-               }
-             if (load_err != EVAS_LOAD_ERROR_NONE)
-               {
-                  evas_object_image_file_set(im, img->entry, NULL);
-                  load_err = evas_object_image_load_error_get(im);
-                  if (load_err == EVAS_LOAD_ERROR_NONE)
-                    {
-                       *image_num += 1;
-                       iw->path = strdup(img->entry);
-                       pending_threads++;
-                       if (threads)
-                         evas_object_image_preload(im, 0);
-                       using_file(img->entry, 'I');
-                       if (!threads)
-                         data_image_preload_done(iw, evas, im, NULL);
+                       DBG("Directly copying data from TGV file into EDJ");
+                       continue;
                     }
                   else
-                    {
-                       free(iw);
-                       error_and_abort_image_load_error
-                         (ef, img->entry, load_err);
-                       exit(1); // ensure static analysis tools know we exit
-                    }
+                    ERR("Source '%s' has incompatible ETC format.", img->entry);
                }
-	  }
+          }
+
+        iw = calloc(1, sizeof(Image_Write));
+        iw->ef = ef;
+        iw->img = img;
+        iw->im = im = evas_object_image_add(evas);
+        if (threads)
+          evas_object_event_callback_add(im,
+                                         EVAS_CALLBACK_IMAGE_PRELOADED,
+                                         data_image_preload_done,
+                                         iw);
+        EINA_LIST_FOREACH(img_dirs, ll, s)
+          {
+             char buf[PATH_MAX];
+
+             snprintf(buf, sizeof(buf), "%s/%s", s, img->entry);
+             evas_object_image_file_set(im, buf, NULL);
+             load_err = evas_object_image_load_error_get(im);
+             if (load_err == EVAS_LOAD_ERROR_NONE)
+               {
+                  *image_num += 1;
+                  iw->path = strdup(buf);
+                  pending_threads++;
+                  if (threads)
+                    evas_object_image_preload(im, 0);
+                  using_file(buf, 'I');
+                  if (!threads)
+                    data_image_preload_done(iw, evas, im, NULL);
+                  break;
+               }
+          }
+        if (load_err != EVAS_LOAD_ERROR_NONE)
+          {
+             evas_object_image_file_set(im, img->entry, NULL);
+             load_err = evas_object_image_load_error_get(im);
+             if (load_err == EVAS_LOAD_ERROR_NONE)
+               {
+                  *image_num += 1;
+                  iw->path = strdup(img->entry);
+                  pending_threads++;
+                  if (threads)
+                    evas_object_image_preload(im, 0);
+                  using_file(img->entry, 'I');
+                  if (!threads)
+                    data_image_preload_done(iw, evas, im, NULL);
+               }
+             else
+               {
+                  free(iw);
+                  error_and_abort_image_load_error(ef, img->entry, load_err);
+                  exit(1); // ensure static analysis tools know we exit
+               }
+          }
+     }
+}
+
+static void
+data_check_models(Eet_File *ef EINA_UNUSED, int *model_num EINA_UNUSED)
+{
+   int i;
+
+   if (!((edje_file) && (edje_file->model_dir))) return;
+
+   for (i = 0; i < (int)edje_file->model_dir->entries_count; i++)
+     {
+        Edje_Model_Directory_Entry *model;
+        Eina_List *ll;
+        char *s;
+        Eina_Bool file_exist = EINA_FALSE;
+
+        model = &edje_file->model_dir->entries[i];
+
+        EINA_LIST_FOREACH(model_dirs, ll, s)
+          {
+             char buf[PATH_MAX];
+
+             snprintf(buf, sizeof(buf), "%s/%s", s, model->entry);
+
+             file_exist = file_exist || ecore_file_exists(buf);
+
+          }
+        if (!file_exist)
+          {
+             ERR("Unablegstsh to load model \"%s\". Check if path to file is correct (both directory and file name).",
+                 model->entry);
+             exit(-1);
+          }
      }
 }
 
@@ -2276,6 +2461,7 @@ data_write(void)
    Eet_File *ef;
    Eet_Error err;
    int image_num = 0;
+   int model_num = 0;
    int sound_num = 0;
    int mo_num = 0;
    int vibration_num = 0;
@@ -2335,6 +2521,8 @@ data_write(void)
    INF("fontmap: %3.5f", ecore_time_get() - t); t = ecore_time_get();
    data_write_images(ef, &image_num);
    INF("images: %3.5f", ecore_time_get() - t); t = ecore_time_get();
+   data_check_models(ef, &model_num);
+   INF("models: %3.5f", ecore_time_get() - t); t = ecore_time_get();
    data_write_fonts(ef, &font_num);
    INF("fonts: %3.5f", ecore_time_get() - t); t = ecore_time_get();
    data_write_sounds(ef, &sound_num);
@@ -2414,6 +2602,8 @@ reorder_parts(void)
                        if (ep->reorder.insert_before &&
                            !strcmp(ep->reorder.insert_before, pc->parts[j]->name))
                          {
+                            needed_part_exists(pc, ep->reorder.insert_before);
+
                             ep2 = (Edje_Part_Parser *)pc->parts[j];
                             if (ep2->reorder.after)
                               ERR("The part \"%s\" is ambiguous ordered part.",
@@ -2424,7 +2614,7 @@ reorder_parts(void)
                             /* Need it to be able to insert an element before the first */
                             if (j == 0) k = 0;
                             else k = j - 1;
-			    found = EINA_TRUE;
+                            found = EINA_TRUE;
                             ep2->reorder.linked_prev += ep->reorder.linked_prev + 1;
                             ep->reorder.before = (Edje_Part_Parser *)pc->parts[j];
                             while (ep2->reorder.before)
@@ -2435,15 +2625,17 @@ reorder_parts(void)
                             break;
                          }
                        else if (ep->reorder.insert_after &&
-                           !strcmp(ep->reorder.insert_after, pc->parts[j]->name))
+                                !strcmp(ep->reorder.insert_after, pc->parts[j]->name))
                          {
+                            needed_part_exists(pc, ep->reorder.insert_after);
+
                             ep2 = (Edje_Part_Parser *)pc->parts[j];
                             if (ep2->reorder.before)
                               ERR("The part \"%s\" is ambiguous ordered part.", pc->parts[i]->name);
                             if (ep2->reorder.linked_next)
                               ERR("Unable to insert two or more parts in same part \"%s\".", pc->parts[j]->name);
                             k = j;
-			    found = EINA_TRUE;
+                            found = EINA_TRUE;
                             ep2->reorder.linked_next += ep->reorder.linked_next + 1;
                             ep->reorder.after = (Edje_Part_Parser *)pc->parts[j];
                             while (ep2->reorder.after)
@@ -2892,6 +3084,19 @@ data_queue_model_remove(int *dest, Eina_Bool *set)
              free(il);
              return;
           }
+     }
+}
+
+void
+data_queue_copied_model_lookup(int *src, int *dest, Eina_Bool *set)
+{
+   Eina_List *l;
+   Image_Lookup *il;
+
+   EINA_LIST_FOREACH(model_lookups, l, il)
+     {
+        if (il->dest == src)
+          data_queue_model_lookup(il->name, dest, set);
      }
 }
 
@@ -3491,6 +3696,8 @@ free_group:
                               eina_hash_direct_add(images_in_use, set->name, set);
                             break;
                          }
+                       else
+                         *(image->set) = EINA_FALSE;
                     }
                }
           }
@@ -3898,4 +4105,30 @@ using_file(const char *filename, const char type)
           }
         fclose(f);
      }
+}
+
+Eina_Bool
+needed_part_exists(Edje_Part_Collection *pc, const char *name)
+{
+   Eina_Bool found;
+   unsigned int i;
+
+   found = EINA_FALSE;
+
+   for (i = 0; i < pc->parts_count; i++)
+     {
+        if (!strcmp(pc->parts[i]->name, name))
+          {
+             found = EINA_TRUE;
+             break;
+          }
+     }
+
+   if (!found)
+     {
+        ERR("Unable to find part name \"%s\" needed in group \"%s\".",
+            name, pc->part);
+        exit(-1);
+     }
+   return found;
 }

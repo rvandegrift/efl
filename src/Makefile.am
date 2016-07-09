@@ -15,6 +15,7 @@ check_PROGRAMS =
 TESTS =
 EXTRA_DIST =
 
+GENERATED_JS_BINDINGS =
 
 EFL_INSTALL_EXEC_HOOK=
 
@@ -40,6 +41,7 @@ include Makefile_Ecore_FB.am
 include Makefile_Ecore_Psl1ght.am
 include Makefile_Ecore_SDL.am
 include Makefile_Ecore_Wayland.am
+include Makefile_Ecore_Wl2.am
 include Makefile_Ecore_Win32.am
 include Makefile_Ecore_X.am
 include Makefile_Ecore_IMF.am
@@ -75,6 +77,21 @@ include Makefile_Eio_Cxx.am
 include Makefile_Elua.am
 include Makefile_Elocation.am
 
+if HAVE_JS
+AM_V_CP = $(am__v_CP_@AM_V@)
+am__v_CP_ = $(am__v_CP_@AM_DEFAULT_V@)
+am__v_CP_0 = @echo "  CP  " $@;
+CP = cp
+if EFL_ENABLE_TESTS
+if HAVE_NODEJS
+AM_TESTS_ENVIRONMENT = NODE_PATH='$(abs_builddir)/lib/efl_js:$(abs_builddir)/tests/eolian_js:$(abs_builddir)/tests/efl_js'; export NODE_PATH;
+endif
+endif
+endif
+
+include Makefile_Eolian_Js.am
+include Makefile_Efl_Js.am
+
 .PHONY: benchmark examples
 
 BENCHMARK_SUBDIRS = \
@@ -101,6 +118,7 @@ examples/eldbus \
 examples/ephysics \
 examples/edje \
 examples/emotion \
+examples/emile \
 examples/elocation \
 examples/ethumb_client
 

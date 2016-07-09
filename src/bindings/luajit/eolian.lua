@@ -280,6 +280,7 @@ ffi.cdef [[
     const char *eolian_type_file_get(const Eolian_Type *tp);
     const Eolian_Type *eolian_type_return_type_get(const Eolian_Type *tp);
     const Eolian_Type *eolian_type_base_type_get(const Eolian_Type *tp);
+    const Eolian_Type *eolian_type_aliased_base_get(const Eolian_Type *tp);
     const Eolian_Class *eolian_type_class_get(const Eolian_Type *tp);
     Eina_Bool eolian_type_is_own(const Eolian_Type *tp);
     Eina_Bool eolian_type_is_const(const Eolian_Type *tp);
@@ -423,7 +424,8 @@ M.type_type = {
     STRUCT_OPAQUE  = 7,
     ENUM           = 8,
     ALIAS          = 9,
-    CLASS          = 10
+    CLASS          = 10,
+    UNDEFINED      = 11
 }
 
 ffi.metatype("Eolian_Struct_Type_Field", {
@@ -534,6 +536,12 @@ M.Type = ffi.metatype("Eolian_Type", {
 
         base_type_get = function(self)
             local v = eolian.eolian_type_base_type_get(self)
+            if v == nil then return nil end
+            return v
+        end,
+
+        aliased_base_get = function(self)
+            local v = eolian.eolian_type_aliased_byse_get(self)
             if v == nil then return nil end
             return v
         end,

@@ -40,6 +40,10 @@ static int _ecore_x_last_event_mouse_move = 0;
 static Ecore_Event *_ecore_x_last_event_mouse_move_event = NULL;
 static Eina_Inlist *_ecore_x_mouse_down_info_list = NULL;
 
+#ifdef ECORE_XKB
+static Eina_Hash *emitted_events = NULL;
+#endif
+
 static void
 _ecore_x_mouse_down_info_clear(void)
 {
@@ -58,12 +62,18 @@ void
 _ecore_x_events_init(void)
 {
    //Actually, Nothing to do.
+#ifdef ECORE_XKB
+   emitted_events = eina_hash_int64_new(NULL);
+#endif
 }
 
 void
 _ecore_x_events_shutdown(void)
 {
    _ecore_x_mouse_down_info_clear();
+#ifdef ECORE_XKB
+   eina_hash_free(emitted_events);
+#endif
 }
 
 static Ecore_X_Mouse_Down_Info *
@@ -334,6 +344,7 @@ _ecore_key_press(int event,
    KeySym sym;
    XComposeStatus status;
    int val;
+   int key_len, keyname_len, compose_len;
 
    _ecore_x_last_event_mouse_move = 0;
    keyname = XKeysymToString(_ecore_x_XKeycodeToKeysym(xevent->display,
@@ -370,14 +381,18 @@ _ecore_key_press(int event,
    if (!key)
      key = keyname;
 
-   e = calloc(1, sizeof(Ecore_Event_Key) + strlen(key) + strlen(keyname) +
-              (compose ? strlen(compose) : 0) + 3);
+   key_len = strlen(key);
+   keyname_len = strlen(keyname);
+   compose_len = (compose) ? strlen(compose) : 0;
+
+   e = calloc(1, sizeof(Ecore_Event_Key) + key_len + keyname_len +
+              compose_len + 3);
    if (!e)
      goto on_error;
 
    e->keyname = (char *)(e + 1);
-   e->key = e->keyname + strlen(keyname) + 1;
-   e->compose = (compose) ? e->key + strlen(key) + 1 : NULL;
+   e->key = e->keyname + keyname_len + 1;
+   e->compose = (compose) ? e->key + key_len + 1 : NULL;
    e->string = e->compose;
 
    strcpy((char *)e->keyname, keyname);
@@ -1360,14 +1375,15 @@ _ecore_x_event_handle_property_notify(XEvent *xevent)
 void
 _ecore_x_event_handle_selection_clear(XEvent *xevent)
 {
-//   Ecore_X_Selection_Intern *d;
+   Ecore_X_Selection_Intern *d;
    Ecore_X_Event_Selection_Clear *e;
    Ecore_X_Atom sel;
 
    LOGFN(__FILE__, __LINE__, __FUNCTION__);
    _ecore_x_last_event_mouse_move = 0;
-/* errr..... why? paranoia.
    d = _ecore_x_selection_get(xevent->xselectionclear.selection);
+   if (d && (xevent->xselectionclear.time <= d->time)) return;
+/* errr..... why? paranoia.
    if (d && (xevent->xselectionclear.time > d->time))
      {
         _ecore_x_selection_set(None, NULL, 0,
@@ -2602,22 +2618,40 @@ _ecore_x_event_handle_gesture_notify_group(XEvent *xevent)
 
 #endif /* ifdef ECORE_XGESTURE */
 #ifdef ECORE_XKB
+
+void
+free_hash(void *userdata EINA_UNUSED, void *funcdata EINA_UNUSED)
+{
+   eina_hash_del_by_data(emitted_events, (void*) 1);
+}
+
 void
 _ecore_x_event_handle_xkb(XEvent *xevent)
 {
    XkbEvent *xkbev;
-   Ecore_X_Event_Xkb *e;
-   
+
    xkbev = (XkbEvent *) xevent;
-   e = calloc(1, sizeof(Ecore_X_Event_Xkb));
-   if (!e)
-     return;
-   e->group = xkbev->state.group;
+
+
    if (xkbev->any.xkb_type == XkbStateNotify)
-     ecore_event_add(ECORE_X_EVENT_XKB_STATE_NOTIFY, e, NULL, NULL);
+     {
+        Ecore_X_Event_Xkb *e;
+
+        if (eina_hash_find(emitted_events, &xkbev->state.serial)) return;
+
+        e = calloc(1, sizeof(Ecore_X_Event_Xkb));
+        if (!e)
+          return;
+
+        e->group = xkbev->state.group;
+        ecore_event_add(ECORE_X_EVENT_XKB_STATE_NOTIFY, e, free_hash, NULL);
+        eina_hash_add(emitted_events, &xkbev->state.serial, (void*) 1);
+     }
    else if ((xkbev->any.xkb_type == XkbNewKeyboardNotify) ||
             (xkbev->any.xkb_type == XkbMapNotify))
      {
+        if (eina_hash_find(emitted_events, &xkbev->state.serial)) return;
+
         if (xkbev->any.xkb_type == XkbMapNotify)
           {
              XkbMapNotifyEvent *xkbmapping;
@@ -2625,7 +2659,8 @@ _ecore_x_event_handle_xkb(XEvent *xevent)
              xkbmapping = (XkbMapNotifyEvent *)xkbev;
              XkbRefreshKeyboardMapping(xkbmapping);
           }
-        ecore_event_add(ECORE_X_EVENT_XKB_NEWKBD_NOTIFY, e, NULL, NULL);
+        ecore_event_add(ECORE_X_EVENT_XKB_NEWKBD_NOTIFY, NULL, free_hash, NULL);
+        eina_hash_add(emitted_events, &xkbev->new_kbd.serial, (void*) 1);
      }
 }
 #endif /* ifdef ECORE_XKB */

@@ -94,6 +94,8 @@ lib/eina/eina_inline_crc.x \
 lib/eina/eina_evlog.h \
 lib/eina/eina_util.h \
 lib/eina/eina_quaternion.h \
+lib/eina/eina_vector.h \
+lib/eina/eina_inline_vector.x \
 lib/eina/eina_bezier.h
 
 lib_eina_libeina_la_SOURCES = \
@@ -241,8 +243,8 @@ lib_eina_libeina_la_CPPFLAGS = -I$(top_builddir)/src/lib/efl \
 -DPACKAGE_DATA_DIR=\"$(datadir)/eina\" \
 @VALGRIND_CFLAGS@
 
-lib_eina_libeina_la_LIBADD = @EINA_LIBS@ @DL_LIBS@ @UNWIND_LIBS@
-lib_eina_libeina_la_DEPENDENCIES = @EINA_INTERNAL_LIBS@ @DL_INTERNAL_LIBS@
+lib_eina_libeina_la_LIBADD = @EINA_LIBS@ @UNWIND_LIBS@
+lib_eina_libeina_la_DEPENDENCIES = @EINA_INTERNAL_LIBS@
 lib_eina_libeina_la_LDFLAGS = @EFL_LTLIBRARY_FLAGS@
 
 ### Binaries
@@ -319,6 +321,7 @@ tests/eina/eina_test_crc.c \
 tests/eina/eina_test_quad.c \
 tests/eina/eina_test_matrix.c \
 tests/eina/eina_test_quaternion.c \
+tests/eina/eina_test_vector.c \
 tests/eina/eina_test_bezier.c
 
 tests_eina_eina_suite_CPPFLAGS = -I$(top_builddir)/src/lib/efl \

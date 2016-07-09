@@ -47,6 +47,7 @@ EAPI void         evgl_engine_shutdown(void *eng_data);
 EAPI void        *evgl_native_surface_buffer_get(EVGL_Surface *sfc, Eina_Bool *is_egl_image);
 EAPI int          evgl_native_surface_yinvert_get(EVGL_Surface *sfc);
 EAPI void        *evgl_current_native_context_get(EVGL_Context *ctx);
+EAPI void         evas_gl_common_context_restore_set(Eina_Bool);
 
 typedef void (*EVGL_Engine_Call)(void *eng_data);
 typedef void *(*EVGL_Native_Surface_Call)(void *sfc, Eina_Bool *is_egl_image);
@@ -64,7 +65,7 @@ int          evgl_make_current(void *eng_data, EVGL_Surface *sfc, EVGL_Context *
 
 const char  *evgl_string_query(int name);
 int          evgl_native_surface_get(EVGL_Surface *sfc, Evas_Native_Surface *ns);
-Evas_GL_API *evgl_api_get(void *eng_data, Evas_GL_Context_Version version);
+Evas_GL_API *evgl_api_get(void *eng_data, Evas_GL_Context_Version version, Eina_Bool alloc_only);
 void         evgl_safe_extension_add(const char *name, void *funcptr);
 Eina_Bool    evgl_safe_extension_get(const char *name, void **pfuncptr);
 
@@ -84,9 +85,9 @@ Eina_Bool    evgl_native_surface_direct_opts_get(Evas_Native_Surface *ns,
                                                  Eina_Bool *direct_override);
 
 void         evgl_direct_partial_info_set(int pres);
-void         evgl_direct_partial_info_clear();
-void         evgl_direct_partial_render_start();
-void         evgl_direct_partial_render_end();
+void         evgl_direct_partial_info_clear(void);
+void         evgl_direct_partial_render_start(void);
+void         evgl_direct_partial_render_end(void);
 
 #undef EAPI
 #define EAPI

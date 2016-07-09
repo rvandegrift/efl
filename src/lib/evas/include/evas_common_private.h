@@ -55,7 +55,6 @@
 # include <Eet.h>
 #endif
 #include "Evas.h"
-//#include "Evas_GL.h"
 
 #ifdef EAPI
 # undef EAPI
@@ -90,6 +89,9 @@
 */
 #define lround(x) (((x) < 0) ? (long int)ceil((x) - 0.5) : (long int)floor((x) + 0.5))
 #endif
+
+/*macro to be used in eet loader/saver*/
+#define EVAS_CANVAS3D_FILE_CACHE_FILE_ENTRY "evas_3d file"
 
 /* macros needed to log message through eina_log */
 extern EAPI int _evas_log_dom_global;
@@ -457,7 +459,6 @@ typedef void (*RGBA_Gfx_Pt_Func) (DATA32 src, DATA8 mask, DATA32 col, DATA32 *ds
 typedef void (*Gfx_Func_Copy)    (DATA32 *src, DATA32 *dst, int len);
 
 typedef void (*Gfx_Func_Convert) (DATA32 *src, DATA8 *dst, int src_jump, int dst_jump, int w, int h, int dith_x, int dith_y, DATA8 *pal);
-typedef void (*Alpha_Gfx_Func)   (DATA8 *src, DATA8 *dst, int len);
 
 typedef void (*Evas_Render_Done_Cb)(void *);
 
@@ -566,6 +567,7 @@ struct _Image_Entry_Flags
 
    Eina_Bool updated_data  : 1;
    Eina_Bool flipped       : 1;
+   Eina_Bool textured      : 1;
 };
 
 struct _Image_Entry_Frame
@@ -1159,6 +1161,7 @@ struct _Convert_Pal
 /*****************************************************************************/
 #include "evas_macros.h"
 
+#ifndef A_VAL
 #ifndef WORDS_BIGENDIAN
 /* x86 */
 #define A_VAL(p) (((DATA8 *)(p))[3])
@@ -1175,6 +1178,7 @@ struct _Convert_Pal
 #define B_VAL(p) (((DATA8 *)(p))[3])
 #define AR_VAL(p) ((DATA16 *)(p)[0])
 #define GB_VAL(p) ((DATA16 *)(p)[1])
+#endif
 #endif
 
 #define RGB_JOIN(r,g,b) \

@@ -642,6 +642,35 @@ EAPI void eina_strbuf_ltrim(Eina_Strbuf *buf) EINA_ARG_NONNULL(1);
 EAPI void eina_strbuf_rtrim(Eina_Strbuf *buf) EINA_ARG_NONNULL(1);
 
 /**
+ * @brief Convert the string to lower case.
+ *
+ * @param buf the string buffer to work with.
+ *
+ * This function converts all the characters in the strbuf to lower case.
+ *
+ * @since 1.17
+ */
+EAPI void eina_strbuf_tolower(Eina_Strbuf *buf) EINA_ARG_NONNULL(1);
+
+/**
+ * @brief Obtain substring from the src.
+ *
+ * @param buf the src string.
+ * @param pos the position in the source string from which the substring
+ *            should be created. The first character is denoted by a
+ *            value of 0 (not 1).
+ * @param len the length from pos that should be copied to substring.
+ *
+ * This function creates a Eina_Strbuf which is a substring of buf which
+ * is passed from pos position with len length.
+ * If buf is NULL then returns NULL.
+ * If len is 0, then an empty strbuf is returned.
+ *
+ * @since 1.17
+ */
+EAPI Eina_Strbuf * eina_strbuf_substr_get(Eina_Strbuf *buf, size_t pos, size_t len) EINA_MALLOC EINA_WARN_UNUSED_RESULT;
+
+/**
  * @}
  */
 

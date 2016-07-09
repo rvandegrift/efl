@@ -35,8 +35,8 @@ int new_dir = 1;
 
 int        decomp(void);
 void       output(void);
-static int compiler_cmd_is_sane();
-static int root_filename_is_sane();
+static int compiler_cmd_is_sane(void);
+static int root_filename_is_sane(void);
 
 
 static void
@@ -336,7 +336,7 @@ output(void)
 		    }
 		  ecore_file_mkpath(pp);
 		  free(pp);
-		  if (!evas_object_image_save(im, out, NULL, "quality=100 compress=9"))
+                  if (!evas_object_image_save(im, out, NULL, "quality=100 compress=9 encoding=auto"))
 		    {
 		       ERR("Cannot write file %s. Perhaps missing JPEG or PNG saver modules for Evas.", out);
 		       exit(-1);

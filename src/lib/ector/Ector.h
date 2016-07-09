@@ -114,16 +114,6 @@ typedef Eo Ector_Renderer;
 /* typedef Evas_Colorspace Ector_Colorspace; */
 
 /**
- * Raster operations at pixel level
- */
-typedef enum _Ector_Rop
-{
-  ECTOR_ROP_BLEND, /**< D = S + D(1 - Sa) */
-  ECTOR_ROP_COPY, /**< D = S */
-  ECTOR_ROP_LAST
-} Ector_Rop;
-
-/**
  * Quality values
  */
 typedef enum _Ector_Quality
@@ -171,6 +161,8 @@ EAPI int ector_init(void);
  * @see ector_init()
  */
 EAPI int ector_shutdown(void);
+
+EAPI Eina_Bool ector_glsym_set(void *(*glsym)(void *lib, const char *name), void *lib);
 
 #include "ector_surface.h"
 #include "ector_renderer.h"

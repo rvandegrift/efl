@@ -154,7 +154,12 @@ efreet_desktop_get(const char *file)
 
     desktop = efreet_desktop_new(file);
     if (!desktop) return NULL;
-
+    return desktop;
+   // this is wrong - start monitoring every/any dir in which a desktop file
+   // exists that we load a desktop file from. imagine you browse directories
+   // in efm with lots of desktop files in them - we end up monitoring lots
+   // of directories that we then rememebr and don't un-monitor.
+#if 0
     /* If we didn't find this file in the eet cache, add path to search path */
     if (!desktop->eet)
     {
@@ -185,6 +190,7 @@ efreet_desktop_get(const char *file)
         }
     }
     return desktop;
+#endif
 }
 
 EAPI int
@@ -509,6 +515,7 @@ efreet_desktop_x_field_set(Efreet_Desktop *desktop, const char *key, const char 
 {
     EINA_SAFETY_ON_NULL_RETURN_VAL(desktop, EINA_FALSE);
     EINA_SAFETY_ON_TRUE_RETURN_VAL(strncmp(key, "X-", 2), EINA_FALSE);
+    EINA_SAFETY_ON_TRUE_RETURN_VAL(data && (!data[0]), EINA_FALSE);
 
     eina_lock_take(&_lock);
     if (!desktop->x)
@@ -530,11 +537,18 @@ efreet_desktop_x_field_get(Efreet_Desktop *desktop, const char *key)
     EINA_SAFETY_ON_NULL_RETURN_VAL(desktop->x, NULL);
     EINA_SAFETY_ON_TRUE_RETURN_VAL(strncmp(key, "X-", 2), NULL);
 
+    eina_lock_take(&_lock);
     ret = eina_hash_find(desktop->x, key);
-    if (!ret)
-        return NULL;
+    ret = eina_stringshare_add(ret);
+    eina_lock_release(&_lock);
+    if (ret && (!ret[0]))
+      {
+         /* invalid null key somehow accepted; remove */
+         efreet_desktop_x_field_del(desktop, key);
+         eina_stringshare_replace(&ret, NULL);
+      }
 
-    return eina_stringshare_add(ret);
+    return ret;
 }
 
 EAPI Eina_Bool

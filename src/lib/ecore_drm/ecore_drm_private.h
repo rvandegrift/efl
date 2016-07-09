@@ -24,7 +24,6 @@
 # include <linux/major.h>
 # include <linux/input.h>
 # include <libinput.h>
-# include <xkbcommon/xkbcommon.h>
 
 # ifdef HAVE_SYSTEMD
 #  include <systemd/sd-login.h>
@@ -69,6 +68,8 @@
 # endif
 
 extern int _ecore_drm_log_dom;
+struct xkb_keymap *cached_keymap;
+struct xkb_context *cached_context;
 
 # define EVDEV_MAX_SLOTS 32
 
@@ -153,6 +154,11 @@ struct _Ecore_Drm_Seat
    const char *name;
    Ecore_Drm_Input *input;
    Eina_List *devices;
+   struct
+     {
+        int ix, iy;
+        double dx, dy;
+     } ptr;
 };
 
 struct _Ecore_Drm_Input
@@ -220,6 +226,9 @@ struct _Ecore_Drm_Evdev
         unsigned int depressed, latched, locked, group;
      } xkb;
 
+   Eina_Hash *key_remap_hash;
+   Eina_Bool key_remap_enabled : 1;
+
    /* Ecore_Drm_Evdev_Capabilities caps; */
    Ecore_Drm_Seat_Capabilities seat_caps;
 };
@@ -254,6 +263,7 @@ void _ecore_drm_launcher_device_close(const char *device, int fd);
 int _ecore_drm_launcher_device_flags_set(int fd, int flags);
 
 Eina_Bool _ecore_drm_tty_switch(Ecore_Drm_Device *dev, int activate_vt);
+void _ecore_drm_tty_restore(Ecore_Drm_Device *dev);
 
 Ecore_Drm_Evdev *_ecore_drm_evdev_device_create(Ecore_Drm_Seat *seat, struct libinput_device *device);
 void _ecore_drm_evdev_device_destroy(Ecore_Drm_Evdev *evdev);
@@ -283,5 +293,11 @@ int _ecore_drm_dbus_device_take_no_pending(uint32_t major, uint32_t minor, Eina_
 void _ecore_drm_dbus_device_release(uint32_t major, uint32_t minor);
 Eina_Bool _ecore_drm_dbus_session_take(void);
 Eina_Bool _ecore_drm_dbus_session_release(void);
+
+void _ecore_drm_inputs_init(void);
+void _ecore_drm_inputs_shutdown(void);
+
+struct xkb_context *_ecore_drm_device_cached_context_get(enum xkb_context_flags flags);
+struct xkb_keymap *_ecore_drm_device_cached_keymap_get(struct xkb_context *ctx, const struct xkb_rule_names *names, enum xkb_keymap_compile_flags flags);
 
 #endif

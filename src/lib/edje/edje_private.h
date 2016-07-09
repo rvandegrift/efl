@@ -384,7 +384,6 @@ typedef struct _Edje_Calc_Params_Map Edje_Calc_Params_Map;
 typedef struct _Edje_Calc_Params_Physics Edje_Calc_Params_Physics;
 typedef struct _Edje_Pending_Program Edje_Pending_Program;
 typedef struct _Edje_Text_Style Edje_Text_Style;
-typedef struct _Edje_Text_Class Edje_Text_Class;
 typedef struct _Edje_Var Edje_Var;
 typedef struct _Edje_Var_Int Edje_Var_Int;
 typedef struct _Edje_Var_Float Edje_Var_Float;
@@ -542,6 +541,12 @@ struct _Edje_File
 
    Eina_List                      *color_classes;
    Eina_Hash                      *color_hash;
+
+   Eina_List                      *text_classes;
+   Eina_Hash                      *text_hash;
+
+   Eina_List                      *size_classes;
+   Eina_Hash                      *size_hash;
 
    int                             references;
    const char                     *compiler;
@@ -745,6 +750,7 @@ struct _Edje_Program /* a conditional program to be run */
 
    const char *signal; /* if signal emission name matches the glob here... */
    const char *source; /* if part that emitted this (name) matches this glob */
+   int source_3d_id; /* id of real 3D part */
    const char *sample_name;
    const char *tone_name;
    double duration;
@@ -1199,6 +1205,8 @@ struct _Edje_Part_Description_Common
 
    int        clip_to_id; /* state clip override @since 1.15 */
 
+   const char       *size_class;
+
    struct {
       FLOAT_T        relative_x;
       FLOAT_T        relative_y;
@@ -1398,14 +1406,15 @@ struct _Edje_Part_Description_Spec_Table
 struct _Edje_Part_Description_Spec_Mesh_Node
 {
    struct {
-      Edje_Part_Image_Id      **tweens;
-      unsigned int            tweens_count;
-      int                     id;
+      Edje_Part_Image_Id            **tweens;
+      unsigned int                  tweens_count;
+      int                           id;
 
-      Eina_Bool               set;
+      Eina_Bool                     set;
 
       Evas_Canvas3D_Mesh_Primitive  primitive;
       Evas_Canvas3D_Vertex_Assembly assembly;
+      int                           frame;
    } mesh;
 
    struct {
@@ -1442,6 +1451,8 @@ struct _Edje_Part_Description_Spec_Mesh_Node
       FLOAT_T                            data[6];
       int                                look_to; /* -1 = whole part collection, or part ID */
    } orientation;
+
+   Edje_3D_Vec            scale_3d;
 
    struct {
       Edje_3D_Vec   point;
@@ -1585,7 +1596,8 @@ struct _Edje
    Eina_List            *actions; /* currently running actions */
    Eina_List            *pending_actions;
    Eina_Hash            *color_classes;
-   Eina_List            *text_classes;
+   Eina_Hash            *text_classes;
+   Eina_Hash            *size_classes;
    /* variable pool for Edje Embryo scripts */
    Edje_Var_Pool        *var_pool;
    /* for faster lookups to avoid nth list walks */
@@ -1764,6 +1776,12 @@ struct _Edje_Calc_Params
 	 int            size; // 4
 	 Edje_Color     color2, color3; // 8
       } text; // 36
+      struct {
+	 int            frame; //4
+	 FLOAT_T        data[6];
+         Edje_3D_Vec    point;
+         Edje_3D_Vec    scale_3d;
+      } node; // 4
    } type; // 40
    const Edje_Calc_Params_Map *map; // 88
 #ifdef HAVE_EPHYSICS
@@ -1960,13 +1978,6 @@ struct _Edje_Text_Style
       signed   char x, y; /* offset */
       unsigned char alpha;
    } members[32];
-};
-
-struct _Edje_Text_Class
-{
-   const char     *name;
-   const char     *font;
-   Evas_Font_Size  size;
 };
 
 struct _Edje_Var_Int
@@ -2361,6 +2372,12 @@ void              _edje_text_class_member_del(Edje *ed, const char *text_class);
 void              _edje_text_class_members_free(void);
 void              _edje_text_class_hash_free(void);
 void              _edje_text_class_members_clean(Edje *ed);
+Edje_Size_Class  *_edje_size_class_find(Edje *ed, const char *size_class);
+void              _edje_size_class_member_add(Edje *ed, const char *size_class);
+void              _edje_size_class_member_del(Edje *ed, const char *size_class);
+void              _edje_size_class_members_free(void);
+void              _edje_size_class_hash_free(void);
+void              _edje_size_class_members_clean(Edje *ed);
 Edje             *_edje_fetch(const Evas_Object *obj) EINA_PURE;
 int               _edje_util_freeze(Edje *ed);
 int               _edje_util_thaw(Edje *ed);
@@ -2402,7 +2419,7 @@ char             *_edje_text_unescape(const char *text);
 void          _edje_embryo_script_init      (Edje_Part_Collection *edc);
 void          _edje_embryo_script_shutdown  (Edje_Part_Collection *edc);
 void          _edje_embryo_script_reset     (Edje *ed);
-void          _edje_embryo_test_run         (Edje *ed, const char *fname, const char *sig, const char *src);
+void          _edje_embryo_test_run         (Edje *ed, Edje_Program *pr, const char *sig, const char *src);
 Edje_Var     *_edje_var_new                 (void);
 void          _edje_var_free                (Edje_Var *var);
 void          _edje_var_init                (Edje *ed);

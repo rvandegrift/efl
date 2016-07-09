@@ -18,6 +18,9 @@ static Eina_Hash *_edje_color_class_member_hash = NULL;
 static Eina_Hash *_edje_text_class_hash = NULL;
 static Eina_Hash *_edje_text_class_member_hash = NULL;
 
+static Eina_Hash *_edje_size_class_hash = NULL;
+static Eina_Hash *_edje_size_class_member_hash = NULL;
+
 static Eina_Rbtree *_edje_box_layout_registry = NULL;
 
 char *_edje_fontset_append = NULL;
@@ -47,6 +50,7 @@ struct _Edje_Refcount
 
 static Eina_Bool _edje_color_class_list_foreach(const Eina_Hash *hash, const void *key, void *data, void *fdata);
 static Eina_Bool _edje_text_class_list_foreach(const Eina_Hash *hash, const void *key, void *data, void *fdata);
+static Eina_Bool _edje_size_class_list_foreach(const Eina_Hash *hash, const void *key, void *data, void *fdata);
 static void      _edje_object_image_preload_cb(void *data, Evas *e, Evas_Object *obj, void *event_info);
 static void      _edje_object_signal_preload_cb(void *data, Evas_Object *obj, const char *emission, const char *source);
 static void      _edje_user_def_del_cb(void *data, Evas *e EINA_UNUSED, Evas_Object *child EINA_UNUSED, void *einfo EINA_UNUSED);
@@ -717,7 +721,7 @@ edje_color_class_get(const char *color_class, int *r, int *g, int *b, int *a, in
      }
 }
 
-void
+EAPI void
 edje_color_class_del(const char *color_class)
 {
    Edje_Color_Class *cc;
@@ -985,16 +989,13 @@ _edje_object_color_class_description_get(Eo *obj EINA_UNUSED, Edje *ed, const ch
    return cc ? cc->desc : NULL;
 }
 
-void
-edje_object_color_class_del(Evas_Object *obj, const char *color_class)
+EOLIAN void
+_edje_object_color_class_del(Eo *obj EINA_UNUSED, Edje *ed, const char *color_class)
 {
-   Edje *ed;
    Edje_Color_Class *cc = NULL;
    unsigned int i;
 
-   ed = _edje_fetch(obj);
-
-   if ((!ed) || (!color_class)) return;
+   if (!color_class) return;
 
    eina_hash_del(ed->color_classes, color_class, cc);
 
@@ -1017,6 +1018,52 @@ edje_object_color_class_del(Evas_Object *obj, const char *color_class)
 #endif
    _edje_recalc(ed);
    _edje_emit(ed, "color_class,del", color_class);
+}
+
+EOLIAN Eina_Bool
+_edje_object_color_class_clear(const Eo *obj EINA_UNUSED, Edje *ed)
+{
+   Edje_List_Foreach_Data fdata;
+   Edje_Color_Class *cc = NULL;
+   Eina_List *l;
+   char *color_class;
+   unsigned int i;
+   Eina_Bool int_ret = EINA_TRUE;
+
+   if (!ed) return EINA_FALSE;
+
+   memset(&fdata, 0, sizeof(Edje_List_Foreach_Data));
+   eina_hash_foreach(ed->color_classes, _edje_color_class_list_foreach, &fdata);
+
+   EINA_LIST_FOREACH(fdata.list, l, color_class)
+     eina_hash_del(ed->color_classes, color_class, cc);
+
+   for (i = 0; i < ed->table_parts_size; i++)
+     {
+        Edje_Real_Part *rp;
+
+        rp = ed->table_parts[i];
+        if ((rp->part->type == EDJE_PART_TYPE_GROUP) &&
+            ((rp->type == EDJE_RP_TYPE_SWALLOW) &&
+             (rp->typedata.swallow)) &&
+            (rp->typedata.swallow->swallowed_object))
+          int_ret &= edje_object_color_class_clear(rp->typedata.swallow->swallowed_object);
+     }
+
+   ed->dirty = EINA_TRUE;
+   ed->recalc_call = EINA_TRUE;
+#ifdef EDJE_CALC_CACHE
+   ed->all_part_change = EINA_TRUE;
+#endif
+   _edje_recalc(ed);
+
+   EINA_LIST_FREE(fdata.list, color_class)
+     {
+        _edje_emit(ed, "color_class,del", color_class);
+        free(color_class);
+     }
+
+   return int_ret;
 }
 
 typedef struct _Edje_File_Color_Class_Iterator Edje_File_Color_Class_Iterator;
@@ -1176,7 +1223,7 @@ edje_text_class_get(const char *text_class, const char **font, Evas_Font_Size *s
    return EINA_TRUE;
 }
 
-void
+EAPI void
 edje_text_class_del(const char *text_class)
 {
    Edje_Text_Class *tc;
@@ -1221,6 +1268,83 @@ edje_text_class_list(void)
    return fdata.list;
 }
 
+typedef struct _Edje_Active_Text_Class_Iterator Edje_Active_Text_Class_Iterator;
+struct _Edje_Active_Text_Class_Iterator
+{
+   Eina_Iterator    iterator;
+   Edje_Text_Class  tc;
+   Eina_Iterator   *classes;
+};
+
+static Eina_Bool
+_edje_text_class_active_iterator_next(Eina_Iterator *it, void **data)
+{
+   Edje_Active_Text_Class_Iterator *et = (void *)it;
+   Eina_Hash_Tuple *tuple = NULL;
+   Edje_Refcount *er = NULL;
+   Eina_Iterator *ith;
+   Edje_Text_Class *tc;
+   Eina_Bool r = EINA_FALSE;
+
+   if (!eina_iterator_next(et->classes, (void **)&tuple)) return EINA_FALSE;
+   if (!tuple) return EINA_FALSE;
+
+   ith = eina_hash_iterator_data_new(tuple->data);
+   if (!eina_iterator_next(ith, (void **)&er)) goto on_error;
+
+   /*
+      We actually need to ask on an object to get the correct value.
+      It is being assumed that the size key are the same for all object here.
+      This can some times not be the case, but for now we should be fine.
+    */
+   tc = _edje_text_class_find(er->ed, tuple->key);
+   if (!tc) goto on_error;
+   et->tc = *tc;
+
+   *data = &et->tc;
+   r = EINA_TRUE;
+
+ on_error:
+   eina_iterator_free(ith);
+   return r;
+}
+
+static void *
+_edje_text_class_active_iterator_container(Eina_Iterator *it EINA_UNUSED)
+{
+   return NULL;
+}
+
+static void
+_edje_text_class_active_iterator_free(Eina_Iterator *it)
+{
+   Edje_Active_Text_Class_Iterator *et = (void *)it;
+
+   eina_iterator_free(et->classes);
+   EINA_MAGIC_SET(&et->iterator, 0);
+   free(et);
+}
+
+EAPI Eina_Iterator *
+edje_text_class_active_iterator_new(void)
+{
+   Edje_Active_Text_Class_Iterator *it;
+
+   if (!_edje_text_class_member_hash) return NULL;
+   it = calloc(1, sizeof (Edje_Active_Text_Class_Iterator));
+   if (!it) return NULL;
+
+   EINA_MAGIC_SET(&it->iterator, EINA_MAGIC_ITERATOR);
+   it->classes = eina_hash_iterator_tuple_new(_edje_text_class_member_hash);
+
+   it->iterator.version = EINA_ITERATOR_VERSION;
+   it->iterator.next = _edje_text_class_active_iterator_next;
+   it->iterator.get_container = _edje_text_class_active_iterator_container;
+   it->iterator.free = _edje_text_class_active_iterator_free;
+
+   return &it->iterator;
+}
+
 static Eina_Bool
 _edje_text_class_list_foreach(const Eina_Hash *hash EINA_UNUSED, const void *key, void *data EINA_UNUSED, void *fdata)
 {
@@ -1234,14 +1358,15 @@ _edje_text_class_list_foreach(const Eina_Hash *hash EINA_UNUSED, const void *key
 EOLIAN Eina_Bool
 _edje_object_text_class_set(Eo *obj EINA_UNUSED, Edje *ed, const char *text_class, const char *font, Evas_Font_Size size)
 {
-   Eina_List *l;
    Edje_Text_Class *tc = NULL;
    unsigned int i;
 
    if ((!ed) || (!text_class)) return EINA_FALSE;
 
+   tc = eina_hash_find(ed->text_classes, text_class);
+
    /* for each text_class in the edje */
-   EINA_LIST_FOREACH(ed->text_classes, l, tc)
+   if (tc)
      {
         if ((tc->name) && (!strcmp(tc->name, text_class)))
           {
@@ -1256,7 +1381,6 @@ _edje_object_text_class_set(Eo *obj EINA_UNUSED, Edje *ed, const char *text_clas
              /* Update new text class properties */
              eina_stringshare_replace(&tc->font, font);
              tc->size = size;
-             break;
           }
      }
 
@@ -1274,7 +1398,7 @@ _edje_object_text_class_set(Eo *obj EINA_UNUSED, Edje *ed, const char *text_clas
         tc->font = eina_stringshare_add(font);
         tc->size = size;
         /* Add to edje's text class list */
-        ed->text_classes = eina_list_append(ed->text_classes, tc);
+        eina_hash_direct_add(ed->text_classes, tc->name, tc);
      }
 
    for (i = 0; i < ed->table_parts_size; i++)
@@ -1321,6 +1445,525 @@ _edje_object_text_class_get(Eo *obj EINA_UNUSED, Edje *ed, const char *text_clas
      }
    return EINA_TRUE;
 }
+
+EOLIAN void
+_edje_object_text_class_del(Eo *obj EINA_UNUSED, Edje *ed, const char *text_class)
+{
+   Edje_Text_Class *tc = NULL;
+   unsigned int i;
+
+   if (!text_class) return;
+
+   eina_hash_del(ed->text_classes, text_class, tc);
+
+   for (i = 0; i < ed->table_parts_size; i++)
+     {
+        Edje_Real_Part *rp;
+
+        rp = ed->table_parts[i];
+        if ((rp->part->type == EDJE_PART_TYPE_GROUP) &&
+            ((rp->type == EDJE_RP_TYPE_SWALLOW) &&
+             (rp->typedata.swallow)) &&
+            (rp->typedata.swallow->swallowed_object))
+          edje_object_text_class_del(rp->typedata.swallow->swallowed_object, text_class);
+     }
+
+   ed->dirty = EINA_TRUE;
+   ed->recalc_call = EINA_TRUE;
+#ifdef EDJE_CALC_CACHE
+   ed->text_part_change = EINA_TRUE;
+#endif
+   _edje_textblock_styles_cache_free(ed, text_class);
+   _edje_textblock_style_all_update(ed);
+   _edje_recalc(ed);
+}
+
+typedef struct _Edje_File_Text_Class_Iterator Edje_File_Text_Class_Iterator;
+struct _Edje_File_Text_Class_Iterator
+{
+   Edje_Active_Text_Class_Iterator it;
+
+   Edje_File                       *edf;
+};
+
+static Eina_Bool
+_edje_mmap_text_class_iterator_next(Eina_Iterator *it, void **data)
+{
+   Edje_File_Text_Class_Iterator *et = (void *)it;
+   Eina_Hash_Tuple *tuple = NULL;
+   Edje_Text_Class *tc = NULL;
+
+   if (!eina_iterator_next(et->it.classes, (void **)&tuple)) return EINA_FALSE;
+   if (!tuple) return EINA_FALSE;
+
+   tc = tuple->data;
+
+   et->it.tc = *tc;
+
+   *data = &et->it.tc;
+   return EINA_TRUE;
+}
+
+static void *
+_edje_mmap_text_class_iterator_container(Eina_Iterator *it)
+{
+   Edje_File_Text_Class_Iterator *et = (void *)it;
+
+   return et->edf->f;
+}
+
+static void
+_edje_mmap_text_class_iterator_free(Eina_Iterator *it)
+{
+   Edje_File_Text_Class_Iterator *et = (void *)it;
+
+   eina_iterator_free(et->it.classes);
+   _edje_cache_file_unref(et->edf);
+   EINA_MAGIC_SET(&et->it.iterator, 0);
+   free(et);
+}
+
+EAPI Eina_Iterator *
+edje_mmap_text_class_iterator_new(Eina_File *f)
+{
+   Edje_File_Text_Class_Iterator *it;
+   Edje_File *edf;
+   int error_ret;
+
+   edf = _edje_cache_file_coll_open(f, NULL, &error_ret, NULL, NULL);
+   if (!edf) return NULL;
+
+   it = calloc(1, sizeof (Edje_File_Text_Class_Iterator));
+   if (!it) goto on_error;
+
+   EINA_MAGIC_SET(&it->it.iterator, EINA_MAGIC_ITERATOR);
+   it->edf = edf;
+   it->it.classes = eina_hash_iterator_tuple_new(edf->text_hash);
+
+   it->it.iterator.version = EINA_ITERATOR_VERSION;
+   it->it.iterator.next = _edje_mmap_text_class_iterator_next;
+   it->it.iterator.get_container = _edje_mmap_text_class_iterator_container;
+   it->it.iterator.free = _edje_mmap_text_class_iterator_free;
+
+   return &it->it.iterator;
+
+on_error:
+   _edje_cache_file_unref(edf);
+   return NULL;
+}
+
+EAPI Eina_Bool
+edje_size_class_set(const char *size_class, Evas_Coord minw, Evas_Coord minh, Evas_Coord maxw, Evas_Coord maxh)
+{
+   Eina_Hash *members;
+   Eina_Iterator *it;
+   Edje_Refcount *er;
+   Edje_Size_Class *sc;
+
+   if (!size_class) return EINA_FALSE;
+
+   sc = eina_hash_find(_edje_size_class_hash, size_class);
+   /* Create new size class */
+   if (!sc)
+     {
+        sc = calloc(1, sizeof(Edje_Size_Class));
+        if (!sc) return EINA_FALSE;
+        sc->name = eina_stringshare_add(size_class);
+        if (!sc->name)
+          {
+             free(sc);
+             return EINA_FALSE;
+          }
+        if (!_edje_size_class_hash) _edje_size_class_hash = eina_hash_string_superfast_new(NULL);
+        eina_hash_add(_edje_size_class_hash, size_class, sc);
+
+        sc->minw = minw;
+        sc->minh = minh;
+        sc->maxw = maxw;
+        sc->maxh = maxh;
+     }
+   else
+     {
+        /* Match and the same, return */
+        if ((sc->minw == minw) && (sc->minh == minh) &&
+            (sc->maxw == maxw) && (sc->maxh == maxh))
+          return EINA_TRUE;
+
+        /* Update the class found */
+        sc->minw = minw;
+        sc->minh = minh;
+        sc->maxw = maxw;
+        sc->maxh = maxh;
+     }
+
+   /* Tell all members of the size class to recalc */
+   members = eina_hash_find(_edje_size_class_member_hash, size_class);
+   it = eina_hash_iterator_data_new(members);
+   EINA_ITERATOR_FOREACH(it, er)
+     {
+        er->ed->dirty = EINA_TRUE;
+        er->ed->recalc_call = EINA_TRUE;
+#ifdef EDJE_CALC_CACHE
+        er->ed->all_part_change = EINA_TRUE;
+#endif
+        _edje_recalc(er->ed);
+     }
+   eina_iterator_free(it);
+   return EINA_TRUE;
+}
+
+EAPI Eina_Bool
+edje_size_class_get(const char *size_class, Evas_Coord *minw, Evas_Coord *minh, Evas_Coord *maxw, Evas_Coord *maxh)
+{
+   Edje_Size_Class *sc;
+
+   if (!size_class) return EINA_FALSE;
+
+   sc = eina_hash_find(_edje_size_class_hash, size_class);
+
+   if (sc)
+     {
+        if (minw) *minw = sc->minw;
+        if (minh) *minh = sc->minh;
+        if (maxw) *maxw = sc->maxw;
+        if (maxh) *maxh = sc->maxh;
+     }
+   else
+     {
+        if (minw) *minw = 0;
+        if (minh) *minh = 0;
+        if (maxw) *maxw = 0;
+        if (maxh) *maxh = 0;
+
+        return EINA_FALSE;
+     }
+   return EINA_TRUE;
+}
+
+EAPI void
+edje_size_class_del(const char *size_class)
+{
+   Edje_Size_Class *sc;
+   Eina_Hash *members;
+   Eina_Iterator *it;
+   Edje_Refcount *er;
+
+   if (!size_class) return;
+
+   sc = eina_hash_find(_edje_size_class_hash, size_class);
+   if (!sc) return;
+
+   eina_hash_del(_edje_size_class_hash, size_class, sc);
+   eina_stringshare_del(sc->name);
+   free(sc);
+
+   members = eina_hash_find(_edje_size_class_member_hash, size_class);
+   it = eina_hash_iterator_data_new(members);
+   EINA_ITERATOR_FOREACH(it, er)
+     {
+        er->ed->dirty = EINA_TRUE;
+        er->ed->recalc_call = EINA_TRUE;
+#ifdef EDJE_CALC_CACHE
+        er->ed->all_part_change = EINA_TRUE;
+#endif
+        _edje_recalc(er->ed);
+     }
+   eina_iterator_free(it);
+}
+
+Eina_List *
+edje_size_class_list(void)
+{
+   Edje_List_Foreach_Data fdata;
+
+   if (!_edje_size_class_hash) return NULL;
+   memset(&fdata, 0, sizeof(Edje_List_Foreach_Data));
+   eina_hash_foreach(_edje_size_class_hash,
+                     _edje_size_class_list_foreach, &fdata);
+   return fdata.list;
+}
+
+typedef struct _Edje_Active_Size_Class_Iterator Edje_Active_Size_Class_Iterator;
+struct _Edje_Active_Size_Class_Iterator
+{
+   Eina_Iterator    iterator;
+   Edje_Size_Class  sc;
+   Eina_Iterator   *classes;
+};
+
+static Eina_Bool
+_edje_size_class_active_iterator_next(Eina_Iterator *it, void **data)
+{
+   Edje_Active_Size_Class_Iterator *et = (void *)it;
+   Eina_Hash_Tuple *tuple = NULL;
+   Edje_Refcount *er = NULL;
+   Eina_Iterator *ith;
+   Edje_Size_Class *sc;
+   Eina_Bool r = EINA_FALSE;
+
+   if (!eina_iterator_next(et->classes, (void **)&tuple)) return EINA_FALSE;
+   if (!tuple) return EINA_FALSE;
+
+   ith = eina_hash_iterator_data_new(tuple->data);
+   if (!eina_iterator_next(ith, (void **)&er)) goto on_error;
+
+   /*
+      We actually need to ask on an object to get the correct value.
+      It is being assumed that the size key are the same for all object here.
+      This can some times not be the case, but for now we should be fine.
+    */
+   sc = _edje_size_class_find(er->ed, tuple->key);
+   if (!sc) goto on_error;
+   et->sc = *sc;
+
+   *data = &et->sc;
+   r = EINA_TRUE;
+
+ on_error:
+   eina_iterator_free(ith);
+   return r;
+}
+
+static void *
+_edje_size_class_active_iterator_container(Eina_Iterator *it EINA_UNUSED)
+{
+   return NULL;
+}
+
+static void
+_edje_size_class_active_iterator_free(Eina_Iterator *it)
+{
+   Edje_Active_Size_Class_Iterator *et = (void *)it;
+
+   eina_iterator_free(et->classes);
+   EINA_MAGIC_SET(&et->iterator, 0);
+   free(et);
+}
+
+EAPI Eina_Iterator *
+edje_size_class_active_iterator_new(void)
+{
+   Edje_Active_Size_Class_Iterator *it;
+
+   if (!_edje_size_class_member_hash) return NULL;
+   it = calloc(1, sizeof (Edje_Active_Size_Class_Iterator));
+   if (!it) return NULL;
+
+   EINA_MAGIC_SET(&it->iterator, EINA_MAGIC_ITERATOR);
+   it->classes = eina_hash_iterator_tuple_new(_edje_size_class_member_hash);
+
+   it->iterator.version = EINA_ITERATOR_VERSION;
+   it->iterator.next = _edje_size_class_active_iterator_next;
+   it->iterator.get_container = _edje_size_class_active_iterator_container;
+   it->iterator.free = _edje_size_class_active_iterator_free;
+
+   return &it->iterator;
+}
+
+static Eina_Bool
+_edje_size_class_list_foreach(const Eina_Hash *hash EINA_UNUSED, const void *key, void *data EINA_UNUSED, void *fdata)
+{
+   Edje_List_Foreach_Data *fd;
+
+   fd = fdata;
+   fd->list = eina_list_append(fd->list, eina_stringshare_add(key));
+   return EINA_TRUE;
+}
+
+EOLIAN Eina_Bool
+_edje_object_size_class_set(Eo *obj EINA_UNUSED, Edje *ed, const char *size_class, Evas_Coord minw, Evas_Coord minh, Evas_Coord maxw, Evas_Coord maxh)
+{
+   Edje_Size_Class *sc = NULL;
+   unsigned int i;
+
+   if ((!ed) || (!size_class)) return EINA_FALSE;
+
+   /* for each size_class in the edje */
+   sc = eina_hash_find(ed->size_classes, size_class);
+
+   if (sc)
+     {
+        if ((sc->minw == minw) && (sc->minh == minh) &&
+            (sc->maxw == maxw) && (sc->maxh == maxh))
+          {
+             return EINA_TRUE;
+          }
+
+          /* Update new size class properties */
+          sc->minw = minw;
+          sc->minh = minh;
+          sc->maxw = maxw;
+          sc->maxh = maxh;
+     }
+   else
+     {
+        /* No matches, create a new size class */
+        sc = calloc(1, sizeof(Edje_Size_Class));
+        if (!sc) return EINA_FALSE;
+        sc->name = eina_stringshare_add(size_class);
+        if (!sc->name)
+          {
+             free(sc);
+             return EINA_FALSE;
+          }
+        sc->minw = minw;
+        sc->minh = minh;
+        sc->maxw = maxw;
+        sc->maxh = maxh;
+        /* Add to edje's size class list */
+        eina_hash_direct_add(ed->size_classes, sc->name, sc);
+     }
+
+   for (i = 0; i < ed->table_parts_size; i++)
+     {
+        Edje_Real_Part *rp;
+
+        rp = ed->table_parts[i];
+        if ((rp->part->type == EDJE_PART_TYPE_GROUP) &&
+            ((rp->type == EDJE_RP_TYPE_SWALLOW) &&
+             (rp->typedata.swallow)) &&
+            (rp->typedata.swallow->swallowed_object))
+          edje_object_size_class_set(rp->typedata.swallow->swallowed_object,
+                                     size_class, minw, minh, maxw, maxh);
+     }
+
+   ed->dirty = EINA_TRUE;
+   ed->recalc_call = EINA_TRUE;
+#ifdef EDJE_CALC_CACHE
+   ed->all_part_change = EINA_TRUE;
+#endif
+   _edje_recalc(ed);
+
+   return EINA_TRUE;
+}
+
+EOLIAN Eina_Bool
+_edje_object_size_class_get(Eo *obj EINA_UNUSED, Edje *ed, const char *size_class, Evas_Coord *minw, Evas_Coord *minh, Evas_Coord *maxw, Evas_Coord *maxh)
+{
+   Edje_Size_Class *sc = _edje_size_class_find(ed, size_class);
+
+   if (sc)
+     {
+        if (minw) *minw = sc->minw;
+        if (minh) *minh = sc->minh;
+        if (maxw) *maxw = sc->maxw;
+        if (maxh) *maxh = sc->maxh;
+     }
+   else
+     {
+        if (minw) *minw = 0;
+        if (minh) *minh = 0;
+        if (maxw) *maxw = 0;
+        if (maxh) *maxh = 0;
+
+        return EINA_FALSE;
+     }
+   return EINA_TRUE;
+}
+
+EOLIAN void
+_edje_object_size_class_del(Eo *obj EINA_UNUSED, Edje *ed, const char *size_class)
+{
+   Edje_Size_Class *sc = NULL;
+   unsigned int i;
+
+   if (!size_class) return;
+
+   eina_hash_del(ed->size_classes, size_class, sc);
+
+   for (i = 0; i < ed->table_parts_size; i++)
+     {
+        Edje_Real_Part *rp;
+
+        rp = ed->table_parts[i];
+        if ((rp->part->type == EDJE_PART_TYPE_GROUP) &&
+            ((rp->type == EDJE_RP_TYPE_SWALLOW) &&
+             (rp->typedata.swallow)) &&
+            (rp->typedata.swallow->swallowed_object))
+          edje_object_size_class_del(rp->typedata.swallow->swallowed_object, size_class);
+     }
+
+   ed->dirty = EINA_TRUE;
+   ed->recalc_call = EINA_TRUE;
+#ifdef EDJE_CALC_CACHE
+   ed->all_part_change = EINA_TRUE;
+#endif
+   _edje_recalc(ed);
+}
+
+typedef struct _Edje_File_Size_Class_Iterator Edje_File_Size_Class_Iterator;
+struct _Edje_File_Size_Class_Iterator
+{
+   Edje_Active_Size_Class_Iterator it;
+   Edje_File                      *edf;
+};
+
+static Eina_Bool
+_edje_mmap_size_class_iterator_next(Eina_Iterator *it, void **data)
+{
+   Edje_File_Size_Class_Iterator *et = (void *)it;
+   Eina_Hash_Tuple *tuple = NULL;
+   Edje_Size_Class *sc = NULL;
+
+   if (!eina_iterator_next(et->it.classes, (void **)&tuple)) return EINA_FALSE;
+   if (!tuple) return EINA_FALSE;
+
+   sc = tuple->data;
+
+   et->it.sc = *sc;
+
+   *data = &et->it.sc;
+   return EINA_TRUE;
+}
+
+static void *
+_edje_mmap_size_class_iterator_container(Eina_Iterator *it)
+{
+   Edje_File_Size_Class_Iterator *et = (void *)it;
+
+   return et->edf->f;
+}
+
+static void
+_edje_mmap_size_class_iterator_free(Eina_Iterator *it)
+{
+   Edje_File_Size_Class_Iterator *et = (void *)it;
+
+   eina_iterator_free(et->it.classes);
+   _edje_cache_file_unref(et->edf);
+   EINA_MAGIC_SET(&et->it.iterator, 0);
+   free(et);
+}
+
+EAPI Eina_Iterator *
+edje_mmap_size_class_iterator_new(Eina_File *f)
+{
+   Edje_File_Size_Class_Iterator *it;
+   Edje_File *edf;
+   int error_ret;
+
+   edf = _edje_cache_file_coll_open(f, NULL, &error_ret, NULL, NULL);
+   if (!edf) return NULL;
+
+   it = calloc(1, sizeof (Edje_File_Size_Class_Iterator));
+   if (!it) goto on_error;
+
+   EINA_MAGIC_SET(&it->it.iterator, EINA_MAGIC_ITERATOR);
+   it->edf = edf;
+   it->it.classes = eina_hash_iterator_tuple_new(edf->size_hash);
+
+   it->it.iterator.version = EINA_ITERATOR_VERSION;
+   it->it.iterator.next = _edje_mmap_size_class_iterator_next;
+   it->it.iterator.get_container = _edje_mmap_size_class_iterator_container;
+   it->it.iterator.free = _edje_mmap_size_class_iterator_free;
+
+   return &it->it.iterator;
+
+on_error:
+   _edje_cache_file_unref(edf);
+   return NULL;
+}
+
 
 EOLIAN Eina_Bool
 _edje_object_part_exists(Eo *obj EINA_UNUSED, Edje *ed, const char *part)
@@ -2857,10 +3500,16 @@ _edje_object_part_swallow(Eo *obj EINA_UNUSED, Edje *ed, const char *part, Evas_
    rpcur = evas_object_data_get(obj_swallow, "\377 edje.swallowing_part");
    if (rpcur)
      {
+        Edje *sed;
+
         /* the object is already swallowed in the requested part */
         if (rpcur == rp) return EINA_TRUE;
-        /* The object is already swallowed somewhere, unswallow it first */
-        edje_object_part_unswallow(ed->obj, obj_swallow);
+        sed = evas_object_data_get(obj_swallow, ".edje");
+        if (sed)
+          {
+             /* The object is already swallowed somewhere, unswallow it first */
+             edje_object_part_unswallow(sed->obj, obj_swallow);
+          }
      }
 
    if (!rp)
@@ -3388,6 +4037,7 @@ again:
         for (i = 0; i < ed->table_parts_size; i++)
           {
              Edje_Real_Part *ep = ed->table_parts[i];
+             Evas_Coord ins_l, ins_r;
 
              if (!ep->chosen_description) continue;
 
@@ -3406,6 +4056,8 @@ again:
                        Evas_Coord tb_mw;
                        evas_object_textblock_size_formatted_get(ep->object,
                                                                 &tb_mw, NULL);
+                       evas_object_textblock_style_insets_get(ep->object, &ins_l, &ins_r, NULL, NULL);
+                       tb_mw = ins_l + tb_mw + ins_r;
                        tb_mw -= ep->req.w;
                        if (tb_mw > over_w) over_w = tb_mw;
                        has_fixed_tb = EINA_FALSE;
@@ -5168,13 +5820,23 @@ _edje_color_class_on_del(Edje *ed, Edje_Part *ep)
 Edje_Text_Class *
 _edje_text_class_find(Edje *ed, const char *text_class)
 {
-   Eina_List *l;
    Edje_Text_Class *tc;
 
    if ((!ed) || (!text_class)) return NULL;
-   EINA_LIST_FOREACH(ed->text_classes, l, tc)
-     if ((tc->name) && (!strcmp(text_class, tc->name))) return tc;
-   return eina_hash_find(_edje_text_class_hash, text_class);
+
+   /* first look through the object scope */
+   tc = eina_hash_find(ed->text_classes, text_class);
+   if (tc) return tc;
+
+   /* next look through the global scope */
+   tc = eina_hash_find(_edje_text_class_hash, text_class);
+   if (tc) return tc;
+
+   /* finally, look through the file scope */
+   tc = eina_hash_find(ed->file->text_hash, text_class);
+   if (tc) return tc;
+
+   return NULL;
 }
 
 void
@@ -5222,6 +5884,74 @@ _edje_text_class_hash_free(void)
    eina_hash_foreach(_edje_text_class_hash, text_class_hash_list_free, NULL);
    eina_hash_free(_edje_text_class_hash);
    _edje_text_class_hash = NULL;
+}
+
+Edje_Size_Class *
+_edje_size_class_find(Edje *ed, const char *size_class)
+{
+   Edje_Size_Class *sc;
+
+   if ((!ed) || (!size_class)) return NULL;
+
+   /* first look through the object scope */
+   sc = eina_hash_find(ed->size_classes, size_class);
+   if (sc) return sc;
+
+   /* next look through the global scope */
+   sc = eina_hash_find(_edje_size_class_hash, size_class);
+   if (sc) return sc;
+
+   /* finally, look through the file scope */
+   sc = eina_hash_find(ed->file->size_hash, size_class);
+   if (sc) return sc;
+
+   return NULL;
+}
+
+void
+_edje_size_class_member_add(Edje *ed, const char *size_class)
+{
+   _edje_class_member_add(ed, &_edje_size_class_member_hash, size_class);
+}
+
+void
+_edje_size_class_member_del(Edje *ed, const char *size_class)
+{
+   if ((!ed) || (!size_class)) return;
+
+   _edje_class_member_del(ed, &_edje_size_class_member_hash, size_class);
+}
+
+void
+_edje_size_class_members_free(void)
+{
+   _edje_class_members_free(&_edje_size_class_member_hash);
+}
+
+void
+_edje_size_class_members_clean(Edje *ed)
+{
+   _edje_class_members_clean(ed, _edje_size_class_member_hash);
+}
+
+static Eina_Bool
+size_class_hash_list_free(const Eina_Hash *hash EINA_UNUSED, const void *key EINA_UNUSED, void *data, void *fdata EINA_UNUSED)
+{
+   Edje_Size_Class *sc;
+
+   sc = data;
+   if (sc->name) eina_stringshare_del(sc->name);
+   free(sc);
+   return EINA_TRUE;
+}
+
+void
+_edje_size_class_hash_free(void)
+{
+   if (!_edje_size_class_hash) return;
+   eina_hash_foreach(_edje_size_class_hash, size_class_hash_list_free, NULL);
+   eina_hash_free(_edje_size_class_hash);
+   _edje_size_class_hash = NULL;
 }
 
 Edje *

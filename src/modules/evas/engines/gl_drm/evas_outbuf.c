@@ -31,7 +31,7 @@ _evas_outbuf_gbm_surface_create(Outbuf *ob, int w, int h)
      gbm_surface_create(ob->info->info.gbm, w, h,
                         ob->info->info.format, ob->info->info.flags);
 
-   if (!ob->surface) ERR("Failed to create gbm surface: %m");
+   if (!ob->surface) ERR("Failed to create gbm surface");
 }
 
 static void
@@ -117,7 +117,7 @@ _evas_outbuf_buffer_swap(Outbuf *ob, Eina_Rectangle *rects, unsigned int count)
    ob->priv.bo[ob->priv.curr] = gbm_surface_lock_front_buffer(ob->surface);
    if (!ob->priv.bo[ob->priv.curr])
      {
-        WRN("Could not lock front buffer: %m");
+        WRN("Could not lock front buffer");
         return;
      }
 
@@ -536,7 +536,6 @@ evas_outbuf_reconfigure(Outbuf *ob, int w, int h, int rot, Outbuf_Depth depth)
    Evas_Public_Data *epd;
    Evas_Engine_Info_GL_Drm *einfo;
    Render_Engine *re;
-   struct gbm_surface *osurface;
    Outbuf *nob;
 
    if (depth == OUTBUF_DEPTH_INHERIT) depth = ob->depth;
@@ -548,7 +547,6 @@ evas_outbuf_reconfigure(Outbuf *ob, int w, int h, int rot, Outbuf_Depth depth)
    EINA_SAFETY_ON_NULL_RETURN(re);
 
    einfo = ob->info;
-   osurface = ob->surface;
 
    if ((ob->rotation == 0) || (ob->rotation == 180))
      nob = evas_outbuf_new(einfo, w, h, ob->swap_mode);

@@ -169,6 +169,8 @@ struct _EVGL_Context
 
    // Current FBO
    GLuint       current_fbo;
+   GLuint       current_draw_fbo;    //for GLES3
+   GLuint       current_read_fbo;    //for GLES3
 
    // Direct Rendering Related
    unsigned     scissor_enabled : 1;
@@ -190,6 +192,9 @@ struct _EVGL_Context
    int          partial_render;
 
    EVGL_Surface *current_sfc;
+
+   //glGetError
+   GLenum gl_error;
 };
 
 typedef enum _EVGL_Color_Bit
@@ -254,7 +259,7 @@ struct _EVGL_Cap
 
 struct _EVGL_Resource
 {
-   int id;
+   Eina_Thread id;
 
    EVGLNative_Display   display;
    EVGLNative_Context   context;
@@ -317,8 +322,7 @@ struct _EVGL_Engine
    LK(resource_lock);
    Eina_TLS           resource_key;
    Eina_List         *resource_list;
-   int                resource_count;
-   int                main_tid;
+   Eina_Thread        main_tid;
 
    // Add more debug logs (DBG levels 4 and 6)
    int                api_debug_mode;

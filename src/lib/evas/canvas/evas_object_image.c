@@ -371,7 +371,7 @@ _evas_image_eo_base_constructor(Eo *eo_obj, Evas_Image_Data *o)
         EINA_COW_IMAGE_STATE_WRITE_END(o, state_write);
      }
 
-   eo_do(eo_obj, evas_filter_constructor());
+   eo_do(eo_obj, evas_filter_ctor());
 
    return eo_obj;
 }
@@ -1648,7 +1648,9 @@ _evas_image_efl_file_save(const Eo *eo_obj, Evas_Image_Data *o, const char *file
    int quality = 80, compress = 9, ok = 0;
    char *encoding = NULL;
    Image_Entry *ie;
-   Eina_Bool putback = EINA_FALSE, tofree = EINA_FALSE;
+   Eina_Bool putback = EINA_FALSE, tofree = EINA_FALSE, no_convert = EINA_FALSE;
+   Evas_Colorspace cspace = EVAS_COLORSPACE_ARGB8888;
+   int want_cspace = EVAS_COLORSPACE_ARGB8888;
    int imagew, imageh;
    void *pixels;
 
@@ -1698,16 +1700,9 @@ _evas_image_efl_file_save(const Eo *eo_obj, Evas_Image_Data *o, const char *file
         o->proxyrendering = EINA_FALSE;
      }
 
-   pixels = ENFN->image_data_get(ENDT, pixels, 0, &data, &o->load_error, &tofree);
-
-   if (!pixels)
-     {
-        WRN("Could not get image pixels.");
-        return EINA_FALSE;
-     }
-
    if (flags)
      {
+        const char *ext = NULL;
         char *p, *pp;
         char *tflags;
 
@@ -1724,23 +1719,99 @@ _evas_image_efl_file_save(const Eo *eo_obj, Evas_Image_Data *o, const char *file
              if (pp) p = pp + 1;
              else break;
           }
+
+        if (file) ext = strrchr(file, '.');
+        if (encoding && ext && !strcasecmp(ext, ".tgv"))
+          {
+             if (!strcmp(encoding, "auto"))
+               want_cspace = -1;
+             else if (!strcmp(encoding, "etc1"))
+               want_cspace = EVAS_COLORSPACE_ETC1;
+             else if (!strcmp(encoding, "etc2"))
+               {
+                  if (!ENFN->image_alpha_get(ENDT, pixels))
+                    want_cspace = EVAS_COLORSPACE_RGB8_ETC2;
+                  else
+                    want_cspace = EVAS_COLORSPACE_RGBA8_ETC2_EAC;
+               }
+             else if (!strcmp(encoding, "etc1+alpha"))
+               want_cspace = EVAS_COLORSPACE_ETC1_ALPHA;
+          }
+        else
+          {
+             free(encoding);
+             encoding = NULL;
+          }
      }
+
+   if (!ENFN->image_data_has)
+     pixels = ENFN->image_data_get(ENDT, pixels, 0, &data, &o->load_error, &tofree);
+   else
+     {
+        if (ENFN->image_data_has(ENDT, pixels, &cspace))
+          {
+             if ((want_cspace != (int) cspace) && (want_cspace != -1))
+               cspace = EVAS_COLORSPACE_ARGB8888;
+          }
+        else
+          {
+             cspace = ENFN->image_file_colorspace_get(ENDT, pixels);
+             if ((want_cspace != (int) cspace) && (want_cspace != -1))
+               cspace = EVAS_COLORSPACE_ARGB8888;
+             else
+               {
+                  ENFN->image_colorspace_set(ENDT, pixels, cspace);
+                  no_convert = EINA_TRUE;
+               }
+          }
+        pixels = ENFN->image_data_get(ENDT, pixels, 0, &data, &o->load_error, &tofree);
+     }
+
+   if (!pixels)
+     {
+        WRN("Could not get image pixels.");
+        return EINA_FALSE;
+     }
+
+   switch (cspace)
+     {
+      case EVAS_COLORSPACE_ARGB8888:
+        break;
+      case EVAS_COLORSPACE_ETC1:
+      case EVAS_COLORSPACE_ETC1_ALPHA:
+      case EVAS_COLORSPACE_RGB8_ETC2:
+      case EVAS_COLORSPACE_RGBA8_ETC2_EAC:
+        break;
+      default:
+        DBG("Need to convert colorspace before saving");
+        cspace = EVAS_COLORSPACE_ARGB8888;
+        break;
+     }
+
    ie = evas_cache_image_data(evas_common_image_cache_get(),
-                              imagew, imageh, data, o->cur->has_alpha,
-                              EVAS_COLORSPACE_ARGB8888);
+                              imagew, imageh, data, o->cur->has_alpha, cspace);
    if (ie)
      {
         RGBA_Image *im = (RGBA_Image *) ie;
-        if (o->cur->cspace == EVAS_COLORSPACE_ARGB8888)
+        DATA32 *old_data = NULL;
+
+        // FIXME: Something is fishy here... what about the previous pointer?
+        if ((o->cur->cspace == cspace) || no_convert)
           im->image.data = data;
         else
-          im->image.data = evas_object_image_data_convert_internal(o, data, EVAS_COLORSPACE_ARGB8888);
+          {
+             old_data = im->image.data;
+             im->image.data = evas_object_image_data_convert_internal(o, data, EVAS_COLORSPACE_ARGB8888);
+          }
         if (im->image.data)
           {
              ok = evas_common_save_image_to_file(im, file, key, quality, compress, encoding);
 
-             if (o->cur->cspace != EVAS_COLORSPACE_ARGB8888)
-               free(im->image.data);
+             if (old_data)
+               {
+                  free(im->image.data);
+                  im->image.data = old_data;
+               }
           }
         evas_cache_image_drop(ie);
      }
@@ -2960,7 +3031,7 @@ evas_object_image_free(Evas_Object *eo_obj, Evas_Object_Protected_Data *obj)
        EINA_COW_PIXEL_WRITE_END(o, pixi_write);
      }
 
-   eo_do(eo_obj, evas_filter_destructor());
+   eo_do(eo_obj, evas_filter_dtor());
 }
 
 static void
@@ -3140,19 +3211,19 @@ evas_process_dirty_pixels(Evas_Object *eo_obj, Evas_Object_Protected_Data *obj, 
    return pixels;
 }
 
-EOLIAN void
+EOLIAN static void
 _evas_image_evas_filter_dirty(Eo *eo_obj EINA_UNUSED, Evas_Image_Data *o)
 {
    o->changed = 1;
 }
 
-EOLIAN Eina_Bool
+EOLIAN static Eina_Bool
 _evas_image_evas_filter_input_alpha(Eo *eo_obj EINA_UNUSED, Evas_Image_Data *o EINA_UNUSED)
 {
    return EINA_FALSE;
 }
 
-EOLIAN Eina_Bool
+EOLIAN static Eina_Bool
 _evas_image_evas_filter_input_render(Eo *eo_obj, Evas_Image_Data *o,
                                      void *_filter, void *context,
                                      int l, int r EINA_UNUSED, int t, int b EINA_UNUSED,
@@ -4638,6 +4709,22 @@ evas_object_image_data_convert_internal(Evas_Image_Data *o, void *data, Evas_Col
                                                     o->cur->image.h,
                                                     to_cspace);
           break;
+      case EVAS_COLORSPACE_AGRY88:
+          out = evas_common_convert_agry88_to(data,
+                                              o->cur->image.w,
+                                              o->cur->image.h,
+                                              o->cur->image.stride,
+                                              o->cur->has_alpha,
+                                              to_cspace);
+          break;
+      case EVAS_COLORSPACE_GRY8:
+          out = evas_common_convert_gry8_to(data,
+                                            o->cur->image.w,
+                                            o->cur->image.h,
+                                            o->cur->image.stride,
+                                            o->cur->has_alpha,
+                                            to_cspace);
+          break;
         default:
           WRN("unknow colorspace: %i\n", o->cur->cspace);
           break;
@@ -4890,7 +4977,7 @@ evas_object_image_smooth_scale_get(const Eo *obj)
    return eo_do_ret((Eo *) obj, ret, efl_image_smooth_scale_get());
 }
 
-EOLIAN void
+EOLIAN static void
 _evas_image_efl_gfx_filter_program_set(Eo *obj, Evas_Image_Data *pd EINA_UNUSED, const char *code, const char *name)
 {
    pd->has_filter = (code != NULL);

@@ -2689,7 +2689,7 @@ edje_edit_style_del(Evas_Object *obj, const char *style)
    ed->file->styles = eina_list_remove(ed->file->styles, s);
 
    _edje_if_string_free(ed, (const char **)&s->name);
-   //~ //s->style HOWTO FREE ???
+   evas_textblock_style_free(s->style);
    while (s->tags)
      {
         Edje_Style_Tag *t;
@@ -2702,11 +2702,8 @@ edje_edit_style_del(Evas_Object *obj, const char *style)
         _edje_if_string_free(ed, &t->font);
         _edje_if_string_free(ed, &t->text_class);
         free(t);
-        t = NULL;
      }
    free(s);
-   s = NULL;
-   s = NULL;
    return EINA_TRUE;
 }
 
@@ -9156,8 +9153,6 @@ edje_edit_program_filter_part_set(Evas_Object *obj, const char *prog, const char
    GET_ED_OR_RETURN(EINA_FALSE);
    GET_EPR_OR_RETURN(EINA_FALSE);
 
-   if (!filter_part) return EINA_FALSE;
-
    _edje_if_string_replace(ed, &epr->filter.part, filter_part);
 
    return EINA_TRUE;
@@ -9177,8 +9172,6 @@ edje_edit_program_filter_state_set(Evas_Object *obj, const char *prog, const cha
 {
    GET_ED_OR_RETURN(EINA_FALSE);
    GET_EPR_OR_RETURN(EINA_FALSE);
-
-   if (!filter_state) return EINA_FALSE;
 
    _edje_if_string_replace(ed, &epr->filter.state, filter_state);
 
@@ -10159,7 +10152,7 @@ _edje_edit_embryo_rebuild(Edje_Edit *eed)
    if (fd < 0)
      return EINA_FALSE;  /* FIXME: report something */
 
-   f = fdopen(fd, "w");
+   f = fdopen(fd, "wb");
    if (!f)
      {
         close(fd);

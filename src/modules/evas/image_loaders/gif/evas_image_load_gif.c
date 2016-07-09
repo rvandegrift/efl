@@ -34,7 +34,7 @@ struct _Frame_Info
    unsigned short delay; // delay time in 1/100ths of a sec
    short transparent : 10; // -1 == not, anything else == index 
    short dispose : 6; // 0, 1, 2, 3 (others invalid)
-   short interlace : 1; // interlaced or not
+   Eina_Bool interlace : 1; // interlaced or not
 };
 
 #ifndef MIN
@@ -46,7 +46,7 @@ do { \
    goto on_error; \
 } while (0)
 #define PIX(_x, _y) rows[yin + _y][xin + _x]
-#define CMAP(_v) cmap->Colors[_v]
+#define CMAP(_v) colors[_v]
 #define PIXLK(_p) ARGB_JOIN(0xff, CMAP(_p).Red, CMAP(_p).Green, CMAP(_p).Blue)
 
 // utility funcs...
@@ -120,11 +120,24 @@ _fill_frame(DATA32 *data, int rowpix, GifFileType *gif, Frame_Info *finfo,
      {
         ColorMapObject *cmap;
         int bg;
-        
+        GifColorType colors[256];
+        int cnum;
+
         // work out color to use from cmap
         if (gif->Image.ColorMap) cmap = gif->Image.ColorMap;
         else cmap = gif->SColorMap;
         bg = gif->SBackGroundColor;
+
+        if (cmap)
+          {
+             // fill in local color table of guaranteed 256 with cmap & pad
+             for (cnum = 0; cnum < cmap->ColorCount; cnum++)
+               colors[cnum] = cmap->Colors[cnum];
+             for (cnum = cmap->ColorCount; cnum < 256; cnum++)
+               colors[cnum] = cmap->Colors[0];
+          }
+        else
+          memset(colors, 0, sizeof(colors));
         // and do the fill
         _fill_image
           (data, rowpix,
@@ -205,9 +218,12 @@ _decode_image(GifFileType *gif, DATA32 *data, int rowpix, int xin, int yin,
    int intjump[] = { 8, 8, 4, 2 };
    int i, xx, yy, pix;
    GifRowType *rows;
+   GifPixelType *pixels;
    Eina_Bool ret = EINA_FALSE;
    ColorMapObject *cmap;
    DATA32 *p;
+   GifColorType colors[256];
+   int cnum;
 
    // build a blob of memory to have pointers to rows of pixels
    // AND store the decoded gif pixels (1 byte per pixel) as welll
@@ -247,6 +263,16 @@ _decode_image(GifFileType *gif, DATA32 *data, int rowpix, int xin, int yin,
    if (gif->Image.ColorMap) cmap = gif->Image.ColorMap;
    else cmap = gif->SColorMap;
 
+   if (cmap)
+     {
+        // fill in local color table of guaranteed 256 entires with cmap & pad
+        for (cnum = 0; cnum < cmap->ColorCount; cnum++)
+          colors[cnum] = cmap->Colors[cnum];
+        for (cnum = cmap->ColorCount; cnum < 256; cnum++)
+          colors[cnum] = cmap->Colors[0];
+     }
+   else
+     memset(colors, 0, sizeof(colors));
    // if we need to deal with transparent pixels at all...
    if (transparent >= 0)
      {
@@ -255,10 +281,12 @@ _decode_image(GifFileType *gif, DATA32 *data, int rowpix, int xin, int yin,
           {
              for (yy = 0; yy < h; yy++)
                {
+                  pixels = &(PIX(0, yy));
                   p = data + ((y + yy) * rowpix) + x;
                   for (xx = 0; xx < w; xx++)
                     {
-                       pix = PIX(xx, yy);
+                       pix = *pixels;
+                       pixels++;
                        if (pix != transparent) *p = PIXLK(pix);
                        else *p = 0;
                        p++;
@@ -270,10 +298,12 @@ _decode_image(GifFileType *gif, DATA32 *data, int rowpix, int xin, int yin,
           {
              for (yy = 0; yy < h; yy++)
                {
+                  pixels = &(PIX(0, yy));
                   p = data + ((y + yy) * rowpix) + x;
                   for (xx = 0; xx < w; xx++)
                     {
-                       pix = PIX(xx, yy);
+                       pix = *pixels;
+                       pixels++;
                        if (pix != transparent) *p = PIXLK(pix);
                        p++;
                     }
@@ -285,10 +315,12 @@ _decode_image(GifFileType *gif, DATA32 *data, int rowpix, int xin, int yin,
         // walk pixels without worring about transparency at all
         for (yy = 0; yy < h; yy++)
           {
+             pixels = &(PIX(0, yy));
              p = data + ((y + yy) * rowpix) + x;
              for (xx = 0; xx < w; xx++)
                {
-                  pix = PIX(xx, yy);
+                  pix = *pixels;
+                  pixels++;
                   *p = PIXLK(pix);
                   p++;
                }

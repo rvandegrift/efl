@@ -306,7 +306,7 @@ _ecore_con_base_lookup(Eo *kls_obj EINA_UNUSED, void *pd EINA_UNUSED, const char
    if (!name || !done_cb)
      return EINA_FALSE;
 
-   obj = eo_add(ECORE_CON_CONNECTOR_CLASS, NULL,
+   obj = eo_add(EFL_NETWORK_CONNECTOR_CLASS, NULL,
          ecore_con_server_obj_connection_type_set(ECORE_CON_REMOTE_TCP),
          ecore_con_server_obj_name_set(name),
          ecore_con_obj_port_set(1025));
@@ -462,7 +462,7 @@ ecore_con_server_connect(Ecore_Con_Type compl_type,
    /* local  user   socket: FILE:   ~/.ecore/[name]/[port] */
    /* local  system socket: FILE:   /tmp/.ecore_service|[name]|[port] */
    /* remote system socket: TCP/IP: [name]:[port] */
-   obj = eo_add(ECORE_CON_CONNECTOR_CLASS, NULL,
+   obj = eo_add(EFL_NETWORK_CONNECTOR_CLASS, NULL,
          ecore_con_server_obj_connection_type_set(compl_type),
          ecore_con_server_obj_name_set(name),
          ecore_con_obj_port_set(port));
@@ -473,7 +473,7 @@ ecore_con_server_connect(Ecore_Con_Type compl_type,
 }
 
 EOLIAN static Eo *
-_ecore_con_connector_eo_base_finalize(Ecore_Con_Server *obj, void *pd EINA_UNUSED)
+_efl_network_connector_eo_base_finalize(Ecore_Con_Server *obj, void *pd EINA_UNUSED)
 {
    Ecore_Con_Server_Data *svr = eo_data_scope_get(obj, ECORE_CON_SERVER_CLASS);
    Ecore_Con_Type compl_type = svr->type;
@@ -629,7 +629,7 @@ _ecore_con_server_ecore_con_base_connected_get(Eo *obj EINA_UNUSED, Ecore_Con_Se
    return !svr->connecting;
 }
 
-EOLIAN const Eina_List *
+EOLIAN static const Eina_List *
 _ecore_con_server_clients_get(Eo *obj EINA_UNUSED, Ecore_Con_Server_Data *svr)
 {
    return svr->clients;
@@ -1751,7 +1751,7 @@ _ecore_con_cb_udp_listen(void *data,
                             &mreq6.ipv6mr_multiaddr))
                goto error;
              mreq6.ipv6mr_interface = htonl(INADDR_ANY);
-             if (setsockopt(svr->fd, IPPROTO_IP, IP_ADD_MEMBERSHIP,
+             if (setsockopt(svr->fd, IPPROTO_IPV6, IPV6_JOIN_GROUP,
                             (const void *)&mreq6, sizeof(mreq6)) != 0)
                goto error;
           }
@@ -2360,6 +2360,7 @@ _ecore_con_svr_udp_handler(void *data,
    EINA_SAFETY_ON_NULL_RETURN_VAL(cl, ECORE_CALLBACK_RENEW);
 
    cl->host_server = svr_obj;
+   cl->fd = -1;
    cl->client_addr = malloc(client_addr_len);
    if (!cl->client_addr)
      {
@@ -3003,4 +3004,4 @@ _ecore_con_lookup_done(void *data,
 #include "ecore_con_base.eo.c"
 #include "ecore_con_client.eo.c"
 #include "ecore_con_server.eo.c"
-#include "ecore_con_connector.eo.c"
+#include "efl_network_connector.eo.c"

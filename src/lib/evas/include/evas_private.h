@@ -248,11 +248,11 @@ struct _Evas_Canvas3D_Node
    Evas_Canvas3D_Node     *billboard_target;
 
    Evas_Vec3         position;
-   Evas_Vec4         orientation;
+   Eina_Quaternion         orientation;
    Evas_Vec3         scale;
 
    Evas_Vec3         position_world;
-   Evas_Vec4         orientation_world;
+   Eina_Quaternion   orientation_world;
    Evas_Vec3         scale_world;
 
    Evas_Box3         aabb;
@@ -268,18 +268,18 @@ struct _Evas_Canvas3D_Node
    union {
         struct {
              Evas_Canvas3D_Camera  *camera;
-             Evas_Mat4        matrix_world_to_eye;
+             Eina_Matrix4        matrix_world_to_eye;
         } camera;
 
         struct {
              Evas_Canvas3D_Light   *light;
-             Evas_Mat4        matrix_local_to_world;
+             Eina_Matrix4        matrix_local_to_world;
         } light;
 
         struct {
              Eina_List       *meshes;
              Eina_Hash       *node_meshes;
-             Evas_Mat4        matrix_local_to_world;
+             Eina_Matrix4        matrix_local_to_world;
         } mesh;
    } data;
 
@@ -296,7 +296,7 @@ struct _Evas_Canvas3D_Node
 
 struct _Evas_Canvas3D_Camera
 {
-   Evas_Mat4      projection;
+   Eina_Matrix4      projection;
    Eina_Hash     *nodes;
 };
 
@@ -315,7 +315,7 @@ struct _Evas_Canvas3D_Light
    Evas_Real      atten_const;
    Evas_Real      atten_linear;
    Evas_Real      atten_quad;
-   Evas_Mat4      projection;
+   Eina_Matrix4      projection;
 
    Eina_Hash     *nodes;
 };
@@ -384,11 +384,7 @@ struct _Evas_Canvas3D_Mesh
 
    Evas_Color              fog_color;
    Eina_Bool               fog_enabled :1;
-#ifndef GL_GLES
-   double                  color_pick_key;
-#else
    Evas_Color              color_pick_key;
-#endif
    Eina_Bool               color_pick_enabled :1;
    /*sets of the quality and offsets for shadow rendering*/
    int                     shadows_edges_filtering_level;
@@ -451,13 +447,14 @@ struct _Evas_Canvas3D_Scene_Public_Data
    /*sets constant for shadow rendering*/
    Evas_Real depth_offset;
    Evas_Real depth_constant;
+   Eina_Bool render_to_texture;
 };
 
 struct _Evas_Canvas3D_Pick_Data
 {
    /* Input */
    Evas_Real         x, y;
-   Evas_Mat4         matrix_vp;
+   Eina_Matrix4         matrix_vp;
    Evas_Ray3         ray_world;
 
    /* Output */
@@ -488,12 +485,14 @@ enum _Evas_Font_Weight
    EVAS_FONT_WEIGHT_NORMAL,
    EVAS_FONT_WEIGHT_THIN,
    EVAS_FONT_WEIGHT_ULTRALIGHT,
+   EVAS_FONT_WEIGHT_EXTRALIGHT,
    EVAS_FONT_WEIGHT_LIGHT,
    EVAS_FONT_WEIGHT_BOOK,
    EVAS_FONT_WEIGHT_MEDIUM,
    EVAS_FONT_WEIGHT_SEMIBOLD,
    EVAS_FONT_WEIGHT_BOLD,
    EVAS_FONT_WEIGHT_ULTRABOLD,
+   EVAS_FONT_WEIGHT_EXTRABOLD,
    EVAS_FONT_WEIGHT_BLACK,
    EVAS_FONT_WEIGHT_EXTRABLACK
 };
@@ -1315,6 +1314,7 @@ struct _Evas_Func
    void *(*image_dirty_region)             (void *data, void *image, int x, int y, int w, int h);
    void *(*image_data_get)                 (void *data, void *image, int to_write, DATA32 **image_data, int *err, Eina_Bool *tofree);
    void *(*image_data_put)                 (void *data, void *image, DATA32 *image_data);
+   Eina_Bool (*image_data_has)             (void *data, void *image, Evas_Colorspace *cspace);
    void  (*image_data_preload_request)     (void *data, void *image, const Eo *target);
    void  (*image_data_preload_cancel)      (void *data, void *image, const Eo *target);
    void *(*image_alpha_set)                (void *data, void *image, int has_alpha);
@@ -1325,9 +1325,9 @@ struct _Evas_Func
    void  (*image_border_get)               (void *data, void *image, int *l, int *r, int *t, int *b);
    Eina_Bool (*image_draw)                 (void *data, void *context, void *surface, void *image, int src_x, int src_y, int src_w, int src_h, int dst_x, int dst_y, int dst_w, int dst_h, int smooth, Eina_Bool do_async);
    char *(*image_comment_get)              (void *data, void *image, char *key);
-   char *(*image_format_get)               (void *data, void *image);
    void (*image_colorspace_set)            (void *data, void *image, Evas_Colorspace cspace);
    Evas_Colorspace (*image_colorspace_get) (void *data, void *image);
+   Evas_Colorspace (*image_file_colorspace_get)(void *data, void *image);
    Eina_Bool (*image_can_region_get)       (void *data, void *image);
    void *(*image_native_set)               (void *data, void *image, void *native);
    void *(*image_native_get)               (void *data, void *image);
@@ -1450,9 +1450,13 @@ struct _Evas_Func
 
    Ector_Surface *(*ector_create)        (void *data);
    void  (*ector_destroy)                (void *data, Ector_Surface *surface);
-   void  (*ector_begin)                  (void *data, void *context, Ector_Surface *ector, void *surface, int x, int y, Eina_Bool do_async);
-   void  (*ector_renderer_draw)          (void *data, void *context, void *surface, Ector_Renderer *r, Eina_Array *clips, Eina_Bool do_async);
-   void  (*ector_end)                    (void *data, void *context, Ector_Surface *ector, void *surface, Eina_Bool do_async);
+   Ector_Buffer *(*ector_buffer_wrap)    (void *data, Evas *e, void *engine_image, Eina_Bool is_rgba_image);
+   Ector_Buffer *(*ector_buffer_new)     (void *data, Evas *e, void *pixels, int width, int height, int stride, Efl_Gfx_Colorspace cspace, Eina_Bool writeable, int l, int r, int t, int b, Ector_Buffer_Flag flags);
+   void  (*ector_begin)                  (void *data, void *context, Ector_Surface *ector, void *surface, void *engine_data, int x, int y, Eina_Bool do_async);
+   void  (*ector_renderer_draw)          (void *data, void *context, void *surface, void *engine_data, Ector_Renderer *r, Eina_Array *clips, Eina_Bool do_async);
+   void  (*ector_end)                    (void *data, void *context, Ector_Surface *ector, void *surface, void *engine_data, Eina_Bool do_async);
+   void* (*ector_new)                    (void *data, void *context, Ector_Surface *ector, void *surface);
+   void  (*ector_free)                   (void *engine_data);
 };
 
 struct _Evas_Image_Save_Func
@@ -1646,6 +1650,7 @@ void _above_get(Eo *obj, void *_pd, va_list *list);
 void _below_get(Eo *obj, void *_pd, va_list *list);
 void _smart_move_children_relative(Eo *obj, void *_pd, va_list *list);
 void _smart_clipped_clipper_get(Eo *obj, void *_pd, va_list *list);
+void _evas_object_clip_prev_reset(Evas_Object_Protected_Data *obj, Eina_Bool cur_prev);
 
 void _canvas_event_default_flags_set(Eo *e, void *_pd, va_list *list);
 void _canvas_event_default_flags_get(Eo *e, void *_pd, va_list *list);
@@ -1782,9 +1787,11 @@ void evas_canvas3d_scene_data_fini(Evas_Canvas3D_Scene_Public_Data *data);
 
 /* Eet saver/loader functions */
 Evas_Canvas3D_File_Eet *_evas_canvas3d_eet_file_new(void);
-void _evas_canvas3d_eet_file_init(void);
-void _evas_canvas3d_eet_descriptor_shutdown(void);
-void _evas_canvas3d_eet_file_free(void);
+Eet_Data_Descriptor* _evas_canvas3d_eet_file_get();
+void _evas_canvas3d_eet_file_init();
+void _evas_canvas3d_eet_descriptor_shutdown();
+void _evas_canvas3d_eet_file_free(Evas_Canvas3D_File_Eet* eet_file);
+
 
 /* Filters */
 void evas_filter_init(void);
@@ -1834,10 +1841,10 @@ struct _Evas_Imaging_Font
 
 struct _Evas_Proxy_Render_Data
 {
-   Evas_Object *eo_proxy;
    Evas_Object_Protected_Data *proxy_obj;
-   Evas_Object *eo_src;
    Evas_Object_Protected_Data *src_obj;
+   Evas_Object *eo_proxy;
+   Evas_Object *eo_src;
    Eina_Bool source_clip : 1;
 };
 
@@ -1984,6 +1991,22 @@ struct _Evas_Mempool
      (api)->func = prefix##func
 #define EVAS_API_RESET(func, api) \
      (api)->func = NULL
+
+static inline Efl_Gfx_Render_Op
+_evas_to_gfx_render_op(Evas_Render_Op rop)
+{
+   if (rop == EVAS_RENDER_COPY)
+     return EFL_GFX_RENDER_OP_COPY;
+   return EFL_GFX_RENDER_OP_BLEND;
+}
+
+static inline Evas_Render_Op
+_gfx_to_evas_render_op(Efl_Gfx_Render_Op rop)
+{
+   if (rop == EFL_GFX_RENDER_OP_COPY)
+     return EVAS_RENDER_COPY;
+   return EVAS_RENDER_BLEND;
+}
 
 #include "evas_inline.x"
 

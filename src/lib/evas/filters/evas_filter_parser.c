@@ -1772,7 +1772,7 @@ _transform_instruction_prepare(Evas_Filter_Program *pgm, Evas_Filter_Instruction
 
    instr->type = EVAS_FILTER_MODE_TRANSFORM;
    instr->pad.update = _transform_padding_update;
-   _instruction_param_seq_add(instr, "dst", VT_BUFFER, NULL);
+   _instruction_param_seq_add(instr, "dst", VT_BUFFER, _buffer_get(pgm, "output"));
    _instruction_param_seq_add(instr, "op", VT_STRING, "vflip");
    _instruction_param_seq_add(instr, "src", VT_BUFFER, _buffer_get(pgm, "input"));
    //_instruction_param_name_add(instr, "ox", VT_INT, 0);
@@ -2253,26 +2253,23 @@ _lua_import_path_get(char *path, size_t len, const char *name)
    size_t r;
 
 #ifdef FILTERS_DEBUG
-   struct stat st;
    // This is a hack to fetch the most recent file from source
-   if (stat(path, &st) == -1)
+   char *sep = evas_file_path_join("", "");
+   char *src = strdup(__FILE__);
+   char *slash = strrchr(src, *sep);
+   struct stat st;
+   if (slash)
      {
-        char *sep = evas_file_path_join("", "");
-        char *src = strdup(__FILE__);
-        char *slash = strrchr(src, *sep);
-        if (slash)
-          {
-             *slash = '\0';
-             if (*src == '/')
-               r = snprintf(path, len - 1, "%s/lua/%s.lua", src, name);
-             else // abs_srcdir is unknown here
-                r =  snprintf(path, len - 1, "%s/src/%s/lua/%s.lua", PACKAGE_BUILD_DIR, src, name);
-             if (r >= len) path[len - 1] = '\0';
-          }
-        free(sep);
-        free(src);
-        if (!stat(path, &st)) return;
+        *slash = '\0';
+        if (*src == '/')
+          r = snprintf(path, len - 1, "%s/lua/%s.lua", src, name);
+        else // abs_srcdir is unknown here
+           r =  snprintf(path, len - 1, "%s/src/%s/lua/%s.lua", PACKAGE_BUILD_DIR, src, name);
+        if (r >= len) path[len - 1] = '\0';
      }
+   free(sep);
+   free(src);
+   if (!stat(path, &st)) return;
 #endif
 
    r = snprintf(path, len - 1, "%s/filters/lua/%s.lua", pfx ? pfx : ".", name);
@@ -2870,7 +2867,6 @@ _buffers_update(Evas_Filter_Context *ctx, Evas_Filter_Program *pgm)
 
              buf->cid = evas_filter_buffer_empty_new(ctx, buf->alpha);
              fb = _filter_buffer_get(ctx, buf->cid);
-             fb->proxy = pb->eo_proxy;
              fb->source = pb->eo_source;
              fb->source_name = eina_stringshare_ref(pb->name);
              fb->ctx->has_proxies = EINA_TRUE;

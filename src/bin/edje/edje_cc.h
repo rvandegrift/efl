@@ -187,6 +187,7 @@ void    data_queue_image_lookup(char *name, int *dest, Eina_Bool *set);
 void    data_queue_model_lookup(char *name, int *dest, Eina_Bool *set);
 void    data_queue_copied_image_lookup(int *src, int *dest, Eina_Bool *set);
 void    data_queue_image_remove(int *dest, Eina_Bool *set);
+void    data_queue_copied_model_lookup(int *src, int *dest, Eina_Bool *set);
 void    data_queue_model_remove(int *dest, Eina_Bool *set);
 void    data_queue_spectrum_lookup(char *name, int *dest);
 void    data_queue_spectrum_slave_lookup(int *master, int *slave);
@@ -239,6 +240,7 @@ char   *mem_strdup(const char *s);
 #define SZ sizeof
 
 void    using_file(const char *filename, const char type);
+Eina_Bool needed_part_exists(Edje_Part_Collection *pc, const char *name);
 
 void    error_and_abort(Eet_File *ef, const char *fmt, ...);
 
@@ -253,6 +255,7 @@ int get_param_index(char *str);
 /* global vars */
 extern Eina_List             *ext_dirs;
 extern Eina_List             *img_dirs;
+extern Eina_List             *model_dirs;
 extern Eina_List             *fnt_dirs;
 extern Eina_List             *snd_dirs;
 extern Eina_List             *mo_dirs;

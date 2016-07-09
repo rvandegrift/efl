@@ -1,6 +1,7 @@
 #include "evas_common_private.h" /* Also includes international specific stuff */
 #include "evas_engine.h"
 #include "../gl_common/evas_gl_define.h"
+#include "../software_generic/evas_native_common.h"
 
 #ifdef HAVE_DLSYM
 # include <dlfcn.h>      /* dlopen,dlclose,etc */
@@ -71,10 +72,10 @@ Evas_GL_Preload_Render_Call glsym_evas_gl_preload_render_lock = NULL;
 Evas_GL_Preload_Render_Call glsym_evas_gl_preload_render_unlock = NULL;
 Evas_GL_Preload_Render_Call glsym_evas_gl_preload_render_relax = NULL;
 
+glsym_func_void     glsym_evas_gl_common_shaders_flush = NULL;
 glsym_func_void     glsym_evas_gl_common_error_set = NULL;
 glsym_func_int      glsym_evas_gl_common_error_get = NULL;
 glsym_func_void_ptr glsym_evas_gl_common_current_context_get = NULL;
-void (*glsym_evas_gl_context_restore_set) (Eina_Bool enable) = NULL;
 
 #ifdef GL_GLES
 
@@ -158,6 +159,65 @@ evgl_eng_evas_surface_get(void *data)
       return NULL;
 }
 
+#ifdef GL_GLES
+static EGLDisplay main_dpy  = EGL_NO_DISPLAY;
+static EGLSurface main_draw = EGL_NO_SURFACE;
+static EGLSurface main_read = EGL_NO_SURFACE;
+static EGLContext main_ctx  = EGL_NO_CONTEXT;
+
+EGLContext
+evas_eglGetCurrentContext(void)
+{
+   if (eina_main_loop_is())
+     return main_ctx;
+   else
+     return eglGetCurrentContext();
+}
+
+EGLSurface
+evas_eglGetCurrentSurface(EGLint readdraw)
+{
+   if (eina_main_loop_is())
+     return (readdraw == EGL_READ) ? main_read : main_draw;
+   else
+     return eglGetCurrentSurface(readdraw);
+}
+
+EGLDisplay
+evas_eglGetCurrentDisplay(void)
+{
+   if (eina_main_loop_is())
+     return main_dpy;
+   else
+     return eglGetCurrentDisplay();
+}
+
+EGLBoolean
+evas_eglMakeCurrent(EGLDisplay dpy, EGLSurface draw, EGLSurface read, EGLContext ctx)
+{
+   if (eina_main_loop_is())
+     {
+        EGLBoolean ret;
+
+        if ((dpy == main_dpy) && (draw == main_draw) &&
+            (read == main_read) && (ctx == main_ctx))
+          return 1;
+
+        ret = eglMakeCurrent(dpy, draw, read, ctx);
+        if (ret)
+          {
+             main_dpy  = dpy;
+             main_draw = draw;
+             main_read = read;
+             main_ctx  = ctx;
+          }
+        return ret;
+     }
+   else
+     return eglMakeCurrent(dpy, draw, read, ctx);
+}
+#endif
+
 static int
 evgl_eng_make_current(void *data, void *surface, void *context, int flush)
 {
@@ -172,7 +232,6 @@ evgl_eng_make_current(void *data, void *surface, void *context, int flush)
         return 0;
      }
 
-
 #ifdef GL_GLES
    EGLContext ctx = (EGLContext)context;
    EGLSurface sfc = (EGLSurface)surface;
@@ -180,25 +239,21 @@ evgl_eng_make_current(void *data, void *surface, void *context, int flush)
 
    if ((!context) && (!surface))
      {
-        if (!eglGetCurrentContext() &&
-            !eglGetCurrentSurface(EGL_READ) &&
-            !eglGetCurrentSurface(EGL_DRAW))
-          return 1;
-        ret = eglMakeCurrent(dpy, EGL_NO_SURFACE, EGL_NO_SURFACE, EGL_NO_CONTEXT);
+        ret = evas_eglMakeCurrent(dpy, EGL_NO_SURFACE, EGL_NO_SURFACE, EGL_NO_CONTEXT);
         if (!ret)
           {
              int err = eglGetError();
              glsym_evas_gl_common_error_set(err - EGL_SUCCESS);
-             ERR("eglMakeCurrent() failed! Error Code=%#x", err);
+             ERR("evas_eglMakeCurrent() failed! Error Code=%#x", err);
              return 0;
           }
         return 1;
      }
 
    // FIXME: Check (eglGetCurrentDisplay() != dpy) ?
-   if ((eglGetCurrentContext() != ctx) ||
-       (eglGetCurrentSurface(EGL_READ) != sfc) ||
-       (eglGetCurrentSurface(EGL_DRAW) != sfc) )
+   if ((evas_eglGetCurrentContext() != ctx) ||
+       (evas_eglGetCurrentSurface(EGL_READ) != sfc) ||
+       (evas_eglGetCurrentSurface(EGL_DRAW) != sfc) )
      {
 
         //!!!! Does it need to be flushed with it's set to NULL above??
@@ -206,13 +261,13 @@ evgl_eng_make_current(void *data, void *surface, void *context, int flush)
         if (flush) eng_window_use(NULL);
 
         // Do a make current
-        ret = eglMakeCurrent(dpy, sfc, sfc, ctx);
+        ret = evas_eglMakeCurrent(dpy, sfc, sfc, ctx);
 
         if (!ret)
           {
              int err = eglGetError();
              glsym_evas_gl_common_error_set(err - EGL_SUCCESS);
-             ERR("eglMakeCurrent() failed! Error Code=%#x", err);
+             ERR("evas_eglMakeCurrent() failed! Error Code=%#x", err);
              return 0;
           }
      }
@@ -662,7 +717,7 @@ evgl_eng_pbuffer_surface_create(void *data, EVGL_Surface *sfc,
    config_attrs[i++] = EGL_PBUFFER_BIT;
    config_attrs[i++] = EGL_NONE;
 #else
-   // It looks like eglMakeCurrent might fail if we use a different config from
+   // It looks like evas_eglMakeCurrent might fail if we use a different config from
    // the actual display surface. This is weird.
    i = 0;
    config_attrs[i++] = EGL_CONFIG_ID;
@@ -713,19 +768,22 @@ evgl_eng_pbuffer_surface_create(void *data, EVGL_Surface *sfc,
 
    return egl_sfc;
 #else
+   Evas_Engine_GL_Context *evasglctx;
    GLXPbuffer pbuf;
    GLXFBConfig *cfgs;
    int config_attrs[20];
    int surface_attrs[20];
    int ncfg = 0, i;
 
-   // TODO: Check all required config attributes
+   evasglctx = re->window_gl_context_get(re->software.ob);
 
 #ifndef GLX_VISUAL_ID
 # define GLX_VISUAL_ID 0x800b
 #endif
 
    i = 0;
+#if 0
+   // DISABLED BECAUSE BadMatch HAPPENS
    if (sfc->pbuffer.color_fmt != EVAS_GL_NO_FBO)
      {
         config_attrs[i++] = GLX_BUFFER_SIZE;
@@ -754,6 +812,13 @@ evgl_eng_pbuffer_surface_create(void *data, EVGL_Surface *sfc,
      }
    //config_attrs[i++] = GLX_VISUAL_ID;
    //config_attrs[i++] = XVisualIDFromVisual(vis);
+#else
+   config_attrs[i++] = GLX_FBCONFIG_ID;
+   if (sfc->pbuffer.color_fmt == EVAS_GL_RGB_888)
+     config_attrs[i++] = evasglctx->glxcfg_rgb;
+   else
+     config_attrs[i++] = evasglctx->glxcfg_rgba;
+#endif
    config_attrs[i++] = 0;
 
    cfgs = glXChooseFBConfig(re->software.ob->disp, re->software.ob->screen,
@@ -1121,7 +1186,7 @@ evgl_eng_gles_context_create(void *data,
 
    if (!sfc || !sfc->indirect_sfc_config)
      {
-        ERR("Surface is not set! Creating context anyways but eglMakeCurrent "
+        ERR("Surface is not set! Creating context anyways but evas_eglMakeCurrent "
             "might very well fail with EGL_BAD_MATCH (0x3009)");
         config = eng_get_ob(re)->egl_config;
      }
@@ -1200,7 +1265,8 @@ gl_symbols(void)
    if (done) return;
 
 #define LINK2GENERIC(sym) \
-   glsym_##sym = dlsym(RTLD_DEFAULT, #sym);
+   glsym_##sym = dlsym(RTLD_DEFAULT, #sym); \
+   if (!glsym_##sym) ERR("Could not find function '%s'", #sym);
 
    // Get function pointer to evas_gl_common that is now provided through the link of GL_Generic.
    LINK2GENERIC(evas_gl_common_image_all_unload);
@@ -1231,8 +1297,7 @@ gl_symbols(void)
    LINK2GENERIC(evas_gl_common_error_get);
    LINK2GENERIC(evas_gl_common_error_set);
    LINK2GENERIC(evas_gl_common_current_context_get);
-   LINK2GENERIC(evas_gl_context_restore_set);
-
+   LINK2GENERIC(evas_gl_common_shaders_flush);
 
 #ifdef GL_GLES
 #define FINDSYM(dst, sym, typ) \
@@ -1399,6 +1464,10 @@ gl_extn_veto(Render_Engine *re)
           {
              glsym_eglSwapBuffersWithDamage = NULL;
           }
+        if (strstr(str, "EGL_TIZEN_image_native_surface"))
+          {
+             eng_get_ob(re)->gl_context->shared->info.egl_tbm_ext = 1;
+          }
      }
    else
      {
@@ -1482,6 +1551,13 @@ eng_info_free(Evas *eo_e EINA_UNUSED, void *info)
 //   eina_log_domain_unregister(_evas_engine_GL_X11_log_dom);
    in = (Evas_Engine_Info_GL_X11 *)info;
    free(in);
+}
+
+static void
+eng_outbuf_idle_flush(Outbuf *ob)
+{
+   if (glsym_evas_gl_common_shaders_flush)
+     glsym_evas_gl_common_shaders_flush(ob->gl_context->shared);
 }
 
 static void
@@ -1632,7 +1708,7 @@ eng_setup(Evas *eo_e, void *in)
                                                 eng_outbuf_new_region_for_update,
                                                 eng_outbuf_push_updated_region,
                                                 eng_outbuf_push_free_region_for_update,
-                                                NULL,
+                                                eng_outbuf_idle_flush,
                                                 eng_outbuf_flush,
                                                 eng_window_free,
                                                 eng_window_use,
@@ -1826,7 +1902,7 @@ eng_preload_make_current(void *data, void *doit)
    if (doit)
      {
 #ifdef GL_GLES
-        if (!eglMakeCurrent(ob->egl_disp, ob->egl_surface[0], ob->egl_surface[0], ob->egl_context[0]))
+        if (!evas_eglMakeCurrent(ob->egl_disp, ob->egl_surface[0], ob->egl_surface[0], ob->egl_context[0]))
           return EINA_FALSE;
 #else
         if (!__glXMakeContextCurrent(ob->info->info.display, ob->glxwin, ob->context))
@@ -1841,7 +1917,7 @@ eng_preload_make_current(void *data, void *doit)
    else
      {
 #ifdef GL_GLES
-        if (!eglMakeCurrent(ob->egl_disp, EGL_NO_SURFACE, EGL_NO_SURFACE, EGL_NO_CONTEXT))
+        if (!evas_eglMakeCurrent(ob->egl_disp, EGL_NO_SURFACE, EGL_NO_SURFACE, EGL_NO_CONTEXT))
           return EINA_FALSE;
 #else
         if (!__glXMakeContextCurrent(ob->info->info.display, 0, NULL))
@@ -1888,7 +1964,7 @@ eng_gl_current_context_get(void *data EINA_UNUSED)
    context = glsym_evgl_current_native_context_get(ctx);
 
 #ifdef GL_GLES
-   if (eglGetCurrentContext() == context)
+   if (evas_eglGetCurrentContext() == context)
      return ctx;
 #else
    if (glXGetCurrentContext() == context)
@@ -1925,31 +2001,6 @@ end:
 /////////////////////////////////////////////////////////////////////////
 //
 //
-typedef struct _Native Native;
-
-struct _Native
-{
-   Evas_Native_Surface ns;
-   Pixmap     pixmap;
-   Visual    *visual;
-   void      *buffer;
-
-   void      *config;
-   void      *surface;
-#ifdef GL_GLES
-# ifdef HAVE_WAYLAND
-   void *wl_buf;
-   void *egl_surface;
-# endif
-#endif
-/*
-#ifndef GL_GLES
-   void  *fbc;
-   XID    glx_pixmap;
-#endif
-*/
-};
-
 // FIXME: this is enabled so updates happen - but its SLOOOOOOOOOOOOOOOW
 // (i am sure this is the reason)  not to mention seemingly superfluous. but
 // i need to enable it for it to work on fglrx at least. havent tried nvidia.
@@ -1968,11 +2019,11 @@ _native_bind_cb(void *data EINA_UNUSED, void *image)
   if (n->ns.type == EVAS_NATIVE_SURFACE_X11)
     {
 #ifdef GL_GLES
-       if (n->surface)
+       if (n->ns_data.x11.surface)
          {
             if (glsym_glEGLImageTargetTexture2DOES)
               {
-                 glsym_glEGLImageTargetTexture2DOES(GL_TEXTURE_2D, n->surface);
+                 glsym_glEGLImageTargetTexture2DOES(im->native.target, n->ns_data.x11.surface);
                  GLERRV("glsym_glEGLImageTargetTexture2DOES");
               }
             else
@@ -1984,7 +2035,7 @@ _native_bind_cb(void *data EINA_UNUSED, void *image)
 
        if (glsym_glXBindTexImage)
          {
-            glsym_glXBindTexImage(eng_get_ob(re)->disp, (XID)n->surface,
+            glsym_glXBindTexImage(eng_get_ob(re)->disp, (XID)n->ns_data.x11.surface,
                                   GLX_FRONT_LEFT_EXT, NULL);
             GLERRV("glsym_glXBindTexImage");
          }
@@ -1995,16 +2046,16 @@ _native_bind_cb(void *data EINA_UNUSED, void *image)
     }
   else if (n->ns.type == EVAS_NATIVE_SURFACE_OPENGL)
     {
-       glBindTexture(GL_TEXTURE_2D, n->ns.data.opengl.texture_id);
+       glBindTexture(im->native.target, n->ns.data.opengl.texture_id);
     }
   else if (n->ns.type == EVAS_NATIVE_SURFACE_TBM)
     {
 #ifdef GL_GLES
-       if (n->surface)
+       if (n->ns_data.tbm.surface)
          {
             if (glsym_glEGLImageTargetTexture2DOES)
               {
-                 glsym_glEGLImageTargetTexture2DOES(GL_TEXTURE_EXTERNAL_OES, n->surface);
+                 glsym_glEGLImageTargetTexture2DOES(im->native.target, n->ns_data.tbm.surface);
                  GLERRV("glsym_glEGLImageTargetTexture2DOES");
               }
              else
@@ -2014,16 +2065,19 @@ _native_bind_cb(void *data EINA_UNUSED, void *image)
     }
   else if (n->ns.type == EVAS_NATIVE_SURFACE_EVASGL)
     {
-       if (n->surface)
+       if (n->ns_data.evasgl.surface)
          {
-            Eina_Bool is_egl_image;
-            void *buffer = glsym_evgl_native_surface_buffer_get(n->surface, &is_egl_image);
+             Eina_Bool is_egl_image = EINA_FALSE;
+             void *surface;
+
+             if (glsym_evgl_native_surface_buffer_get)
+               surface = glsym_evgl_native_surface_buffer_get(n->ns_data.evasgl.surface, &is_egl_image);
             if (is_egl_image)
               {
 #ifdef GL_GLES
                  if (glsym_glEGLImageTargetTexture2DOES)
                    {
-                      glsym_glEGLImageTargetTexture2DOES(GL_TEXTURE_2D, buffer);
+                      glsym_glEGLImageTargetTexture2DOES(im->native.target, surface);
                       GLERRV("glsym_glEGLImageTargetTexture2DOES");
                    }
                  else
@@ -2032,7 +2086,7 @@ _native_bind_cb(void *data EINA_UNUSED, void *image)
               }
             else
               {
-                 glBindTexture(GL_TEXTURE_2D, (GLuint)(uintptr_t)buffer);
+                 glBindTexture(GL_TEXTURE_2D, (GLuint)(uintptr_t)surface);
               }
          }
     }
@@ -2040,13 +2094,12 @@ _native_bind_cb(void *data EINA_UNUSED, void *image)
      {
 #ifdef GL_GLES
 # ifdef HAVE_WAYLAND
-        if (n->egl_surface)
+        if (n->ns_data.wl_surface.surface)
           {
              if (glsym_glEGLImageTargetTexture2DOES)
                {
-                  glsym_glEGLImageTargetTexture2DOES(GL_TEXTURE_2D, n->egl_surface);
-                  if (eglGetError() != EGL_SUCCESS)
-                    ERR("glEGLImageTargetTexture2DOES() failed.");
+                  glsym_glEGLImageTargetTexture2DOES(GL_TEXTURE_2D, n->ns_data.wl_surface.surface);
+                  GLERRV("glsym_glEGLImageTargetTexture2DOES");
                }
              else
                ERR("Try glEGLImageTargetTexture2DOES on EGL with no support");
@@ -2072,7 +2125,7 @@ _native_unbind_cb(void *data EINA_UNUSED, void *image)
 
         if (glsym_glXReleaseTexImage)
           {
-             glsym_glXReleaseTexImage(eng_get_ob(re)->disp, (XID)n->surface,
+             glsym_glXReleaseTexImage(eng_get_ob(re)->disp, (XID)(n->ns_data.x11.surface),
                                       GLX_FRONT_LEFT_EXT);
           }
         else
@@ -2082,7 +2135,7 @@ _native_unbind_cb(void *data EINA_UNUSED, void *image)
      }
    else if (n->ns.type == EVAS_NATIVE_SURFACE_OPENGL)
      {
-        glBindTexture(GL_TEXTURE_2D, 0);
+        glBindTexture(im->native.target, 0);
      }
    else if (n->ns.type == EVAS_NATIVE_SURFACE_TBM)
      {
@@ -2113,16 +2166,16 @@ _native_free_cb(void *data, void *image)
 
   if (n->ns.type == EVAS_NATIVE_SURFACE_X11)
     {
-       pmid = n->pixmap;
+       pmid = n->ns_data.x11.pixmap;
        eina_hash_del(eng_get_ob(re)->gl_context->shared->native_pm_hash, &pmid, im);
 #ifdef GL_GLES
-       if (n->surface)
+       if (n->ns_data.x11.surface)
          {
             int err;
             if (glsym_eglDestroyImage)
               {
                  glsym_eglDestroyImage(eng_get_ob(re)->egl_disp,
-                                       n->surface);
+                                       n->ns_data.x11.surface);
                  if ((err = eglGetError()) != EGL_SUCCESS)
                    {
                       ERR("eglDestroyImage() failed.");
@@ -2134,13 +2187,13 @@ _native_free_cb(void *data, void *image)
          }
 #else
 # ifdef GLX_BIND_TO_TEXTURE_TARGETS_EXT
-       if (n->surface)
+       if (n->ns_data.x11.surface)
          {
             if (im->native.loose)
               {
                  if (glsym_glXReleaseTexImage)
                    {
-                     glsym_glXReleaseTexImage(eng_get_ob(re)->disp, (XID)n->surface,
+                     glsym_glXReleaseTexImage(eng_get_ob(re)->disp, (XID)n->ns_data.x11.surface,
                                               GLX_FRONT_LEFT_EXT);
                    }
                  else
@@ -2148,12 +2201,12 @@ _native_free_cb(void *data, void *image)
               }
             if (glsym_glXDestroyPixmap)
               {
-                 glsym_glXDestroyPixmap(eng_get_ob(re)->disp, (XID)n->surface);
+                 glsym_glXDestroyPixmap(eng_get_ob(re)->disp, (XID)n->ns_data.x11.surface);
                  GLERRV("glsym_glXDestroyPixmap");
               }
             else
               ERR("Try glXDestroyPixmap on GLX with no support");
-            n->surface = 0;
+            n->ns_data.x11.surface = 0;
          }
 # endif
 #endif
@@ -2165,15 +2218,15 @@ _native_free_cb(void *data, void *image)
     }
   else if (n->ns.type == EVAS_NATIVE_SURFACE_TBM)
     {
-       eina_hash_del(eng_get_ob(re)->gl_context->shared->native_tbm_hash, &n->buffer, im);
+       eina_hash_del(eng_get_ob(re)->gl_context->shared->native_tbm_hash, &n->ns_data.tbm.buffer, im);
 #ifdef GL_GLES
-       if (n->surface)
+       if (n->ns_data.tbm.surface)
          {
             int err;
             if (glsym_eglDestroyImage)
               {
                  glsym_eglDestroyImage(eng_get_ob(re)->egl_disp,
-                                       n->surface);
+                                       n->ns_data.tbm.surface);
                  if ((err = eglGetError()) != EGL_SUCCESS)
                    {
                       ERR("eglDestroyImage() failed.");
@@ -2193,13 +2246,13 @@ _native_free_cb(void *data, void *image)
      {
 #ifdef GL_GLES
 # ifdef HAVE_WAYLAND
-        wlid = (void*)n->wl_buf;
+        wlid = (void*)n->ns_data.wl_surface.wl_buf;
         eina_hash_del(eng_get_ob(re)->gl_context->shared->native_wl_hash, &wlid, image);
-        if (n->egl_surface)
+        if (n->ns_data.wl_surface.surface)
           {
              if (glsym_eglDestroyImage)
                {
-                  glsym_eglDestroyImage(eng_get_ob(re)->egl_disp, n->egl_surface);
+                  glsym_eglDestroyImage(eng_get_ob(re)->egl_disp, n->ns_data.wl_surface.surface);
                   if (eglGetError() != EGL_SUCCESS)
                     ERR("eglDestroyImage() failed.");
                }
@@ -2231,11 +2284,11 @@ _native_yinvert_cb(void *data, void *image)
      {
 #if GL_GLES
         if (extn_have_y_inverted &&
-            eglGetConfigAttrib(eng_get_ob(re)->egl_disp, n->config,
+            eglGetConfigAttrib(eng_get_ob(re)->egl_disp, n->ns_data.x11.config,
                                EGL_Y_INVERTED_NOK, &val))
           yinvert = val;
 #else
-        glXGetFBConfigAttrib(eng_get_ob(re)->disp, n->config,
+        glXGetFBConfigAttrib(eng_get_ob(re)->disp, n->ns_data.x11.config,
                              GLX_Y_INVERTED_EXT, &val);
         if (val) yinvert = 1;
 #endif
@@ -2250,7 +2303,7 @@ _native_yinvert_cb(void *data, void *image)
      }
    else if (n->ns.type == EVAS_NATIVE_SURFACE_EVASGL)
      {
-        yinvert = glsym_evgl_native_surface_yinvert_get(n->surface);
+        yinvert = glsym_evgl_native_surface_yinvert_get(n->ns_data.evasgl.surface);
      }
 
    return yinvert;
@@ -2507,19 +2560,19 @@ eng_image_native_set(void *data, void *image, void *native)
                    }
 
                  memcpy(&(n->ns), ns, sizeof(Evas_Native_Surface));
-                 n->pixmap = pm;
-                 n->visual = vis;
+                 n->ns_data.x11.pixmap = pm;
+                 n->ns_data.x11.visual = vis;
                  if (glsym_eglCreateImage)
-                   n->surface = glsym_eglCreateImage(eng_get_ob(re)->egl_disp,
-                                                     EGL_NO_CONTEXT,
-                                                     EGL_NATIVE_PIXMAP_KHR,
-                                                     (void *)pm,
-                                                     NULL);
+                   n->ns_data.x11.surface = glsym_eglCreateImage(eng_get_ob(re)->egl_disp,
+                                                                 EGL_NO_CONTEXT,
+                                                                 EGL_NATIVE_PIXMAP_KHR,
+                                                                 (void *)pm,
+                                                                 NULL);
                  else
                    ERR("Try eglCreateImage on EGL with no support");
-                 if (!n->surface)
+                 if (!n->ns_data.x11.surface)
                    ERR("eglCreatePixmapSurface() for 0x%x failed", (unsigned int)pm);
-                 n->config = (void *)egl_config;
+                 n->ns_data.x11.config = (void *)egl_config;
 
                  im->native.yinvert     = yinvert;
                  im->native.loose       = 0;
@@ -2643,7 +2696,7 @@ eng_image_native_set(void *data, void *image, void *native)
                                 glXGetFBConfigAttrib(eng_get_ob(re)->disp, configs[j],
                                                      GLX_BIND_TO_MIPMAP_TEXTURE_EXT, &val);
                                 mipmap = val;
-                                n->config = configs[j];
+                                n->ns_data.x11.config = configs[j];
                                 found = 1;
                                 break;
                              }
@@ -2685,16 +2738,16 @@ eng_image_native_set(void *data, void *image, void *native)
                       pixmap_att[i++] = 0;
 
                       memcpy(&(n->ns), ns, sizeof(Evas_Native_Surface));
-                      n->pixmap = pm;
-                      n->visual = vis;
+                      n->ns_data.x11.pixmap = pm;
+                      n->ns_data.x11.visual = vis;
                       if (glsym_glXCreatePixmap)
-                        n->surface = (void *)glsym_glXCreatePixmap(eng_get_ob(re)->disp,
-                                                                   n->config,
-                                                                   n->pixmap,
+                        n->ns_data.x11.surface = (void *)glsym_glXCreatePixmap(eng_get_ob(re)->disp,
+                                                                   n->ns_data.x11.config,
+                                                                   n->ns_data.x11.pixmap,
                                                                    pixmap_att);
                       else
                         ERR("Try glXCreatePixmap on GLX with no support");
-                      if (n->surface)
+                      if (n->ns_data.x11.surface)
                         {
 //                          printf("%p: new native texture for %x | %4i x %4i @ %2i = %p\n",
 //                                  n, pm, w, h, depth, n->surface);
@@ -2703,7 +2756,7 @@ eng_image_native_set(void *data, void *image, void *native)
                                 ERR("no target :(");
                                 if (glsym_glXQueryDrawable)
                                   glsym_glXQueryDrawable(eng_get_ob(re)->disp,
-                                                         n->pixmap,
+                                                         n->ns_data.x11.pixmap,
                                                          GLX_TEXTURE_TARGET_EXT,
                                                          &target);
                              }
@@ -2754,10 +2807,7 @@ eng_image_native_set(void *data, void *image, void *native)
 
                  eina_hash_add(eng_get_ob(re)->gl_context->shared->native_tex_hash, &texid, im);
 
-                 n->pixmap = 0;
-                 n->visual = 0;
-                 n->config = 0;
-                 n->surface = 0;
+                 n->ns_data.opengl.surface = 0;
 
                  im->native.yinvert     = 0;
                  im->native.loose       = 0;
@@ -2787,16 +2837,16 @@ eng_image_native_set(void *data, void *image, void *native)
                  eina_hash_add(eng_get_ob(re)->gl_context->shared->native_tbm_hash, &buffer, im);
 
                  memcpy(&(n->ns), ns, sizeof(Evas_Native_Surface));
-                 n->buffer = buffer;
+                 n->ns_data.tbm.buffer = buffer;
                  if (glsym_eglCreateImage)
-                   n->surface = glsym_eglCreateImage(eng_get_ob(re)->egl_disp,
-                                                     EGL_NO_CONTEXT,
-                                                     EGL_NATIVE_SURFACE_TIZEN,
-                                                     (void *)buffer,
-                                                     NULL);
+                   n->ns_data.tbm.surface = glsym_eglCreateImage(eng_get_ob(re)->egl_disp,
+                                                                 EGL_NO_CONTEXT,
+                                                                 EGL_NATIVE_SURFACE_TIZEN,
+                                                                 (void *)buffer,
+                                                                 NULL);
                  else
                    ERR("Try eglCreateImage on EGL with no support");
-                 if (!n->surface)
+                 if (!n->ns_data.tbm.surface)
                    ERR("eglCreateImage() for %p failed", buffer);
                  im->native.yinvert     = 1;
                  im->native.loose       = 0;
@@ -2823,10 +2873,7 @@ eng_image_native_set(void *data, void *image, void *native)
 
                  eina_hash_add(eng_get_ob(re)->gl_context->shared->native_evasgl_hash, &buffer, im);
 
-                 n->pixmap = 0;
-                 n->visual = 0;
-
-                 n->surface = ns->data.evasgl.surface;
+                 n->ns_data.evasgl.surface = ns->data.evasgl.surface;
 
                  im->native.yinvert      = 0;
                  im->native.loose        = 0;
@@ -2880,12 +2927,12 @@ eng_image_native_set(void *data, void *image, void *native)
                   eina_hash_add(eng_get_ob(re)->gl_context->shared->native_wl_hash,
                                 &wlid, im);
 
-                  n->wl_buf = wl_buf;
+                  n->ns_data.wl_surface.wl_buf = wl_buf;
                   if (glsym_eglCreateImage)
-                    n->egl_surface = glsym_eglCreateImage(eng_get_ob(re)->egl_disp,
-                                                          NULL,
-                                                          EGL_WAYLAND_BUFFER_WL,
-                                                          wl_buf, attribs);
+                    n->ns_data.wl_surface.surface = glsym_eglCreateImage(eng_get_ob(re)->egl_disp,
+                                                                         NULL,
+                                                                         EGL_WAYLAND_BUFFER_WL,
+                                                                         wl_buf, attribs);
                   else
                     {
                        ERR("Try eglCreateImage on EGL with no support");
@@ -2896,7 +2943,7 @@ eng_image_native_set(void *data, void *image, void *native)
                        return NULL;
                     }
 
-                  if (!n->egl_surface)
+                  if (!n->ns_data.wl_surface.surface)
                     {
                        ERR("eglCreatePixmapSurface() for %p failed", wl_buf);
                        eina_hash_del(eng_get_ob(re)->gl_context->shared->native_wl_hash,

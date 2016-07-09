@@ -19,7 +19,8 @@
 #include "ecore_private.h"
 #include <Ecore_Input.h>
 #include <Ecore_Input_Evas.h>
-#include <Ecore_Wayland.h>
+#include <Ecore_Wl2.h>
+#include "ecore_wl2_private.h"
 
 #include <Ecore_Evas.h>
 #include "ecore_evas_private.h"
@@ -29,13 +30,17 @@ typedef struct _Ecore_Evas_Engine_Wl_Data Ecore_Evas_Engine_Wl_Data;
 
 struct _Ecore_Evas_Engine_Wl_Data 
 {
-   Ecore_Wl_Window *parent, *win;
+   Ecore_Wl2_Display *display;
+   Ecore_Wl2_Window *parent, *win;
    Evas_Object *frame;
    int fx, fy, fw, fh;
 #ifdef BUILD_ECORE_EVAS_WAYLAND_EGL
    struct wl_egl_window *egl_win;
 #endif
    struct wl_callback *anim_callback;
+
+   Eina_Bool sync_done : 1;
+   Eina_Bool defer_show : 1;
 };
 
 Ecore_Evas_Interface_Wayland *_ecore_evas_wl_interface_new(void);
@@ -72,6 +77,7 @@ int  _ecore_evas_wl_common_pre_render(Ecore_Evas *ee);
 /* int  _ecore_evas_wl_common_render_updates(Ecore_Evas *ee); */
 void _ecore_evas_wl_common_post_render(Ecore_Evas *ee);
 int  _ecore_evas_wl_common_render(Ecore_Evas *ee);
+void _ecore_evas_wl_common_render_flush_pre(void *data, Evas *evas EINA_UNUSED, void *event EINA_UNUSED);
 void _ecore_evas_wl_common_screen_geometry_get(const Ecore_Evas *ee, int *x, int *y, int *w, int *h);
 void _ecore_evas_wl_common_screen_dpi_get(const Ecore_Evas *ee, int *xdpi, int *ydpi);
 void _ecore_evas_wl_common_render_pre(void *data, Evas *evas EINA_UNUSED, void *event);

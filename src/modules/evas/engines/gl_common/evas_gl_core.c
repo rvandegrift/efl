@@ -1,5 +1,8 @@
 #include "evas_gl_core_private.h"
-#include <dlfcn.h>
+
+#ifndef _WIN32
+# include <dlfcn.h>
+#endif
 
 // EVGL GL Format Pair
 typedef struct _GL_Format
@@ -25,6 +28,9 @@ glsym_func_void_ptr glsym_evas_gl_engine_data_get = NULL;
 static void _surface_cap_print(int error);
 static void _surface_context_list_print();
 static void _internal_resources_destroy(void *eng_data, EVGL_Resource *rsc);
+static void *_egl_image_create(EVGL_Context *context, int target, void *buffer);
+static void _egl_image_destroy(void *image);
+static int _evgl_direct_renderable(EVGL_Resource *rsc, EVGL_Surface *sfc);
 
 // NOTE: These constants are "hidden", kinda non public API. They should not
 // be used unless you know exactly what you are doing.
@@ -37,6 +43,7 @@ extern void (*EXT_FUNC_GLES1(glBindFramebufferOES)) (GLenum target, GLuint frame
 extern void (*EXT_FUNC_GLES1(glFramebufferTexture2DOES)) (GLenum target, GLenum attachment, GLenum textarget, GLuint texture, GLint level);
 extern void (*EXT_FUNC_GLES1(glFramebufferRenderbufferOES)) (GLenum target, GLenum attachment, GLenum renderbuffertarget, GLuint renderbuffer);
 extern GLenum (*EXT_FUNC_GLES1(glCheckFramebufferStatusOES)) (GLenum target);
+
 //---------------------------------------------------------------//
 // Internal Resources:
 //  - Surface and Context used for internal buffer creation
@@ -60,6 +67,8 @@ _internal_resources_create(void *eng_data)
         ERR("Error allocating EVGL_Resource");
         return NULL;
      }
+   rsc->id = eina_thread_self();
+   rsc->error_state = EVAS_GL_SUCCESS;
 
    // Get display
    rsc->display = evgl_engine->funcs->display_get(eng_data);
@@ -68,31 +77,6 @@ _internal_resources_create(void *eng_data)
         ERR("Error getting display");
         goto error;
      }
-
-   // Create resource surface
-   rsc->window = evgl_engine->funcs->native_window_create(eng_data);
-   if (!rsc->window)
-     {
-        ERR("Error creating native window");
-        goto error;
-     }
-
-   rsc->surface = evgl_engine->funcs->surface_create(eng_data, rsc->window);
-   if (!rsc->surface)
-     {
-        ERR("Error creating native surface");
-        goto error;
-     }
-
-   // Create a resource context
-   rsc->context = evgl_engine->funcs->context_create(eng_data, NULL, EVAS_GL_GLES_2_X);
-   if (!rsc->context)
-     {
-        ERR("Internal resource context creation failed.");
-        goto error;
-     }
-
-   rsc->error_state = EVAS_GL_SUCCESS;
 
    return rsc;
 
@@ -107,17 +91,17 @@ _internal_resources_destroy(void *eng_data, EVGL_Resource *rsc)
    if ((!eng_data) || (!rsc)) return;
 
    if (rsc->context)
-      evgl_engine->funcs->context_destroy(eng_data, rsc->context);
+     evgl_engine->funcs->context_destroy(eng_data, rsc->context);
    if (rsc->surface)
-      evgl_engine->funcs->surface_destroy(eng_data, rsc->surface);
+     evgl_engine->funcs->surface_destroy(eng_data, rsc->surface);
    if (rsc->window)
-      evgl_engine->funcs->native_window_destroy(eng_data, rsc->window);
+     evgl_engine->funcs->native_window_destroy(eng_data, rsc->window);
 
    free(rsc);
 }
 
 static int
-_internal_resource_make_current(void *eng_data, EVGL_Context *ctx)
+_internal_resource_make_current(void *eng_data, EVGL_Surface *sfc, EVGL_Context *ctx)
 {
    EVGL_Resource *rsc = NULL;
    void *surface = NULL;
@@ -129,25 +113,94 @@ _internal_resource_make_current(void *eng_data, EVGL_Context *ctx)
      {
         if (!(rsc = _evgl_tls_resource_create(eng_data)))
           {
-             ERR("Error creting resources in tls.");
+             ERR("Error creating resources in tls.");
              return 0;
           }
      }
 
    // Set context from input or from resource
    if (ctx)
-      context = ctx->context;
+     context = ctx->context;
    else
-      context = (void*)rsc->context;
+     {
+        if (!rsc->context)
+          {
+             // Create a resource context
+             rsc->context = evgl_engine->funcs->context_create(eng_data, NULL, EVAS_GL_GLES_2_X);
+             if (!rsc->context)
+               {
+                  ERR("Internal resource context creation failed.");
+                  return 0;
+               }
+          }
 
-   // Set the surface to evas surface if it's there
-   if (rsc->id == evgl_engine->main_tid)
-      rsc->direct.surface = evgl_engine->funcs->evas_surface_get(eng_data);
+        context = (void*)rsc->context;
+     }
 
-   if (rsc->direct.surface)
-      surface = (void*)rsc->direct.surface;
-   else
-      surface = (void*)rsc->surface;
+   if (sfc)
+     {
+        if (_evgl_direct_renderable(rsc, sfc)) // Direct rendering
+          {
+             // Do Nothing
+          }
+        else if (ctx->pixmap_image_supported) // Pixmap surface
+          {
+             if (!sfc->indirect_sfc)
+               {
+                  evgl_engine->funcs->indirect_surface_create(evgl_engine, eng_data, sfc, sfc->cfg, sfc->w, sfc->h);
+                  if (sfc->egl_image) _egl_image_destroy(sfc->egl_image);
+                  sfc->egl_image = _egl_image_create(NULL, EVAS_GL_NATIVE_PIXMAP, sfc->indirect_sfc_native);
+               }
+             surface = (void*)sfc->indirect_sfc;
+
+             if (!ctx->indirect_context)
+               ctx->indirect_context = evgl_engine->funcs->gles_context_create(eng_data, ctx, sfc);
+             context = (void*)ctx->indirect_context;
+          }
+        else if (sfc->pbuffer.native_surface) // Pbuffer surface
+          {
+             surface = (void*)sfc->pbuffer.native_surface;
+          }
+        else // FBO
+          {
+             // Do Nothing
+          }
+     }
+
+   if (!surface)
+     {
+        // Set the surface to evas surface if it's there
+        if (rsc->id == evgl_engine->main_tid)
+           rsc->direct.surface = evgl_engine->funcs->evas_surface_get(eng_data);
+
+        if (rsc->direct.surface)
+           surface = (void*)rsc->direct.surface;
+        else
+          {
+             if (!rsc->window)
+               {
+                  // Create resource surface
+                  rsc->window = evgl_engine->funcs->native_window_create(eng_data);
+                  if (!rsc->window)
+                    {
+                       ERR("Error creating native window");
+                       return 0;
+                    }
+               }
+
+             if (!rsc->surface)
+               {
+                  rsc->surface = evgl_engine->funcs->surface_create(eng_data, rsc->window);
+                  if (!rsc->surface)
+                    {
+                       ERR("Error creating native surface");
+                       return 0;
+                    }
+               }
+
+             surface = (void*)rsc->surface;
+          }
+     }
 
    // Do the make current
    if (evgl_engine->api_debug_mode)
@@ -204,7 +257,7 @@ _texture_destroy(GLuint *tex)
 // Attach 2D texture with the given format to already bound FBO
 // *NOTE: attach2 here is used for depth_stencil attachment in GLES env.
 static void
-_texture_attach_2d(GLuint tex, GLenum attach, GLenum attach2, int samples, Eina_Bool use_extension)
+_texture_attach_2d(GLuint tex, GLenum attach, GLenum attach2, int samples, Evas_GL_Context_Version version)
 {
    if (samples)
      {
@@ -224,7 +277,7 @@ _texture_attach_2d(GLuint tex, GLenum attach, GLenum attach2, int samples, Eina_
         ERR("MSAA not supported.  Should not have come in here...!");
 #endif
      }
-   else if (use_extension)
+   else if (version == EVAS_GL_GLES_1_X)
      {
         if (EXT_FUNC_GLES1(glFramebufferTexture2DOES))
           EXT_FUNC_GLES1(glFramebufferTexture2DOES)(GL_FRAMEBUFFER, attach, GL_TEXTURE_2D, tex, 0);
@@ -302,9 +355,9 @@ _egl_image_destroy(void *image)
 }
 
 static void
-_framebuffer_create(GLuint *buf, Eina_Bool use_extension)
+_framebuffer_create(GLuint *buf, Evas_GL_Context_Version version)
 {
-   if (use_extension)
+   if (version == EVAS_GL_GLES_1_X)
      {
         if (EXT_FUNC_GLES1(glGenFramebuffersOES))
             EXT_FUNC_GLES1(glGenFramebuffersOES)(1, buf);
@@ -316,9 +369,9 @@ _framebuffer_create(GLuint *buf, Eina_Bool use_extension)
 }
 
 static void
-_framebuffer_bind(GLuint buf, Eina_Bool use_extension)
+_framebuffer_bind(GLuint buf, Evas_GL_Context_Version version)
 {
-   if (use_extension)
+   if (version == EVAS_GL_GLES_1_X)
      {
         if (EXT_FUNC_GLES1(glBindFramebufferOES))
           EXT_FUNC_GLES1(glBindFramebufferOES)(GL_FRAMEBUFFER, buf);
@@ -329,11 +382,27 @@ _framebuffer_bind(GLuint buf, Eina_Bool use_extension)
      }
 }
 
+static void
+_framebuffer_draw_bind(GLuint buf, Evas_GL_Context_Version version)
+{
+   if (version == EVAS_GL_GLES_3_X)
+     glBindFramebuffer(GL_DRAW_FRAMEBUFFER, buf);
+}
+
+//This function is not needed in EvasGL backend engine with GLES 2.0.
+//But It is useful when EvasGL backend works with GLES 3.X and use read buffers.
+static void
+_framebuffer_read_bind(GLuint buf, Evas_GL_Context_Version version)
+{
+   if (version == EVAS_GL_GLES_3_X)
+     glBindFramebuffer(GL_READ_FRAMEBUFFER, buf);
+}
+
 static GLenum
-_framebuffer_check(Eina_Bool use_extension)
+_framebuffer_check(Evas_GL_Context_Version version)
 {
    GLenum ret = 0;
-   if (use_extension)
+   if (version == EVAS_GL_GLES_1_X)
      {
         if (EXT_FUNC_GLES1(glCheckFramebufferStatusOES))
           ret = EXT_FUNC_GLES1(glCheckFramebufferStatusOES)(GL_FRAMEBUFFER);
@@ -384,9 +453,9 @@ _renderbuffer_destroy(GLuint *buf)
 
 // Attach a renderbuffer with the given format to already bound FBO
 static void
-_renderbuffer_attach(GLuint buf, GLenum attach, Eina_Bool use_extension)
+_renderbuffer_attach(GLuint buf, GLenum attach, Evas_GL_Context_Version version)
 {
-   if (use_extension)
+   if (version == EVAS_GL_GLES_1_X)
      {
         if (EXT_FUNC_GLES1(glFramebufferRenderbufferOES))
           EXT_FUNC_GLES1(glFramebufferRenderbufferOES)(GL_FRAMEBUFFER, attach, GL_RENDERBUFFER, buf);
@@ -398,6 +467,7 @@ _renderbuffer_attach(GLuint buf, GLenum attach, Eina_Bool use_extension)
 }
 
 // Check whether the given FBO surface config is supported by the driver
+// TODO - we also should test with GLES3's formats.
 static int
 _fbo_surface_cap_test(GLint color_ifmt, GLenum color_fmt,
                       GLenum depth_fmt, GLenum stencil_fmt, int mult_samples)
@@ -420,7 +490,7 @@ _fbo_surface_cap_test(GLint color_ifmt, GLenum color_fmt,
      {
         _texture_create(&color_buf);
         _texture_allocate_2d(color_buf, color_ifmt, color_fmt, GL_UNSIGNED_BYTE, w, h);
-        _texture_attach_2d(color_buf, GL_COLOR_ATTACHMENT0, 0, mult_samples, EINA_FALSE);
+        _texture_attach_2d(color_buf, GL_COLOR_ATTACHMENT0, 0, mult_samples, EVAS_GL_GLES_2_X);
      }
 
    // Check Depth_Stencil Format First
@@ -431,7 +501,7 @@ _fbo_surface_cap_test(GLint color_ifmt, GLenum color_fmt,
         _texture_allocate_2d(depth_stencil_buf, depth_fmt,
                            depth_fmt, GL_UNSIGNED_INT_24_8_OES, w, h);
         _texture_attach_2d(depth_stencil_buf, GL_DEPTH_ATTACHMENT,
-                           GL_STENCIL_ATTACHMENT, mult_samples, EINA_FALSE);
+                           GL_STENCIL_ATTACHMENT, mult_samples, EVAS_GL_GLES_2_X);
         depth_stencil = 1;
      }
 #else
@@ -449,7 +519,7 @@ _fbo_surface_cap_test(GLint color_ifmt, GLenum color_fmt,
      {
         _renderbuffer_create(&depth_buf);
         _renderbuffer_allocate(depth_buf, depth_fmt, w, h, mult_samples);
-        _renderbuffer_attach(depth_buf, GL_DEPTH_ATTACHMENT, EINA_FALSE);
+        _renderbuffer_attach(depth_buf, GL_DEPTH_ATTACHMENT, EVAS_GL_GLES_2_X);
      }
 
    // Stencil Attachment
@@ -457,7 +527,7 @@ _fbo_surface_cap_test(GLint color_ifmt, GLenum color_fmt,
      {
         _renderbuffer_create(&stencil_buf);
         _renderbuffer_allocate(stencil_buf, stencil_fmt, w, h, mult_samples);
-        _renderbuffer_attach(stencil_buf, GL_STENCIL_ATTACHMENT, EINA_FALSE);
+        _renderbuffer_attach(stencil_buf, GL_STENCIL_ATTACHMENT, EVAS_GL_GLES_2_X);
      }
 
    // Check FBO for completeness
@@ -746,51 +816,51 @@ _surface_cap_cache_save()
 {
    /* check eet */
    Eet_File *et = NULL; //check eet file
-   int tmpfd;
-   int res = 0;
+   int tmpfd = -1;
    char cap_dir_path[PATH_MAX];
    char cap_file_path[PATH_MAX];
-   char tmp_file[PATH_MAX];
+   char tmp_file_name[PATH_MAX];
+   Eina_Tmpstr *tmp_file_path = NULL;
+
+   /* use eet */
+   if (!eet_init()) return 0;
 
    if (!evas_gl_common_file_cache_dir_check(cap_dir_path, sizeof(cap_dir_path)))
      {
-        res = evas_gl_common_file_cache_mkpath(cap_dir_path);
-        if (!res) return 0; /* we can't make directory */
+        if (!evas_gl_common_file_cache_mkpath(cap_dir_path))
+          return 0; /* we can't make directory */
      }
 
    evas_gl_common_file_cache_file_check(cap_dir_path, "surface_cap", cap_file_path,
                                         sizeof(cap_dir_path));
 
    /* use mkstemp for writing */
-   snprintf(tmp_file, sizeof(tmp_file), "%s.XXXXXX", cap_file_path);
-
-#ifndef _WIN32
-   mode_t old_umask = umask(S_IRWXG|S_IRWXO);
-#endif
-   tmpfd = mkstemp(tmp_file);
-#ifndef _WIN32
-   umask(old_umask);
-#endif
-
+   snprintf(tmp_file_name, sizeof(tmp_file_name), "%s.XXXXXX.cache", cap_file_path);
+   tmpfd = eina_file_mkstemp(tmp_file_name, &tmp_file_path);
    if (tmpfd < 0) goto error;
-   close(tmpfd);
 
-   /* use eet */
-   if (!eet_init()) goto error;
-
-   et = eet_open(tmp_file, EET_FILE_MODE_WRITE);
+   et = eet_open(tmp_file_path, EET_FILE_MODE_WRITE);
    if (!et) goto error;
 
    if (!_surface_cap_save(et)) goto error;
 
-   if (eet_close(et) != EET_ERROR_NONE) goto error;
-   if (rename(tmp_file,cap_file_path) < 0) goto error;
+   if (eet_close(et) != EET_ERROR_NONE) goto destroyed;
+   if (rename(tmp_file_path, cap_file_path) < 0) goto destroyed;
+   eina_tmpstr_del(tmp_file_path);
+   close(tmpfd);
    eet_shutdown();
+
    return 1;
 
+destroyed:
+   et = NULL;
+
 error:
+   if (tmpfd >= 0) close(tmpfd);
    if (et) eet_close(et);
-   if (evas_gl_common_file_cache_file_exists(tmp_file)) unlink(tmp_file);
+   if (evas_gl_common_file_cache_file_exists(tmp_file_path))
+     unlink(tmp_file_path);
+   eina_tmpstr_del(tmp_file_path);
    eet_shutdown();
    return 0;
 }
@@ -798,13 +868,14 @@ error:
 static int
 _surface_cap_init(void *eng_data)
 {
+   int ret = 0;
    int max_size = 0;
 
    // Do internal make current
-   if (!_internal_resource_make_current(eng_data, NULL))
+   if (!_internal_resource_make_current(eng_data, NULL, NULL))
      {
         ERR("Error doing an internal resource make current");
-        return 0;
+        return ret;
      }
 
    // Query the max width and height of the surface
@@ -853,13 +924,17 @@ _surface_cap_init(void *eng_data)
      {
         _surface_cap_print(0);
         DBG("Number of supported surface formats: %d", evgl_engine->caps.num_fbo_fmts);
-        return 1;
+        ret = 1;
      }
    else
      {
         ERR("There are no available surface formats. Error!");
-        return 0;
      }
+
+   // Destroy internal resources
+   _evgl_tls_resource_destroy(eng_data);
+
+   return ret;
 }
 
 static int
@@ -1087,47 +1162,47 @@ _surface_context_list_print()
 // Start from here.....
 //--------------------------------------------------------//
 static int
-_surface_buffers_fbo_set(EVGL_Surface *sfc, GLuint fbo, Eina_Bool use_extension)
+_surface_buffers_fbo_set(EVGL_Surface *sfc, GLuint fbo, Evas_GL_Context_Version version)
 {
    int status;
 
-   _framebuffer_bind(fbo, use_extension);
+   _framebuffer_bind(fbo, version);
 
    // Detach any previously attached buffers
-   _texture_attach_2d(0, GL_COLOR_ATTACHMENT0, 0, 0, use_extension);
-   _renderbuffer_attach(0, GL_DEPTH_ATTACHMENT, use_extension);
-   _renderbuffer_attach(0, GL_STENCIL_ATTACHMENT, use_extension);
+   _texture_attach_2d(0, GL_COLOR_ATTACHMENT0, 0, 0, version);
+   _renderbuffer_attach(0, GL_DEPTH_ATTACHMENT, version);
+   _renderbuffer_attach(0, GL_STENCIL_ATTACHMENT, version);
 #ifdef GL_GLES
-   _texture_attach_2d(0, GL_DEPTH_ATTACHMENT, GL_STENCIL_ATTACHMENT, 0, use_extension);
+   _texture_attach_2d(0, GL_DEPTH_ATTACHMENT, GL_STENCIL_ATTACHMENT, 0, version);
 #else
-    _renderbuffer_attach(0, GL_DEPTH_STENCIL_ATTACHMENT, use_extension);
+    _renderbuffer_attach(0, GL_DEPTH_STENCIL_ATTACHMENT, version);
 #endif
 
    // Render Target Texture
    if (sfc->color_buf)
-     _texture_attach_2d(sfc->color_buf, GL_COLOR_ATTACHMENT0, 0, sfc->msaa_samples, use_extension);
+     _texture_attach_2d(sfc->color_buf, GL_COLOR_ATTACHMENT0, 0, sfc->msaa_samples, version);
 
    // Depth Stencil RenderBuffer - Attach it to FBO
    if (sfc->depth_stencil_buf)
      {
 #ifdef GL_GLES
         _texture_attach_2d(sfc->depth_stencil_buf, GL_DEPTH_ATTACHMENT,
-                           GL_STENCIL_ATTACHMENT, sfc->msaa_samples, use_extension);
+                           GL_STENCIL_ATTACHMENT, sfc->msaa_samples, version);
 #else
-        _renderbuffer_attach(sfc->depth_stencil_buf, GL_DEPTH_STENCIL_ATTACHMENT, use_extension);
+        _renderbuffer_attach(sfc->depth_stencil_buf, GL_DEPTH_STENCIL_ATTACHMENT, version);
 #endif
      }
 
    // Depth RenderBuffer - Attach it to FBO
    if (sfc->depth_buf)
-     _renderbuffer_attach(sfc->depth_buf, GL_DEPTH_ATTACHMENT, use_extension);
+     _renderbuffer_attach(sfc->depth_buf, GL_DEPTH_ATTACHMENT, version);
 
    // Stencil RenderBuffer - Attach it to FBO
    if (sfc->stencil_buf)
-     _renderbuffer_attach(sfc->stencil_buf, GL_STENCIL_ATTACHMENT, use_extension);
+     _renderbuffer_attach(sfc->stencil_buf, GL_STENCIL_ATTACHMENT, version);
 
    // Check FBO for completeness
-   status = _framebuffer_check(use_extension);
+   status = _framebuffer_check(version);
    if (status != GL_FRAMEBUFFER_COMPLETE)
      {
         ERR("FBO not complete. Error Code: %x!", status);
@@ -1173,16 +1248,8 @@ _surface_buffers_create(EVGL_Surface *sfc)
 
 
 static int
-_surface_buffers_allocate(void *eng_data, EVGL_Surface *sfc, int w, int h, int mc)
+_surface_buffers_allocate(void *eng_data EINA_UNUSED, EVGL_Surface *sfc, int w, int h, Evas_GL_Context_Version version)
 {
-   // Set the context current with resource context/surface
-   if (mc)
-      if (!_internal_resource_make_current(eng_data, NULL))
-        {
-           ERR("Error doing an internal resource make current");
-           return 0;
-        }
-
    // Create buffers
    if (sfc->color_fmt)
      {
@@ -1203,10 +1270,20 @@ _surface_buffers_allocate(void *eng_data, EVGL_Surface *sfc, int w, int h, int m
    if (sfc->depth_stencil_fmt)
      {
 #ifdef GL_GLES
-        _texture_allocate_2d(sfc->depth_stencil_buf, sfc->depth_stencil_fmt,
-                             sfc->depth_stencil_fmt, GL_UNSIGNED_INT_24_8_OES,
-                             w, h);
+        if (version == EVAS_GL_GLES_3_X)
+          {
+             _texture_allocate_2d(sfc->depth_stencil_buf, GL_DEPTH24_STENCIL8_OES,
+                sfc->depth_stencil_fmt, GL_UNSIGNED_INT_24_8_OES,
+                w, h);
+          }
+        else
+          {
+             _texture_allocate_2d(sfc->depth_stencil_buf, sfc->depth_stencil_fmt,
+                sfc->depth_stencil_fmt, GL_UNSIGNED_INT_24_8_OES,
+                w, h);
+          }
 #else
+        (void) version;
         _renderbuffer_allocate(sfc->depth_stencil_buf, sfc->depth_stencil_fmt,
                                w, h, sfc->msaa_samples);
 #endif
@@ -1264,7 +1341,6 @@ _internal_config_set(void *eng_data, EVGL_Surface *sfc, Evas_GL_Config *cfg)
    int color_bit = 0, depth_bit = 0, stencil_bit = 0, msaa_samples = 0;
    int depth_size = 0;
    int native_win_depth = 0, native_win_stencil = 0, native_win_msaa = 0;
-   Eina_Bool support_win_cfg = 1;
 
    // Check if engine is valid
    if (!evgl_engine)
@@ -1318,58 +1394,69 @@ try_again:
              sfc->msaa_samples      = evgl_engine->caps.fbo_fmts[i].samples;
 
              // Direct Rendering Option
-             if (evgl_engine->funcs->native_win_surface_config_get)
-               evgl_engine->funcs->native_win_surface_config_get(eng_data, &native_win_depth, &native_win_stencil, &native_win_msaa);
-             if ((native_win_depth >= depth_size)
-                 && (native_win_stencil >= stencil_bit)
-                 && (native_win_msaa >= msaa_samples))
+             if (cfg->options_bits & EVAS_GL_OPTIONS_DIRECT)
                {
-                  DBG("Win cfg can support the Req Evas GL's config successfully");
-                  support_win_cfg = EINA_TRUE;
-               }
-             else
-               {
-                  ERR("Win cfg can't support Evas GL DR, win: [depth %d, stencil %d, msaa %d] "
-                      "want: [depth %d, stencil %d, msaa %d]",
-                      native_win_depth, native_win_stencil, native_win_msaa,
-                      depth_size, stencil_bit, msaa_samples);
-                  support_win_cfg = EINA_FALSE;
-               }
+                  Eina_Bool support_win_cfg = EINA_FALSE;
 
-             if ((sfc->direct_override) || support_win_cfg)
-               sfc->direct_fb_opt = !!(cfg->options_bits & EVAS_GL_OPTIONS_DIRECT);
-             else if (cfg->options_bits & EVAS_GL_OPTIONS_DIRECT)
-               {
-                  const char *s1[] = { "", ":depth8", ":depth16", ":depth24", ":depth32" };
-                  const char *s2[] = { "", ":stencil1", ":stencil2", ":stencil4", ":stencil8", ":stencil16" };
-                  const char *s3[] = { "", ":msaa_low", ":msaa_mid", ":msaa_high" };
-                  INF("Can not enable direct rendering with depth %d, stencil %d "
-                      "and MSAA %d. When using Elementary GLView, try to call "
-                      "elm_config_accel_preference_set(\"opengl%s%s%s\") before "
-                      "creating any window.",
-                      depth_size, stencil_bit, msaa_samples,
-                      s1[cfg->depth_bits], s2[cfg->stencil_bits], s3[cfg->multisample_bits]);
-               }
+                  if (evgl_engine->funcs->native_win_surface_config_get)
+                    evgl_engine->funcs->native_win_surface_config_get(eng_data, &native_win_depth, &native_win_stencil, &native_win_msaa);
+                  if ((native_win_depth >= depth_size)
+                      && (native_win_stencil >= stencil_bit)
+                      && (native_win_msaa >= msaa_samples))
+                    {
+                       DBG("Win cfg can support the Req Evas GL's config successfully");
+                       support_win_cfg = EINA_TRUE;
+                    }
+                  else
+                    {
+                       ERR("Win config can't support Evas GL direct rendering, "
+                           "win: [depth %d, stencil %d, msaa %d] "
+                           "want: [depth %d, stencil %d, msaa %d]. %s",
+                           native_win_depth, native_win_stencil, native_win_msaa,
+                           depth_size, stencil_bit, msaa_samples,
+                           sfc->direct_override ?
+                              "Forcing direct rendering anyway." :
+                              "Falling back to indirect rendering (FBO).");
+                       support_win_cfg = EINA_FALSE;
+                    }
 
-             // When direct rendering is enabled, FBO configuration should match
-             // window surface configuration as FBO will be used in fallback cases.
-             // So we search again for the formats that match window surface's.
-             if (sfc->direct_fb_opt &&
-                 ((native_win_depth != depth_size) ||
-                  (native_win_stencil != stencil_bit) ||
-                  (native_win_msaa != msaa_samples)))
-               {
-                  if (native_win_depth < 8) depth_bit = 0;
-                  else depth_bit = (1 << ((native_win_depth / 8) - 1));
-                  depth_size = native_win_depth;
-                  stencil_bit = native_win_stencil;
-                  msaa_samples = native_win_msaa;
-                  goto try_again;
-               }
+                  if (sfc->direct_override || support_win_cfg)
+                    {
+                       sfc->direct_fb_opt = EINA_TRUE;
 
-             // Extra flags for direct rendering
-             sfc->client_side_rotation = !!(cfg->options_bits & EVAS_GL_OPTIONS_CLIENT_SIDE_ROTATION);
-             sfc->alpha = (cfg->color_format == EVAS_GL_RGBA_8888);
+                       // Extra flags for direct rendering
+                       sfc->client_side_rotation = !!(cfg->options_bits & EVAS_GL_OPTIONS_CLIENT_SIDE_ROTATION);
+                       sfc->alpha = (cfg->color_format == EVAS_GL_RGBA_8888);
+                    }
+                  else
+                    {
+                       const char *s1[] = { "", ":depth8", ":depth16", ":depth24", ":depth32" };
+                       const char *s2[] = { "", ":stencil1", ":stencil2", ":stencil4", ":stencil8", ":stencil16" };
+                       const char *s3[] = { "", ":msaa_low", ":msaa_mid", ":msaa_high" };
+                       INF("Can not enable direct rendering with depth %d, stencil %d "
+                           "and MSAA %d. When using Elementary GLView, try to call "
+                           "elm_config_accel_preference_set(\"opengl%s%s%s\") before "
+                           "creating any window.",
+                           depth_size, stencil_bit, msaa_samples,
+                           s1[cfg->depth_bits], s2[cfg->stencil_bits], s3[cfg->multisample_bits]);
+                    }
+
+                  // When direct rendering is enabled, FBO configuration should match
+                  // window surface configuration as FBO will be used in fallback cases.
+                  // So we search again for the formats that match window surface's.
+                  if (sfc->direct_fb_opt &&
+                      ((native_win_depth != depth_size) ||
+                       (native_win_stencil != stencil_bit) ||
+                       (native_win_msaa != msaa_samples)))
+                    {
+                       if (native_win_depth < 8) depth_bit = 0;
+                       else depth_bit = (1 << ((native_win_depth / 8) - 1));
+                       depth_size = native_win_depth;
+                       stencil_bit = native_win_stencil;
+                       msaa_samples = native_win_msaa;
+                       goto try_again;
+                    }
+               }
 
              cfg_index = i;
              break;
@@ -1438,12 +1525,22 @@ _evgl_tls_resource_get(void)
         return NULL;
      }
 
-   rsc = eina_tls_get(evgl_engine->resource_key);
+   if (evgl_engine->resource_key)
+     rsc = eina_tls_get(evgl_engine->resource_key);
 
-   if (!rsc)
-      return NULL;
-   else
-      return rsc;
+   return rsc;
+}
+
+static void
+_evgl_tls_resource_destroy_cb(void *data)
+{
+   EVGL_Resource *rsc = data;
+
+   LKL(evgl_engine->resource_lock);
+   evgl_engine->resource_list = eina_list_remove(evgl_engine->resource_list, rsc);
+   LKU(evgl_engine->resource_lock);
+
+   _internal_resources_destroy(rsc->current_eng, rsc);
 }
 
 EVGL_Resource *
@@ -1458,6 +1555,14 @@ _evgl_tls_resource_create(void *eng_data)
         return NULL;
      }
 
+   // Initialize Resource TLS
+   if (!evgl_engine->resource_key && eina_tls_cb_new(&evgl_engine->resource_key, _evgl_tls_resource_destroy_cb) == EINA_FALSE)
+     {
+        ERR("Error creating tls key");
+        return NULL;
+     }
+   DBG("TLS KEY created: %d", evgl_engine->resource_key);
+
    // Create internal resources if it hasn't been created already
    if (!(rsc = _internal_resources_create(eng_data)))
      {
@@ -1470,7 +1575,6 @@ _evgl_tls_resource_create(void *eng_data)
      {
         // Add to the resource resource list for cleanup
         LKL(evgl_engine->resource_lock);
-        rsc->id = evgl_engine->resource_count++;
         evgl_engine->resource_list = eina_list_prepend(evgl_engine->resource_list, rsc);
         LKU(evgl_engine->resource_lock);
         return rsc;
@@ -1488,6 +1592,8 @@ _evgl_tls_resource_destroy(void *eng_data)
 {
    Eina_List *l;
    EVGL_Resource *rsc;
+   EVGL_Surface *sfc;
+   EVGL_Context *ctx;
 
    // Check if engine is valid
    if (!evgl_engine)
@@ -1496,18 +1602,30 @@ _evgl_tls_resource_destroy(void *eng_data)
         return;
      }
 
-   if (!_evgl_tls_resource_get())
+   EINA_LIST_FOREACH(evgl_engine->surfaces, l, sfc)
      {
-        ERR("Error retrieving resource from TLS");
-        return;
+        evgl_surface_destroy(eng_data, sfc);
+     }
+   EINA_LIST_FOREACH(evgl_engine->contexts, l, ctx)
+     {
+        evgl_context_destroy(eng_data, ctx);
      }
 
    LKL(evgl_engine->resource_lock);
+
+   eina_list_free(evgl_engine->surfaces);
+   evgl_engine->surfaces = NULL;
+
+   eina_list_free(evgl_engine->contexts);
+   evgl_engine->contexts = NULL;
+
    EINA_LIST_FOREACH(evgl_engine->resource_list, l, rsc)
      {
         _internal_resources_destroy(eng_data, rsc);
      }
    eina_list_free(evgl_engine->resource_list);
+   evgl_engine->resource_list = NULL;
+
    LKU(evgl_engine->resource_lock);
 
    // Destroy TLS
@@ -1691,16 +1809,10 @@ evgl_engine_init(void *eng_data, const EVGL_Interface *efunc)
 
    // Assign functions
    evgl_engine->funcs = efunc;
-
-   // Initialize Resource TLS
-   if (eina_tls_new(&evgl_engine->resource_key) == EINA_FALSE)
-     {
-        ERR("Error creating tls key");
-        goto error;
-     }
-   DBG("TLS KEY created: %d", evgl_engine->resource_key);
-
    evgl_engine->safe_extensions = eina_hash_string_small_new(NULL);
+
+   // Main Thread ID
+   evgl_engine->main_tid = eina_thread_self();
 
    // Surface Caps
    if (!_surface_cap_init(eng_data))
@@ -1747,9 +1859,6 @@ evgl_engine_init(void *eng_data, const EVGL_Interface *efunc)
    if (debug_mode == 1)
       evgl_engine->api_debug_mode = 1;
 
-   // Maint Thread ID (get tid not available in eina thread yet)
-   evgl_engine->main_tid = 0;
-
    return evgl_engine;
 
 error:
@@ -1783,14 +1892,21 @@ evgl_engine_shutdown(void *eng_data)
      eina_hash_free(evgl_engine->safe_extensions);
    evgl_engine->safe_extensions = NULL;
 
-   // Log
-   eina_log_domain_unregister(_evas_gl_log_dom);
-   _evas_gl_log_dom = -1;
+   if (gles1_funcs) free(gles1_funcs);
+   if (gles2_funcs) free(gles2_funcs);
+   if (gles3_funcs) free(gles3_funcs);
+   gles1_funcs = NULL;
+   gles2_funcs = NULL;
+   gles3_funcs = NULL;
 
    // Destroy internal resources
    _evgl_tls_resource_destroy(eng_data);
 
    LKD(evgl_engine->resource_lock);
+
+   // Log
+   eina_log_domain_unregister(_evas_gl_log_dom);
+   _evas_gl_log_dom = -1;
 
    // Free engine
    free(evgl_engine);
@@ -1973,6 +2089,8 @@ int
 evgl_surface_destroy(void *eng_data, EVGL_Surface *sfc)
 {
    EVGL_Resource *rsc;
+   Eina_List *l;
+   EVGL_Context *ctx;
    Eina_Bool dbg;
 
    // Check input parameter
@@ -1982,43 +2100,41 @@ evgl_surface_destroy(void *eng_data, EVGL_Surface *sfc)
         return 0;
      }
 
-   // Retrieve the resource object
-   if (!(rsc = _evgl_tls_resource_get()))
-     {
-        ERR("Error retrieving resource from TLS");
-        return 0;
-     }
-
    if ((dbg = evgl_engine->api_debug_mode))
      DBG("Destroying surface sfc %p (eng %p)", sfc, eng_data);
 
-   if ((rsc->current_ctx) && (rsc->current_ctx->current_sfc == sfc) )
+   // Retrieve the resource object
+   rsc = _evgl_tls_resource_get();
+   if (rsc && rsc->current_ctx)
      {
-        if (evgl_engine->api_debug_mode)
+        // Make current to current context to destroy surface buffers
+        if (!_internal_resource_make_current(eng_data, sfc, rsc->current_ctx))
           {
-             ERR("The context is still current before it's being destroyed. "
-                 "Calling make_current(NULL, NULL)");
+             ERR("Error doing an internal resource make current");
+             return 0;
           }
-        else
+
+        // Destroy created buffers
+        if (!_surface_buffers_destroy(sfc))
           {
-             WRN("The context is still current before it's being destroyed. "
-                 "Calling make_current(NULL, NULL)");
+             ERR("Error deleting surface resources.");
+             return 0;
           }
-        evgl_make_current(eng_data, NULL, NULL);
-     }
 
-   // Make current to current context to destroy surface buffers
-   if (!_internal_resource_make_current(eng_data, rsc->current_ctx))
-     {
-        ERR("Error doing an internal resource make current");
-        return 0;
-     }
-
-   // Destroy created buffers
-   if (!_surface_buffers_destroy(sfc))
-     {
-        ERR("Error deleting surface resources.");
-        return 0;
+        if (rsc->current_ctx->current_sfc == sfc)
+          {
+             if (evgl_engine->api_debug_mode)
+               {
+                  ERR("The surface is still current before it's being destroyed.");
+                  ERR("Doing make_current(NULL, NULL)");
+               }
+             else
+               {
+                  WRN("The surface is still current before it's being destroyed.");
+                  WRN("Doing make_current(NULL, NULL)");
+               }
+             evgl_make_current(eng_data, NULL, NULL);
+          }
      }
 
    // Destroy indirect surface
@@ -2065,13 +2181,23 @@ evgl_surface_destroy(void *eng_data, EVGL_Surface *sfc)
           }
      }
 
-   if (sfc->current_ctx && sfc->current_ctx->current_sfc == sfc)
-      sfc->current_ctx->current_sfc = NULL;
+   if (dbg) DBG("Calling make_current(NULL, NULL)");
+   if (!evgl_engine->funcs->make_current(eng_data, NULL, NULL, 0))
+     {
+        ERR("Error doing make_current(NULL, NULL).");
+        return 0;
+     }
 
    // Remove it from the list
    LKL(evgl_engine->resource_lock);
    evgl_engine->surfaces = eina_list_remove(evgl_engine->surfaces, sfc);
    LKU(evgl_engine->resource_lock);
+
+   EINA_LIST_FOREACH(evgl_engine->contexts, l, ctx)
+     {
+        if (ctx->current_sfc == sfc)
+          ctx->current_sfc = NULL;
+     }
 
    free(sfc);
 
@@ -2088,7 +2214,6 @@ evgl_context_create(void *eng_data, EVGL_Context *share_ctx,
                     void *(*engine_data_get)(void *))
 {
    EVGL_Context *ctx   = NULL;
-   EVGL_Resource *rsc  = NULL;
 
    // A little bit ugly. But it works even when dlsym(DEFAULT) doesn't work.
    glsym_evas_gl_native_context_get = native_context_get;
@@ -2112,12 +2237,6 @@ evgl_context_create(void *eng_data, EVGL_Context *share_ctx,
    if (evgl_engine->api_debug_mode)
      DBG("Creating context GLESv%d (eng = %p, shctx = %p)", version, eng_data, share_ctx);
 
-   if (!(rsc = _evgl_tls_resource_get()))
-     {
-        ERR("Error creating resources in tls.");
-        return NULL;
-     }
-
    // Allocate context object
    ctx = calloc(1, sizeof(EVGL_Context));
    if (!ctx)
@@ -2133,6 +2252,7 @@ evgl_context_create(void *eng_data, EVGL_Context *share_ctx,
    ctx->scissor_coord[1] = 0;
    ctx->scissor_coord[2] = evgl_engine->caps.max_w;
    ctx->scissor_coord[3] = evgl_engine->caps.max_h;
+   ctx->gl_error = GL_NO_ERROR;
 
    // Call engine create context
    if (share_ctx)
@@ -2200,16 +2320,31 @@ evgl_context_destroy(void *eng_data, EVGL_Context *ctx)
    if (ctx->current_sfc && (ctx->current_sfc->current_ctx == ctx))
      ctx->current_sfc->current_ctx = NULL;
 
-   // Set the context current with resource context/surface
-   if (!_internal_resource_make_current(eng_data, rsc->current_ctx))
-     {
-        ERR("Error doing an internal resource make current");
-        return 0;
-     }
-
    // Delete the FBO
    if (ctx->surface_fbo)
-      glDeleteFramebuffers(1, &ctx->surface_fbo);
+     {
+        // Set the context current with resource context/surface
+        if (!_internal_resource_make_current(eng_data, ctx->current_sfc, ctx))
+          {
+             ERR("Error doing an internal resource make current");
+             return 0;
+          }
+        glDeleteFramebuffers(1, &ctx->surface_fbo);
+     }
+
+   // Retrieve the resource object
+   rsc = _evgl_tls_resource_get();
+   if (rsc && rsc->current_ctx == ctx)
+     {
+        // Unset the currrent context
+        if (dbg) DBG("Calling make_current(NULL, NULL)");
+        if (!evgl_engine->funcs->make_current(eng_data, NULL, NULL, 0))
+          {
+             ERR("Error doing make_current(NULL, NULL).");
+             return 0;
+          }
+        rsc->current_ctx = NULL;
+     }
 
    // Destroy indirect rendering context
    if (ctx->indirect_context &&
@@ -2242,25 +2377,20 @@ evgl_make_current(void *eng_data, EVGL_Surface *sfc, EVGL_Context *ctx)
 {
    Eina_Bool dbg = EINA_FALSE;
    EVGL_Resource *rsc;
-   int curr_fbo = 0;
+   int curr_fbo = 0, curr_draw_fbo = 0, curr_read_fbo = 0;
 
-   // Check the input validity. If either sfc or ctx is NULL, it's also error.
-   if ( (!evgl_engine) ||
-        (sfc && (!ctx)) )
+   // Check the input validity. If either sfc is valid but ctx is NULL, it's also error.
+   // sfc can be NULL as evas gl supports surfaceless make current
+   if ( (!evgl_engine) || ((sfc) && (!ctx)) )
      {
-        ERR("Invalid Inputs. Engine: %p  Surface: %p   Context: %p!", evgl_engine, sfc, ctx);
-        if(!sfc) evas_gl_common_error_set(eng_data, EVAS_GL_BAD_SURFACE);
-        if(!ctx) evas_gl_common_error_set(eng_data, EVAS_GL_BAD_CONTEXT);
+        ERR("Invalid Input: Engine: %p, Surface: %p, Context: %p", evgl_engine, sfc, ctx);
+        if (!evgl_engine) evas_gl_common_error_set(eng_data, EVAS_GL_NOT_INITIALIZED);
+        if (!ctx) evas_gl_common_error_set(eng_data, EVAS_GL_BAD_CONTEXT);
         return 0;
      }
 
    // Get TLS Resources
    rsc = _evgl_tls_resource_get();
-
-   // Abuse debug mode - extra tracing for make_current and friends
-   dbg = evgl_engine->api_debug_mode;
-   if (dbg) DBG("(eng = %p, sfc = %p, ctx = %p), rsc = %p", eng_data, sfc, ctx, rsc);
-
    if (!rsc)
      {
         DBG("Creating new TLS for this thread: %lu", (unsigned long)eina_thread_self());
@@ -2268,22 +2398,42 @@ evgl_make_current(void *eng_data, EVGL_Surface *sfc, EVGL_Context *ctx)
         if (!rsc) return 0;
      }
 
+   // Abuse debug mode - extra tracing for make_current and friends
+   dbg = evgl_engine->api_debug_mode;
+   if (dbg) DBG("(eng = %p, sfc = %p, ctx = %p), rsc = %p", eng_data, sfc, ctx, rsc);
+
    // Unset
    if ((!sfc) && (!ctx))
      {
         if (rsc->current_ctx)
           {
              if (rsc->direct.partial.enabled)
-                evgl_direct_partial_render_end();
+               evgl_direct_partial_render_end();
 
-             glGetIntegerv(GL_FRAMEBUFFER_BINDING, &curr_fbo);
-             if ((rsc->current_ctx->surface_fbo == (GLuint) curr_fbo) ||
-                 (rsc->current_ctx->current_sfc &&
-                  rsc->current_ctx->current_sfc->color_buf == (GLuint) curr_fbo))
+             if (rsc->current_ctx->version == EVAS_GL_GLES_3_X)
                {
-                  glBindFramebuffer(GL_FRAMEBUFFER, 0);
-                  rsc->current_ctx->current_fbo = 0;
+                  glGetIntegerv(GL_DRAW_FRAMEBUFFER_BINDING, &curr_draw_fbo);
+                  if ((rsc->current_ctx->surface_fbo == (GLuint) curr_draw_fbo) ||
+                      (rsc->current_ctx->current_sfc &&
+                       rsc->current_ctx->current_sfc->color_buf == (GLuint) curr_draw_fbo))
+                    {
+                       glBindFramebuffer(GL_FRAMEBUFFER, 0);
+                       rsc->current_ctx->current_draw_fbo = 0;
+                       rsc->current_ctx->current_read_fbo = 0;
+                    }
                }
+             else
+               {
+                  glGetIntegerv(GL_FRAMEBUFFER_BINDING, &curr_fbo);
+                  if ((rsc->current_ctx->surface_fbo == (GLuint) curr_fbo) ||
+                      (rsc->current_ctx->current_sfc &&
+                       rsc->current_ctx->current_sfc->color_buf == (GLuint) curr_fbo))
+                    {
+                       glBindFramebuffer(GL_FRAMEBUFFER, 0);
+                       rsc->current_ctx->current_fbo = 0;
+                    }
+               }
+
           }
 
         if (dbg) DBG("Calling make_current(NULL, NULL)");
@@ -2312,7 +2462,7 @@ evgl_make_current(void *eng_data, EVGL_Surface *sfc, EVGL_Context *ctx)
      }
 
    // Do a make current
-   if (!_internal_resource_make_current(eng_data, ctx))
+   if (!_internal_resource_make_current(eng_data, sfc, ctx))
      {
         ERR("Error doing a make current with internal surface. Context: %p", ctx);
         evas_gl_common_error_set(eng_data, EVAS_GL_BAD_CONTEXT);
@@ -2325,7 +2475,7 @@ evgl_make_current(void *eng_data, EVGL_Surface *sfc, EVGL_Context *ctx)
    // to use fbo & egl image passing to evas
    if (!ctx->extension_checked)
      {
-        if (!evgl_api_get(eng_data, ctx->version))
+        if (!evgl_api_get(eng_data, ctx->version, EINA_FALSE))
           {
              ERR("Unable to get the list of GL APIs for version %d", ctx->version);
              evas_gl_common_error_set(eng_data, EVAS_GL_NOT_INITIALIZED);
@@ -2370,7 +2520,7 @@ evgl_make_current(void *eng_data, EVGL_Surface *sfc, EVGL_Context *ctx)
                   // Destroy created resources
                   if (sfc->buffers_allocated)
                     {
-                       if (!_surface_buffers_allocate(eng_data, sfc, 0, 0, 0))
+                       if (!_surface_buffers_allocate(eng_data, sfc, 0, 0, ctx->version))
                          {
                             ERR("Unable to destroy surface buffers!");
                             evas_gl_common_error_set(eng_data, EVAS_GL_BAD_ALLOC);
@@ -2391,7 +2541,7 @@ evgl_make_current(void *eng_data, EVGL_Surface *sfc, EVGL_Context *ctx)
                        if (!sfc->buffers_allocated)
                          {
                             if (dbg) DBG("Allocating buffers for sfc %p", sfc);
-                            if (!_surface_buffers_allocate(eng_data, sfc, sfc->w, sfc->h, 0))
+                            if (!_surface_buffers_allocate(eng_data, sfc, sfc->w, sfc->h, ctx->version))
                               {
                                  ERR("Unable Create Specificed Surfaces.  Unsupported format!");
                                  evas_gl_common_error_set(eng_data, EVAS_GL_BAD_ALLOC);
@@ -2406,7 +2556,7 @@ evgl_make_current(void *eng_data, EVGL_Surface *sfc, EVGL_Context *ctx)
           {
              if (!sfc->buffers_allocated)
                {
-                  if (!_surface_buffers_allocate(eng_data, sfc, sfc->w, sfc->h, 0))
+                  if (!_surface_buffers_allocate(eng_data, sfc, sfc->w, sfc->h, ctx->version))
                     {
                        ERR("Unable Create Allocate Memory for Surface.");
                        evas_gl_common_error_set(eng_data, EVAS_GL_BAD_ALLOC);
@@ -2435,33 +2585,24 @@ evgl_make_current(void *eng_data, EVGL_Surface *sfc, EVGL_Context *ctx)
           }
         else
           {
-             if (!sfc->indirect_sfc)
-               {
-                  evgl_engine->funcs->indirect_surface_create(evgl_engine, eng_data, sfc, sfc->cfg, sfc->w, sfc->h);
-                  sfc->egl_image = _egl_image_create(NULL, EVAS_GL_NATIVE_PIXMAP, sfc->indirect_sfc_native);
-               }
-             if (!ctx->indirect_context)
-               {
-                  ctx->indirect_context =
-                        evgl_engine->funcs->gles_context_create(eng_data, ctx, sfc);
-               }
-             if (dbg) DBG("Calling make_current(%p, %p)", sfc->indirect_sfc, ctx->indirect_context);
-             if (!evgl_engine->funcs->make_current(eng_data, sfc->indirect_sfc,
-                                                   ctx->indirect_context, EINA_TRUE))
-               {
-                  ERR("Failed to make current with indirect surface.");
-                  return 0;
-               }
-
              // Transition from direct rendering to indirect rendering
              if (rsc->direct.rendered)
                {
                   glViewport(ctx->viewport_coord[0], ctx->viewport_coord[1], ctx->viewport_coord[2], ctx->viewport_coord[3]);
                   if ((ctx->direct_scissor) && (!ctx->scissor_enabled))
                     glDisable(GL_SCISSOR_TEST);
+             }
+
+             if (ctx->version == EVAS_GL_GLES_3_X)
+               {
+                  ctx->current_draw_fbo = 0;
+                  ctx->current_read_fbo = 0;
+               }
+             else
+               {
+                  ctx->current_fbo = 0;
                }
 
-             ctx->current_fbo = 0;
              rsc->direct.rendered = 0;
           }
      }
@@ -2473,39 +2614,82 @@ evgl_make_current(void *eng_data, EVGL_Surface *sfc, EVGL_Context *ctx)
           use_extension = EINA_TRUE;
 #endif
 
-        // Normal FBO Rendering
-        // Create FBO if it hasn't been created
-        if (!ctx->surface_fbo)
-          _framebuffer_create(&ctx->surface_fbo, use_extension);
-
         // Direct Rendering
         if (_evgl_direct_renderable(rsc, sfc))
           {
              if (dbg) DBG("sfc %p is direct renderable.", sfc);
 
-             // This is to transition from FBO rendering to direct rendering
-             glGetIntegerv(GL_FRAMEBUFFER_BINDING, &curr_fbo);
-             if (ctx->surface_fbo == (GLuint)curr_fbo)
-               {
-                  _framebuffer_bind(0, use_extension);
-                  ctx->current_fbo = 0;
-               }
-             else if (ctx->current_sfc && (ctx->current_sfc->pbuffer.is_pbuffer))
-               {
-                  // Using the same context, we were rendering on a pbuffer
-                  _framebuffer_bind(0, use_extension);
-                  ctx->current_fbo = 0;
-               }
+             // Create FBO if it hasn't been created
+             if (!ctx->surface_fbo)
+               _framebuffer_create(&ctx->surface_fbo, use_extension);
 
-             if (ctx->current_fbo == 0)
+             if (ctx->version == EVAS_GL_GLES_3_X)
                {
-                  // If master clip is set and clip is greater than 0, do partial render
-                  if (rsc->direct.partial.enabled)
+                  // This is to transition from FBO rendering to direct rendering
+                  glGetIntegerv(GL_DRAW_FRAMEBUFFER_BINDING, &curr_draw_fbo);
+                  if (ctx->surface_fbo == (GLuint)curr_draw_fbo)
                     {
-                       if (!ctx->partial_render)
+                       _framebuffer_draw_bind(0, ctx->version);
+                       ctx->current_draw_fbo = 0;
+                    }
+                  else if (ctx->current_sfc && (ctx->current_sfc->pbuffer.is_pbuffer))
+                    {
+                       // Using the same context, we were rendering on a pbuffer
+                       _framebuffer_draw_bind(0, ctx->version);
+                       ctx->current_draw_fbo = 0;
+                    }
+
+                  glGetIntegerv(GL_READ_FRAMEBUFFER_BINDING, &curr_read_fbo);
+                  if (ctx->surface_fbo == (GLuint)curr_read_fbo)
+                    {
+                       _framebuffer_read_bind(0, ctx->version);
+                       ctx->current_read_fbo = 0;
+                    }
+                  else if (ctx->current_sfc && (ctx->current_sfc->pbuffer.is_pbuffer))
+                    {
+                       _framebuffer_read_bind(0, ctx->version);
+                       ctx->current_read_fbo = 0;
+                    }
+
+                  if (ctx->current_read_fbo == 0)
+                    {
+                       // If master clip is set and clip is greater than 0, do partial render
+                       if (rsc->direct.partial.enabled)
                          {
-                            evgl_direct_partial_render_start();
-                            ctx->partial_render = 1;
+                            if (!ctx->partial_render)
+                              {
+                                 evgl_direct_partial_render_start();
+                                 ctx->partial_render = 1;
+                              }
+                         }
+                    }
+               }
+             else
+               {
+                  // This is to transition from FBO rendering to direct rendering
+                  glGetIntegerv(GL_FRAMEBUFFER_BINDING, &curr_fbo);
+                  if (ctx->surface_fbo == (GLuint)curr_fbo)
+                    {
+                       _framebuffer_bind(0, ctx->version);
+                       ctx->current_fbo = 0;
+                    }
+                  else if (ctx->current_sfc && (ctx->current_sfc->pbuffer.is_pbuffer))
+                    {
+                       // Using the same context, we were rendering on a pbuffer
+                       _framebuffer_bind(0, ctx->version);
+                       ctx->current_fbo = 0;
+                    }
+
+                  if (ctx->current_fbo == 0)
+                    {
+                       // If master clip is set and clip is greater than 0, do partial render
+                       if (rsc->direct.partial.enabled)
+                         {
+                            if (!ctx->partial_render)
+                              {
+                                 evgl_direct_partial_render_start();
+                                 ctx->partial_render = 1;
+                              }
                          }
                     }
                }
@@ -2520,25 +2704,31 @@ evgl_make_current(void *eng_data, EVGL_Surface *sfc, EVGL_Context *ctx)
              if (rsc->direct.partial.enabled)
                evgl_direct_partial_render_end();
 
-             if (sfc->color_buf)
-               {
-                  if (!_surface_buffers_fbo_set(sfc, sfc->color_buf, use_extension))
-                    ERR("Could not detach current FBO");
-               }
-
-             if (dbg) DBG("Calling make_current(%p, %p)", sfc->pbuffer.native_surface, ctx->context);
-             evgl_engine->funcs->make_current(eng_data, sfc->pbuffer.native_surface,
-                                              ctx->context, EINA_TRUE);
-
              // Bind to the previously bound buffer (may be 0)
-             if (ctx->current_fbo)
-               _framebuffer_bind(ctx->current_fbo, use_extension);
+             if (ctx->version == EVAS_GL_GLES_3_X)
+               {
+                  if (ctx->current_draw_fbo)
+                    {
+                       _framebuffer_draw_bind(ctx->current_draw_fbo, ctx->version);
+                    }
+               }
+             else
+               {
+                  if (ctx->current_fbo)
+                    {
+                       _framebuffer_bind(ctx->current_fbo, ctx->version);
+                    }
+               }
 
              rsc->direct.rendered = 0;
           }
         else
           {
              if (dbg) DBG("Surface sfc %p is a normal surface.", sfc);
+
+             // Create FBO if it hasn't been created
+             if (!ctx->surface_fbo)
+               _framebuffer_create(&ctx->surface_fbo, use_extension);
 
              // Attach fbo and the buffers
              if ((rsc->current_ctx != ctx) || (ctx->current_sfc != sfc) || (rsc->direct.rendered))
@@ -2555,7 +2745,7 @@ evgl_make_current(void *eng_data, EVGL_Surface *sfc, EVGL_Context *ctx)
                        if (rsc->direct.partial.enabled)
                           evgl_direct_partial_render_end();
 
-                       if (!_surface_buffers_fbo_set(sfc, ctx->surface_fbo, use_extension))
+                       if (!_surface_buffers_fbo_set(sfc, ctx->surface_fbo, ctx->version))
                          {
                             ERR("Attaching buffers to context fbo failed. Engine: %p  Surface: %p Context FBO: %u", evgl_engine, sfc, ctx->surface_fbo);
                             evas_gl_common_error_set(eng_data, EVAS_GL_BAD_CONTEXT);
@@ -2564,8 +2754,20 @@ evgl_make_current(void *eng_data, EVGL_Surface *sfc, EVGL_Context *ctx)
                     }
 
                   // Bind to the previously bound buffer
-                  if (ctx->current_fbo)
-                     _framebuffer_bind(ctx->current_fbo, use_extension);
+
+                  if (ctx->version == EVAS_GL_GLES_3_X)
+                    {
+                       if (ctx->current_draw_fbo)
+                         _framebuffer_draw_bind(ctx->current_draw_fbo, ctx->version);
+
+                       if (ctx->current_read_fbo)
+                         _framebuffer_read_bind(ctx->current_read_fbo, ctx->version);
+                    }
+                  else
+                    {
+                       if (ctx->current_fbo)
+                         _framebuffer_bind(ctx->current_fbo, ctx->version);
+                    }
                }
              rsc->direct.rendered = 0;
           }
@@ -2850,8 +3052,29 @@ evgl_get_pixels_post(void)
 }
 
 Evas_GL_API *
-evgl_api_get(void *eng_data, Evas_GL_Context_Version version)
+evgl_api_get(void *eng_data, Evas_GL_Context_Version version, Eina_Bool alloc_only)
 {
+   Evas_GL_API *api = NULL;
+
+   if (version == EVAS_GL_GLES_2_X)
+     {
+        if (!gles2_funcs) gles2_funcs = calloc(1, EVAS_GL_API_STRUCT_SIZE);
+        api = gles2_funcs;
+     }
+   else if (version == EVAS_GL_GLES_1_X)
+     {
+        if (!gles1_funcs) gles1_funcs = calloc(1, EVAS_GL_API_STRUCT_SIZE);
+        api = gles1_funcs;
+     }
+   else if (version == EVAS_GL_GLES_3_X)
+     {
+        if (!gles3_funcs) gles3_funcs = calloc(1, EVAS_GL_API_STRUCT_SIZE);
+        api = gles3_funcs;
+     }
+   else return NULL;
+   if (alloc_only && (api->version == EVAS_GL_API_VERSION))
+     return api;
+
 #ifdef GL_GLES
     if (!evgl_api_egl_ext_init(evgl_engine->funcs->proc_address_get, evgl_engine->funcs->ext_string_get(eng_data)))
       {
@@ -2860,32 +3083,21 @@ evgl_api_get(void *eng_data, Evas_GL_Context_Version version)
 #endif
    if (version == EVAS_GL_GLES_2_X)
      {
-        if (!gles2_funcs) gles2_funcs = calloc(1, EVAS_GL_API_STRUCT_SIZE);
-
-        _evgl_api_gles2_get(gles2_funcs, evgl_engine->api_debug_mode);
-        evgl_api_gles2_ext_get(gles2_funcs, evgl_engine->funcs->proc_address_get, evgl_engine->funcs->ext_string_get(eng_data));
-
-        return gles2_funcs;
+        _evgl_api_gles2_get(api, evgl_engine->api_debug_mode);
+        evgl_api_gles2_ext_get(api, evgl_engine->funcs->proc_address_get, evgl_engine->funcs->ext_string_get(eng_data));
      }
    else if (version == EVAS_GL_GLES_1_X)
      {
-        if (!gles1_funcs) gles1_funcs = calloc(1, EVAS_GL_API_STRUCT_SIZE);
-
-        _evgl_api_gles1_get(gles1_funcs, evgl_engine->api_debug_mode);
-        evgl_api_gles1_ext_get(gles1_funcs, evgl_engine->funcs->proc_address_get, evgl_engine->funcs->ext_string_get(eng_data));
-
-        return gles1_funcs;
+        _evgl_api_gles1_get(api, evgl_engine->api_debug_mode);
+        evgl_api_gles1_ext_get(api, evgl_engine->funcs->proc_address_get, evgl_engine->funcs->ext_string_get(eng_data));
      }
    else if (version == EVAS_GL_GLES_3_X)
      {
-        if (!gles3_funcs) gles3_funcs = calloc(1, EVAS_GL_API_STRUCT_SIZE);
-
-        _evgl_api_gles3_get(gles3_funcs, evgl_engine->api_debug_mode);
-        evgl_api_gles3_ext_get(gles3_funcs, evgl_engine->funcs->proc_address_get, evgl_engine->funcs->ext_string_get(eng_data));
-
-        return gles3_funcs;
+        _evgl_api_gles3_get(api, evgl_engine->api_debug_mode);
+        evgl_api_gles3_ext_get(api, evgl_engine->funcs->proc_address_get, evgl_engine->funcs->ext_string_get(eng_data));
      }
-   else return NULL;
+
+   return api;
 }
 
 
@@ -2954,8 +3166,8 @@ evgl_direct_partial_render_end()
      }
 }
 
-void
-evas_gl_context_restore_set(Eina_Bool enable)
+EAPI void
+evas_gl_common_context_restore_set(Eina_Bool enable)
 {
    _need_context_restore = enable;
 }

@@ -1,13 +1,13 @@
 #define _EVAS_GL_CONTEXT_C
 #include "evas_gl_private.h"
 
-#ifdef HAVE_DLSYM
+#if defined HAVE_DLSYM && ! defined _WIN32
 # include <dlfcn.h>      /* dlopen,dlclose,etc */
 #else
 # error gl_common should not get compiled if dlsym is not found on the system!
 #endif
 
-#define PRG_INVALID 0xffffffff
+#define PRG_INVALID NULL
 #define GLPIPES 1
 
 static int sym_done = 0;
@@ -92,6 +92,11 @@ evas_gl_symbols(void *(*GetProcAddress)(const char *name))
    }
 #define FINDSYM2(dst, sym, typ) if (!dst) dst = (typ)dlsym(RTLD_DEFAULT, sym)
 #define FALLBAK(dst, typ) if (!dst) dst = (typ)sym_missing
+
+#define SWAP(a, b, tmp) \
+   tmp = *a; \
+   *a = *b; \
+   *b = tmp;
 
 #ifdef GL_GLES
    FINDSYM(glsym_glGenFramebuffers, "glGenFramebuffers", glsym_func_void);
@@ -476,8 +481,16 @@ _evas_gl_common_version_check(int *gles_ver)
         /* Map GL to GLES version: Refer http://en.wikipedia.org/wiki/OpenGL_ES */
         if ((major >= 4) && (minor >= 3))
           *gles_ver = 3;
+        else if ((major > 3) || ((major == 3) && (minor >= 3))) /* >= 3.3 */
+          {
+             const char *exts = (const char *) glGetString(GL_EXTENSIONS);
+             if (exts && strstr(exts, "GL_ARB_ES3_compatibility"))
+               *gles_ver = 3;
+             else
+               *gles_ver = 2;
+          }
         else
-          *gles_ver = 2;
+          *gles_ver = 2; /* emulated support */
         return 1;
      }
 
@@ -487,8 +500,9 @@ _evas_gl_common_version_check(int *gles_ver)
 static void
 _evas_gl_common_viewport_set(Evas_Engine_GL_Context *gc)
 {
-   unsigned int i;
    int w = 1, h = 1, m = 1, rot = 1, foc = 0;
+   Evas_GL_Program *prog;
+   Eina_Iterator *it;
 
    EINA_SAFETY_ON_NULL_RETURN(gc);
    foc = gc->foc;
@@ -619,21 +633,24 @@ _evas_gl_common_viewport_set(Evas_Engine_GL_Context *gc)
         gc->shared->ay = ay;
      }
 
-   for (i = 0; i < SHADER_LAST; ++i)
-     {
-        gc->shared->shader[i].reset = EINA_TRUE;
-     }
+   // FIXME: Is this heavy work?
+   it = eina_hash_iterator_data_new(gc->shared->shaders_hash);
+   EINA_ITERATOR_FOREACH(it, prog)
+     prog->reset = EINA_TRUE;
+   eina_iterator_free(it);
 
-   if (gc->state.current.cur_prog == PRG_INVALID)
+   if (gc->state.current.prog != PRG_INVALID)
+     /*
      {
         glUseProgram(gc->shared->shader[0].prog);
         glUniformMatrix4fv(glGetUniformLocation(gc->shared->shader[0].prog, "mvp"), 1, GL_FALSE, gc->shared->proj);
         gc->shared->shader[0].reset = EINA_FALSE;
      }
    else
+   */
      {
-        glUseProgram(gc->state.current.cur_prog);
-        glUniformMatrix4fv(glGetUniformLocation(gc->state.current.cur_prog, "mvp"), 1, GL_FALSE, gc->shared->proj);
+        glUseProgram(gc->state.current.prog->prog);
+        glUniformMatrix4fv(glGetUniformLocation(gc->state.current.prog->prog, "mvp"), 1, GL_FALSE, gc->shared->proj);
      }
 }
 
@@ -674,10 +691,11 @@ evas_gl_common_context_new(void)
           }
      }
 
+   gc->state.current.tex_target = GL_TEXTURE_2D;
+
    if (!shared)
      {
         const char *ext;
-        int shd;
 
         shared = calloc(1, sizeof(Evas_GL_Shared));
         ext = (const char *) glGetString(GL_EXTENSIONS);
@@ -924,22 +942,12 @@ evas_gl_common_context_new(void)
         glEnableVertexAttribArray(SHAD_VERTEX);
         glEnableVertexAttribArray(SHAD_COLOR);
 
-        if (!evas_gl_common_shader_program_init(shared)) goto error;
+        if (!evas_gl_common_shader_program_init(shared))
+          goto error;
 
-        /* Bind textures */
-        for (shd = 0; _shaders_textures[shd].id != SHADER_LAST; shd++)
-          {
-             GLuint loc;
-             glUseProgram(shared->shader[_shaders_textures[shd].id].prog);
-             loc = glGetUniformLocation(shared->shader[_shaders_textures[shd].id].prog, _shaders_textures[shd].tname);
-             glUniform1i(loc, shared->shader[_shaders_textures[shd].id].tex_count++);
-          }
+        if (gc->state.current.prog)
+          glUseProgram(gc->state.current.prog->prog);
 
-        if (gc->state.current.cur_prog == PRG_INVALID)
-           glUseProgram(shared->shader[0].prog);
-        else glUseProgram(gc->state.current.cur_prog);
-
-        evas_gl_common_shader_program_init_done();
         // in shader:
         // uniform sampler2D tex[8];
         //
@@ -961,7 +969,8 @@ evas_gl_common_context_new(void)
    gc->def_surface = evas_gl_common_image_surface_new(gc, 1, 1, 1);
 
    return gc;
-   error:
+
+error:
    evas_gl_common_context_free(gc);
    return NULL;
 }
@@ -1010,8 +1019,7 @@ evas_gl_common_context_free(Evas_Engine_GL_Context *gc)
      {
         Evas_GL_Texture_Pool *pt;
 
-        for (i = 0; i < SHADER_LAST; ++i)
-          evas_gl_common_shader_program_shutdown(&(gc->shared->shader[i]));
+        evas_gl_common_shader_program_shutdown(gc->shared);
 
         while (gc->shared->images)
           {
@@ -1033,6 +1041,7 @@ evas_gl_common_context_free(Evas_Engine_GL_Context *gc)
         eina_hash_free(gc->shared->native_wl_hash);
         eina_hash_free(gc->shared->native_tbm_hash);
         eina_hash_free(gc->shared->native_evasgl_hash);
+        eina_stringshare_del(gc->shared->shaders_checksum);
         free(gc->shared);
         shared = NULL;
      }
@@ -1072,13 +1081,13 @@ evas_gl_common_context_newframe(Evas_Engine_GL_Context *gc)
 //   fprintf(stderr, "------------------------\n");
 
    gc->flushnum = 0;
-   gc->state.current.id = SHADER_LAST;
-   gc->state.current.cur_prog = 0;
+   gc->state.current.prog = NULL;
    gc->state.current.cur_tex = 0;
    gc->state.current.cur_texu = 0;
    gc->state.current.cur_texv = 0;
    gc->state.current.cur_texa = 0;
    gc->state.current.cur_texm = 0;
+   gc->state.current.tex_target = GL_TEXTURE_2D;
    gc->state.current.render_op = 0;
    gc->state.current.smooth = 0;
    gc->state.current.blend = 0;
@@ -1101,13 +1110,13 @@ evas_gl_common_context_newframe(Evas_Engine_GL_Context *gc)
         gc->pipe[i].clip.w = 0;
         gc->pipe[i].clip.h = 0;
         gc->pipe[i].shader.surface = NULL;
-        gc->pipe[i].shader.id = SHADER_LAST;
-        gc->pipe[i].shader.cur_prog = 0;
+        gc->pipe[i].shader.prog = NULL;
         gc->pipe[i].shader.cur_tex = 0;
         gc->pipe[i].shader.cur_texu = 0;
         gc->pipe[i].shader.cur_texv = 0;
         gc->pipe[i].shader.cur_texa = 0;
         gc->pipe[i].shader.cur_texm = 0;
+        gc->pipe[i].shader.tex_target = GL_TEXTURE_2D;
         gc->pipe[i].shader.render_op = EVAS_RENDER_BLEND;
         gc->pipe[i].shader.smooth = 0;
         gc->pipe[i].shader.blend = 0;
@@ -1142,12 +1151,11 @@ evas_gl_common_context_newframe(Evas_Engine_GL_Context *gc)
 
    glEnableVertexAttribArray(SHAD_VERTEX);
    glEnableVertexAttribArray(SHAD_COLOR);
-   if (gc->state.current.cur_prog == PRG_INVALID)
-      glUseProgram(gc->shared->shader[0].prog);
-   else glUseProgram(gc->state.current.cur_prog);
+   if (gc->state.current.prog != PRG_INVALID)
+     glUseProgram(gc->state.current.prog->prog);
 
    glActiveTexture(GL_TEXTURE0);
-   glBindTexture(GL_TEXTURE_2D, gc->pipe[0].shader.cur_tex);
+   glBindTexture(gc->pipe[0].shader.tex_target, gc->pipe[0].shader.cur_tex);
 
    _evas_gl_common_viewport_set(gc);
 }
@@ -1226,13 +1234,13 @@ evas_gl_common_context_target_surface_set(Evas_Engine_GL_Context *gc,
    evas_gl_common_context_flush(gc);
    evas_gl_common_context_done(gc);
 
-   gc->state.current.id = SHADER_LAST;
-   gc->state.current.cur_prog = PRG_INVALID;
+   gc->state.current.prog = NULL;
    gc->state.current.cur_tex = 0;
    gc->state.current.cur_texu = 0;
    gc->state.current.cur_texv = 0;
    gc->state.current.cur_texa = 0;
    gc->state.current.cur_texm = 0;
+   gc->state.current.tex_target = GL_TEXTURE_2D;
    gc->state.current.render_op = -1;
    gc->state.current.smooth = -1;
    gc->state.current.blend = -1;
@@ -1516,165 +1524,12 @@ vertex_array_size_check(Evas_Engine_GL_Context *gc EINA_UNUSED, int pn EINA_UNUS
  */
 }
 
-static Evas_GL_Shader
-evas_gl_common_shader_select(Evas_Engine_GL_Context *gc,
-                             Shader_Type type,
-                             RGBA_Map_Point *p, int npoints,
-                             int r, int g, int b, int a,
-                             int sw, int sh, int w, int h, Eina_Bool smooth,
-                             Evas_GL_Texture *tex, Eina_Bool tex_only,
-                             Evas_GL_Texture *mtex, Eina_Bool mask_smooth,
-                             int mw, int mh,
-                             Shader_Sampling *psam, int *pnomul, Shader_Sampling *pmasksam)
-{
-   const Eina_Bool gc_bgra = gc->shared->info.bgra;
-   int nomul = 1, bgra = 0;
-   int mask = (mtex != NULL), afill = 0;
-   Shader_Sampling sam = SHD_SAM11, masksam = SHD_SAM11;
-   Evas_GL_Shader shader = SHADER_RECT;
-   int k = 0;
-
-   if ((type <= SHD_UNKNOWN) || (type >= SHD_TYPE_LAST))
-     {
-        CRI("Unknown shader type requested!");
-        goto end;
-     }
-
-   // image downscale sampling
-   if (smooth && ((type == SHD_IMAGE) || (type == SHD_IMAGENATIVE)))
-     {
-        if ((sw >= (w * 2)) && (sh >= (h * 2)))
-          sam = SHD_SAM22;
-        else if (sw >= (w * 2))
-          sam = SHD_SAM21;
-        else if (sh >= (h * 2))
-          sam = SHD_SAM12;
-     }
-
-   // mask downscale sampling
-   if (mtex && mask_smooth)
-     {
-        if ((mtex->w >= (mw * 2)) && (mtex->h >= (mh * 2)))
-          masksam = SHD_SAM22;
-        else if (mtex->w >= (mw * 2))
-          masksam = SHD_SAM21;
-        else if (mtex->h >= (mh * 2))
-          masksam = SHD_SAM12;
-     }
-
-   // rect, line, polygon
-   if ((type == SHD_RECT) || (type == SHD_LINE))
-     {
-        static const Evas_GL_Shader rect_shaders[] = {
-           SHADER_RECT_MASK, SHADER_RECT_MASK12, SHADER_RECT_MASK21, SHADER_RECT_MASK22
-        };
-        if (!mtex) shader = SHADER_RECT;
-        else shader = rect_shaders[masksam];
-        goto end;
-     }
-
-   // text
-   if (type == SHD_FONT)
-     {
-        static const Evas_GL_Shader font_shaders[] = {
-           SHADER_FONT_MASK, SHADER_FONT_MASK12, SHADER_FONT_MASK21, SHADER_FONT_MASK22
-        };
-        if (!mtex) shader = SHADER_FONT;
-        else shader = font_shaders[masksam];
-        goto end;
-     }
-
-   // color mul
-   if ((a == 255) && (r == 255) && (g == 255) && (b == 255))
-     {
-        if (p)
-          {
-             for (k = 0; k < npoints; k++)
-               if (p[k].col != 0xffffffff)
-                 {
-                    nomul = 0;
-                    break;
-                 }
-          }
-     }
-   else
-     nomul = 0;
-
-   // bgra
-   if (tex_only)
-     {
-        if (tex->pt->dyn.img)
-          {
-             afill = !tex->alpha;
-             bgra = 1;
-          }
-        else if (tex->im && tex->im->native.target == GL_TEXTURE_EXTERNAL_OES)
-          {
-             type = SHD_TEX_EXTERNAL;
-             afill = !tex->alpha;
-          }
-        else
-          bgra = 1;
-     }
-   else
-     bgra = gc_bgra;
-
-   if ((type == SHD_IMAGE) || (type == SHD_IMAGENATIVE) || (type == SHD_MAP))
-     shader = evas_gl_common_img_shader_select(type, sam, nomul, afill, bgra, mask, masksam);
-   else
-     {
-#define SHADERS(name, ...) \
-   SHADER_##name##_NOMUL##__VA_ARGS__, SHADER_##name##__VA_ARGS__, \
-   SHADER_##name##_MASK_NOMUL, SHADER_##name##_MASK
-        static const Evas_GL_Shader yuv_shaders[] = {
-           SHADERS(YUV),
-           SHADERS(YUY2),
-           SHADERS(NV12),
-           SHADERS(YUV_709),
-           SHADERS(YUY2_709),
-           SHADERS(NV12_709),
-           SHADERS(RGB_A_PAIR),
-           SHADERS(TEX_EXTERNAL),
-           SHADERS(TEX_EXTERNAL, _AFILL), /* note: afill + mask does not exist */
-        };
-#undef SHADERS
-
-        switch (type)
-          {
-           case SHD_YUV: k = 0; break;
-           case SHD_YUY2: k = 4; break;
-           case SHD_NV12: k = 8; break;
-           case SHD_YUV_709: k = 12; break;
-           case SHD_YUY2_709: k = 16; break;
-           case SHD_NV12_709: k = 20; break;
-           case SHD_RGB_A_PAIR: k = 24; break;
-           case SHD_TEX_EXTERNAL: k = 28; break;
-           default:
-             CRI("Unknown shader type requested!");
-             goto end;
-          }
-
-        shader = yuv_shaders[k + (afill * 4) + (mask * 2) + (!nomul)];
-     }
-
-   /*
-   DBG("sam %d, nomul %d, afill %d, bgra %d, mask %d --> [%02d] %s",
-       (int) sam, nomul, afill, bgra, mask, shader,
-       evas_gl_common_shader_name_get(shader));
-   */
-end:
-   if (psam) *psam = sam;
-   if (pnomul) *pnomul = nomul;
-   if (pmasksam) *pmasksam = masksam;
-   return shader;
-}
-
 static int
 _evas_gl_common_context_push(Shader_Type rtype,
                              Evas_Engine_GL_Context *gc,
                              Evas_GL_Texture *tex,
                              Evas_GL_Texture *texm,
-                             GLuint prog,
+                             Evas_GL_Program *prog,
                              int x, int y, int w, int h,
                              Eina_Bool blend,
                              Eina_Bool smooth,
@@ -1705,7 +1560,7 @@ _evas_gl_common_context_push(Shader_Type rtype,
                  && (!tex || gc->pipe[i].shader.cur_tex == current_tex)
                  && (!texm || ((gc->pipe[i].shader.cur_texm == texm->pt->texture)
                                && (gc->pipe[i].shader.mask_smooth == mask_smooth)))
-                 && (gc->pipe[i].shader.cur_prog == prog)
+                 && (gc->pipe[i].shader.prog == prog)
                  && (gc->pipe[i].shader.smooth == smooth)
                  && (gc->pipe[i].shader.blend == blend)
                  && (gc->pipe[i].shader.render_op == gc->dc->render_op)
@@ -1748,7 +1603,7 @@ _evas_gl_common_context_push(Shader_Type rtype,
          /* && (!texa || gc->pipe[pn].shader.cur_texa == current_texa) */
          && (!texm || ((gc->pipe[i].shader.cur_texm == texm->pt->texture)
                        && (gc->pipe[i].shader.mask_smooth == mask_smooth)))
-         && (gc->pipe[pn].shader.cur_prog == prog)
+         && (gc->pipe[pn].shader.prog == prog)
          && (gc->pipe[pn].shader.smooth == smooth)
          && (gc->pipe[pn].shader.blend == blend)
          && (gc->pipe[pn].shader.render_op == gc->dc->render_op)
@@ -1781,28 +1636,26 @@ evas_gl_common_context_line_push(Evas_Engine_GL_Context *gc,
                                  int r, int g, int b, int a)
 {
    Eina_Bool blend = EINA_FALSE;
-   Evas_GL_Shader shader;
+   Evas_GL_Program *prog;
    int pn = 0, i;
-   GLuint prog, mtexid = mtex ? mtex->pt->texture : 0;
+   GLuint mtexid = mtex ? mtex->pt->texture : 0;
    Shader_Sampling masksam = SHD_SAM11;
 
    if (!(gc->dc->render_op == EVAS_RENDER_COPY) && ((a < 255) || (mtex)))
      blend = EINA_TRUE;
 
-   shader = evas_gl_common_shader_select(gc, SHD_LINE, NULL, 0, r, g, b, a,
-                                         0, 0, 0, 0, EINA_FALSE, NULL, EINA_FALSE,
-                                         mtex, mask_smooth, mw, mh, NULL, NULL, &masksam);
+   prog = evas_gl_common_shader_program_get(gc, SHD_LINE, NULL, 0, r, g, b, a,
+                                            0, 0, 0, 0, EINA_FALSE, NULL, EINA_FALSE,
+                                            mtex, mask_smooth, mw, mh, NULL, NULL, &masksam);
 
-   prog = gc->shared->shader[shader].prog;
    shader_array_flush(gc);
    vertex_array_size_check(gc, gc->state.top_pipe, 2);
    pn = gc->state.top_pipe;
 
    gc->pipe[pn].region.type = SHD_LINE;
-   gc->pipe[pn].shader.id = shader;
+   gc->pipe[pn].shader.prog = prog;
    gc->pipe[pn].shader.cur_tex = 0;
    gc->pipe[pn].shader.cur_texm = mtexid;
-   gc->pipe[pn].shader.cur_prog = prog;
    gc->pipe[pn].shader.blend = blend;
    gc->pipe[pn].shader.render_op = gc->dc->render_op;
    gc->pipe[pn].shader.clip = clip;
@@ -1856,18 +1709,16 @@ evas_gl_common_context_rectangle_push(Evas_Engine_GL_Context *gc,
 {
    Eina_Bool blend = EINA_FALSE;
    Shader_Sampling masksam = SHD_SAM11;
-   Evas_GL_Shader shader;
-   GLuint prog;
+   Evas_GL_Program *prog;
    GLuint mtexid = mtex ? mtex->pt->texture : 0;
    int pn = 0;
 
    if (!(gc->dc->render_op == EVAS_RENDER_COPY) && ((a < 255) || mtex))
      blend = EINA_TRUE;
 
-   shader = evas_gl_common_shader_select(gc, SHD_RECT, NULL, 0, r, g, b, a,
-                                         0, 0, 0, 0, EINA_FALSE, NULL, EINA_FALSE,
-                                         mtex, mask_smooth, mw, mh, NULL, NULL, &masksam);
-   prog = gc->shared->shader[shader].prog;
+   prog = evas_gl_common_shader_program_get(gc, SHD_RECT, NULL, 0, r, g, b, a,
+                                            0, 0, 0, 0, EINA_FALSE, NULL, EINA_FALSE,
+                                            mtex, mask_smooth, mw, mh, NULL, NULL, &masksam);
 
 again:
    vertex_array_size_check(gc, gc->state.top_pipe, 6);
@@ -1876,10 +1727,9 @@ again:
    if ((pn == 0) && (gc->pipe[pn].array.num == 0))
      {
         gc->pipe[pn].region.type = SHD_RECT;
-        gc->pipe[pn].shader.id = shader;
+        gc->pipe[pn].shader.prog = prog;
         gc->pipe[pn].shader.cur_tex = 0;
         gc->pipe[pn].shader.cur_texm = mtexid;
-        gc->pipe[pn].shader.cur_prog = prog;
         gc->pipe[pn].shader.blend = blend;
         gc->pipe[pn].shader.render_op = gc->dc->render_op;
         gc->pipe[pn].shader.mask_smooth = mask_smooth;
@@ -1908,7 +1758,7 @@ again:
              if ((gc->pipe[i].region.type == SHD_RECT)
                  && (gc->pipe[i].shader.cur_tex == 0)
                  && (gc->pipe[i].shader.cur_texm == mtexid)
-                 && (gc->pipe[i].shader.cur_prog == prog)
+                 && (gc->pipe[i].shader.prog == prog)
                  && (gc->pipe[i].shader.blend == blend)
                  && (gc->pipe[i].shader.render_op == gc->dc->render_op)
                  && (gc->pipe[i].shader.clip == 0)
@@ -1931,10 +1781,9 @@ again:
                }
              gc->state.top_pipe = pn;
              gc->pipe[pn].region.type = SHD_RECT;
-             gc->pipe[pn].shader.id = shader;
+             gc->pipe[pn].shader.prog = prog;
              gc->pipe[pn].shader.cur_tex = 0;
              gc->pipe[pn].shader.cur_texm = mtexid;
-             gc->pipe[pn].shader.cur_prog = prog;
              gc->pipe[pn].shader.blend = blend;
              gc->pipe[pn].shader.render_op = gc->dc->render_op;
              gc->pipe[pn].shader.mask_smooth = mask_smooth;
@@ -1958,7 +1807,7 @@ again:
 #else
    if ((gc->pipe[pn].shader.cur_tex != 0)
        || (gc->pipe[pn].shader.cur_texm != mtexid)
-       || (gc->pipe[pn].shader.cur_prog != prog)
+       || (gc->pipe[pn].shader.prog != prog)
        || (gc->pipe[pn].shader.blend != blend)
        || (gc->pipe[pn].shader.render_op != gc->dc->render_op)
        || (gc->pipe[pn].shader.clip != 0)
@@ -1967,10 +1816,9 @@ again:
      {
         shader_array_flush(gc);
         pn = gc->state.top_pipe;
-        gc->pipe[pn].shader.id = shader;
+        gc->pipe[pn].shader.prog = prog;
         gc->pipe[pn].shader.cur_tex = 0;
         gc->pipe[pn].shader.cur_texm = mtexid;
-        gc->pipe[pn].shader.cur_prog = prog;
         gc->pipe[pn].shader.blend = blend;
         gc->pipe[pn].shader.render_op = gc->dc->render_op;
         gc->pipe[pn].shader.mask_smooth = mask_smooth;
@@ -2001,71 +1849,111 @@ again:
    PUSH_6_COLORS(pn, r, g, b, a);
 }
 
+// 1-2      4-1
+// | |  =>  | |
+// 4-3      3-2
 static void
-_rotate_point_90(double *x, double *y, double w, double h)
+_rotate_90(double *x1, double *y1, double *x2, double *y2, double *x3, double *y3, double *x4, double *y4)
 {
-   double tx, ty, t;
+   double tmp;
 
-   tx = *x - w / 2;
-   ty = *y - h / 2;
-   t = tx;
-   tx = ty;
-   ty = t;
-   tx = tx + h / 2;
-   ty = ty + w / 2;
-   *x = tx * h / w;
-   *y = w - ty * w / h;
+   SWAP(x1, x4, tmp);
+   SWAP(y1, y4, tmp);
+
+   SWAP(x4, x3, tmp);
+   SWAP(y4, y3, tmp);
+
+   SWAP(x3, x2, tmp);
+   SWAP(y3, y2, tmp);
 }
 
+// 1-2      3-4
+// | |  =>  | |
+// 4-3      2-1
 static void
-_rotate_point_180(double *x, double *y, double w, double h)
+_rotate_180(double *x1, double *y1, double *x2, double *y2, double *x3, double *y3, double *x4, double *y4)
 {
-   double tx, ty;
+   double tmp;
 
-   tx = *x - w / 2;
-   ty = *y - h / 2;
-   tx = -tx;
-   ty = -ty;
-   tx = tx + w / 2;
-   ty = ty + h / 2;
-   *x = tx;
-   *y = ty;
+   SWAP(x1, x3, tmp);
+   SWAP(y1, y3, tmp);
+
+   SWAP(x2, x4, tmp);
+   SWAP(y2, y4, tmp);
 }
 
+// 1-2      2-3
+// | |  =>  | |
+// 4-3      1-4
 static void
-_rotate_point_270(double *x, double *y, double w, double h)
+_rotate_270(double *x1, double *y1, double *x2, double *y2, double *x3, double *y3, double *x4, double *y4)
 {
-   double tx, ty, t;
+   double tmp;
 
-   tx = *x - h / 2;
-   ty = *y - w / 2;
-   t = tx;
-   tx = ty;
-   ty = t;
-   tx = tx + w / 2;
-   ty = ty + h / 2;
-   *x = h - tx * h / w;
-   *y = ty * w / h;
+   SWAP(x1, x2, tmp);
+   SWAP(y1, y2, tmp);
+
+   SWAP(x2, x3, tmp);
+   SWAP(y2, y3, tmp);
+
+   SWAP(x3, x4, tmp);
+   SWAP(y3, y4, tmp);
 }
 
+// 1-2      2-1
+// | |  =>  | |
+// 4-3      3-4
 static void
-_transpose(double *x, double *y, double w, double h)
+_flip_horizontal(double *x1, double *y1, double *x2, double *y2, double *x3, double *y3, double *x4, double *y4)
 {
-   double t;
+   double tmp;
 
-   t = *x;
-   *x = *y * h / w;
-   *y = t * w / h;
+   SWAP(x1, x2, tmp);
+   SWAP(y1, y2, tmp);
+
+   SWAP(x3, x4, tmp);
+   SWAP(y3, y4, tmp);
 }
 
+// 1-2      4-3
+// | |  =>  | |
+// 4-3      1-2
 static void
-_transverse(double *x, double *y, double w, double h)
+_flip_vertical(double *x1, double *y1, double *x2, double *y2, double *x3, double *y3, double *x4, double *y4)
 {
-   double t;
+   double tmp;
 
-   t = *x;
-   *x = (w - *y) * h / w;
-   *y = (h - t) * w / h;
+   SWAP(x1, x4, tmp);
+   SWAP(y1, y4, tmp);
+
+   SWAP(x2, x3, tmp);
+   SWAP(y2, y3, tmp);
+}
+
+// 1-2      1-4
+// | |  =>  | |
+// 4-3      2-3
+static void
+_transpose(double *x1 EINA_UNUSED, double *y1 EINA_UNUSED, double *x2, double *y2,
+           double *x3 EINA_UNUSED, double *y3 EINA_UNUSED, double *x4, double *y4)
+{
+   double tmp;
+
+   SWAP(x2, x4, tmp);
+   SWAP(y2, y4, tmp);
+}
+
+// 1-2      3-2
+// | |  =>  | |
+// 4-3      4-1
+static void
+_transverse(double *x1, double *y1, double *x2 EINA_UNUSED, double *y2 EINA_UNUSED,
+            double *x3, double *y3, double *x4 EINA_UNUSED, double *y4 EINA_UNUSED)
+{
+   double tmp;
+
+   SWAP(x1, x3, tmp);
+   SWAP(y1, y3, tmp);
 }
 
 void
@@ -2077,21 +1965,27 @@ evas_gl_common_context_image_push(Evas_Engine_GL_Context *gc,
                                   int r, int g, int b, int a,
                                   Eina_Bool smooth, Eina_Bool tex_only)
 {
+
    Evas_GL_Texture_Pool *pt;
    double ox1, oy1, ox2, oy2, ox3, oy3, ox4, oy4;
    GLfloat tx1, ty1, tx2, ty2, tx3, ty3, tx4, ty4;
    GLfloat offsetx, offsety;
    double pw, ph;
    Eina_Bool blend = EINA_FALSE;
-   Evas_GL_Shader shader = SHADER_IMG;
-   GLuint prog = gc->shared->shader[shader].prog;
+   Evas_GL_Program *prog;
    int pn = 0, render_op = gc->dc->render_op, nomul = 0;
    Shader_Sampling sam = 0, masksam = 0;
    int yinvert = 0;
    Shader_Type shd_in = SHD_IMAGE;
+   int tex_target = GL_TEXTURE_2D;
 
-   if ((tex->im) && (tex->im->native.data))
-     shd_in = SHD_IMAGENATIVE;
+   if (tex->im)
+     {
+        if (tex->im->native.data)
+          shd_in = SHD_IMAGENATIVE;
+        if (tex->im->native.target == GL_TEXTURE_EXTERNAL_OES)
+          tex_target = GL_TEXTURE_EXTERNAL_OES;
+     }
 
    if (!!mtex)
      {
@@ -2102,11 +1996,10 @@ evas_gl_common_context_image_push(Evas_Engine_GL_Context *gc,
    else if (!(render_op == EVAS_RENDER_COPY) && ((a < 255) || (tex->alpha)))
      blend = EINA_TRUE;
 
-   shader = evas_gl_common_shader_select(gc, shd_in, NULL, 0, r, g, b, a,
-                                         sw, sh, w, h, smooth, tex, tex_only,
-                                         mtex, mask_smooth, mw, mh,
-                                         &sam, &nomul, &masksam);
-   prog = gc->shared->shader[shader].prog;
+   prog = evas_gl_common_shader_program_get(gc, shd_in, NULL, 0, r, g, b, a,
+                                            sw, sh, w, h, smooth, tex, tex_only,
+                                            mtex, mask_smooth, mw, mh,
+                                            &sam, &nomul, &masksam);
 
    if (tex->ptt)
      {
@@ -2138,10 +2031,10 @@ evas_gl_common_context_image_push(Evas_Engine_GL_Context *gc,
                                      mask_smooth);
 
    gc->pipe[pn].region.type = SHD_IMAGE;
-   gc->pipe[pn].shader.id = shader;
+   gc->pipe[pn].shader.prog = prog;
    gc->pipe[pn].shader.cur_tex = pt->texture;
    gc->pipe[pn].shader.cur_texm = mtex ? mtex->pt->texture : 0;
-   gc->pipe[pn].shader.cur_prog = prog;
+   gc->pipe[pn].shader.tex_target = tex_target;
    gc->pipe[pn].shader.smooth = smooth;
    gc->pipe[pn].shader.mask_smooth = mask_smooth;
    gc->pipe[pn].shader.blend = blend;
@@ -2166,15 +2059,67 @@ evas_gl_common_context_image_push(Evas_Engine_GL_Context *gc,
 
    pw = pt->w;
    ph = pt->h;
+
    if (tex->im &&
-       (tex->im->orient == EVAS_IMAGE_ORIENT_90 ||
-        tex->im->orient == EVAS_IMAGE_ORIENT_270 ||
-        tex->im->orient == EVAS_IMAGE_FLIP_TRANSPOSE ||
-        tex->im->orient == EVAS_IMAGE_FLIP_TRANSVERSE))
+       (tex->im->orient == EVAS_IMAGE_ORIENT_90))
      {
-        // Adjust size for taking rotation into account as im->w and h are already modified.
-        pw = pt->h;
-        ph = pt->w;
+        double tmp;
+        
+        SWAP(&sw, &sh, tmp);
+        SWAP(&sx, &sy, tmp);
+
+        sy = tex->im->h - sh - sy;
+     }
+
+   if (tex->im &&
+       (tex->im->orient == EVAS_IMAGE_ORIENT_180))
+     {
+        sx = tex->im->w - sw - sx;
+        sy = tex->im->h - sh - sy;
+     }
+
+   if (tex->im &&
+       (tex->im->orient == EVAS_IMAGE_ORIENT_270))
+     {
+        double tmp;
+
+        SWAP(&sw, &sh, tmp);
+        SWAP(&sx, &sy, tmp);
+
+        sx = tex->im->w - sw - sx;
+     }
+
+   if (tex->im &&
+       (tex->im->orient == EVAS_IMAGE_FLIP_HORIZONTAL))
+     {
+        sx = tex->im->w - sw - sx;
+     }
+
+   if (tex->im &&
+       (tex->im->orient == EVAS_IMAGE_FLIP_VERTICAL))
+     {
+        sy = tex->im->h - sh - sy;
+     }
+
+   if (tex->im &&
+       (tex->im->orient == EVAS_IMAGE_FLIP_TRANSVERSE))
+     {
+        double tmp;
+
+        SWAP(&sw, &sh, tmp);
+        SWAP(&sx, &sy, tmp);
+        
+        sx = tex->im->w - sw - sx;
+        sy = tex->im->h - sh - sy;
+     }
+
+   if (tex->im &&
+       (tex->im->orient == EVAS_IMAGE_FLIP_TRANSPOSE))
+     {
+        double tmp;
+
+        SWAP(&sw, &sh, tmp);
+        SWAP(&sx, &sy, tmp);
      }
 
    ox1 = sx;
@@ -2202,46 +2147,25 @@ evas_gl_common_context_image_push(Evas_Engine_GL_Context *gc,
            case EVAS_IMAGE_ORIENT_NONE:
               break;
            case EVAS_IMAGE_ORIENT_90:
-              _rotate_point_90(&ox1, &oy1, tex->im->w, tex->im->h);
-              _rotate_point_90(&ox2, &oy2, tex->im->w, tex->im->h);
-              _rotate_point_90(&ox3, &oy3, tex->im->w, tex->im->h);
-              _rotate_point_90(&ox4, &oy4, tex->im->w, tex->im->h);
+              _rotate_90(&ox1, &oy1, &ox2, &oy2, &ox3, &oy3, &ox4, &oy4);
               break;
            case EVAS_IMAGE_ORIENT_180:
-              _rotate_point_180(&ox1, &oy1, tex->im->w, tex->im->h);
-              _rotate_point_180(&ox2, &oy2, tex->im->w, tex->im->h);
-              _rotate_point_180(&ox3, &oy3, tex->im->w, tex->im->h);
-              _rotate_point_180(&ox4, &oy4, tex->im->w, tex->im->h);
+              _rotate_180(&ox1, &oy1, &ox2, &oy2, &ox3, &oy3, &ox4, &oy4);
               break;
            case EVAS_IMAGE_ORIENT_270:
-              _rotate_point_270(&ox1, &oy1, tex->im->w, tex->im->h);
-              _rotate_point_270(&ox2, &oy2, tex->im->w, tex->im->h);
-              _rotate_point_270(&ox3, &oy3, tex->im->w, tex->im->h);
-              _rotate_point_270(&ox4, &oy4, tex->im->w, tex->im->h);
+              _rotate_270(&ox1, &oy1, &ox2, &oy2, &ox3, &oy3, &ox4, &oy4);
               break;
            case EVAS_IMAGE_FLIP_HORIZONTAL:
-              ox1 = tex->im->w - ox1;
-              ox2 = tex->im->w - ox2;
-              ox3 = tex->im->w - ox3;
-              ox4 = tex->im->w - ox4;
+              _flip_horizontal(&ox1, &oy1, &ox2, &oy2, &ox3, &oy3, &ox4, &oy4);
               break;
            case EVAS_IMAGE_FLIP_VERTICAL:
-              oy1 = tex->im->h - oy1;
-              oy2 = tex->im->h - oy2;
-              oy3 = tex->im->h - oy3;
-              oy4 = tex->im->h - oy4;
+              _flip_vertical(&ox1, &oy1, &ox2, &oy2, &ox3, &oy3, &ox4, &oy4);
               break;
            case EVAS_IMAGE_FLIP_TRANSVERSE:
-              _transverse(&ox1, &oy1, tex->im->w, tex->im->h);
-              _transverse(&ox2, &oy2, tex->im->w, tex->im->h);
-              _transverse(&ox3, &oy3, tex->im->w, tex->im->h);
-              _transverse(&ox4, &oy4, tex->im->w, tex->im->h);
+              _transverse(&ox1, &oy1, &ox2, &oy2, &ox3, &oy3, &ox4, &oy4);
               break;
            case EVAS_IMAGE_FLIP_TRANSPOSE:
-              _transpose(&ox1, &oy1, tex->im->w, tex->im->h);
-              _transpose(&ox2, &oy2, tex->im->w, tex->im->h);
-              _transpose(&ox3, &oy3, tex->im->w, tex->im->h);
-              _transpose(&ox4, &oy4, tex->im->w, tex->im->h);
+              _transpose(&ox1, &oy1, &ox2, &oy2, &ox3, &oy3, &ox4, &oy4);
               break;
            default:
               ERR("Wrong orientation ! %i", tex->im->orient);
@@ -2290,15 +2214,13 @@ evas_gl_common_context_font_push(Evas_Engine_GL_Context *gc,
 {
    GLfloat tx1, tx2, ty1, ty2;
    Shader_Sampling masksam = SHD_SAM11;
-   Evas_GL_Shader shader;
-   GLuint prog;
+   Evas_GL_Program *prog;
    int pn = 0;
 
-   shader = evas_gl_common_shader_select(gc, SHD_FONT, NULL, 0, r, g, b, a,
-                                         sw, sh, w, h, EINA_FALSE, tex, EINA_FALSE,
-                                         mtex, mask_smooth, mw, mh,
-                                         NULL, NULL, &masksam);
-   prog = gc->shared->shader[shader].prog;
+   prog = evas_gl_common_shader_program_get(gc, SHD_FONT, NULL, 0, r, g, b, a,
+                                            sw, sh, w, h, EINA_FALSE, tex, EINA_FALSE,
+                                            mtex, mask_smooth, mw, mh,
+                                            NULL, NULL, &masksam);
 
    pn = _evas_gl_common_context_push(SHD_FONT,
                                      gc, tex, mtex,
@@ -2310,10 +2232,9 @@ evas_gl_common_context_font_push(Evas_Engine_GL_Context *gc,
                                      mask_smooth);
 
    gc->pipe[pn].region.type = SHD_FONT;
-   gc->pipe[pn].shader.id = shader;
+   gc->pipe[pn].shader.prog = prog;
    gc->pipe[pn].shader.cur_tex = tex->pt->texture;
    gc->pipe[pn].shader.cur_texm = mtex ? mtex->pt->texture : 0;
-   gc->pipe[pn].shader.cur_prog = prog;
    gc->pipe[pn].shader.smooth = 0;
    gc->pipe[pn].shader.blend = 1;
    gc->pipe[pn].shader.render_op = gc->dc->render_op;
@@ -2369,18 +2290,16 @@ evas_gl_common_context_yuv_push(Evas_Engine_GL_Context *gc,
    GLfloat tx1, tx2, ty1, ty2, t2x1, t2x2, t2y1, t2y2;
    Shader_Sampling masksam = SHD_SAM11;
    Eina_Bool blend = 0;
-   Evas_GL_Shader shader;
-   GLuint prog;
+   Evas_GL_Program *prog;
    int pn = 0, nomul = 0;
 
    if ((a < 255) || (!!mtex))
      blend = 1;
 
-   shader = evas_gl_common_shader_select(gc, SHD_YUV, NULL, 0, r, g, b, a,
-                                         w, h, w, h, smooth, tex, 0,
-                                         mtex, mask_smooth, mw, mh,
-                                         NULL, &nomul, &masksam);
-   prog = gc->shared->shader[shader].prog;
+   prog = evas_gl_common_shader_program_get(gc, SHD_YUV, NULL, 0, r, g, b, a,
+                                            w, h, w, h, smooth, tex, 0,
+                                            mtex, mask_smooth, mw, mh,
+                                            NULL, &nomul, &masksam);
 
    pn = _evas_gl_common_context_push(SHD_YUV,
                                      gc, tex, mtex,
@@ -2392,12 +2311,11 @@ evas_gl_common_context_yuv_push(Evas_Engine_GL_Context *gc,
                                      mask_smooth);
 
    gc->pipe[pn].region.type = SHD_YUV;
-   gc->pipe[pn].shader.id = shader;
+   gc->pipe[pn].shader.prog = prog;
    gc->pipe[pn].shader.cur_tex = tex->pt->texture;
    gc->pipe[pn].shader.cur_texu = tex->ptu->texture;
    gc->pipe[pn].shader.cur_texv = tex->ptv->texture;
    gc->pipe[pn].shader.cur_texm = mtex ? mtex->pt->texture : 0;
-   gc->pipe[pn].shader.cur_prog = prog;
    gc->pipe[pn].shader.smooth = smooth;
    gc->pipe[pn].shader.blend = blend;
    gc->pipe[pn].shader.render_op = gc->dc->render_op;
@@ -2451,18 +2369,16 @@ evas_gl_common_context_yuv_709_push(Evas_Engine_GL_Context *gc,
    GLfloat tx1, tx2, ty1, ty2, t2x1, t2x2, t2y1, t2y2;
    Shader_Sampling masksam = SHD_SAM11;
    Eina_Bool blend = 0;
-   Evas_GL_Shader shader;
-   GLuint prog;
+   Evas_GL_Program *prog;
    int pn = 0, nomul = 0;
 
    if ((a < 255) || (!!mtex))
      blend = 1;
 
-   shader = evas_gl_common_shader_select(gc, SHD_YUV_709, NULL, 0, r, g, b, a,
-                                         w, h, w, h, smooth, tex, 0,
-                                         mtex, mask_smooth, mw, mh,
-                                         NULL, &nomul, &masksam);
-   prog = gc->shared->shader[shader].prog;
+   prog = evas_gl_common_shader_program_get(gc, SHD_YUV_709, NULL, 0, r, g, b, a,
+                                            w, h, w, h, smooth, tex, 0,
+                                            mtex, mask_smooth, mw, mh,
+                                            NULL, &nomul, &masksam);
 
    pn = _evas_gl_common_context_push(SHD_YUV_709,
                                      gc, tex, mtex,
@@ -2474,12 +2390,11 @@ evas_gl_common_context_yuv_709_push(Evas_Engine_GL_Context *gc,
                                      mask_smooth);
 
    gc->pipe[pn].region.type = SHD_YUV_709;
-   gc->pipe[pn].shader.id = shader;
+   gc->pipe[pn].shader.prog = prog;
    gc->pipe[pn].shader.cur_tex = tex->pt->texture;
    gc->pipe[pn].shader.cur_texu = tex->ptu->texture;
    gc->pipe[pn].shader.cur_texv = tex->ptv->texture;
    gc->pipe[pn].shader.cur_texm = mtex ? mtex->pt->texture : 0;
-   gc->pipe[pn].shader.cur_prog = prog;
    gc->pipe[pn].shader.smooth = smooth;
    gc->pipe[pn].shader.blend = blend;
    gc->pipe[pn].shader.render_op = gc->dc->render_op;
@@ -2533,18 +2448,16 @@ evas_gl_common_context_yuy2_push(Evas_Engine_GL_Context *gc,
    GLfloat tx1, tx2, ty1, ty2, t2x1, t2x2, t2y1, t2y2;
    Shader_Sampling masksam = SHD_SAM11;
    Eina_Bool blend = 0;
-   Evas_GL_Shader shader;
-   GLuint prog;
+   Evas_GL_Program *prog;
    int pn = 0, nomul = 0;
 
    if ((a < 255) || (!!mtex))
      blend = 1;
 
-   shader = evas_gl_common_shader_select(gc, SHD_YUY2, NULL, 0, r, g, b, a,
-                                         sw, sh, w, h, smooth, tex, 0,
-                                         mtex, mask_smooth, mw, mh,
-                                         NULL, &nomul, &masksam);
-   prog = gc->shared->shader[shader].prog;
+   prog = evas_gl_common_shader_program_get(gc, SHD_YUY2, NULL, 0, r, g, b, a,
+                                            sw, sh, w, h, smooth, tex, 0,
+                                            mtex, mask_smooth, mw, mh,
+                                            NULL, &nomul, &masksam);
 
    pn = _evas_gl_common_context_push(SHD_YUY2,
                                      gc, tex, mtex,
@@ -2556,11 +2469,10 @@ evas_gl_common_context_yuy2_push(Evas_Engine_GL_Context *gc,
                                      mask_smooth);
 
    gc->pipe[pn].region.type = SHD_YUY2;
-   gc->pipe[pn].shader.id = shader;
+   gc->pipe[pn].shader.prog = prog;
    gc->pipe[pn].shader.cur_tex = tex->pt->texture;
    gc->pipe[pn].shader.cur_texu = tex->ptuv->texture;
    gc->pipe[pn].shader.cur_texm = mtex ? mtex->pt->texture : 0;
-   gc->pipe[pn].shader.cur_prog = prog;
    gc->pipe[pn].shader.smooth = smooth;
    gc->pipe[pn].shader.blend = blend;
    gc->pipe[pn].shader.render_op = gc->dc->render_op;
@@ -2613,19 +2525,16 @@ evas_gl_common_context_nv12_push(Evas_Engine_GL_Context *gc,
    GLfloat tx1, tx2, ty1, ty2, t2x1, t2x2, t2y1, t2y2;
    Shader_Sampling masksam = SHD_SAM11;
    Eina_Bool blend = 0;
-   Evas_GL_Shader shader;
-   GLuint prog;
+   Evas_GL_Program *prog;
    int pn = 0, nomul = 0;
 
    if ((a < 255) || (!!mtex))
      blend = 1;
 
-   shader = evas_gl_common_shader_select(gc, SHD_NV12, NULL, 0, r, g, b, a,
-                                         sw, sh, w, h, smooth, tex, 0,
-                                         mtex, mask_smooth, mw, mh,
-                                         NULL, &nomul, &masksam);
-   prog = gc->shared->shader[shader].prog;
-   prog = gc->shared->shader[shader].prog;
+   prog = evas_gl_common_shader_program_get(gc, SHD_NV12, NULL, 0, r, g, b, a,
+                                            sw, sh, w, h, smooth, tex, 0,
+                                            mtex, mask_smooth, mw, mh,
+                                            NULL, &nomul, &masksam);
 
    pn = _evas_gl_common_context_push(SHD_NV12,
                                      gc, tex, mtex,
@@ -2637,13 +2546,12 @@ evas_gl_common_context_nv12_push(Evas_Engine_GL_Context *gc,
                                      mask_smooth);
 
    gc->pipe[pn].region.type = SHD_NV12;
-   gc->pipe[pn].shader.id = shader;
+   gc->pipe[pn].shader.prog = prog;
    gc->pipe[pn].shader.cur_tex = tex->pt->texture;
    gc->pipe[pn].shader.cur_tex_dyn = tex->pt->dyn.img;
    gc->pipe[pn].shader.cur_texu = tex->ptuv->texture;
    gc->pipe[pn].shader.cur_texu_dyn = tex->ptuv->dyn.img;
    gc->pipe[pn].shader.cur_texm = mtex ? mtex->pt->texture : 0;
-   gc->pipe[pn].shader.cur_prog = prog;
    gc->pipe[pn].shader.smooth = smooth;
    gc->pipe[pn].shader.blend = blend;
    gc->pipe[pn].shader.render_op = gc->dc->render_op;
@@ -2704,15 +2612,13 @@ evas_gl_common_context_rgb_a_pair_push(Evas_Engine_GL_Context *gc,
 
    GLfloat tx1, tx2, ty1, ty2, t2x1, t2x2, t2y1, t2y2;
    Shader_Sampling masksam = SHD_SAM11;
-   Evas_GL_Shader shader;
-   GLuint prog;
+   Evas_GL_Program *prog;
    int pn, nomul = 0;
 
-   shader = evas_gl_common_shader_select(gc, SHD_RGB_A_PAIR, NULL, 0, r, g, b, a,
-                                         sw, sh, w, h, smooth, tex, 0,
-                                         mtex, mask_smooth, mw, mh,
-                                         NULL, &nomul, &masksam);
-   prog = gc->shared->shader[shader].prog;
+   prog = evas_gl_common_shader_program_get(gc, SHD_RGB_A_PAIR, NULL, 0, r, g, b, a,
+                                            sw, sh, w, h, smooth, tex, 0,
+                                            mtex, mask_smooth, mw, mh,
+                                            NULL, &nomul, &masksam);
 
    pn = _evas_gl_common_context_push(SHD_RGB_A_PAIR,
                                      gc, tex, mtex,
@@ -2724,11 +2630,10 @@ evas_gl_common_context_rgb_a_pair_push(Evas_Engine_GL_Context *gc,
                                      mask_smooth);
 
    gc->pipe[pn].region.type = SHD_RGB_A_PAIR;
-   gc->pipe[pn].shader.id = shader;
+   gc->pipe[pn].shader.prog = prog;
    gc->pipe[pn].shader.cur_tex = tex->pt->texture;
    gc->pipe[pn].shader.cur_texa = tex->pta->texture;
    gc->pipe[pn].shader.cur_texm = mtex ? mtex->pt->texture : 0;
-   gc->pipe[pn].shader.cur_prog = prog;
    gc->pipe[pn].shader.smooth = smooth;
    gc->pipe[pn].shader.blend = EINA_TRUE;
    gc->pipe[pn].shader.render_op = gc->dc->render_op;
@@ -2788,14 +2693,13 @@ evas_gl_common_context_image_map_push(Evas_Engine_GL_Context *gc,
    Eina_Bool blend = EINA_FALSE;
    DATA32 cmul;
    Shader_Sampling masksam = SHD_SAM11;
-   Evas_GL_Shader shader = SHADER_IMG;
+   Evas_GL_Program *prog;
    Eina_Bool utexture = EINA_FALSE;
    Eina_Bool uvtexture = EINA_FALSE;
    Eina_Bool use_texa = EINA_FALSE;
    Shader_Type type;
    int pn = 0, i;
    int flat = 0, nomul = 0, yinvert = 0;
-   GLuint prog;
 
    if (!(gc->dc->render_op == EVAS_RENDER_COPY) &&
        ((a < 255) || (tex->alpha) || (!!mtex))) blend = EINA_TRUE;
@@ -2841,11 +2745,10 @@ evas_gl_common_context_image_map_push(Evas_Engine_GL_Context *gc,
         type = SHD_MAP;
         break;
      }
-   shader = evas_gl_common_shader_select(gc, type, p, npoints, r, g, b, a,
-                                         w, h, w, h, smooth, tex, tex_only,
-                                         mtex, mask_smooth, mw, mh,
-                                         NULL, &nomul, &masksam);
-   prog = gc->shared->shader[shader].prog;
+   prog = evas_gl_common_shader_program_get(gc, type, p, npoints, r, g, b, a,
+                                            w, h, w, h, smooth, tex, tex_only,
+                                            mtex, mask_smooth, mw, mh,
+                                            NULL, &nomul, &masksam);
 
    x = w = (p[0].x >> FP);
    y = h = (p[0].y >> FP);
@@ -2918,7 +2821,7 @@ evas_gl_common_context_image_map_push(Evas_Engine_GL_Context *gc,
                                      clip, cx, cy, cw, ch,
                                      mask_smooth);
    gc->pipe[pn].region.type = SHD_MAP;
-   gc->pipe[pn].shader.id = shader;
+   gc->pipe[pn].shader.prog = prog;
    gc->pipe[pn].shader.cur_tex = tex->pt->texture;
    if (utexture)
      {
@@ -2933,7 +2836,6 @@ evas_gl_common_context_image_map_push(Evas_Engine_GL_Context *gc,
        gc->pipe[pn].shader.cur_texu_dyn = tex->ptuv->dyn.img;
      }
    gc->pipe[pn].shader.cur_texm = mtex ? mtex->pt->texture : 0;
-   gc->pipe[pn].shader.cur_prog = prog;
    gc->pipe[pn].shader.smooth = smooth;
    gc->pipe[pn].shader.blend = blend;
    gc->pipe[pn].shader.render_op = gc->dc->render_op;
@@ -3114,20 +3016,23 @@ shader_array_flush(Evas_Engine_GL_Context *gc)
      }
    for (i = 0; i < gc->shared->info.tune.pipes.max; i++)
      {
+        Evas_GL_Program *prog;
+
         if (gc->pipe[i].array.num <= 0) break;
 
+        prog = gc->pipe[i].shader.prog;
         setclip = EINA_FALSE;
         pipe_done++;
         gc->flushnum++;
 
         GLERRV("<flush err>");
-        if (gc->pipe[i].shader.cur_prog != gc->state.current.cur_prog)
+        if (prog && (prog != gc->state.current.prog))
           {
-             glUseProgram(gc->pipe[i].shader.cur_prog);
-             if (gc->shared->shader[gc->pipe[i].shader.id].reset)
+             glUseProgram(prog->prog);
+             if (prog->reset)
                {
-                  glUniformMatrix4fv(glGetUniformLocation(gc->pipe[i].shader.cur_prog, "mvp"), 1, GL_FALSE, gc->shared->proj);
-                  gc->shared->shader[gc->pipe[i].shader.id].reset = EINA_FALSE;
+                  glUniformMatrix4fv(glGetUniformLocation(prog->prog, "mvp"), 1, GL_FALSE, gc->shared->proj);
+                  prog->reset = EINA_FALSE;
                }
           }
 
@@ -3144,7 +3049,7 @@ shader_array_flush(Evas_Engine_GL_Context *gc)
                }
 #endif
              glActiveTexture(GL_TEXTURE0);
-             glBindTexture(GL_TEXTURE_2D, gc->pipe[i].shader.cur_tex);
+             glBindTexture(gc->pipe[i].shader.tex_target, gc->pipe[i].shader.cur_tex);
           }
         if (gc->pipe[i].array.im)
           {
@@ -3152,7 +3057,7 @@ shader_array_flush(Evas_Engine_GL_Context *gc)
              if (gc->pipe[i].array.im->tex->pt->dyn.img)
                {
                   secsym_glEGLImageTargetTexture2DOES
-                        (GL_TEXTURE_2D, gc->pipe[i].array.im->tex->pt->dyn.img);
+                        (gc->pipe[i].array.im->tex->pt->dyn.target, gc->pipe[i].array.im->tex->pt->dyn.img);
                }
              else
 #endif
@@ -3711,13 +3616,13 @@ shader_array_flush(Evas_Engine_GL_Context *gc)
              gc->pipe[i].array.im = NULL;
           }
 
-        gc->state.current.id        = gc->pipe[i].shader.id;
-        gc->state.current.cur_prog  = gc->pipe[i].shader.cur_prog;
+        gc->state.current.prog      = gc->pipe[i].shader.prog;
         gc->state.current.cur_tex   = gc->pipe[i].shader.cur_tex;
         gc->state.current.cur_texm  = gc->pipe[i].shader.cur_texm;
         gc->state.current.cur_texa  = gc->pipe[i].shader.cur_texa;
         gc->state.current.cur_texu  = gc->pipe[i].shader.cur_texu;
         gc->state.current.cur_texv  = gc->pipe[i].shader.cur_texv;
+        gc->state.current.tex_target = gc->pipe[i].shader.tex_target;
         gc->state.current.render_op = gc->pipe[i].shader.render_op;
 //        gc->state.current.cx        = gc->pipe[i].shader.cx;
 //        gc->state.current.cy        = gc->pipe[i].shader.cy;

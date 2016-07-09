@@ -15,6 +15,10 @@ typedef int Evas_Coord;
 
 typedef Eina_List *List_Objects;
 
+typedef Evas_Coord Evas_Coord2;
+
+typedef Evas_Coord2 Evas_Coord3;
+
 typedef enum
 {
   BAR_FIRST_ITEM = 0,
@@ -37,7 +41,7 @@ typedef enum
 
 EAPI const Eo_Class *typedef_class_get(void) EINA_CONST;
 
-EOAPI char * typedef_foo(int idx);
+EOAPI char *typedef_foo(int idx);
 
 
 #endif

@@ -9,10 +9,6 @@
 #define COMPONENT_OF_DEFAULT_GREY_COLOR 0.3
 #define TRANSPARENCY_OF_DEFAULT_GREY_COLOR 0.5
 
-extern Evas_Canvas3D_File_Eet* eet_file;
-extern const char EVAS_CANVAS3D_FILE_CACHE_FILE_ENTRY[];
-extern Eet_Data_Descriptor *_file_descriptor;
-
 void
 _set_geometry_to_eet_file_from_mesh(Evas_Canvas3D_Mesh_Data *mesh,
                                     Evas_Canvas3D_Mesh_Eet *eet_mesh,
@@ -44,19 +40,18 @@ _set_geometry_to_eet_file_from_mesh(Evas_Canvas3D_Mesh_Data *mesh,
    vb = &f->vertices[a];\
    if (vb->data == NULL)\
      {\
-        ERR("Reading of geometrics is failed.");\
-        free(vertices);\
-        free(geometry);\
-        free(geometries);\
-        return;\
+        ERR("Failed to read geometrics for '%s'.", #component);\
      }\
-   src = (float *)vb->data;\
-   for (i = 0; i < mesh->vertex_count; i++)\
+   else\
      {\
-        vertices[i].component.x = src[0];\
-        vertices[i].component.y = src[1];\
-        command_for_z_component\
-        src += f->vertices[a].element_count;\
+        src = (float *)vb->data;\
+        for (i = 0; i < mesh->vertex_count; i++)\
+          {\
+             vertices[i].component.x = src[0];\
+             vertices[i].component.y = src[1];\
+             command_for_z_component\
+             src += f->vertices[a].element_count;\
+          }\
      }
    geometry->vertices = vertices;
    SAVE_GEOMETRICS(EVAS_CANVAS3D_VERTEX_ATTRIB_POSITION, position, vertices[i].position.z = src[2];)
@@ -94,8 +89,8 @@ _set_material_to_eet_file_from_mesh(Evas_Canvas3D_Mesh_Eet *eet_mesh,
 
    if (material == NULL)
      {
-        ERR("Default material is set to saved file, because custom material \
-             was not saved before using of function evas_3d_mesh_save.");
+        ERR("Material is set to the default values, because no custom material "
+             "was saved earlier by evas_3d_mesh_save.");
 
         for (i = 0; i < 5; i++)
           {
@@ -154,8 +149,10 @@ evas_model_save_file_eet(const Evas_Canvas3D_Mesh *mesh,
    Eet_File *ef = eet_open(file, EET_FILE_MODE_WRITE);
    Evas_Canvas3D_Mesh_Eet* eet_mesh = malloc(sizeof(Evas_Canvas3D_Mesh_Eet));
    Evas_Canvas3D_Header_Eet* eet_header = malloc(sizeof(Evas_Canvas3D_Header_Eet));
+   Eet_Data_Descriptor *_file_descriptor;
+   Evas_Canvas3D_File_Eet *eet_file;
 
-   _evas_canvas3d_eet_file_init();
+   _file_descriptor = _evas_canvas3d_eet_file_get();
 
    eet_file = _evas_canvas3d_eet_file_new();
 
@@ -176,7 +173,7 @@ evas_model_save_file_eet(const Evas_Canvas3D_Mesh *mesh,
         ERR("Opening of file is failed.");
         free(eet_mesh);
         free(eet_header);
-        _evas_canvas3d_eet_file_free();
+        _evas_canvas3d_eet_file_free(eet_file);
         return;
      }
 
@@ -190,6 +187,5 @@ evas_model_save_file_eet(const Evas_Canvas3D_Mesh *mesh,
                   EINA_TRUE);
    eet_close(ef);
 
-   _evas_canvas3d_eet_file_free();
+   _evas_canvas3d_eet_file_free(eet_file);
 }
-

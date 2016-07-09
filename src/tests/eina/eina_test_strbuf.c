@@ -29,7 +29,7 @@ START_TEST(strbuf_simple)
 {
    Eina_Strbuf *buf;
    char *txt;
-#define TEXT \
+#define TEST_TEXT \
    "This test should be so long that it is longer than the initial size of strbuf"
 
    eina_init();
@@ -37,34 +37,34 @@ START_TEST(strbuf_simple)
    buf = eina_strbuf_new();
    fail_if(!buf);
 
-   eina_strbuf_append(buf, TEXT);
-   fail_if(strcmp(eina_strbuf_string_get(buf), TEXT));
+   eina_strbuf_append(buf, TEST_TEXT);
+   fail_if(strcmp(eina_strbuf_string_get(buf), TEST_TEXT));
    fail_if(strlen(eina_strbuf_string_get(buf)) != eina_strbuf_length_get(buf));
-   eina_strbuf_append(buf, TEXT);
-   fail_if(strcmp(eina_strbuf_string_get(buf), TEXT TEXT));
+   eina_strbuf_append(buf, TEST_TEXT);
+   fail_if(strcmp(eina_strbuf_string_get(buf), TEST_TEXT TEST_TEXT));
    fail_if(strlen(eina_strbuf_string_get(buf)) != eina_strbuf_length_get(buf));
    txt = eina_strbuf_string_steal(buf);
    fail_if(strlen(eina_strbuf_string_get(buf)) != eina_strbuf_length_get(buf));
-   fail_if(strcmp(txt, TEXT TEXT));
+   fail_if(strcmp(txt, TEST_TEXT TEST_TEXT));
    free(txt);
    fail_if(eina_strbuf_length_get(buf) != 0);
-   fail_if(!strcmp(eina_strbuf_string_get(buf), TEXT TEXT));
-   eina_strbuf_append(buf, TEXT);
+   fail_if(!strcmp(eina_strbuf_string_get(buf), TEST_TEXT TEST_TEXT));
+   eina_strbuf_append(buf, TEST_TEXT);
    fail_if(strlen(eina_strbuf_string_get(buf)) != eina_strbuf_length_get(buf));
    eina_strbuf_reset(buf);
    fail_if(strlen(eina_strbuf_string_get(buf)) != eina_strbuf_length_get(buf));
    fail_if(eina_strbuf_length_get(buf) != 0);
-   fail_if(!strcmp(eina_strbuf_string_get(buf), TEXT));
+   fail_if(!strcmp(eina_strbuf_string_get(buf), TEST_TEXT));
 
    eina_strbuf_string_free(buf);
    fail_if(eina_strbuf_length_get(buf));
-   eina_strbuf_append(buf, TEXT);
-   fail_if(strcmp(eina_strbuf_string_get(buf), TEXT));
+   eina_strbuf_append(buf, TEST_TEXT);
+   fail_if(strcmp(eina_strbuf_string_get(buf), TEST_TEXT));
 
    eina_strbuf_free(buf);
 
    eina_shutdown();
-#undef TEXT
+#undef TEST_TEXT
 }
 END_TEST
 
@@ -72,38 +72,51 @@ START_TEST(strbuf_manage_simple)
 {
    Eina_Strbuf *buf;
    char *txt;
-#define TEXT \
+#define TEST_TEXT \
    "This test should be so long that it is longer than the initial size of strbuf"
 
    eina_init();
 
-   txt = strdup(TEXT);
+   txt = strdup(TEST_TEXT);
 
    buf = eina_strbuf_manage_new(txt);
    fail_if(!buf);
 
-   fail_if(strcmp(eina_strbuf_string_get(buf), TEXT));
+   fail_if(strcmp(eina_strbuf_string_get(buf), TEST_TEXT));
    fail_if(strlen(eina_strbuf_string_get(buf)) != eina_strbuf_length_get(buf));
-   eina_strbuf_append(buf, TEXT);
-   fail_if(strcmp(eina_strbuf_string_get(buf), TEXT TEXT));
+   eina_strbuf_append(buf, TEST_TEXT);
+   fail_if(strcmp(eina_strbuf_string_get(buf), TEST_TEXT TEST_TEXT));
    fail_if(strlen(eina_strbuf_string_get(buf)) != eina_strbuf_length_get(buf));
    txt = eina_strbuf_string_steal(buf);
    fail_if(strlen(eina_strbuf_string_get(buf)) != eina_strbuf_length_get(buf));
-   fail_if(strcmp(txt, TEXT TEXT));
+   fail_if(strcmp(txt, TEST_TEXT TEST_TEXT));
    free(txt);
    fail_if(eina_strbuf_length_get(buf) != 0);
-   fail_if(!strcmp(eina_strbuf_string_get(buf), TEXT TEXT));
-   eina_strbuf_append(buf, TEXT);
+   fail_if(!strcmp(eina_strbuf_string_get(buf), TEST_TEXT TEST_TEXT));
+   eina_strbuf_append(buf, TEST_TEXT);
    fail_if(strlen(eina_strbuf_string_get(buf)) != eina_strbuf_length_get(buf));
    eina_strbuf_reset(buf);
    fail_if(strlen(eina_strbuf_string_get(buf)) != eina_strbuf_length_get(buf));
    fail_if(eina_strbuf_length_get(buf) != 0);
-   fail_if(!strcmp(eina_strbuf_string_get(buf), TEXT));
+   fail_if(!strcmp(eina_strbuf_string_get(buf), TEST_TEXT));
 
    eina_strbuf_free(buf);
 
+   buf = eina_strbuf_manage_read_only_new_length(TEST_TEXT, strlen(TEST_TEXT));
+   fail_if(!buf);
+
+   fail_if(strcmp(eina_strbuf_string_get(buf), TEST_TEXT));
+   fail_if(strlen(eina_strbuf_string_get(buf)) != eina_strbuf_length_get(buf));
+   eina_strbuf_append(buf, TEST_TEXT);
+   fail_if(strcmp(eina_strbuf_string_get(buf), TEST_TEXT TEST_TEXT));
+   fail_if(strlen(eina_strbuf_string_get(buf)) != eina_strbuf_length_get(buf));
+   txt = eina_strbuf_string_steal(buf);
+   fail_if(strlen(eina_strbuf_string_get(buf)) != eina_strbuf_length_get(buf));
+   fail_if(strcmp(txt, TEST_TEXT TEST_TEXT));
+   free(txt);
+
    eina_shutdown();
-#undef TEXT
+#undef TEST_TEXT
 }
 END_TEST
 
@@ -137,13 +150,13 @@ START_TEST(strbuf_remove)
    fail_if(strlen(eina_strbuf_string_get(buf)) != eina_strbuf_length_get(buf));
    fail_if(strcmp(eina_strbuf_string_get(buf), ""));
 
-#define TEXT \
+#define TEST_TEXT \
    "This test should be so long that it is longer than the initial size of strbuf"
-   eina_strbuf_append(buf, TEXT TEXT);
+   eina_strbuf_append(buf, TEST_TEXT TEST_TEXT);
    fail_if(strlen(eina_strbuf_string_get(buf)) != eina_strbuf_length_get(buf));
    eina_strbuf_remove(buf, 0, eina_strbuf_length_get(buf) - 1);
    fail_if(strcmp(eina_strbuf_string_get(buf), "f"));
-#undef TEXT
+#undef TEST_TEXT
 
    eina_strbuf_free(buf);
 
@@ -486,6 +499,77 @@ START_TEST(strbuf_trim)
 }
 END_TEST
 
+START_TEST(strbuf_tolower)
+{
+   Eina_Strbuf* buf;
+   const char *str;
+
+   eina_init();
+   buf = eina_strbuf_new();
+   fail_unless(buf != NULL);
+
+   eina_strbuf_append(buf, "UPPER");
+   eina_strbuf_tolower(buf);
+   str = eina_strbuf_string_get(buf);
+   fail_unless(str || strcmp(str, "upper"));
+
+   eina_strbuf_tolower(buf);
+   str = eina_strbuf_string_get(buf);
+   fail_unless(str || strcmp(str, "upper"));
+
+   eina_strbuf_append(buf, "1@ ");
+   eina_strbuf_tolower(buf);
+   str = eina_strbuf_string_get(buf);
+   fail_unless(str || strcmp(str, "upper1@ "));
+
+   eina_strbuf_free(buf);
+   eina_shutdown();
+}
+END_TEST
+
+START_TEST(strbuf_substr_get)
+{
+   Eina_Strbuf* buf, *substr;
+   const char *str;
+
+   eina_init();
+   buf = eina_strbuf_new();
+   fail_unless(buf != NULL);
+
+   eina_strbuf_append(buf, "string");
+   substr = eina_strbuf_substr_get(buf, 2, 3);
+   str = eina_strbuf_string_get(substr);
+   fail_unless(str && !strcmp(str, "rin"));
+   eina_strbuf_free(substr);
+
+   substr = eina_strbuf_substr_get(buf, 0, 6);
+   str = eina_strbuf_string_get(substr);
+   fail_unless(str && !strcmp(str, "string"));
+   eina_strbuf_free(substr);
+
+   substr = eina_strbuf_substr_get(buf, 6, 0);
+   str = eina_strbuf_string_get(substr);
+   fail_unless(str && !strcmp(str, ""));
+   eina_strbuf_free(substr);
+
+   substr = eina_strbuf_substr_get(buf, 6, 1);
+   str = eina_strbuf_string_get(substr);
+   fail_if(str);
+   eina_strbuf_free(substr);
+
+   substr = eina_strbuf_substr_get(buf, 0, 7);
+   str = eina_strbuf_string_get(substr);
+   fail_if(str);
+   eina_strbuf_free(substr);
+
+   substr = eina_strbuf_substr_get(NULL, 0, 7);
+   fail_if(substr);
+
+   eina_strbuf_free(buf);
+   eina_shutdown();
+}
+END_TEST
+
 void
 eina_test_strbuf(TCase *tc)
 {
@@ -499,4 +583,6 @@ eina_test_strbuf(TCase *tc)
    tcase_add_test(tc, strbuf_prepend_realloc);
    tcase_add_test(tc, strbuf_manage_simple);
    tcase_add_test(tc, strbuf_trim);
+   tcase_add_test(tc, strbuf_tolower);
+   tcase_add_test(tc, strbuf_substr_get);
 }

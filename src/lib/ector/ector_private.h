@@ -1,6 +1,10 @@
 #ifndef ECTOR_PRIVATE_H_
 #define ECTOR_PRIVATE_H_
 
+#include "Ector.h"
+
+#include "ector_gl_internal.h"
+
 /*
  * variable and macros used for the eina_log module
  */
@@ -38,40 +42,22 @@ extern int _ector_log_dom_global;
 
 /* The following macro are internal to Ector only at this stage */
 
-typedef unsigned char DATA8;
-typedef unsigned short DATA16;
-
-#ifndef WORDS_BIGENDIAN
-/* x86 */
-#define A_VAL(p) (((DATA8 *)(p))[3])
-#define R_VAL(p) (((DATA8 *)(p))[2])
-#define G_VAL(p) (((DATA8 *)(p))[1])
-#define B_VAL(p) (((DATA8 *)(p))[0])
-#define AR_VAL(p) ((DATA16 *)(p)[1])
-#define GB_VAL(p) ((DATA16 *)(p)[0])
-#else
-/* ppc */
-#define A_VAL(p) (((DATA8 *)(p))[0])
-#define R_VAL(p) (((DATA8 *)(p))[1])
-#define G_VAL(p) (((DATA8 *)(p))[2])
-#define B_VAL(p) (((DATA8 *)(p))[3])
-#define AR_VAL(p) ((DATA16 *)(p)[0])
-#define GB_VAL(p) ((DATA16 *)(p)[1])
-#endif
-
-#define RGB_JOIN(r,g,b) \
-  (((r) << 16) + ((g) << 8) + (b))
-
-#define ARGB_JOIN(a,r,g,b) \
-  (((a) << 24) + ((r) << 16) + ((g) << 8) + (b))
-
-static inline void
-_ector_renderer_replace(Ector_Renderer **d, const Ector_Renderer *s)
+static inline Eo *
+_eo_refplace(Eo **d, const Eo *s)
 {
-   Ector_Renderer *tmp = *d;
-
+   Eo *tmp = *d;
    *d = eo_ref(s);
-   eo_unref(tmp);
+   if (tmp) eo_unref(tmp);
+   return *d;
+}
+
+static inline Eo *
+_eo_xrefplace(Eo **d, Eo *s, const Eo *ref_obj)
+{
+   Eo *tmp = *d;
+   *d = eo_xref(s, ref_obj);
+   if (tmp) eo_xunref(tmp, ref_obj);
+   return *d;
 }
 
 typedef struct _Ector_Renderer_Generic_Base_Data Ector_Renderer_Generic_Base_Data;
@@ -79,9 +65,11 @@ typedef struct _Ector_Renderer_Generic_Gradient_Data Ector_Renderer_Generic_Grad
 typedef struct _Ector_Renderer_Generic_Gradient_Linear_Data Ector_Renderer_Generic_Gradient_Linear_Data;
 typedef struct _Ector_Renderer_Generic_Gradient_Radial_Data Ector_Renderer_Generic_Gradient_Radial_Data;
 typedef struct _Ector_Renderer_Generic_Shape_Data Ector_Renderer_Generic_Shape_Data;
+typedef struct _Ector_Renderer_Generic_Buffer_Data Ector_Renderer_Generic_Buffer_Data;
 
 struct _Ector_Renderer_Generic_Base_Data
 {
+   Ector_Generic_Surface *surface;
    Eina_Matrix3 *m;
 
    struct {
@@ -96,7 +84,8 @@ struct _Ector_Renderer_Generic_Base_Data
    Ector_Renderer *mask;
 
    Ector_Quality q;
-   Eina_Bool visibility;
+   Eina_Bool visibility : 1;
+   Eina_Bool finalized : 1;
 };
 
 struct _Ector_Renderer_Generic_Gradient_Data
@@ -128,21 +117,16 @@ struct _Ector_Renderer_Generic_Shape_Data
    struct {
       Ector_Renderer *fill;
       Ector_Renderer *marker;
-
-      double scale;
-      double width;
-      double centered;
-
-      struct {
-         int r, g, b, a;
-      } color;
-
-      Efl_Gfx_Dash *dash;
-      unsigned int dash_length;
-
-      Efl_Gfx_Cap cap;
-      Efl_Gfx_Join join;
    } stroke;
+};
+
+struct _Ector_Renderer_Generic_Buffer_Data
+{
+   Ector_Buffer *eo_buffer;
+   struct {
+      Efl_Gfx_Fill_Spread spread;
+      int x, y, w, h;
+   } fill;
 };
 
 static inline unsigned int
@@ -154,5 +138,7 @@ _renderer_crc_get(Eo *obj, unsigned int crc)
    crc = eina_crc((void*) &id, sizeof (id), crc, EINA_FALSE);
    return crc;
 }
+
+#include "ector_buffer.h"
 
 #endif

@@ -47,7 +47,7 @@ ECORE_EVAS_COMMON_CPPFLAGS = \
 -I$(top_builddir)/src/lib/ecore_file \
 -I$(top_srcdir)/src/lib/ecore_input \
 -I$(top_builddir)/src/lib/ecore_evas \
--DPACKAGE_EXAMPLES_DIR=\".\" \
+-DPACKAGE_EXAMPLES_DIR=\"$(top_srcdir)/src/examples/evas\" \
 @EVAS_CFLAGS@
 
 ECORE_EVAS_COMMON_LDADD = \
@@ -91,7 +91,7 @@ EDJE_COMMON_CPPFLAGS = \
 -I$(top_builddir)/src/lib/edje \
 -I$(top_srcdir)/src/lib/edje/include \
 -I$(top_builddir)/src/lib/edje/include \
--DPACKAGE_EXAMPLES_DIR=\".\" \
+-DPACKAGE_EXAMPLES_DIR=\"$(top_srcdir)/src/examples/evas\" \
 @EVAS_CFLAGS@
 
 EDJE_COMMON_LDADD = \
@@ -239,6 +239,11 @@ evas_canvas3d_ply_SOURCES = evas-3d-ply.c
 evas_canvas3d_ply_LDADD = $(ECORE_EVAS_COMMON_LDADD) @EFL_PTHREAD_LIBS@
 evas_canvas3d_ply_CPPFLAGS = $(ECORE_EVAS_COMMON_CPPFLAGS)
 
+EXTRA_PROGRAMS += evas_canvas3d_hull
+evas_canvas3d_hull_SOURCES = evas-3d-hull.c
+evas_canvas3d_hull_LDADD = $(ECORE_EVAS_COMMON_LDADD) @EFL_PTHREAD_LIBS@
+evas_canvas3d_hull_CPPFLAGS = $(ECORE_EVAS_COMMON_CPPFLAGS)
+
 EXTRA_PROGRAMS += evas_canvas3d_frustum
 evas_canvas3d_frustum_SOURCES = evas-3d-frustum.c
 evas_canvas3d_frustum_LDADD = $(ECORE_EVAS_COMMON_LDADD) @EFL_PTHREAD_LIBS@
@@ -260,7 +265,10 @@ evas_canvas3d_shadows_LDADD = $(ECORE_EVAS_COMMON_LDADD) @EFL_PTHREAD_LIBS@
 evas_canvas3d_shadows_CPPFLAGS = $(ECORE_EVAS_COMMON_CPPFLAGS)
 
 EXTRA_PROGRAMS += evas_canvas3d_shooter
-evas_canvas3d_shooter_SOURCES = shooter/evas-3d-shooter.c shooter/evas-3d-shooter-header.c
+evas_canvas3d_shooter_SOURCES = shooter/evas-3d-shooter.c \
+				shooter/evas-3d-shooter-header.c \
+				shooter/evas-3d-shooter-header.h \
+				shooter/evas-3d-shooter-macros.h
 evas_canvas3d_shooter_LDADD = $(ECORE_EVAS_COMMON_LDADD) @EFL_PTHREAD_LIBS@
 evas_canvas3d_shooter_CPPFLAGS = $(ECORE_EVAS_COMMON_CPPFLAGS)
 
@@ -383,6 +391,15 @@ resources/models/sweet_home.obj \
 resources/models/sweet_home_only_vertex_coords.obj \
 resources/models/sweet_home_without_normals.obj \
 resources/models/sweet_home_without_tex_coords.obj \
+resources/models/convex_hull/column_blender_ch.ply \
+resources/models/convex_hull/column.ply \
+resources/models/convex_hull/cube_blender_ch.ply \
+resources/models/convex_hull/eagle_blender_ch.ply \
+resources/models/convex_hull/home_blender_ch.obj \
+resources/models/convex_hull/plain.ply \
+resources/models/convex_hull/plain_blender_ch.ply \
+resources/models/convex_hull/sphere_blender_ch.ply \
+resources/models/convex_hull/torus_blender_ch.ply \
 shooter/assets/images/brick-stone_n.jpg \
 shooter/assets/images/brick-stone.jpg \
 shooter/assets/images/bricks_n.jpg \

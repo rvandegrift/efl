@@ -2,8 +2,12 @@
 # include "config.h"
 #endif /* HAVE_CONFIG_H */
 
-#include "Evil.h"
-#include "evil_private.h"
+#include <stdlib.h>
+#include <string.h>
+#include <ctype.h>
+
+#include "evil_macro.h"
+#include "evil_string.h"
 
 
 /*
@@ -53,15 +57,6 @@ strrstr (const char *str, const char *substr)
 
   return ret;
 }
-
-#ifdef _MSC_VER
-
-int strcasecmp(const char *s1, const char *s2)
-{
-   return lstrcmpi(s1, s2);
-}
-
-#endif /* _MSC_VER */
 
 char *strcasestr(const char *haystack, const char *needle)
 {

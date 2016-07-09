@@ -148,7 +148,8 @@ evas_fonts_zero_free(Evas *eo_evas)
      {
         if (fd->fdesc) evas_font_desc_unref(fd->fdesc);
 	if (fd->source) eina_stringshare_del(fd->source);
-	evas->engine.func->font_free(evas->engine.data.output, fd->font);
+	if ((evas->engine.func) && (evas->engine.func->font_free))
+	  evas->engine.func->font_free(evas->engine.data.output, fd->font);
 #ifdef HAVE_FONTCONFIG
 	if (fd->set) FcFontSetDestroy(fd->set);
 	if (fd->p_nm) FcPatternDestroy(fd->p_nm);
@@ -173,7 +174,8 @@ evas_fonts_zero_pressure(Evas *eo_evas)
 
         if (fd->fdesc) evas_font_desc_unref(fd->fdesc);
 	if (fd->source) eina_stringshare_del(fd->source);
-	evas->engine.func->font_free(evas->engine.data.output, fd->font);
+	if ((evas->engine.func) && (evas->engine.func->font_free))
+	  evas->engine.func->font_free(evas->engine.data.output, fd->font);
 #ifdef HAVE_FONTCONFIG
 	if (fd->set) FcFontSetDestroy(fd->set);
 	if (fd->p_nm) FcPatternDestroy(fd->p_nm);
@@ -268,12 +270,14 @@ static int _fc_weight_map[] =
    FC_WEIGHT_NORMAL,
    FC_WEIGHT_THIN,
    FC_WEIGHT_ULTRALIGHT,
+   FC_WEIGHT_EXTRALIGHT,
    FC_WEIGHT_LIGHT,
    FC_WEIGHT_BOOK,
    FC_WEIGHT_MEDIUM,
    FC_WEIGHT_SEMIBOLD,
    FC_WEIGHT_BOLD,
    FC_WEIGHT_ULTRABOLD,
+   FC_WEIGHT_EXTRABOLD,
    FC_WEIGHT_BLACK,
    FC_WEIGHT_EXTRABLACK
 };
@@ -328,12 +332,14 @@ static Style_Map _style_weight_map[] =
      {"normal", EVAS_FONT_WEIGHT_NORMAL},
      {"thin", EVAS_FONT_WEIGHT_THIN},
      {"ultralight", EVAS_FONT_WEIGHT_ULTRALIGHT},
+     {"extralight", EVAS_FONT_WEIGHT_EXTRALIGHT},
      {"light", EVAS_FONT_WEIGHT_LIGHT},
      {"book", EVAS_FONT_WEIGHT_BOOK},
      {"medium", EVAS_FONT_WEIGHT_MEDIUM},
      {"semibold", EVAS_FONT_WEIGHT_SEMIBOLD},
      {"bold", EVAS_FONT_WEIGHT_BOLD},
      {"ultrabold", EVAS_FONT_WEIGHT_ULTRABOLD},
+     {"extrabold", EVAS_FONT_WEIGHT_ULTRABOLD},
      {"black", EVAS_FONT_WEIGHT_BLACK},
      {"extrablack", EVAS_FONT_WEIGHT_EXTRABLACK}
 };
@@ -1118,7 +1124,7 @@ static Evas_Font_Dir *
 object_text_font_cache_dir_add(char *dir)
 {
    Evas_Font_Dir *fd;
-   char *tmp, *tmp2;
+   char *tmp, *tmp2, *file;
    Eina_List *fdir;
    Evas_Font *fn;
 
@@ -1179,9 +1185,9 @@ object_text_font_cache_dir_add(char *dir)
 
    /* directoy listing */
    fdir = evas_file_path_list(dir, "*.ttf", 0);
-   while (fdir)
+   EINA_LIST_FREE(fdir, file)
      {
-	tmp = evas_file_path_join(dir, fdir->data);
+	tmp = evas_file_path_join(dir, file);
 	if (tmp)
 	  {
 	     fn = calloc(1, sizeof(Evas_Font));
@@ -1190,12 +1196,12 @@ object_text_font_cache_dir_add(char *dir)
 		  char *p;
 
 		  fn->type = 0;
-		  tmp2 = alloca(strlen(fdir->data) + 1);
-		  strcpy(tmp2, fdir->data);
+		  tmp2 = alloca(strlen(file) + 1);
+		  strcpy(tmp2, file);
 		  p = strrchr(tmp2, '.');
 		  if (p) *p = 0;
 		  fn->simple.name = eina_stringshare_add(tmp2);
-		  tmp2 = evas_file_path_join(dir, fdir->data);
+		  tmp2 = evas_file_path_join(dir, file);
 		  if (tmp2)
 		    {
 		       fn->path = eina_stringshare_add(tmp2);
@@ -1205,8 +1211,7 @@ object_text_font_cache_dir_add(char *dir)
 	       }
 	     free(tmp);
 	  }
-	free(fdir->data);
-	fdir = eina_list_remove(fdir, fdir->data);
+	free(file);
      }
 
    /* fonts.alias */

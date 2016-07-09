@@ -1,4 +1,4 @@
-EFL_VERSION([1], [16], [1], [release])
+EFL_VERSION([1], [17], [2], [release])
 AC_INIT([efl], [efl_version], [enlightenment-devel@lists.sourceforge.net])
 
 AC_PREREQ([2.60])
@@ -85,11 +85,16 @@ case "${build_profile}" in
 esac
 
 prefer_assert="no"
+eina_log_backtrace="yes"
 case "${build_profile}" in
    dev|debug)
      prefer_assert="yes"
+     eina_log_backtrace="no"
      ;;
 esac
+
+# Enable CRI & ERR backtrace by default for release but not for dev/debug
+AC_DEFINE_IF([EINA_LOG_BACKTRACE_ENABLE], [test "x${eina_log_backtrace}" = "xyes"], [1], [Default log level triggering backtraces])
 
 # TODO: add some build "profile" (server, full, etc...)
 
@@ -709,8 +714,6 @@ fi
 AM_CONDITIONAL([WANT_SYSTEMD], [test "${want_systemd}" = "yes"])
 AM_CONDITIONAL([HAVE_SYSTEMD], [test "${want_systemd}" = "yes" -a "${have_systemd_pkg}" = "yes"])
 #### Platform-dependent
-DL_LIBS=""
-DL_INTERNAL_LIBS=""
 
 #### Evil
 EFL_LIB_START_OPTIONAL([Evil], [test "${have_windows}" = "yes"])
@@ -724,10 +727,7 @@ EFL_SELECT_WINDOWS_VERSION
 
 ### Checks for libraries
 
-EFL_ADD_LIBS([EVIL], [-lole32 -lws2_32 -lsecur32 -luuid])
-EVIL_DLFCN_LIBS="-lpsapi"
-
-AC_SUBST([EVIL_DLFCN_LIBS])
+EFL_ADD_LIBS([EVIL], [-lpsapi -lole32 -lws2_32 -lsecur32 -luuid])
 
 ### Checks for header files
 
@@ -737,7 +737,7 @@ AC_SUBST([EVIL_DLFCN_LIBS])
 
 ### Checks for compiler characteristics
 
-EVIL_DLFCN_CPPFLAGS="-DEFL_EVIL_DLFCN_BUILD -DPSAPI_VERSION=1"
+EVIL_CPPFLAGS="-DPSAPI_VERSION=1"
 # TODO: should we have these at EFL (global?)
 # Note: these warnings should not be used with C++ code
 EVIL_CFLAGS_WRN="-Wdeclaration-after-statement -Wmissing-prototypes -Wstrict-prototypes -Wredundant-decls"
@@ -748,16 +748,13 @@ if test "x${have_win32}" = "xyes" ; then
    EVIL_CXXFLAGS="-fno-rtti -fno-exceptions -DSECURITY_WIN32 ${EVIL_CXXFLAGS}"
 fi
 
-AC_SUBST([EVIL_DLFCN_CPPFLAGS])
+AC_SUBST([EVIL_CPPFLAGS])
 AC_SUBST([EVIL_CFLAGS_WRN])
 AC_SUBST([EVIL_CXXFLAGS])
 
 ### Checks for linker characteristics
 
 ### Checks for library functions
-
-DL_LIBS="lib/evil/libdl.la"
-DL_INTERNAL_LIBS="lib/evil/libdl.la"
 
 EFL_LIB_END_OPTIONAL([Evil])
 
@@ -878,6 +875,11 @@ EINA_CONFIG([MAGIC_DEBUG], [test "x${have_magic_debug}" = "xyes"])
 AC_ARG_WITH([xattr-tests-path],
    [AS_HELP_STRING([--with-xattr-tests-path=DIR],[path of xattr enabled directory to create test files])],[XATTR_TEST_DIR=${withval}][AC_DEFINE_UNQUOTED([XATTR_TEST_DIR],["$withval"], [xattr enabled directory])])
 
+evas_dicts_hyphen_dir="/usr/share/hyphen/"
+AC_ARG_WITH([dictionaries-hyphen-dir],
+   [AS_HELP_STRING([--with-dictionaries-hyphen-dir=DIR],[path of hunspell-compatible hyphen dictionaries])], [evas_dicts_hyphen_dir=$withval])
+AC_DEFINE_UNQUOTED([EVAS_DICTS_HYPHEN_DIR],["$evas_dicts_hyphen_dir"], [Hunspell-compatible hyphen dictionaries install directory])
+
 ### Checks for programs
 
 ### Checks for libraries
@@ -984,6 +986,20 @@ if test "x${efl_have_threads}" = "xno"; then
    CFOPT_WARNING="xyes"
 fi
 
+AC_COMPILE_IFELSE(
+   [AC_LANG_PROGRAM(
+       [[ ]],
+       [[
+        static __thread int a = 0;
+       ]])],
+   [have_thread_specifier="yes"],
+   [have_thread_specifier="no"])
+AC_MSG_CHECKING([for __thread specifier])
+AC_MSG_RESULT([${have_thread_specifier}])
+if test "x${have_thread_specifier}" = "xyes" ; then
+    AC_DEFINE([HAVE_THREAD_SPECIFIER], [1], [Have the __thread specifier])
+fi
+
 EFL_ADD_PUBLIC_LIBS([EINA], [${EFL_PTHREAD_LIBS}])
 EFL_ADD_CFLAGS([EINA], [${EFL_PTHREAD_CFLAGS}])
 
@@ -1028,6 +1044,191 @@ EFL_EVAL_PKGS([EINA_CXX])
 
 EFL_LIB_END([Eina_Cxx])
 #### End of Eina CXX
+
+AC_ARG_WITH([js],
+   [AS_HELP_STRING([--with-js=@<:@nodejs/libv8/libuv/none@:>@],[enable JavaScript bindings using nodejs or libv8/libuv as build dependencies. The libuv option implies libv8. @<:@default=none@:>@])],
+   [want_js="${withval}"], [want_js="none"])
+
+EFLJS_CXXFLAGS=""
+AC_LANG_PUSH([C++])
+case "$want_js" in
+     nodejs)
+        AC_CHECK_HEADERS([node/v8.h nodejs/deps/v8/v8.h nodejs/deps/v8/include/v8.h nodejs/src/v8.h v8.h],
+                         [
+                           v8_header=AC_header
+                           v8_header_define=AS_TR_CPP([HAVE_]AC_header)
+                           EFLJS_CXXFLAGS="$EFLJS_CXXFLAGS -D$v8_header_define"
+                           break
+                         ]
+                         [AC_MSG_ERROR([Could not find v8 include headers from nodejs.])])
+        AC_CHECK_HEADERS([node/node.h nodejs/deps/node/node.h nodejs/deps/node/include/node.h nodejs/src/node.h node.h],
+                         [
+                           node_header_define=AS_TR_CPP([HAVE_]AC_header)
+                           EFLJS_CXXFLAGS="$EFLJS_CXXFLAGS -D$node_header_define"
+                           break
+                         ]
+                         [AC_MSG_ERROR([Could not find node include headers from nodejs.])])
+        AC_CHECK_HEADERS([node/uv.h nodejs/deps/uv/uv.h nodejs/deps/uv/include/uv.h nodejs/src/uv.h uv.h],
+                         [
+                           uv_header_define=AS_TR_CPP([HAVE_]AC_header)
+                           EFLJS_CXXFLAGS="$EFLJS_CXXFLAGS -D$uv_header_define"
+                           break
+                         ]
+                         [AC_MSG_ERROR([Could not find uv include headers from nodejs.])])
+        ;;
+     libv8)
+        AC_CHECK_HEADERS([v8.h],
+                         [
+                           v8_header=AC_header
+                           break
+                         ]
+                         [AC_MSG_ERROR([Could not find v8 include headers from libv8.])])
+        ;;
+     libuv)
+        AC_CHECK_HEADERS([v8.h],
+                         [
+                           v8_header=AC_header
+                           break
+                         ]
+                         [AC_MSG_ERROR([Could not find v8 include headers from libv8.])])
+        AC_CHECK_HEADERS([uv.h],
+                         [break]
+                         [AC_MSG_ERROR([Could not find uv include headers from libuv.])])
+        ;;
+     none)
+        ;;
+     *) AC_MSG_ERROR([Invalid javascript dependency (${want_js}): must be none, nodejs, libv8 or libuv]) ;;
+esac
+
+have_v8_global="no"
+have_v8_create_params="no"
+if test "$want_js" != "none" ; then
+AC_COMPILE_IFELSE(
+   [AC_LANG_PROGRAM(
+       [[
+#include "$v8_header"
+       ]],
+       [[
+v8::Isolate::CreateParams create_params; create_params.array_buffer_allocator = nullptr;
+       ]])
+   ],
+   [
+    AC_DEFINE(HAVE_V8_CREATE_PARAMS, 1, [Define to 1 if you must pass create_params explicitly.])
+    have_v8_create_params="yes"
+    AC_MSG_NOTICE([checking for v8::Isolate::CreateParams... yes])
+   ],
+   [
+    AC_MSG_NOTICE([checking for v8::Isolate::CreateParams... no])
+   ])
+AC_COMPILE_IFELSE(
+   [AC_LANG_PROGRAM(
+       [[
+#include "$v8_header"
+#include <type_traits>
+       ]],
+       [[
+       static_assert((std::is_same< ::v8::Global<void>, ::v8::UniquePersistent<void>>::value), "");
+       ]])
+   ],
+   [
+    AC_DEFINE(HAVE_V8_GLOBAL, 1, [Define to 1 if you must pass create_params explicitly.])
+    have_v8_global="yes"
+    AC_MSG_NOTICE([checking for v8::Global<T> class... yes])
+   ],
+   [
+    AC_MSG_NOTICE([checking for v8::Global<T> class... no])
+   ])
+fi
+AM_CONDITIONAL([HAVE_V8_CREATE_PARAMS], [test "x${have_v8_create_params}" = "xyes"])
+AM_CONDITIONAL([HAVE_V8_GLOBAL], [test "x${have_v8_global}" = "xyes"])
+AC_SUBST([HAVE_V8_CREATE_PARAMS])
+AC_SUBST([HAVE_V8_GLOBAL])
+AC_LANG_POP([C++])
+
+AM_CONDITIONAL([HAVE_NODEJS], [test "x${want_js}" = "xnodejs"])
+AC_DEFINE_IF([HAVE_NODEJS], [test "x${want_js}" = "xnodejs"],
+  [1], [Using NodeJS])
+AC_SUBST([want_js])
+AC_SUBST([HAVE_NODEJS])
+
+have_js="no"
+if test "x${want_js}" != "xnone" ; then
+   have_js="yes"
+fi
+AM_CONDITIONAL([HAVE_JS], [test "x${have_js}" = "xyes"])
+AC_DEFINE_IF([HAVE_JS], [test "x${have_js}" = "xyes"], [1], [Compiling bindings for JavaScript])
+AC_SUBST([HAVE_JS])
+
+AM_CONDITIONAL([HAVE_LIBUV], [test "x${want_js}" = "xnodejs" -o "x${want_js}" = "xlibuv"])
+AC_DEFINE_IF([HAVE_LIBUV], [test "x${want_js}" = "xnodejs" -o "x${want_js}" = "xlibuv"],
+             [1], [Compiling libuv event loop integration])
+AC_SUBST([HAVE_LIBUV])
+
+# For efljspack mime handling
+AM_CONDITIONAL([HAVE_XDG_DATA_HOME], [test "x${XDG_DATA_HOME}" != "x"])
+AM_COND_IF([HAVE_XDG_DATA_HOME], [AC_SUBST([XDG_DATA_HOME])], [AC_SUBST([XDG_DATA_HOME], "$HOME/.local/share")])
+
+#### Eina JS
+EFL_LIB_START_OPTIONAL([Eina_Js], [test "x${have_js}" = "xyes"])
+EFL_INTERNAL_DEPEND_PKG([EINA_JS], [Eina])
+EFL_INTERNAL_DEPEND_PKG([EINA_JS], [Eo])
+EFL_ADD_CFLAGS([EINA_JS], [${EFL_PTHREAD_CFLAGS}])
+EFL_EVAL_PKGS([EINA_JS])
+
+EFL_LIB_END_OPTIONAL([Eina_Js])
+#### End of Eina JS
+
+#### Ecore JS
+EFL_LIB_START_OPTIONAL([Ecore_Js], [test "x${have_js}" = "xyes"])
+
+EFL_INTERNAL_DEPEND_PKG([ECORE_JS], [ecore])
+EFL_INTERNAL_DEPEND_PKG([ECORE_JS], [ecore_file])
+EFL_ADD_CFLAGS([ECORE_JS], [${EFL_PTHREAD_CFLAGS}])
+EFL_EVAL_PKGS([ECORE_JS])
+
+EFL_LIB_END_OPTIONAL([Ecore_Js])
+#### End of Ecore JS
+
+#### Eio JS
+EFL_LIB_START_OPTIONAL([Eio_Js], [test "x${have_js}" = "xyes"])
+
+EFL_INTERNAL_DEPEND_PKG([EIO_JS], [eio])
+EFL_ADD_CFLAGS([EIO_JS], [${EFL_PTHREAD_CFLAGS}])
+EFL_EVAL_PKGS([EIO_JS])
+
+EFL_LIB_END_OPTIONAL([Eio_Js])
+#### End of Eio JS
+
+#### Ethumb JS
+EFL_LIB_START_OPTIONAL([Ethumb_Js], [test "x${have_js}" = "xyes"])
+
+EFL_INTERNAL_DEPEND_PKG([ETHUMB_JS], [ethumb])
+EFL_INTERNAL_DEPEND_PKG([ETHUMB_JS], [ethumb_client])
+EFL_ADD_CFLAGS([ETHUMB_JS], [${EFL_PTHREAD_CFLAGS}])
+EFL_EVAL_PKGS([ETHUMB_JS])
+
+EFL_LIB_END_OPTIONAL([Ethumb_Js])
+#### End of Ethumb JS
+
+#### Eldbus JS
+EFL_LIB_START_OPTIONAL([Eldbus_Js], [test "x${have_js}" = "xyes"])
+
+EFL_INTERNAL_DEPEND_PKG([ELDBUS_JS], [eldbus])
+EFL_ADD_CFLAGS([ELDBUS_JS], [${EFL_PTHREAD_CFLAGS}])
+EFL_EVAL_PKGS([ELDBUS_JS])
+
+EFL_LIB_END_OPTIONAL([Eldbus_Js])
+#### End of Eldbus JS
+
+#### Eo JS
+EFL_LIB_START_OPTIONAL([Eo_Js], [test "x${have_js}" = "xyes"])
+
+EFL_INTERNAL_DEPEND_PKG([EO_JS], [eina])
+EFL_ADD_CFLAGS([EO_JS], [${EFL_PTHREAD_CFLAGS}])
+EFL_EVAL_PKGS([EO_JS])
+
+EFL_LIB_END_OPTIONAL([Eo_Js])
+#### End of Eo JS
 
 #### Eo
 
@@ -1222,6 +1423,15 @@ EFL_INTERNAL_DEPEND_PKG([EOLIAN], [eina])
 EFL_LIB_END([Eolian])
 #### End of Eolian
 
+EFL_LIB_START_OPTIONAL([Eolian_Js], [test "${have_js}" = "yes"])
+
+EFL_INTERNAL_DEPEND_PKG([EOLIAN_JS], [eina])
+EFL_INTERNAL_DEPEND_PKG([EOLIAN_JS], [eolian])
+
+EFL_LIB_END_OPTIONAL([Eolian_Js])
+#### End of Eolian
+
+
 EFL_LIB_START([Eolian_Cxx])
 ### Default values
 
@@ -1281,6 +1491,8 @@ EFL_LIB_START([Ector])
 EFL_PLATFORM_DEPEND([ECTOR], [evil])
 
 EFL_INTERNAL_DEPEND_PKG([ECTOR], [eina])
+EFL_INTERNAL_DEPEND_PKG([ECTOR], [emile])
+EFL_INTERNAL_DEPEND_PKG([ECTOR], [eet])
 EFL_INTERNAL_DEPEND_PKG([ECTOR], [eo])
 EFL_INTERNAL_DEPEND_PKG([ECTOR], [efl])
 
@@ -1426,7 +1638,7 @@ if test "${want_sdl}" = "yes"; then
    EFL_PKG_CHECK_STRICT([sdl2 >= 2.0.0])
 fi
 
-# We only enable SDL with opengl if it is not the full version and not ES
+# We only enable SDL with opengl if it is the full version and not ES
 # This can be changed if we ported our SDL code over to SDL 2.0. For older
 # versions the SDL_opengles.h has never been released.
 want_gl_sdl="no"
@@ -1595,6 +1807,18 @@ AC_ARG_ENABLE([harfbuzz],
    ],
    [want_harfbuzz="no"])
 
+# Hyphenation
+AC_ARG_ENABLE([hyphen],
+   [AS_HELP_STRING([--enable-hyphen],[enable text hyphenation support. @<:@default=disabled@:>@])],
+   [
+    if test "x${enableval}" = "xyes" ; then
+       want_hyphen="yes"
+    else
+       want_hyphen="no"
+    fi
+   ],
+   [want_hyphen="no"])
+
 # Egl
 AC_ARG_ENABLE([egl],
    [AS_HELP_STRING([--enable-egl],[enable EGL rendering. @<:@default=disabled@:>@])],
@@ -1606,6 +1830,14 @@ AC_ARG_ENABLE([egl],
     fi
    ],
    [want_egl="no"])
+
+# Verify OpenGL + EGL modes match (full+glx or es+egl)
+if test "x${want_egl}" = "xyes" && test "x${with_opengl}" != "xes" ; then
+  AC_MSG_ERROR([Full OpenGL with EGL is not supported, please add --with-opengl=es to your configure options to switch to EGL + OpenGL ES.])
+fi
+if test "x${want_egl}" = "xno" && test "x${with_opengl}" = "xes" ; then
+  AC_MSG_ERROR([OpenGL ES requires EGL, please add --enable-egl to your configure options to switch to EGL + OpenGL ES.])
+fi
 
 # Pixman
 AC_ARG_ENABLE([pixman],
@@ -2052,6 +2284,25 @@ EFL_EVAL_PKGS([EVAS])
 
 ### Checks for header files
 
+if test "x$want_hyphen" = "xyes" ; then
+
+   EFL_CHECK_LIB_CODE([EVAS], [-lhyphen], [have_fct], [[
+   #include <string.h>
+   #include <stdlib.h>
+   #include <ctype.h>
+   #include <stdio.h>
+   #include <hyphen.h>
+   ]], [[
+   HyphenDict *dict;
+   ]])
+
+   if test "${have_fct}" = "no"; then
+     AC_MSG_ERROR([Cannot find the hyphen library.])
+   else
+     AC_DEFINE([HAVE_HYPHEN], [1], [have hunspell hyphen support])
+   fi
+fi
+
 if test "x$have_harfbuzz" = "xyes" ; then
 
    CPPFLAGS_SAVE="$CPPFLAGS"
@@ -2181,6 +2432,7 @@ EFL_ADD_FEATURE([EVAS], [harfbuzz])
 EFL_ADD_FEATURE([EVAS], [cserve], [${want_evas_cserve2}])
 EFL_ADD_FEATURE([EVAS], [tile-rotate])
 EFL_ADD_FEATURE([EVAS], [dither-mask], [${build_evas_dither_mask}])
+EFL_ADD_FEATURE([EVAS], [hyphen])
 
 EFL_LIB_END([Evas])
 #### End of Evas
@@ -2269,6 +2521,17 @@ AC_ARG_ENABLE([g-main-loop],
     fi
    ],
    [want_g_main_loop="no"])
+AC_ARG_ENABLE([libuv],
+   [AS_HELP_STRING([--enable-libuv],[enable ecore_main_loop based on libuv. @<:@default=disabled@:>@])],
+   [
+    if test "x${enableval}" = "xyes" ; then
+       want_libuv="yes"
+       CFOPT_WARNING="xyes"
+    else
+       want_libuv="no"
+    fi
+   ],
+   [want_libuv="no"])
 
 AC_ARG_ENABLE([gstreamer],
    [AS_HELP_STRING([--enable-gstreamer],[enable gstreamer 0.10 support. @<:@default=disabled@:>@])],
@@ -2357,6 +2620,7 @@ EFL_OPTIONAL_DEPEND_PKG([ECORE], [${want_systemd}], [SYSTEMD], [libsystemd])
 EFL_ADD_FEATURE([ECORE], [systemd-daemon], [${want_systemd}])
 EFL_ADD_FEATURE([ECORE], [glib])
 EFL_ADD_FEATURE([ECORE], [g-main-loop])
+EFL_ADD_FEATURE([ECORE], [libuv])
 
 want_glib_integration_always=no
 if test "x${with_glib}" = "xalways" ; then
@@ -2366,6 +2630,9 @@ fi
 
 if test "x${want_g_main_loop}" = "xyes" ; then
   AC_DEFINE([USE_G_MAIN_LOOP], [1], [Use g_main_loop in ecore])
+  if test "x${want_js}" = "xnodejs" -o "x${want_js}" = "xlibuv" ; then
+    AC_MSG_ERROR([Can't define glib and libuv integration together])
+  fi
 fi
 
 # not EFL_OPTIONAL_DEPEND_PKG() because it's only used for ecore examples
@@ -2611,7 +2878,9 @@ AC_CHECK_TYPES([struct ipv6_mreq],
    [have_ipv6="yes"],
    [have_ipv6="no"],
    [[
-#include <netinet/in.h>
+#ifdef HAVE_NETINET_IN_H
+# include <netinet/in.h>
+#endif
 #ifdef HAVE_WS2TCPIP_H
 # include <ws2tcpip.h>
 #endif
@@ -2793,6 +3062,8 @@ EFL_INTERNAL_DEPEND_PKG([ECORE_COCOA], [ecore-input])
 EFL_INTERNAL_DEPEND_PKG([ECORE_COCOA], [ecore])
 EFL_INTERNAL_DEPEND_PKG([ECORE_COCOA], [eo])
 EFL_INTERNAL_DEPEND_PKG([ECORE_COCOA], [eina])
+EFL_INTERNAL_DEPEND_PKG([ECORE_COCOA], [evas])
+EFL_INTERNAL_DEPEND_PKG([ECORE_COCOA], [emile])
 
 ### Checks for header files
 
@@ -2955,7 +3226,7 @@ EFL_INTERNAL_DEPEND_PKG([ECORE_WAYLAND], [eo])
 EFL_INTERNAL_DEPEND_PKG([ECORE_WAYLAND], [eina])
 
 EFL_DEPEND_PKG([ECORE_WAYLAND], [WAYLAND],
-   [wayland-client >= 1.8.0 wayland-cursor >= 1.8.0 xkbcommon >= 0.5.0])
+   [wayland-client >= 1.8.0 wayland-cursor >= 1.8.0 xkbcommon >= 0.5.0 uuid])
 
 EFL_EVAL_PKGS([ECORE_WAYLAND])
 
@@ -2974,6 +3245,45 @@ EFL_EVAL_PKGS([ECORE_WAYLAND])
 EFL_LIB_END_OPTIONAL([Ecore_Wayland])
 #### End of Ecore_Wayland
 
+#### Ecore_Wl2
+EFL_LIB_START_OPTIONAL([Ecore_Wl2], [test "${want_wayland}" = "yes"])
+
+if test "x${want_wayland_ivi_shell}" = "xyes" ; then
+   AC_DEFINE(USE_IVI_SHELL, 1, [Ecore_Wl2 IVI-Shell Support])
+fi
+
+### Additional options to configure
+
+### Default values
+
+### Checks for programs
+
+### Checks for libraries
+EFL_INTERNAL_DEPEND_PKG([ECORE_WL2], [ecore-input])
+EFL_INTERNAL_DEPEND_PKG([ECORE_WL2], [ecore])
+EFL_INTERNAL_DEPEND_PKG([ECORE_WL2], [eo])
+EFL_INTERNAL_DEPEND_PKG([ECORE_WL2], [eina])
+
+EFL_DEPEND_PKG([ECORE_WL2], [WAYLAND],
+   [wayland-server >= 1.8.0 wayland-client >= 1.8.0 wayland-cursor >= 1.8.0 xkbcommon >= 0.5.0])
+
+EFL_EVAL_PKGS([ECORE_WL2])
+
+### Checks for header files
+
+### Checks for types
+
+### Checks for structures
+
+### Checks for compiler characteristics
+
+### Checks for linker characteristics
+
+### Checks for library functions
+
+EFL_LIB_END_OPTIONAL([Ecore_Wl2])
+#### End of Ecore_Wl2
+
 #### Eldbus
 EFL_LIB_START([Eldbus])
 
@@ -2988,6 +3298,7 @@ EFL_PLATFORM_DEPEND([ELDBUS], [evil])
 
 ### Checks for libraries
 EFL_INTERNAL_DEPEND_PKG([ELDBUS], [ecore])
+EFL_INTERNAL_DEPEND_PKG([ELDBUS], [efl])
 EFL_INTERNAL_DEPEND_PKG([ELDBUS], [eo])
 EFL_INTERNAL_DEPEND_PKG([ELDBUS], [eina])
 
@@ -3163,6 +3474,8 @@ EFL_INTERNAL_DEPEND_PKG([ECORE_DRM], [eina])
 
 EFL_DEPEND_PKG([ECORE_DRM], [DRM], [libdrm >= 2.4 xkbcommon >= 0.3.0 gbm])
 EFL_DEPEND_PKG([ECORE_DRM], [LIBINPUT], [libinput >= 0.6.0])
+
+EFL_ADD_LIBS([ECORE_DRM], [-lm])
 
 # API change from 0.7 to 0.8. So we define this to support both for now.
 PKG_CHECK_EXISTS([libinput >= 0.8.0],
@@ -3911,7 +4224,7 @@ EFL_INTERNAL_DEPEND_PKG([ECORE_EVAS], [emile])
 ECORE_EVAS_MODULE([extn], [${want_ecore_evas_extn}])
 ECORE_EVAS_MODULE([ews], [yes])
 ECORE_EVAS_MODULE([fb], [${want_fb}])
-ECORE_EVAS_MODULE([drm], [${want_drm}], 
+ECORE_EVAS_MODULE([drm], [${want_drm}],
   [EFL_OPTIONAL_INTERNAL_DEPEND_PKG([ECORE_EVAS], [${want_drm}], [ecore-drm])])
 ECORE_EVAS_MODULE([gl-drm], [${want_gl_drm}],
   [EFL_OPTIONAL_INTERNAL_DEPEND_PKG([ECORE_EVAS], [${want_gl_drm}], [ecore-drm])])
@@ -4034,6 +4347,9 @@ EFL_EVAL_PKGS([ECORE_EVAS])
 ### Checks for linker characteristics
 
 ### Checks for library functions
+if test "x${want_gl_drm}" = "xyes" ; then
+   EFL_CHECK_FUNCS([ECORE_EVAS], [dlopen])
+fi
 
 EFL_LIB_END([Ecore_Evas])
 #### End of Ecore_Evas
@@ -4202,7 +4518,7 @@ EFL_LIB_START([Edje])
 ### Default values
 
 AC_ARG_ENABLE([multisense],
-   [AS_HELP_STRING([--enable-multisense],[Enable multisense support. @<:@default=enabled@:>@])],
+   [AS_HELP_STRING([--enable-multisense],[Enable multisense support. @<:@default=disabled@:>@])],
    [
     if test "x${enableval}" = "xyes" ; then
        want_multisense="yes"
@@ -4581,6 +4897,63 @@ EFL_ADD_LIBS([ELOCATION], [-lm])
 EFL_LIB_END([Elocation])
 #### End of Elocation
 
+
+
+#### Efl_Js
+EFL_LIB_START_OPTIONAL([Efl_Js], [test "x${have_js}" = "xyes"])
+
+### Default values
+
+### Additional options to configure
+
+### Checks for programs
+
+### Checks for libraries
+EFL_INTERNAL_DEPEND_PKG([EFL_JS], [Eina])
+EFL_INTERNAL_DEPEND_PKG([EFL_JS], [Eo])
+EFL_INTERNAL_DEPEND_PKG([EFL_JS], [Ecore])
+EFL_INTERNAL_DEPEND_PKG([EFL_JS], [Eet])
+EFL_INTERNAL_DEPEND_PKG([EFL_JS], [Ecore_Evas])
+EFL_INTERNAL_DEPEND_PKG([EFL_JS], [Ecore_Con])
+EFL_INTERNAL_DEPEND_PKG([EFL_JS], [Ecore_Audio])
+EFL_INTERNAL_DEPEND_PKG([EFL_JS], [Efl])
+EFL_INTERNAL_DEPEND_PKG([EFL_JS], [Evas])
+EFL_INTERNAL_DEPEND_PKG([EFL_JS], [Edje])
+EFL_INTERNAL_DEPEND_PKG([EFL_JS], [Emotion])
+EFL_INTERNAL_DEPEND_PKG([EFL_JS], [Eldbus])
+EFL_INTERNAL_DEPEND_PKG([EFL_JS], [Emile])
+EFL_INTERNAL_DEPEND_PKG([EFL_JS], [Ethumb_Client])
+EFL_INTERNAL_DEPEND_PKG([EFL_JS], [Eio])
+
+AM_COND_IF([HAVE_NODEJS], [], [ EFL_ADD_LIBS([EFL_JS], [-lv8]) ])
+
+EFL_EVAL_PKGS([EFL_JS])
+
+AM_COND_IF([HAVE_NODEJS], [EFLJS_CXXFLAGS="$EFLJS_CXXFLAGS -DHAVE_NODEJS"], [])
+AM_COND_IF([HAVE_LIBUV], [EFLJS_CXXFLAGS="$EFLJS_CXXFLAGS -DHAVE_LIBUV"], [])
+AM_COND_IF([HAVE_JS], [EFLJS_CXXFLAGS="$EFLJS_CXXFLAGS -DHAVE_JS"], [])
+
+AM_COND_IF([HAVE_V8_CREATE_PARAMS], [EFLJS_CXXFLAGS="$EFLJS_CXXFLAGS -DHAVE_V8_CREATE_PARAMS"], [])
+AM_COND_IF([HAVE_V8_GLOBAL], [EFLJS_CXXFLAGS="$EFLJS_CXXFLAGS -DHAVE_V8_GLOBAL"], [])
+AC_SUBST([EFLJS_CXXFLAGS])
+
+### Checks for header files
+
+### Checks for types
+
+### Checks for structures
+
+### Checks for compiler characteristics
+
+### Checks for linker characteristics
+
+### Checks for library functions
+
+### Check availability
+
+EFL_LIB_END_OPTIONAL([Efl_Js])
+#### End of Efl_Js
+
 ### Add Wayland server library if test is enabled
 if test "x${want_tests}" = "xyes" -a "x${want_wayland}" = "xyes"; then
    EFL_DEPEND_PKG([ECORE_WAYLAND_SRV], [WAYLAND], [wayland-server >= 1.8.0])
@@ -4601,7 +4974,7 @@ AM_CONDITIONAL([ALWAYS_BUILD_EXAMPLES], [test "${want_always_build_examples}" = 
 
 BARF_OK="xno"
 # Harfbuzz
-AC_ARG_ENABLE([i-really-know-what-i-am-doing-and-that-this-will-probably-break-things-and-i-will-fix-them-myself-and-send-patches-aba],
+AC_ARG_ENABLE([i-really-know-what-i-am-doing-and-that-this-will-probably-break-things-and-i-will-fix-them-myself-and-send-patches-abb],
    [ You will be told when this is needed ],
    [
     if test "x${enableval}" = "xyes" ; then
@@ -4694,6 +5067,7 @@ src/examples/eldbus/Makefile
 src/examples/ephysics/Makefile
 src/examples/edje/Makefile
 src/examples/emotion/Makefile
+src/examples/emile/Makefile
 src/examples/ethumb_client/Makefile
 src/examples/elua/Makefile
 src/examples/eolian_cxx/Makefile
@@ -4713,6 +5087,10 @@ pc/eo.pc
 pc/eo-cxx.pc
 pc/eolian.pc
 pc/eolian-cxx.pc
+pc/eina-js.pc
+pc/efl-js.pc
+pc/eolian-js.pc
+pc/eo-js.pc
 pc/efl.pc
 pc/efl-cxx.pc
 pc/evas-fb.pc
@@ -4743,6 +5121,7 @@ pc/ecore-fb.pc
 pc/ecore-psl1ght.pc
 pc/ecore-sdl.pc
 pc/ecore-wayland.pc
+pc/ecore-wl2.pc
 pc/ecore-win32.pc
 pc/ecore-x.pc
 pc/ecore-evas.pc
@@ -4784,6 +5163,7 @@ cmakeconfig/EoConfig.cmake
 cmakeconfig/EoConfigVersion.cmake:cmakeconfig/EFLConfigVersion.cmake.in
 cmakeconfig/EolianConfig.cmake
 cmakeconfig/EolianConfigVersion.cmake:cmakeconfig/EFLConfigVersion.cmake.in
+cmakeconfig/EolianHelper.cmake
 cmakeconfig/EolianCxxConfig.cmake
 cmakeconfig/EolianCxxConfigVersion.cmake:cmakeconfig/EFLConfigVersion.cmake.in
 cmakeconfig/EinaCxxConfig.cmake
@@ -4868,6 +5248,7 @@ EFL_ADD_FEATURE([thread], [spinlocks], [${efl_have_spinlock}])
 EFL_ADD_FEATURE([thread], [barrier], [${efl_have_pthread_barrier}])
 EFL_ADD_FEATURE([thread], [affinity], [${efl_have_setaffinity}])
 EFL_ADD_FEATURE([thread], [setname], [${efl_have_setname}])
+EFL_ADD_FEATURE([thread], [__thread], [${have_thread_specifier}])
 
 echo
 echo
@@ -4883,6 +5264,12 @@ else
    osname="${host_os}"
 fi
 
+if test "x${want_egl}" = "xyes" ; then
+   opengl_egl="(EGL)"
+else
+   opengl_egl=""
+fi
+
 echo "Configuration...: ${COLOR_OTHER}profile=${build_profile} os=${osname}${COLOR_RESET}"
 echo "  EFL API Set...: ${efl_api}"
 echo "  CPU Extensions: ${host_cpu} (${features_cpu})"
@@ -4890,8 +5277,10 @@ echo "  System Feature: ${features_system}"
 echo "  Threads.......: ${efl_have_threads} (${features_thread})"
 echo "  Cryptography..: ${build_crypto}"
 echo "  X11...........: ${with_x11}"
-echo "  OpenGL........: ${with_opengl}"
+echo "  OpenGL........: ${with_opengl} ${opengl_egl}"
 echo "  C++11.........: ${have_cxx11}"
+echo "  JavaScript....: ${want_js}"
+echo "  JavaScript flg: $EINA_JS_LIBS"
 echo "Eina............: yes (${features_eina} unwind=$have_unwind)"
 echo "Eo..............: yes (${features_eo})"
 echo "Eolian..........: yes (${features_eolian})"
@@ -4910,6 +5299,7 @@ echo "Ecore_IMF.......: yes (${features_ecore_imf})"
 echo "Ecore_X.........: ${with_x11} (${features_ecore_x})"
 echo "Ecore_SDL.......: $want_sdl"
 echo "Ecore_Wayland...: $want_wayland"
+echo "Ecore_Wl2.......: $want_wayland"
 echo "IVI-Shell.......: $want_wayland_ivi_shell"
 echo "Ecore_Buffer....: $want_ecore_buffer (${features_ecore_buffer})"
 if test "${have_linux}" = "yes"; then
@@ -4952,6 +5342,7 @@ echo "  CPPFLAGS......: $CPPFLAGS"
 echo "  CFLAGS........: $CFLAGS"
 echo "  CXXFLAGS......: $CXXFLAGS"
 echo "  LDFLAGS.......: $LDFLAGS"
+echo "  EFLJS_CXXFLAGS: $EFLJS_CXXFLAGS"
 
 if test "x${with_binary_edje_cc}" != "x"; then
 echo "  edje_cc.......: ${with_binary_edje_cc}"
@@ -5199,7 +5590,7 @@ if test -n "$CFOPT_WARNING"; then
   echo "_____________________________________________________________________"
   if test -n "$BARF_OK"; then
     echo "Please add the following option to acknowledge this:"
-    echo "  --enable-i-really-know-what-i-am-doing-and-that-this-will-probably-break-things-and-i-will-fix-them-myself-and-send-patches-aba"
+    echo "  --enable-i-really-know-what-i-am-doing-and-that-this-will-probably-break-things-and-i-will-fix-them-myself-and-send-patches-abb"
     echo "_____________________________________________________________________"
     rm -f Makefile
     exit 1

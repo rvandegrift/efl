@@ -77,6 +77,20 @@ START_TEST(eina_test_simple)
    list = eina_list_append(list, &data[2]);
         fail_if(list == NULL);
 
+   i = eina_list_data_idx(list, &data[1]);
+   fail_if(i != 0);
+
+   i = eina_list_data_idx(list, &data[2]);
+   fail_if(i != 2);
+
+   i = eina_list_data_idx(list, &data[3]);
+   fail_if(i != -1);
+
+   list = eina_list_demote_list(list, eina_list_nth_list(list, 1));
+   test1 = eina_list_nth(list, 2);
+   fail_if(test1 == NULL);
+   fail_if(*test1 != 6);
+
    list = eina_list_remove(list, &data[0]);
         fail_if(list == NULL);
 
@@ -296,6 +310,7 @@ START_TEST(eina_test_sorted_insert)
    int i, count;
    Eina_List *l1, *l2, *itr;
    void *d;
+   int *res, val = 2009;
 
    eina_init();
 
@@ -307,6 +322,12 @@ START_TEST(eina_test_sorted_insert)
 
    fail_if(l1 == NULL);
    fail_if(!eina_list_sorted_check(l1));
+
+   res = eina_list_search_sorted(l1, eina_int_cmp, &data[7]);
+   fail_if(*res != 1664);
+
+   res = eina_list_search_sorted(l1, eina_int_cmp, &val);
+   fail_if(res != NULL);
 
    l2 = NULL;
    EINA_LIST_FOREACH(l1, itr, d)
@@ -484,6 +505,46 @@ START_TEST(eina_test_clone)
 }
 END_TEST
 
+START_TEST(eina_test_move)
+{
+   Eina_List *list1 = NULL, *list2 = NULL;
+   Eina_Bool ret;
+   int data1[] = {1, 2, 3, 4, 5};
+   int data2[] = {6, 7, 8, 9, 10};
+   int i, *list_data;
+
+   eina_init();
+
+   for (i = 0; i < 5; i++)
+   {
+      list1 = eina_list_append(list1, &data1[i]);
+      list2 = eina_list_append(list2, &data2[i]);
+   }
+   fail_if(eina_list_count(list1) != 5);
+   fail_if(eina_list_count(list2) != 5);
+
+   ret = eina_list_move(&list1, &list2, &data2[4]);
+   fail_if(ret != EINA_TRUE);
+   fail_if(eina_list_count(list1) != 6);
+   fail_if(eina_list_count(list2) != 4);
+   list_data = eina_list_nth(list1, 5);
+   fail_if(*list_data != 10);
+
+   ret = eina_list_move_list(&list1, &list2,
+                             eina_list_nth_list(list2, 1));
+   fail_if(ret != EINA_TRUE);
+   fail_if(eina_list_count(list1) != 7);
+   fail_if(eina_list_count(list2) != 3);
+   list_data = eina_list_nth(list1, 6);
+   fail_if(*list_data != 7);
+
+   eina_list_free(list1);
+   eina_list_free(list2);
+
+   eina_shutdown();
+}
+END_TEST
+
 void
 eina_test_list(TCase *tc)
 {
@@ -493,4 +554,5 @@ eina_test_list(TCase *tc)
    tcase_add_test(tc, eina_test_list_split);
    tcase_add_test(tc, eina_test_shuffle);
    tcase_add_test(tc, eina_test_clone);
+   tcase_add_test(tc, eina_test_move);
 }

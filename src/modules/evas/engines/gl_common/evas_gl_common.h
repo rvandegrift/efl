@@ -18,6 +18,8 @@
 # define MESA_EGL_NO_X11_HEADERS
 #endif
 
+#ifndef EVAS_GL_NO_HEADERS
+
 #ifdef BUILD_ENGINE_GL_COCOA
 # include <OpenGL/gl.h>
 # include <OpenGL/glext.h>
@@ -32,11 +34,15 @@
 #  ifdef GL_GLES
 #   include <GLES2/gl2.h>
 #   include <GLES2/gl2ext.h>
+#   include <GLES3/gl3.h>
+#   include <GLES3/gl3ext.h>
 #  else
 #   include <GL/gl.h>
 #   include <GL/glext.h>
 #  endif
 # endif
+#endif
+
 #endif
 
 #include "evas_gl_define.h"
@@ -67,9 +73,6 @@ typedef struct _Evas_GL_Texture_Async_Preload Evas_GL_Texture_Async_Preload;
 
 typedef Eina_Bool (*evas_gl_make_current_cb)(void *engine_data, void *doit);
 
-/* enum Evas_GL_Shader is defined below */
-#include "shader/evas_gl_enum.x"
-
 #ifdef EAPI
 # undef EAPI
 #endif
@@ -96,12 +99,16 @@ typedef Eina_Bool (*evas_gl_make_current_cb)(void *engine_data, void *doit);
 # endif
 #endif /* ! _WIN32 */
 
+#define PROGRAM_HITCOUNT_MAX 0x1000000
+
 struct _Evas_GL_Program
 {
-   GLuint vert, frag, prog;
+   unsigned int flags, hitcount, tex_count;
+   GLuint prog;
 
-   int tex_count;
-   Eina_Bool reset;
+   Eina_Bool reset : 1;
+   Eina_Bool bin_saved : 1;
+   Eina_Bool delete_me : 1;
 };
 
 struct _Evas_GL_Shared
@@ -121,6 +128,7 @@ struct _Evas_GL_Shared
       Eina_Bool tex_rect : 1;
       Eina_Bool sec_image_map : 1;
       Eina_Bool sec_tbm_surface : 1;
+      Eina_Bool egl_tbm_ext : 1;
       Eina_Bool bin_program : 1;
       Eina_Bool unpack_row_length : 1;
       Eina_Bool etc1 : 1;
@@ -181,12 +189,14 @@ struct _Evas_GL_Shared
    Eina_Hash          *native_tbm_hash;
    Eina_Hash          *native_evasgl_hash;
 
+   Eet_File           *shaders_cache;
+   Eina_Hash          *shaders_hash;
+   Eina_Stringshare   *shaders_checksum;
+
 #ifdef GL_GLES
    // FIXME: hack.
    void *eglctxt;
 #endif
-   
-   Evas_GL_Program     shader[SHADER_LAST];
 
    int references;
    int w, h;
@@ -196,6 +206,8 @@ struct _Evas_GL_Shared
    int foc, z0, px, py;
    int ax, ay;
    GLfloat proj[16];
+
+   Eina_Bool needs_shaders_flush : 1;
 };
 
 typedef enum _Shader_Sampling Shader_Sampling;
@@ -212,6 +224,7 @@ enum _Shader_Sampling {
 enum _Shader_Type {
    SHD_UNKNOWN,
    SHD_RECT,
+   SHD_LINE,
    SHD_FONT,
    SHD_IMAGE,
    SHD_IMAGENATIVE,
@@ -221,9 +234,7 @@ enum _Shader_Type {
    SHD_YUV_709,
    SHD_YUY2_709,
    SHD_NV12_709,
-   SHD_LINE,
    SHD_RGB_A_PAIR,
-   SHD_TEX_EXTERNAL,
    SHD_MAP,
    SHD_TYPE_LAST
 };
@@ -245,9 +256,9 @@ struct _Evas_Engine_GL_Context
    struct {
       int                top_pipe;
       struct {
-         Evas_GL_Shader  id;
-         GLuint          cur_prog;
+         Evas_GL_Program *prog;
          GLuint          cur_tex, cur_texu, cur_texv, cur_texa, cur_texm;
+         int             tex_target;
          int             render_op;
          int             cx, cy, cw, ch;
          int             smooth;
@@ -273,11 +284,11 @@ struct _Evas_Engine_GL_Context
          Eina_Bool       active : 1;
       } clip;
       struct {
-         Evas_GL_Shader  id;
+         Evas_GL_Program *prog;
          Evas_GL_Image  *surface;
-         GLuint          cur_prog;
          GLuint          cur_tex, cur_texu, cur_texv, cur_texa, cur_texm;
          void           *cur_tex_dyn, *cur_texu_dyn, *cur_texv_dyn;
+         int             tex_target;
          int             render_op;
          int             cx, cy, cw, ch;
          int             smooth;
@@ -328,6 +339,9 @@ struct _Evas_Engine_GL_Context
    // FIXME: hack. expose egl display to gl core for egl image sec extn.
    void *egldisp;
    void *eglctxt;
+#else
+   int glxcfg_rgb;
+   int glxcfg_rgba;
 #endif
 
    GLuint preserve_bit;
@@ -351,6 +365,7 @@ struct _Evas_GL_Texture_Pool
       int           w, h;
       int           stride;
       int           checked_out;
+      int           target;
    } dyn;
    Eina_List       *allocations;
    Eina_Rectangle_Pool *eina_pool;
@@ -594,10 +609,20 @@ void             evas_gl_common_context_image_map_push(Evas_Engine_GL_Context *g
                                                        Evas_Colorspace cspace);
 
 int               evas_gl_common_shader_program_init(Evas_GL_Shared *shared);
-void              evas_gl_common_shader_program_init_done(void);
-void              evas_gl_common_shader_program_shutdown(Evas_GL_Program *p);
-Evas_GL_Shader    evas_gl_common_img_shader_select(Shader_Type type, Shader_Sampling sam, int nomul, int afill, int bgra, int mask, int masksam);
-const char       *evas_gl_common_shader_name_get(Evas_GL_Shader shd);
+void              evas_gl_common_shader_program_shutdown(Evas_GL_Shared *shared);
+EAPI void         evas_gl_common_shaders_flush(Evas_GL_Shared *shared);
+
+Evas_GL_Program  *evas_gl_common_shader_program_get(Evas_Engine_GL_Context *gc,
+                                                    Shader_Type type,
+                                                    RGBA_Map_Point *p, int npoints,
+                                                    int r, int g, int b, int a,
+                                                    int sw, int sh, int w, int h, Eina_Bool smooth,
+                                                    Evas_GL_Texture *tex, Eina_Bool tex_only,
+                                                    Evas_GL_Texture *mtex, Eina_Bool mask_smooth,
+                                                    int mw, int mh,
+                                                    Shader_Sampling *psam, int *pnomul,
+                                                    Shader_Sampling *pmasksam);
+void              evas_gl_common_shader_textures_bind(Evas_GL_Program *p);
 
 Eina_Bool         evas_gl_common_file_cache_is_dir(const char *file);
 Eina_Bool         evas_gl_common_file_cache_mkdir(const char *dir);
@@ -606,7 +631,6 @@ Eina_Bool         evas_gl_common_file_cache_mkpath_if_not_exists(const char *pat
 Eina_Bool         evas_gl_common_file_cache_mkpath(const char *path);
 int               evas_gl_common_file_cache_dir_check(char *cache_dir, int num);
 int               evas_gl_common_file_cache_file_check(const char *cache_dir, const char *cache_name, char *cache_file, int dir_num);
-int               evas_gl_common_file_cache_save(Evas_GL_Shared *shared);
 
 void              evas_gl_common_rect_draw(Evas_Engine_GL_Context *gc, int x, int y, int w, int h);
 
@@ -630,12 +654,14 @@ Evas_GL_Texture  *evas_gl_common_texture_nv12tiled_new(Evas_Engine_GL_Context *g
 void              evas_gl_common_texture_nv12tiled_update(Evas_GL_Texture *tex, DATA8 **row, unsigned int w, unsigned int h);
 Evas_GL_Texture  *evas_gl_common_texture_rgb_a_pair_new(Evas_Engine_GL_Context *gc, RGBA_Image *im);
 void              evas_gl_common_texture_rgb_a_pair_update(Evas_GL_Texture *tex, RGBA_Image *im);
+Evas_Colorspace   evas_gl_common_gl_format_to_colorspace(GLuint f);
 
 void              evas_gl_common_image_alloc_ensure(Evas_GL_Image *im);
 Evas_GL_Image    *evas_gl_common_image_load(Evas_Engine_GL_Context *gc, const char *file, const char *key, Evas_Image_Load_Opts *lo, int *error);
 Evas_GL_Image    *evas_gl_common_image_mmap(Evas_Engine_GL_Context *gc, Eina_File *f, const char *key, Evas_Image_Load_Opts *lo, int *error);
 Evas_GL_Image    *evas_gl_common_image_new_from_copied_data(Evas_Engine_GL_Context *gc, unsigned int w, unsigned int h, DATA32 *data, int alpha, Evas_Colorspace cspace);
 Evas_GL_Image    *evas_gl_common_image_new(Evas_Engine_GL_Context *gc, unsigned int w, unsigned int h, int alpha, Evas_Colorspace cspace);
+Evas_GL_Image    *evas_gl_common_image_new_from_rgbaimage(Evas_Engine_GL_Context *gc, RGBA_Image *im, Evas_Image_Load_Opts *lo, int *error);
 Evas_GL_Image    *evas_gl_common_image_alpha_set(Evas_GL_Image *im, int alpha);
 void              evas_gl_common_image_scale_hint_set(Evas_GL_Image *im, int hint);
 void              evas_gl_common_image_content_hint_set(Evas_GL_Image *im, int hint);
@@ -744,7 +770,11 @@ void pt_unref(Evas_GL_Texture_Pool *pt);
 //#define GL_ERRORS_TRACE 1
 
 #ifdef GL_ERRORS
-#include <dlfcn.h>
+
+# ifndef _WIN32
+#  include <dlfcn.h>
+# endif
+
 static inline void
 __evas_gl_errdyn(int err, const char *file, const char *func, int line, const char *op)
 {
@@ -841,6 +871,8 @@ __evas_gl_errdyn(int err, const char *file, const char *func, int line, const ch
 Eina_Bool evas_gl_common_module_open(void);
 void      evas_gl_common_module_close(void);
 
+#ifndef EVAS_GL_NO_HEADERS
+
 static inline void
 _tex_sub_2d(Evas_Engine_GL_Context *gc, int x, int y, int w, int h, int fmt, int type, const void *pix)
 {
@@ -857,6 +889,8 @@ _comp_tex_sub_2d(Evas_Engine_GL_Context *gc, int x, int y, int w, int h, int fmt
    glCompressedTexSubImage2D(GL_TEXTURE_2D, 0, x, y, w, h, fmt, imgsize, pix);
 }
 
+#endif
+
 #include "evas_gl_3d_common.h"
 
 #undef EAPI
@@ -864,6 +898,5 @@ _comp_tex_sub_2d(Evas_Engine_GL_Context *gc, int x, int y, int w, int h, int fmt
 
 extern Eina_Bool _need_context_restore;
 extern void _context_restore(void);
-EAPI void evas_gl_context_restore_set(Eina_Bool enable);
 
 #endif

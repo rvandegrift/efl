@@ -117,6 +117,91 @@ typedef enum
 } Ecore_Win32_Cursor_Shape;
 
 /**
+ * @typedef Ecore_Win32_Cursor_X11_Shape
+ * Shape of an X11 cursor.
+ */
+typedef enum
+{
+   ECORE_WIN32_CURSOR_X11_SHAPE_X,
+   ECORE_WIN32_CURSOR_X11_SHAPE_ARROW,
+   ECORE_WIN32_CURSOR_X11_SHAPE_BASED_ARROW_DOWN,
+   ECORE_WIN32_CURSOR_X11_SHAPE_UP,
+   ECORE_WIN32_CURSOR_X11_SHAPE_BOAT,
+   ECORE_WIN32_CURSOR_X11_SHAPE_BOGOSITY,
+   ECORE_WIN32_CURSOR_X11_SHAPE_BOTTOM_LEFT_CORNER,
+   ECORE_WIN32_CURSOR_X11_SHAPE_BOTTOM_RIGHT_CORNER,
+   ECORE_WIN32_CURSOR_X11_SHAPE_BOTTOM_SIDE,
+   ECORE_WIN32_CURSOR_X11_SHAPE_BOTTOM_TEE,
+   ECORE_WIN32_CURSOR_X11_SHAPE_BOX_SPIRAL,
+   ECORE_WIN32_CURSOR_X11_SHAPE_CENTER_PTR,
+   ECORE_WIN32_CURSOR_X11_SHAPE_CIRCLE,
+   ECORE_WIN32_CURSOR_X11_SHAPE_CLOCK,
+   ECORE_WIN32_CURSOR_X11_SHAPE_COFFEE_MUG,
+   ECORE_WIN32_CURSOR_X11_SHAPE_CROSS,
+   ECORE_WIN32_CURSOR_X11_SHAPE_CROSS_REVERSE,
+   ECORE_WIN32_CURSOR_X11_SHAPE_CROSSHAIR,
+   ECORE_WIN32_CURSOR_X11_SHAPE_DIAMOND_CROSS,
+   ECORE_WIN32_CURSOR_X11_SHAPE_DOT,
+   ECORE_WIN32_CURSOR_X11_SHAPE_DOT_BOX_MASK,
+   ECORE_WIN32_CURSOR_X11_SHAPE_DOUBLE_ARROW,
+   ECORE_WIN32_CURSOR_X11_SHAPE_DRAFT_LARGE,
+   ECORE_WIN32_CURSOR_X11_SHAPE_DRAFT_SMALL,
+   ECORE_WIN32_CURSOR_X11_SHAPE_DRAPED_BOX,
+   ECORE_WIN32_CURSOR_X11_SHAPE_EXCHANGE,
+   ECORE_WIN32_CURSOR_X11_SHAPE_FLEUR,
+   ECORE_WIN32_CURSOR_X11_SHAPE_GOBBLER,
+   ECORE_WIN32_CURSOR_X11_SHAPE_GUMBY,
+   ECORE_WIN32_CURSOR_X11_SHAPE_HAND1,
+   ECORE_WIN32_CURSOR_X11_SHAPE_HAND2,
+   ECORE_WIN32_CURSOR_X11_SHAPE_HEART,
+   ECORE_WIN32_CURSOR_X11_SHAPE_ICON,
+   ECORE_WIN32_CURSOR_X11_SHAPE_IRON_CROSS,
+   ECORE_WIN32_CURSOR_X11_SHAPE_LEFT_PTR,
+   ECORE_WIN32_CURSOR_X11_SHAPE_LEFT_SIDE,
+   ECORE_WIN32_CURSOR_X11_SHAPE_LEFT_TEE,
+   ECORE_WIN32_CURSOR_X11_SHAPE_LEFTBUTTON,
+   ECORE_WIN32_CURSOR_X11_SHAPE_LL_ANGLE,
+   ECORE_WIN32_CURSOR_X11_SHAPE_LR_ANGLE,
+   ECORE_WIN32_CURSOR_X11_SHAPE_MAN,
+   ECORE_WIN32_CURSOR_X11_SHAPE_MIDDLEBUTTON,
+   ECORE_WIN32_CURSOR_X11_SHAPE_MOUSE,
+   ECORE_WIN32_CURSOR_X11_SHAPE_PENCIL,
+   ECORE_WIN32_CURSOR_X11_SHAPE_PIRATE,
+   ECORE_WIN32_CURSOR_X11_SHAPE_PLUS,
+   ECORE_WIN32_CURSOR_X11_SHAPE_QUESTION_ARROW,
+   ECORE_WIN32_CURSOR_X11_SHAPE_RIGHT_PTR,
+   ECORE_WIN32_CURSOR_X11_SHAPE_RIGHT_SIDE,
+   ECORE_WIN32_CURSOR_X11_SHAPE_RIGHT_TEE,
+   ECORE_WIN32_CURSOR_X11_SHAPE_RIGHTBUTTON,
+   ECORE_WIN32_CURSOR_X11_SHAPE_RTL_LOGO,
+   ECORE_WIN32_CURSOR_X11_SHAPE_SAILBOAT,
+   ECORE_WIN32_CURSOR_X11_SHAPE_SB_DOWN_ARROW,
+   ECORE_WIN32_CURSOR_X11_SHAPE_SB_H_DOUBLE_ARROW,
+   ECORE_WIN32_CURSOR_X11_SHAPE_SB_LEFT_ARROW,
+   ECORE_WIN32_CURSOR_X11_SHAPE_SB_RIGHT_ARROW,
+   ECORE_WIN32_CURSOR_X11_SHAPE_SB_UP_ARROW,
+   ECORE_WIN32_CURSOR_X11_SHAPE_SB_V_DOUBLE_ARROW,
+   ECORE_WIN32_CURSOR_X11_SHAPE_SHUTTLE,
+   ECORE_WIN32_CURSOR_X11_SHAPE_SIZING,
+   ECORE_WIN32_CURSOR_X11_SHAPE_SPIDER,
+   ECORE_WIN32_CURSOR_X11_SHAPE_SPRAYCAN,
+   ECORE_WIN32_CURSOR_X11_SHAPE_STAR,
+   ECORE_WIN32_CURSOR_X11_SHAPE_TARGET,
+   ECORE_WIN32_CURSOR_X11_SHAPE_TCROSS,
+   ECORE_WIN32_CURSOR_X11_SHAPE_TOP_LEFT_ARROW,
+   ECORE_WIN32_CURSOR_X11_SHAPE_TOP_LEFT_CORNER,
+   ECORE_WIN32_CURSOR_X11_SHAPE_TOP_RIGHT_CORNER,
+   ECORE_WIN32_CURSOR_X11_SHAPE_TOP_SIDE,
+   ECORE_WIN32_CURSOR_X11_SHAPE_TOP_TEE,
+   ECORE_WIN32_CURSOR_X11_SHAPE_TREK,
+   ECORE_WIN32_CURSOR_X11_SHAPE_UL_ANGLE,
+   ECORE_WIN32_CURSOR_X11_SHAPE_UMBRELLA,
+   ECORE_WIN32_CURSOR_X11_SHAPE_UR_ANGLE,
+   ECORE_WIN32_CURSOR_X11_SHAPE_WATCH,
+   ECORE_WIN32_CURSOR_X11_SHAPE_XTERM,
+} Ecore_Win32_Cursor_X11_Shape;
+
+/**
  * @typedef Ecore_Win32_DnD_State
  * State of a DnD operation.
  */
@@ -127,6 +212,21 @@ typedef enum
    ECORE_WIN32_DND_EVENT_DRAG_LEAVE = 3, /**< Drag leave */
    ECORE_WIN32_DND_EVENT_DROP       = 4  /**< Drop */
 } Ecore_Win32_DnD_State;
+
+/**
+ * @typedef Ecore_Win32_Selection
+ * Type of the selection.
+ *
+ * @since 1.16
+ */
+typedef enum
+{
+   ECORE_WIN32_SELECTION_PRIMARY,
+   ECORE_WIN32_SELECTION_SECONDARY,
+   ECORE_WIN32_SELECTION_DND,
+   ECORE_WIN32_SELECTION_CLIPBOARD,
+   ECORE_WIN32_SELECTION_OTHER
+} Ecore_Win32_Selection;
 
 /**
  * @typedef Ecore_Win32_Window
@@ -212,6 +312,22 @@ typedef struct _Ecore_Win32_Event_Window_Resize         Ecore_Win32_Event_Window
  * Event sent when the window is deleted.
  */
 typedef struct _Ecore_Win32_Event_Window_Delete_Request Ecore_Win32_Event_Window_Delete_Request;
+
+/**
+ * @typedef Ecore_Win32_Event_Selection_Clear
+ * Event sent when the content of the clipboard has been removed.
+ *
+ * @since 1.16
+ */
+typedef struct _Ecore_Win32_Event_Selection_Clear Ecore_Win32_Event_Selection_Clear;
+
+/**
+ * @typedef Ecore_Win32_Event_Selection_Notify
+ * Event sent when the content of the clipboard has been added.
+ *
+ * @since 1.16
+ */
+typedef struct _Ecore_Win32_Event_Selection_Notify Ecore_Win32_Event_Selection_Notify;
 
 /**
  * @struct _Ecore_Win32_Event_Mouse_In
@@ -351,6 +467,33 @@ struct _Ecore_Win32_Event_Window_Delete_Request
 };
 
 /**
+ * @struct _Ecore_Win32_Event_Selection_Clear
+ * Event sent when the content of the clipboard has been removed.
+ *
+ * @since 1.16
+ */
+struct _Ecore_Win32_Event_Selection_Clear
+{
+   Ecore_Win32_Window   *window; /**< The window that received the event */
+   unsigned long         timestamp; /**< The time the event occurred */
+   Ecore_Win32_Selection selection; /**< The type of the selection */
+};
+
+/**
+ * @struct _Ecore_Win32_Event_Selection_Notify
+ * Event sent when the content of the clipboard has been added.
+ *
+ * @since 1.16
+ */
+struct _Ecore_Win32_Event_Selection_Notify
+{
+   Ecore_Win32_Window   *window; /**< The window that received the event */
+   unsigned long         timestamp; /**< The time the event occurred */
+   Ecore_Win32_Selection selection; /**< The type of the selection */
+   void                 *data; /**< The data of the selection */
+};
+
+/**
  * @typedef Ecore_Win32_Dnd_DropTarget_Callback
  * Callback type for Drop operations. See ecore_win32_dnd_register_drop_target().
  */
@@ -368,6 +511,8 @@ EAPI extern int ECORE_WIN32_EVENT_WINDOW_SHOW; /**< Ecore_Event for the Ecore_Wi
 EAPI extern int ECORE_WIN32_EVENT_WINDOW_CONFIGURE; /**< Ecore_Event for the Ecore_Win32_Event_Configure event */
 EAPI extern int ECORE_WIN32_EVENT_WINDOW_RESIZE; /**< Ecore_Event for the Ecore_Win32_Event_Resize event */
 EAPI extern int ECORE_WIN32_EVENT_WINDOW_DELETE_REQUEST; /**< Ecore_Event for the #Ecore_Win32_Event_Window_Delete_Request event */
+EAPI extern int ECORE_WIN32_EVENT_SELECTION_CLEAR; /**< Ecore_Event for the #Ecore_Win32_Event_Selection_Clear event @since 1.16 */
+EAPI extern int ECORE_WIN32_EVENT_SELECTION_NOTIFY; /**< Ecore_Event for the #Ecore_Win32_Event_Selection_Notify event @since 1.16 */
 
 
 /* Core */
@@ -503,6 +648,8 @@ EAPI void                ecore_win32_cursor_free(Ecore_Win32_Cursor *cursor);
 
 EAPI Ecore_Win32_Cursor *ecore_win32_cursor_shaped_new(Ecore_Win32_Cursor_Shape shape);
 
+EAPI const Ecore_Win32_Cursor *ecore_win32_cursor_x11_shaped_get(Ecore_Win32_Cursor_X11_Shape shape);
+
 EAPI void                ecore_win32_cursor_size_get(int *width, int *height);
 
 
@@ -515,6 +662,60 @@ EAPI Eina_Bool ecore_win32_dnd_begin(const char *data,
 EAPI Eina_Bool ecore_win32_dnd_register_drop_target(Ecore_Win32_Window                 *window,
                                                     Ecore_Win32_Dnd_DropTarget_Callback callback);
 EAPI void      ecore_win32_dnd_unregister_drop_target(Ecore_Win32_Window *window);
+
+/* Clipboard */
+
+/**
+ * @brief Set data to the clipboard.
+ *
+ * @param[in] window The window that owns the clipboard.
+ * @param[in] data The data to set.
+ * @param[in] size The size of the data.
+ * @return #EINA_TRUE on success, #EINA_FALSE otherwise.
+ *
+ * This function sets @p data of size @p size in the clipboard owned by
+ * @p window. This function returns #EINA_TRUE on success, and
+ * #EINA_FALSE otherwise. If @p window or @p data are @c NULL, or @p size
+ * is less than or equal to 0, this function returns #EINA_FALSE.
+ *
+ * @since 1.16
+ */
+EAPI Eina_Bool ecore_win32_clipboard_set(const Ecore_Win32_Window *window,
+                                         const void *data,
+                                         int size);
+
+/**
+ * @brief Get data from the clipboard.
+ *
+ * @param[in] window The window that owns the clipboard.
+ * @param[out] data The retrieved data.
+ * @param[out] size The size of the data.
+ * @return #EINA_TRUE on success, #EINA_FALSE otherwise.
+ *
+ * This function gets @p data of size @p size from the clipboard owned by
+ * @p window. This function returns #EINA_TRUE on success, and
+ * #EINA_FALSE otherwise. If @p window is @c NULL, this function returns
+ * #EINA_FALSE. @p data and @p size must be valid buffers.
+ *
+ * @since 1.16
+ */
+EAPI Eina_Bool ecore_win32_clipboard_get(const Ecore_Win32_Window *window,
+                                         void **data,
+                                         int *size);
+
+/**
+ * @brief Cleat the clipboard.
+ *
+ * @param[in] window The window that owns the clipboard.
+ * @return #EINA_TRUE on success, #EINA_FALSE otherwise.
+ *
+ * This function clears the clipboard owned by @p window. This
+ * function returns #EINA_TRUE on success, and #EINA_FALSE otherwise.
+ * If @p window is @c NULL, this function returns #EINA_FALSE.
+ *
+ * @since 1.16
+ */
+EAPI Eina_Bool ecore_win32_clipboard_clear(const Ecore_Win32_Window *window);
 
 /**
  * @}

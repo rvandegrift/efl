@@ -18,13 +18,15 @@
 - (id)init;
 - (void)internalUpdate;
 
+- (void) pauseNSRunLoopMonitoring;
+- (void) resumeNSRunLoopMonitoring;
+
 @end
 
 
 @interface Ecore_Cocoa_AppDelegate : NSObject <NSApplicationDelegate>
 
 + (Ecore_Cocoa_AppDelegate *)appDelegate;
-- (id)init;
 
 @end
 

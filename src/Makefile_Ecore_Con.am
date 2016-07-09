@@ -5,7 +5,7 @@ ecore_con_eolian_files = \
 	lib/ecore_con/ecore_con_base.eo \
 	lib/ecore_con/ecore_con_client.eo \
 	lib/ecore_con/ecore_con_server.eo \
-	lib/ecore_con/ecore_con_connector.eo \
+	lib/ecore_con/efl_network_connector.eo \
 	lib/ecore_con/ecore_con_eet_base.eo \
 	lib/ecore_con/ecore_con_eet_server_obj.eo \
 	lib/ecore_con/ecore_con_eet_client_obj.eo \
@@ -53,6 +53,8 @@ lib/ecore_con/ecore_con_ssl.c \
 lib/ecore_con/ecore_con_url.c \
 lib/ecore_con/ecore_con_url_curl.c \
 lib/ecore_con/ecore_con_url_curl.h \
+static_libs/http-parser/http_parser.c \
+static_libs/http-parser/http_parser.h \
 lib/ecore_con/ecore_con_private.h
 
 EXTRA_DIST += lib/ecore_con/ecore_con_legacy.c
@@ -67,7 +69,10 @@ if HAVE_CARES
 lib_ecore_con_libecore_con_la_SOURCES += lib/ecore_con/ecore_con_ares.c
 else
 if HAVE_IPV6
-lib_ecore_con_libecore_con_la_SOURCES += lib/ecore_con/ecore_con_dns.c lib/ecore_con/dns.c lib/ecore_con/dns.h
+lib_ecore_con_libecore_con_la_SOURCES += \
+lib/ecore_con/ecore_con_dns.c \
+static_libs/dns/dns.c \
+static_libs/dns/dns.h
 else
 lib_ecore_con_libecore_con_la_SOURCES += lib/ecore_con/ecore_con_info.c
 endif
@@ -78,9 +83,21 @@ lib_ecore_con_libecore_con_la_LIBADD = @ECORE_CON_LIBS@ @EVIL_LIBS@
 lib_ecore_con_libecore_con_la_DEPENDENCIES = @ECORE_CON_INTERNAL_LIBS@
 lib_ecore_con_libecore_con_la_LDFLAGS = @EFL_LTLIBRARY_FLAGS@
 
+lib_ecore_con_libecore_con_la_CPPFLAGS += -I$(top_srcdir)/src/static_libs/http-parser
+
+if HAVE_IPV6
+lib_ecore_con_libecore_con_la_CPPFLAGS += -I$(top_srcdir)/src/static_libs/dns/
+endif
+
 EXTRA_DIST += \
 tests/ecore_con/server.key \
-tests/ecore_con/server.pem
+tests/ecore_con/server.pem \
+static_libs/http-parser/AUTHORS \
+static_libs/http-parser/CONTRIBUTIONS \
+static_libs/http-parser/README.md \
+static_libs/http-parser/test.c \
+static_libs/http-parser/contrib/parsertrace.c \
+static_libs/http-parser/contrib/url_parser.c
 
 ### Unit tests
 
@@ -124,5 +141,15 @@ CLEANFILES += $(generated_ecore_con_lua_all)
 
 installed_ecoreconluadir = $(datadir)/elua/modules/ecore_con
 nodist_installed_ecoreconlua_DATA = $(generated_ecore_con_lua_all)
+
+endif
+
+if HAVE_JS
+
+generated_ecore_con_js_bindings = $(ecore_con_eolian_files:%.eo=%.eo.js.cc)
+
+CLEANFILES += $(generated_ecore_con_js_bindings)
+
+GENERATED_JS_BINDINGS += $(generated_ecore_con_js_bindings)
 
 endif

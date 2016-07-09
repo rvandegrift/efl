@@ -192,7 +192,7 @@ on_error:
    if (!emile_cipher_init()) return NULL;
 
    /* Load the X509 certificate in memory. */
-   fp = fopen(certificate_file, "r");
+   fp = fopen(certificate_file, "rb");
    if (!fp)
      return NULL;
 
@@ -207,7 +207,7 @@ on_error:
      goto on_error;
 
    /* Load the private key in memory. */
-   fp = fopen(private_key_file, "r");
+   fp = fopen(private_key_file, "rb");
    if (!fp)
      goto on_error;
 
@@ -236,9 +236,9 @@ on_error:
 
 # endif /* ifdef HAVE_GNUTLS */
 #else
-   certificate_file = NULL;
-   private_key_file = NULL;
-   cb = NULL;
+   (void) certificate_file;
+   (void) private_key_file;
+   (void) cb;
 #endif /* ifdef HAVE_SIGNATURE */
    return NULL;
 }
@@ -260,8 +260,8 @@ eet_identity_close(Eet_Key *key)
    EVP_PKEY_free(key->private_key);
 # endif /* ifdef HAVE_GNUTLS */
    free(key);
-#else
-   key = NULL;
+# else
+   (void)key;
 #endif /* ifdef HAVE_SIGNATURE */
 }
 

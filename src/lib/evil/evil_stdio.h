@@ -10,7 +10,6 @@
  *
  * This header provides functions ported from Unix in stdio.h.
  *
- * 
  */
 
 #define EVIL_PATH_SEP_SWAP(p, s1, s2) \
@@ -45,13 +44,6 @@
 EAPI int evil_rename(const char *src, const char *dst);
 
 /**
- * @def rename(src, dest)
- *
- * Wrapper around evil_rename().
- */
-#define rename(src, dst) evil_rename(src, dst)
-
-/**
  * @brief Wrap the _mkdir() function on Windows.
  *
  * @param[in] dirname The new dir name.
@@ -63,13 +55,6 @@ EAPI int evil_rename(const char *src, const char *dst);
  * @since 1.15
  */
 EAPI int evil_mkdir(const char *dirname, mode_t mode);
-
-/**
- * @def mkdir(dirname, mode)
- *
- * Wrapper around evil_mkdir().
- */
-#define mkdir(dirname, mode) evil_mkdir(dirname, mode)
 
 
 #endif /* __EVIL_STDIO_H__ */

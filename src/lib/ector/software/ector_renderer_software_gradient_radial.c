@@ -9,55 +9,48 @@
 #include "ector_private.h"
 #include "ector_software_private.h"
 
-static void
-_update_radial_data(Ector_Renderer_Software_Gradient_Data *gdata)
-{
-   update_color_table(gdata);
-
-   gdata->radial.cx = gdata->grd->radial.x;
-   gdata->radial.cy = gdata->grd->radial.y;
-   gdata->radial.cradius = gdata->grd->radius;
-
-   if (!gdata->grd->focal.x)
-     gdata->radial.fx = gdata->grd->radial.x;
-   else
-     gdata->radial.fx = gdata->grd->focal.x;
-
-   if (!gdata->grd->focal.y)
-     gdata->radial.fy = gdata->grd->radial.y;
-   else
-     gdata->radial.fy = gdata->grd->focal.y;
-
-   gdata->radial.fradius = 0;
-
-   gdata->radial.dx = gdata->radial.cx - gdata->radial.fx;
-   gdata->radial.dy = gdata->radial.cy - gdata->radial.fy;
-
-   gdata->radial.dr = gdata->radial.cradius - gdata->radial.fradius;
-   gdata->radial.sqrfr = gdata->radial.fradius * gdata->radial.fradius;
-
-   gdata->radial.a = gdata->radial.dr * gdata->radial.dr -
-                     gdata->radial.dx * gdata->radial.dx -
-                     gdata->radial.dy * gdata->radial.dy;
-   gdata->radial.inv2a = 1 / (2 * gdata->radial.a);
-
-   gdata->radial.extended = (gdata->radial.fradius >= 0.00001f) || gdata->radial.a >= 0.00001f;
-}
-
-
 static Eina_Bool
 _ector_renderer_software_gradient_radial_ector_renderer_generic_base_prepare(Eo *obj, Ector_Renderer_Software_Gradient_Data *pd)
 {
    if (!pd->surface)
      {
-        Eo *parent;
+        Ector_Renderer_Generic_Base_Data *base;
 
-        eo_do(obj, parent = eo_parent_get());
-        if (!parent) return EINA_FALSE;
-        pd->surface = eo_data_xref(parent, ECTOR_SOFTWARE_SURFACE_CLASS, obj);
+        base = eo_data_scope_get(obj, ECTOR_RENDERER_GENERIC_BASE_CLASS);
+        pd->surface = eo_data_xref(base->surface, ECTOR_SOFTWARE_SURFACE_CLASS, obj);
      }
 
-   _update_radial_data(pd);
+   update_color_table(pd);
+
+   pd->radial.cx = pd->grd->radial.x;
+   pd->radial.cy = pd->grd->radial.y;
+   pd->radial.cradius = pd->grd->radius;
+
+   if (!pd->grd->focal.x)
+     pd->radial.fx = pd->grd->radial.x;
+   else
+     pd->radial.fx = pd->grd->focal.x;
+
+   if (!pd->grd->focal.y)
+     pd->radial.fy = pd->grd->radial.y;
+   else
+     pd->radial.fy = pd->grd->focal.y;
+
+   pd->radial.fradius = 0;
+
+   pd->radial.dx = pd->radial.cx - pd->radial.fx;
+   pd->radial.dy = pd->radial.cy - pd->radial.fy;
+
+   pd->radial.dr = pd->radial.cradius - pd->radial.fradius;
+   pd->radial.sqrfr = pd->radial.fradius * pd->radial.fradius;
+
+   pd->radial.a = pd->radial.dr * pd->radial.dr -
+     pd->radial.dx * pd->radial.dx -
+     pd->radial.dy * pd->radial.dy;
+   pd->radial.inv2a = 1 / (2 * pd->radial.a);
+
+   pd->radial.extended = (pd->radial.fradius >= 0.00001f) || pd->radial.a >= 0.00001f;
+
    return EINA_FALSE;
 }
 
@@ -65,7 +58,7 @@ _ector_renderer_software_gradient_radial_ector_renderer_generic_base_prepare(Eo 
 static Eina_Bool
 _ector_renderer_software_gradient_radial_ector_renderer_generic_base_draw(Eo *obj EINA_UNUSED,
                                                                           Ector_Renderer_Software_Gradient_Data *pd EINA_UNUSED,
-                                                                          Ector_Rop op EINA_UNUSED, Eina_Array *clips EINA_UNUSED,
+                                                                          Efl_Gfx_Render_Op op EINA_UNUSED, Eina_Array *clips EINA_UNUSED,
                                                                           unsigned int mul_col EINA_UNUSED)
 {
    return EINA_TRUE;
@@ -75,7 +68,7 @@ _ector_renderer_software_gradient_radial_ector_renderer_generic_base_draw(Eo *ob
 static Eina_Bool
 _ector_renderer_software_gradient_radial_ector_renderer_software_base_fill(Eo *obj EINA_UNUSED, Ector_Renderer_Software_Gradient_Data *pd)
 {
-   ector_software_rasterizer_radial_gradient_set(pd->surface->software, pd);
+   ector_software_rasterizer_radial_gradient_set(pd->surface->rasterizer, pd);
    return EINA_TRUE;
 }
 
@@ -94,12 +87,12 @@ void
 _ector_renderer_software_gradient_radial_eo_base_destructor(Eo *obj,
                                                             Ector_Renderer_Software_Gradient_Data *pd)
 {
-   Eo *parent;
+   Ector_Renderer_Generic_Base_Data *base;
 
    destroy_color_table(pd);
 
-   eo_do(obj, parent = eo_parent_get());
-   eo_data_xunref(parent, pd->surface, obj);
+   base = eo_data_scope_get(obj, ECTOR_RENDERER_GENERIC_BASE_CLASS);
+   eo_data_xunref(base->surface, pd->surface, obj);
 
    eo_data_xunref(obj, pd->gd, obj);
    eo_data_xunref(obj, pd->gld, obj);

@@ -214,7 +214,7 @@ _eo_del_internal(const char *file, int line, _Eo_Object *obj)
 
    const _Eo_Class *klass = obj->klass;
 
-   eo_do(_eo_id_get(obj), eo_event_callback_call(EO_EV_DEL, NULL));
+   eo_do(_eo_id_get(obj), eo_event_callback_call(EO_BASE_EVENT_DEL, NULL));
 
    _eo_condtor_reset(obj);
 
@@ -277,8 +277,14 @@ static inline void
 _eo_unref(_Eo_Object *obj)
 {
    --(obj->refcount);
-   if (obj->refcount == 0)
+   if (EINA_UNLIKELY(obj->refcount <= 0))
      {
+        if (obj->refcount < 0)
+          {
+             ERR("Obj:%p. Refcount (%d) < 0. Too many unrefs.", obj, obj->refcount);
+             return;
+          }
+
         if (obj->destructed)
           {
              ERR("Object %p already destructed.", _eo_id_get(obj));
@@ -319,11 +325,6 @@ _eo_unref(_Eo_Object *obj)
           _eo_free(obj);
         else
           _eo_ref(obj); /* If we manual free, we keep a phantom ref. */
-     }
-   else if (obj->refcount < 0)
-     {
-        ERR("Obj:%p. Refcount (%d) < 0. Too many unrefs.", obj, obj->refcount);
-        return;
      }
 }
 

@@ -42,6 +42,38 @@ struct _Edje_Color_Class
 };
 
 /**
+ * @typedef Edje_Text_Class
+ * Type for edje text class
+ *
+ * @since 1.17
+ */
+typedef struct _Edje_Text_Class Edje_Text_Class;
+
+struct _Edje_Text_Class
+{
+   const char     *name;
+   const char     *font;
+   Evas_Font_Size  size;
+};
+
+/**
+ * @typedef Edje_Size_Class
+ * Type for edje size class
+ *
+ * @since 1.17
+ */
+typedef struct _Edje_Size_Class Edje_Size_Class;
+
+struct _Edje_Size_Class
+{
+   Eina_Stringshare *name;
+   Evas_Coord        minw;
+   Evas_Coord        minh;
+   Evas_Coord        maxw;
+   Evas_Coord        maxh;
+};
+
+/**
  * @defgroup Edje_Object_Communication_Interface_Signal Edje Communication Interface: Signal
  *
  * @brief Functions that deal with signals.
@@ -1584,6 +1616,136 @@ EAPI void         edje_text_class_del             (const char *text_class);
  *
  */
 EAPI Eina_List   *edje_text_class_list            (void);
+
+/**
+ * @brief Iterate over all active classes of an application.
+ *
+ * @return an iterator of Edje_Text_Class of the currently active text class
+ *
+ * This function only iterates over the Edje_Text_Class in use by
+ * an application.
+ *
+ * @since 1.17
+ *
+ */
+EAPI Eina_Iterator *edje_text_class_active_iterator_new(void);
+
+/**
+ * @brief Iterate over all text classes provided by an Edje file.
+ *
+ * @return an iterator of Edje_Text_Class provided by the Edje file.
+ *
+ * @since 1.17
+ *
+ */
+EAPI Eina_Iterator *edje_mmap_text_class_iterator_new(Eina_File *f);
+
+/**
+ * @}
+ */
+
+/**
+ * @defgroup Edje_Object_Size_Class Edje Class: Size
+ *
+ * @brief Functions that deal with Size Classes
+ *
+ * Sometimes we want to change the size of two or more parts equally and
+ * that's when we use size classes.
+ *
+ * If one or more parts are assigned with a size class, when we set attributes
+ * (minw etc.) to this class will update all these parts with the new attributes.
+ * Setting values to a size class at a process level will affect
+ * all parts with that size class, while at object level will affect only
+ * the parts inside an specified object.
+ *
+ * @ingroup Edje_Object_Group
+ *
+ * @{
+ */
+
+/**
+ * @brief Set the Edje size class.
+ *
+ * @param size_class The size class name
+ * @param minw The min width
+ * @param minh The min height
+ * @param maxw The max width
+ * @param maxh The max height
+ *
+ * @return @c EINA_TRUE, on success or @c EINA_FALSE, on error
+ *
+ * This function updates all Edje members at the process level which
+ * belong to this size class with the new min and max attributes.
+ *
+ * @see edje_size_class_get().
+ *
+ * @since 1.17
+ */
+EAPI Eina_Bool    edje_size_class_set             (const char *size_class, Evas_Coord minw, Evas_Coord minh, Evas_Coord maxw, Evas_Coord maxh);
+
+/**
+ * @brief Get the Edje size class.
+ *
+ * @param size_class The size class name
+ * @param minw The min width
+ * @param minh The min height
+ * @param maxw The max width
+ * @param maxh The max height
+ *
+ * @return @c EINA_TRUE, on success or @c EINA_FALSE, on error
+ *
+ * This function gets the min and max size from the specified Edje
+ * size class.
+ *
+ * @since 1.17
+ */
+EAPI Eina_Bool    edje_size_class_get             (const char *size_class, Evas_Coord *minw, Evas_Coord *minh, Evas_Coord *maxw, Evas_Coord *maxh);
+
+/**
+ * @brief Delete the size class.
+ *
+ * @param size_class The size class name
+ *
+ * This function deletes any values at the process level for the
+ * specified size class.
+ *
+ * @since 1.17
+ */
+EAPI void         edje_size_class_del             (const char *size_class);
+
+/**
+ * @brief List size classes.
+ *
+ * @return A list of size class names (strings). These strings are
+ * stringshares and the list must be eina_stringshare_del()'ed by the caller.
+ *
+ * This function lists all size classes known about by the current
+ * process.
+ *
+ * @since 1.17
+ */
+EAPI Eina_List   *edje_size_class_list            (void);
+
+/**
+ * @brief Iterate over all active classes of an application.
+ *
+ * @return an iterator of Edje_Size_Class of the currently active size class
+ *
+ * This function only iterates over the Edje_Size_Class in use by
+ * an application.
+ *
+ * @since 1.17
+ */
+EAPI Eina_Iterator *edje_size_class_active_iterator_new(void);
+
+/**
+ * @brief Iterate over all size classes provided by an Edje file.
+ *
+ * @return an iterator of Edje_Size_Class provided by the Edje file.
+ *
+ * @since 1.17
+ */
+EAPI Eina_Iterator *edje_mmap_size_class_iterator_new(Eina_File *f);
 
 /**
  * @}

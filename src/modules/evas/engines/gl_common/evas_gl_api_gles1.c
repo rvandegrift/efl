@@ -1,7 +1,9 @@
 #define GL_ERRORS_NODEF 1
 #include "evas_gl_core_private.h"
 
-#include <dlfcn.h>
+#ifndef _WIN32
+# include <dlfcn.h>
+#endif
 
 #define EVGL_FUNC_BEGIN() if (UNLIKELY(_need_context_restore)) _context_restore()
 
@@ -4018,6 +4020,7 @@ static void
 _debug_gles1_api_get(Evas_GL_API *funcs)
 {
    if (!funcs) return;
+   funcs->version = EVAS_GL_API_VERSION;
 
 #define ORD(name) EVAS_API_OVERRIDE(name, funcs, _evgld_gles1_)
    /* Available only in Common profile */
@@ -4174,6 +4177,7 @@ static void
 _normal_gles1_api_get(Evas_GL_API *funcs)
 {
    if (!funcs) return;
+   funcs->version = EVAS_GL_API_VERSION;
 
 #define ORD(name) EVAS_API_OVERRIDE(name, funcs, _evgl_gles1_)
    /* Available only in Common profile */

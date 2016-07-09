@@ -1,4 +1,4 @@
-﻿/**
+/**
  * This example shows how to use color pick algorithm for finding node at scene.
  * Enable color pick mode of meshes and scene objects.
  * Click (left for color pick, right for geometry pick) on 3D object and see
@@ -32,7 +32,6 @@
 #define  WIDTH 800
 #define  HEIGHT 600
 
-#define MAX_PATH 128
 #define INIT_SCALE 7.5
 #define BIG_SCALE 10.0
 #define SMALL_SCALE 5.0

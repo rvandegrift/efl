@@ -2,6 +2,7 @@ MAINTAINERCLEANFILES = Makefile.in
 
 AM_CPPFLAGS = \
 -I$(top_builddir)/src/lib/efl \
+-I$(top_srcdir)/src/lib/efl \
 -I$(top_srcdir)/src/lib/eina \
 -I$(top_srcdir)/src/lib/eo \
 -I$(top_srcdir)/src/lib/ecore \
@@ -12,6 +13,12 @@ AM_CPPFLAGS = \
 -I$(top_builddir)/src/lib/ecore \
 -I$(top_builddir)/src/lib/eldbus \
 -I$(top_builddir)/src/lib/elocation
+
+if HAVE_WINDOWS
+AM_CPPFLAGS += \
+-I$(top_srcdir)/src/lib/evil \
+-I$(top_builddir)/src/lib/evil
+endif
 
 EXTRA_PROGRAMS = \
 elocation

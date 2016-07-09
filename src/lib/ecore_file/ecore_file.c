@@ -29,7 +29,6 @@
 
 /*
  * FIXME: the following functions will certainly not work on Windows:
- * ecore_file_file_get()
  * ecore_file_app_exe_get()
  * ecore_file_escape_name()
  */
@@ -773,16 +772,20 @@ ecore_file_file_get(const char *path)
    char *result = NULL;
 
    if (!path) return NULL;
+
    if ((result = strrchr(path, '/'))) result++;
    else result = (char *)path;
 
 #ifdef _WIN32
-   char *result_backslash = NULL;
-   if ((result_backslash = strrchr(path, '\\')))
-     {
-        result_backslash++;
-        if (result_backslash > result) result = result_backslash;
-     }
+   /*
+    * Here, we know that there is no more / in the string beginning at
+    * 'result'. So just check that there is no more \ from it.
+    */
+   {
+      char *result_backslash;
+      if ((result_backslash = strrchr(result, '\\')))
+        result = ++result_backslash;
+   }
 #endif
 
    return result;

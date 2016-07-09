@@ -99,16 +99,10 @@ _ector_renderer_cairo_base_ector_renderer_generic_base_prepare(Eo *obj, Ector_Re
 {
    if (!pd->parent)
      {
-        Eo *parent;
-
-        eo_do(obj, parent = eo_parent_get());
-        if (!parent) return EINA_FALSE;
-        pd->parent = eo_data_xref(parent, ECTOR_CAIRO_SURFACE_CLASS, obj);
+        pd->parent = eo_data_xref(pd->generic->surface, ECTOR_CAIRO_SURFACE_CLASS, obj);
      }
    if (pd->generic->m)
      {
-        USE(obj, cairo_matrix_init, EINA_FALSE);
-
         if (!pd->m) pd->m = malloc(sizeof (cairo_matrix_t));
         cairo_matrix_init(pd->m,
                           pd->generic->m->xx, pd->generic->m->yx,
@@ -125,9 +119,9 @@ _ector_renderer_cairo_base_ector_renderer_generic_base_prepare(Eo *obj, Ector_Re
 }
 
 static Eina_Bool
-_ector_renderer_cairo_base_ector_renderer_generic_base_draw(Eo *obj,
+_ector_renderer_cairo_base_ector_renderer_generic_base_draw(Eo *obj EINA_UNUSED,
                                                             Ector_Renderer_Cairo_Base_Data *pd,
-                                                            Ector_Rop op,
+                                                            Efl_Gfx_Render_Op op,
                                                             Eina_Array *clips EINA_UNUSED,
                                                             unsigned int mul_col)
 {
@@ -135,17 +129,12 @@ _ector_renderer_cairo_base_ector_renderer_generic_base_draw(Eo *obj,
    cairo_operator_t cop;
    double cx, cy;
 
-   USE(obj, cairo_translate, EINA_FALSE);
-   USE(obj, cairo_set_source_rgba, EINA_FALSE);
-   USE(obj, cairo_transform, EINA_FALSE);
-   USE(obj, cairo_set_operator, EINA_FALSE);
-
    switch (op)
      {
-      case ECTOR_ROP_BLEND:
+      case EFL_GFX_RENDER_OP_BLEND:
          cop = CAIRO_OPERATOR_OVER;
          break;
-      case ECTOR_ROP_COPY:
+      case EFL_GFX_RENDER_OP_COPY:
       default:
          cop = CAIRO_OPERATOR_SOURCE;
          break;
@@ -159,11 +148,6 @@ _ector_renderer_cairo_base_ector_renderer_generic_base_draw(Eo *obj,
 
    cairo_set_operator(pd->parent->cairo, cop);
 
-
-   USE(obj, cairo_new_path, EINA_FALSE);
-   USE(obj, cairo_rectangle, EINA_FALSE);
-   USE(obj, cairo_clip, EINA_FALSE);
-   USE(obj, cairo_device_to_user, EINA_FALSE);
    if (clips)
      {
         int clip_count =  eina_array_count(clips);
@@ -198,11 +182,30 @@ _ector_renderer_cairo_base_ector_renderer_generic_base_draw(Eo *obj,
 static Eo *
 _ector_renderer_cairo_base_eo_base_constructor(Eo *obj, Ector_Renderer_Cairo_Base_Data *pd EINA_UNUSED)
 {
-   obj = eo_do_super_ret(obj, ECTOR_RENDERER_CAIRO_BASE_CLASS, obj, eo_constructor());
+   eo_do_super(obj, ECTOR_RENDERER_CAIRO_BASE_CLASS, obj = eo_constructor());
+   if (!obj) return NULL;
 
    pd->generic = eo_data_xref(obj, ECTOR_RENDERER_GENERIC_BASE_CLASS, obj);
 
-   USE(obj, cairo_matrix_init_identity, NULL);
+   return obj;
+}
+
+static Eo_Base *
+_ector_renderer_cairo_base_eo_base_finalize(Eo *obj, Ector_Renderer_Cairo_Base_Data *pd)
+{
+   eo_do_super(obj, ECTOR_RENDERER_CAIRO_BASE_CLASS, obj = eo_finalize());
+   if (!obj) return NULL;
+
+   USE(pd->generic, cairo_matrix_init, NULL);
+   USE(pd->generic, cairo_translate, NULL);
+   USE(pd->generic, cairo_set_source_rgba, NULL);
+   USE(pd->generic, cairo_transform, NULL);
+   USE(pd->generic, cairo_set_operator, NULL);
+   USE(pd->generic, cairo_new_path, NULL);
+   USE(pd->generic, cairo_rectangle, NULL);
+   USE(pd->generic, cairo_clip, NULL);
+   USE(pd->generic, cairo_device_to_user, NULL);
+   USE(pd->generic, cairo_matrix_init_identity, NULL);
 
    cairo_matrix_init_identity(&identity);
 
@@ -212,13 +215,13 @@ _ector_renderer_cairo_base_eo_base_constructor(Eo *obj, Ector_Renderer_Cairo_Bas
 static void
 _ector_renderer_cairo_base_eo_base_destructor(Eo *obj, Ector_Renderer_Cairo_Base_Data *pd)
 {
-   Eo *parent;
+   Ector_Renderer_Generic_Base_Data *base;
+
+   base = eo_data_scope_get(obj, ECTOR_RENDERER_GENERIC_BASE_CLASS);
+   eo_data_xunref(base->surface, pd->parent, obj);
+   eo_data_xunref(obj, pd->generic, obj);
 
    free(pd->m);
-
-   eo_do(obj, parent = eo_parent_get());
-   eo_data_xunref(parent, pd->parent, obj);
-   eo_data_xunref(obj, pd->generic, obj);
 
    eo_do_super(obj, ECTOR_RENDERER_CAIRO_BASE_CLASS, eo_destructor());
 }

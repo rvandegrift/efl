@@ -73,6 +73,8 @@
  * @li @ref Evil_Mman
  * @li @ref Evil_Unistd_Group
  * @li @ref Evil_Dlfcn
+ * @li @ref Evil_Langinfo_Group
+ * @li @ref Evil_Locale_Group
  * @li @ref Evil_Pwd_Group
  * @li @ref Evil_Stdio_Group
  * @li @ref Evil_Main_Group
@@ -98,52 +100,19 @@ extern "C" {
 #include <windows.h>
 #undef WIN32_LEAN_AND_MEAN
 
-#include <stdlib.h>
-#include <stdio.h>
-#include <time.h>
-#include <limits.h>
-#include <sys/stat.h>
-#include <fcntl.h>
-#include <math.h>
+#include <sys/stat.h> /* for mkdir in evil_macro_wrapper */
 
-
-#ifdef _MSC_VER
-
-# include <io.h>
-
-# define F_OK 0  /* Check for file existence */
-# define X_OK 1  /* MS access() doesn't check for execute permission. */
-# define W_OK 2  /* Check for write permission */
-# define R_OK 4  /* Check for read permission */
-
-typedef DWORD          pid_t;
-typedef unsigned short mode_t;
-
-typedef unsigned short uint16_t;
-typedef unsigned int uint32_t;
-typedef signed int int32_t;
-typedef __int64 int64_t;
-typedef unsigned __int64 uint64_t;
-typedef SSIZE_T ssize_t;
-
-# define strdup(s) _strdup(s)
-# define unlink(filename) _unlink(filename)
-# define fileno(f) _fileno(f)
-# define fdopen(fd,m) _fdopen((fd),(m))
-# define access(p,m) _access((p),(m))
-# define hypot(x,y) _hypot((x),(y))
-# define tzset _tzset
-
-#endif /* _MSC_VER */
 
 typedef unsigned long  uid_t;
 typedef unsigned long  gid_t;
 
 
 #include "evil_macro.h"
+#include "evil_dlfcn.h"
 #include "evil_fcntl.h"
 #include "evil_inet.h"
 #include "evil_langinfo.h"
+#include "evil_locale.h"
 #include "evil_main.h"
 #include "evil_stdlib.h"
 #include "evil_stdio.h"
@@ -151,56 +120,57 @@ typedef unsigned long  gid_t;
 #include "evil_time.h"
 #include "evil_unistd.h"
 #include "evil_util.h"
-#include "evil_macro_pop.h"
 
-
-#if (defined(_WIN32) && !defined(_UWIN) && !defined(__CYGWIN__))
-# if defined(_MSC_VER) || defined(__MINGW32__)
-
-# ifdef S_ISDIR
-#  undef S_ISDIR
-# endif
-# ifdef S_ISREG
-#  undef S_ISREG
-# endif
+#ifndef S_ISDIR
 # define S_ISDIR(m) (((m) & _S_IFMT) == _S_IFDIR)
-# define S_ISREG(m) (((m) & _S_IFMT) == _S_IFREG)
-
-# define S_ISLNK(m) 0
-
-# define S_IRUSR _S_IRUSR
-# define S_IWUSR _S_IWUSR
-# define S_IXUSR _S_IXUSR
-# define S_IRGRP S_IRUSR
-# define S_IROTH S_IRUSR
-# define S_IWGRP S_IWUSR
-# define S_IWOTH S_IWUSR
-# define S_IXGRP S_IXUSR
-# define S_IXOTH S_IXUSR
-
-# define _S_IRWXU (_S_IREAD | _S_IWRITE | _S_IEXEC)
-# define _S_IXUSR _S_IEXEC
-# define _S_IWUSR _S_IWRITE
-# define _S_IRUSR _S_IREAD
-
-#define S_IRWXO _S_IRWXU
-#define S_IRWXG _S_IRWXU
-
-  /*
-#  define close(fd) _close(fd)
-#  define read(fd,buffer,count) _read((fd),(buffer),(count))
-#  define write(fd,buffer,count) _write((fd),(buffer),(count))
-#  define unlink(filename) _unlink((filename))
-#  define lstat(f,s) _stat((f),(s))
-  */
-
-# endif
 #endif
+
+#ifndef S_ISREG
+# define S_ISREG(m) (((m) & _S_IFMT) == _S_IFREG)
+#endif
+
+#define S_ISLNK(m) 0
+
+#define S_IRUSR _S_IRUSR
+#ifndef S_IRGRP
+# define S_IRGRP S_IRUSR
+#endif
+#ifndef S_IROTH
+# define S_IROTH S_IRUSR
+#endif
+
+#define S_IWUSR _S_IWUSR
+#ifndef S_IWGRP
+# define S_IWGRP S_IWUSR
+#endif
+#ifndef S_IWOTH
+# define S_IWOTH S_IWUSR
+#endif
+
+#define S_IXUSR _S_IXUSR
+#ifndef S_IXGRP
+# define S_IXGRP S_IXUSR
+#endif
+#ifndef S_IXOTH
+# define S_IXOTH S_IXUSR
+#endif
+
+#define _S_IRWXU (_S_IREAD | _S_IWRITE | _S_IEXEC)
+#ifndef S_IRWXG
+# define S_IRWXG _S_IRWXU
+#endif
+#ifndef S_IRWXO
+# define S_IRWXO _S_IRWXU
+#endif
+
+#define _S_IXUSR _S_IEXEC
+#define _S_IWUSR _S_IWRITE
+#define _S_IRUSR _S_IREAD
 
 #define sigsetjmp(Env, Save) setjmp(Env)
 
-#undef EAPI
-#define EAPI
+#include "evil_macro_wrapper.h"
+#include "evil_macro_pop.h"
 
 #ifdef __cplusplus
 }

@@ -73,6 +73,25 @@ _edje_color_class_free(void *data)
    free(cc);
 }
 
+static void
+_edje_text_class_free(void *data)
+{
+   Edje_Text_Class *tc = data;
+
+   if (tc->name) eina_stringshare_del(tc->name);
+   if (tc->font) eina_stringshare_del(tc->font);
+   free(tc);
+}
+
+static void
+_edje_size_class_free(void *data)
+{
+   Edje_Size_Class *sc = data;
+
+   if (sc->name) eina_stringshare_del(sc->name);
+   free(sc);
+}
+
 /* Private Routines */
 EOLIAN static void
 _edje_object_evas_object_smart_add(Eo *obj, Edje *ed)
@@ -88,6 +107,8 @@ _edje_object_evas_object_smart_add(Eo *obj, Edje *ed)
    ed->references = 1;
    ed->user_defined = NULL;
    ed->color_classes = eina_hash_string_small_new(_edje_color_class_free);
+   ed->text_classes = eina_hash_string_small_new(_edje_text_class_free);
+   ed->size_classes = eina_hash_string_small_new(_edje_size_class_free);
 
    evas_object_geometry_get(obj, &(ed->x), &(ed->y), &(ed->w), &(ed->h));
    ed->obj = obj;
@@ -387,6 +408,17 @@ EAPI void
 edje_object_file_get(const Edje_Object *obj, const char **file, const char **group)
 {
    eo_do((Edje_Object *)obj, efl_file_get(file, group));
+}
+
+EOLIAN static void
+_edje_object_evas_object_paragraph_direction_set(Eo *obj, Edje *ed, Evas_BiDi_Direction dir)
+{
+   eo_do_super(obj, MY_CLASS, evas_obj_paragraph_direction_set(dir));
+
+   /* Make it dirty to recalculate edje.
+      It needs to move text objects according to new paragraph direction */
+   ed->dirty = EINA_TRUE;
+   eo_do(obj, evas_obj_smart_need_recalculate_set(1));
 }
 
 #include "edje_object.eo.c"

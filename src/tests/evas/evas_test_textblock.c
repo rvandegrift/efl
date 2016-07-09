@@ -16,6 +16,8 @@
 
 #include "evas_tests_helpers.h"
 
+#include <locale.h>
+
 /* Functions defined in evas_object_textblock.c */
 EAPI Eina_Bool
 _evas_textblock_check_item_node_link(Evas_Object *obj);
@@ -23,7 +25,7 @@ EAPI int
 _evas_textblock_format_offset_get(const Evas_Object_Textblock_Node_Format *n);
 /* end of functions defined in evas_object_textblock.c */
 
-#define TEST_FONT "font=DejaVuSans font_source=" TESTS_SRC_DIR "/TestFont.eet"
+#define TEST_FONT "font=DejaVuSans,UnDotum,malayalam font_source=" TESTS_SRC_DIR "/TestFont.eet"
 
 static const char *style_buf =
    "DEFAULT='" TEST_FONT " font_size=10 color=#000 text_class=entry'"
@@ -421,6 +423,7 @@ START_TEST(evas_textblock_cursor)
         fail_if(evas_textblock_cursor_compare(main_cur, cur));
      }
 
+#ifdef HAVE_FRIBIDI
    /* Check direction */
    evas_object_textblock_text_markup_set(tb, "test");
    fail_if(strcmp(evas_object_textblock_text_markup_get(tb), "test"));
@@ -442,8 +445,199 @@ START_TEST(evas_textblock_cursor)
    evas_textblock_cursor_geometry_get(cur, NULL, NULL, NULL, NULL, &dir,
                                       EVAS_TEXTBLOCK_CURSOR_BEFORE);
    fail_if(dir != EVAS_BIDI_DIRECTION_RTL);
+   evas_object_textblock_text_markup_set(tb, "123");
+   fail_if(strcmp(evas_object_textblock_text_markup_get(tb), "123"));
+   dir = EVAS_BIDI_DIRECTION_RTL;
+   evas_textblock_cursor_geometry_get(cur, NULL, NULL, NULL, NULL, &dir,
+                                      EVAS_TEXTBLOCK_CURSOR_UNDER);
+   fail_if(dir != EVAS_BIDI_DIRECTION_LTR);
+   dir = EVAS_BIDI_DIRECTION_RTL;
+   evas_textblock_cursor_geometry_get(cur, NULL, NULL, NULL, NULL, &dir,
+                                      EVAS_TEXTBLOCK_CURSOR_BEFORE);
+   fail_if(dir != EVAS_BIDI_DIRECTION_LTR);
+   evas_object_textblock_text_markup_set(tb, "%^&amp;");
+   fail_if(strcmp(evas_object_textblock_text_markup_get(tb), "%^&amp;"));
+   dir = EVAS_BIDI_DIRECTION_RTL;
+   evas_textblock_cursor_geometry_get(cur, NULL, NULL, NULL, NULL, &dir,
+                                      EVAS_TEXTBLOCK_CURSOR_UNDER);
+   fail_if(dir != EVAS_BIDI_DIRECTION_LTR);
+   dir = EVAS_BIDI_DIRECTION_RTL;
+   evas_textblock_cursor_geometry_get(cur, NULL, NULL, NULL, NULL, &dir,
+                                      EVAS_TEXTBLOCK_CURSOR_BEFORE);
+   fail_if(dir != EVAS_BIDI_DIRECTION_LTR);
 
-#ifdef HAVE_FRIBIDI
+   /* Check direction with evas_object_paragraph_direction_set API */
+     {
+        Evas_Coord xx, yy, ww, hh;
+
+        /* LTR text case */
+        evas_object_textblock_text_markup_set(tb, "test");
+        fail_if(strcmp(evas_object_textblock_text_markup_get(tb), "test"));
+
+        /* EVAS_TEXTBLOCK_CURSOR_UNDER */
+        evas_object_paragraph_direction_set(tb, EVAS_BIDI_DIRECTION_NEUTRAL);
+        dir = EVAS_BIDI_DIRECTION_RTL;
+        evas_textblock_cursor_geometry_get(cur, &x, &y, &w, &h, &dir,
+                                           EVAS_TEXTBLOCK_CURSOR_UNDER);
+        fail_if(dir == EVAS_BIDI_DIRECTION_RTL);
+        evas_object_paragraph_direction_set(tb, EVAS_BIDI_DIRECTION_RTL);
+        dir = EVAS_BIDI_DIRECTION_RTL;
+        evas_textblock_cursor_geometry_get(cur, &xx, &yy, &ww, &hh, &dir,
+                                           EVAS_TEXTBLOCK_CURSOR_UNDER);
+        fail_if(dir == EVAS_BIDI_DIRECTION_RTL);
+        fail_if((x >= xx) || (y != yy) || (w != ww) || (h != hh));
+        evas_object_paragraph_direction_set(tb, EVAS_BIDI_DIRECTION_LTR);
+        dir = EVAS_BIDI_DIRECTION_RTL;
+        evas_textblock_cursor_geometry_get(cur, &xx, &yy, &ww, &hh, &dir,
+                                           EVAS_TEXTBLOCK_CURSOR_UNDER);
+        fail_if(dir == EVAS_BIDI_DIRECTION_RTL);
+        fail_if((x != xx) || (y != yy) || (w != ww) || (h != hh));
+
+        /* EVAS_TEXTBLOCK_CURSOR_BEFORE */
+        evas_object_paragraph_direction_set(tb, EVAS_BIDI_DIRECTION_NEUTRAL);
+        dir = EVAS_BIDI_DIRECTION_RTL;
+        evas_textblock_cursor_geometry_get(cur, &x, &y, &w, &h, &dir,
+                                           EVAS_TEXTBLOCK_CURSOR_BEFORE);
+        fail_if(dir == EVAS_BIDI_DIRECTION_RTL);
+        evas_object_paragraph_direction_set(tb, EVAS_BIDI_DIRECTION_RTL);
+        dir = EVAS_BIDI_DIRECTION_RTL;
+        evas_textblock_cursor_geometry_get(cur, &xx, &yy, &ww, &hh, &dir,
+                                           EVAS_TEXTBLOCK_CURSOR_BEFORE);
+        fail_if(dir == EVAS_BIDI_DIRECTION_RTL);
+        fail_if((x >= xx) || (y != yy) || (w != ww) || (h != hh));
+        evas_object_paragraph_direction_set(tb, EVAS_BIDI_DIRECTION_LTR);
+        dir = EVAS_BIDI_DIRECTION_RTL;
+        evas_textblock_cursor_geometry_get(cur, &xx, &yy, &ww, &hh, &dir,
+                                           EVAS_TEXTBLOCK_CURSOR_BEFORE);
+        fail_if(dir == EVAS_BIDI_DIRECTION_RTL);
+        fail_if((x != xx) || (y != yy) || (w != ww) || (h != hh));
+
+        /* RTL text case */
+        evas_object_textblock_text_markup_set(tb, "עוד פסקה");
+        fail_if(strcmp(evas_object_textblock_text_markup_get(tb), "עוד פסקה"));
+
+        evas_object_paragraph_direction_set(tb, EVAS_BIDI_DIRECTION_NEUTRAL);
+        dir = EVAS_BIDI_DIRECTION_LTR;
+        evas_textblock_cursor_geometry_get(cur, &x, &y, &w, &h, &dir,
+                                           EVAS_TEXTBLOCK_CURSOR_UNDER);
+        fail_if(dir != EVAS_BIDI_DIRECTION_RTL);
+        evas_object_paragraph_direction_set(tb, EVAS_BIDI_DIRECTION_LTR);
+        dir = EVAS_BIDI_DIRECTION_LTR;
+        evas_textblock_cursor_geometry_get(cur, &xx, &yy, &ww, &hh, &dir,
+                                           EVAS_TEXTBLOCK_CURSOR_UNDER);
+        fail_if(dir != EVAS_BIDI_DIRECTION_RTL);
+        fail_if((x <= xx) || (y != yy) || (w != ww) || (h != hh));
+        evas_object_paragraph_direction_set(tb, EVAS_BIDI_DIRECTION_RTL);
+        dir = EVAS_BIDI_DIRECTION_LTR;
+        evas_textblock_cursor_geometry_get(cur, &xx, &yy, &ww, &hh, &dir,
+                                           EVAS_TEXTBLOCK_CURSOR_UNDER);
+        fail_if(dir != EVAS_BIDI_DIRECTION_RTL);
+        fail_if((x != xx) || (y != yy) || (w != ww) || (h != hh));
+
+        evas_object_paragraph_direction_set(tb, EVAS_BIDI_DIRECTION_NEUTRAL);
+        dir = EVAS_BIDI_DIRECTION_LTR;
+        evas_textblock_cursor_geometry_get(cur, &x, &y, &w, &h, &dir,
+                                           EVAS_TEXTBLOCK_CURSOR_BEFORE);
+        fail_if(dir != EVAS_BIDI_DIRECTION_RTL);
+        evas_object_paragraph_direction_set(tb, EVAS_BIDI_DIRECTION_LTR);
+        dir = EVAS_BIDI_DIRECTION_LTR;
+        evas_textblock_cursor_geometry_get(cur, &xx, &yy, &ww, &hh, &dir,
+                                           EVAS_TEXTBLOCK_CURSOR_BEFORE);
+        fail_if(dir != EVAS_BIDI_DIRECTION_RTL);
+        fail_if((x <= xx) || (y != yy) || (w != ww) || (h != hh));
+        evas_object_paragraph_direction_set(tb, EVAS_BIDI_DIRECTION_RTL);
+        dir = EVAS_BIDI_DIRECTION_LTR;
+        evas_textblock_cursor_geometry_get(cur, &xx, &yy, &ww, &hh, &dir,
+                                           EVAS_TEXTBLOCK_CURSOR_BEFORE);
+        fail_if(dir != EVAS_BIDI_DIRECTION_RTL);
+        fail_if((x != xx) || (y != yy) || (w != ww) || (h != hh));
+
+        /* NEUTRAL(European Number) text case */
+        /* It doesn't change characters sequence. */
+        evas_object_textblock_text_markup_set(tb, "123");
+        fail_if(strcmp(evas_object_textblock_text_markup_get(tb), "123"));
+
+        evas_object_paragraph_direction_set(tb, EVAS_BIDI_DIRECTION_NEUTRAL);
+        dir = EVAS_BIDI_DIRECTION_RTL;
+        evas_textblock_cursor_geometry_get(cur, &x, &y, &w, &h, &dir,
+                                           EVAS_TEXTBLOCK_CURSOR_UNDER);
+        fail_if(dir == EVAS_BIDI_DIRECTION_RTL);
+        evas_object_paragraph_direction_set(tb, EVAS_BIDI_DIRECTION_RTL);
+        dir = EVAS_BIDI_DIRECTION_RTL;
+        evas_textblock_cursor_geometry_get(cur, &xx, &yy, &ww, &hh, &dir,
+                                           EVAS_TEXTBLOCK_CURSOR_UNDER);
+        fail_if(dir == EVAS_BIDI_DIRECTION_RTL);
+        fail_if((x >= xx) || (y != yy) || (w != ww) || (h != hh));
+        evas_object_paragraph_direction_set(tb, EVAS_BIDI_DIRECTION_LTR);
+        dir = EVAS_BIDI_DIRECTION_RTL;
+        evas_textblock_cursor_geometry_get(cur, &xx, &yy, &ww, &hh, &dir,
+                                           EVAS_TEXTBLOCK_CURSOR_UNDER);
+        fail_if(dir == EVAS_BIDI_DIRECTION_RTL);
+        fail_if((x != xx) || (y != yy) || (w != ww) || (h != hh));
+
+        evas_object_paragraph_direction_set(tb, EVAS_BIDI_DIRECTION_NEUTRAL);
+        dir = EVAS_BIDI_DIRECTION_RTL;
+        evas_textblock_cursor_geometry_get(cur, &x, &y, &w, &h, &dir,
+                                           EVAS_TEXTBLOCK_CURSOR_BEFORE);
+        fail_if(dir == EVAS_BIDI_DIRECTION_RTL);
+        evas_object_paragraph_direction_set(tb, EVAS_BIDI_DIRECTION_RTL);
+        dir = EVAS_BIDI_DIRECTION_RTL;
+        evas_textblock_cursor_geometry_get(cur, &xx, &yy, &ww, &hh, &dir,
+                                           EVAS_TEXTBLOCK_CURSOR_BEFORE);
+        fail_if(dir == EVAS_BIDI_DIRECTION_RTL);
+        fail_if((x >= xx) || (y != yy) || (w != ww) || (h != hh));
+        evas_object_paragraph_direction_set(tb, EVAS_BIDI_DIRECTION_LTR);
+        dir = EVAS_BIDI_DIRECTION_RTL;
+        evas_textblock_cursor_geometry_get(cur, &xx, &yy, &ww, &hh, &dir,
+                                           EVAS_TEXTBLOCK_CURSOR_BEFORE);
+        fail_if(dir == EVAS_BIDI_DIRECTION_RTL);
+        fail_if((x != xx) || (y != yy) || (w != ww) || (h != hh));
+
+        /* NEUTRAL(Other Neutrals) text case */
+        /* It changes characters sequence. */
+        evas_object_textblock_text_markup_set(tb, "%^&amp;");
+        fail_if(strcmp(evas_object_textblock_text_markup_get(tb), "%^&amp;"));
+
+        evas_object_paragraph_direction_set(tb, EVAS_BIDI_DIRECTION_NEUTRAL);
+        dir = EVAS_BIDI_DIRECTION_RTL;
+        evas_textblock_cursor_geometry_get(cur, &x, &y, &w, &h, &dir,
+                                           EVAS_TEXTBLOCK_CURSOR_UNDER);
+        fail_if(dir == EVAS_BIDI_DIRECTION_RTL);
+        evas_object_paragraph_direction_set(tb, EVAS_BIDI_DIRECTION_RTL);
+        dir = EVAS_BIDI_DIRECTION_LTR;
+        evas_textblock_cursor_geometry_get(cur, &xx, &yy, &ww, &hh, &dir,
+                                           EVAS_TEXTBLOCK_CURSOR_UNDER);
+        fail_if(dir != EVAS_BIDI_DIRECTION_RTL);
+        fail_if((x >= xx) || (y != yy) || (w != ww) || (h != hh));
+        evas_object_paragraph_direction_set(tb, EVAS_BIDI_DIRECTION_LTR);
+        dir = EVAS_BIDI_DIRECTION_RTL;
+        evas_textblock_cursor_geometry_get(cur, &xx, &yy, &ww, &hh, &dir,
+                                           EVAS_TEXTBLOCK_CURSOR_UNDER);
+        fail_if(dir == EVAS_BIDI_DIRECTION_RTL);
+        fail_if((x != xx) || (y != yy) || (w != ww) || (h != hh));
+
+        evas_object_paragraph_direction_set(tb, EVAS_BIDI_DIRECTION_NEUTRAL);
+        dir = EVAS_BIDI_DIRECTION_RTL;
+        evas_textblock_cursor_geometry_get(cur, &x, &y, &w, &h, &dir,
+                                           EVAS_TEXTBLOCK_CURSOR_BEFORE);
+        fail_if(dir == EVAS_BIDI_DIRECTION_RTL);
+        evas_object_paragraph_direction_set(tb, EVAS_BIDI_DIRECTION_RTL);
+        dir = EVAS_BIDI_DIRECTION_LTR;
+        evas_textblock_cursor_geometry_get(cur, &xx, &yy, &ww, &hh, &dir,
+                                           EVAS_TEXTBLOCK_CURSOR_BEFORE);
+        fail_if(dir != EVAS_BIDI_DIRECTION_RTL);
+        fail_if((x >= xx) || (y != yy) || (w != ww) || (h != hh));
+        evas_object_paragraph_direction_set(tb, EVAS_BIDI_DIRECTION_LTR);
+        dir = EVAS_BIDI_DIRECTION_RTL;
+        evas_textblock_cursor_geometry_get(cur, &xx, &yy, &ww, &hh, &dir,
+                                           EVAS_TEXTBLOCK_CURSOR_BEFORE);
+        fail_if(dir == EVAS_BIDI_DIRECTION_RTL);
+        fail_if((x != xx) || (y != yy) || (w != ww) || (h != hh));
+
+        /* Reset paragraph direction */
+        evas_object_paragraph_direction_set(tb, EVAS_BIDI_DIRECTION_NEUTRAL);
+     }
+
    evas_object_textblock_text_markup_set(tb,
          "testנסיוןtestנסיון<ps/>"
          "נסיוןtestנסיוןtest<ps/>"
@@ -722,6 +916,25 @@ START_TEST(evas_textblock_cursor)
           }
 #endif
 #endif
+     }
+
+   /* Line set with BiDi text */
+     {
+        size_t pos;
+
+        evas_object_textblock_text_markup_set(tb,
+              "שלום עולם hello world<ps>"
+              "שלום עולם hello world<ps>"
+              "hello world שלום עולם");
+        evas_textblock_cursor_line_set(cur, 0);
+        pos = evas_textblock_cursor_pos_get(cur);
+        ck_assert_int_eq(pos, 0);
+        evas_textblock_cursor_line_set(cur, 1);
+        pos = evas_textblock_cursor_pos_get(cur);
+        ck_assert_int_eq(pos, 22);
+        evas_textblock_cursor_line_set(cur, 2);
+        pos = evas_textblock_cursor_pos_get(cur);
+        ck_assert_int_eq(pos, 44);
      }
 
    END_TB_TEST();
@@ -1480,7 +1693,7 @@ END_TEST
 /* Testing items */
 START_TEST(evas_textblock_items)
 {
-   Evas_Coord w, h, w2, h2, nw, nh, ih;
+   Evas_Coord x, y, w, h, w2, h2, nw, nh, ih;
    START_TB_TEST();
    const char *buf = "This is an <item absize=93x152></>.";
 
@@ -1584,6 +1797,18 @@ START_TEST(evas_textblock_items)
    evas_textblock_cursor_pos_set(cur, 1);
    if (evas_textblock_cursor_format_item_geometry_get(cur, NULL, NULL, &w, &h))
      fail_if((w != 64) || (h != 64));
+
+   /* Test char coordinate for item at middle position of the item to decide cursor position,
+    * it means when char coordinate exceeds the half width of the item then only
+    * cursor position is changed. */
+   buf = "<item size=100x100 vsize=full></>.";
+   evas_object_textblock_text_markup_set(tb, buf);
+   evas_textblock_cursor_format_item_geometry_get(cur, &x, &y, &w, NULL);
+   evas_textblock_cursor_char_coord_set(cur, x + (w / 2) + 1, y);
+   fail_if(evas_textblock_cursor_pos_get(cur) != 1);
+   /* Test small increment in x and cursor position will be same */
+   evas_textblock_cursor_char_coord_set(cur, x + 10, y);
+   fail_if(evas_textblock_cursor_pos_get(cur) != 0);
 
    /* FIXME: Also verify x,y positions of the item. */
 
@@ -1824,6 +2049,37 @@ START_TEST(evas_textblock_wrapping)
    evas_object_textblock_size_formatted_get(tb, &w, &h);
    ck_assert_int_le(w, ellip_w);
 
+   /* Ellipsis test for multiple items in singleline. */
+     {
+        evas_object_resize(tb, 500, 500);
+        evas_object_textblock_text_markup_set(tb, "ABC 한글한글 DEF");
+        evas_textblock_cursor_format_prepend(cur, "+ ellipsis=1.0");
+        evas_object_textblock_size_native_get(tb, &nw, &nh);
+        evas_object_resize(tb, nw, nh);
+        evas_object_textblock_size_formatted_get(tb, &w, &h);
+
+        /* Make the object's width smaller. */
+        for (i = 1; (nw / 5) <= (nw - i); i++)
+          {
+             evas_object_resize(tb, nw - i, nh);
+             evas_object_textblock_size_formatted_get(tb, &bw, &bh);
+             ck_assert_int_le(bw, w);
+          }
+
+        /* Revert the object's width to native width. */
+        for (; (nw - i) <= nw; i--)
+          {
+             evas_object_resize(tb, nw - i, nh);
+             evas_object_textblock_size_formatted_get(tb, &bw, &bh);
+             ck_assert_int_le(bw, w);
+          }
+
+        /* The object resized same as native size.
+         * So, formatted width and native width should be same
+         * just like our first check. */
+        ck_assert_int_eq(bw, w);
+     }
+
    {
       double ellip;
       for(ellip = 0.0; ellip <= 1.0; ellip = ellip + 0.1)
@@ -1936,6 +2192,25 @@ START_TEST(evas_textblock_wrapping)
 
         ck_assert_int_eq(bret, ret);
      }
+
+   /* Check that line wrap produces the same height values as paragraph break */
+   evas_object_resize(tb, 1, 100);
+   evas_object_textblock_text_markup_set(tb, "<wrap=word>hello world");
+   evas_object_textblock_size_formatted_get(tb, NULL, &bh);
+   evas_object_textblock_text_markup_set(tb, "hello<ps>world");
+   evas_object_textblock_size_formatted_get(tb, NULL, &h);
+
+   ck_assert_int_eq(bh, h);
+
+   /* Check that unnecessary ellipsis is not applied */
+   evas_object_textblock_text_markup_set(tb, "This is test for ellipsis with formatted height.");
+   evas_textblock_cursor_format_prepend(cur, "+ wrap=mixed");
+   evas_object_resize(tb, 100, 100);
+   evas_object_textblock_size_formatted_get(tb, NULL, &bh);
+   evas_object_resize(tb, 100, bh);
+   evas_textblock_cursor_format_prepend(cur, "+ wrap=mixed ellipsis=1.0");
+   evas_object_textblock_size_formatted_get(tb, NULL, &h);
+   ck_assert_int_ge(h, bh);
 
    END_TB_TEST();
 }
@@ -2195,10 +2470,6 @@ START_TEST(evas_textblock_geometries)
    fail_if((tr->x != tr2->x) || (tr->y != tr2->y) || (tr->w != tr2->w) ||
            (tr->h != tr2->h));
 
-   EINA_LIST_FREE(rects, tr)
-      free(tr);
-   EINA_LIST_FREE(rects2, tr2)
-      free(tr2);
    eina_iterator_free(it);
    eina_iterator_free(it2);
 
@@ -2308,12 +2579,177 @@ START_TEST(evas_textblock_geometries)
    tr3 = eina_list_nth(rects, 3);
    fail_if((tr2->x != tr3->x));
 
-   EINA_LIST_FREE(rects, tr)
-      free(tr);
-   EINA_LIST_FREE(rects2, tr2)
-      free(tr2);
    eina_iterator_free(it);
    eina_iterator_free(it2);
+
+   /* Check number of rectangles in case a of line wrapping */
+   evas_object_textblock_text_markup_set(tb, "<wrap=word>abc def <color=#0ff>ghi");
+   evas_object_resize(tb, w, w / 2);
+   evas_textblock_cursor_pos_set(cur, 10);
+
+     {
+        Evas_Coord cx;
+        evas_textblock_cursor_geometry_bidi_get(cur, &cx, NULL, NULL,
+              NULL, NULL, NULL, NULL, NULL,
+              EVAS_TEXTBLOCK_CURSOR_BEFORE);
+        /* enforce wrapping of "ghi" to the next line */
+        evas_object_resize(tb, cx, 400);
+        /* Sanity, check there is actually a second line */
+        fail_if (!evas_textblock_cursor_line_set(cur, 1));
+        fail_if (evas_textblock_cursor_line_set(cur, 2));
+     }
+
+   evas_textblock_cursor_pos_set(cur, 7);
+   evas_textblock_cursor_pos_set(main_cur, 9);
+
+   it = evas_textblock_cursor_range_simple_geometry_get(cur, main_cur);
+   fail_if(!it);
+   rects = eina_iterator_container_get(it);
+   fail_if(!rects);
+   ck_assert_int_eq(eina_list_count(rects), 3);
+
+     {
+        Evas_Coord y1, y2;
+        void *tmp = tr;
+        /* We have 3 rectangles */
+        Eina_Iterator *itr = it;
+        fail_if (!eina_iterator_next(itr, &tmp));
+        tr = tmp;
+        y1 = tr->y;
+        fail_if (!eina_iterator_next(itr, &tmp));
+        tr = tmp;
+        y2 = tr->y;
+
+        /* Basically it means that the "extending" rectangle should not somehow
+         * reach the second line in this example. */
+        ck_assert_int_eq(y1, y2);
+        eina_iterator_free(it);
+     }
+
+   /* Alignment fills */
+
+   /* LTR text */
+   evas_object_resize(tb, 400, 400);
+   evas_object_textblock_text_markup_set(tb,
+         "<align=0.1>"
+         "Hello World<ps>"
+         "How are you<ps>");
+   evas_textblock_cursor_line_set(cur, 0);
+   evas_textblock_cursor_line_set(main_cur, 1);
+   it = evas_textblock_cursor_range_simple_geometry_get(cur, main_cur);
+   fail_if(!it);
+   rects = eina_iterator_container_get(it);
+   fail_if(!rects);
+   ck_assert_int_eq(eina_list_count(rects), 3);
+   evas_textblock_cursor_char_next(main_cur);
+   eina_iterator_free(it);
+
+   evas_textblock_cursor_char_next(main_cur);
+   it = evas_textblock_cursor_range_simple_geometry_get(cur, main_cur);
+   fail_if(!it);
+   rects = eina_iterator_container_get(it);
+   fail_if(!rects);
+   ck_assert_int_eq(eina_list_count(rects), 4);
+   evas_textblock_cursor_char_next(main_cur);
+   eina_iterator_free(it);
+
+   evas_textblock_cursor_line_set(main_cur, 2);
+   evas_textblock_cursor_char_next(main_cur);
+   it = evas_textblock_cursor_range_simple_geometry_get(cur, main_cur);
+   fail_if(!it);
+   rects = eina_iterator_container_get(it);
+   fail_if(!rects);
+   ck_assert_int_eq(eina_list_count(rects), 4);
+   evas_textblock_cursor_char_next(main_cur);
+   eina_iterator_free(it);
+
+   /* RTL text aligned to the left */
+   evas_object_textblock_text_markup_set(tb,
+         "<align=left>"
+         "שלום עולם<ps>"
+         "מה שלומך");
+   evas_textblock_cursor_line_set(cur, 0);
+   evas_textblock_cursor_line_set(main_cur, 1);
+   it = evas_textblock_cursor_range_simple_geometry_get(cur, main_cur);
+   fail_if(!it);
+   rects = eina_iterator_container_get(it);
+   fail_if(!rects);
+   ck_assert_int_eq(eina_list_count(rects), 2);
+   evas_textblock_cursor_char_next(main_cur);
+   eina_iterator_free(it);
+
+   evas_textblock_cursor_char_next(main_cur);
+   it = evas_textblock_cursor_range_simple_geometry_get(cur, main_cur);
+   fail_if(!it);
+   rects = eina_iterator_container_get(it);
+   fail_if(!rects);
+   ck_assert_int_eq(eina_list_count(rects), 3);
+   evas_textblock_cursor_char_next(main_cur);
+   eina_iterator_free(it);
+
+   /* RTL text aligned to the middle */
+   evas_object_textblock_text_markup_set(tb,
+         "<align=middle>"
+         "שלום עולם<ps>"
+         "מה שלומך");
+   evas_textblock_cursor_line_set(cur, 0);
+   evas_textblock_cursor_line_set(main_cur, 1);
+   it = evas_textblock_cursor_range_simple_geometry_get(cur, main_cur);
+   fail_if(!it);
+   rects = eina_iterator_container_get(it);
+   fail_if(!rects);
+   ck_assert_int_eq(eina_list_count(rects), 3);
+   eina_iterator_free(it);
+
+   evas_textblock_cursor_char_next(main_cur);
+   it = evas_textblock_cursor_range_simple_geometry_get(cur, main_cur);
+   fail_if(!it);
+   rects = eina_iterator_container_get(it);
+   fail_if(!rects);
+   ck_assert_int_eq(eina_list_count(rects), 4);
+   eina_iterator_free(it);
+
+   evas_object_textblock_text_markup_set(tb,
+         "<align=middle>"
+         "שלום עולם<ps>"
+         "מה שלומך");
+   evas_textblock_cursor_line_set(cur, 0);
+   evas_textblock_cursor_line_set(main_cur, 1);
+   it = evas_textblock_cursor_range_simple_geometry_get(cur, main_cur);
+   fail_if(!it);
+   rects = eina_iterator_container_get(it);
+   fail_if(!rects);
+   ck_assert_int_eq(eina_list_count(rects), 3);
+   eina_iterator_free(it);
+
+   evas_textblock_cursor_char_next(main_cur);
+   it = evas_textblock_cursor_range_simple_geometry_get(cur, main_cur);
+   fail_if(!it);
+   rects = eina_iterator_container_get(it);
+   fail_if(!rects);
+   ck_assert_int_eq(eina_list_count(rects), 4);
+   eina_iterator_free(it);
+
+   /* Auto align RTL and LTR */
+   evas_object_textblock_text_markup_set(tb,
+         "Hello world<ps>"
+         "מה שלומך");
+   evas_textblock_cursor_line_set(cur, 0);
+   evas_textblock_cursor_line_set(main_cur, 1);
+   it = evas_textblock_cursor_range_simple_geometry_get(cur, main_cur);
+   fail_if(!it);
+   rects = eina_iterator_container_get(it);
+   fail_if(!rects);
+   ck_assert_int_eq(eina_list_count(rects), 2);
+   eina_iterator_free(it);
+
+   evas_textblock_cursor_char_next(main_cur);
+   it = evas_textblock_cursor_range_simple_geometry_get(cur, main_cur);
+   fail_if(!it);
+   rects = eina_iterator_container_get(it);
+   fail_if(!rects);
+   ck_assert_int_eq(eina_list_count(rects), 3);
+   eina_iterator_free(it);
 
    /* Same run different scripts */
    evas_object_textblock_text_markup_set(tb, "עבריתenglishрусскийעברית");
@@ -2327,8 +2763,6 @@ START_TEST(evas_textblock_geometries)
 
    fail_if(eina_list_count(rects) != 2);
 
-   EINA_LIST_FREE(rects, tr)
-      free(tr);
    eina_iterator_free(it);
 
    /* Same run different styles */
@@ -2342,8 +2776,6 @@ START_TEST(evas_textblock_geometries)
 
    fail_if(eina_list_count(rects) != 3);
 
-   EINA_LIST_FREE(rects, tr)
-      free(tr);
    eina_iterator_free(it);
 
    /* Bidi text with a few back and forth from bidi. */
@@ -2358,8 +2790,6 @@ START_TEST(evas_textblock_geometries)
 
    ck_assert_int_eq(eina_list_count(rects), 3);
 
-   EINA_LIST_FREE(rects, tr)
-      free(tr);
    eina_iterator_free(it);
 
    END_TB_TEST();
@@ -2515,6 +2945,14 @@ START_TEST(evas_textblock_text_getters)
             "and now in english."));
 
    /* Range get */
+   /* If one of the given cursor is NULL, it returns NULL. */
+   fail_if(evas_textblock_cursor_range_text_get(NULL, NULL,
+            EVAS_TEXTBLOCK_TEXT_MARKUP));
+   fail_if(evas_textblock_cursor_range_text_get(cur, NULL,
+            EVAS_TEXTBLOCK_TEXT_MARKUP));
+   fail_if(evas_textblock_cursor_range_text_get(NULL, cur,
+            EVAS_TEXTBLOCK_TEXT_MARKUP));
+
    Evas_Textblock_Cursor *main_cur = evas_object_textblock_cursor_get(tb);
    evas_textblock_cursor_pos_set(main_cur, 2);
    evas_textblock_cursor_pos_set(cur, 2);
@@ -2970,6 +3408,27 @@ START_TEST(evas_textblock_formats)
    evas_object_textblock_text_markup_set(tb, "f<color=#f00>i</color>f");
    evas_object_textblock_size_formatted_get(tb, NULL, NULL);
 
+   /* Line gap and multi language */
+   {
+      Evas_Coord h;
+      Evas_Textblock_Style *newst;
+      buf = "This is a test suite for line gap - ഈ ലൈൻ "
+                  "വിടവ് ടെസ്റ്റ് ടെസ്റ്റ് ടെസ്റ്റ് ടെസ്റ്റ് ഒരു പരീക്ഷണ വെയര് ";
+      newst = evas_textblock_style_new();
+      fail_if(!newst);
+      evas_textblock_style_set(newst,
+            "DEFAULT='" TEST_FONT " font_size=10 color=#000 wrap=word linegap=50'"
+            "br='\n'"
+            "ps='ps'"
+            "tab='\t'");
+      evas_object_textblock_style_set(tb, newst);
+      evas_object_textblock_text_markup_set(tb, buf);
+      fail_if(strcmp(evas_object_textblock_text_markup_get(tb), buf));
+      evas_object_resize(tb, 400, 400);
+      evas_object_textblock_size_formatted_get(tb, NULL, &h);
+      fail_if(h > 150);
+   }
+
    END_TB_TEST();
 }
 END_TEST
@@ -3185,11 +3644,11 @@ START_TEST(evas_textblock_escaping)
 
    const char *buf = "This &middot; is";
    evas_object_textblock_text_markup_set(tb, buf);
-   fail_if(strcmp(evas_object_textblock_text_markup_get(tb), "This \xc2\xb7 is"));
+   fail_if(strcmp(evas_object_textblock_text_markup_get(tb), buf));
 
    buf = "This &nbsp; is";
    evas_object_textblock_text_markup_set(tb, buf);
-   fail_if(strcmp(evas_object_textblock_text_markup_get(tb), "This \xc2\xa0 is"));
+   fail_if(strcmp(evas_object_textblock_text_markup_get(tb), buf));
 
    END_TB_TEST();
 }
@@ -3404,9 +3863,70 @@ START_TEST(evas_textblock_obstacle)
    evas_object_del(rect);
    _obstacle_run(tb, rect3, 0, fw, 0, 0, fh);
    END_TB_TEST();
-   /* Deleting rect3 later, so it will be first removed from observation,
-    * during freeing of the textblock */
-   evas_object_del(rect3);
+}
+END_TEST;
+
+static void
+_hyphenation_width_stress(Evas_Object *tb, Evas_Textblock_Cursor *cur)
+{
+   Evas_Coord bw, bh, iw, nw, nh, w, h;
+
+   evas_object_resize(tb, 100000, 1000);
+   evas_object_textblock_size_native_get(tb, &nw, &nh);
+   evas_object_resize(tb, 1, 1000);
+   evas_textblock_cursor_format_prepend(cur, "<wrap=mixed>");
+   evas_object_textblock_size_formatted_get(tb, &bw, &bh);
+   evas_textblock_cursor_format_prepend(cur, "<wrap=hyphenation>");
+   for (iw = nw ; iw >= bw ; iw--)
+     {
+        evas_object_resize(tb, iw, 1000);
+        evas_object_textblock_size_formatted_get(tb, &w, &h);
+        ck_assert_int_ge(w, bw);
+        ck_assert_int_le(w, iw);
+     }
+   ck_assert_int_eq(w, bw);
+}
+
+START_TEST(evas_textblock_hyphenation)
+{
+   START_TB_TEST();
+
+   /* SHY-HYPHEN (&shy;) */
+   /* Note: placing &shy; in a ligature is errornuos, so for the sake
+    * of this test, it was removed from the "officia" word */
+   const char *buf =
+      "Lorem ipsum dolor sit amet, cons&shy;ectetur adipisicing elit,"
+      " sed do eiusmod tempor incididunt ut labore et dolore magna aliqua."
+      " Ut enim ad minim veniam, quis nostrud exer&shy;citation ullamco"
+      " laboris nisi ut aliquip ex ea com&shy;modo consequat. Duis aute"
+      " irure dolor in repre&shy;henderit in voluptate velit esse cillum"
+      " dolore eu fugiat nulla pariatur. Excepteur sint occaecat cupidatat"
+      " non proident, sunt in culpa qui oficia deserunt mollit anim"
+      " id est lab&shy;orum.";
+
+   evas_object_textblock_text_markup_set(tb, buf);
+
+   /* Dictionary + locale fallback (en_US) */
+   setlocale(LC_MESSAGES, "en_US.UTF8");
+
+   /* Mixture of Dictionary with SHY-HYPHEN */
+   _hyphenation_width_stress(tb, cur);
+
+   /* Just dictionary */
+   buf =
+      "Lorem ipsum dolor sit amet, consectetur adipisicing elit,"
+      " sed do eiusmod tempor incididunt ut labore et dolore magna aliqua."
+      " Ut enim ad minim veniam, quis nostrud exercitation ullamco"
+      " laboris nisi ut aliquip ex ea commodo consequat. Duis aute"
+      " irure dolor in reprehenderit in voluptate velit esse cillum"
+      " dolore eu fugiat nulla pariatur. Excepteur sint occaecat cupidatat"
+      " non proident, sunt in culpa qui oficia deserunt mollit anim"
+      " id est laborum.";
+
+   evas_object_textblock_text_markup_set(tb, buf);
+   _hyphenation_width_stress(tb, cur);
+
+   END_TB_TEST();
 }
 END_TEST;
 
@@ -3432,5 +3952,6 @@ void evas_test_textblock(TCase *tc)
    tcase_add_test(tc, evas_textblock_items);
    tcase_add_test(tc, evas_textblock_delete);
    tcase_add_test(tc, evas_textblock_obstacle);
+   tcase_add_test(tc, evas_textblock_hyphenation);
 }
 

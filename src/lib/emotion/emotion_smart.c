@@ -417,7 +417,7 @@ emotion_object_file_get(const Evas_Object *obj)
    return file;
 }
 
-EOLIAN void
+EOLIAN static void
 _emotion_object_efl_file_file_get(Eo *obj EINA_UNUSED, Emotion_Object_Data *sd, const char **file, const char **key)
 {
    if (file) *file = sd->file;
@@ -1964,6 +1964,7 @@ _emotion_object_evas_object_smart_clip_unset(Evas_Object *obj EINA_UNUSED, Emoti
    if (sd->crop.clipper) evas_object_clip_unset(sd->crop.clipper);
    else evas_object_clip_unset(sd->obj);
    evas_object_clip_unset(sd->bg);
+
 }
 
 #include "emotion_object.eo.c"

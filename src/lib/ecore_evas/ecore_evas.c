@@ -30,8 +30,13 @@
 #include "ecore_evas_private.h"
 #include "ecore_evas_x11.h"
 #include "ecore_evas_wayland.h"
+#include "ecore_evas_cocoa.h"
 #include "ecore_evas_extn.h"
 #include "ecore_evas_win32.h"
+
+#ifndef O_BINARY
+# define O_BINARY 0
+#endif
 
 EAPI Eina_Bool _ecore_evas_app_comp_sync = EINA_FALSE;
 EAPI int _ecore_evas_log_dom = -1;
@@ -2972,11 +2977,11 @@ _ecore_evas_fps_debug_init(void)
 
    snprintf(buf, sizeof(buf), "%s/.ecore_evas_fps_debug-%i",
             eina_environment_tmp_get(), (int)getpid());
-   _ecore_evas_fps_debug_fd = open(buf, O_CREAT | O_TRUNC | O_RDWR, 0644);
+   _ecore_evas_fps_debug_fd = open(buf, O_CREAT | O_BINARY | O_TRUNC | O_RDWR, 0644);
    if (_ecore_evas_fps_debug_fd < 0)
      {
         unlink(buf);
-        _ecore_evas_fps_debug_fd = open(buf, O_CREAT | O_TRUNC | O_RDWR, 0644);
+        _ecore_evas_fps_debug_fd = open(buf, O_CREAT | O_BINARY | O_TRUNC | O_RDWR, 0644);
      }
    if (_ecore_evas_fps_debug_fd >= 0)
      {
@@ -3981,6 +3986,25 @@ ecore_evas_wayland_window_get(const Ecore_Evas *ee)
    EINA_SAFETY_ON_NULL_RETURN_VAL(iface, NULL);
 
    return iface->window_get(ee);
+}
+
+EAPI Ecore_Cocoa_Window *
+ecore_evas_cocoa_window_get(const Ecore_Evas *ee)
+{
+   Ecore_Evas_Interface_Cocoa *iface;
+   iface = (Ecore_Evas_Interface_Cocoa *)_ecore_evas_interface_get(ee, "opengl_cocoa");
+   EINA_SAFETY_ON_NULL_RETURN_VAL(iface, NULL);
+   return iface->window_get(ee);
+}
+
+EAPI Ecore_Wl2_Window *
+ecore_evas_wayland2_window_get(const Ecore_Evas *ee)
+{
+   Ecore_Evas_Interface_Wayland *iface;
+   iface = (Ecore_Evas_Interface_Wayland *)_ecore_evas_interface_get(ee, "wayland");
+   EINA_SAFETY_ON_NULL_RETURN_VAL(iface, NULL);
+
+   return iface->window2_get(ee);
 }
 
 EAPI Ecore_Evas *

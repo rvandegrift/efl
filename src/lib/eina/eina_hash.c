@@ -508,7 +508,22 @@ static int
 _eina_stringshared_key_cmp(const char *key1, EINA_UNUSED int key1_length,
                            const char *key2, EINA_UNUSED int key2_length)
 {
-   return key1 - key2;
+// logically we want to do this:
+//   return key1 - key2;
+// but since they are ptrs and an int can't store the different of 2 ptrs in
+// either 32 or 64bit (signed hasn't got enough range for the diff of 2
+// 32bit values regardless of their type... we'd need 33bits or 65bits)
+// so do this...
+   if (key1 == key2) return 0;
+   if (key1 > key2) return 1;
+   return -1;
+// NOTE: this seems odd. we don't sort by string content at all... we sort
+// by pointer location in memory. this seems odd at first, BUT this does
+// work because with stringshare each ptr holds a unique string and we
+// cannot have 2 ptrs in stringshare have the same string content thus we
+// can't go wrong and have 2 ptrs be different yet the string key be the
+// same, thus we can avoid walking the string, so sorting by ptr value is
+// frankly as good as anything. :) (this is only within the bucket too)
 }
 
 static unsigned int
@@ -521,20 +536,24 @@ static int
 _eina_int32_key_cmp(const uint32_t *key1, EINA_UNUSED int key1_length,
                     const uint32_t *key2, EINA_UNUSED int key2_length)
 {
-   return *key1 - *key2;
+   if (*key1 == *key2) return 0;
+   if (*key1 > *key2) return 1;
+   return -1;
 }
 
 static unsigned int
-_eina_int64_key_length(EINA_UNUSED const uint32_t *key)
+_eina_int64_key_length(EINA_UNUSED const uint64_t *key)
 {
-   return 8;
+   return sizeof(int64_t);
 }
 
 static int
 _eina_int64_key_cmp(const uint64_t *key1, EINA_UNUSED int key1_length,
                     const uint64_t *key2, EINA_UNUSED int key2_length)
 {
-   return *key1 - *key2;
+   if (*key1 == *key2) return 0;
+   if (*key1 > *key2) return 1;
+   return -1;
 }
 
 static Eina_Bool
@@ -1221,7 +1240,7 @@ eina_hash_iterator_data_new(const Eina_Hash *hash)
 {
    Eina_Iterator_Hash *it;
 
-   EINA_SAFETY_ON_NULL_RETURN_VAL(hash, NULL);
+   if (!hash) return NULL;
    EINA_MAGIC_CHECK_HASH(hash);
 
    it = calloc(1, sizeof (Eina_Iterator_Hash));
@@ -1247,7 +1266,7 @@ eina_hash_iterator_key_new(const Eina_Hash *hash)
 {
    Eina_Iterator_Hash *it;
 
-   EINA_SAFETY_ON_NULL_RETURN_VAL(hash, NULL);
+   if (!hash) return NULL;
    EINA_MAGIC_CHECK_HASH(hash);
 
    it = calloc(1, sizeof (Eina_Iterator_Hash));
@@ -1274,7 +1293,7 @@ eina_hash_iterator_tuple_new(const Eina_Hash *hash)
 {
    Eina_Iterator_Hash *it;
 
-   EINA_SAFETY_ON_NULL_RETURN_VAL(hash, NULL);
+   if (!hash) return NULL;
    EINA_MAGIC_CHECK_HASH(hash);
 
    it = calloc(1, sizeof (Eina_Iterator_Hash));

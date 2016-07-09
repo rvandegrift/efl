@@ -319,7 +319,7 @@ _eo_base_wref_add(Eo *obj, Eo_Base_Data *pd, Eo **wref)
    *wref = obj;
 }
 
-EOLIAN void
+EOLIAN static void
 _eo_base_wref_del(Eo *obj, Eo_Base_Data *pd, Eo **wref)
 {
    size_t count;
@@ -561,7 +561,12 @@ _eo_base_event_callback_priority_add(Eo *obj, Eo_Base_Data *pd,
    Eo_Callback_Description *cb;
 
    cb = calloc(1, sizeof(*cb));
-   if (!cb) return;
+   if (!cb || !desc || !func)
+     {
+        ERR("Tried adding callback with invalid values: cb: %p desc: %p func: %p\n", cb, desc, func);
+        free(cb);
+        return;
+     }
    cb->items.item.desc = desc;
    cb->items.item.func = func;
    cb->func_data = (void *) user_data;
@@ -570,7 +575,7 @@ _eo_base_event_callback_priority_add(Eo *obj, Eo_Base_Data *pd,
 
      {
         const Eo_Callback_Array_Item arr[] = { {desc, func}, {NULL, NULL}};
-        eo_do(obj, eo_event_callback_call(EO_EV_CALLBACK_ADD, (void *)arr));
+        eo_do(obj, eo_event_callback_call(EO_BASE_EVENT_CALLBACK_ADD, (void *)arr));
      }
 }
 
@@ -592,7 +597,7 @@ _eo_base_event_callback_del(Eo *obj, Eo_Base_Data *pd,
              cb->delete_me = EINA_TRUE;
              pd->deletions_waiting = EINA_TRUE;
              _eo_callbacks_clear(pd);
-             eo_do(obj, eo_event_callback_call(EO_EV_CALLBACK_DEL, (void *)arr); );
+             eo_do(obj, eo_event_callback_call(EO_BASE_EVENT_CALLBACK_DEL, (void *)arr); );
              return;
           }
      }
@@ -617,7 +622,7 @@ _eo_base_event_callback_array_priority_add(Eo *obj, Eo_Base_Data *pd,
    _eo_callbacks_sorted_insert(pd, cb);
 
      {
-        eo_do(obj, eo_event_callback_call(EO_EV_CALLBACK_ADD, (void *)array); );
+        eo_do(obj, eo_event_callback_call(EO_BASE_EVENT_CALLBACK_ADD, (void *)array); );
      }
 }
 
@@ -637,7 +642,7 @@ _eo_base_event_callback_array_del(Eo *obj, Eo_Base_Data *pd,
              pd->deletions_waiting = EINA_TRUE;
              _eo_callbacks_clear(pd);
 
-             eo_do(obj, eo_event_callback_call(EO_EV_CALLBACK_DEL, (void *)array); );
+             eo_do(obj, eo_event_callback_call(EO_BASE_EVENT_CALLBACK_DEL, (void *)array); );
              return;
           }
      }
@@ -648,21 +653,13 @@ _eo_base_event_callback_array_del(Eo *obj, Eo_Base_Data *pd,
 static Eina_Bool
 _cb_desc_match(const Eo_Event_Description *a, const Eo_Event_Description *b)
 {
-   if (!a)
-      return EINA_FALSE;
-
-   if (_legacy_event_desc_is(a) && _legacy_event_desc_is(b))
-     {
-        return (a->name == b->name);
-     }
-   else if (_legacy_event_desc_is(a) || _legacy_event_desc_is(b))
+   /* If one is legacy and the other is not, strcmp. Else, pointer compare. */
+   if (EINA_UNLIKELY(_legacy_event_desc_is(a) != _legacy_event_desc_is(b)))
      {
         return !strcmp(a->name, b->name);
      }
-   else
-     {
-        return (a == b);
-     }
+
+   return (a == b);
 }
 
 EOLIAN static Eina_Bool
@@ -670,14 +667,9 @@ _eo_base_event_callback_call(Eo *obj_id, Eo_Base_Data *pd,
             const Eo_Event_Description *desc,
             void *event_info)
 {
-   Eina_Bool ret;
+   Eina_Bool ret = EINA_TRUE;
    Eo_Callback_Description *cb;
 
-   EO_OBJ_POINTER_RETURN_VAL(obj_id, obj, EINA_FALSE);
-
-   ret = EINA_TRUE;
-
-   _eo_ref(obj);
    pd->walking_list++;
 
    for (cb = pd->callbacks; cb; cb = cb->next)
@@ -709,8 +701,7 @@ _eo_base_event_callback_call(Eo *obj_id, Eo_Base_Data *pd,
                {
                   if (!_cb_desc_match(cb->items.item.desc, desc))
                     continue;
-                  if ((!cb->items.item.desc
-                       || !cb->items.item.desc->unfreezable) &&
+                  if (!cb->items.item.desc->unfreezable &&
                       (event_freeze_count || pd->event_freeze_count))
                     continue;
 
@@ -728,7 +719,6 @@ _eo_base_event_callback_call(Eo *obj_id, Eo_Base_Data *pd,
 end:
    pd->walking_list--;
    _eo_callbacks_clear(pd);
-   _eo_unref(obj);
 
    return ret;
 }
@@ -972,7 +962,7 @@ EAPI const Eina_Value_Type *EO_DBG_INFO_TYPE = &_EO_DBG_INFO_TYPE;
 EOLIAN static Eo *
 _eo_base_constructor(Eo *obj, Eo_Base_Data *pd EINA_UNUSED)
 {
-   DBG("%p - %s.", obj, eo_class_name_get(MY_CLASS));
+   DBG("%p - %s.", obj, eo_class_name_get(obj));
 
    _eo_condtor_done(obj);
 
@@ -984,7 +974,7 @@ _eo_base_destructor(Eo *obj, Eo_Base_Data *pd)
 {
    Eo *child;
 
-   DBG("%p - %s.", obj, eo_class_name_get(MY_CLASS));
+   DBG("%p - %s.", obj, eo_class_name_get(obj));
 
    // special removal - remove from children list by hand after getting
    // child handle in case unparent method is overridden and does

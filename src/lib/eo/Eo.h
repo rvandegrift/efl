@@ -484,8 +484,11 @@ typedef struct _Eo_Call_Cache
 #define EO_FUNC_COMMON_OP(Name, DefRet)                                 \
      static Eo_Call_Cache ___cache; /* static 0 by default */           \
      Eo_Op_Call_Data ___call;                                           \
-     if (___cache.op == EO_NOOP)                                        \
-       ___cache.op = _eo_api_op_id_get(EO_FUNC_COMMON_OP_FUNC(Name));   \
+     if (EINA_UNLIKELY(___cache.op == EO_NOOP))                         \
+       {                                                                \
+          ___cache.op = _eo_api_op_id_get(EO_FUNC_COMMON_OP_FUNC(Name)); \
+          if (___cache.op == EO_NOOP) return DefRet;                    \
+       }                                                                \
      if (!_eo_call_resolve(#Name, &___call, &___cache,                  \
                            __FILE__, __LINE__)) return DefRet;          \
      _Eo_##Name##_func _func_ = (_Eo_##Name##_func) ___call.func;       \
@@ -532,15 +535,15 @@ typedef struct _Eo_Call_Cache
   }
 
 #ifndef _WIN32
-# define _EO_OP_API_ENTRY(a) a
+# define _EO_OP_API_ENTRY(a) (void*)a
 #else
 # define _EO_OP_API_ENTRY(a) #a
 #endif
 
-#define EO_OP_FUNC(_api, _private) { _EO_OP_API_ENTRY(_api), _private, EO_OP_TYPE_REGULAR }
-#define EO_OP_CLASS_FUNC(_api, _private) { _EO_OP_API_ENTRY(_api), _private, EO_OP_TYPE_CLASS }
-#define EO_OP_FUNC_OVERRIDE(_api, _private) { _EO_OP_API_ENTRY(_api), _private, EO_OP_TYPE_REGULAR_OVERRIDE }
-#define EO_OP_CLASS_FUNC_OVERRIDE(_api, _private) { _EO_OP_API_ENTRY(_api), _private, EO_OP_TYPE_CLASS_OVERRIDE }
+#define EO_OP_FUNC(_api, _private) { _EO_OP_API_ENTRY(_api), (void*)_private, EO_OP_TYPE_REGULAR }
+#define EO_OP_CLASS_FUNC(_api, _private) { _EO_OP_API_ENTRY(_api), (void*)_private, EO_OP_TYPE_CLASS }
+#define EO_OP_FUNC_OVERRIDE(_api, _private) { _EO_OP_API_ENTRY(_api), (void*)_private, EO_OP_TYPE_REGULAR_OVERRIDE }
+#define EO_OP_CLASS_FUNC_OVERRIDE(_api, _private) { _EO_OP_API_ENTRY(_api), (void*)_private, EO_OP_TYPE_CLASS_OVERRIDE }
 
 // returns the OP id corresponding to the given api_func
 EAPI Eo_Op _eo_api_op_id_get(const void *api_func);
@@ -1022,9 +1025,12 @@ EAPI const Eo_Event_Description *eo_base_legacy_only_event_description_get(const
  */
 
 /* XXX: Deprecated, here for compat, DO NOT USE */
-#define EO_EV_CALLBACK_ADD EO_BASE_EVENT_CALLBACK_ADD
-#define EO_EV_CALLBACK_DEL EO_BASE_EVENT_CALLBACK_DEL
-#define EO_EV_DEL EO_BASE_EVENT_DEL
+EINA_DEPRECATED static inline const Eo_Event_Description* _EO_EV_CALLBACK_ADD(void) { return EO_BASE_EVENT_CALLBACK_ADD; }
+EINA_DEPRECATED static inline const Eo_Event_Description* _EO_EV_CALLBACK_DEL(void) { return EO_BASE_EVENT_CALLBACK_DEL; }
+EINA_DEPRECATED static inline const Eo_Event_Description* _EO_EV_DEL(void) { return EO_BASE_EVENT_DEL; }
+#define EO_EV_CALLBACK_ADD _EO_EV_CALLBACK_ADD()
+#define EO_EV_CALLBACK_DEL _EO_EV_CALLBACK_DEL()
+#define EO_EV_DEL _EO_EV_DEL()
 
 /**
  * @}

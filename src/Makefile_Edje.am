@@ -130,7 +130,7 @@ if HAVE_WIN32
 USE_EDJE_BIN_LIBS = -L$(top_builddir)/src/lib/evil @USE_EDJE_LIBS@
 else
 USE_EDJE_BIN_LIBS = @USE_EDJE_LIBS@
-endif         
+endif
 
 bin_PROGRAMS += \
 bin/edje/edje_cc \
@@ -255,6 +255,7 @@ tests/edje/data/test_parens.edc \
 tests/edje/data/test_masking.edc \
 tests/edje/data/test_filters.edc \
 tests/edje/data/test_snapshot.edc \
+tests/edje/data/test_size_class.edc \
 tests/edje/data/filter.lua
 
 
@@ -297,6 +298,7 @@ EDJE_DATA_FILES = tests/edje/data/test_layout.edc \
                   tests/edje/data/test_masking.edc \
                   tests/edje/data/test_filters.edc \
                   tests/edje/data/test_snapshot.edc \
+                  tests/edje/data/test_size_class.edc \
                   tests/edje/data/filter.lua
 
 edjedatafilesdir = $(datadir)/edje/data
@@ -305,14 +307,16 @@ edjedatafiles_DATA = tests/edje/data/test_layout.edj \
                      tests/edje/data/test_parens.edj \
                      tests/edje/data/test_masking.edj \
                      tests/edje/data/test_filters.edj \
-                     tests/edje/data/test_snapshot.edj
+                     tests/edje/data/test_snapshot.edj \
+                     tests/edje/data/test_size_class.edj
 
 CLEANFILES += tests/edje/data/test_layout.edj \
               tests/edje/data/complex_layout.edj \
               tests/edje/data/test_parens.edj \
               tests/edje/data/test_masking.edj \
               tests/edje/data/test_filters.edj \
-              tests/edje/data/test_snapshot.edj
+              tests/edje/data/test_snapshot.edj \
+              tests/edje/data/test_size_class.edj
 
 endif
 
@@ -328,5 +332,15 @@ CLEANFILES += $(generated_edje_lua_all)
 
 installed_edjeluadir = $(datadir)/elua/modules/edje
 nodist_installed_edjelua_DATA = $(generated_edje_lua_all)
+
+endif
+
+if HAVE_JS
+
+generated_edje_js_bindings = $(edje_eolian_files:%.eo=%.eo.js.cc)
+
+CLEANFILES += $(generated_edje_js_bindings)
+
+GENERATED_JS_BINDINGS += $(generated_edje_js_bindings)
 
 endif

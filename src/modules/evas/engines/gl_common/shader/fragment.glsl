@@ -4,13 +4,7 @@
  * through cpp first (in which case the precision must be manually added).
  */
 
-#ifdef GL_ES
-#ifdef GL_FRAGMENT_PRECISION_HIGH
-precision highp float;
-#else
-precision mediump float;
-#endif
-#endif
+FRAGMENT_SHADER
 
 #ifndef SHD_NOMUL
 varying vec4 col;
@@ -66,13 +60,13 @@ varying vec2 masktex_s[4];
 # define SWZ aaaa
 #else
 # ifndef SHD_BGRA
-#  if defined(SHD_IMG) && defined(BIGENDIAN)
+#  if defined(SHD_IMG) && defined(SHD_BIGENDIAN)
 #   define SWZ gbar
 #  else
 #   define SWZ bgra
 #endif
 # else
-#  if defined(SHD_IMG) && defined(BIGENDIAN)
+#  if defined(SHD_IMG) && defined(SHD_BIGENDIAN)
 #   define SWZ grab
 #  else
 #   define SWZ rgba
@@ -154,6 +148,10 @@ void main()
 # endif
 #endif
 
+#ifdef SHD_AFILL
+   c.a = 1.0;
+#endif
+
    gl_FragColor =
        c
 #ifndef SHD_NOMUL
@@ -166,9 +164,5 @@ void main()
      * texture2D(texa, tex_a).r
 #endif
    ;
-
-#ifdef SHD_AFILL
-   gl_FragColor.a = 1.0;
-#endif
 }
 

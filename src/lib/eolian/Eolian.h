@@ -208,7 +208,8 @@ typedef enum
    EOLIAN_TYPE_STRUCT_OPAQUE,
    EOLIAN_TYPE_ENUM,
    EOLIAN_TYPE_ALIAS,
-   EOLIAN_TYPE_CLASS
+   EOLIAN_TYPE_CLASS,
+   EOLIAN_TYPE_UNDEFINED
 } Eolian_Type_Type;
 
 typedef enum
@@ -1494,6 +1495,23 @@ EAPI Eina_Stringshare *eolian_type_file_get(const Eolian_Type *tp);
  * @ingroup Eolian
  */
 EAPI const Eolian_Type *eolian_type_base_type_get(const Eolian_Type *tp);
+
+/*
+ * @brief Get the lowest base type of an alias stack.
+ *
+ * If the given type is an alias, it returns the result of a recursive call
+ * to this function on its base type. If it's a regular type, it first tries
+ * to retrieve its base using eolian_type_base_type_get and if the retrieved
+ * base is an alias, returns a recursive call of this function on it. Otherwise
+ * it returns the given type. This is useful in order to retrieve what an
+ * aliased type actually is while still having convenience.
+ *
+ * @param[in] tp the type.
+ * @return the lowest alias base or the given type.
+ *
+ * @ingroup Eolian
+ */
+EAPI const Eolian_Type *eolian_type_aliased_base_get(const Eolian_Type *tp);
 
 /*
  * @brief Get the class associated with an EOLIAN_TYPE_CLASS type.

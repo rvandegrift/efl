@@ -1,5 +1,9 @@
 #include "ecore_evas_extn_engine.h"
 
+#ifndef O_BINARY
+# define O_BINARY 0
+#endif
+
 struct _Extnbuf
 {
    const char *file, *lock;
@@ -114,6 +118,7 @@ _extnbuf_data_get(Extnbuf *b, int *w, int *h, int *stride)
 void *
 _extnbuf_lock(Extnbuf *b, int *w, int *h, int *stride)
 {
+   if (!b) return NULL;
    if (!b->have_lock)
      {
         if (b->lockfd >= 0)
@@ -132,7 +137,7 @@ _extnbuf_lock(Extnbuf *b, int *w, int *h, int *stride)
 void
 _extnbuf_unlock(Extnbuf *b)
 {
-   if (!b->have_lock) return;
+   if (!b || !b->have_lock) return;
    if (b->lockfd >= 0)
      {
         if (lockf(b->lockfd, F_ULOCK, 0) < 0)
@@ -165,7 +170,7 @@ _extnbuf_lock_file_set(Extnbuf *b, const char *file)
      }
    b->lock = eina_stringshare_add(file);
    if (!b->lock) goto err;
-   b->lockfd = open(b->lock, O_RDWR);
+   b->lockfd = open(b->lock, O_RDWR | O_BINARY);
    if (b->lockfd >= 0) return EINA_TRUE;
 err:
    if (b->lock) eina_stringshare_del(b->lock);

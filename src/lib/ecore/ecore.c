@@ -35,6 +35,10 @@
 #include <malloc.h>
 #endif
 
+#ifndef O_BINARY
+# define O_BINARY 0
+#endif
+
 static Ecore_Version _version = { VMAJ, VMIN, VMIC, VREV };
 EAPI Ecore_Version *ecore_version = &_version;
 
@@ -271,7 +275,7 @@ ecore_init(void)
        char tmp[1024];
 
        snprintf(tmp, sizeof(tmp), "ecore_mem_stat.%i", getpid());
-       _ecore_memory_statistic_file = fopen(tmp, "w");
+       _ecore_memory_statistic_file = fopen(tmp, "wb");
 #endif
         _ecore_memory_pid = getpid();
         ecore_animator_add(_ecore_memory_statistic, NULL);
@@ -777,11 +781,11 @@ _ecore_fps_debug_init(void)
    tmp = eina_environment_tmp_get();
    pid = (int)getpid();
    snprintf(buf, sizeof(buf), "%s/.ecore_fps_debug-%i", tmp, pid);
-   _ecore_fps_debug_fd = open(buf, O_CREAT | O_TRUNC | O_RDWR, 0644);
+   _ecore_fps_debug_fd = open(buf, O_CREAT | O_BINARY | O_TRUNC | O_RDWR, 0644);
    if (_ecore_fps_debug_fd < 0)
      {
         unlink(buf);
-        _ecore_fps_debug_fd = open(buf, O_CREAT | O_TRUNC | O_RDWR, 0644);
+        _ecore_fps_debug_fd = open(buf, O_CREAT | O_BINARY | O_TRUNC | O_RDWR, 0644);
      }
    if (_ecore_fps_debug_fd >= 0)
      {
@@ -905,7 +909,6 @@ _ecore_memory_statistic(EINA_UNUSED void *data)
 #endif
 #ifdef HAVE_MALLOC_INFO
    if (frame) fputs("\n", _ecore_memory_statistic_file);
-   fprintf(_ecore_memory_statistic_file, "=== Frame %i ===\n\n", frame++);
    malloc_info(0, _ecore_memory_statistic_file);
 #endif
 

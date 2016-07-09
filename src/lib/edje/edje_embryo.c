@@ -849,8 +849,22 @@ _edje_embryo_fn_stop_programs_on(Embryo_Program *ep, Embryo_Cell *params)
    rp = ed->table_parts[part_id % ed->table_parts_size];
    if (rp)
      {
+        Eina_List *l, *ll, *lll;
+        Edje_Pending_Program *pp;
+        Edje_Program_Target *pt;
         /* there is only ever 1 program acting on a part at any time */
         if (rp->program) _edje_program_end(ed, rp->program);
+        EINA_LIST_FOREACH_SAFE(ed->pending_actions, l, ll, pp)
+          {
+             EINA_LIST_FOREACH(pp->program->targets, lll, pt)
+               if (pt->id == part_id)
+                 {
+                    ed->pending_actions = eina_list_remove_list(ed->pending_actions, l);
+                    ecore_timer_del(pp->timer);
+                    free(pp);
+                    break;
+                 }
+          }
      }
    return 0;
 }
@@ -1293,6 +1307,7 @@ _edje_embryo_fn_set_tween_state_anim(Embryo_Program *ep, Embryo_Cell *params)
         if (HASNPARAMS(8))
           {
              GETSTR(tmp, params[8]);
+             if (!tmp) return 0;
              if (!strcmp(tmp, "CURRENT"))
                anim_type |= EDJE_TWEEN_MODE_OPT_FROM_CURRENT;
           }
@@ -1303,6 +1318,7 @@ _edje_embryo_fn_set_tween_state_anim(Embryo_Program *ep, Embryo_Cell *params)
         if (HASNPARAMS(9))
           {
              GETSTR(tmp, params[9]);
+             if (!tmp) return 0;
              if (!strcmp(tmp, "CURRENT"))
                anim_type |= EDJE_TWEEN_MODE_OPT_FROM_CURRENT;
           }
@@ -1319,6 +1335,7 @@ _edje_embryo_fn_set_tween_state_anim(Embryo_Program *ep, Embryo_Cell *params)
         if (HASNPARAMS(10))
           {
              GETSTR(tmp, params[10]);
+             if (!tmp) return 0;
              if (!strcmp(tmp, "CURRENT"))
                anim_type |= EDJE_TWEEN_MODE_OPT_FROM_CURRENT;
           }
@@ -1335,6 +1352,7 @@ _edje_embryo_fn_set_tween_state_anim(Embryo_Program *ep, Embryo_Cell *params)
         if (HASNPARAMS(12))
           {
              GETSTR(tmp, params[10]);
+             if (!tmp) return 0;
              if (!strcmp(tmp, "CURRENT"))
                anim_type |= EDJE_TWEEN_MODE_OPT_FROM_CURRENT;
           }
@@ -4440,8 +4458,9 @@ _edje_embryo_script_reset(Edje *ed)
 
 /* this may change in future - thus "test_run" is its name */
 void
-_edje_embryo_test_run(Edje *ed, const char *fname, const char *sig, const char *src)
+_edje_embryo_test_run(Edje *ed, Edje_Program *pr, const char *sig, const char *src)
 {
+   char fname[128];
    Embryo_Function fn;
 
    if (!ed) return;
@@ -4451,6 +4470,7 @@ _edje_embryo_test_run(Edje *ed, const char *fname, const char *sig, const char *
    _edje_embryo_globals_init(ed);
 
    //   _edje_embryo_script_reset(ed);
+   snprintf(fname, sizeof(fname), "_p%i", pr->id);
    fn = embryo_program_function_find(ed->collection->script, (char *)fname);
    if (fn != EMBRYO_FUNCTION_NONE)
      {
@@ -4474,20 +4494,24 @@ _edje_embryo_test_run(Edje *ed, const char *fname, const char *sig, const char *
         /* like 0.03 - 0.05 seconds or even more */
         embryo_program_max_cycle_run_set(ed->collection->script, 5000000);
         if (embryo_program_recursion_get(ed->collection->script) && (!ed->collection->script_recursion))
-          ERR("You are running Embryo->EDC->Embryo with script program '%s';\nBy the power of Grayskull, your previous Embryo stack is now broken!", fname);
+          ERR("You are running Embryo->EDC->Embryo with script program '%s';\n"
+              "A run_program runs the '%d'th program '%s' in the group '%s' of file %s;\n"
+              "By the power of Grayskull, your previous Embryo stack is now broken!",
+              fname, (fn + 1), pr->name, ed->group, ed->path);
+
         ret = embryo_program_run(ed->collection->script, fn);
         if (ret == EMBRYO_PROGRAM_FAIL)
           {
              ERR("ERROR with embryo script. "
                  "OBJECT NAME: '%s', "
                  "OBJECT FILE: '%s', "
-                 "ENTRY POINT: '%s', "
+                 "ENTRY POINT: '%s (%s)', "
                  "SIGNAL: '%s', "
                  "SOURCE: '%s', "
                  "ERROR: '%s'",
                  ed->collection->part,
                  ed->file->path,
-                 fname,
+                 fname, pr->name,
                  sig, src,
                  embryo_error_string_get(embryo_program_error_get(ed->collection->script)));
           }
@@ -4496,13 +4520,13 @@ _edje_embryo_test_run(Edje *ed, const char *fname, const char *sig, const char *
              ERR("ERROR with embryo script. "
                  "OBJECT NAME: '%s', "
                  "OBJECT FILE: '%s', "
-                 "ENTRY POINT: '%s', "
+                 "ENTRY POINT: '%s (%s)', "
                  "SIGNAL: '%s', "
                  "SOURCE: '%s', "
                  "ERROR: 'Script exceeded maximum allowed cycle count of %i'",
                  ed->collection->part,
                  ed->file->path,
-                 fname,
+                 fname, pr->name,
                  sig, src,
                  embryo_program_max_cycle_run_get(ed->collection->script));
           }

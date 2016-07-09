@@ -19,7 +19,6 @@
 
 #include "evil_macro.h"
 #include "evil_stdlib.h"
-#include "evil_private.h"
 
 /*
  * Environment variable related functions
@@ -194,11 +193,15 @@ mkstemps(char *__template, int suffixlen)
    return -1;
 }
 
+#if __MINGW64_VERSION_MAJOR < 4
+
 int
 mkstemp(char *__template)
 {
    return mkstemps(__template, 0);
 }
+
+#endif
 
 char *
 realpath(const char *file_name, char *resolved_name)

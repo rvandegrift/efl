@@ -300,6 +300,8 @@ ecore_wl_input_cursor_from_name_set(Ecore_Wl_Input *input, const char *cursor_na
    LOGFN(__FILE__, __LINE__, __FUNCTION__);
 
    if (!input) return;
+   /* No pointer device. Don't need to set cursor and update it */
+   if (!input->pointer) return;
 
    _pointer_update_stop(input);
 
@@ -979,9 +981,8 @@ _ecore_wl_input_cb_pointer_enter(void *data, struct wl_pointer *pointer EINA_UNU
    input->display->serial = serial;
    input->pointer_enter_serial = serial;
 
-   if (input->pointer)
    /* The cursor on the surface is undefined until we set it */
-     ecore_wl_input_cursor_from_name_set(input, "left_ptr");
+   ecore_wl_input_cursor_from_name_set(input, "left_ptr");
 
    if ((win = ecore_wl_window_surface_find(surface)))
      {
@@ -1116,13 +1117,17 @@ _ecore_wl_input_cb_touch_down(void *data, struct wl_touch *touch EINA_UNUSED, un
 
    if (!(win = ecore_wl_window_surface_find(surface))) return;
 
-   input->touch_focus = win;
    input->timestamp = timestamp;
    input->display->serial = serial;
    input->sx = wl_fixed_to_int(x);
    input->sy = wl_fixed_to_int(y);
 
-   //_ecore_wl_input_mouse_move_send(input, input->touch_focus, timestamp, id);
+   if (input->touch_focus != win)
+     {
+        input->touch_focus = win;
+        _ecore_wl_input_mouse_move_send(input, input->touch_focus, timestamp, id);
+     }
+
    if (!input->grab_count)
      {
       _ecore_wl_input_cb_pointer_enter(data, NULL, serial, surface, x, y);

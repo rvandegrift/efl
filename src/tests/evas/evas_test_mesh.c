@@ -16,41 +16,52 @@
 #define TESTS_MD2_MESH_DIR TESTS_MESH_DIR"/md2"
 #define TESTS_PLY_MESH_DIR TESTS_MESH_DIR"/ply"
 
-#define COMPARE_GEOMETRICS(a)                               \
-   vb1 = &f1->vertices[a];                                  \
-   vb2 = &f2->vertices[a];                                  \
-   if ((vb1->data == NULL) || (vb2->data == NULL))          \
-      return 1;                                             \
-   src1 = (float *)vb1->data;                               \
-   src2 = (float *)vb2->data;                               \
-   for (i = 0; i < pd1->vertex_count; i++)                  \
-     {                                                      \
-        if ((src1[0] != src2[0]) || (src1[1] != src2[1]))   \
-           return 1;                                        \
-        if (a != EVAS_CANVAS3D_VERTEX_ATTRIB_TEXCOORD)             \
-           if (src1[2] != src2[2])                          \
-              return 1;                                     \
-        src1 += f1->vertices[a].element_count;              \
-        src2 += f2->vertices[a].element_count;              \
+#define COMPARE_GEOMETRICS(a)                                    \
+   vb1 = &f1->vertices[a];                                       \
+   vb2 = &f2->vertices[a];                                       \
+   if ((a == EVAS_CANVAS3D_VERTEX_ATTRIB_POSITION) &&            \
+       ((vb1->data == NULL) || (vb2->data == NULL)))             \
+      return 1;                                                  \
+   if ((vb1->data != NULL) && (vb2->data != NULL))               \
+     {                                                           \
+        src1 = (float *)vb1->data;                               \
+        src2 = (float *)vb2->data;                               \
+        for (i = 0; i < pd1->vertex_count; i++)                  \
+           {                                                     \
+              if ((src1[0] != src2[0]) || (src1[1] != src2[1]))  \
+                return 1;                                        \
+              if (a != EVAS_CANVAS3D_VERTEX_ATTRIB_TEXCOORD)     \
+              if (src1[2] != src2[2])                            \
+                return 1;                                        \
+              src1 += f1->vertices[a].element_count;             \
+              src2 += f2->vertices[a].element_count;             \
+           }                                                     \
      }
 
 #define CHECK_MESHES_IN_FOLDER(folder, ext)                             \
   it = eina_file_direct_ls(folder);                                     \
   EINA_ITERATOR_FOREACH(it, file)                                       \
     {                                                                   \
+       int set_ok, save_ok;                                             \
        mesh = eo_add(EVAS_CANVAS3D_MESH_CLASS, e);                      \
        mesh2 = eo_add(EVAS_CANVAS3D_MESH_CLASS, e);                     \
        fail_if(mesh == NULL);                                           \
        fail_if(mesh2 == NULL);                                          \
-       snprintf(buffer, PATH_MAX, "%s", ext);                           \
-       eo_do(mesh, efl_file_set(file->path, NULL),                      \
-             efl_file_save(buffer, NULL, NULL));                        \
-       eo_do(mesh2, efl_file_set(buffer, NULL));                        \
+       snprintf(buffer, PATH_MAX, "%s%s", tmp, ext);                    \
+       eo_do(mesh, set_ok = efl_file_set(file->path, NULL),             \
+             save_ok = efl_file_save(buffer, NULL, NULL));              \
+       fail_if(!set_ok);                                                \
+       fail_if(!save_ok);                                               \
+       eo_do(mesh2, set_ok = efl_file_set(buffer, NULL));               \
+       fail_if(!set_ok);                                                \
        res = _compare_meshes(mesh, mesh2);                              \
        fail_if(res == 1);                                               \
-       eo_do(mesh, efl_file_mmap_set(eina_file_open(file->path, 0), NULL), \
-             efl_file_save(buffer, NULL, NULL));                        \
-       eo_do(mesh2, efl_file_mmap_set(eina_file_open(buffer, 0), NULL)); \
+       eo_do(mesh, set_ok = efl_file_mmap_set(eina_file_open(file->path, 0), NULL), \
+             save_ok = efl_file_save(buffer, NULL, NULL));              \
+       fail_if(!set_ok);                                                \
+       fail_if(!save_ok);                                               \
+       eo_do(mesh2, set_ok = efl_file_mmap_set(eina_file_open(buffer, 0), NULL)); \
+       fail_if(!set_ok);                                                \
        res = _compare_meshes(mesh, mesh2);                              \
        fail_if(res == 1);                                               \
        eo_del(mesh2);                                                   \
@@ -112,11 +123,10 @@ START_TEST(evas_object_mesh_loader_saver)
    int res = 0, tmpfd;
    const Eina_File_Direct_Info *file;
 
+   /* create tmp file name, assume tmp.eet and tmp.ply also work */
    tmpfd = eina_file_mkstemp(file_mask, &tmp);
    fail_if(tmpfd == -1);
    fail_if(!!close(tmpfd));
-
-   snprintf(buffer, PATH_MAX, "%s", tmp);
 
    CHECK_MESHES_IN_FOLDER(TESTS_OBJ_MESH_DIR, ".eet")
    CHECK_MESHES_IN_FOLDER(TESTS_MD2_MESH_DIR, ".eet")
@@ -124,6 +134,7 @@ START_TEST(evas_object_mesh_loader_saver)
    CHECK_MESHES_IN_FOLDER(TESTS_PLY_MESH_DIR, ".ply")
 
    eina_iterator_free(it);
+   unlink(tmp);
 
    evas_free(e);
    evas_shutdown();

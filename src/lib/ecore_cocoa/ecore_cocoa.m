@@ -12,13 +12,16 @@
 #include <Ecore_Input.h>
 
 #include "Ecore_Cocoa.h"
-#include "Ecore_Cocoa_Keys.h"
+
+#define _ECORE_COCOA_KEYS_MANUAL_GUARD_
+#include "ecore_cocoa_keys.h"
+#undef _ECORE_COCOA_KEYS_MANUAL_GUARD_
+
 #include "ecore_cocoa_private.h"
 
 EAPI int ECORE_COCOA_EVENT_GOT_FOCUS = 0;
 EAPI int ECORE_COCOA_EVENT_LOST_FOCUS = 0;
 EAPI int ECORE_COCOA_EVENT_RESIZE = 0;
-EAPI int ECORE_COCOA_EVENT_EXPOSE = 0;
 EAPI int ECORE_COCOA_EVENT_WINDOW_DESTROY = 0;
 
 static int _ecore_cocoa_init_count = 0;
@@ -33,8 +36,6 @@ ecore_cocoa_init(void)
    if (++_ecore_cocoa_init_count != 1)
      return _ecore_cocoa_init_count;
 
-   DBG("Ecore Cocoa Init");
-
    if (!ecore_init())
      return --_ecore_cocoa_init_count;
 
@@ -48,11 +49,13 @@ ecore_cocoa_init(void)
         return 0;
      }
 
+   DBG("");
+
    ECORE_COCOA_EVENT_GOT_FOCUS  = ecore_event_type_new();
    ECORE_COCOA_EVENT_LOST_FOCUS = ecore_event_type_new();
    ECORE_COCOA_EVENT_RESIZE     = ecore_event_type_new();
-   ECORE_COCOA_EVENT_EXPOSE     = ecore_event_type_new();
    ECORE_COCOA_EVENT_WINDOW_DESTROY = ecore_event_type_new();
+
 
    /* Init the Application handler */
    [Ecore_Cocoa_Application sharedApplication];
@@ -60,6 +63,9 @@ ecore_cocoa_init(void)
 
    /* Start events monitoring */
    [NSApp run];
+
+   if (!_ecore_cocoa_window_init())
+     return --_ecore_cocoa_init_count;
 
    return _ecore_cocoa_init_count;
 }
@@ -85,7 +91,7 @@ ecore_cocoa_shutdown(void)
 }
 
 static unsigned int
-_ecore_cocoa_event_modifiers(unsigned int mod)
+_ecore_cocoa_event_modifiers(NSUInteger mod)
 {
    unsigned int modifiers = 0;
 
@@ -95,13 +101,15 @@ _ecore_cocoa_event_modifiers(unsigned int mod)
    if(mod & NSCommandKeyMask) modifiers |= ECORE_EVENT_MODIFIER_WIN;
    if(mod & NSNumericPadKeyMask) modifiers |= ECORE_EVENT_LOCK_NUM;
 
-   DBG("key modifiers: %d, %d", mod, modifiers);
+   DBG("key modifiers: 0x%lx, %u", mod, modifiers);
    return modifiers;
 }
 
 
-static inline Ecore_Event_Key*
-_ecore_cocoa_event_key(NSEvent *event, int keyType)
+static Ecore_Event_Key*
+_ecore_cocoa_event_key(NSEvent     *event,
+                       NSEventType  keyType,
+                       unsigned int time)
 {
    static Eina_Bool compose = EINA_FALSE;
    static NSText *edit;
@@ -113,7 +121,7 @@ _ecore_cocoa_event_key(NSEvent *event, int keyType)
    NSString *keychar = [event charactersIgnoringModifiers];
    NSString *keycharRaw = [event characters];
 
-   DBG("Event Key, keyTpe : %d", keyType);
+   DBG("Event Key, keyType : %lu", keyType);
 
    ev = calloc(1, sizeof (Ecore_Event_Key));
    if (!ev) return NULL;
@@ -124,6 +132,7 @@ _ecore_cocoa_event_key(NSEvent *event, int keyType)
         compose=EINA_FALSE;
      }
 
+   ev->timestamp = time;
    ev->modifiers = _ecore_cocoa_event_modifiers([event modifierFlags]);
 
    ev->keycode = event.keyCode;
@@ -163,22 +172,8 @@ _ecore_cocoa_event_key(NSEvent *event, int keyType)
    return ev;
 }
 
-static inline Eina_Bool
-_nsevent_window_is_type_of(NSEvent *event, Class class)
-{
-   /* An NSPeriodic event has no window (undefined behaviour) */
-   if ([event type] == NSPeriodic) return EINA_FALSE;
-   return [[event window] isKindOfClass:class];
-}
-
-static inline Eina_Bool
-_has_ecore_cocoa_window(NSEvent *event)
-{
-   return _nsevent_window_is_type_of(event, [EcoreCocoaWindow class]);
-}
-
-EAPI Eina_Bool
-ecore_cocoa_feed_events(void *anEvent)
+Eina_Bool
+_ecore_cocoa_feed_events(void *anEvent)
 {
    EINA_SAFETY_ON_NULL_RETURN_VAL(anEvent, EINA_FALSE);
 
@@ -186,7 +181,7 @@ ecore_cocoa_feed_events(void *anEvent)
    unsigned int time = (unsigned int)((unsigned long long)(ecore_time_get() * 1000.0) & 0xffffffff);
    Eina_Bool pass = EINA_FALSE;
 
-   DBG("Feed events, event type ; %d", [event type]);
+   DBG("Feed events, event type ; %lu", [event type]);
 
    switch ([event type])
      {
@@ -208,10 +203,9 @@ ecore_cocoa_feed_events(void *anEvent)
         {
            Ecore_Event_Key *ev;
 
-           ev = _ecore_cocoa_event_key(event, NSKeyDown);
+           ev = _ecore_cocoa_event_key(event, NSKeyDown, time);
            if (ev == NULL) return EINA_TRUE;
 
-           ev->timestamp = time;
            ecore_event_add(ECORE_EVENT_KEY_DOWN, ev, NULL, NULL);
 
            break;
@@ -220,17 +214,16 @@ ecore_cocoa_feed_events(void *anEvent)
         {
            Ecore_Event_Key *ev;
 
-           ev = _ecore_cocoa_event_key(event, NSKeyUp);
+           ev = _ecore_cocoa_event_key(event, NSKeyUp, time);
            if (ev == NULL) return EINA_TRUE;
 
-           ev->timestamp = time;
            ecore_event_add(ECORE_EVENT_KEY_UP, ev, NULL, NULL);
 
            break;
         }
       case NSFlagsChanged:
         {
-           int flags = [event modifierFlags];
+           NSUInteger flags = [event modifierFlags];
 
            Ecore_Event_Key *evDown = NULL;
            Ecore_Event_Key *evUp = NULL;
@@ -268,7 +261,7 @@ ecore_cocoa_feed_events(void *anEvent)
                 return pass;
              }
 
-           int changed_flags = flags ^ old_flags;
+           NSUInteger changed_flags = flags ^ old_flags;
 
            // Turn special key flags off
            if (changed_flags & NSShiftKeyMask)
@@ -292,37 +285,6 @@ ecore_cocoa_feed_events(void *anEvent)
                 break;
              }
 
-           break;
-        }
-      case NSAppKitDefined:
-        {
-           if ([event subtype] == NSApplicationActivatedEventType)
-             {
-                Ecore_Cocoa_Event_Window *ev;
-
-                ev = malloc(sizeof(Ecore_Cocoa_Event_Window));
-                if (!ev)
-                  {
-                     pass = EINA_FALSE;
-                     break;
-                  }
-                ev->wid = [event window];
-                ecore_event_add(ECORE_COCOA_EVENT_GOT_FOCUS, ev, NULL, NULL);
-             }
-           else if ([event subtype] == NSApplicationDeactivatedEventType)
-             {
-                Ecore_Cocoa_Event_Window *ev;
-
-                ev = malloc(sizeof(Ecore_Cocoa_Event_Window));
-                if (!ev)
-                  {
-                     pass = EINA_FALSE;
-                     break;
-                  }
-                ev->wid = [event window];
-                ecore_event_add(ECORE_COCOA_EVENT_LOST_FOCUS, ev, NULL, NULL);
-             }
-           pass = EINA_TRUE; // pass along AppKit events, for window manager
            break;
         }
       case NSScrollWheel:
@@ -381,14 +343,14 @@ ecore_cocoa_feed_events(void *anEvent)
 }
 
 EAPI void
-ecore_cocoa_screen_size_get(Ecore_Cocoa_Screen *screen, int *w, int *h)
+ecore_cocoa_screen_size_get(Ecore_Cocoa_Screen *screen EINA_UNUSED, int *w, int *h)
 {
    NSSize pt =  [[[NSScreen screens] objectAtIndex:0] frame].size;
 
-   DBG("Screen size get : %dx%d", w, h);
-
    if (w) *w = (int)pt.width;
    if (h) *h = (int)pt.height;
+   
+   DBG("Screen size get : %dx%d", (int)pt.width, (int)pt.height);
 }
 
 EAPI int

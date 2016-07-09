@@ -1,10 +1,14 @@
 #include "evas_engine.h"
 #include "../gl_common/evas_gl_define.h"
+#include <dlfcn.h>
 
-# define SET_RESTORE_CONTEXT() do { if (glsym_evas_gl_context_restore_set) glsym_evas_gl_context_restore_set(EINA_TRUE); } while(0)
+# define SET_RESTORE_CONTEXT() do { if (glsym_evas_gl_common_context_restore_set) glsym_evas_gl_common_context_restore_set(EINA_TRUE); } while(0)
 
 static Eina_TLS _outbuf_key = 0;
 static Eina_TLS _context_key = 0;
+
+typedef void (*glsym_func_void) ();
+glsym_func_void glsym_evas_gl_common_context_restore_set = NULL;
 
 #ifdef GL_GLES
 typedef EGLContext GLContext;
@@ -23,6 +27,7 @@ struct _Evas_GL_X11_Visual
    XVisualInfo info;
    GLConfig config;
    Colormap cmap;
+   Display *disp;
    Eina_Bool alpha;
 };
 
@@ -37,6 +42,12 @@ eng_init(void)
 {
    if (initted)
      return EINA_TRUE;
+
+#define LINK2GENERIC(sym) \
+   glsym_##sym = dlsym(RTLD_DEFAULT, #sym); \
+   if (!glsym_##sym) ERR("Could not find function '%s'", #sym);
+
+   LINK2GENERIC(evas_gl_common_context_restore_set);
 
    // FIXME: These resources are never released
    if (!eina_tls_new(&_outbuf_key))
@@ -115,7 +126,10 @@ __glXMakeContextCurrent(Display *disp, GLXDrawable glxwin, GLXContext context)
 static void
 _visuals_hash_del_cb(void *data)
 {
-   free(data);
+   Evas_GL_X11_Visual *evis = data;
+   if (evis && evis->cmap && evis->disp)
+     XFreeColormap(evis->disp, evis->cmap);
+   free(evis);
 }
 
 static inline int
@@ -266,12 +280,12 @@ try_gles2:
      _tls_context_set(gw->egl_context[0]);
    
    SET_RESTORE_CONTEXT();
-   if (eglMakeCurrent(gw->egl_disp,
+   if (evas_eglMakeCurrent(gw->egl_disp,
                       gw->egl_surface[0],
                       gw->egl_surface[0],
                       gw->egl_context[0]) == EGL_FALSE)
      {
-        ERR("eglMakeCurrent() fail. code=%#x", eglGetError());
+        ERR("evas_eglMakeCurrent() fail. code=%#x", eglGetError());
         eng_window_free(gw);
         return NULL;
      }
@@ -554,6 +568,9 @@ try_gles2:
 #ifdef GL_GLES
    gw->gl_context->egldisp = gw->egl_disp;
    gw->gl_context->eglctxt = gw->egl_context[0];
+#else
+   glXGetFBConfigAttrib(gw->disp, evis->config, GLX_FBCONFIG_ID, &gw->gl_context->glxcfg_rgb);
+   glXGetFBConfigAttrib(gw->disp, evis2->config, GLX_FBCONFIG_ID, &gw->gl_context->glxcfg_rgba);
 #endif
    eng_window_use(gw);
    glsym_evas_gl_common_context_resize(gw->gl_context, w, h, rot);
@@ -581,7 +598,7 @@ eng_window_free(Outbuf *gw)
      }
 #ifdef GL_GLES
    SET_RESTORE_CONTEXT();
-   eglMakeCurrent(gw->egl_disp, EGL_NO_SURFACE, EGL_NO_SURFACE, EGL_NO_CONTEXT);
+   evas_eglMakeCurrent(gw->egl_disp, EGL_NO_SURFACE, EGL_NO_SURFACE, EGL_NO_CONTEXT);
    if (gw->egl_surface[0] != EGL_NO_SURFACE)
       eglDestroySurface(gw->egl_disp, gw->egl_surface[0]);
    if (gw->egl_surface[1] != EGL_NO_SURFACE)
@@ -591,10 +608,10 @@ eng_window_free(Outbuf *gw)
    if (ref == 0)
      {
         if (context) eglDestroyContext(gw->egl_disp, context);
-        eglTerminate(gw->egl_disp);
-        eglReleaseThread();
         eina_hash_free(_evas_gl_visuals);
         _evas_gl_visuals = NULL;
+        eglTerminate(gw->egl_disp);
+        eglReleaseThread();
         _tls_context_set(EGL_NO_CONTEXT);
      }
 #else
@@ -622,12 +639,12 @@ eng_window_make_current(void *data, void *doit)
    SET_RESTORE_CONTEXT();
    if (doit)
      {
-        if (!eglMakeCurrent(gw->egl_disp, gw->egl_surface[0], gw->egl_surface[0], gw->egl_context[0]))
+        if (!evas_eglMakeCurrent(gw->egl_disp, gw->egl_surface[0], gw->egl_surface[0], gw->egl_context[0]))
           return EINA_FALSE;
      }
    else
      {
-        if (!eglMakeCurrent(gw->egl_disp, EGL_NO_SURFACE, EGL_NO_SURFACE, EGL_NO_CONTEXT))
+        if (!evas_eglMakeCurrent(gw->egl_disp, EGL_NO_SURFACE, EGL_NO_SURFACE, EGL_NO_CONTEXT))
           return EINA_FALSE;
      }
 #else
@@ -660,15 +677,13 @@ eng_window_use(Outbuf *gw)
 #ifdef GL_GLES
    if (xwin)
      {
-        if ((eglGetCurrentDisplay() !=
-             xwin->egl_disp) ||
-            (eglGetCurrentContext() !=
-             xwin->egl_context[0])
+        if ((evas_eglGetCurrentDisplay() != xwin->egl_disp) ||
+            (evas_eglGetCurrentContext() != xwin->egl_context[0])
 #if 0
             // FIXME: Figure out what that offscreen thing was about...
-            || (eglGetCurrentSurface(EGL_READ) !=
+            || (evas_eglGetCurrentSurface(EGL_READ) !=
                 xwin->egl_surface[xwin->offscreen])
-            || (eglGetCurrentSurface(EGL_DRAW) !=
+            || (evas_eglGetCurrentSurface(EGL_DRAW) !=
                 xwin->egl_surface[xwin->offscreen])
 #endif
             )
@@ -696,12 +711,12 @@ eng_window_use(Outbuf *gw)
              if (gw->egl_surface[0] != EGL_NO_SURFACE)
                {
                   SET_RESTORE_CONTEXT();
-                  if (eglMakeCurrent(gw->egl_disp,
+                  if (evas_eglMakeCurrent(gw->egl_disp,
                                      gw->egl_surface[0],
                                      gw->egl_surface[0],
                                      gw->egl_context[0]) == EGL_FALSE)
                     {
-                       ERR("eglMakeCurrent() failed!");
+                       ERR("evas_eglMakeCurrent() failed!");
                     }
                }
 // GLX
@@ -732,7 +747,7 @@ eng_window_unsurf(Outbuf *gw)
    if (xwin == gw)
      {
         SET_RESTORE_CONTEXT();
-        eglMakeCurrent(gw->egl_disp, EGL_NO_SURFACE, EGL_NO_SURFACE, EGL_NO_CONTEXT);
+        evas_eglMakeCurrent(gw->egl_disp, EGL_NO_SURFACE, EGL_NO_SURFACE, EGL_NO_CONTEXT);
         if (gw->egl_surface[0] != EGL_NO_SURFACE)
            eglDestroySurface(gw->egl_disp, gw->egl_surface[0]);
         gw->egl_surface[0] = EGL_NO_SURFACE;
@@ -767,12 +782,12 @@ eng_window_resurf(Outbuf *gw)
         return;
      }
    SET_RESTORE_CONTEXT();
-   if (eglMakeCurrent(gw->egl_disp,
+   if (evas_eglMakeCurrent(gw->egl_disp,
                       gw->egl_surface[0],
                       gw->egl_surface[0],
                       gw->egl_context[0]) == EGL_FALSE)
      {
-        ERR("eglMakeCurrent() failed!");
+        ERR("evas_eglMakeCurrent() failed!");
      }
 #else
    Evas_GL_X11_Visual *evis;
@@ -1209,6 +1224,7 @@ try_again:
    if (!evis->cmap)
      {
         /* save colormap now */
+        evis->disp = einfo->info.display;
         evis->cmap = XCreateColormap(einfo->info.display,
                                     RootWindow(einfo->info.display,
                                                einfo->info.screen),
@@ -1322,10 +1338,10 @@ eng_gl_context_use(Context_3D *ctx)
 {
 #if GL_GLES
     SET_RESTORE_CONTEXT();
-   if (eglMakeCurrent(ctx->display, ctx->surface,
+   if (evas_eglMakeCurrent(ctx->display, ctx->surface,
                       ctx->surface, ctx->context) == EGL_FALSE)
      {
-        ERR("eglMakeCurrent() failed.");
+        ERR("evas_eglMakeCurrent() failed.");
      }
 #else
    if (!__glXMakeContextCurrent(ctx->display, ctx->glxwin, ctx->context))

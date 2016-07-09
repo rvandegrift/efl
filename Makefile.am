@@ -61,6 +61,7 @@ licenses/COPYING.GPL \
 licenses/COPYING.BSD \
 licenses/COPYING.SMALL \
 licenses/COPYING.FTL \
+licenses/COPYING.NGINX-MIT \
 old/ChangeLog.ecore \
 old/ChangeLog.edje \
 old/ChangeLog.eet \
@@ -171,6 +172,14 @@ if HAVE_ELUA
 pkgconfig_DATA += pc/elua.pc
 endif
 
+if HAVE_JS
+pkgconfig_DATA += \
+pc/eolian-js.pc \
+pc/efl-js.pc \
+pc/eo-js.pc \
+pc/eina-js.pc
+endif
+
 if BUILD_ENGINE_SOFTWARE_X11
 pkgconfig_DATA += pc/evas-software-x11.pc
 endif
@@ -243,6 +252,10 @@ if HAVE_ECORE_WAYLAND
 pkgconfig_DATA += pc/ecore-wayland.pc
 endif
 
+if HAVE_ECORE_WL2
+pkgconfig_DATA += pc/ecore-wl2.pc
+endif
+
 if HAVE_WIN32
 pkgconfig_DATA += pc/ecore-win32.pc
 endif
@@ -296,7 +309,8 @@ cmakeconfig/EoConfigVersion.cmake
 eolian_cmakeconfigdir = $(libdir)/cmake/Eolian/
 eolian_cmakeconfig_DATA = \
 cmakeconfig/EolianConfig.cmake \
-cmakeconfig/EolianConfigVersion.cmake
+cmakeconfig/EolianConfigVersion.cmake \
+cmakeconfig/EolianHelper.cmake
 
 eolian_cxx_cmakeconfigdir = $(libdir)/cmake/EolianCxx/
 eolian_cxx_cmakeconfig_DATA = \

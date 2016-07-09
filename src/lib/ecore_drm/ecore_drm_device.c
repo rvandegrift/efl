@@ -107,6 +107,56 @@ _ecore_drm_device_cb_output_event(const char *device EINA_UNUSED, Eeze_Udev_Even
    _ecore_drm_outputs_update(dev);
 }
 
+struct xkb_context *
+_ecore_drm_device_cached_context_get(enum xkb_context_flags flags)
+{
+   if (!cached_context)
+     return xkb_context_new(flags);
+   else
+     return xkb_context_ref(cached_context);
+}
+
+struct xkb_keymap *
+_ecore_drm_device_cached_keymap_get(struct xkb_context *ctx, const struct xkb_rule_names *names, enum xkb_keymap_compile_flags flags)
+{
+   EINA_SAFETY_ON_NULL_RETURN_VAL(ctx, NULL);
+
+   if (!cached_keymap)
+     return xkb_map_new_from_names(ctx, names, flags);
+   else
+     return xkb_map_ref(cached_keymap);
+}
+
+void
+_ecore_drm_device_cached_context_update(struct xkb_context *ctx)
+{
+   Eina_List *l;
+   Ecore_Drm_Device *dev;
+
+   EINA_LIST_FOREACH(drm_devices, l, dev)
+     {
+        xkb_context_unref(dev->xkb_ctx);
+        dev->xkb_ctx = xkb_context_ref(ctx);
+     }
+}
+
+void
+_ecore_drm_device_cached_keymap_update(struct xkb_keymap *map)
+{
+   Eina_List *l, *l2, *l3;
+   Ecore_Drm_Device *dev;
+   Ecore_Drm_Seat *seat;
+   Ecore_Drm_Evdev *edev;
+
+   EINA_LIST_FOREACH(drm_devices, l, dev)
+     EINA_LIST_FOREACH(dev->seats, l2, seat)
+       EINA_LIST_FOREACH(seat->devices, l3, edev)
+         {
+            xkb_keymap_unref(edev->xkb.keymap);
+            edev->xkb.keymap = xkb_keymap_ref(map);
+         }
+}
+
 /**
  * @defgroup Ecore_Drm_Device_Group Device manipulation functions
  * 
@@ -187,6 +237,7 @@ cont:
 
    if ((dev = calloc(1, sizeof(Ecore_Drm_Device))))
      {
+        dev->drm.fd = -1;
         dev->drm.name = eeze_udev_syspath_get_devpath(device);
         dev->drm.path = eina_stringshare_add(device);
 
@@ -215,7 +266,6 @@ out:
 EAPI void 
 ecore_drm_device_free(Ecore_Drm_Device *dev)
 {
-   Ecore_Drm_Output *output;
    unsigned int i = 0;
 
    /* check for valid device */
@@ -227,11 +277,7 @@ ecore_drm_device_free(Ecore_Drm_Device *dev)
         dev->dumb[i] = NULL;
      }
 
-   ecore_drm_inputs_destroy(dev);
-
-   /* free outputs */
-   EINA_LIST_FREE(dev->outputs, output)
-     ecore_drm_output_free(output);
+   if (dev->watch) eeze_udev_watch_del(dev->watch);
 
    /* free crtcs */
    if (dev->crtcs) free(dev->crtcs);
@@ -264,8 +310,15 @@ ecore_drm_device_open(Ecore_Drm_Device *dev)
    /* check for valid device */
    if ((!dev) || (!dev->drm.name)) return EINA_FALSE;
 
+   /* check if device is already opened */
+   if (dev->drm.fd != -1)
+     {
+        ERR("Device is already opened");
+        return EINA_FALSE;
+     }
+
    /* DRM device node is needed immediately to keep going. */
-   dev->drm.fd = 
+   dev->drm.fd =
      _ecore_drm_launcher_device_open_no_pending(dev->drm.name, O_RDWR);
    if (dev->drm.fd < 0) return EINA_FALSE;
 
@@ -308,9 +361,9 @@ ecore_drm_device_open(Ecore_Drm_Device *dev)
      }
 
    /* try to create xkb context */
-   if (!(dev->xkb_ctx = xkb_context_new(0)))
+   if (!(dev->xkb_ctx = _ecore_drm_device_cached_context_get(0)))
      {
-        ERR("Failed to create xkb context: %m");
+        ERR("Failed to create xkb context");
         return EINA_FALSE;
      }
 
@@ -332,17 +385,22 @@ ecore_drm_device_open(Ecore_Drm_Device *dev)
    return EINA_TRUE;
 }
 
-EAPI Eina_Bool 
+EAPI Eina_Bool
 ecore_drm_device_close(Ecore_Drm_Device *dev)
 {
    /* check for valid device */
    EINA_SAFETY_ON_NULL_RETURN_VAL(dev, EINA_FALSE);
 
+   /* check if device is opened */
+   if (dev->drm.fd == -1) return EINA_FALSE;
+
    /* delete udev watch */
    if (dev->watch) eeze_udev_watch_del(dev->watch);
+   dev->watch = NULL;
 
    /* close xkb context */
    if (dev->xkb_ctx) xkb_context_unref(dev->xkb_ctx);
+   dev->xkb_ctx = NULL;
 
    _ecore_drm_launcher_device_close(dev->drm.name, dev->drm.fd);
 
@@ -442,12 +500,12 @@ ecore_drm_device_pointer_xy_get(Ecore_Drm_Device *dev, int *x, int *y)
      {
         EINA_LIST_FOREACH(seat->devices, ll, edev)
           {
-             if (!libinput_device_has_capability(edev->device, 
+             if (!libinput_device_has_capability(edev->device,
                                                  LIBINPUT_DEVICE_CAP_POINTER))
                continue;
 
-             if (x) *x = edev->mouse.dx;
-             if (y) *y = edev->mouse.dy;
+             if (x) *x = seat->ptr.dx;
+             if (y) *y = seat->ptr.dy;
 
              return;
           }
@@ -477,7 +535,7 @@ ecore_drm_device_software_setup(Ecore_Drm_Device *dev)
      {
         if (!(dev->dumb[i] = ecore_drm_fb_create(dev, w, h)))
           {
-             ERR("Could not create dumb framebuffer: %m");
+             ERR("Could not create dumb framebuffer");
              goto err;
           }
 
@@ -555,4 +613,64 @@ ecore_drm_device_output_name_find(Ecore_Drm_Device *dev, const char *name)
        return output;
 
    return NULL;
+}
+
+EAPI Eina_Bool
+ecore_drm_device_pointer_left_handed_set(Ecore_Drm_Device *dev, Eina_Bool left_handed)
+{
+   Ecore_Drm_Seat *seat = NULL;
+   Ecore_Drm_Evdev *edev = NULL;
+   Eina_List *l = NULL, *l2 = NULL;
+
+   EINA_SAFETY_ON_NULL_RETURN_VAL(dev, EINA_FALSE);
+   EINA_SAFETY_ON_NULL_RETURN_VAL(dev->seats, EINA_FALSE);
+
+   if (dev->left_handed == left_handed)
+     return EINA_TRUE;
+   dev->left_handed = !!left_handed;
+
+   EINA_LIST_FOREACH(dev->seats, l, seat)
+     {
+        EINA_LIST_FOREACH(seat->devices, l2, edev)
+          {
+             if (libinput_device_has_capability(edev->device,
+                                                LIBINPUT_DEVICE_CAP_POINTER))
+               {
+                  if (libinput_device_config_left_handed_set(edev->device, (int)left_handed) !=
+                      LIBINPUT_CONFIG_STATUS_SUCCESS)
+                    {
+                       WRN("Failed to set left hand mode about device: %s\n",
+                           libinput_device_get_name(edev->device));
+                       continue;
+                    }
+               }
+          }
+     }
+   return EINA_TRUE;
+}
+
+EAPI void
+ecore_drm_device_keyboard_cached_context_set(struct xkb_context *ctx)
+{
+   EINA_SAFETY_ON_NULL_RETURN(ctx);
+
+   if (cached_context == ctx) return;
+
+   if (cached_context)
+     _ecore_drm_device_cached_context_update(ctx);
+
+   cached_context = ctx;
+}
+
+EAPI void
+ecore_drm_device_keyboard_cached_keymap_set(struct xkb_keymap *map)
+{
+   EINA_SAFETY_ON_NULL_RETURN(map);
+
+   if (cached_keymap == map) return;
+
+   if (cached_keymap)
+      _ecore_drm_device_cached_keymap_update(map);
+
+   cached_keymap = map;
 }

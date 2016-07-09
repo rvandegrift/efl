@@ -2,12 +2,12 @@
 #include "evas_gl_3d_private.h"
 
 #define RENDER_MESH_NODE_ITERATE_BEGIN(param)                                                      \
-   Evas_Mat4          matrix_mv;                                                                   \
-   Evas_Mat4          matrix_mvp;                                                                  \
+   Eina_Matrix4          matrix_mv;                                                                   \
+   Eina_Matrix4          matrix_mvp;                                                                  \
    Eina_Iterator     *it;                                                                          \
    void              *ptr;                                                                         \
-   evas_mat4_multiply(&matrix_mv, matrix_##param, &pd_mesh_node->data.mesh.matrix_local_to_world); \
-   evas_mat4_multiply(&matrix_mvp, &pd->projection, &matrix_mv);                                   \
+   eina_matrix4_multiply(&matrix_mv, matrix_##param, &pd_mesh_node->data.mesh.matrix_local_to_world); \
+   eina_matrix4_multiply(&matrix_mvp, &pd->projection, &matrix_mv);                                   \
    it = eina_hash_iterator_data_new(pd_mesh_node->data.mesh.node_meshes);                          \
    while (eina_iterator_next(it, &ptr))                                                            \
      {                                                                                             \
@@ -49,7 +49,7 @@ e3d_texture_new(Eina_Bool use_atlas)
         return NULL;
      }
 
-   evas_mat3_identity_set(&texture->trans);
+   eina_matrix3_identity(&texture->trans);
 
    texture->w = 0;
    texture->h = 0;
@@ -94,7 +94,7 @@ e3d_texture_set(Evas_Engine_GL_Context *gc,
                 E3D_Texture *texture,
                 Evas_GL_Image *im)
 {
-   Evas_Mat3 pt,st;
+   Eina_Matrix3 pt,st;
    Evas_Real pt_x, pt_y, st_x, st_y;
 
    texture->surface = im;
@@ -115,9 +115,9 @@ e3d_texture_set(Evas_Engine_GL_Context *gc,
         st_x = im->tex->pt->w ? (im->w/(Evas_Real)im->tex->pt->w) : 1.0;
         st_y = im->tex->pt->h ? (im->h/(Evas_Real)im->tex->pt->h) : 1.0;
         /*Build adjusting matrix for texture unit coordinates*/
-        evas_mat3_set_position_transform(&pt, pt_x, pt_y);
-        evas_mat3_set_scale_transform(&st, st_x, st_y);
-        evas_mat3_multiply(&texture->trans, &st, &pt);
+        eina_matrix3_position_transform_set(&pt, pt_x, pt_y);
+        eina_matrix3_scale_transform_set(&st, st_x, st_y);
+        eina_matrix3_multiply(&texture->trans, &pt, &st);
      }
 }
 
@@ -305,11 +305,7 @@ e3d_drawable_new(int w, int h, int alpha, GLenum depth_format, GLenum stencil_fo
    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_T, GL_REPEAT);
    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_NEAREST);
    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_NEAREST);
-#ifndef GL_GLES
-   glTexImage2D(GL_TEXTURE_2D, 0, GL_R16, w, h, 0, GL_RED, GL_UNSIGNED_SHORT, 0);
-#else
    glTexImage2D(GL_TEXTURE_2D, 0, GL_RGBA, w, h, 0, GL_RGBA, GL_UNSIGNED_BYTE, NULL);
-#endif
 
    glGenFramebuffers(1, &fbo);
    glBindFramebuffer(GL_FRAMEBUFFER, fbo);
@@ -898,7 +894,7 @@ _material_texture_build(E3D_Draw_Data *data, int frame,
 static inline void
 _light_build(E3D_Draw_Data *data,
              const Evas_Canvas3D_Node *light,
-             const Evas_Mat4    *matrix_eye)
+             const Eina_Matrix4    *matrix_eye)
 {
    Evas_Canvas3D_Node_Data *pd_light_node = eo_data_scope_get(light, EVAS_CANVAS3D_NODE_CLASS);
    Evas_Canvas3D_Light *l = pd_light_node ? pd_light_node->data.light.light : NULL;
@@ -966,10 +962,10 @@ _light_build(E3D_Draw_Data *data,
 static inline Eina_Bool
 _mesh_draw_data_build(E3D_Draw_Data *data,
                       Evas_Canvas3D_Mesh *mesh, int frame,
-                      const Evas_Mat4 *matrix_eye,
-                      const Evas_Mat4 *matrix_mv,
-                      const Evas_Mat4 *matrix_mvp,
-                      const Evas_Mat4 *matrix_light,
+                      const Eina_Matrix4 *matrix_eye,
+                      const Eina_Matrix4 *matrix_mv,
+                      const Eina_Matrix4 *matrix_mvp,
+                      const Eina_Matrix4 *matrix_light,
                       const Evas_Canvas3D_Node *light)
 {
    Eina_List *l, *r;
@@ -1011,10 +1007,10 @@ _mesh_draw_data_build(E3D_Draw_Data *data,
    data->index_format = pdmesh->index_format;
    data->indices = pdmesh->indices;
 
-   evas_mat4_copy(&data->matrix_mvp, matrix_mvp);
-   evas_mat4_copy(&data->matrix_mv, matrix_mv);
+   eina_matrix4_copy(&data->matrix_mvp, matrix_mvp);
+   eina_matrix4_copy(&data->matrix_mv, matrix_mv);
    if (matrix_light != NULL)
-     evas_mat4_copy(&data->matrix_light, matrix_light);
+     eina_matrix4_copy(&data->matrix_light, matrix_light);
 
    _mesh_frame_find(mesh, frame, &l, &r);
 
@@ -1073,7 +1069,7 @@ _mesh_draw_data_build(E3D_Draw_Data *data,
         BUILD(material_texture,  MATERIAL_ATTRIB_EMISSION,   EINA_FALSE);
 
         _light_build(data, light, matrix_eye);
-        evas_normal_matrix_get(&data->matrix_normal, matrix_mv);
+        eina_normal3_matrix_get(&data->matrix_normal, matrix_mv);
 
         if (_flags_need_tex_coord(data->flags))
           BUILD(vertex_attrib,     VERTEX_ATTRIB_TEXCOORD,     EINA_FALSE);
@@ -1094,7 +1090,7 @@ _mesh_draw_data_build(E3D_Draw_Data *data,
         BUILD(material_texture,  MATERIAL_ATTRIB_EMISSION,   EINA_FALSE);
 
         _light_build(data, light, matrix_eye);
-        evas_normal_matrix_get(&data->matrix_normal, matrix_mv);
+        eina_normal3_matrix_get(&data->matrix_normal, matrix_mv);
 
         if (_flags_need_tex_coord(data->flags))
           BUILD(vertex_attrib,     VERTEX_ATTRIB_TEXCOORD,     EINA_FALSE);
@@ -1124,15 +1120,21 @@ _mesh_draw_data_build(E3D_Draw_Data *data,
         BUILD(material_texture,  MATERIAL_ATTRIB_EMISSION,   EINA_FALSE);
 
         _light_build(data, light, matrix_eye);
-        evas_normal_matrix_get(&data->matrix_normal, matrix_mv);
+        eina_normal3_matrix_get(&data->matrix_normal, matrix_mv);
      }
-
-   int num;
+   /*Check possible quantity of texture units*/
+   int num, count = 0;
    glGetIntegerv(GL_MAX_TEXTURE_IMAGE_UNITS, &num);
    data->smap_sampler = num - 1;
 
-   if (data->texture_count >= num)
-     if ((data->flags & E3D_SHADER_FLAG_SHADOWED) || (data->texture_count > num))
+   if (data->render_to_texture)
+     {
+        count++;
+        data->colortex_sampler = num - (count + 1);
+     }
+   if (data->texture_count + count >= num)
+     if ((data->flags & E3D_SHADER_FLAG_SHADOWED) ||
+         (data->texture_count + count > num))
        {
           ERR("Too many textures for your graphics configuration.");
           return EINA_FALSE;
@@ -1143,18 +1145,19 @@ _mesh_draw_data_build(E3D_Draw_Data *data,
 
 static inline void
 _mesh_draw(E3D_Renderer *renderer, Evas_Canvas3D_Mesh *mesh, int frame, Evas_Canvas3D_Node *light,
-           const Evas_Mat4 *matrix_eye, const Evas_Mat4 *matrix_mv, const Evas_Mat4 *matrix_mvp, const Evas_Mat4 *matrix_light)
+           const Eina_Matrix4 *matrix_eye, const Eina_Matrix4 *matrix_mv, const Eina_Matrix4 *matrix_mvp, const Eina_Matrix4 *matrix_light)
 {
    E3D_Draw_Data   data;
 
    memset(&data, 0x00, sizeof(E3D_Draw_Data));
+   data.render_to_texture = e3d_renderer_rendering_to_texture_get(renderer);
 
    if (_mesh_draw_data_build(&data, mesh, frame, matrix_eye, matrix_mv, matrix_mvp, matrix_light, light))
      e3d_renderer_draw(renderer, &data);
 }
 
 void _shadowmap_render(E3D_Drawable *drawable, E3D_Renderer *renderer,
-                       Evas_Canvas3D_Scene_Public_Data *data, Evas_Mat4 *matrix_light_eye,
+                       Evas_Canvas3D_Scene_Public_Data *data, Eina_Matrix4 *matrix_light_eye,
                        Evas_Canvas3D_Node *light)
 {
    Eina_List        *l;
@@ -1162,7 +1165,7 @@ void _shadowmap_render(E3D_Drawable *drawable, E3D_Renderer *renderer,
    Evas_Canvas3D_Shade_Mode shade_mode;
    Eina_Bool       blend_enabled;
    Evas_Color      c = {1.0, 1.0, 1.0, 1.0};
-   Evas_Mat4 matrix_vp;
+   Eina_Matrix4 matrix_vp;
 
    glEnable(GL_POLYGON_OFFSET_FILL);
    glPolygonOffset(data->depth_offset, data->depth_constant);
@@ -1177,8 +1180,8 @@ void _shadowmap_render(E3D_Drawable *drawable, E3D_Renderer *renderer,
    Evas_Canvas3D_Light_Data *pd = eo_data_scope_get(pd_light_node->data.light.light,
                                               EVAS_CANVAS3D_LIGHT_CLASS);
 
-   Evas_Vec4 planes[6];
-   evas_mat4_multiply(&matrix_vp, &pd->projection, matrix_light_eye);
+   Eina_Quaternion planes[6];
+   eina_matrix4_multiply(&matrix_vp, &pd->projection, matrix_light_eye);
    evas_frustum_calculate(planes, &matrix_vp);
 
    EINA_LIST_FOREACH(data->mesh_nodes, l, n)
@@ -1204,20 +1207,30 @@ void _shadowmap_render(E3D_Drawable *drawable, E3D_Renderer *renderer,
 
      glDisable(GL_POLYGON_OFFSET_FILL);
 
-     glFramebufferTexture2D(GL_FRAMEBUFFER, GL_COLOR_ATTACHMENT0, GL_TEXTURE_2D, drawable->tex, 0);
+     if (data->render_to_texture)
+       {
+          data->render_to_texture = EINA_FALSE;
+          e3d_renderer_color_pick_target_set(renderer, drawable);
+       }
+     else
+       {
+          glFramebufferTexture2D(GL_FRAMEBUFFER, GL_COLOR_ATTACHMENT0, GL_TEXTURE_2D,
+                                 drawable->tex, 0);
+          e3d_renderer_clear(renderer, &data->bg_color);
+       }
 }
 
 void
-e3d_drawable_scene_render(E3D_Drawable *drawable, E3D_Renderer *renderer, Evas_Canvas3D_Scene_Public_Data *data)
+_scene_render(E3D_Drawable *drawable, E3D_Renderer *renderer, Evas_Canvas3D_Scene_Public_Data *data)
 {
    Eina_List        *l;
    Evas_Canvas3D_Node     *n;
-   const Evas_Mat4  *matrix_eye;
+   const Eina_Matrix4  *matrix_eye;
    Evas_Canvas3D_Node     *light;
-   Evas_Mat4        matrix_light_eye, matrix_vp;;
+   Eina_Matrix4        matrix_light_eye, matrix_vp;;
    Evas_Canvas3D_Light_Data *ld = NULL;
    Evas_Canvas3D_Node_Data *pd_light_node;
-   Evas_Vec4 planes[6];
+   Eina_Quaternion planes[6];
 
    /* Get eye matrix. */
    Evas_Canvas3D_Node_Data *pd_camera_node = eo_data_scope_get(data->camera_node, EVAS_CANVAS3D_NODE_CLASS);
@@ -1236,17 +1249,14 @@ e3d_drawable_scene_render(E3D_Drawable *drawable, E3D_Renderer *renderer, Evas_C
          _shadowmap_render(drawable, renderer, data, &matrix_light_eye, light);
      }
 
-   /* Set up render target. */
-   e3d_renderer_target_set(renderer, drawable);
-   e3d_renderer_clear(renderer, &data->bg_color);
-
-   evas_mat4_multiply(&matrix_vp, &pd->projection, matrix_eye);
+   eina_matrix4_multiply(&matrix_vp, &pd->projection, matrix_eye);
    evas_frustum_calculate(planes, &matrix_vp);
+
    EINA_LIST_FOREACH(data->mesh_nodes, l, n)
      {
-        Evas_Mat4          matrix_mv;
-        Evas_Mat4          matrix_light;
-        Evas_Mat4          matrix_mvp;
+        Eina_Matrix4          matrix_mv;
+        Eina_Matrix4          matrix_light;
+        Eina_Matrix4          matrix_mvp;
         Eina_Iterator     *it;
         void              *ptr;
         Evas_Canvas3D_Node_Data *pd_mesh_node = eo_data_scope_get(n, EVAS_CANVAS3D_NODE_CLASS);
@@ -1257,14 +1267,14 @@ e3d_drawable_scene_render(E3D_Drawable *drawable, E3D_Renderer *renderer, Evas_C
 
              if (data->shadows_enabled)
                {
-                  evas_mat4_multiply(&matrix_mv, &matrix_light_eye,
+                  eina_matrix4_multiply(&matrix_mv, &matrix_light_eye,
                       &pd_mesh_node->data.mesh.matrix_local_to_world);
-                  evas_mat4_multiply(&matrix_light, &ld->projection,
+                  eina_matrix4_multiply(&matrix_light, &ld->projection,
                       &matrix_mv);
                }
 
-             evas_mat4_multiply(&matrix_mv, matrix_eye, &pd_mesh_node->data.mesh.matrix_local_to_world);
-             evas_mat4_multiply(&matrix_mvp, &pd->projection,
+             eina_matrix4_multiply(&matrix_mv, matrix_eye, &pd_mesh_node->data.mesh.matrix_local_to_world);
+             eina_matrix4_multiply(&matrix_mvp, &pd->projection,
                                 &matrix_mv);
 
              it = eina_hash_iterator_data_new(pd_mesh_node->data.mesh.node_meshes);
@@ -1286,11 +1296,22 @@ e3d_drawable_scene_render(E3D_Drawable *drawable, E3D_Renderer *renderer, Evas_C
    e3d_renderer_flush(renderer);
 }
 
+void
+e3d_drawable_scene_render(E3D_Drawable *drawable, E3D_Renderer *renderer, Evas_Canvas3D_Scene_Public_Data *data)
+{
+   /* Set up render target. */
+   e3d_renderer_target_set(renderer, drawable);
+   e3d_renderer_clear(renderer, &data->bg_color);
+
+   /*Render scene data*/
+   _scene_render(drawable, renderer, data);
+}
+
 Eina_Bool
 e3d_drawable_scene_render_to_texture(E3D_Drawable *drawable, E3D_Renderer *renderer,
                                      Evas_Canvas3D_Scene_Public_Data *data)
 {
-   const Evas_Mat4  *matrix_eye;
+   const Eina_Matrix4  *matrix_eye;
    Evas_Canvas3D_Shade_Mode shade_mode;
    Eina_Stringshare *tmp;
    Eina_Iterator *itmn;
@@ -1298,75 +1319,67 @@ e3d_drawable_scene_render_to_texture(E3D_Drawable *drawable, E3D_Renderer *rende
    Eina_List *repeat_node = NULL;
    Evas_Color c = {0.0, 0.0, 0.0, 0.0}, *unic_color = NULL;
 
-   glBindFramebuffer(GL_FRAMEBUFFER, drawable->color_pick_fb_id);
-   glFramebufferTexture2D(GL_FRAMEBUFFER, GL_COLOR_ATTACHMENT0,
-                          GL_TEXTURE_2D, drawable->texcolorpick, 0);
-#ifdef GL_GLES
-   glBindRenderbuffer(GL_RENDERBUFFER, drawable->depth_stencil_buf);
-   glFramebufferTexture2D(GL_FRAMEBUFFER, GL_DEPTH_ATTACHMENT,
-                               GL_TEXTURE_2D, drawable->depth_stencil_buf, 0);
-#else
-   glBindRenderbuffer(GL_RENDERBUFFER, drawable->depth_stencil_buf);
-   glFramebufferRenderbuffer(GL_FRAMEBUFFER, GL_DEPTH_STENCIL_ATTACHMENT,
-                             GL_RENDERBUFFER, drawable->depth_stencil_buf);
-#endif
-
+   e3d_renderer_color_pick_target_set(renderer, drawable);
    e3d_renderer_clear(renderer, &c);
 
-   Evas_Canvas3D_Node_Data *pd_camera_node = eo_data_scope_get(data->camera_node, EVAS_CANVAS3D_NODE_CLASS);
-   matrix_eye = &pd_camera_node->data.camera.matrix_world_to_eye;
-   Evas_Canvas3D_Camera_Data *pd = eo_data_scope_get(pd_camera_node->data.camera.camera, EVAS_CANVAS3D_CAMERA_CLASS);
-
-   itmn = eina_hash_iterator_data_new(data->colors_node_mesh);
-
-   while (eina_iterator_next(itmn, &ptrmn))
+   if (data->color_pick_enabled) //Use rendering to texture in color pick mechanism
      {
-        Evas_Canvas3D_Node      *n;
-        Eina_Array *arr = NULL;
+         Evas_Canvas3D_Node_Data *pd_camera_node = eo_data_scope_get(data->camera_node, EVAS_CANVAS3D_NODE_CLASS);
+         matrix_eye = &pd_camera_node->data.camera.matrix_world_to_eye;
+         Evas_Canvas3D_Camera_Data *pd = eo_data_scope_get(pd_camera_node->data.camera.camera, EVAS_CANVAS3D_CAMERA_CLASS);
 
-        arr = (Eina_Array *)ptrmn;
-        n = (Evas_Canvas3D_Node *)eina_array_data_get(arr, 0);
-        /*To avoid repeatedly render mesh*/
-        if (!repeat_node)
-          repeat_node = eina_list_append(repeat_node, (void*)n);
-        else
-          {
-             if (eina_list_data_find(repeat_node, (void *)n))
-               continue;
-             else
-               repeat_node = eina_list_append(repeat_node, (void *)n);
-          }
-        Evas_Canvas3D_Node_Data *pd_mesh_node = eo_data_scope_get(n, EVAS_CANVAS3D_NODE_CLASS);
-        RENDER_MESH_NODE_ITERATE_BEGIN(eye)
-          {
-             if (pdmesh->color_pick_enabled)
-               {
-                  tmp = eina_stringshare_printf("%p %p", n, nm->mesh);
-                  unic_color = (Evas_Color *)eina_hash_find(data->node_mesh_colors, tmp);
-                  if (unic_color)
-                    {
-#ifndef GL_GLES
-                       pdmesh->color_pick_key = unic_color->r;
-#else
-                       pdmesh->color_pick_key.r = unic_color->r;
-                       pdmesh->color_pick_key.g = unic_color->g;
-                       pdmesh->color_pick_key.b = unic_color->b;
-#endif
-                       shade_mode = pdmesh->shade_mode;
-                       pdmesh->shade_mode = EVAS_CANVAS3D_SHADE_MODE_COLOR_PICK;
-                       _mesh_draw(renderer, nm->mesh, nm->frame, NULL, matrix_eye, &matrix_mv,
-                                  &matrix_mvp, NULL);
-                       pdmesh->shade_mode = shade_mode;
-                    }
-                  eina_stringshare_del(tmp);
-               }
-          }
-        RENDER_MESH_NODE_ITERATE_END
+         itmn = eina_hash_iterator_data_new(data->colors_node_mesh);
+
+         while (eina_iterator_next(itmn, &ptrmn))
+           {
+              Evas_Canvas3D_Node      *n;
+              Eina_Array *arr = NULL;
+
+              arr = (Eina_Array *)ptrmn;
+              n = (Evas_Canvas3D_Node *)eina_array_data_get(arr, 0);
+              /*To avoid repeatedly render mesh*/
+              if (!repeat_node)
+                repeat_node = eina_list_append(repeat_node, (void*)n);
+              else
+                {
+                   if (eina_list_data_find(repeat_node, (void *)n))
+                     continue;
+                   else
+                     repeat_node = eina_list_append(repeat_node, (void *)n);
+                }
+              Evas_Canvas3D_Node_Data *pd_mesh_node = eo_data_scope_get(n, EVAS_CANVAS3D_NODE_CLASS);
+              RENDER_MESH_NODE_ITERATE_BEGIN(eye)
+                {
+                   if (pdmesh->color_pick_enabled)
+                     {
+                        tmp = eina_stringshare_printf("%p %p", n, nm->mesh);
+                        unic_color = (Evas_Color *)eina_hash_find(data->node_mesh_colors, tmp);
+                        if (unic_color)
+                          {
+                             pdmesh->color_pick_key.r = unic_color->r;
+                             pdmesh->color_pick_key.g = unic_color->g;
+                             pdmesh->color_pick_key.b = unic_color->b;
+                             shade_mode = pdmesh->shade_mode;
+                             pdmesh->shade_mode = EVAS_CANVAS3D_SHADE_MODE_COLOR_PICK;
+                             _mesh_draw(renderer, nm->mesh, nm->frame, NULL, matrix_eye, &matrix_mv,
+                                        &matrix_mvp, NULL);
+                             pdmesh->shade_mode = shade_mode;
+                          }
+                        eina_stringshare_del(tmp);
+                     }
+                }
+              RENDER_MESH_NODE_ITERATE_END
+           }
+        eina_iterator_free(itmn);
+        eina_list_free(repeat_node);
+     }
+   else
+     {
+        _scene_render(drawable, renderer, data); //Just render scene in texture
      }
 
-   eina_iterator_free(itmn);
-   eina_list_free(repeat_node);
    glBindFramebuffer(GL_FRAMEBUFFER, drawable->fbo);
+
    return EINA_TRUE;
 }
 
@@ -1377,17 +1390,12 @@ e3d_drawable_texture_pixel_color_get(GLuint tex EINA_UNUSED, int x, int y,
    E3D_Drawable *d = (E3D_Drawable *)drawable;
 
    glBindFramebuffer(GL_FRAMEBUFFER, d->color_pick_fb_id);
-#ifndef GL_GLES
-   GLuint pixel = 0;
-   glReadPixels(x, y, 1, 1, GL_RED, GL_UNSIGNED_SHORT, &pixel);
-   color->r = (double)pixel / USHRT_MAX;
-#else
+
    GLubyte pixel[4] = {0, 0, 0, 0};
    glReadPixels(x, y, 1, 1, GL_RGBA, GL_UNSIGNED_BYTE, pixel);
    color->r = (double)pixel[0] / 255;
    color->g = (double)pixel[1] / 255;
    color->b = (double)pixel[2] / 255;
-#endif
 
    glBindFramebuffer(GL_FRAMEBUFFER, d->fbo);
 }

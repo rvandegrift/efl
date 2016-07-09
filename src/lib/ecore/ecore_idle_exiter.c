@@ -44,26 +44,24 @@ ecore_idle_exiter_add(Ecore_Task_Cb func,
 EOLIAN static void
 _ecore_idle_exiter_constructor(Eo *obj, Ecore_Idle_Exiter_Data *ie, Ecore_Task_Cb func, const void *data)
 {
+   EINA_MAIN_LOOP_CHECK_RETURN;
+
    _ecore_lock();
-    if (EINA_UNLIKELY(!eina_main_loop_is()))
-      {
-         EINA_MAIN_LOOP_CHECK_RETURN;
-      }
-
-
    ie->obj = obj;
    eo_manual_free_set(obj, EINA_TRUE);
 
    if (!func)
      {
         ERR("callback function must be set up for an object of class: '%s'", MY_CLASS_NAME);
-        return;
+        goto unlock;
      }
 
    ie->func = func;
    ie->data = (void *)data;
 
    idle_exiters = (Ecore_Idle_Exiter_Data *)eina_inlist_append(EINA_INLIST_GET(idle_exiters), EINA_INLIST_GET(ie));
+
+unlock:
    _ecore_unlock();
 }
 
@@ -94,7 +92,7 @@ _ecore_idle_exiter_del(Ecore_Idle_Exiter *obj)
 EOLIAN static Eo *
 _ecore_idle_exiter_eo_base_finalize(Eo *obj, Ecore_Idle_Exiter_Data *idle_exiter)
 {
-   if (!idle_exiter)
+   if (!idle_exiter->func)
      {
         return NULL;
      }

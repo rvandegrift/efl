@@ -131,6 +131,8 @@ shutdown_all:
    _edje_box_shutdown();
    _edje_text_class_members_free();
    _edje_text_class_hash_free();
+   _edje_size_class_members_free();
+   _edje_size_class_hash_free();
    _edje_edd_shutdown();
    efreet_shutdown();
 shutdown_evas:
@@ -182,6 +184,8 @@ _edje_shutdown_core(void)
    _edje_box_shutdown();
    _edje_text_class_members_free();
    _edje_text_class_hash_free();
+   _edje_size_class_members_free();
+   _edje_size_class_hash_free();
    _edje_edd_shutdown();
 
    eina_cow_del(_edje_calc_params_map_cow);
@@ -246,7 +250,6 @@ _edje_del(Edje *ed)
 {
    Edje_Running_Program *runp;
    Edje_Pending_Program *pp;
-   Edje_Text_Class *tc;
    Edje_Text_Insert_Filter_Callback *cb;
 
    if (ed->processing_messages)
@@ -271,12 +274,8 @@ _edje_del(Edje *ed)
    EINA_LIST_FREE(ed->pending_actions, pp)
      free(pp);
    eina_hash_free(ed->color_classes);
-   EINA_LIST_FREE(ed->text_classes, tc)
-     {
-        if (tc->name) eina_stringshare_del(tc->name);
-        if (tc->font) eina_stringshare_del(tc->font);
-        free(tc);
-     }
+   eina_hash_free(ed->text_classes);
+   eina_hash_free(ed->size_classes);
    EINA_LIST_FREE(ed->text_insert_filter_callbacks, cb)
      {
         eina_stringshare_del(cb->part);
@@ -290,6 +289,7 @@ _edje_del(Edje *ed)
 
    _edje_color_class_member_clean(ed);
    _edje_text_class_members_clean(ed);
+   _edje_size_class_members_clean(ed);
 }
 
 void

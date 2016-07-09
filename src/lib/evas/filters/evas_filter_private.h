@@ -126,13 +126,11 @@ struct _Evas_Filter_Context
       /** Post-processing callback. The context can be safely destroyed here. */
       Evas_Filter_Cb cb;
       void *data;
-      Eina_List *buffers_to_free; // Some buffers should be queued for deletion
    } post_run;
 
    struct
    {
       int bufid;
-      void *context;
       int x, y;
       int cx, cy, cw, ch; // clip
       int r, g, b, a; // clip color
@@ -143,7 +141,6 @@ struct _Evas_Filter_Context
    } target;
 
    Eina_Bool async : 1;
-   Eina_Bool gl_engine : 1;
    Eina_Bool running : 1;
    Eina_Bool has_proxies : 1;
 };
@@ -203,7 +200,7 @@ struct _Evas_Filter_Command
    };
 
    struct {
-      int render_op;
+      Efl_Gfx_Render_Op rop;
       int R, G, B, A;
       int ox, oy;
       union {
@@ -230,11 +227,8 @@ struct _Evas_Filter_Buffer
 
    Evas_Object *source;
    Eina_Stringshare *source_name;
-   RGBA_Image *backing;
-   void *glimage;
+   Ector_Generic_Buffer *buffer;
    int w, h;
-
-   Evas_Object *proxy;
 
    Eina_Bool alpha_only : 1;  // 1 channel (A) instead of 4 (RGBA)
    Eina_Bool transient : 1;   // temporary buffer (automatic allocation)
@@ -276,5 +270,21 @@ Evas_Filter_Command *_evas_filter_command_get(Evas_Filter_Context *ctx, int cmdi
 int evas_filter_smallest_pow2_larger_than(int val);
 
 void evas_filter_parser_shutdown(void);
+
+#define E_READ  ECTOR_BUFFER_ACCESS_FLAG_READ
+#define E_WRITE ECTOR_BUFFER_ACCESS_FLAG_WRITE
+#define E_ALPHA EFL_GFX_COLORSPACE_GRY8
+#define E_ARGB  EFL_GFX_COLORSPACE_ARGB8888
+
+static inline void *
+_buffer_map_all(Ector_Buffer *buf, unsigned int *len, Ector_Buffer_Access_Flag mode, Efl_Gfx_Colorspace cspace, unsigned int *stride)
+{
+   void *ret = NULL;
+   int w, h;
+   if (!buf) return NULL;
+   eo_do(buf, ector_buffer_size_get(&w, &h);
+         ret = ector_buffer_map(len, mode, 0, 0, w, h, cspace, stride));
+   return ret;
+}
 
 #endif // EVAS_FILTER_PRIVATE_H

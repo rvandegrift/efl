@@ -52,10 +52,17 @@ _ecore_cocoa_run_loop_cb(void *data EINA_UNUSED)
 {
    self = [super init];
    if (self == nil) {
-        // XXX Critical error. Abort right now! Log?
-        return nil;
+      CRI("Failed to [super init]");
+      return nil;
    }
    NSApp = self; // NSApp is used EVERYWHERE! Set it right now!
+
+   /* Set the process to be a foreground process,
+    * without that it prevents the window to become the key window and
+    * receive all mouse mouve events. */
+   [NSApp setActivationPolicy:NSApplicationActivationPolicyRegular];
+   [NSApp activateIgnoringOtherApps:YES];
+
    return NSApp;
 }
 
@@ -83,11 +90,26 @@ _ecore_cocoa_run_loop_cb(void *data EINA_UNUSED)
    /* Some events shall be handled by Ecore (like single non-command keys).
     * If we dispatch all events right to NSApplication, it will complain
     * with NSBeep() when an event is not authorized */
-   to_super = ecore_cocoa_feed_events(anEvent);
+   to_super = _ecore_cocoa_feed_events(anEvent);
    if (to_super)
      [super sendEvent:anEvent];
 }
 
+- (void) pauseNSRunLoopMonitoring
+{
+   /*
+    * After calling this method, we will run an iteration of
+    * the main loop. We don't want this timer to be fired while
+    * calling manually the ecore loop, because it will query the
+    * NSRunLoop, which blocks during live resize.
+    */
+   ecore_timer_freeze(_timer);
+}
+
+- (void) resumeNSRunLoopMonitoring
+{
+   ecore_timer_thaw(_timer);
+}
 
 @end
 
@@ -105,13 +127,7 @@ static Ecore_Cocoa_AppDelegate *_appDelegate = nil;
    return _appDelegate;
 }
 
-- (id)init
-{
-   self = [super init];
-   return self;
-}
-
-- (BOOL)applicationShouldTerminateAfterLastWindowClosed:(NSApplication *)sender
+- (BOOL)applicationShouldTerminateAfterLastWindowClosed:(NSApplication *) EINA_UNUSED sender
 {
    // XXX This should be alterable (by Elm_Window policy)
    return YES;

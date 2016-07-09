@@ -9,25 +9,26 @@
 #include "ector_private.h"
 #include "ector_software_private.h"
 
-#include "ector_drawhelper_private.h"
+#include "draw.h"
 
 static void
 _blend_color_argb(int count, const SW_FT_Span *spans, void *user_data)
 {
    RGBA_Comp_Func_Solid comp_func;
    Span_Data *data = (Span_Data *)(user_data);
-   uint color, *buffer, *target;
+   uint32_t color, *buffer, *target;
+   const int pix_stride = data->raster_buffer->stride / 4;
 
    // multiply the color with mul_col if any
-   color = ECTOR_MUL4_SYM(data->color, data->mul_col);
-   comp_func = ector_comp_func_solid_span_get(data->op, color);
+   color = DRAW_MUL4_SYM(data->color, data->mul_col);
+   comp_func = efl_draw_func_solid_span_get(data->op, color);
 
    // move to the offset location
-   buffer = data->raster_buffer.buffer + ((data->raster_buffer.width * data->offy) + data->offx);
+   buffer = data->raster_buffer->pixels.u32 + ((pix_stride * data->offy) + data->offx);
 
    while (count--)
      {
-        target = buffer + ((data->raster_buffer.width * spans->y) + spans->x);
+        target = buffer + ((pix_stride * spans->y) + spans->x);
         comp_func(target, spans->len, color, spans->coverage);
         ++spans;
      }
@@ -45,6 +46,7 @@ _blend_gradient(int count, const SW_FT_Span *spans, void *user_data)
    src_fetch fetchfunc = NULL;
    unsigned int buffer[BLEND_GRADIENT_BUFFER_SIZE], *target, *destbuffer;
    int length, l;
+   const int pix_stride = data->raster_buffer->stride / 4;
 
    //@TODO, Get the proper composition function using ,color, ECTOR_OP etc.
    if (data->type == LinearGradient) fetchfunc = &fetch_linear_gradient;
@@ -53,14 +55,14 @@ _blend_gradient(int count, const SW_FT_Span *spans, void *user_data)
    if (!fetchfunc)
      return;
 
-   comp_func = ector_comp_func_span_get(data->op, data->mul_col, data->gradient->alpha);
+   comp_func = efl_draw_func_span_get(data->op, data->mul_col, data->gradient->alpha);
 
    // move to the offset location
-   destbuffer = data->raster_buffer.buffer + ((data->raster_buffer.width * data->offy) + data->offx);
+   destbuffer = data->raster_buffer->pixels.u32 + ((pix_stride * data->offy) + data->offx);
 
    while (count--)
      {
-        target = destbuffer + ((data->raster_buffer.width * spans->y) + spans->x);
+        target = destbuffer + ((pix_stride * spans->y) + spans->x);
         length = spans->len;
         while (length)
           {
@@ -74,6 +76,44 @@ _blend_gradient(int count, const SW_FT_Span *spans, void *user_data)
      }
 }
 
+static void
+_blend_image_argb(int count, const SW_FT_Span *spans, void *user_data)
+{
+   Span_Data *data = user_data;
+   RGBA_Comp_Func comp_func;
+   uint32_t *buffer, *target;
+   uint8_t *src8;
+   unsigned int l, length, sy = 0;
+   const int pix_stride = data->raster_buffer->stride / 4;
+
+   /* FIXME:
+    * optimize eo call
+    * implement image scaling
+    * tile and repeat image properly
+    */
+
+   comp_func = efl_draw_func_span_get(data->op, data->mul_col, EINA_TRUE);
+   buffer = data->raster_buffer->pixels.u32 + ((pix_stride * data->offy) + data->offx);
+
+   while (count--)
+     {
+        target = buffer + ((pix_stride * spans->y) + spans->x);
+        length = spans->len;
+        while (length)
+          {
+             l = MIN(length, data->buffer->generic->w);
+             eo_do(data->buffer->generic->eo, src8 = ector_buffer_span_get(0, sy, l, EFL_GFX_COLORSPACE_ARGB8888, NULL));
+             comp_func(target, (uint32_t *) src8, l, data->mul_col, spans->coverage);
+             eo_do(data->buffer->generic->eo, ector_buffer_span_free(src8));
+             target += l;
+             length -= l;
+          }
+        ++spans;
+        ++sy;
+        if (sy >= data->buffer->generic->h)
+          sy = 0;
+     }
+}
 
 /*!
     \internal
@@ -279,7 +319,7 @@ _adjust_span_fill_methods(Span_Data *spdata)
           spdata->unclipped_blend = &_blend_gradient;
           break;
         case Image:
-          spdata->unclipped_blend = 0;//&_blend_image;
+          spdata->unclipped_blend = &_blend_image_argb;
           break;
      }
 
@@ -311,11 +351,11 @@ void ector_software_rasterizer_init(Software_Rasterizer *rasterizer)
    SW_FT_Stroker_Set(rasterizer->stroker, 1<<6,SW_FT_STROKER_LINECAP_BUTT,SW_FT_STROKER_LINEJOIN_MITER,0);
 
    //initialize the span data.
-   rasterizer->fill_data.raster_buffer.buffer = NULL;
    rasterizer->fill_data.clip.enabled = EINA_FALSE;
    rasterizer->fill_data.unclipped_blend = 0;
    rasterizer->fill_data.blend = 0;
-   init_draw_helper();
+   efl_draw_init();
+   ector_software_gradient_init();
 }
 
 void ector_software_rasterizer_done(Software_Rasterizer *rasterizer)
@@ -421,7 +461,7 @@ ector_software_rasterizer_generate_rle_data(Software_Rasterizer *rasterizer, SW_
 Shape_Rle_Data *
 ector_software_rasterizer_generate_stroke_rle_data(Software_Rasterizer *rasterizer, SW_FT_Outline *outline, Eina_Bool closePath)
 {
-   uint points,contors;
+   uint32_t points,contors;
    Shape_Rle_Data *rle_data;
    SW_FT_Outline strokeOutline = { 0, 0, NULL, NULL, NULL, 0 };
 
@@ -498,7 +538,7 @@ void ector_software_rasterizer_clip_shape_set(Software_Rasterizer *rasterizer, S
 
 void ector_software_rasterizer_color_set(Software_Rasterizer *rasterizer, int r, int g, int b, int a)
 {
-   rasterizer->fill_data.color = ECTOR_ARGB_JOIN(a, r, g, b);
+   rasterizer->fill_data.color = DRAW_ARGB_JOIN(a, r, g, b);
    rasterizer->fill_data.type = Solid;
 }
 
@@ -516,9 +556,16 @@ void ector_software_rasterizer_radial_gradient_set(Software_Rasterizer *rasteriz
    rasterizer->fill_data.type = RadialGradient;
 }
 
+void ector_software_rasterizer_buffer_set(Software_Rasterizer *rasterizer,
+                                          Ector_Software_Buffer *buffer)
+{
+   rasterizer->fill_data.buffer = eo_data_scope_get(buffer, ECTOR_SOFTWARE_BUFFER_BASE_MIXIN);
+   rasterizer->fill_data.type = Image;
+}
+
 void ector_software_rasterizer_draw_rle_data(Software_Rasterizer *rasterizer,
-                                             int x, int y, uint mul_col,
-                                             Ector_Rop op, Shape_Rle_Data* rle)
+                                             int x, int y, uint32_t mul_col,
+                                             Efl_Gfx_Render_Op op, Shape_Rle_Data* rle)
 {
    // check for NULL rle data
    if (!rle) return;

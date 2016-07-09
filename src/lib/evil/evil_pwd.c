@@ -2,11 +2,14 @@
 # include "config.h"
 #endif /* HAVE_CONFIG_H */
 
+#include <stdlib.h>
+#include <stdio.h>
+
 #define _POSIX
 #include <io.h>
 #include <lmcons.h>
 
-#include "Evil.h"
+#include "evil_macro.h"
 #include "pwd.h"
 
 
@@ -57,10 +60,10 @@ getpwnam(const char *n)
    pw.pw_name = user_name;
    snprintf(user_gecos, sizeof(user_gecos), "%s,,,", user_name);
    pw.pw_gecos = user_gecos;
-   pw.pw_dir = (char *)evil_homedir_get();
+   pw.pw_dir = getenv("USERPROFILE");
    pw.pw_shell = getenv("SHELL");
    if (!pw.pw_shell)
-     pw.pw_shell = "sh";
+     pw.pw_shell = "cmd.exe";
 
    return &pw;
 }

@@ -10,6 +10,10 @@
 #include <Ecore.h>
 #include <Ecore_Con.h>
 
+#ifndef O_BINARY
+# define O_BINARY 0
+#endif
+
 struct _request
 {
    long size;
@@ -30,6 +34,8 @@ _url_progress_cb(void *data EINA_UNUSED, int type EINA_UNUSED, void *event_info)
         printf("Total of download complete: %0.1f (%0.0f)%%\n",
                percent, url_progress->down.now);
      }
+
+   printf("status: %d\n", ecore_con_url_status_code_get(url_progress->url_con));
 
    return EINA_TRUE;
 }
@@ -66,7 +72,7 @@ main(int argc, const char *argv[])
         return -1;
      }
 
-   fd = open(filename, O_CREAT | O_WRONLY | O_TRUNC, 0644);
+   fd = open(filename, O_CREAT | O_BINARY | O_WRONLY | O_TRUNC, 0644);
 
    if (fd == -1)
      {

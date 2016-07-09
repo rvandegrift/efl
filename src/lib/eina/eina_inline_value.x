@@ -1652,6 +1652,78 @@ eina_value_struct_member_value_set(Eina_Value *dst, const Eina_Value_Struct_Memb
 
 #undef EINA_VALUE_TYPE_STRUCT_CHECK_RETURN_VAL
 
+#define EINA_VALUE_TYPE_OPTIONAL_CHECK_RETURN_VAL(value, retval)          \
+  EINA_SAFETY_ON_NULL_RETURN_VAL(value, retval);                        \
+  EINA_SAFETY_ON_FALSE_RETURN_VAL(value->type->setup == EINA_VALUE_TYPE_OPTIONAL->setup, retval)
+
+static inline Eina_Value*
+eina_value_optional_empty_new(void)
+{
+  return eina_value_new(EINA_VALUE_TYPE_OPTIONAL);
+}
+
+struct _Eina_Value_Optional_Outer
+{
+  Eina_Value_Type const* subtype;
+  void* value;
+};
+typedef struct _Eina_Value_Optional_Outer Eina_Value_Optional_Outer;
+
+struct _Eina_Value_Optional_Inner
+{
+  Eina_Value_Type const* subtype;
+  char value[];
+};
+typedef struct _Eina_Value_Optional_Inner Eina_Value_Optional_Inner;
+
+static inline Eina_Bool
+eina_value_optional_empty_is(const Eina_Value *value, Eina_Bool *is_empty)
+{
+   void *mem;
+
+   EINA_VALUE_TYPE_OPTIONAL_CHECK_RETURN_VAL(value, EINA_FALSE);
+   EINA_SAFETY_ON_NULL_RETURN_VAL(is_empty, EINA_FALSE);
+
+   mem = eina_value_memory_get(value);
+   if (!mem)
+     return EINA_FALSE;
+   if(2*sizeof(void*) <= sizeof(Eina_Value_Union))
+     {
+       Eina_Value_Optional_Outer* opt = (Eina_Value_Optional_Outer*)mem;
+       *is_empty = !opt->subtype;
+     }
+   else
+     {
+       *is_empty = ! *(void**)mem;
+     }
+   return EINA_TRUE;
+}
+
+static inline const Eina_Value_Type *
+eina_value_optional_type_get(Eina_Value *value)
+{
+   void *mem;
+
+   EINA_VALUE_TYPE_OPTIONAL_CHECK_RETURN_VAL(value, (const Eina_Value_Type *)NULL);
+
+   mem = eina_value_memory_get(value);
+   if (!mem)
+     return NULL;
+   
+   if(2*sizeof(void*) <= sizeof(Eina_Value_Union))
+     {
+       Eina_Value_Optional_Outer* opt = (Eina_Value_Optional_Outer*)mem;
+       return opt->subtype;
+     }
+   else
+     {
+       Eina_Value_Optional_Inner* opt = *(Eina_Value_Optional_Inner**)mem;
+       if(!opt)
+         return NULL;
+       return opt->subtype;
+     }
+}
+#undef EINA_VALUE_TYPE_OPTIONAL_CHECK_RETURN_VAL
 
 static inline Eina_Bool
 eina_value_type_setup(const Eina_Value_Type *type, void *mem)

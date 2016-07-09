@@ -56,10 +56,10 @@ struct _E3D_Draw_Data
    E3D_Shader_Flag      flags;
    Evas_Canvas3D_Shade_Mode   mode;
 
-   Evas_Mat4   matrix_mvp;
-   Evas_Mat4   matrix_mv;
-   Evas_Mat3   matrix_normal;
-   Evas_Mat4   matrix_light;
+   Eina_Matrix4   matrix_mvp;
+   Eina_Matrix4   matrix_mv;
+   Eina_Matrix3   matrix_normal;
+   Eina_Matrix4   matrix_light;
 
    struct {
         Evas_Canvas3D_Vertex_Buffer vertex0;
@@ -87,6 +87,7 @@ struct _E3D_Draw_Data
    Evas_Real shininess;
 
    GLint                   smap_sampler;
+   GLint                   colortex_sampler;
    Evas_Canvas3D_Blend_Func      blend_sfactor;
    Evas_Canvas3D_Blend_Func      blend_dfactor;
    Eina_Bool               blending : 1;
@@ -96,7 +97,7 @@ struct _E3D_Draw_Data
    Eina_Bool               alpha_test_enabled :1;
 
    struct {
-        Evas_Vec4   position;
+        Eina_Quaternion   position;
         Evas_Vec3   spot_dir;
         Evas_Real   spot_exp;
         Evas_Real   spot_cutoff_cos;
@@ -106,15 +107,13 @@ struct _E3D_Draw_Data
         Evas_Color  specular;
    } light;
    Evas_Color fog_color;
-#ifndef GL_GLES
-   double color_pick_key;
-#else
    Evas_Color color_pick_key;
-#endif
    /*Sets of the quality of shadow rendering*/
    Evas_Real               pcf_step;
    Evas_Real               pcf_size;
    Evas_Real               constant_bias;
+
+   Eina_Bool               render_to_texture;
 };
 
 struct _E3D_Texture
@@ -125,7 +124,7 @@ struct _E3D_Texture
 
    Evas_GL_Image     *surface;
    /*Tranformation matrix, use it for adjusting texture unit coordinates*/
-   Evas_Mat3         trans;
+   Eina_Matrix3         trans;
 
    GLuint            tex;
 
@@ -174,5 +173,6 @@ void                 e3d_renderer_viewport_set(E3D_Renderer *renderer, int x, in
 void                 e3d_renderer_clear(E3D_Renderer *renderer, const Evas_Color *color);
 void                 e3d_renderer_draw(E3D_Renderer *renderer, E3D_Draw_Data *data);
 void                 e3d_renderer_flush(E3D_Renderer *renderer);
-
+void                 e3d_renderer_color_pick_target_set(E3D_Renderer *renderer, E3D_Drawable *drawable);
+Eina_Bool            e3d_renderer_rendering_to_texture_get(E3D_Renderer *renderer);
 #endif /* EVAS_GL_3D_PRIVATE_H */

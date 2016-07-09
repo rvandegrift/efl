@@ -214,11 +214,14 @@ _re_wincheck(Outbuf *ob)
    return 0;
 }
 
-#ifndef GL_GLES
+#ifdef GL_GLES
+EGLBoolean evas_eglMakeCurrent(EGLDisplay dpy, EGLSurface draw, EGLSurface read, EGLContext ctx);
+EGLContext evas_eglGetCurrentContext(void);
+EGLSurface evas_eglGetCurrentSurface(EGLint readdraw);
+EGLDisplay evas_eglGetCurrentDisplay(void);
+#else
 Eina_Bool __glXMakeContextCurrent(Display *disp, GLXDrawable glxwin,
                                   GLXContext context);
 #endif
-
-extern void (*glsym_evas_gl_context_restore_set) (Eina_Bool enable);
 
 #endif

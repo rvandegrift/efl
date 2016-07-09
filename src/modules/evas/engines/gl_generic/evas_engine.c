@@ -2,10 +2,14 @@
 #include "evas_gl_core_private.h"
 
 #include "software/Ector_Software.h"
+#include "cairo/Ector_Cairo.h"
+#include "gl/Ector_GL.h"
+#include "evas_ector_buffer.eo.h"
+#include "evas_ector_gl_buffer.eo.h"
+#include "evas_ector_gl_image_buffer.eo.h"
+#include "evas_ector_gl_rgbaimage_buffer.eo.h"
 
-#include "ector_cairo_software_surface.eo.h"
-
-#ifdef HAVE_DLSYM
+#if defined HAVE_DLSYM && ! defined _WIN32
 # include <dlfcn.h>      /* dlopen,dlclose,etc */
 #else
 # error gl_x11 should not get compiled if dlsym is not found on the system!
@@ -63,7 +67,8 @@ _context_restore(void)
      {
         if (rsc->id == evgl_engine->main_tid)
           {
-             evgl_make_current(rsc->stored.data, rsc->stored.surface, rsc->stored.context);
+             if (rsc->stored.data)
+               evgl_make_current(rsc->stored.data, rsc->stored.surface, rsc->stored.context);
              _need_context_restore = EINA_FALSE;
           }
      }
@@ -249,10 +254,29 @@ eng_image_comment_get(void *data EINA_UNUSED, void *image, char *key EINA_UNUSED
    return im->im->info.comment;
 }
 
-static char *
-eng_image_format_get(void *data EINA_UNUSED, void *image EINA_UNUSED)
+static Evas_Colorspace
+eng_image_file_colorspace_get(void *data EINA_UNUSED, void *image)
 {
-   return NULL;
+   Evas_GL_Image *im = image;
+
+   if (!im || !im->im) return EVAS_COLORSPACE_ARGB8888;
+   if (im->im->cache_entry.cspaces)
+     return im->im->cache_entry.cspaces[0];
+   return im->im->cache_entry.space;
+}
+
+static Eina_Bool
+eng_image_data_has(void *data EINA_UNUSED, void *image, Evas_Colorspace *cspace)
+{
+   Evas_GL_Image *im = image;
+
+   if (!im || !im->im) return EINA_FALSE;
+   if (im->im->image.data)
+     {
+        if (cspace) *cspace = im->im->cache_entry.space;
+        return EINA_TRUE;
+     }
+   return EINA_FALSE;
 }
 
 static void
@@ -268,10 +292,10 @@ eng_image_colorspace_set(void *data, void *image, Evas_Colorspace cspace)
    if (im->cs.space == cspace) return;
    re->window_use(re->software.ob);
    evas_gl_common_image_alloc_ensure(im);
-   evas_cache_image_colorspace(&im->im->cache_entry, cspace);
    switch (cspace)
      {
       case EVAS_COLORSPACE_ARGB8888:
+         evas_cache_image_colorspace(&im->im->cache_entry, cspace);
          if (im->cs.data)
            {
               if (!im->cs.no_free) free(im->cs.data);
@@ -284,6 +308,7 @@ eng_image_colorspace_set(void *data, void *image, Evas_Colorspace cspace)
       case EVAS_COLORSPACE_YCBCR422601_PL:
       case EVAS_COLORSPACE_YCBCR420NV12601_PL:
       case EVAS_COLORSPACE_YCBCR420TM12601_PL:
+         evas_cache_image_colorspace(&im->im->cache_entry, cspace);
          if (im->tex) evas_gl_common_texture_free(im->tex, EINA_TRUE);
          im->tex = NULL;
          if (im->cs.data)
@@ -298,8 +323,8 @@ eng_image_colorspace_set(void *data, void *image, Evas_Colorspace cspace)
          im->cs.no_free = 0;
          break;
       default:
-         abort();
-         break;
+         ERR("colorspace %d is not supported here", im->cs.space);
+         return;
      }
    im->cs.space = cspace;
 }
@@ -701,6 +726,7 @@ eng_image_data_get(void *data, void *image, int to_write, DATA32 **image_data, i
    if (!im)
      {
         if (err) *err = EVAS_LOAD_ERROR_GENERIC;
+        ERR("No image provided.");
         return NULL;
      }
 
@@ -714,6 +740,7 @@ eng_image_data_get(void *data, void *image, int to_write, DATA32 **image_data, i
         if (!im_new)
           {
              if (err) *err = EVAS_LOAD_ERROR_RESOURCE_ALLOCATION_FAILED;
+             ERR("Rotation failed.");
              return im;
           }
         evas_gl_common_image_free(im);
@@ -725,10 +752,8 @@ eng_image_data_get(void *data, void *image, int to_write, DATA32 **image_data, i
 #ifdef GL_GLES
    re->window_use(re->software.ob);
 
-   if ((im->tex) && (im->tex->pt) && (im->tex->pt->dyn.img) && 
-       (im->cs.space == EVAS_COLORSPACE_ARGB8888) &&
-       secsym_tbm_surface_map &&
-       secsym_eglMapImageSEC)
+   if ((im->tex) && (im->tex->pt) && (im->tex->pt->dyn.img) &&
+       (im->cs.space == EVAS_COLORSPACE_ARGB8888))
      {
         if (im->tex->pt->dyn.checked_out > 0)
           {
@@ -736,15 +761,20 @@ eng_image_data_get(void *data, void *image, int to_write, DATA32 **image_data, i
              *image_data = im->tex->pt->dyn.data;
              return im;
           }
-        if (im->gc->shared->info.sec_tbm_surface)
+        if ((im->gc->shared->info.sec_tbm_surface) && (secsym_tbm_surface_map))
           {
              tbm_surface_info_s info;
-             secsym_tbm_surface_map(im->tex->pt->dyn.buffer,
+             if (secsym_tbm_surface_map(im->tex->pt->dyn.buffer,
                                     TBM_SURF_OPTION_READ|TBM_SURF_OPTION_WRITE,
-                                    &info);
-             *image_data = im->tex->pt->dyn.data = (DATA32 *) info.planes[0].ptr;
+                                    &info))
+               {
+                  ERR("tbm_surface_map failed!");
+                  *image_data = im->tex->pt->dyn.data = NULL;
+               }
+             else
+               *image_data = im->tex->pt->dyn.data = (DATA32 *) info.planes[0].ptr;
           }
-        else if (im->gc->shared->info.sec_image_map)
+        else if ((im->gc->shared->info.sec_image_map) && (secsym_eglMapImageSEC))
           {
              void *disp = re->window_egl_display_get(re->software.ob);
              *image_data = im->tex->pt->dyn.data = secsym_eglMapImageSEC(disp,
@@ -756,6 +786,7 @@ eng_image_data_get(void *data, void *image, int to_write, DATA32 **image_data, i
         if (!im->tex->pt->dyn.data)
           {
              if (err) *err = EVAS_LOAD_ERROR_RESOURCE_ALLOCATION_FAILED;
+             ERR("Ressource allocation failed.");
              return im;
           }
         im->tex->pt->dyn.checked_out++;
@@ -798,6 +829,7 @@ eng_image_data_get(void *data, void *image, int to_write, DATA32 **image_data, i
         if (!ok)
           {
              if (err) *err = EVAS_LOAD_ERROR_GENERIC;
+             ERR("Lock failed.");
              return NULL;
           }
 
@@ -807,6 +839,7 @@ eng_image_data_get(void *data, void *image, int to_write, DATA32 **image_data, i
         if (!im_new)
           {
              if (err) *err = EVAS_LOAD_ERROR_RESOURCE_ALLOCATION_FAILED;
+             ERR("Allocation failed.");
              return NULL;
           }
 
@@ -817,6 +850,7 @@ eng_image_data_get(void *data, void *image, int to_write, DATA32 **image_data, i
         if (!ok)
           {
              if (err) *err = EVAS_LOAD_ERROR_GENERIC;
+             ERR("Unlock failed.");
              return NULL;
           }
         *image_data = im_new->im->image.data;
@@ -884,7 +918,8 @@ eng_image_data_get(void *data, void *image, int to_write, DATA32 **image_data, i
          error = EVAS_LOAD_ERROR_UNKNOWN_FORMAT;
          break;
       default:
-         abort();
+         ERR("colorspace %d is not supported here", im->cs.space);
+         error = EVAS_LOAD_ERROR_UNKNOWN_FORMAT;
          break;
      }
    if (err) *err = error;
@@ -915,7 +950,10 @@ eng_image_data_put(void *data, void *image, DATA32 *image_data)
                  if (im->tex->pt->dyn.checked_out == 0)
                    {
                       if (im->gc->shared->info.sec_tbm_surface)
-                        secsym_tbm_surface_unmap(im->tex->pt->dyn.buffer);
+                        {
+                           if (secsym_tbm_surface_unmap(im->tex->pt->dyn.buffer))
+                             ERR("tbm_surface_unmap failed!");
+                        }
                       else if (im->gc->shared->info.sec_image_map)
                         {
                            void *disp = disp = re->window_egl_display_get(re->software.ob);
@@ -939,6 +977,8 @@ eng_image_data_put(void *data, void *image, DATA32 *image_data)
    switch (im->cs.space)
      {
       case EVAS_COLORSPACE_ARGB8888:
+      case EVAS_COLORSPACE_AGRY88:
+      case EVAS_COLORSPACE_GRY8:
          if ((!im->im) || (image_data != im->im->image.data))
            {
               im2 = eng_image_new_from_data(data, im->w, im->h, image_data,
@@ -948,6 +988,7 @@ eng_image_data_put(void *data, void *image, DATA32 *image_data)
               evas_gl_common_image_free(im);
               im = im2;
            }
+         evas_gl_common_image_dirty(im, 0, 0, 0, 0);
          break;
       case EVAS_COLORSPACE_YCBCR422P601_PL:
       case EVAS_COLORSPACE_YCBCR422P709_PL:
@@ -965,7 +1006,7 @@ eng_image_data_put(void *data, void *image, DATA32 *image_data)
          evas_gl_common_image_dirty(im, 0, 0, 0, 0);
          break;
       default:
-         abort();
+         ERR("colorspace %d is not supported here", im->cs.space);
          break;
      }
    return im;
@@ -1044,6 +1085,9 @@ eng_image_data_preload_request(void *data, void *image, const Eo *target)
         re->window_use(re->software.ob);
         gl_context = re->window_gl_context_get(re->software.ob);
         gim->tex = evas_gl_common_texture_new(gl_context, gim->im, EINA_FALSE);
+        EINA_SAFETY_ON_NULL_RETURN(gim->tex);
+        gim->tex->im = gim;
+        im->cache_entry.flags.updated_data = 1;
      }
    evas_gl_preload_target_register(gim->tex, (Eo*) target);
 }
@@ -1519,14 +1563,13 @@ eng_gl_make_current(void *data, void *surface, void *context)
    Render_Engine_GL_Generic *re  = data;
    EVGL_Surface  *sfc = (EVGL_Surface *)surface;
    EVGL_Context  *ctx = (EVGL_Context *)context;
+   int ret = 0;
 
    // TODO: Add check for main thread before flush
 
-   EVGLINIT(data, 0);
-   if (ctx)
+   if ((sfc) && (ctx))
      {
         Evas_Engine_GL_Context *gl_context;
-        CONTEXT_STORE(data, surface, context);
 
         gl_context = re->window_gl_context_get(re->software.ob);
         if ((gl_context->havestuff) ||
@@ -1539,7 +1582,10 @@ eng_gl_make_current(void *data, void *surface, void *context)
           }
      }
 
-   return evgl_make_current(data, sfc, ctx);
+   ret = evgl_make_current(data, sfc, ctx);
+   CONTEXT_STORE(data, surface, context);
+
+   return ret;
 }
 
 static void *
@@ -1622,7 +1668,7 @@ eng_gl_api_get(void *data, int version)
         ERR("Version not supported!");
         return NULL;
      }
-   ret = evgl_api_get(data, version);
+   ret = evgl_api_get(data, version, EINA_TRUE);
 
    //Disable GLES3 support if symbols not present
    if ((!ret) && (version == EVAS_GL_GLES_3_X))
@@ -2390,7 +2436,8 @@ eng_texture_image_get(void *data EINA_UNUSED, void *texture)
    return e3d_texture_get((E3D_Texture *)texture);
 }
 
-static Eina_Bool use_cairo;
+static Eina_Bool use_cairo = EINA_FALSE;
+static Eina_Bool use_gl = EINA_FALSE;
 
 static Ector_Surface *
 eng_ector_create(void *data EINA_UNUSED)
@@ -2401,7 +2448,11 @@ eng_ector_create(void *data EINA_UNUSED)
    if (ector_backend && !strcasecmp(ector_backend, "default"))
      {
         ector = eo_add(ECTOR_SOFTWARE_SURFACE_CLASS, NULL);
-        use_cairo = EINA_FALSE;
+     }
+   else if (ector_backend && !strcasecmp(ector_backend, "experimental"))
+     {
+        ector = eo_add(ECTOR_GL_SURFACE_CLASS, NULL);
+        use_gl = EINA_TRUE;
      }
    else
      {
@@ -2417,22 +2468,107 @@ eng_ector_destroy(void *data EINA_UNUSED, Ector_Surface *ector)
    if (ector) eo_del(ector);
 }
 
-static Ector_Rop
+static Ector_Buffer *
+eng_ector_buffer_wrap(void *data EINA_UNUSED, Evas *evas, void *engine_image, Eina_Bool is_rgba_image)
+{
+   Ector_Buffer *buf = NULL;
+   EINA_SAFETY_ON_NULL_RETURN_VAL(engine_image, NULL);
+   if (is_rgba_image)
+     {
+        RGBA_Image *im = engine_image;
+
+        buf = eo_add(EVAS_ECTOR_GL_RGBAIMAGE_BUFFER_CLASS, evas,
+                     evas_ector_buffer_engine_image_set(evas, im));
+     }
+   else
+     {
+        Evas_GL_Image *im = engine_image;
+
+        buf = eo_add(EVAS_ECTOR_GL_IMAGE_BUFFER_CLASS, evas,
+                     evas_ector_buffer_engine_image_set(evas, im));
+     }
+   return buf;
+}
+
+static Ector_Buffer *
+eng_ector_buffer_new(void *data, Evas *evas, void *pixels,
+                     int width, int height, int stride,
+                     Efl_Gfx_Colorspace cspace, Eina_Bool writeable EINA_UNUSED,
+                     int l, int r, int t, int b, Ector_Buffer_Flag flags)
+{
+   Evas_Public_Data *e = eo_data_scope_get(evas, EVAS_CANVAS_CLASS);
+   Render_Engine_GL_Generic *re = e->engine.data.output;
+   Evas_Engine_GL_Context *gc = NULL;
+   Ector_Buffer *buf = NULL;
+   int iw = width + l + r;
+   int ih = height + t + b;
+   int pxs = (cspace == EFL_GFX_COLORSPACE_ARGB8888) ? 4 : 1;
+
+   if (stride && (stride != iw * pxs))
+     WRN("stride support is not implemented for ector gl buffers at this point!");
+
+   if ((flags & ECTOR_BUFFER_FLAG_RENDERABLE) == 0)
+     {
+        // Create an RGBA Image as backing
+        Image_Entry *ie;
+
+        if (pixels)
+          {
+             // no copy
+             ie = evas_cache_image_data(evas_common_image_cache_get(), iw, ih,
+                                        pixels, EINA_TRUE, (Evas_Colorspace) cspace);
+             if (!ie) return NULL;
+          }
+        else
+          {
+             // alloc buffer
+             ie = evas_cache_image_copied_data(evas_common_image_cache_get(), iw, ih,
+                                               NULL, EINA_TRUE, (Evas_Colorspace) cspace);
+             if (!ie) return NULL;
+             pixels = ((RGBA_Image *) ie)->image.data;
+             memset(pixels, 0, iw * ih * pxs);
+          }
+        ie->borders.l = l;
+        ie->borders.r = r;
+        ie->borders.t = t;
+        ie->borders.b = b;
+
+        buf = eng_ector_buffer_wrap(data, evas, ie, EINA_TRUE);
+        evas_cache_image_drop(ie);
+     }
+   else
+     {
+        // Create only an Evas_GL_Image as backing
+        Evas_GL_Image *im;
+
+        if (l || r || t || b)
+          WRN("Borders are not supported by Evas surfaces!");
+
+        gc = re->window_gl_context_get(re->software.ob);
+        im = evas_gl_common_image_surface_new(gc, iw, ih, EINA_TRUE);
+        buf = eo_add(EVAS_ECTOR_GL_IMAGE_BUFFER_CLASS, evas,
+                     evas_ector_buffer_engine_image_set(evas, im));
+        im->references--;
+     }
+   return buf;
+}
+
+static Efl_Gfx_Render_Op
 _evas_render_op_to_ector_rop(Evas_Render_Op op)
 {
    switch (op)
      {
       case EVAS_RENDER_BLEND:
-         return ECTOR_ROP_BLEND;
+         return EFL_GFX_RENDER_OP_BLEND;
       case EVAS_RENDER_COPY:
-         return ECTOR_ROP_COPY;
+         return EFL_GFX_RENDER_OP_COPY;
       default:
-         return ECTOR_ROP_BLEND;
+         return EFL_GFX_RENDER_OP_BLEND;
      }
 }
 
 static void
-eng_ector_renderer_draw(void *data, void *context, void *surface, Ector_Renderer *renderer, Eina_Array *clips, Eina_Bool do_async EINA_UNUSED)
+eng_ector_renderer_draw(void *data, void *context, void *surface, void *engine_data EINA_UNUSED, Ector_Renderer *renderer, Eina_Array *clips, Eina_Bool do_async EINA_UNUSED)
 {
    Evas_GL_Image *dst = surface;
    Evas_Engine_GL_Context *gc;
@@ -2498,93 +2634,132 @@ eng_ector_renderer_draw(void *data, void *context, void *surface, Ector_Renderer
    eina_array_free(c);
 }
 
-static void *software_buffer = NULL;
+typedef struct _Evas_GL_Ector Evas_GL_Ector;
+struct _Evas_GL_Ector
+{
+   Evas_GL_Image *gl;
+   DATA32 *software;
+
+   Eina_Bool tofree;
+};
+
+static void*
+eng_ector_new(void *data EINA_UNUSED, void *context EINA_UNUSED, Ector_Surface *ector EINA_UNUSED, void *surface EINA_UNUSED)
+{
+   Evas_GL_Ector *r;
+
+   r = calloc(1, sizeof (Evas_GL_Ector));
+   return r;
+}
 
 static void
-eng_ector_begin(void *data EINA_UNUSED, void *context EINA_UNUSED, Ector_Surface *ector,
-                void *surface, int x, int y, Eina_Bool do_async EINA_UNUSED)
+eng_ector_free(void *engine_data)
+{
+   Evas_GL_Ector *r = engine_data;
+
+   if (r->gl) evas_gl_common_image_free(r->gl);
+   if (r->tofree) free(r->software);
+   free(r);
+}
+
+static void
+eng_ector_begin(void *data, void *context EINA_UNUSED, Ector_Surface *ector,
+                void *surface, void *engine_data,
+                int x, int y, Eina_Bool do_async EINA_UNUSED)
 {
    Evas_Engine_GL_Context *gl_context;
    Render_Engine_GL_Generic *re = data;
+   Evas_GL_Ector *buffer = engine_data;
    int w, h;
-   void *temp;
 
    re->window_use(re->software.ob);
    gl_context = re->window_gl_context_get(re->software.ob);
    evas_gl_common_context_target_surface_set(gl_context, surface);
    gl_context->dc = context;
 
-   w = gl_context->w; h = gl_context->h;
+   if (use_cairo|| !use_gl)
+     {
+        w = gl_context->w; h = gl_context->h;
 
-   temp = software_buffer;
-   software_buffer = realloc(software_buffer, sizeof (unsigned int) * w * h);
-   if (!software_buffer)
-     {
-        ERR("Realloc failed!!");
-        software_buffer = temp;
-        return;
-     }
-   memset(software_buffer, 0, sizeof (unsigned int) * w * h);
-   if (use_cairo)
-     {
+        if (!buffer->gl || buffer->gl->w != w || buffer->gl->h != h)
+          {
+             int err = EVAS_LOAD_ERROR_NONE;
+
+             if (buffer->gl) evas_gl_common_image_free(buffer->gl);
+             if (buffer->tofree) free(buffer->software);
+             buffer->software = NULL;
+
+             buffer->gl = evas_gl_common_image_new(gl_context, w, h, 1, EVAS_COLORSPACE_ARGB8888);
+             if (!buffer->gl)
+               {
+                  ERR("Creation of an image for vector graphics [%i, %i] failed\n", w, h);
+                  return ;
+               }
+             /* evas_gl_common_image_content_hint_set(buffer->gl, EVAS_IMAGE_CONTENT_HINT_DYNAMIC); */
+             buffer->gl = eng_image_data_get(data, buffer->gl, 1, &buffer->software, &err, &buffer->tofree);
+             if (!buffer->gl && err != EVAS_LOAD_ERROR_NONE)
+               {
+                  ERR("Mapping of an image for vector graphics [%i, %i] failed with %i\n", w, h, err);
+                  return ;
+               }
+          }
+        memset(buffer->software, 0, sizeof (unsigned int) * w * h);
         eo_do(ector,
-              ector_cairo_software_surface_set(software_buffer, w, h),
+              ector_buffer_pixels_set(buffer->software, w, h, 0, EFL_GFX_COLORSPACE_ARGB8888,
+                                      EINA_TRUE, 0, 0, 0, 0),
               ector_surface_reference_point_set(x, y));
      }
    else
      {
-        eo_do(ector,
-              ector_software_surface_set(software_buffer, w, h),
-              ector_surface_reference_point_set(x, y));
+        evas_gl_common_context_flush(gl_context);
+
+        eo_do(ector, ector_surface_reference_point_set(x, y));
      }
 }
 
 static void
 eng_ector_end(void *data, void *context EINA_UNUSED, Ector_Surface *ector,
-              void *surface EINA_UNUSED, Eina_Bool do_async EINA_UNUSED)
+              void *surface EINA_UNUSED, void *engine_data,
+              Eina_Bool do_async EINA_UNUSED)
 {
    Evas_Engine_GL_Context *gl_context;
    Render_Engine_GL_Generic *re = data;
-   Evas_GL_Image *im;
+   Evas_GL_Ector *buffer = engine_data;
    int w, h;
    Eina_Bool mul_use;
 
-   gl_context = re->window_gl_context_get(re->software.ob);
-   w = gl_context->w; h = gl_context->h;
-   mul_use = gl_context->dc->mul.use;
-
-   if (use_cairo)
+   if (use_cairo || !use_gl)
      {
-        eo_do(ector,
-              ector_cairo_software_surface_set(NULL, 0, 0));
+        gl_context = re->window_gl_context_get(re->software.ob);
+        w = gl_context->w; h = gl_context->h;
+        mul_use = gl_context->dc->mul.use;
+
+        eo_do(ector, ector_buffer_pixels_set(NULL, 0, 0, 0, 0, 0, 0, 0, 0, 0));
+        eng_image_data_put(data, buffer->gl, buffer->software);
+
+        if (!mul_use)
+          {
+             // @hack as image_draw uses below fields to do colour multiplication.
+             gl_context->dc->mul.col = ector_color_multiply(0xffffffff, gl_context->dc->col.col);
+             gl_context->dc->mul.use = EINA_TRUE;
+          }
+
+        // We actually just bluntly push the pixel all over the
+        // destination surface. We don't have the actual information
+        // of the widget size. This is not a problem.
+        // Later on, we don't want that information and today when
+        // using GL backend, you just need to turn on Evas_Map on
+        // the Evas_Object_VG.
+        evas_gl_common_image_draw(gl_context, buffer->gl, 0, 0, w, h, 0, 0, w, h, 0);
+
+        // restore gl state
+        gl_context->dc->mul.use = mul_use;
      }
-   else
+   else if (use_gl)
      {
-        eo_do(ector,
-              ector_software_surface_set(NULL, 0, 0));
+        // FIXME: Need to find a cleaner way to do so (maybe have a reset in evas_gl_context)
+        // Force a full pipe reinitialization for now
      }
-
-   im = evas_gl_common_image_new_from_copied_data(gl_context, w, h, software_buffer, 1, EVAS_COLORSPACE_ARGB8888);
-
-   if (!mul_use)
-   {
-      // @hack as image_draw uses below fields to do colour multiplication.
-      gl_context->dc->mul.col = ector_color_multiply(0xffffffff,gl_context->dc->col.col);
-      gl_context->dc->mul.use = EINA_TRUE;
-   }
-   
-   // We actually just bluntly push the pixel all over the
-   // destination surface. We don't have the actual information
-   // of the widget size. This is not a problem.
-   // Later on, we don't want that information and today when
-   // using GL backend, you just need to turn on Evas_Map on
-   // the Evas_Object_VG.
-   evas_gl_common_image_draw(gl_context, im, 0, 0, w, h, 0, 0, w, h, 0);
-
-   evas_gl_common_image_free(im);
-
-   // restore gl state
-   gl_context->dc->mul.use = mul_use;
 }
 
 static Evas_Func func, pfunc;
@@ -2603,6 +2778,9 @@ module_open(Evas_Module *em)
         EINA_LOG_ERR("Can not create a module log domain.");
         return 0;
      }
+
+   ector_init();
+   ector_glsym_set(dlsym, RTLD_DEFAULT);
 
    /* store it for later use */
    func = pfunc;
@@ -2631,6 +2809,7 @@ module_open(Evas_Module *em)
    ORD(image_dirty_region);
    ORD(image_data_get);
    ORD(image_data_put);
+   ORD(image_data_has);
    ORD(image_data_preload_request);
    ORD(image_data_preload_cancel);
    ORD(image_alpha_set);
@@ -2641,9 +2820,9 @@ module_open(Evas_Module *em)
    ORD(image_border_get);
    ORD(image_draw);
    ORD(image_comment_get);
-   ORD(image_format_get);
    ORD(image_colorspace_set);
    ORD(image_colorspace_get);
+   ORD(image_file_colorspace_get);
    ORD(image_can_region_get);
    ORD(image_native_set);
    ORD(image_native_get);
@@ -2732,9 +2911,13 @@ module_open(Evas_Module *em)
 
    ORD(ector_create);
    ORD(ector_destroy);
+   ORD(ector_buffer_wrap);
+   ORD(ector_buffer_new);
    ORD(ector_begin);
    ORD(ector_renderer_draw);
    ORD(ector_end);
+   ORD(ector_new);
+   ORD(ector_free);
 
    /* now advertise out own api */
    em->functions = (void *)(&func);
@@ -2744,6 +2927,7 @@ module_open(Evas_Module *em)
 static void
 module_close(Evas_Module *em EINA_UNUSED)
 {
+   ector_shutdown();
    eina_log_domain_unregister(_evas_engine_GL_log_dom);
    evas_gl_common_module_close();
 }

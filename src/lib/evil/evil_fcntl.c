@@ -3,16 +3,13 @@
 #endif /* HAVE_CONFIG_H */
 
 #include <stdio.h>
-
-#ifdef _MSC_VER
-# include <io.h>   /* for _get_osfhandle _lseek and _locking */
-#endif
-
 #include <sys/locking.h>
 
 #include <winsock2.h> /* for ioctlsocket */
+#include <io.h>
 
-#include "Evil.h"
+#include "evil_macro.h"
+#include "evil_fcntl.h"
 
 
 /*

@@ -1,20 +1,12 @@
 #ifndef ECTOR_SOFTWARE_PRIVATE_H_
 # define ECTOR_SOFTWARE_PRIVATE_H_
 
+#include "Ector_Software.h"
 #include "sw_ft_raster.h"
 #include "sw_ft_stroker.h"
-
-#ifndef DATA32
-typedef unsigned int DATA32;
-#endif
-
-#ifndef uint
-typedef unsigned int uint;
-#endif
+#include "../ector_private.h"
 
 typedef struct _Ector_Software_Surface_Data Ector_Software_Surface_Data;
-
-#define CHECK_SOFTWARE(Parent) (!(Parent && Parent->software))
 
 // Gradient related structure
 typedef struct _Software_Gradient_Linear_Data
@@ -43,17 +35,8 @@ typedef struct _Ector_Renderer_Software_Gradient_Data
       Software_Gradient_Radial_Data radial;
    };
    Eina_Bool alpha;
-   uint* color_table;
+   uint32_t* color_table;
 } Ector_Renderer_Software_Gradient_Data;
-
-
-// Rasterizer related structure
-typedef struct _Raster_Buffer
-{
-   int            width;
-   int            height;
-   DATA32        *buffer;
-} Raster_Buffer;
 
 typedef struct _Shape_Rle_Data
 {
@@ -83,8 +66,7 @@ typedef enum _Span_Data_Type {
 
 typedef struct _Span_Data
 {
-   Raster_Buffer    raster_buffer;
-
+   Ector_Software_Buffer_Base_Data *raster_buffer;
    SW_FT_SpanFunc   blend;
    SW_FT_SpanFunc   unclipped_blend;
 
@@ -93,16 +75,16 @@ typedef struct _Span_Data
    Eina_Matrix3     inv;
    Span_Data_Type   type;
    Eina_Bool        fast_matrix ;
-   DATA32           mul_col;
-   Ector_Rop        op;
+   uint32_t         mul_col;
+   Efl_Gfx_Render_Op        op;
    union {
-      DATA32 color;
+      uint32_t color;
       Ector_Renderer_Software_Gradient_Data *gradient;
-      //ImageData    texture;
+      Ector_Software_Buffer_Base_Data *buffer;
    };
 } Span_Data;
 
-struct _Software_Rasterizer
+typedef struct _Software_Rasterizer
 {
    SW_FT_Raster     raster;
    SW_FT_Stroker    stroker;
@@ -111,16 +93,17 @@ struct _Software_Rasterizer
    Eina_Matrix3    *transform;
    Eina_Rectangle   system_clip;
 
-};
+} Software_Rasterizer;
 
 struct _Ector_Software_Surface_Data
 {
-   Software_Rasterizer *software;
+   Software_Rasterizer *rasterizer;
    int x;
    int y;
 };
 
 
+int  ector_software_gradient_init(void);
 void ector_software_rasterizer_init(Software_Rasterizer *rasterizer);
 void ector_software_rasterizer_done(Software_Rasterizer *rasterizer);
 
@@ -131,6 +114,7 @@ void ector_software_rasterizer_transform_set(Software_Rasterizer *rasterizer, Ei
 void ector_software_rasterizer_color_set(Software_Rasterizer *rasterizer, int r, int g, int b, int a);
 void ector_software_rasterizer_linear_gradient_set(Software_Rasterizer *rasterizer, Ector_Renderer_Software_Gradient_Data *linear);
 void ector_software_rasterizer_radial_gradient_set(Software_Rasterizer *rasterizer, Ector_Renderer_Software_Gradient_Data *radial);
+void ector_software_rasterizer_buffer_set(Software_Rasterizer *rasterizer, Ector_Software_Buffer *image);
 void ector_software_rasterizer_clip_rect_set(Software_Rasterizer *rasterizer, Eina_Array *clips);
 void ector_software_rasterizer_clip_shape_set(Software_Rasterizer *rasterizer, Shape_Rle_Data *clip);
 
@@ -139,7 +123,7 @@ void ector_software_rasterizer_clip_shape_set(Software_Rasterizer *rasterizer, S
 Shape_Rle_Data * ector_software_rasterizer_generate_rle_data(Software_Rasterizer *rasterizer, SW_FT_Outline *outline);
 Shape_Rle_Data * ector_software_rasterizer_generate_stroke_rle_data(Software_Rasterizer *rasterizer, SW_FT_Outline *outline, Eina_Bool closePath);
 
-void ector_software_rasterizer_draw_rle_data(Software_Rasterizer *rasterizer, int x, int y, uint mul_col, Ector_Rop op, Shape_Rle_Data* rle);
+void ector_software_rasterizer_draw_rle_data(Software_Rasterizer *rasterizer, int x, int y, uint32_t mul_col, Efl_Gfx_Render_Op op, Shape_Rle_Data* rle);
 
 void ector_software_rasterizer_destroy_rle_data(Shape_Rle_Data *rle);
 
@@ -148,7 +132,7 @@ void ector_software_rasterizer_destroy_rle_data(Shape_Rle_Data *rle);
 // Gradient Api
 void update_color_table(Ector_Renderer_Software_Gradient_Data *gdata);
 void destroy_color_table(Ector_Renderer_Software_Gradient_Data *gdata);
-void fetch_linear_gradient(uint *buffer, Span_Data *data, int y, int x, int length);
-void fetch_radial_gradient(uint *buffer, Span_Data *data, int y, int x, int length);
+void fetch_linear_gradient(uint32_t *buffer, Span_Data *data, int y, int x, int length);
+void fetch_radial_gradient(uint32_t *buffer, Span_Data *data, int y, int x, int length);
 
 #endif

@@ -42,6 +42,12 @@ AM_CXXFLAGS = \
 	-I$(top_srcdir)/src/lib/ecore_evas \
 	-I$(top_builddir)/src/lib/ecore_evas
 
+if HAVE_WINDOWS
+AM_CXXFLAGS += \
+-I$(top_srcdir)/src/lib/evil \
+-I$(top_builddir)/src/lib/evil
+endif
+
 AM_CFLAGS = $(AM_CXXFLAGS)
 
 AM_LDFLAGS = \
@@ -141,10 +147,10 @@ eolian_cxx_complex_types_01_SOURCES = eolian_cxx_complex_types_01.cc
 	true $<
 
 %.eo.c: %.eo
-	$(AM_V_EOL)$(EOLIAN_GEN) --eo --legacy $(EOLIAN_FLAGS) --gc -o $@ $<
+	$(AM_V_EOL)$(EOLIAN_GEN) --legacy $(EOLIAN_FLAGS) --gc -o $@ $<
 
 %.eo.h: %.eo
-	$(AM_V_EOL)$(EOLIAN_GEN) --eo $(EOLIAN_FLAGS) --gh -o $@ $<
+	$(AM_V_EOL)$(EOLIAN_GEN) $(EOLIAN_FLAGS) --gh -o $@ $<
 
 examples: $(ECXX_EXAMPLE_EOS) $(GENERATED) $(EXTRA_PROGRAMS)
 

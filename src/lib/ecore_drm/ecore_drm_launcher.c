@@ -21,7 +21,7 @@ _ecore_drm_launcher_cb_vt_switch(void *data, int type EINA_UNUSED, void *event)
         vt = (keycode - KEY_F1 + 1);
 
         if (!_ecore_drm_tty_switch(dev, vt))
-          ERR("Failed to activate vt: %m");
+          ERR("Failed to activate vt");
      }
 
    return ECORE_CALLBACK_PASS_ON;
@@ -57,6 +57,7 @@ EAPI Eina_Bool
 ecore_drm_launcher_connect(Ecore_Drm_Device *dev)
 {
    EINA_SAFETY_ON_NULL_RETURN_VAL(dev, EINA_FALSE);
+
    /* try to connect to logind */
    if (!(logind = _ecore_drm_logind_connect(dev)))
      {
@@ -88,6 +89,7 @@ EAPI void
 ecore_drm_launcher_disconnect(Ecore_Drm_Device *dev)
 {
    EINA_SAFETY_ON_NULL_RETURN(dev);
+
    if (dev->tty.switch_hdlr) ecore_event_handler_del(dev->tty.switch_hdlr);
    dev->tty.switch_hdlr = NULL;
 
@@ -99,7 +101,6 @@ ecore_drm_launcher_disconnect(Ecore_Drm_Device *dev)
    else
      {
         _ecore_drm_logind_disconnect(dev);
-        logind = EINA_FALSE;
      }
 }
 
@@ -167,5 +168,6 @@ _ecore_drm_launcher_device_close(const char *device, int fd)
 {
    if ((logind) && (device)) _ecore_drm_logind_device_close(device);
 
+   if (fd < 0) return;
    close(fd);
 }

@@ -197,6 +197,29 @@ eina_strbuf_rtrim(Eina_Strbuf *buf)
    ((unsigned char *)buf->buf)[buf->len] = '\0';
 }
 
+EAPI void
+eina_strbuf_tolower(Eina_Strbuf *buf)
+{
+   if (!buf || !(buf->buf)) return;
+
+   eina_str_tolower((char **)&(buf->buf));
+}
+
+EAPI Eina_Strbuf *
+eina_strbuf_substr_get(Eina_Strbuf *buf, size_t pos, size_t len)
+{
+   char *str;
+
+   if ((!buf) || ((pos + len) > buf->len))
+      return NULL;
+
+   str = calloc(1, len + 1);
+
+   strncpy(str,((char *)(buf->buf)) + pos, len);
+
+   return eina_strbuf_manage_new(str);
+}
+
 /* Unicode */
 
 #include "eina_strbuf_template_c.x"

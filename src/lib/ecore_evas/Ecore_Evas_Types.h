@@ -33,6 +33,7 @@ typedef struct _Ecore_WinCE_Window Ecore_WinCE_Window;
 #endif
 
 #ifndef __ECORE_COCOA_H__
+# define _ECORE_COCOA_WINDOW_PREDEF
 typedef struct _Ecore_Cocoa_Window Ecore_Cocoa_Window;
 #endif
 
@@ -45,6 +46,11 @@ typedef void   (*Ecore_Evas_Event_Cb) (Ecore_Evas *ee); /**< Callback used for s
 #ifndef _ECORE_WAYLAND_H_
 #define _ECORE_WAYLAND_WINDOW_PREDEF
 typedef struct _Ecore_Wl_Window Ecore_Wl_Window;
+#endif
+
+#ifndef _ECORE_WL2_H_
+#define _ECORE_WAYLAND_WINDOW_PREDEF
+typedef struct _Ecore_Wl2_Window Ecore_Wl2_Window;
 #endif
 
 #ifndef _ECORE_GETOPT_PREDEF

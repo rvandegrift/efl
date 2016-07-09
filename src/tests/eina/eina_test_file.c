@@ -38,6 +38,10 @@
 # define PATH_SEP_C '/'
 #endif
 
+#ifndef O_BINARY
+# define O_BINARY 0
+#endif
+
 static int default_dir_rights = 0777;
 const int file_min_offset = 1;
 
@@ -179,6 +183,8 @@ START_TEST(eina_file_direct_ls_simple)
     * 1) Do not end a directory with a period
     * 2) '*' (asterisk) is a reserved character
     * 3) ':' (colon) is a reserved character
+    *
+    * Note: UTF-8 symbol U+03BC is greek lower mu
     */
 
    const char *good_dirs[] =
@@ -191,7 +197,7 @@ START_TEST(eina_file_direct_ls_simple)
 #ifndef _WIN32
         "~$a@:-*$b!{}"
 #else
-        "~$a@µ-#$b!{}"
+        "~$a@\u03bc-#$b!{}"
 #endif
      };
    const int good_dirs_count = sizeof(good_dirs) / sizeof(const char *);
@@ -253,7 +259,7 @@ START_TEST(eina_file_ls_simple)
 #ifndef _WIN32
         "~$b@:-*$a!{}"
 #else
-        "~$b@µ-#$a!{}"
+        "~$b@\u03bc-#$a!{}"
 #endif
      };
    const int good_dirs_count = sizeof(good_dirs) / sizeof(const char *);
@@ -353,12 +359,12 @@ START_TEST(eina_file_map_new_test)
    strcpy(test_file2_path, (char *)test_dirname);
    strcat(test_file2_path, test_file2_name_part);
    
-   fd = open(test_file_path, O_WRONLY | O_CREAT | O_TRUNC, S_IWUSR | S_IRUSR);
+   fd = open(test_file_path, O_WRONLY | O_BINARY | O_CREAT | O_TRUNC, S_IWUSR | S_IRUSR);
    fail_if(fd == 0);   
    fail_if(write(fd, eina_map_test_string, strlen(eina_map_test_string)) != (ssize_t) strlen(eina_map_test_string));
    close(fd);
 
-   fd = open(test_file2_path, O_WRONLY | O_CREAT | O_TRUNC, S_IWUSR | S_IRUSR);
+   fd = open(test_file2_path, O_WRONLY | O_BINARY | O_CREAT | O_TRUNC, S_IWUSR | S_IRUSR);
    fail_if(fd == 0);
    fail_if(write(fd, big_buffer, big_buffer_size - file_min_offset) != big_buffer_size - file_min_offset);
    close(fd);
@@ -566,7 +572,7 @@ START_TEST(eina_test_file_xattr)
    eina_init();
    test_file_path = get_full_path(XATTR_TEST_DIR, filename);
 
-   fd = open(test_file_path, O_RDONLY | O_CREAT | O_TRUNC, S_IRWXU | S_IRWXG | S_IRWXO);
+   fd = open(test_file_path, O_RDONLY | O_BINARY | O_CREAT | O_TRUNC, S_IRWXU | S_IRWXG | S_IRWXO);
    fail_if(fd == 0);
    close(fd);
 
@@ -681,6 +687,142 @@ START_TEST(eina_test_file_copy)
 }
 END_TEST
 
+START_TEST(eina_test_file_statat)
+{
+   Eina_Tmpstr *test_file1_path, *test_file2_path;
+   Eina_Iterator *it;
+   Eina_Stat st;
+   Eina_File_Direct_Info *info;
+   const char *template = "abcdefghijklmnopqrstuvwxyz";
+   int template_size = strlen(template);
+   int fd, ret;
+
+   eina_init();
+
+   Eina_Tmpstr *test_dirname = get_eina_test_file_tmp_dir();
+   fail_if(test_dirname == NULL);
+
+   test_file1_path = get_full_path(test_dirname, "example1.txt");
+   test_file2_path = get_full_path(test_dirname, "example2.txt");
+
+   fd = open(test_file1_path, O_WRONLY | O_BINARY | O_CREAT | O_TRUNC, S_IWUSR | S_IRUSR);
+   fail_if(fd == 0);
+   fail_if(write(fd, template, template_size) != template_size);
+   close(fd);
+
+   fd = open(test_file2_path, O_WRONLY | O_BINARY | O_CREAT | O_TRUNC, S_IWUSR | S_IRUSR);
+   fail_if(fd == 0);
+   fail_if(write(fd, template, template_size) != template_size);
+   close(fd);
+
+   it = eina_file_stat_ls(test_dirname);
+   fprintf(stderr, "file=%s\n", test_dirname);
+   EINA_ITERATOR_FOREACH(it, info)
+     {
+        ret = eina_file_statat(eina_iterator_container_get(it), info, &st);
+        fprintf(stderr, "ret=%d\n", ret);
+        fail_if(ret != 0);
+        fail_if(st.size != (unsigned int)template_size);
+     }
+
+   unlink(test_file1_path);
+   unlink(test_file2_path);
+   fail_if(rmdir(test_dirname) != 0);
+   eina_tmpstr_del(test_file1_path);
+   eina_tmpstr_del(test_file2_path);
+   eina_tmpstr_del(test_dirname);
+
+   eina_shutdown();
+}
+END_TEST
+
+START_TEST(eina_test_file_mktemp)
+{
+   Eina_Tmpstr *tmpfile, *tmpdir = NULL;
+   char buf[PATH_MAX], fmt[256];
+   Eina_File_Direct_Info *info;
+   Eina_Iterator *it;
+   Eina_File *file;
+   int fd;
+
+   static const char *patterns[] = {
+      "XXXXXX",
+      "XXXXXX.txt",
+      "eina_file_test_XXXXXX",
+      "eina_file_test_XXXXXX.txt",
+      "./eina_file_test_XXXXXX.txt",
+   };
+
+   errno = 0;
+
+   /* test NULL */
+   fd = eina_file_mkstemp(NULL, NULL);
+   fail_if(fd >= 0);
+
+   fd = eina_file_mkstemp(patterns[0], NULL);
+   fail_if((fd < 0) || errno);
+
+   /* here's an attempt at removing the file, without knowing its path */
+#ifdef F_GETPATH
+   /* most likely Mac OS */
+   if (fcntl(fd, F_GETPATH, buf) != -1)
+     unlink(buf);
+#elif !defined _WIN32
+   sprintf(fmt, "/proc/self/fd/%d", fd);
+   if (readlink(fmt, buf, sizeof(buf)))
+     unlink(buf);
+#else
+   // TODO: need to implement windows support with GetFinalPathNameByHandle
+#endif
+   close(fd);
+
+   for (unsigned int k = 0; k < sizeof(patterns) / sizeof(patterns[0]); k++)
+     {
+        errno = 0;
+        tmpfile = NULL;
+        fd = eina_file_mkstemp(patterns[k], &tmpfile);
+        fail_if((fd < 0) || !tmpfile || errno);
+        file = eina_file_open(tmpfile, EINA_FALSE);
+        fail_if(!file);
+        eina_file_close(file);
+        unlink(tmpfile);
+        eina_tmpstr_del(tmpfile);
+        close(fd);
+     }
+
+   /* temp directory */
+   fail_if(!eina_file_mkdtemp("eina_file_test_XXXXXX", &tmpdir) || !tmpdir);
+
+   it = eina_file_direct_ls(tmpdir);
+   fail_if(!it);
+
+   /* should be empty! */
+   EINA_ITERATOR_FOREACH(it, info)
+     fail();
+
+   eina_iterator_free(it);
+
+   /* file inside that directory */
+   eina_file_path_join(buf, sizeof(buf), tmpdir, "eina_file_test_XXXXXX.txt");
+
+   fd = eina_file_mkstemp(buf, &tmpfile);
+   fail_if((fd < 0) || !tmpfile || errno);
+   close(fd);
+
+   it = eina_file_direct_ls(tmpdir);
+   fail_if(!it);
+
+   /* should be empty! */
+   EINA_ITERATOR_FOREACH(it, info)
+     fail_if(strcmp(info->path, tmpfile));
+
+   eina_iterator_free(it);
+
+   unlink(tmpfile);
+   remove(tmpdir);
+}
+END_TEST
+
 void
 eina_test_file(TCase *tc)
 {
@@ -695,4 +837,6 @@ eina_test_file(TCase *tc)
    tcase_add_test(tc, eina_test_file_xattr);
 #endif
    tcase_add_test(tc, eina_test_file_copy);
+   tcase_add_test(tc, eina_test_file_statat);
+   tcase_add_test(tc, eina_test_file_mktemp);
 }
