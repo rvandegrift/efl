@@ -7,7 +7,4 @@
 40_fix_elocation_pc.diff
 45_disable_doc_pack.diff
 50-fix-edje_recc-bashism.diff
-55-emile_remove_sslv3.diff
-60-fix_evas_double_free.diff
-65-adjust_eldbus_deps.diff
 70-gnutls3.4.diff
