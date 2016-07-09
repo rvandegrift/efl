@@ -31,7 +31,7 @@ This patch header follows DEP-3: http://dep.debian.net/deps/dep3/
  }
 --- a/src/tests/ecore_con/ecore_con_test_ecore_con_url.c
 +++ b/src/tests/ecore_con/ecore_con_test_ecore_con_url.c
-@@ -449,9 +449,9 @@
+@@ -452,9 +452,9 @@
     tcase_add_test(tc, ecore_con_test_ecore_con_url_init);
     tcase_add_test(tc, ecore_con_test_ecore_con_url_create);
     tcase_add_test(tc, ecore_con_test_ecore_con_url_download);
