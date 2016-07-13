@@ -16,6 +16,8 @@ LETSBUILDINDEP := $(shell if dh_listpackages | grep -q efl-doc ; then \
 	echo yes ;\
 	else echo no ; fi)
 
+export XDG_RUNTIME_DIR=/tmp
+export HOME=/tmp
 
 %:
 	dh $@ --with autoreconf --parallel
