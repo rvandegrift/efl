@@ -3,7 +3,7 @@ Description: Skip tests that require running dbus
 Author: Andreas Metzler <ametzler@debian.org>
 Origin: other
 Forwarded: no
-Last-Update: 2016-01-16
+Last-Update: 2016-07-31
 ---
 This patch header follows DEP-3: http://dep.debian.net/deps/dep3/
 --- a/src/tests/eldbus_cxx/eldbus_cxx_suite.cc
@@ -17,43 +17,4 @@ This patch header follows DEP-3: http://dep.debian.net/deps/dep3/
     for (i = 1; i < argc; i++)
        if ((strcmp(argv[i], "-h") == 0) ||
            (strcmp(argv[i], "--help") == 0))
---- a/src/tests/ecore_con/ecore_con_test_ecore_con.c
-+++ b/src/tests/ecore_con/ecore_con_test_ecore_con.c
-@@ -581,7 +581,7 @@
-    tcase_add_test(tc, ecore_test_ecore_con_remote_nodelay_mixed);
-    tcase_add_test(tc, ecore_test_ecore_con_remote_nodelay_mixed_load_cert);
-    tcase_add_test(tc, ecore_test_ecore_con_ssl_available);
--   tcase_add_test(tc, ecore_test_ecore_con_dns);
--   tcase_add_test(tc, ecore_test_ecore_con_dns_lookup);
-+   /* tcase_add_test(tc, ecore_test_ecore_con_dns); */
-+   /* tcase_add_test(tc, ecore_test_ecore_con_dns_lookup); */
-    tcase_add_test(tc, ecore_test_ecore_con_shutdown_bef_init);
- }
---- a/src/tests/ecore_con/ecore_con_test_ecore_con_url.c
-+++ b/src/tests/ecore_con/ecore_con_test_ecore_con_url.c
-@@ -452,9 +452,9 @@
-    tcase_add_test(tc, ecore_con_test_ecore_con_url_init);
-    tcase_add_test(tc, ecore_con_test_ecore_con_url_create);
-    tcase_add_test(tc, ecore_con_test_ecore_con_url_download);
--   tcase_add_test(tc, ecore_con_test_ecore_con_url_cookies_clear);
--   tcase_add_test(tc, ecore_con_test_ecore_con_url_cookies_clear_session);
--   tcase_add_test(tc, ecore_con_test_ecore_con_url_cookies_ignore_session);
-+   /* tcase_add_test(tc, ecore_con_test_ecore_con_url_cookies_clear); */
-+   /* tcase_add_test(tc, ecore_con_test_ecore_con_url_cookies_clear_session); */
-+   /* tcase_add_test(tc, ecore_con_test_ecore_con_url_cookies_ignore_session); */
- #ifdef ECORE_CON_HTTP_TEST_URL
-    tcase_add_test(tc, ecore_con_test_ecore_con_url_post);
- #endif
---- a/src/tests/eeze/eeze_suite.c
-+++ b/src/tests/eeze/eeze_suite.c
-@@ -646,8 +646,8 @@
-    suite_add_tcase(s, tc);
  
-    tc = tcase_create("Eeze_Net");
--   tcase_add_test(tc, eeze_test_net_list);
--   tcase_add_test(tc, eeze_test_net_attr);
-+   /* tcase_add_test(tc, eeze_test_net_list); */
-+   /* tcase_add_test(tc, eeze_test_net_attr); */
- #ifdef HAVE_IPV6
-    //FIXME Figure out why we fail for the ipv6 tests here (code or test)
-    //tcase_add_test(tc, eeze_test_net_attr_ipv6);

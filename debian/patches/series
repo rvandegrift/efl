@@ -1,6 +1,7 @@
 02_no_ecore_imf_test.diff
 15_try_curl-gnutls.diff
 20-skip_dbus_tests.diff
+21-skip_net_tests.diff
 22-skip-fb-tests.diff
 24-skip_gnutls_broken.diff
 26-skip_filter_tests.diff
