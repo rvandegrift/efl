@@ -3,6 +3,7 @@ debian/tmp/usr/include/eina-cxx-1
 debian/tmp/usr/lib/*/libeina.so
 debian/tmp/usr/lib/*/pkgconfig/eina*.pc
 usr/lib/*/cmake/Eina/*.cmake
+usr/lib/*/cmake/EinaCxx/*.cmake
 
 debian/tmp/usr/include/eo-1
 debian/tmp/usr/include/eo-cxx-1
@@ -13,6 +14,7 @@ usr/share/eolian/include/eo-1
 debian/tmp/usr/share/gdb/auto-load/usr/lib/*/libeo.so.*.py
 debian/tmp/usr/share/eo/gdb/eo_gdb.py
 usr/lib/*/cmake/Eo/*.cmake
+usr/lib/*/cmake/EoCxx/*.cmake
 
 #libefl
 debian/tmp/usr/include/efl-1
