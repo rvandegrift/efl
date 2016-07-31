@@ -1,6 +1,8 @@
 Description: Skip tests that require running dbus
  * eldbus_cxx
+ * eldbus
 Author: Andreas Metzler <ametzler@debian.org>
+Author: Ross Vandegrift <ross@kallisti.us>
 Origin: other
 Forwarded: no
 Last-Update: 2016-07-31
@@ -17,4 +19,14 @@ This patch header follows DEP-3: http://dep.debian.net/deps/dep3/
     for (i = 1; i < argc; i++)
        if ((strcmp(argv[i], "-h") == 0) ||
            (strcmp(argv[i], "--help") == 0))
+--- a/src/tests/eldbus/eldbus_suite.c
++++ b/src/tests/eldbus/eldbus_suite.c
+@@ -86,6 +86,8 @@
+    SRunner *sr;
+    int i, failed_count;
  
++   fprintf(stderr, "Skipping %s\n", argv[0]);
++   return(77);
+    for (i = 1; i < argc; i++)
+      if ((strcmp(argv[i], "-h") == 0) ||
+ 	 (strcmp(argv[i], "--help") == 0))
