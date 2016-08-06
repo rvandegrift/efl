@@ -106,6 +106,7 @@ libeolian.so.1 libeolian1 #MINVER#
  eolian_shutdown@Base 1.16.1+eo+1
  eolian_system_directory_scan@Base 1.16.1+eo+1
  eolian_type_alias_get_by_name@Base 1.16.1+eo+1
+ eolian_type_aliased_base_get@Base 1.17.2+eo+1
  eolian_type_aliases_get_by_file@Base 1.16.1+eo+1
  eolian_type_base_type_get@Base 1.16.1+eo+1
  eolian_type_c_type_get@Base 1.16.1+eo+1

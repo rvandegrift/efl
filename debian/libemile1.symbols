@@ -1,5 +1,8 @@
 libemile.so.1 libemile1 #MINVER#
 * Build-Depends-Package: libemile-dev
+ emile_base64_encode@Base 1.17.2+eo+1
+ emile_base64url_decode@Base 1.17.2+eo+1
+ emile_base64url_encode@Base 1.17.2+eo+1
  emile_binbuf_cipher@Base 1.16.1+eo+1
  emile_binbuf_decipher@Base 1.16.1+eo+1
  emile_binbuf_sha1@Base 1.16.1+eo+1

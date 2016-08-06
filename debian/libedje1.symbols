@@ -583,12 +583,16 @@ libedje.so.1 libedje1 #MINVER#
  edje_mmap_color_class_iterator_new@Base 1.16.1+eo+1
  edje_mmap_data_get@Base 1.16.1+eo+1
  edje_mmap_group_exists@Base 1.16.1+eo+1
+ edje_mmap_size_class_iterator_new@Base 1.17.2+eo+1
+ edje_mmap_text_class_iterator_new@Base 1.17.2+eo+1
  edje_module_load@Base 1.16.1+eo+1
  edje_obj_access_part_list_get@Base 1.16.1+eo+1
  edje_obj_animation_get@Base 1.16.1+eo+1
  edje_obj_animation_set@Base 1.16.1+eo+1
  edje_obj_base_scale_get@Base 1.16.1+eo+1
  edje_obj_calc_force@Base 1.16.1+eo+1
+ edje_obj_color_class_clear@Base 1.17.2+eo+1
+ edje_obj_color_class_del@Base 1.17.2+eo+1
  edje_obj_color_class_description_get@Base 1.16.1+eo+1
  edje_obj_color_class_get@Base 1.16.1+eo+1
  edje_obj_color_class_set@Base 1.16.1+eo+1
@@ -713,12 +717,17 @@ libedje.so.1 libedje1 #MINVER#
  edje_obj_signal_callback_add@Base 1.16.1+eo+1
  edje_obj_signal_callback_del@Base 1.16.1+eo+1
  edje_obj_signal_emit@Base 1.16.1+eo+1
+ edje_obj_size_class_del@Base 1.17.2+eo+1
+ edje_obj_size_class_get@Base 1.17.2+eo+1
+ edje_obj_size_class_set@Base 1.17.2+eo+1
  edje_obj_size_max_get@Base 1.16.1+eo+1
  edje_obj_size_min_calc@Base 1.16.1+eo+1
  edje_obj_size_min_get@Base 1.16.1+eo+1
  edje_obj_size_min_restricted_calc@Base 1.16.1+eo+1
  edje_obj_text_change_cb_set@Base 1.16.1+eo+1
+ edje_obj_text_class_del@Base 1.17.2+eo+1
  edje_obj_text_class_get@Base 1.16.1+eo+1
+ edje_object_color_class_clear@Base 1.17.2+eo+1
  edje_obj_text_class_set@Base 1.16.1+eo+1
  edje_obj_text_insert_filter_callback_add@Base 1.16.1+eo+1
  edje_obj_text_insert_filter_callback_del@Base 1.16.1+eo+1
@@ -869,11 +878,15 @@ libedje.so.1 libedje1 #MINVER#
  edje_object_signal_callback_del_full@Base 1.16.1+eo+1
  edje_object_signal_callback_extra_data_get@Base 1.16.1+eo+1
  edje_object_signal_emit@Base 1.16.1+eo+1
+ edje_object_size_class_del@Base 1.17.2+eo+1
+ edje_object_size_class_get@Base 1.17.2+eo+1
+ edje_object_size_class_set@Base 1.17.2+eo+1
  edje_object_size_max_get@Base 1.16.1+eo+1
  edje_object_size_min_calc@Base 1.16.1+eo+1
  edje_object_size_min_get@Base 1.16.1+eo+1
  edje_object_size_min_restricted_calc@Base 1.16.1+eo+1
  edje_object_text_change_cb_set@Base 1.16.1+eo+1
+ edje_object_text_class_del@Base 1.17.2+eo+1
  edje_object_text_class_get@Base 1.16.1+eo+1
  edje_object_text_class_set@Base 1.16.1+eo+1
  edje_object_text_insert_filter_callback_add@Base 1.16.1+eo+1
@@ -897,6 +910,12 @@ libedje.so.1 libedje1 #MINVER#
  edje_scale_get@Base 1.16.1+eo+1
  edje_scale_set@Base 1.16.1+eo+1
  edje_shutdown@Base 1.16.1+eo+1
+ edje_size_class_active_iterator_new@Base 1.17.2+eo+1
+ edje_size_class_del@Base 1.17.2+eo+1
+ edje_size_class_get@Base 1.17.2+eo+1
+ edje_size_class_list@Base 1.17.2+eo+1
+ edje_size_class_set@Base 1.17.2+eo+1
+ edje_text_class_active_iterator_new@Base 1.17.2+eo+1
  edje_text_class_del@Base 1.16.1+eo+1
  edje_text_class_get@Base 1.16.1+eo+1
  edje_text_class_list@Base 1.16.1+eo+1

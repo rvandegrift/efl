@@ -38,7 +38,6 @@ libecore_con.so.1 libecore-con1 #MINVER#
  ecore_con_client_timeout_get@Base 1.16.1+eo+1
  ecore_con_client_timeout_set@Base 1.16.1+eo+1
  ecore_con_client_uptime_get@Base 1.16.1+eo+1
- ecore_con_connector_class_get@Base 1.16.1+eo+1
  ecore_con_eet@Base 1.16.1+eo+1
  ecore_con_eet_base_class_get@Base 1.16.1+eo+1
  ecore_con_eet_base_data_callback_del@Base 1.16.1+eo+1
@@ -176,6 +175,7 @@ libecore_con.so.1 libecore-con1 #MINVER#
  ecore_con_url_url_get@Base 1.16.1+eo+1
  ecore_con_url_url_set@Base 1.16.1+eo+1
  ecore_con_url_verbose_set@Base 1.16.1+eo+1
+ efl_network_connector_class_get@Base 1.17.2+eo+1
  efl_network_url_class_get@Base 1.16.1+eo+1
  efl_network_url_get@Base 1.16.1+eo+1
  efl_network_url_set@Base 1.16.1+eo+1

@@ -143,6 +143,7 @@ libecore.so.1 libecore1 #MINVER#
  ecore_obj_timer_loop_constructor@Base 1.16.1+eo+1
  ecore_obj_timer_pending_get@Base 1.16.1+eo+1
  ecore_obj_timer_reset@Base 1.16.1+eo+1
+ ecore_parent_class_get@Base 1.17.2+eo+1
  ecore_pipe_add@Base 1.16.1+eo+1
  ecore_pipe_del@Base 1.16.1+eo+1
  ecore_pipe_freeze@Base 1.16.1+eo+1
@@ -216,6 +217,7 @@ libecore.so.1 libecore1 #MINVER#
  ecore_version@Base 1.16.1+eo+1
 libeldbus.so.1 libecore1 #MINVER#
 * Build-Depends-Package: libecore-dev
+ _ELDBUS_MODEL_METHOD_EVENT_SUCCESSFUL_CALL@Base 1.17.2+eo+1
  eldbus_address_connection_get@Base 1.16.1+eo+1
  eldbus_connection_data_del@Base 1.16.1+eo+1
  eldbus_connection_data_get@Base 1.16.1+eo+1
@@ -267,6 +269,38 @@ libeldbus.so.1 libecore1 #MINVER#
  eldbus_message_signature_get@Base 1.16.1+eo+1
  eldbus_message_to_eina_value@Base 1.16.1+eo+1
  eldbus_message_unref@Base 1.16.1+eo+1
+ eldbus_model_arguments_class_get@Base 1.17.2+eo+1
+ eldbus_model_arguments_constructor@Base 1.17.2+eo+1
+ eldbus_model_arguments_name_get@Base 1.17.2+eo+1
+ eldbus_model_connection_address_get@Base 1.17.2+eo+1
+ eldbus_model_connection_address_set@Base 1.17.2+eo+1
+ eldbus_model_connection_class_get@Base 1.17.2+eo+1
+ eldbus_model_connection_constructor@Base 1.17.2+eo+1
+ eldbus_model_connection_private_get@Base 1.17.2+eo+1
+ eldbus_model_connection_private_set@Base 1.17.2+eo+1
+ eldbus_model_connection_type_get@Base 1.17.2+eo+1
+ eldbus_model_connection_type_set@Base 1.17.2+eo+1
+ eldbus_model_method_call@Base 1.17.2+eo+1
+ eldbus_model_method_class_get@Base 1.17.2+eo+1
+ eldbus_model_method_constructor@Base 1.17.2+eo+1
+ eldbus_model_object_address_get@Base 1.17.2+eo+1
+ eldbus_model_object_address_set@Base 1.17.2+eo+1
+ eldbus_model_object_bus_get@Base 1.17.2+eo+1
+ eldbus_model_object_bus_set@Base 1.17.2+eo+1
+ eldbus_model_object_class_get@Base 1.17.2+eo+1
+ eldbus_model_object_connection_constructor@Base 1.17.2+eo+1
+ eldbus_model_object_constructor@Base 1.17.2+eo+1
+ eldbus_model_object_path_get@Base 1.17.2+eo+1
+ eldbus_model_object_path_set@Base 1.17.2+eo+1
+ eldbus_model_object_private_get@Base 1.17.2+eo+1
+ eldbus_model_object_private_set@Base 1.17.2+eo+1
+ eldbus_model_object_type_get@Base 1.17.2+eo+1
+ eldbus_model_object_type_set@Base 1.17.2+eo+1
+ eldbus_model_proxy_class_get@Base 1.17.2+eo+1
+ eldbus_model_proxy_constructor@Base 1.17.2+eo+1
+ eldbus_model_proxy_name_get@Base 1.17.2+eo+1
+ eldbus_model_signal_class_get@Base 1.17.2+eo+1
+ eldbus_model_signal_constructor@Base 1.17.2+eo+1
  eldbus_name_owner_changed_callback_add@Base 1.16.1+eo+1
  eldbus_name_owner_changed_callback_del@Base 1.16.1+eo+1
  eldbus_name_owner_get@Base 1.16.1+eo+1
@@ -326,6 +360,7 @@ libeldbus.so.1 libecore1 #MINVER#
  eldbus_proxy_property_local_get@Base 1.16.1+eo+1
  eldbus_proxy_property_local_get_all@Base 1.16.1+eo+1
  eldbus_proxy_property_set@Base 1.16.1+eo+1
+ eldbus_proxy_property_value_set@Base 1.17.2+eo+1
  eldbus_proxy_ref@Base 1.16.1+eo+1
  eldbus_proxy_send@Base 1.16.1+eo+1
  eldbus_proxy_send_and_block@Base 1.16.1+eo+1

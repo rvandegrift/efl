@@ -43,9 +43,6 @@ libevas.so.1 libevas1 #MINVER#
  _evas_log_dom_global@Base 1.16.1+eo+1
  _evas_module_engine_inherit@Base 1.16.1+eo+1
  _evas_module_libdir_get@Base 1.16.1+eo+1
- ector_cairo_software_surface_class_get@Base 1.16.1+eo+1
- ector_cairo_software_surface_get@Base 1.16.1+eo+1
- ector_cairo_software_surface_set@Base 1.16.1+eo+1
  efl_vg_base_class_get@Base 1.16.1+eo+1
  efl_vg_bounds_get@Base 1.16.1+eo+1
  efl_vg_container_child_get@Base 1.16.1+eo+1
@@ -208,6 +205,7 @@ libevas.so.1 libevas1 #MINVER#
  evas_canvas3d_mesh_class_get@Base 1.16.1+eo+1
  evas_canvas3d_mesh_color_pick_enable_get@Base 1.16.1+eo+1
  evas_canvas3d_mesh_color_pick_enable_set@Base 1.16.1+eo+1
+ evas_canvas3d_mesh_convex_hull_data_get@Base 1.17.2+eo+1
  evas_canvas3d_mesh_fog_color_get@Base 1.16.1+eo+1
  evas_canvas3d_mesh_fog_color_set@Base 1.16.1+eo+1
  evas_canvas3d_mesh_fog_enable_get@Base 1.16.1+eo+1
@@ -273,6 +271,7 @@ libevas.so.1 libevas1 #MINVER#
  evas_canvas3d_node_scale_inherit_get@Base 1.16.1+eo+1
  evas_canvas3d_node_scale_inherit_set@Base 1.16.1+eo+1
  evas_canvas3d_node_scale_set@Base 1.16.1+eo+1
+ evas_canvas3d_node_scene_root_get@Base 1.17.2+eo+1
  evas_canvas3d_node_type_get@Base 1.16.1+eo+1
  evas_canvas3d_object_callback_register@Base 1.16.1+eo+1
  evas_canvas3d_object_callback_unregister@Base 1.16.1+eo+1
@@ -340,6 +339,10 @@ libevas.so.1 libevas1 #MINVER#
  evas_canvas_damage_rectangle_add@Base 1.16.1+eo+1
  evas_canvas_data_attach_get@Base 1.16.1+eo+1
  evas_canvas_data_attach_set@Base 1.16.1+eo+1
+ evas_ector_buffer_engine_image_get@Base 1.17.2+eo+1
+ evas_ector_buffer_engine_image_set@Base 1.17.2+eo+1
+ evas_ector_buffer_interface_get@Base 1.17.2+eo+1
+ evas_ector_software_buffer_class_get@Base 1.17.2+eo+1
  evas_canvas_engine_info_get@Base 1.16.1+eo+1
  evas_canvas_engine_info_set@Base 1.16.1+eo+1
  evas_canvas_event_default_flags_get@Base 1.16.1+eo+1
@@ -515,9 +518,9 @@ libevas.so.1 libevas1 #MINVER#
  evas_event_thaw@Base 1.16.1+eo+1
  evas_event_thaw_eval@Base 1.16.1+eo+1
  evas_filter_changed_set@Base 1.16.1+eo+1
- evas_filter_constructor@Base 1.16.1+eo+1
- evas_filter_destructor@Base 1.16.1+eo+1
+ evas_filter_ctor@Base 1.17.2+eo+1
  evas_filter_dirty@Base 1.16.1+eo+1
+ evas_filter_dtor@Base 1.17.2+eo+1
  evas_filter_input_alpha@Base 1.16.1+eo+1
  evas_filter_input_render@Base 1.16.1+eo+1
  evas_filter_invalid_set@Base 1.16.1+eo+1
@@ -625,6 +628,7 @@ libevas.so.1 libevas1 #MINVER#
  evas_map_util_zoom@Base 1.16.1+eo+1
  evas_module_register@Base 1.16.1+eo+1
  evas_module_unregister@Base 1.16.1+eo+1
+ evas_native_tbm_surface_image_set@Base 1.17.2+eo+1
  evas_new@Base 1.16.1+eo+1
  evas_nochange_pop@Base 1.16.1+eo+1
  evas_nochange_push@Base 1.16.1+eo+1
@@ -766,6 +770,8 @@ libevas.so.1 libevas1 #MINVER#
  evas_obj_name_set@Base 1.16.1+eo+1
  evas_obj_no_render_get@Base 1.16.1+eo+1
  evas_obj_no_render_set@Base 1.16.1+eo+1
+ evas_obj_paragraph_direction_get@Base 1.17.2+eo+1
+ evas_obj_paragraph_direction_set@Base 1.17.2+eo+1
  evas_obj_pass_events_get@Base 1.16.1+eo+1
  evas_obj_pass_events_set@Base 1.16.1+eo+1
  evas_obj_pointer_mode_get@Base 1.16.1+eo+1
@@ -1121,6 +1127,8 @@ libevas.so.1 libevas1 #MINVER#
  evas_object_name_find@Base 1.16.1+eo+1
  evas_object_name_get@Base 1.16.1+eo+1
  evas_object_name_set@Base 1.16.1+eo+1
+ evas_object_paragraph_direction_get@Base 1.17.2+eo+1
+ evas_object_paragraph_direction_set@Base 1.17.2+eo+1
  evas_object_pass_events_get@Base 1.16.1+eo+1
  evas_object_pass_events_set@Base 1.16.1+eo+1
  evas_object_pointer_mode_get@Base 1.16.1+eo+1

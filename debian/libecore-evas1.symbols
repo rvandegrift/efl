@@ -79,6 +79,7 @@ libecore_evas.so.1 libecore-evas1 #MINVER#
  ecore_evas_callback_sticky_set@Base 1.16.1+eo+1
  ecore_evas_callback_unsticky_set@Base 1.16.1+eo+1
  ecore_evas_cocoa_new@Base 1.16.1+eo+1
+ ecore_evas_cocoa_window_get@Base 1.17.2+eo+1
  ecore_evas_comp_sync_get@Base 1.16.1+eo+1
  ecore_evas_comp_sync_set@Base 1.16.1+eo+1
  ecore_evas_cursor_get@Base 1.16.1+eo+1
@@ -241,6 +242,7 @@ libecore_evas.so.1 libecore-evas1 #MINVER#
  ecore_evas_urgent_get@Base 1.16.1+eo+1
  ecore_evas_urgent_set@Base 1.16.1+eo+1
  ecore_evas_visibility_get@Base 1.16.1+eo+1
+ ecore_evas_wayland2_window_get@Base 1.17.2+eo+1
  ecore_evas_wayland_egl_new@Base 1.16.1+eo+1
  ecore_evas_wayland_move@Base 1.16.1+eo+1
  ecore_evas_wayland_pointer_set@Base 1.16.1+eo+1
