@@ -1,3 +1,20 @@
+efl (1.17.2-1) UNRELEASED; urgency=medium
+
+  * debian/patches: drop fixes applied upstream
+  * debian/patches: defuzz
+  * Re-enable eina magic debug to fix 1.17+ eina strbuf tests
+  * debian/patches: disable network operation tests in a separate patch
+  * debian/patches/20-skip_dbus_tests.diff: disable eldbus tests too
+  * ship cmake files for c++ bindings to libeo and libeina
+  * ship new eolian eo files with libecore-dev
+  * Remove libector-dev headers, they were dropped in 1.17
+  * Add symbol changes for 1.17 release
+  * Bump symbol versions for new release of eolian generator
+  * d/p/75-disable-evas_test_image.diff: test fails outside of X
+  * d/p/80-disable-ecore_cxx_safe_call_sync.diff: test fails outside of X
+
+ -- Ross Vandegrift <ross@kallisti.us>  Sat, 06 Aug 2016 16:52:33 -0400
+
 efl (1.16.1-1) UNRELEASED; urgency=medium
 
   * Remove explicit version from module paths in install files
