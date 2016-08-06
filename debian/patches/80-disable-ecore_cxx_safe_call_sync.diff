@@ -1,0 +1,12 @@
+--- a/src/tests/ecore_cxx/ecore_cxx_test_safe_call.cc
++++ b/src/tests/ecore_cxx/ecore_cxx_test_safe_call.cc
+@@ -247,6 +247,9 @@
+ 
+ START_TEST(ecore_cxx_safe_call_sync)
+ {
++  fprintf(stderr, "Skipping ecore_cxx_safe_call_sync\n");
++  return;
++
+   efl::ecore::ecore_init init;
+ 
+   efl::eina::thread thread(&call_sync_int);
