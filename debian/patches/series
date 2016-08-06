@@ -9,3 +9,4 @@
 45_disable_doc_pack.diff
 50-fix-edje_recc-bashism.diff
 70-gnutls3.4.diff
+75-disable-evas_test_image.diff
