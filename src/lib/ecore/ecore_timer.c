@@ -10,58 +10,47 @@
 #include "Ecore.h"
 #include "ecore_private.h"
 
-#define MY_CLASS ECORE_TIMER_CLASS
-#define MY_CLASS_NAME "Ecore_Timer"
+#define MY_CLASS EFL_LOOP_TIMER_CLASS
+#define MY_CLASS_NAME "Efl_Loop_Timer"
 
 #define ECORE_TIMER_CHECK(obj)                       \
-  if (!eo_isa((obj), ECORE_TIMER_CLASS)) \
+  if (!eo_isa((obj), MY_CLASS)) \
     return
 
-#ifdef WANT_ECORE_TIMER_DUMP
-# include <string.h>
-# include <execinfo.h>
-# define ECORE_TIMER_DEBUG_BT_NUM 64
-typedef void (*Ecore_Timer_Bt_Func)();
-#endif
-
-struct _Ecore_Timer_Data
+struct _Efl_Loop_Timer_Data
 {
    EINA_INLIST;
-   Ecore_Timer         *obj;
-   double              in;
-   double              at;
-   double              pending;
-   Ecore_Task_Cb       func;
-   void               *data;
 
-#ifdef WANT_ECORE_TIMER_DUMP
-   Ecore_Timer_Bt_Func timer_bt[ECORE_TIMER_DEBUG_BT_NUM];
-   int                 timer_bt_num;
-#endif
+   Eo            *object;
 
-   int                 references;
-   unsigned char       delete_me : 1;
-   unsigned char       just_added : 1;
-   unsigned char       frozen : 1;
+   double         in;
+   double         at;
+   double         pending;
+
+   int            listening;
+
+   unsigned char  just_added : 1;
+   unsigned char  frozen : 1;
+   unsigned char  initialized : 1;
+   unsigned char  noparent : 1;
 };
 
-typedef struct _Ecore_Timer_Data Ecore_Timer_Data;
+typedef struct _Efl_Loop_Timer_Data Efl_Loop_Timer_Data;
 
-static void _ecore_timer_set(Ecore_Timer *timer,
-                             double        at,
-                             double        in,
-                             Ecore_Task_Cb func,
-                             void         *data);
-#ifdef WANT_ECORE_TIMER_DUMP
-static int _ecore_timer_cmp(const void *d1,
-                            const void *d2);
-#endif
+static void _efl_loop_timer_util_delay(Efl_Loop_Timer_Data *timer,
+                                       double add);
+static void _efl_loop_timer_util_instanciate(Efl_Loop_Timer_Data *timer);
+static void _efl_loop_timer_set(Efl_Loop_Timer_Data *timer,
+                                double        at,
+                                double        in);
+
+static Eina_Inlist *timers = NULL;
+static Eina_Inlist *suspended = NULL;
+
+static Efl_Loop_Timer_Data *timer_current = NULL;
 
 static int timers_added = 0;
-static int timers_delete_me = 0;
-static Ecore_Timer_Data *timers = NULL;
-static Ecore_Timer_Data *timer_current = NULL;
-static Ecore_Timer_Data *suspended = NULL;
+
 static double last_check = 0.0;
 static double precision = 10.0 / 1000000.0;
 
@@ -76,84 +65,137 @@ EAPI void
 ecore_timer_precision_set(double value)
 {
    EINA_MAIN_LOOP_CHECK_RETURN;
-   _ecore_lock();
 
    if (value < 0.0)
      {
         ERR("Precision %f less than zero, ignored", value);
-        goto unlock;
+        return ;
      }
    precision = value;
-
-unlock:
-   _ecore_unlock();
 }
+
+static void
+_check_timer_event_catcher_add(void *data, const Eo_Event *event)
+{
+   const Eo_Callback_Array_Item *array = event->info;
+   Efl_Loop_Timer_Data *timer = data;
+   int i;
+
+   for (i = 0; array[i].desc != NULL; i++)
+     {
+        if (array[i].desc == EFL_LOOP_TIMER_EVENT_TICK)
+          {
+             if (timer->listening++ > 0) return;
+             _efl_loop_timer_util_instanciate(timer);
+             // No need to walk more than once per array as you can not del
+             // a partial array
+             return;
+          }
+     }
+}
+
+static void
+_check_timer_event_catcher_del(void *data, const Eo_Event *event)
+{
+   const Eo_Callback_Array_Item *array = event->info;
+   Efl_Loop_Timer_Data *timer = data;
+   int i;
+
+   for (i = 0; array[i].desc != NULL; i++)
+     {
+        if (array[i].desc == EFL_LOOP_TIMER_EVENT_TICK)
+          {
+             if ((--timer->listening) > 0) return;
+             _efl_loop_timer_util_instanciate(timer);
+             return;
+          }
+     }
+}
+
+EO_CALLBACKS_ARRAY_DEFINE(timer_watch,
+                          { EO_EVENT_CALLBACK_ADD, _check_timer_event_catcher_add },
+                          { EO_EVENT_CALLBACK_DEL, _check_timer_event_catcher_del });
+
+EOLIAN static Eo *
+_efl_loop_timer_eo_base_constructor(Eo *obj, Efl_Loop_Timer_Data *timer)
+{
+   eo_constructor(eo_super(obj, MY_CLASS));
+
+   eo_event_callback_array_add(obj, timer_watch(), timer);
+
+   eo_wref_add(obj, &timer->object);
+
+   timer->at = ecore_time_get();
+   timer->initialized = 0;
+
+   return obj;
+}
+
+
+EOLIAN static Eo *
+_efl_loop_timer_eo_base_finalize(Eo *obj, Efl_Loop_Timer_Data *pd)
+{
+   _efl_loop_timer_util_instanciate(pd);
+
+   return eo_finalize(eo_super(obj, MY_CLASS));
+}
+
+typedef struct _Ecore_Timer_Legacy Ecore_Timer_Legacy;
+struct _Ecore_Timer_Legacy
+{
+   Ecore_Task_Cb func;
+
+   const void *data;
+
+   Eina_Bool inside_call : 1;
+   Eina_Bool delete_me : 1;
+};
+
+static void
+_ecore_timer_legacy_del(void *data, const Eo_Event *event EINA_UNUSED)
+{
+   Ecore_Timer_Legacy *legacy = data;
+
+   free(legacy);
+}
+
+static void
+_ecore_timer_legacy_tick(void *data, const Eo_Event *event)
+{
+   Ecore_Timer_Legacy *legacy = data;
+
+   legacy->inside_call = 1;
+   if (!_ecore_call_task_cb(legacy->func, (void*)legacy->data) ||
+       legacy->delete_me)
+     eo_del(event->object);
+   else
+     legacy->inside_call = 0;
+}
+
+EO_CALLBACKS_ARRAY_DEFINE(legacy_timer,
+                          { EFL_LOOP_TIMER_EVENT_TICK, _ecore_timer_legacy_tick },
+                          { EO_EVENT_DEL, _ecore_timer_legacy_del });
 
 EAPI Ecore_Timer *
 ecore_timer_add(double        in,
                 Ecore_Task_Cb func,
                 const void   *data)
 {
-   Ecore_Timer *timer = NULL;
+   Ecore_Timer_Legacy *legacy;
+   Eo *timer;
 
    EINA_MAIN_LOOP_CHECK_RETURN_VAL(NULL);
-   timer = eo_add(MY_CLASS, _ecore_parent, ecore_obj_timer_constructor(in, func, data));
+   legacy = calloc(1, sizeof (Ecore_Timer_Legacy));
+   if (!legacy) return NULL;
+
+   legacy->func = func;
+   legacy->data = data;
+   timer = eo_add(MY_CLASS, ecore_main_loop_get(),
+                  eo_event_callback_array_add(eo_self, legacy_timer(), legacy),
+                  eo_key_data_set(eo_self, "_legacy", legacy),
+                  efl_loop_timer_interval_set(eo_self, in));
+
    return timer;
-}
-
-static Eina_Bool
-_ecore_timer_add(Ecore_Timer *obj,
-                 Ecore_Timer_Data *timer,
-                 double now,
-                 double in,
-                 Ecore_Task_Cb func,
-                 const void *data)
-{
-
-   if (EINA_UNLIKELY(!eina_main_loop_is()))
-     {
-        EINA_MAIN_LOOP_CHECK_RETURN_VAL(EINA_FALSE);
-     }
-
-   timer->obj = obj;
-   eo_manual_free_set(obj, EINA_TRUE);
-
-   if (!func)
-     {
-        ERR("callback function must be set up for an object of class: '%s'", MY_CLASS_NAME);
-        return EINA_FALSE;
-     }
-
-   if (in < 0.0) in = 0.0;
-
-#ifdef WANT_ECORE_TIMER_DUMP
-   timer->timer_bt_num = backtrace((void **)(timer->timer_bt),
-                                   ECORE_TIMER_DEBUG_BT_NUM);
-#endif
-   _ecore_timer_set(obj, now + in, in, func, (void *)data);
-   return EINA_TRUE;
-}
-
-EOLIAN static void
-_ecore_timer_constructor(Eo *obj, Ecore_Timer_Data *timer, double in, Ecore_Task_Cb func, const void *data)
-{
-   double now;
-
-   _ecore_lock();
-   now = ecore_time_get();
-
-   _ecore_timer_add(obj, timer, now, in, func, data);
-   _ecore_unlock();
-}
-
-EOLIAN static void
-_ecore_timer_loop_constructor(Eo *obj, Ecore_Timer_Data *timer, double in, Ecore_Task_Cb func, const void *data)
-{
-   double now;
-
-   now = ecore_loop_time_get();
-
-   _ecore_timer_add(obj, timer, now, in, func, data);
 }
 
 EAPI Ecore_Timer *
@@ -161,11 +203,20 @@ ecore_timer_loop_add(double        in,
                      Ecore_Task_Cb func,
                      const void   *data)
 {
-   Ecore_Timer *timer;
+   Ecore_Timer_Legacy *legacy;
+   Eo *timer;
 
-   _ecore_lock();
-   timer = _ecore_timer_loop_add(in, func, data);
-   _ecore_unlock();
+   EINA_MAIN_LOOP_CHECK_RETURN_VAL(NULL);
+   legacy = calloc(1, sizeof (Ecore_Timer_Legacy));
+   if (!legacy) return NULL;
+
+   legacy->func = func;
+   legacy->data = data;
+   timer = eo_add(MY_CLASS, ecore_main_loop_get(),
+                  eo_event_callback_array_add(eo_self, legacy_timer(), legacy),
+                  eo_key_data_set(eo_self, "_legacy", legacy),
+                  efl_loop_timer_loop_reset(eo_self),
+                  efl_loop_timer_interval_set(eo_self, in));
 
    return timer;
 }
@@ -173,78 +224,112 @@ ecore_timer_loop_add(double        in,
 EAPI void *
 ecore_timer_del(Ecore_Timer *timer)
 {
-   void *data = NULL;
+   Ecore_Timer_Legacy *legacy;
+   void *data;
 
    if (!timer) return NULL;
    EINA_MAIN_LOOP_CHECK_RETURN_VAL(NULL);
-   _ecore_lock();
 
-   data = _ecore_timer_del(timer);
+   legacy = eo_key_data_get(timer, "_legacy");
+   // If legacy == NULL, this means double free or something
+   if (legacy == NULL)
+     {
+        // Just in case it is an Eo timer, but not a legacy one.
+        ERR("You are trying to destroy a timer which seems dead already.");
+        eo_unref(timer);
+        return NULL;
+     }
 
-   _ecore_unlock();
+   data = (void*) legacy->data;
+
+   if (legacy->inside_call)
+     legacy->delete_me = EINA_TRUE;
+   else
+     eo_del(timer);
+
    return data;
 }
 
 EOLIAN static void
-_ecore_timer_interval_set(Eo *obj EINA_UNUSED, Ecore_Timer_Data *timer, double in)
+_efl_loop_timer_interval_set(Eo *obj EINA_UNUSED, Efl_Loop_Timer_Data *timer, double in)
 {
    EINA_MAIN_LOOP_CHECK_RETURN;
    if (in < 0.0) in = 0.0;
 
-   _ecore_lock();
    timer->in = in;
-   _ecore_unlock();
+
+   if (!timer->initialized)
+     _efl_loop_timer_set(timer, timer->at + in, in);
 }
 
 EOLIAN static double
-_ecore_timer_interval_get(Eo *obj EINA_UNUSED, Ecore_Timer_Data *timer)
+_efl_loop_timer_interval_get(Eo *obj EINA_UNUSED, Efl_Loop_Timer_Data *timer)
 {
    double ret = -1.0;
 
    EINA_MAIN_LOOP_CHECK_RETURN_VAL(ret);
-   _ecore_lock();
    ret = timer->in;
-   _ecore_unlock();
 
    return ret;
 }
 
 EOLIAN static void
-_ecore_timer_delay(Eo *obj, Ecore_Timer_Data *_pd EINA_UNUSED, double add)
+_efl_loop_timer_delay(Eo *obj EINA_UNUSED, Efl_Loop_Timer_Data *pd, double add)
 {
    EINA_MAIN_LOOP_CHECK_RETURN;
 
-   _ecore_lock();
-   _ecore_timer_util_delay(obj, add);
-   _ecore_unlock();
+   _efl_loop_timer_util_delay(pd, add);
 }
 
 EOLIAN static void
-_ecore_timer_reset(Eo *obj, Ecore_Timer_Data *timer)
+_efl_loop_timer_reset(Eo *obj EINA_UNUSED, Efl_Loop_Timer_Data *timer)
 {
    double now, add;
    EINA_MAIN_LOOP_CHECK_RETURN;
 
-   _ecore_lock();
    now = ecore_time_get();
+
+   if (!timer->initialized)
+     {
+        timer->at = now;
+        return;
+     }
 
    if (timer->frozen)
      add = timer->pending;
    else
      add = timer->at - now;
-   _ecore_timer_util_delay(obj, timer->in - add);
-   _ecore_unlock();
+   _efl_loop_timer_util_delay(timer, timer->in - add);
+}
+
+EOLIAN static void
+_efl_loop_timer_loop_reset(Eo *obj EINA_UNUSED, Efl_Loop_Timer_Data *timer)
+{
+   double now, add;
+   EINA_MAIN_LOOP_CHECK_RETURN;
+
+   now = ecore_loop_time_get();
+
+   if (!timer->initialized)
+     {
+        timer->at = now;
+        return ;
+     }
+
+   if (timer->frozen)
+     add = timer->pending;
+   else
+     add = timer->at - now;
+   _efl_loop_timer_util_delay(timer, timer->in - add);
 }
 
 EOLIAN static double
-_ecore_timer_pending_get(Eo *obj EINA_UNUSED, Ecore_Timer_Data *timer)
+_efl_loop_timer_pending_get(Eo *obj EINA_UNUSED, Efl_Loop_Timer_Data *timer)
 {
    double now;
    double ret = 0.0;
 
    EINA_MAIN_LOOP_CHECK_RETURN_VAL(ret);
-
-   _ecore_lock();
 
    now = ecore_time_get();
 
@@ -252,7 +337,6 @@ _ecore_timer_pending_get(Eo *obj EINA_UNUSED, Ecore_Timer_Data *timer)
      ret = timer->pending;
    else
      ret = timer->at - now;
-   _ecore_unlock();
 
    return ret;
 }
@@ -260,33 +344,31 @@ _ecore_timer_pending_get(Eo *obj EINA_UNUSED, Ecore_Timer_Data *timer)
 EAPI void
 ecore_timer_freeze(Ecore_Timer *timer)
 {
+   EINA_MAIN_LOOP_CHECK_RETURN;
    ECORE_TIMER_CHECK(timer);
-   eo_do(timer, eo_event_freeze());
+   eo_event_freeze(timer);
 }
 
 EOLIAN static void
-_ecore_timer_eo_base_event_freeze(Eo *obj EINA_UNUSED, Ecore_Timer_Data *timer)
+_efl_loop_timer_eo_base_event_freeze(Eo *obj EINA_UNUSED, Efl_Loop_Timer_Data *timer)
 {
    double now;
 
    EINA_MAIN_LOOP_CHECK_RETURN;
 
-   _ecore_lock();
+   eo_event_freeze(eo_super(obj, MY_CLASS));
 
    /* Timer already frozen */
    if (timer->frozen)
-     goto unlock;
-
-   timers = (Ecore_Timer_Data *)eina_inlist_remove(EINA_INLIST_GET(timers), EINA_INLIST_GET(timer));
-   suspended = (Ecore_Timer_Data *)eina_inlist_prepend(EINA_INLIST_GET(suspended), EINA_INLIST_GET(timer));
+     return;
 
    now = ecore_time_get();
 
    timer->pending = timer->at - now;
    timer->at = 0.0;
    timer->frozen = 1;
-unlock:
-   _ecore_unlock();
+
+   _efl_loop_timer_util_instanciate(timer);
 }
 
 EAPI Eina_Bool
@@ -294,12 +376,13 @@ ecore_timer_freeze_get(Ecore_Timer *timer)
 {
    int r = 0;
 
-   eo_do(timer, r = eo_event_freeze_count_get());
+   EINA_MAIN_LOOP_CHECK_RETURN_VAL(EINA_FALSE);
+   r = eo_event_freeze_count_get(timer);
    return !!r;
 }
 
 EOLIAN static int
-_ecore_timer_eo_base_event_freeze_count_get(Eo *obj EINA_UNUSED, Ecore_Timer_Data *timer)
+_efl_loop_timer_eo_base_event_freeze_count_get(Eo *obj EINA_UNUSED, Efl_Loop_Timer_Data *timer)
 {
    EINA_MAIN_LOOP_CHECK_RETURN_VAL(0);
 
@@ -309,275 +392,138 @@ _ecore_timer_eo_base_event_freeze_count_get(Eo *obj EINA_UNUSED, Ecore_Timer_Dat
 EAPI void
 ecore_timer_thaw(Ecore_Timer *timer)
 {
+   EINA_MAIN_LOOP_CHECK_RETURN;
    ECORE_TIMER_CHECK(timer);
-   eo_do(timer, eo_event_thaw());
+   eo_event_thaw(timer);
 }
 
 EOLIAN static void
-_ecore_timer_eo_base_event_thaw(Eo *obj, Ecore_Timer_Data *timer)
+_efl_loop_timer_eo_base_event_thaw(Eo *obj, Efl_Loop_Timer_Data *timer)
 {
    double now;
 
    EINA_MAIN_LOOP_CHECK_RETURN;
 
-   _ecore_lock();
+   eo_event_thaw(eo_super(obj, MY_CLASS));
 
    /* Timer not frozen */
    if (!timer->frozen)
-     goto unlock;
+     return ;
 
-   suspended = (Ecore_Timer_Data *)eina_inlist_remove(EINA_INLIST_GET(suspended), EINA_INLIST_GET(timer));
+   suspended = eina_inlist_remove(suspended, EINA_INLIST_GET(timer));
    now = ecore_time_get();
 
-   _ecore_timer_set(obj, timer->pending + now, timer->in, timer->func, timer->data);
-unlock:
-   _ecore_unlock();
+   _efl_loop_timer_set(timer, timer->pending + now, timer->in);
 }
 
 EAPI char *
 ecore_timer_dump(void)
 {
-#ifdef WANT_ECORE_TIMER_DUMP
-   Eina_Strbuf *result;
-   char *out;
-   Ecore_Timer_Data *tm;
-   Eina_List *tmp = NULL;
-   int living_timer = 0;
-   int unknow_timer = 0;
+   return NULL;
+}
 
-   EINA_MAIN_LOOP_CHECK_RETURN_VAL(NULL);
-   _ecore_lock();
-   result = eina_strbuf_new();
+static void
+_efl_loop_timer_util_instanciate(Efl_Loop_Timer_Data *timer)
+{
+   Efl_Loop_Timer_Data *t2;
+   Eina_Inlist *first;
 
-   EINA_INLIST_FOREACH(timers, tm)
-     tmp = eina_list_sorted_insert(tmp, _ecore_timer_cmp, tm);
+   // Remove the timer from all possible pending list
+   first = eina_inlist_first(EINA_INLIST_GET(timer));
+   if (first == timers)
+     timers = eina_inlist_remove(timers, EINA_INLIST_GET(timer));
+   else if (first == suspended)
+     suspended = eina_inlist_remove(suspended, EINA_INLIST_GET(timer));
 
-   EINA_LIST_FREE(tmp, tm)
+   // And start putting it back where it belong
+   if (!timer->listening || timer->frozen || timer->at <= 0.0 || timer->in < 0.0)
      {
-        char **strings;
-        int j;
-
-        if (!tm->frozen && !tm->delete_me)
-          living_timer++;
-
-        strings = backtrace_symbols((void **)tm->timer_bt, tm->timer_bt_num);
-        if (tm->timer_bt_num <= 0 || strings == NULL)
-          {
-             unknow_timer++;
-             continue;
-          }
-
-        eina_strbuf_append_printf(result, "*** timer: %f ***\n", tm->in);
-        if (tm->frozen)
-          eina_strbuf_append(result, "FROZEN\n");
-        if (tm->delete_me)
-          eina_strbuf_append(result, "DELETED\n");
-        for (j = 0; j < tm->timer_bt_num; j++)
-          eina_strbuf_append_printf(result, "%s\n", strings[j]);
-
-        free(strings);
+        suspended = eina_inlist_prepend(suspended, EINA_INLIST_GET(timer));
+        return ;
      }
 
-   eina_strbuf_append_printf(result, "\n***\nThere is %i living timer.\nWe did lost track of %i timers.\n", living_timer, unknow_timer);
-
-   out = eina_strbuf_string_steal(result);
-   eina_strbuf_free(result);
-   _ecore_unlock();
-
-   return out;
-#else
-   return NULL;
-#endif
+   EINA_INLIST_REVERSE_FOREACH(timers, t2)
+     {
+        if (timer->at > t2->at)
+          {
+             timers = eina_inlist_append_relative(timers,
+                                                  EINA_INLIST_GET(timer),
+                                                  EINA_INLIST_GET(t2));
+             return;
+          }
+     }
+   timers = eina_inlist_prepend(timers, EINA_INLIST_GET(timer));
 }
 
-Ecore_Timer *
-_ecore_timer_loop_add(double        in,
-                      Ecore_Task_Cb func,
-                      const void   *data)
+static void
+_efl_loop_timer_util_delay(Efl_Loop_Timer_Data *timer,
+                           double add)
 {
-   Ecore_Timer *timer = NULL;
-   timer = eo_add(MY_CLASS, _ecore_parent, ecore_obj_timer_loop_constructor(in, func, data));
-
-   return timer;
-}
-
-EAPI void
-_ecore_timer_util_delay(Ecore_Timer *obj,
-                   double       add)
-{
-   Ecore_Timer_Data *timer = eo_data_scope_get(obj, MY_CLASS);
-
    if (timer->frozen)
      {
         timer->pending += add;
-     }
-   else
-     {
-        timers = (Ecore_Timer_Data *)eina_inlist_remove(EINA_INLIST_GET(timers), EINA_INLIST_GET(timer));
-        eo_data_unref(obj, timer);
-        _ecore_timer_set(obj, timer->at + add, timer->in, timer->func, timer->data);
-     }
-}
-
-void *
-_ecore_timer_del(Ecore_Timer *obj)
-{
-   Ecore_Timer_Data *timer = eo_data_scope_get(obj, MY_CLASS);
-
-   EINA_SAFETY_ON_NULL_RETURN_VAL(timer, NULL);
-
-   if (timer->frozen && !timer->references)
-     {
-        void *data = timer->data;
-
-        eo_data_unref(obj, timer);
-        suspended = (Ecore_Timer_Data *)eina_inlist_remove(EINA_INLIST_GET(suspended), EINA_INLIST_GET(timer));
-
-        if (timer->delete_me)
-          timers_delete_me--;
-
-        eo_do(obj, eo_parent_set(NULL));
-
-        if (eo_destructed_is(obj))
-          eo_manual_free(obj);
-        else
-          eo_manual_free_set(obj, EINA_FALSE);
-        return data;
+        return ;
      }
 
-   EINA_SAFETY_ON_TRUE_RETURN_VAL(timer->delete_me, NULL);
-   timer->delete_me = 1;
-   timers_delete_me++;
-   return timer->data;
+   _efl_loop_timer_set(timer, timer->at + add, timer->in);
 }
 
 EOLIAN static void
-_ecore_timer_eo_base_destructor(Eo *obj, Ecore_Timer_Data *pd)
+_efl_loop_timer_eo_base_parent_set(Eo *obj EINA_UNUSED, Efl_Loop_Timer_Data *pd, Eo_Base *parent)
 {
-   if (!pd->delete_me)
-   {
-     pd->delete_me = 1;
-     timers_delete_me++;
-   }
+   Eina_Inlist *first;
 
-   eo_do_super(obj, MY_CLASS, eo_destructor());
+   first = eina_inlist_first(EINA_INLIST_GET(pd));
+   if (first == timers)
+     timers = eina_inlist_remove(timers, EINA_INLIST_GET(pd));
+   else if (first == suspended)
+     suspended = eina_inlist_remove(suspended, EINA_INLIST_GET(pd));
+
+   eo_parent_set(eo_super(obj, EFL_LOOP_USER_CLASS), parent);
+
+   if (eo_parent_get(obj) != parent)
+     return ;
+
+   if (parent != NULL)
+     {
+        _efl_loop_timer_util_instanciate(pd);
+        pd->noparent = EINA_FALSE;
+     }
+   else
+     {
+        pd->noparent = EINA_TRUE;
+     }
 }
 
-EOLIAN static Eo *
-_ecore_timer_eo_base_finalize(Eo *obj, Ecore_Timer_Data *pd)
+EOLIAN static void
+_efl_loop_timer_eo_base_destructor(Eo *obj, Efl_Loop_Timer_Data *pd)
 {
-   if (!pd->func)
-   {
-      return NULL;
-   }
+   Eina_Inlist *first;
 
-   return eo_do_super_ret(obj, MY_CLASS, obj, eo_finalize());
+   // Check if we are the current timer, if so move along
+   if (timer_current == pd)
+     timer_current = (Efl_Loop_Timer_Data *)EINA_INLIST_GET(pd)->next;
+
+   // Remove the timer from all possible pending list
+   first = eina_inlist_first(EINA_INLIST_GET(pd));
+   if (first == timers)
+     timers = eina_inlist_remove(timers, EINA_INLIST_GET(pd));
+   else if (first == suspended)
+     suspended = eina_inlist_remove(suspended, EINA_INLIST_GET(pd));
+
+   eo_destructor(eo_super(obj, MY_CLASS));
 }
 
 void
-_ecore_timer_shutdown(void)
+_efl_loop_timer_shutdown(void)
 {
-   Ecore_Timer_Data *timer;
-
-   while ((timer = timers))
-     {
-        timers = (Ecore_Timer_Data *)eina_inlist_remove(EINA_INLIST_GET(timers), EINA_INLIST_GET(timers));
-
-        eo_data_unref(timer->obj, timer);
-        eo_do(timer->obj, eo_parent_set(NULL));
-        if (eo_destructed_is(timer->obj))
-          eo_manual_free(timer->obj);
-        else
-          eo_manual_free_set(timer->obj, EINA_FALSE);
-     }
-
-   while ((timer = suspended))
-     {
-        suspended = (Ecore_Timer_Data *)eina_inlist_remove(EINA_INLIST_GET(suspended), EINA_INLIST_GET(suspended));
-
-        eo_data_unref(timer->obj, timer);
-        eo_do(timer->obj, eo_parent_set(NULL));
-        if (eo_destructed_is(timer->obj))
-          eo_manual_free(timer->obj);
-        else
-          eo_manual_free_set(timer->obj, EINA_FALSE);
-     }
-
    timer_current = NULL;
 }
 
 void
-_ecore_timer_cleanup(void)
+_efl_loop_timer_enable_new(void)
 {
-   Ecore_Timer_Data *l;
-   int in_use = 0, todo = timers_delete_me, done = 0;
-
-   if (!timers_delete_me) return;
-   for (l = timers; l; )
-     {
-        Ecore_Timer_Data *timer = l;
-
-        l = (Ecore_Timer_Data *)EINA_INLIST_GET(l)->next;
-        if (timer->delete_me)
-          {
-             if (timer->references)
-               {
-                  in_use++;
-                  continue;
-               }
-             timers = (Ecore_Timer_Data *)eina_inlist_remove(EINA_INLIST_GET(timers), EINA_INLIST_GET(timer));
-
-             eo_data_unref(timer->obj, timer);
-             eo_do(timer->obj, eo_parent_set(NULL));
-             if (eo_destructed_is(timer->obj))
-               eo_manual_free(timer->obj);
-             else
-               eo_manual_free_set(timer->obj, EINA_FALSE);
-             timers_delete_me--;
-             done++;
-             if (timers_delete_me == 0) return;
-          }
-     }
-   for (l = suspended; l; )
-     {
-        Ecore_Timer_Data *timer = l;
-
-        l = (Ecore_Timer_Data *)EINA_INLIST_GET(l)->next;
-        if (timer->delete_me)
-          {
-             if (timer->references)
-               {
-                  in_use++;
-                  continue;
-               }
-             suspended = (Ecore_Timer_Data *)eina_inlist_remove(EINA_INLIST_GET(suspended), EINA_INLIST_GET(timer));
-
-             eo_data_unref(timer->obj, timer);
-             eo_do(timer->obj, eo_parent_set(NULL));
-             if (eo_destructed_is(timer->obj))
-                eo_manual_free(timer->obj);
-             else
-                eo_manual_free_set(timer->obj, EINA_FALSE);
-             timers_delete_me--;
-             done++;
-             if (timers_delete_me == 0) return;
-          }
-     }
-
-   if ((!in_use) && (timers_delete_me))
-     {
-        ERR("%d timers to delete, but they were not found!"
-            "Stats: todo=%d, done=%d, pending=%d, in_use=%d. "
-            "reset counter.",
-            timers_delete_me, todo, done, todo - done, in_use);
-        timers_delete_me = 0;
-     }
-}
-
-void
-_ecore_timer_enable_new(void)
-{
-   Ecore_Timer_Data *timer;
+   Efl_Loop_Timer_Data *timer;
 
    if (!timers_added) return;
    timers_added = 0;
@@ -585,67 +531,51 @@ _ecore_timer_enable_new(void)
 }
 
 int
-_ecore_timers_exists(void)
+_efl_loop_timers_exists(void)
 {
-   Ecore_Timer_Data *timer = timers;
-
-   while ((timer) && (timer->delete_me))
-     timer = (Ecore_Timer_Data *)EINA_INLIST_GET(timer)->next;
-
-   return !!timer;
+   return !!timers;
 }
 
 static inline Ecore_Timer *
-_ecore_timer_first_get(void)
+_efl_loop_timer_first_get(void)
 {
-   Ecore_Timer *ret = NULL;
-   Ecore_Timer_Data *timer = timers;
+   Efl_Loop_Timer_Data *timer;
 
-   while ((timer) && ((timer->delete_me) || (timer->just_added)))
-     timer = (Ecore_Timer_Data *)EINA_INLIST_GET(timer)->next;
+   EINA_INLIST_FOREACH(timers, timer)
+     if (!timer->just_added) return timer->object;
 
-   if (timer)
-     ret = timer->obj;
-   return ret;
+   return NULL;
 }
 
-static inline Ecore_Timer *
-_ecore_timer_after_get(Ecore_Timer *obj)
+static inline Efl_Loop_Timer_Data *
+_efl_loop_timer_after_get(Efl_Loop_Timer_Data *base)
 {
-   Ecore_Timer *ret = NULL;
-   Ecore_Timer_Data *base = eo_data_scope_get(obj, MY_CLASS);
-
-   Ecore_Timer_Data *timer = (Ecore_Timer_Data *)EINA_INLIST_GET(base)->next;
-   Ecore_Timer_Data *valid_timer = NULL;
+   Efl_Loop_Timer_Data *timer;
+   Efl_Loop_Timer_Data *valid_timer = base;
    double maxtime = base->at + precision;
 
-   while ((timer) && (timer->at < maxtime))
+   EINA_INLIST_FOREACH(EINA_INLIST_GET(base)->next, timer)
      {
-        if (!((timer->delete_me) || (timer->just_added)))
+        if (timer->at >= maxtime) break;
+        if (!timer->just_added)
           valid_timer = timer;
-        timer = (Ecore_Timer_Data *)EINA_INLIST_GET(timer)->next;
      }
 
-   if (valid_timer)
-     ret = valid_timer->obj;
-   return ret;
+   return valid_timer;
 }
 
 double
-_ecore_timer_next_get(void)
+_efl_loop_timer_next_get(void)
 {
+   Ecore_Timer *object;
+   Efl_Loop_Timer_Data *first;
    double now;
    double in;
-   Ecore_Timer *first_obj, *second_obj;
-   Ecore_Timer_Data *first;
 
-   first_obj = _ecore_timer_first_get();
-   if (!first_obj) return -1;
+   object = _efl_loop_timer_first_get();
+   if (!object) return -1;
 
-   second_obj = _ecore_timer_after_get(first_obj);
-   if (second_obj) first_obj = second_obj;
-
-   first = eo_data_scope_get(first_obj, MY_CLASS);
+   first = _efl_loop_timer_after_get(eo_data_scope_get(object, MY_CLASS));
 
    now = ecore_loop_time_get();
    in = first->at - now;
@@ -654,14 +584,13 @@ _ecore_timer_next_get(void)
 }
 
 static inline void
-_ecore_timer_reschedule(Ecore_Timer *obj,
-                        double       when)
+_efl_loop_timer_reschedule(Efl_Loop_Timer_Data *timer,
+                           double when)
 {
-   Ecore_Timer_Data *timer = eo_data_scope_get(obj, MY_CLASS);
-   if ((timer->delete_me) || (timer->frozen)) return;
+   if (timer->frozen) return;
 
-   timers = (Ecore_Timer_Data *)eina_inlist_remove(EINA_INLIST_GET(timers), EINA_INLIST_GET(timer));
-   eo_data_unref(obj, timer);
+   if (timers && !timer->noparent)
+     timers = eina_inlist_remove(timers, EINA_INLIST_GET(timer));
 
    /* if the timer would have gone off more than 15 seconds ago,
     * assume that the system hung and set the timer to go off
@@ -673,27 +602,25 @@ _ecore_timer_reschedule(Ecore_Timer *obj,
     * really slow within the main loop.
     */
    if ((timer->at + timer->in) < (when - 15.0))
-     _ecore_timer_set(obj, when + timer->in, timer->in, timer->func, timer->data);
+     _efl_loop_timer_set(timer, when + timer->in, timer->in);
    else
-     _ecore_timer_set(obj, timer->at + timer->in, timer->in, timer->func, timer->data);
+     _efl_loop_timer_set(timer, timer->at + timer->in, timer->in);
 }
 
-/* assume that we hold the ecore lock when entering this function */
 void
-_ecore_timer_expired_timers_call(double when)
+_efl_loop_timer_expired_timers_call(double when)
 {
    /* call the first expired timer until no expired timers exist */
-    while (_ecore_timer_expired_call(when)) ;
+    while (_efl_loop_timer_expired_call(when)) ;
 }
 
-/* assume that we hold the ecore lock when entering this function */
 int
-_ecore_timer_expired_call(double when)
+_efl_loop_timer_expired_call(double when)
 {
    if (!timers) return 0;
    if (last_check > when)
      {
-        Ecore_Timer_Data *timer;
+        Efl_Loop_Timer_Data *timer;
         /* User set time backwards */
         EINA_INLIST_FOREACH(timers, timer) timer->at -= (last_check - when);
      }
@@ -702,19 +629,20 @@ _ecore_timer_expired_call(double when)
    if (!timer_current)
      {
         /* regular main loop, start from head */
-        timer_current = timers;
+        timer_current = (Efl_Loop_Timer_Data *)timers;
      }
    else
      {
         /* recursive main loop, continue from where we were */
-        Ecore_Timer_Data *timer_old = timer_current;
-        timer_current = (Ecore_Timer_Data *)EINA_INLIST_GET(timer_current)->next;
-        _ecore_timer_reschedule(timer_old->obj, when);
+        Efl_Loop_Timer_Data *timer_old = timer_current;
+
+        timer_current = (Efl_Loop_Timer_Data *)EINA_INLIST_GET(timer_current)->next;
+        _efl_loop_timer_reschedule(timer_old, when);
      }
 
    while (timer_current)
      {
-        Ecore_Timer_Data *timer = timer_current;
+        Efl_Loop_Timer_Data *timer = timer_current;
 
         if (timer->at > when)
           {
@@ -722,72 +650,42 @@ _ecore_timer_expired_call(double when)
              return 0;
           }
 
-        if ((timer->just_added) || (timer->delete_me))
+        if (timer->just_added)
           {
-             timer_current = (Ecore_Timer_Data *)EINA_INLIST_GET(timer_current)->next;
+             timer_current = (Efl_Loop_Timer_Data *)EINA_INLIST_GET(timer_current)->next;
              continue;
           }
 
-        timer->references++;
+        eo_ref(timer->object);
         eina_evlog("+timer", timer, 0.0, NULL);
-        if (!_ecore_call_task_cb(timer->func, timer->data))
-          {
-             if (!timer->delete_me) _ecore_timer_del(timer->obj);
-          }
+        eo_event_callback_call(timer->object, EFL_LOOP_TIMER_EVENT_TICK, NULL);
         eina_evlog("-timer", timer, 0.0, NULL);
-        timer->references--;
 
-        if (timer_current) /* may have changed in recursive main loops */
-          timer_current = (Ecore_Timer_Data *)EINA_INLIST_GET(timer_current)->next;
+        /* may have changed in recursive main loops */
+        /* this current timer can not die yet as we hold a reference on it */
+        if (timer_current)
+          timer_current = (Efl_Loop_Timer_Data *)EINA_INLIST_GET(timer_current)->next;
 
-        _ecore_timer_reschedule(timer->obj, when);
+        _efl_loop_timer_reschedule(timer, when);
+        eo_unref(timer->object);
      }
    return 0;
 }
 
 static void
-_ecore_timer_set(Ecore_Timer  *obj,
-                 double        at,
-                 double        in,
-                 Ecore_Task_Cb func,
-                 void         *data)
+_efl_loop_timer_set(Efl_Loop_Timer_Data *timer,
+                    double at,
+                    double in)
 {
-   Ecore_Timer_Data *t2;
-
-   Ecore_Timer_Data *timer = eo_data_ref(obj, MY_CLASS);
-
    timers_added = 1;
    timer->at = at;
    timer->in = in;
-   timer->func = func;
-   timer->data = data;
    timer->just_added = 1;
+   timer->initialized = 1;
    timer->frozen = 0;
    timer->pending = 0.0;
-   if (timers)
-     {
-        EINA_INLIST_REVERSE_FOREACH(EINA_INLIST_GET(timers), t2)
-          {
-             if (timer->at > t2->at)
-               {
-                  timers = (Ecore_Timer_Data *)eina_inlist_append_relative(EINA_INLIST_GET(timers), EINA_INLIST_GET(timer), EINA_INLIST_GET(t2));
-                  return;
-               }
-          }
-     }
-   timers = (Ecore_Timer_Data *)eina_inlist_prepend(EINA_INLIST_GET(timers), EINA_INLIST_GET(timer));
+
+   _efl_loop_timer_util_instanciate(timer);
 }
 
-#ifdef WANT_ECORE_TIMER_DUMP
-static int
-_ecore_timer_cmp(const void *d1,
-                 const void *d2)
-{
-   const Ecore_Timer_Data *t1 = d1;
-   const Ecore_Timer_Data *t2 = d2;
-
-   return (int)((t1->in - t2->in) * 100);
-}
-#endif
-
-#include "ecore_timer.eo.c"
+#include "efl_loop_timer.eo.c"

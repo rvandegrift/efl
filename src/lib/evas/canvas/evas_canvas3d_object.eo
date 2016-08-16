@@ -1,15 +1,14 @@
 import evas_types;
 
-class Evas.Canvas3D.Object (Eo.Base, Evas.Common_Interface)
+class Evas.Canvas3D.Object (Eo.Base)
 {
-   legacy_prefix: null;
    data: Evas_Canvas3D_Object_Data;
    methods {
       change {
          [[Notify the object regarding its  state change.]]
          params {
            @in state: Evas.Canvas3D.State;  [[State that is changed.]]
-           @in ref: Evas.Canvas3D.Object *; [[The Object that caused the change.]]
+           @in ref: Evas.Canvas3D.Object; [[The Object that caused the change.]]
          }
       }
       type_get @const {
@@ -35,32 +34,32 @@ class Evas.Canvas3D.Object (Eo.Base, Evas.Common_Interface)
       update {
          [[Update request for the object.]]
       }
-      update_notify {
+      update_notify @virtual_pure {
          [[Pure virtual update_notify function.
 
            Update request for the object.]]
       }
 
-      change_notify {
+      change_notify @virtual_pure {
          [[Pure virtual change_notify function.
 
            Update request for the object.]]
          params {
            @in state: Evas.Canvas3D.State;  [[State that is changed.]]
-           @in ref: Evas.Canvas3D.Object *; [[The Object that caused the change.]]
+           @in ref: Evas.Canvas3D.Object; [[The Object that caused the change.]]
          }
       }
-      callback_register {
+      callback_register @virtual_pure {
          [[Pure virtual register samrt callback function.]]
          params {
-           @in event: const(char)*; [[Event type.]]
-           @in data: const(void)*;  [[User data.]]
+           @in event: string; [[Event type.]]
+           @in data: const(void_ptr);  [[User data.]]
          }
       }
-      callback_unregister {
+      callback_unregister @virtual_pure {
          [[Pure virtual unregister smart callback function.]]
          params {
-           @in event: const(char)*; [[Event type.]]
+           @in event: string; [[Event type.]]
          }
       }
    }
@@ -69,11 +68,7 @@ class Evas.Canvas3D.Object (Eo.Base, Evas.Common_Interface)
       Eo.Base.constructor;
       Eo.Base.event_callback_priority_add;
       Eo.Base.event_callback_del;
-      Evas.Common_Interface.evas.get;
-      @virtual .update_notify;
-      @virtual .change_notify;
-      @virtual .callback_register;
-      @virtual .callback_unregister;
+      Eo.Base.provider_find;
    }
    events {
       clicked; [[Clicked Event.]]

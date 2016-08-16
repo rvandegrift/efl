@@ -13,6 +13,8 @@ typedef struct
 
 EAPI const Eo_Event_Description _EV_A_CHANGED =
         EO_EVENT_DESCRIPTION("a,changed");
+EAPI const Eo_Event_Description _EV_RESTART =
+        EO_EVENT_DESCRIPTION_RESTART("restart");
 
 #define MY_CLASS SIMPLE_CLASS
 
@@ -23,52 +25,46 @@ _a_set(Eo *obj, void *class_data, int a)
    pd->a = a;
    printf("%s %d\n", __func__, pd->a);
 
-   eo_do(obj, eo_event_callback_call(EV_A_CHANGED, &pd->a));
+   eo_event_callback_call(obj, EV_A_CHANGED, &pd->a);
 }
 
-Eina_Bool
-_cb_added(void *data, Eo *obj, const Eo_Event_Description *desc, void *event_info)
+void
+_cb_added(void *data EINA_UNUSED, const Eo_Event *event)
 {
-   Simple_Public_Data *pd = eo_data_scope_get(obj, MY_CLASS);
-   const Eo_Callback_Array_Item *callback_array = event_info;
-   (void) data;
-   (void) desc;
+   Simple_Public_Data *pd = eo_data_scope_get(event->object, MY_CLASS);
+   const Eo_Callback_Array_Item *callback_array = event->info;
 
    if (callback_array->desc != EV_A_CHANGED)
-      return EINA_TRUE;
+      return;
 
    pd->cb_count++;
 
-   printf("Added EV_A_CHANGED callback to %p. Count: %d\n", obj, pd->cb_count);
-   return EO_CALLBACK_CONTINUE;
+   printf("Added EV_A_CHANGED callback to %p. Count: %d\n", event->object, pd->cb_count);
 }
 
-Eina_Bool
-_cb_deled(void *data, Eo *obj, const Eo_Event_Description *desc, void *event_info)
+void
+_cb_deled(void *data EINA_UNUSED, const Eo_Event *event)
 {
-   Simple_Public_Data *pd = eo_data_scope_get(obj, MY_CLASS);
-   const Eo_Callback_Array_Item *callback_array = event_info;
-   (void) data;
-   (void) desc;
+   Simple_Public_Data *pd = eo_data_scope_get(event->object, MY_CLASS);
+   const Eo_Callback_Array_Item *callback_array = event->info;
 
    if (callback_array->desc != EV_A_CHANGED)
-      return EINA_TRUE;
+      return;
 
    pd->cb_count--;
 
-   printf("Removed EV_A_CHANGED callback from %p. Count: %d\n", obj, pd->cb_count);
-   return EO_CALLBACK_CONTINUE;
+   printf("Removed EV_A_CHANGED callback from %p. Count: %d\n", event->object, pd->cb_count);
 }
 
 static Eo *
 _constructor(Eo *obj, void *class_data EINA_UNUSED)
 {
-   obj = eo_do_super_ret(obj, MY_CLASS, obj, eo_constructor());
+   obj = eo_constructor(eo_super(obj, MY_CLASS));
 
-   eo_do(obj, eo_event_callback_add(EO_BASE_EVENT_CALLBACK_ADD, _cb_added, NULL));
-   eo_do(obj, eo_event_callback_add(EO_BASE_EVENT_CALLBACK_DEL, _cb_deled, NULL));
+   eo_event_callback_add(obj, EO_EVENT_CALLBACK_ADD, _cb_added, NULL);
+   eo_event_callback_add(obj, EO_EVENT_CALLBACK_DEL, _cb_deled, NULL);
 
-   eo_do(obj, eo_key_data_set("cb_count", NULL));
+   eo_key_data_set(obj, "cb_count", NULL);
 
    return obj;
 }
@@ -83,6 +79,7 @@ static Eo_Op_Description op_descs[] = {
 
 static const Eo_Event_Description *event_desc[] = {
      EV_A_CHANGED,
+     EV_RESTART,
      NULL
 };
 
@@ -98,4 +95,3 @@ static const Eo_Class_Description class_desc = {
 };
 
 EO_DEFINE_CLASS(simple_class_get, &class_desc, EO_CLASS, NULL);
-

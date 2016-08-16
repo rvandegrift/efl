@@ -49,6 +49,9 @@
 #include <stdlib.h>
 #include <string.h>
 
+#include <sys/types.h>
+#include <unistd.h>
+
 #ifdef EINA_HAVE_DEBUG_THREADS
 #include <assert.h>
 #include <execinfo.h>
@@ -169,6 +172,7 @@ static inline Eina_Bool
 eina_lock_new(Eina_Lock *mutex)
 {
    pthread_mutexattr_t attr;
+   Eina_Bool ok = EINA_FALSE;
 
 #ifdef EINA_HAVE_DEBUG_THREADS
    if (!_eina_threads_activated)
@@ -181,15 +185,16 @@ eina_lock_new(Eina_Lock *mutex)
       feature for sure with that change. */
 #ifdef EINA_HAVE_DEBUG_THREADS
    if (pthread_mutexattr_settype(&attr, PTHREAD_MUTEX_ERRORCHECK) != 0)
-     return EINA_FALSE;
+     goto fail_release;
    memset(mutex, 0, sizeof(Eina_Lock));
 #endif
    if (pthread_mutex_init(&(mutex->mutex), &attr) != 0)
-     return EINA_FALSE;
+     goto fail_release;
 
+   ok = EINA_TRUE;
+fail_release:
    pthread_mutexattr_destroy(&attr);
-
-   return EINA_TRUE;
+   return ok;
 }
 
 static inline void
@@ -839,12 +844,15 @@ eina_semaphore_new(Eina_Semaphore *sem, int count_init)
    ++_sem_ctr;
    eina_spinlock_release(&_sem_ctr_lock);
 
-   snprintf(sem->name, sizeof(sem->name), "/eina_sem_%u", _sem_ctr);
+   snprintf(sem->name, sizeof(sem->name), "/eina_sem_%x-%x_%x_%x_%x_%x",
+            (unsigned int)getpid(), _sem_ctr,
+            (unsigned int)rand(), (unsigned int)rand(),
+            (unsigned int)rand(), (unsigned int)rand());
    sem_unlink(sem->name);
-   sem->sema = sem_open(sem->name, O_CREAT, 0644, count_init);
+   sem->sema = sem_open(sem->name, O_CREAT | O_EXCL, 0600, count_init);
    return (sem->sema == SEM_FAILED) ? EINA_FALSE : EINA_TRUE;
 #else
-   return (sem_init(sem, 1, count_init) == 0) ? EINA_TRUE : EINA_FALSE;
+   return (sem_init(sem, 0, count_init) == 0) ? EINA_TRUE : EINA_FALSE;
 #endif
 }
 
@@ -886,7 +894,11 @@ eina_semaphore_lock(Eina_Semaphore *sem)
         else
           {
              if (errno != EINTR)
-               break;
+               {
+                  if (errno == EDEADLK)
+                    EINA_LOCK_DEADLOCK_DEBUG(sem_wait, sem);
+                  break;
+               }
           }
      }
    return ok;

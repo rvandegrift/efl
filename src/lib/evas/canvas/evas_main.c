@@ -1,9 +1,15 @@
+#define EVAS_CANVAS_BETA
+
 #include "evas_common_private.h"
 #include "evas_private.h"
 //#include "evas_cs.h"
 #ifdef EVAS_CSERVE2
 #include "evas_cs2_private.h"
 #endif
+
+#include "evas_image_private.h"
+#include "evas_polygon_private.h"
+#include "evas_vg_private.h"
 
 #define MY_CLASS EVAS_CANVAS_CLASS
 
@@ -36,6 +42,9 @@ evas_init(void)
 
    if (!eina_init())
      goto shutdown_evil;
+
+   if (!eet_init())
+     goto shutdown_eet;
 
    _evas_log_dom_global = eina_log_domain_register
      ("evas_main", EVAS_DEFAULT_LOG_COLOR);
@@ -75,6 +84,8 @@ evas_init(void)
  shutdown_module:
    evas_module_shutdown();
    eina_log_domain_unregister(_evas_log_dom_global);
+ shutdown_eet:
+   eet_shutdown();
  shutdown_eina:
    eina_shutdown();
  shutdown_evil:
@@ -139,6 +150,8 @@ evas_shutdown(void)
 
    eina_log_domain_unregister(_evas_log_dom_global);
 
+   eet_shutdown();
+
    eina_shutdown();
 #ifdef HAVE_EVIL
    evil_shutdown();
@@ -158,7 +171,7 @@ evas_new(void)
 EOLIAN static Eo *
 _evas_canvas_eo_base_constructor(Eo *eo_obj, Evas_Public_Data *e)
 {
-   eo_obj = eo_do_super_ret(eo_obj, MY_CLASS, eo_obj, eo_constructor());
+   eo_obj = eo_constructor(eo_super(eo_obj, MY_CLASS));
 
    e->evas = eo_obj;
    e->output.render_method = RENDER_METHOD_INVALID;
@@ -195,6 +208,8 @@ _evas_canvas_eo_base_constructor(Eo *eo_obj, Evas_Public_Data *e)
    eina_lock_new(&(e->lock_objects));
    eina_spinlock_new(&(e->render.lock));
 
+   _evas_canvas_event_init(eo_obj, e);
+
    return eo_obj;
 }
 
@@ -226,6 +241,7 @@ _evas_canvas_eo_base_destructor(Eo *eo_e, Evas_Public_Data *e)
    evas_render_idle_flush(eo_e);
 
    _evas_post_event_callback_free(eo_e);
+   _evas_canvas_event_shutdown(eo_e, e);
 
    del = EINA_TRUE;
    e->walking_list++;
@@ -235,7 +251,9 @@ _evas_canvas_eo_base_destructor(Eo *eo_e, Evas_Public_Data *e)
         del = EINA_FALSE;
         EINA_INLIST_FOREACH(e->layers, lay)
           {
+             Eo *eo_obj;
              Evas_Object_Protected_Data *o;
+             Eina_List *unrefs = NULL;
 
              evas_layer_pre_free(lay);
 
@@ -248,8 +266,20 @@ _evas_canvas_eo_base_destructor(Eo *eo_e, Evas_Public_Data *e)
                             ERR("obj(%p, %s) ref count(%d) is bigger than 0. This object couldn't be deleted", o, o->type, eo_ref_get(o->object));
                             continue;
                          }
+                       else
+                         {
+                            unrefs = eina_list_append(unrefs, o->object);
+                         }
                        del = EINA_TRUE;
                     }
+               }
+             EINA_LIST_FREE(unrefs, eo_obj)
+               {
+                  ERR("Killing Zombie Object [%p] ref=%i:%i\n", eo_obj, eo_ref_get(eo_obj), ___eo_ref2_get(eo_obj));
+                  ___eo_ref2_reset(eo_obj);
+                  while (eo_ref_get(eo_obj) > 1) eo_unref(eo_obj);
+                  while (eo_ref_get(eo_obj) < 1) eo_ref(eo_obj);
+                  eo_del(eo_obj);
                }
           }
      }
@@ -320,41 +350,7 @@ _evas_canvas_eo_base_destructor(Eo *eo_e, Evas_Public_Data *e)
    eina_spinlock_free(&(e->render.lock));
 
    e->magic = 0;
-   eo_do_super(eo_e, MY_CLASS, eo_destructor());
-}
-
-EOLIAN static void
-_evas_canvas_output_method_set(Eo *eo_e, Evas_Public_Data *e, int render_method)
-{
-   Evas_Module *em;
-
-   /* if our engine to set it to is invalid - abort */
-   if (render_method == RENDER_METHOD_INVALID) return;
-   /* if the engine is already set up - abort */
-   if (e->output.render_method != RENDER_METHOD_INVALID) return;
-   /* Request the right engine. */
-   em = evas_module_engine_get(render_method);
-   if (!em) return;
-   if (em->id_engine != render_method) return;
-   if (!evas_module_load(em)) return;
-
-   evas_canvas_async_block(e);
-   /* set the correct render */
-   e->output.render_method = render_method;
-   e->engine.func = (em->functions);
-   evas_module_use(em);
-   if (e->engine.module) evas_module_unref(e->engine.module);
-   e->engine.module = em;
-   evas_module_ref(em);
-   /* get the engine info struct */
-   if (e->engine.func->info) e->engine.info = e->engine.func->info(eo_e);
-   return;
-}
-
-EOLIAN static int
-_evas_canvas_output_method_get(Eo *eo_e EINA_UNUSED, Evas_Public_Data *e)
-{
-   return e->output.render_method;
+   eo_destructor(eo_super(eo_e, MY_CLASS));
 }
 
 EOLIAN static Evas_Engine_Info*
@@ -382,86 +378,6 @@ _evas_canvas_engine_info_set(Eo *eo_e, Evas_Public_Data *e, Evas_Engine_Info *in
    evas_canvas_async_block(e);
    res = e->engine.func->setup(eo_e, info);
    return res;
-}
-
-EOLIAN static void
-_evas_canvas_output_size_set(Eo *eo_e, Evas_Public_Data *e, int w, int h)
-{
-   if ((w == e->output.w) && (h == e->output.h)) return;
-   if (w < 1) w = 1;
-   if (h < 1) h = 1;
-
-   evas_canvas_async_block(e);
-   e->output.w = w;
-   e->output.h = h;
-   e->output.changed = 1;
-   e->output_validity++;
-   e->changed = 1;
-   evas_render_invalidate(eo_e);
-}
-
-EOLIAN static void
-_evas_canvas_output_size_get(Eo *eo_e EINA_UNUSED, Evas_Public_Data *e, int *w, int *h)
-{
-   if (w) *w = e->output.w;
-   if (h) *h = e->output.h;
-}
-
-EOLIAN static void
-_evas_canvas_output_viewport_set(Eo *eo_e EINA_UNUSED, Evas_Public_Data *e, Evas_Coord x, Evas_Coord y, Evas_Coord w, Evas_Coord h)
-{
-   if ((x == e->viewport.x) && (y == e->viewport.y) &&
-       (w == e->viewport.w) && (h == e->viewport.h)) return;
-   if (w <= 0) return;
-   if (h <= 0) return;
-   if ((x != 0) || (y != 0))
-     {
-	ERR("Compat error. viewport x,y != 0,0 not supported");
-	x = 0;
-	y = 0;
-     }
-   evas_canvas_async_block(e);
-   e->viewport.x = x;
-   e->viewport.y = y;
-   e->viewport.w = w;
-   e->viewport.h = h;
-   e->viewport.changed = 1;
-   e->output_validity++;
-   e->changed = 1;
-   evas_event_callback_call(e->evas, EVAS_CALLBACK_CANVAS_VIEWPORT_RESIZE, NULL);
-}
-
-EOLIAN static void
-_evas_canvas_output_viewport_get(Eo *eo_e EINA_UNUSED, Evas_Public_Data *e, Evas_Coord *x, Evas_Coord *y, Evas_Coord *w, Evas_Coord *h)
-{
-   if (x) *x = e->viewport.x;
-   if (y) *y = e->viewport.y;
-   if (w) *w = e->viewport.w;
-   if (h) *h = e->viewport.h;
-}
-
-EOLIAN static void
-_evas_canvas_output_framespace_set(Eo *eo_e EINA_UNUSED, Evas_Public_Data *e, Evas_Coord x, Evas_Coord y, Evas_Coord w, Evas_Coord h)
-{
-   if ((x == e->framespace.x) && (y == e->framespace.y) &&
-       (w == e->framespace.w) && (h == e->framespace.h)) return;
-   evas_canvas_async_block(e);
-   e->framespace.x = x;
-   e->framespace.y = y;
-   e->framespace.w = w;
-   e->framespace.h = h;
-   e->framespace.changed = 1;
-   e->output_validity++;
-   e->changed = 1;
-}
-
-EOLIAN static void
-_evas_canvas_output_framespace_get(Eo *eo_e EINA_UNUSED, Evas_Public_Data *e, Evas_Coord *x, Evas_Coord *y, Evas_Coord *w, Evas_Coord *h)
-{
-   if (x) *x = e->framespace.x;
-   if (y) *y = e->framespace.y;
-   if (w) *w = e->framespace.w;
-   if (h) *h = e->framespace.h;
 }
 
 EOLIAN static Evas_Coord
@@ -552,10 +468,10 @@ _evas_canvas_pointer_canvas_xy_get(Eo *eo_e EINA_UNUSED, Evas_Public_Data *e, Ev
    if (y) *y = e->pointer.y;
 }
 
-EOLIAN static int
+EOLIAN static unsigned int
 _evas_canvas_pointer_button_down_mask_get(Eo *eo_e EINA_UNUSED, Evas_Public_Data *e)
 {
-   return (int)e->pointer.button;
+   return e->pointer.button;
 }
 
 EOLIAN static Eina_Bool
@@ -691,10 +607,13 @@ evas_data_argb_unpremul(unsigned int *data, unsigned int len)
    evas_common_convert_argb_unpremul(data, len);
 }
 
-EOLIAN static Evas *
-_evas_canvas_evas_common_interface_evas_get(Eo *eo_e, Evas_Public_Data *e EINA_UNUSED)
+EOLIAN static Eo *
+_evas_canvas_eo_base_provider_find(Eo *eo_e, Evas_Public_Data *e EINA_UNUSED,
+                                   const Eo_Class *klass)
 {
-   return (Evas *)eo_e;
+   if (klass == EVAS_CANVAS_CLASS)
+     return eo_e;
+   return eo_provider_find(eo_super(eo_e, MY_CLASS), klass);
 }
 
 Ector_Surface *
@@ -703,6 +622,280 @@ evas_ector_get(Evas_Public_Data *e)
    if (!e->engine.ector)
      e->engine.ector = e->engine.func->ector_create(e->engine.data.output);
    return e->engine.ector;
+}
+
+EAPI void
+evas_language_reinit(void)
+{
+   evas_common_language_reinit();
+}
+
+static void
+_image_data_unset(Evas_Object_Protected_Data *obj, Eina_List **list)
+{
+   if (obj->is_smart)
+     {
+        Evas_Object_Protected_Data *obj2;
+
+        EINA_INLIST_FOREACH(evas_object_smart_members_get_direct(obj->object), obj2)
+          _image_data_unset(obj2, list);
+        return;
+     }
+#define CHECK(TYPE, STRUCT, FREE) \
+   if (eo_isa(obj->object, TYPE))\
+     {\
+        STRUCT *data = eo_data_scope_get(obj->object, TYPE);\
+        FREE; \
+        data->engine_data = NULL;\
+     }
+   CHECK(EFL_CANVAS_IMAGE_INTERNAL_CLASS, Evas_Image_Data,
+         ENFN->image_free(ENDT, data->engine_data))
+   else CHECK(EVAS_VG_CLASS, Evas_VG_Data,
+        obj->layer->evas->engine.func->ector_free(data->engine_data))
+   else CHECK(EFL_CANVAS_POLYGON_CLASS, Efl_Canvas_Polygon_Data,
+        data->engine_data =
+          obj->layer->evas->engine.func->polygon_points_clear(obj->layer->evas->engine.data.output,
+                                                              obj->layer->evas->engine.data.context,
+                                                              data->engine_data))
+   else CHECK(EVAS_CANVAS3D_TEXTURE_CLASS, Evas_Canvas3D_Texture_Data,
+        if (obj->layer->evas->engine.func->texture_free)
+          obj->layer->evas->engine.func->texture_free(obj->layer->evas->engine.data.output, data->engine_data))
+   else return;
+#undef CHECK
+   evas_object_ref(obj->object);
+   *list = eina_list_append(*list, obj->object);
+}
+
+EAPI Eina_List *
+_evas_canvas_image_data_unset(Evas *eo_e)
+{
+   Evas_Public_Data *e = eo_data_scope_get(eo_e, MY_CLASS);
+   Evas_Layer *lay;
+   Eina_List *list = NULL;
+
+   EINA_INLIST_FOREACH(e->layers, lay)
+     {
+        Evas_Object_Protected_Data *o;
+        EINA_INLIST_FOREACH(lay->objects, o)
+          {
+             if (!o->delete_me)
+               _image_data_unset(o, &list);
+          }
+     }
+   return list;
+}
+
+static void
+_image_image_data_regenerate(Evas_Object *eo_obj, Evas_Object_Protected_Data *obj, Evas_Image_Data *data)
+{
+   unsigned int orient = data->cur->orient;
+
+   _evas_image_load(eo_obj, obj, data);
+   EINA_COW_IMAGE_STATE_WRITE_BEGIN(data, state_write)
+     {
+        state_write->has_alpha = !state_write->has_alpha;
+        state_write->orient = -1;
+     }
+   EINA_COW_IMAGE_STATE_WRITE_END(data, state_write);
+   evas_object_image_alpha_set(eo_obj, !data->cur->has_alpha);
+   _evas_image_orientation_set(eo_obj, data, orient);
+}
+
+static void
+_image_data_regenerate(Evas_Object *eo_obj)
+{
+   Evas_Object_Protected_Data *obj;
+
+   obj = eo_data_scope_get(eo_obj, EFL_CANVAS_OBJECT_CLASS);
+   evas_object_change(eo_obj, obj);
+#define CHECK(TYPE, STRUCT, REGEN) \
+   if (eo_isa(eo_obj, TYPE))\
+     {\
+        STRUCT *data = eo_data_scope_get(eo_obj, TYPE);\
+        REGEN; \
+     }
+   CHECK(EFL_CANVAS_IMAGE_INTERNAL_CLASS, Evas_Image_Data, _image_image_data_regenerate(eo_obj, obj, data))
+   else CHECK(EFL_CANVAS_IMAGE_CLASS, Evas_Image_Data, _image_image_data_regenerate(eo_obj, obj, data))
+   else CHECK(EFL_CANVAS_SCENE3D_CLASS, Evas_Image_Data, _image_image_data_regenerate(eo_obj, obj, data))
+   //else CHECK(EVAS_VG_CLASS, Evas_VG_Data,)
+   //else CHECK(EFL_CANVAS_POLYGON_CLASS, Efl_Canvas_Polygon_Data,)
+   //else CHECK(EVAS_CANVAS3D_TEXTURE_CLASS, Evas_Canvas3D_Texture_Data,
+}
+
+EAPI void
+_evas_canvas_image_data_regenerate(Eina_List *list)
+{
+   Evas_Object *eo_obj;
+
+   EINA_LIST_FREE(list, eo_obj)
+     {
+        _image_data_regenerate(eo_obj);
+        evas_object_unref(eo_obj);
+     }
+}
+
+/* Legacy deprecated functions */
+
+EAPI void
+evas_output_framespace_set(Evas *eo_e, Evas_Coord x, Evas_Coord y, Evas_Coord w, Evas_Coord h)
+{
+   MAGIC_CHECK(eo_e, Evas, MAGIC_EVAS);
+   return;
+   MAGIC_CHECK_END();
+
+   Evas_Public_Data *e = eo_data_scope_get(eo_e, EVAS_CANVAS_CLASS);
+
+   if ((x == e->framespace.x) && (y == e->framespace.y) &&
+       (w == e->framespace.w) && (h == e->framespace.h)) return;
+   evas_canvas_async_block(e);
+   e->framespace.x = x;
+   e->framespace.y = y;
+   e->framespace.w = w;
+   e->framespace.h = h;
+   e->framespace.changed = 1;
+   e->output_validity++;
+   e->changed = 1;
+}
+
+EAPI void
+evas_output_framespace_get(const Evas *eo_e, Evas_Coord *x, Evas_Coord *y, Evas_Coord *w, Evas_Coord *h)
+{
+   MAGIC_CHECK(eo_e, Evas, MAGIC_EVAS);
+   return;
+   MAGIC_CHECK_END();
+
+   Evas_Public_Data *e = eo_data_scope_get(eo_e, EVAS_CANVAS_CLASS);
+
+   if (x) *x = e->framespace.x;
+   if (y) *y = e->framespace.y;
+   if (w) *w = e->framespace.w;
+   if (h) *h = e->framespace.h;
+}
+
+EAPI void
+evas_output_method_set(Evas *eo_e, int render_method)
+{
+   MAGIC_CHECK(eo_e, Evas, MAGIC_EVAS);
+   return;
+   MAGIC_CHECK_END();
+
+   Evas_Public_Data *e = eo_data_scope_get(eo_e, EVAS_CANVAS_CLASS);
+
+   Evas_Module *em;
+
+   /* if our engine to set it to is invalid - abort */
+   if (render_method == RENDER_METHOD_INVALID) return;
+   /* if the engine is already set up - abort */
+   if (e->output.render_method != RENDER_METHOD_INVALID) return;
+   /* Request the right engine. */
+   em = evas_module_engine_get(render_method);
+   if (!em) return;
+   if (em->id_engine != render_method) return;
+   if (!evas_module_load(em)) return;
+
+   evas_canvas_async_block(e);
+   /* set the correct render */
+   e->output.render_method = render_method;
+   e->engine.func = (em->functions);
+   evas_module_use(em);
+   if (e->engine.module) evas_module_unref(e->engine.module);
+   e->engine.module = em;
+   evas_module_ref(em);
+   /* get the engine info struct */
+   if (e->engine.func->info) e->engine.info = e->engine.func->info(eo_e);
+   return;
+}
+
+EAPI int
+evas_output_method_get(const Evas *eo_e)
+{
+   MAGIC_CHECK(eo_e, Evas, MAGIC_EVAS);
+   return RENDER_METHOD_INVALID;
+   MAGIC_CHECK_END();
+
+   Evas_Public_Data *e = eo_data_scope_get(eo_e, EVAS_CANVAS_CLASS);
+
+   return e->output.render_method;
+}
+
+EAPI void
+evas_output_size_set(Evas *eo_e, int w, int h)
+{
+   MAGIC_CHECK(eo_e, Evas, MAGIC_EVAS);
+   return;
+   MAGIC_CHECK_END();
+
+   Evas_Public_Data *e = eo_data_scope_get(eo_e, EVAS_CANVAS_CLASS);
+
+   if ((w == e->output.w) && (h == e->output.h)) return;
+   if (w < 1) w = 1;
+   if (h < 1) h = 1;
+
+   evas_canvas_async_block(e);
+   e->output.w = w;
+   e->output.h = h;
+   e->output.changed = 1;
+   e->output_validity++;
+   e->changed = 1;
+   evas_render_invalidate(eo_e);
+}
+
+EAPI void
+evas_output_size_get(const Evas *eo_e, int *w, int *h)
+{
+   MAGIC_CHECK(eo_e, Evas, MAGIC_EVAS);
+   return;
+   MAGIC_CHECK_END();
+
+   Evas_Public_Data *e = eo_data_scope_get(eo_e, EVAS_CANVAS_CLASS);
+
+   if (w) *w = e->output.w;
+   if (h) *h = e->output.h;
+}
+
+EAPI void
+evas_output_viewport_set(Evas *eo_e, Evas_Coord x, Evas_Coord y, Evas_Coord w, Evas_Coord h)
+{
+   MAGIC_CHECK(eo_e, Evas, MAGIC_EVAS);
+   return;
+   MAGIC_CHECK_END();
+
+   Evas_Public_Data *e = eo_data_scope_get(eo_e, EVAS_CANVAS_CLASS);
+
+   if ((x == e->viewport.x) && (y == e->viewport.y) &&
+       (w == e->viewport.w) && (h == e->viewport.h)) return;
+   if (w <= 0) return;
+   if (h <= 0) return;
+   if ((x != 0) || (y != 0))
+     {
+	ERR("Compat error. viewport x,y != 0,0 not supported");
+	x = 0;
+	y = 0;
+     }
+   evas_canvas_async_block(e);
+   e->viewport.x = x;
+   e->viewport.y = y;
+   e->viewport.w = w;
+   e->viewport.h = h;
+   e->viewport.changed = 1;
+   e->output_validity++;
+   e->changed = 1;
+   evas_event_callback_call(e->evas, EVAS_CALLBACK_CANVAS_VIEWPORT_RESIZE, NULL);
+}
+
+EAPI void
+evas_output_viewport_get(const Evas *eo_e, Evas_Coord *x, Evas_Coord *y, Evas_Coord *w, Evas_Coord *h)
+{
+   MAGIC_CHECK(eo_e, Evas, MAGIC_EVAS);
+   return;
+   MAGIC_CHECK_END();
+
+   Evas_Public_Data *e = eo_data_scope_get(eo_e, EVAS_CANVAS_CLASS);
+
+   if (x) *x = e->viewport.x;
+   if (y) *y = e->viewport.y;
+   if (w) *w = e->viewport.w;
+   if (h) *h = e->viewport.h;
 }
 
 #include "canvas/evas_canvas.eo.c"

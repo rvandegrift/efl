@@ -115,15 +115,6 @@ eldbus_init(void)
         return 0;
      }
 
-   if (!ecore_init())
-     {
-        ERR("Unable to initialize ecore");
-        eina_log_domain_unregister(_eldbus_log_dom);
-        _eldbus_log_dom = -1;
-        eina_shutdown();
-        return 0;
-     }
-
    eina_magic_string_set(ELDBUS_CONNECTION_MAGIC, "Eldbus_Connection");
    eina_magic_string_set(ELDBUS_MESSAGE_MAGIC, "Eldbus_Message");
    eina_magic_string_set(ELDBUS_SIGNAL_HANDLER_MAGIC, "Eldbus_Signal_Handler");
@@ -154,7 +145,6 @@ pending_failed:
 signal_handler_failed:
    eldbus_message_shutdown();
 message_failed:
-   ecore_shutdown();
    eina_log_domain_unregister(eldbus_model_log_dom);
    eldbus_model_log_dom = -1;
    eina_log_domain_unregister(_eldbus_log_dom);
@@ -257,7 +247,6 @@ eldbus_shutdown(void)
    eldbus_signal_handler_shutdown();
    eldbus_message_shutdown();
 
-   ecore_shutdown();
    eina_log_domain_unregister(eldbus_model_log_dom);
    eldbus_model_log_dom = -1;
    eina_log_domain_unregister(_eldbus_log_dom);
@@ -730,7 +719,7 @@ cb_timeout_add(DBusTimeout *timeout, void *data)
    td->interval = dbus_timeout_get_interval(timeout);
    td->timeout = timeout;
 
-   td->handler = ecore_timer_add(td->interval, eldbus_timeout_handler, td);
+   td->handler = ecore_timer_add(td->interval / 1000.0, eldbus_timeout_handler, td);
    conn->timeouts = eina_inlist_append(conn->timeouts,
                                        EINA_INLIST_GET(td));
 
@@ -990,8 +979,17 @@ static void
 _disconnected(void *data, const Eldbus_Message *msg EINA_UNUSED)
 {
    Eldbus_Connection *conn = data;
+   Ecore_Event_Signal_Exit *ev;
+
    _eldbus_connection_event_callback_call(
       conn, ELDBUS_CONNECTION_EVENT_DISCONNECTED, NULL);
+   if (conn->type != ELDBUS_CONNECTION_TYPE_SESSION) return;
+
+   ev = calloc(1, sizeof(Ecore_Event_Signal_Exit));
+   if (!ev) return;
+
+   ev->quit = EINA_TRUE;
+   ecore_event_add(ECORE_EVENT_SIGNAL_EXIT, ev, NULL, NULL);
 }
 
 /* Param address is only used for ELDBUS_CONNECTION_TYPE_ADDRESS type */

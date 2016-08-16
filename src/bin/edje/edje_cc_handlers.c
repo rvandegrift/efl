@@ -163,8 +163,10 @@ static Edje_Part_Description_Common *parent_desc = NULL;
 static Edje_Program *current_program = NULL;
 static Eina_List *current_program_lookups = NULL;
 Eina_Bool current_group_inherit = EINA_FALSE;
+Eina_Bool script_override = EINA_FALSE;
 static Edje_Program *sequencing = NULL;
 static Eina_List *sequencing_lookups = NULL;
+static int *anonymous_delete = NULL;
 
 Eina_List *po_files;
 
@@ -216,6 +218,8 @@ static void st_styles_style_name(void);
 static void st_styles_style_base(void);
 static void st_styles_style_tag(void);
 
+static void ob_color_tree(void);
+
 static void ob_color_class(void);
 static void st_color_class_name(void);
 static void st_color_class_color(void);
@@ -243,7 +247,6 @@ static void st_collections_base_scale(void);
 
 static void ob_collections_group(void);
 static void st_collections_group_name(void);
-static void st_collections_group_scene_size(void);
 static void st_collections_group_inherit_only(void);
 static void st_collections_group_inherit(void);
 static void st_collections_group_program_source(void);
@@ -254,6 +257,7 @@ static void st_collections_group_script_recursion(void);
 static void st_collections_group_alias(void);
 static void st_collections_group_min(void);
 static void st_collections_group_max(void);
+static void st_collections_group_scene_size(void);
 static void st_collections_group_broadcast_signal(void);
 static void st_collections_group_data_item(void);
 static void st_collections_group_orientation(void);
@@ -290,6 +294,8 @@ static void st_collections_group_parts_part_use_alternate_font_metrics(void);
 static void st_collections_group_parts_part_clip_to_id(void);
 static void st_collections_group_parts_part_render(void);
 static void st_collections_group_parts_part_no_render(void);
+static void st_collections_group_parts_part_required(void);
+static void st_collections_group_parts_part_norequired(void);
 static void st_collections_group_parts_part_source(void);
 static void st_collections_group_parts_part_source2(void);
 static void st_collections_group_parts_part_source3(void);
@@ -474,13 +480,14 @@ static void st_collections_group_parts_part_api(void);
 
 /* external part parameters */
 static void st_collections_group_parts_part_description_params_int(void);
-static void ob_collections_group_programs_program(void);
 static void st_collections_group_parts_part_description_params_double(void);
-
-static void st_collections_group_programs_program_name(void);
 static void st_collections_group_parts_part_description_params_string(void);
 static void st_collections_group_parts_part_description_params_bool(void);
 static void st_collections_group_parts_part_description_params_choice(void);
+static void st_collections_group_parts_part_description_params_smart(void);
+
+static void ob_collections_group_programs_program(void);
+static void st_collections_group_programs_program_name(void);
 static void st_collections_group_programs_program_signal(void);
 static void st_collections_group_programs_program_source(void);
 static void st_collections_group_programs_program_filter(void);
@@ -528,11 +535,16 @@ static void st_collections_group_mouse(void);
 static void st_collections_group_nomouse(void);
 static void st_collections_group_broadcast(void);
 static void st_collections_group_nobroadcast(void);
+
+static void st_images_vector(void);
+static void _handle_vector_image(void);
+
 /*****/
 
 
 #define IMAGE_STATEMENTS(PREFIX) \
      {PREFIX"images.image", st_images_image}, \
+     {PREFIX"images.vector", st_images_vector}, \
      {PREFIX"images.set.name", st_images_set_name}, \
      {PREFIX"images.set.image.image", st_images_set_image_image}, \
      {PREFIX"images.set.image.size", st_images_set_image_size}, \
@@ -701,7 +713,6 @@ New_Statement_Handler statement_handlers[] =
      {"collections.group.vibrations.sample.name", st_collections_group_vibration_sample_name}, /* dup */
      {"collections.group.vibrations.sample.source", st_collections_group_vibration_sample_source}, /* dup */
      {"collections.group.name", st_collections_group_name},
-     {"collections.group.scene_size", st_collections_group_scene_size},
      {"collections.group.program_source", st_collections_group_program_source},
      {"collections.group.inherit", st_collections_group_inherit},
      {"collections.group.inherit_only", st_collections_group_inherit_only},
@@ -713,6 +724,7 @@ New_Statement_Handler statement_handlers[] =
      {"collections.group.alias", st_collections_group_alias},
      {"collections.group.min", st_collections_group_min},
      {"collections.group.max", st_collections_group_max},
+     {"collections.group.scene_size", st_collections_group_scene_size},
      {"collections.group.broadcast_signal", st_collections_group_broadcast_signal},
      {"collections.group.orientation", st_collections_group_orientation},
      {"collections.group.mouse_events", st_collections_group_mouse_events},
@@ -758,6 +770,7 @@ New_Statement_Handler statement_handlers[] =
      {"collections.group.parts.part.use_alternate_font_metrics", st_collections_group_parts_part_use_alternate_font_metrics},
      {"collections.group.parts.part.clip_to", st_collections_group_parts_part_clip_to_id},
      {"collections.group.parts.part.no_render", st_collections_group_parts_part_no_render},
+     {"collections.group.parts.part.required", st_collections_group_parts_part_required},
      {"collections.group.parts.part.source", st_collections_group_parts_part_source},
      {"collections.group.parts.part.source2", st_collections_group_parts_part_source2},
      {"collections.group.parts.part.source3", st_collections_group_parts_part_source3},
@@ -959,6 +972,7 @@ New_Statement_Handler statement_handlers[] =
      {"collections.group.parts.part.description.params.string", st_collections_group_parts_part_description_params_string},
      {"collections.group.parts.part.description.params.bool", st_collections_group_parts_part_description_params_bool},
      {"collections.group.parts.part.description.params.choice", st_collections_group_parts_part_description_params_choice},
+     {"collections.group.parts.part.description.params.*", st_collections_group_parts_part_description_params_smart},
      IMAGE_STATEMENTS("collections.group.parts.part.description.")
      {"collections.group.parts.part.description.font", st_fonts_font}, /* dup */
      FONT_STYLE_CC_STATEMENTS("collections.group.parts.part.description.")
@@ -1005,10 +1019,12 @@ New_Statement_Handler statement_handlers[] =
                     rel1.relative: 0.5 0;
                     rel2.relative: 1 1;
                  }
-                 desc { "t2"; inherit: "default";
+                 desc { "t2";
+                    inherit: "default";
                     color: 0 255 0 255;
                  }
-                 desc { "t3"; inherit: "default";
+                 desc { "t3";
+                    inherit; // "default" can be omitted.
                     color: 0 0 255 255;
                  }
               }
@@ -1106,6 +1122,8 @@ New_Statement_Handler statement_handlers_short[] =
              noprecise; -> precise_is_inside: 0;
              render; -> no_render: 0;
              norender; -> no_render: 1;
+             required; -> required: 1;
+             norequired; -> norequired: 0;
              scale; -> scale: 1;
              noscale; -> scale: 0;
              desc {
@@ -1134,6 +1152,8 @@ New_Statement_Handler statement_handlers_short_single[] =
      {"collections.group.parts.part.noscale", st_collections_group_parts_part_noscale},
      {"collections.group.parts.part.render", st_collections_group_parts_part_render},
      {"collections.group.parts.part.norender", st_collections_group_parts_part_no_render},
+     {"collections.group.parts.part.required", st_collections_group_parts_part_required},
+     {"collections.group.parts.part.norequired", st_collections_group_parts_part_norequired},
      {"collections.group.parts.part.description.vis", st_collections_group_parts_part_description_vis},
      {"collections.group.parts.part.description.hid", st_collections_group_parts_part_description_hid},
      {"collections.group.mouse", st_collections_group_mouse},
@@ -1142,6 +1162,165 @@ New_Statement_Handler statement_handlers_short_single[] =
      {"collections.group.nobroadcast", st_collections_group_nobroadcast},
      {"collections.group.parts.part.description.inherit", st_collections_group_parts_part_description_inherit},
 };
+
+/** @edcsubsection{lazedc_external_params,
+ *                 LazEDC Group.Parts.External.Desc.Params} */
+
+/**
+    @page edcref
+    @block
+       params
+    @context
+       ...
+       external {
+          desc { "default";
+             params {
+                number: 10;       -> int: "number" 10;
+                number2: 1.1;     -> double: "number2" 1.1;
+                label: "OK";      -> string: "label" "OK";
+                check: true;      -> bool: "check" 1;
+                check2: false;    -> bool: "check2" 0;
+                text_wrap: mixed; -> choice: "text_wrap" "mixed";
+             }
+          }
+       }
+       ...
+    @description
+       The name of parameter can be used as a statement keyword in params block.
+       The type of parameter is determined automatically by the value,
+       so it should follow the next rules.
+       Number without decimal point is considered as an integer.
+       Number with decimal point is considered as a double.
+       Double-quoted string is considered as a string.
+       'true' or 'false' without quotes is considred as a boolean.
+       String without quotes except for 'true' or 'false' is considered as a choice.
+    @since 1.18
+    @endblock
+*/
+static Edje_External_Param_Type
+_parse_external_param_type(char *token)
+{
+   Eina_Bool num, point;
+   char *s;
+
+   if (param_had_quote(0))
+     return EDJE_EXTERNAL_PARAM_TYPE_STRING;
+
+   num = EINA_TRUE;
+   point = EINA_FALSE;
+   s = token;
+
+   while (*s)
+     {
+        if ((*s < '0') || (*s > '9'))
+          {
+             if ((!point) && (*s == '.'))
+               {
+                  point = EINA_TRUE;
+               }
+             else
+               {
+                  num = EINA_FALSE;
+                  break;
+               }
+          }
+        s++;
+     }
+
+   if (num)
+     {
+        if (!point)
+          return EDJE_EXTERNAL_PARAM_TYPE_INT;
+        else
+          return EDJE_EXTERNAL_PARAM_TYPE_DOUBLE;
+     }
+   else
+     {
+        if (!strcmp(token, "true") || !strcmp(token, "false"))
+          return EDJE_EXTERNAL_PARAM_TYPE_BOOL;
+        else
+          return EDJE_EXTERNAL_PARAM_TYPE_CHOICE;
+     }
+}
+
+static void
+st_collections_group_parts_part_description_params_smart(void)
+{
+   Edje_Part_Description_External *ed;
+   Edje_External_Param *param;
+   Eina_List *l;
+   char *last, *name, *token;
+   int found = 0;
+
+   check_arg_count(1);
+
+   if (current_part->type != EDJE_PART_TYPE_EXTERNAL)
+     {
+        ERR("parse error %s:%i. params in non-EXTERNAL part.",
+            file_in, line - 1);
+        exit(-1);
+     }
+
+   ed = (Edje_Part_Description_External*) current_desc;
+
+   last = eina_list_last_data_get(stack);
+   if (!strncmp(last, "params.", strlen("params.")))
+     name = strdup(last + strlen("params."));
+   else
+     name = strdup(last);
+
+   /* if a param with this name already exists, overwrite it */
+   EINA_LIST_FOREACH(ed->external_params, l, param)
+     {
+        if (!strcmp(param->name, name))
+          {
+             found = 1;
+             break;
+          }
+     }
+
+   if (!found)
+     {
+        param = mem_alloc(SZ(Edje_External_Param));
+        param->name = name;
+     }
+
+   token = parse_str(0);
+
+   param->type = _parse_external_param_type(token);
+   param->i = 0;
+   param->d = 0;
+   param->s = NULL;
+
+   switch (param->type)
+     {
+      case EDJE_EXTERNAL_PARAM_TYPE_BOOL:
+         if (!strcmp(token, "true"))
+           param->i = 1;
+         else if (!strcmp(token, "false"))
+           param->i = 0;
+         break;
+      case EDJE_EXTERNAL_PARAM_TYPE_INT:
+         param->i = parse_int(0);
+         break;
+      case EDJE_EXTERNAL_PARAM_TYPE_DOUBLE:
+         param->d = parse_float(0);
+         break;
+      case EDJE_EXTERNAL_PARAM_TYPE_CHOICE:
+      case EDJE_EXTERNAL_PARAM_TYPE_STRING:
+         param->s = parse_str(0);
+         break;
+      default:
+         ERR("parse error %s:%i. Invalid param type.",
+             file_in, line - 1);
+         break;
+     }
+
+   if (!found)
+     ed->external_params = eina_list_append(ed->external_params, param);
+   free(token);
+   free(name);
+}
 
 #define PROGRAM_OBJECTS(PREFIX) \
      {PREFIX".program", ob_collections_group_programs_program}, /* dup */ \
@@ -1172,6 +1351,7 @@ New_Object_Handler object_handlers[] =
      {"data", NULL},
      {"styles", NULL},
      {"styles.style", ob_styles_style},
+     {"color_tree", ob_color_tree},
      {"color_classes", NULL},
      {"color_classes.color_class", ob_color_class},
      {"text_classes", NULL},
@@ -1192,6 +1372,7 @@ New_Object_Handler object_handlers[] =
      {"collections.fonts", NULL}, /* dup */
      {"collections.styles", NULL}, /* dup */
      {"collections.styles.style", ob_styles_style}, /* dup */
+     {"collections.color_tree", ob_color_tree}, /* dup */
      {"collections.color_classes", NULL}, /* dup */
      {"collections.color_classes.color_class", ob_color_class}, /* dup */
      {"collections.text_classes", NULL},
@@ -1228,6 +1409,7 @@ New_Object_Handler object_handlers[] =
      {"collections.group.fonts", NULL}, /* dup */
      {"collections.group.styles", NULL}, /* dup */
      {"collections.group.styles.style", ob_styles_style}, /* dup */
+     {"collections.group.color_tree", ob_color_tree}, /* dup */
      {"collections.group.color_classes", NULL}, /* dup */
      {"collections.group.color_classes.color_class", ob_color_class}, /* dup */
      {"collections.group.text_classes", NULL},
@@ -1352,6 +1534,7 @@ New_Object_Handler object_handlers[] =
        proxy{}
        spacer{}
        snapshot{}
+       vector{}
        part {
           desc {
           }
@@ -1379,6 +1562,7 @@ New_Object_Handler object_handlers_short[] =
      {"collections.group.parts.proxy", ob_collections_group_parts_part_short},
      {"collections.group.parts.spacer", ob_collections_group_parts_part_short},
      {"collections.group.parts.part.desc", ob_collections_group_parts_part_desc},
+     {"collections.group.parts.vector", ob_collections_group_parts_part_short},
 };
 
 New_Nested_Handler nested_handlers[] = {
@@ -1397,6 +1581,7 @@ New_Nested_Handler nested_handlers_short[] = {
      {"collections.group.parts", "external", NULL, edje_cc_handlers_hierarchy_pop },
      {"collections.group.parts", "proxy", NULL, edje_cc_handlers_hierarchy_pop },
      {"collections.group.parts", "spacer", NULL, edje_cc_handlers_hierarchy_pop },
+     {"collections.group.parts", "vector", NULL, edje_cc_handlers_hierarchy_pop },
 };
 
 /*****/
@@ -1620,7 +1805,7 @@ _edje_part_description_alloc(unsigned char type, const char *collection, const c
            ed->mesh_node.texture.filter1 = 0;
            ed->mesh_node.texture.filter2 = 0;
 
-           ed->mesh_node.properties.shade = EVAS_CANVAS3D_SHADE_MODE_VERTEX_COLOR;
+           ed->mesh_node.properties.shade = EVAS_CANVAS3D_SHADER_MODE_VERTEX_COLOR;
            ed->mesh_node.properties.ambient.r = 50;
            ed->mesh_node.properties.ambient.g = 50;
            ed->mesh_node.properties.ambient.b = 50;
@@ -1754,6 +1939,15 @@ _edje_part_description_alloc(unsigned char type, const char *collection, const c
            result = &ed->common;
            break;
         }
+      case EDJE_PART_TYPE_VECTOR:
+        {
+           Edje_Part_Description_Vector *ed;
+
+           ed = mem_alloc(SZ(Edje_Part_Description_Vector));
+
+           result = &ed->common;
+           break;
+        }
      }
 
    if (!result)
@@ -1805,6 +1999,8 @@ _edje_program_check(const char *name, Edje_Program *me, Edje_Program **pgrms, un
               {
                  _edje_program_remove(pc, me);
                  current_program = pgrms[i];
+                 if (pgrms[i]->action == EDJE_ACTION_TYPE_SCRIPT)
+                   copied_program_anonymous_lookup_delete(pc, &pgrms[i]->id);
                  epp->can_override = EINA_FALSE;
                  return;
               }
@@ -1852,6 +2048,7 @@ _edje_program_copy(Edje_Program *ep, Edje_Program *ep2)
    ep->tone_name = STRDUP(ep2->tone_name);
    ep->duration = ep2->duration;
    ep->speed = ep2->speed;
+   ep->channel = ep2->channel;
 
    EINA_LIST_FOREACH(ep2->targets, l, et2)
      {
@@ -1865,6 +2062,7 @@ _edje_program_copy(Edje_Program *ep, Edje_Program *ep2)
         switch (ep2->action)
           {
            case EDJE_ACTION_TYPE_STATE_SET:
+           case EDJE_ACTION_TYPE_SIGNAL_EMIT:
            case EDJE_ACTION_TYPE_DRAG_VAL_SET:
            case EDJE_ACTION_TYPE_DRAG_VAL_STEP:
            case EDJE_ACTION_TYPE_DRAG_VAL_PAGE:
@@ -2120,6 +2318,102 @@ st_images_image(void)
           img->source_param = 90;
      }
 }
+
+
+static void
+_handle_vector_image(void)
+{
+   Edje_Part_Description_Vector *ed;
+   unsigned int i = 0;
+   char *name;
+
+   ed = (Edje_Part_Description_Vector*) current_desc;
+
+   name = parse_str(0);
+
+   ed->vg.id = -1;
+
+   for (i = 0; i < edje_file->image_dir->vectors_count; ++i)
+     {
+        if (!strcmp(edje_file->image_dir->vectors[i].entry, name))
+          {
+             ed->vg.set = EINA_TRUE;
+             ed->vg.id = edje_file->image_dir->vectors[i].id;
+             break;
+          }
+     }
+
+   if (ed->vg.id < 0)
+     error_and_abort(NULL, "Failed to find the vector resource :%s", name);
+
+   free(name);
+}
+
+/** @edcsubsection{toplevel_images,
+ *                 Images} */
+
+/**
+    @page edcref
+
+    @block
+        images
+    @context
+        vector {
+            vector: "filename1.svg";
+            vector: "filename2.svg";
+            vector: "filename3.svg";
+            ..
+        }
+    @description
+        The "vector" context in the "images" block is used to list each svg image file that will be used in
+        the theme.
+    @endblock
+
+    @property
+        vector
+    @parameters
+        [image file]
+    @endproperty
+ */
+static void
+st_images_vector(void)
+{
+   Edje_Vector_Directory_Entry *vector;
+   const char *tmp;
+   unsigned int i;
+
+   check_min_arg_count(1);
+
+   if (!edje_file->image_dir)
+     edje_file->image_dir = mem_alloc(SZ(Edje_Image_Directory));
+
+   tmp = parse_str(0);
+
+   for (i = 0; i < edje_file->image_dir->vectors_count; ++i)
+     if (!strcmp(edje_file->image_dir->vectors[i].entry, tmp))
+       {
+          free((char*) tmp);
+          return;
+       }
+
+   edje_file->image_dir->vectors_count++;
+   vector = realloc(edje_file->image_dir->vectors,
+                 sizeof (Edje_Vector_Directory_Entry) * edje_file->image_dir->vectors_count);
+   if (!vector)
+     {
+        ERR("No enough memory.");
+        exit(-1);
+     }
+   edje_file->image_dir->vectors = vector;
+   memset(edje_file->image_dir->vectors + edje_file->image_dir->vectors_count - 1,
+    0, sizeof (Edje_Vector_Directory_Entry));
+
+   vector = edje_file->image_dir->vectors + edje_file->image_dir->vectors_count - 1;
+
+   vector->entry = tmp;
+   vector->id = edje_file->image_dir->vectors_count - 1;
+}
+
 
 /**
    @edcsubsection{toplevel_models,model}
@@ -2644,6 +2938,49 @@ st_data_file(void)
    free(filename);
 }
 
+/** @edcsubsection{toplevel_color_tree,
+ *                 Color Tree} */
+
+/**
+    @page edcref
+    @block
+        color_tree
+    @context
+        color_tree {
+            "color_class_0" {
+                "color_class_3";
+                "color_class_4" {
+                    "color_class_5";
+                    "color_class_6";
+                }
+            }
+            "color_class_1";
+            "color_class_2";
+            ..
+        }
+    @description
+        The "color_tree" block contains color tree node blocks.
+        Each node block begins with the name of color class and enclosed with braces.
+        Node block can be placed within another node block.
+    @endblock
+*/
+static void
+ob_color_tree(void)
+{
+   if (!is_verbatim()) track_verbatim(1);
+   else
+     {
+        char *s;
+
+        s = get_verbatim();
+        if (s)
+          {
+             process_color_tree(s, file_in, get_verbatim_line1());
+             set_verbatim(NULL, 0, 0);
+          }
+     }
+}
+
 /** @edcsubsection{toplevel_color_classes,
  *                 Color Classes} */
 
@@ -2688,6 +3025,25 @@ ob_color_class(void)
    cc->g3 = 0;
    cc->b3 = 0;
    cc->a3 = 0;
+}
+
+static void
+_color_class_name(char *name)
+{
+   Edje_Color_Class *cc, *tcc;
+   Eina_List *l;
+
+   cc = eina_list_data_get(eina_list_last(edje_file->color_classes));
+   cc->name = name;
+   EINA_LIST_FOREACH(edje_file->color_classes, l, tcc)
+     {
+        if ((cc != tcc) && (!strcmp(cc->name, tcc->name)))
+          {
+             ERR("parse error %s:%i. There is already a color class named \"%s\"",
+                 file_in, line - 1, cc->name);
+             exit(-1);
+          }
+     }
 }
 
 /**
@@ -2735,14 +3091,34 @@ static void
 st_color_class_color(void)
 {
    Edje_Color_Class *cc;
-
-   check_arg_count(4);
+   int nargs = get_arg_count();
 
    cc = eina_list_data_get(eina_list_last(edje_file->color_classes));
-   cc->r = parse_int_range(0, 0, 255);
-   cc->g = parse_int_range(1, 0, 255);
-   cc->b = parse_int_range(2, 0, 255);
-   cc->a = parse_int_range(3, 0, 255);
+
+   if (nargs == 1)
+     {
+        int r, g, b, a;
+        char *str = parse_str(0);
+
+        convert_color_code(str, &r, &g, &b, &a);
+        cc->r = r;
+        cc->g = g;
+        cc->b = b;
+        cc->a = a;
+     }
+   else if (nargs == 4)
+     {
+        cc->r = parse_int_range(0, 0, 255);
+        cc->g = parse_int_range(1, 0, 255);
+        cc->b = parse_int_range(2, 0, 255);
+        cc->a = parse_int_range(3, 0, 255);
+     }
+   else
+     {
+        ERR("%s:%i. color code should be a string or a set of 4 integers.",
+            file_in, line - 1);
+        exit(-1);
+     }
 }
 
 /**
@@ -2759,14 +3135,34 @@ static void
 st_color_class_color2(void)
 {
    Edje_Color_Class *cc;
-
-   check_arg_count(4);
+   int nargs = get_arg_count();
 
    cc = eina_list_data_get(eina_list_last(edje_file->color_classes));
-   cc->r2 = parse_int_range(0, 0, 255);
-   cc->g2 = parse_int_range(1, 0, 255);
-   cc->b2 = parse_int_range(2, 0, 255);
-   cc->a2 = parse_int_range(3, 0, 255);
+
+   if (nargs == 1)
+     {
+        int r, g, b, a;
+        char *str = parse_str(0);
+
+        convert_color_code(str, &r, &g, &b, &a);
+        cc->r2 = r;
+        cc->g2 = g;
+        cc->b2 = b;
+        cc->a2 = a;
+     }
+   else if (nargs == 4)
+     {
+        cc->r2 = parse_int_range(0, 0, 255);
+        cc->g2 = parse_int_range(1, 0, 255);
+        cc->b2 = parse_int_range(2, 0, 255);
+        cc->a2 = parse_int_range(3, 0, 255);
+     }
+   else
+     {
+        ERR("%s:%i. color code should be a string or a set of 4 integers.",
+            file_in, line - 1);
+        exit(-1);
+     }
 }
 
 /**
@@ -2783,14 +3179,34 @@ static void
 st_color_class_color3(void)
 {
    Edje_Color_Class *cc;
-
-   check_arg_count(4);
+   int nargs = get_arg_count();
 
    cc = eina_list_data_get(eina_list_last(edje_file->color_classes));
-   cc->r3 = parse_int_range(0, 0, 255);
-   cc->g3 = parse_int_range(1, 0, 255);
-   cc->b3 = parse_int_range(2, 0, 255);
-   cc->a3 = parse_int_range(3, 0, 255);
+
+   if (nargs == 1)
+     {
+        int r, g, b, a;
+        char *str = parse_str(0);
+
+        convert_color_code(str, &r, &g, &b, &a);
+        cc->r3 = r;
+        cc->g3 = g;
+        cc->b3 = b;
+        cc->a3 = a;
+     }
+   else if (nargs == 4)
+     {
+        cc->r3 = parse_int_range(0, 0, 255);
+        cc->g3 = parse_int_range(1, 0, 255);
+        cc->b3 = parse_int_range(2, 0, 255);
+        cc->a3 = parse_int_range(3, 0, 255);
+     }
+   else
+     {
+        ERR("%s:%i. color code should be a string or a set of 4 integers.",
+            file_in, line - 1);
+        exit(-1);
+     }
 }
 
 /**
@@ -2971,7 +3387,7 @@ ob_text_class(void)
    tc = mem_alloc(SZ(Edje_Text_Class));
    edje_file->text_classes = eina_list_append(edje_file->text_classes, tc);
 
-   tc->font = "";
+   tc->font = NULL;
    tc->size = 0;
 }
 
@@ -3807,8 +4223,8 @@ ob_collections_group(void)
    current_part = NULL;
    current_desc = NULL;
 
-
    current_group_inherit = EINA_FALSE;
+   script_override = EINA_FALSE;
 
    current_de = mem_alloc(SZ(Edje_Part_Collection_Directory_Entry));
    current_de->id = eina_list_count(edje_collections);
@@ -3827,6 +4243,9 @@ ob_collections_group(void)
 
    pcp = (Edje_Part_Collection_Parser *)pc;
    pcp->default_mouse_events = 1;
+
+   pc->scene_size.width = 0;
+   pc->scene_size.height = 0;
 
 #ifdef HAVE_EPHYSICS
    pc->physics.world.gravity.x = 0;
@@ -3900,28 +4319,6 @@ st_collections_group_name(void)
    _group_name(parse_str(0));
 }
 
-/**
-    @page edcref
-    @property
-        scene_size
-    @parameters
-        [scene size]
-    @effect
-        Height and width of scene
-    @endproperty
-*/
-static void
-st_collections_group_scene_size(void)
-{
-   Edje_Part_Collection *current_pc;
-
-   check_arg_count(2);
-
-   current_pc = eina_list_data_get(eina_list_last(edje_collections));
-   current_pc->scene_size.width = parse_float(0);
-   current_pc->scene_size.height = parse_float(1);
-}
-
 typedef struct _Edje_List_Foreach_Data Edje_List_Foreach_Data;
 struct _Edje_List_Foreach_Data
 {
@@ -3940,6 +4337,36 @@ _edje_data_item_list_foreach(const Eina_Hash *hash EINA_UNUSED, const void *key,
 }
 
 #define STRDUP(x) x ? strdup(x) : NULL
+static void
+_filter_copy(Edje_Part_Description_Spec_Filter *ed, const Edje_Part_Description_Spec_Filter *parent)
+{
+   ed->code = STRDUP(parent->code);
+   if (ed->code)
+     {
+        const char *name;
+        Eina_List *l;
+        unsigned k;
+
+        ed->name = STRDUP(parent->name);
+        ed->sources = NULL;
+        EINA_LIST_FOREACH(parent->sources, l, name)
+          ed->sources = eina_list_append(ed->sources, STRDUP(name));
+        ed->data = NULL;
+        ed->data_count = 0;
+        if (parent->data)
+          {
+             ed->data = mem_alloc(parent->data_count * sizeof(*parent->data));
+             ed->data_count = parent->data_count;
+             for (k = 0; k < parent->data_count; k++)
+               {
+                  ed->data[k].name = STRDUP(parent->data[k].name);
+                  ed->data[k].value = STRDUP(parent->data[k].value);
+               }
+          }
+     }
+   else memset(ed, 0, sizeof(*ed));
+}
+
 static void
 _part_copy(Edje_Part *ep, Edje_Part *ep2)
 {
@@ -3979,6 +4406,7 @@ _part_copy(Edje_Part *ep, Edje_Part *ep2)
    ep->multiline = ep2->multiline;
    ep->access = ep2->access;
    ep->no_render = ep2->no_render;
+   ep->required = ep2->required;
    ep->dragable.x = ep2->dragable.x;
    ep->dragable.step_x = ep2->dragable.step_x;
    ep->dragable.count_x = ep2->dragable.count_x;
@@ -4148,7 +4576,8 @@ st_collections_group_target_group(void)
 static void
 st_collections_group_inherit(void)
 {
-   Edje_Part_Collection *pc, *pc2;
+   Edje_Part_Collection_Directory_Entry *alias;
+   Edje_Part_Collection *pc, *pc2 = NULL;
    Edje_Part_Collection_Parser *pcp, *pcp2;
    Edje_Part *ep, *ep2;
    Edje_List_Foreach_Data fdata;
@@ -4162,17 +4591,34 @@ st_collections_group_inherit(void)
 
    parent_name = parse_str(0);
 
-   EINA_LIST_FOREACH(edje_collections, l, pc2)
+   EINA_LIST_FOREACH(aliases, l, alias)
      {
-        if (!strcmp(parent_name, pc2->part))
-          break;
+        if (alias->group_alias &&
+            !strcmp(alias->entry, parent_name))
+          {
+             free(parent_name);
+             pc2 = eina_list_nth(edje_collections, alias->id);
+             parent_name = strdup(pc2->part);
+             break;
+          }
      }
+
+   if (!pc2)
+     {
+        EINA_LIST_FOREACH(edje_collections, l, pc2)
+          {
+             if (!strcmp(parent_name, pc2->part))
+               break;
+          }
+     }
+
    if (!pc2)
      {
         ERR("parse error %s:%i. There isn't a group with the name %s",
             file_in, line - 1, parent_name);
         exit(-1);
      }
+
    if (pc2 == pc)
      {
         ERR("parse error %s:%i. You are trying to inherit '%s' from itself. That's not possible."
@@ -4371,6 +4817,11 @@ st_collections_group_inherit(void)
    cd2 = eina_list_nth(codes, de->id);
    cd = eina_list_data_get(eina_list_last(codes));
 
+   cd->is_lua = cd2->is_lua;
+   cd->shared = STRDUP(cd2->shared);
+   cd->original = STRDUP(cd2->original);
+   script_override = EINA_TRUE;
+
    EINA_LIST_FOREACH(cd2->programs, l, cp2)
      {
         cp = mem_alloc(SZ(Code_Program));
@@ -4379,9 +4830,6 @@ st_collections_group_inherit(void)
         cp->l2 = cp2->l2;
         cp->script = STRDUP(cp2->script);
         cp->original = STRDUP(cp2->original);
-        cd->is_lua = cd2->is_lua;
-        cd->shared = cd2->shared;
-        cd->original = cd2->original;
         cd->programs = eina_list_append(cd->programs, cp);
         data_queue_copied_anonymous_lookup(pc, &(cp2->id), &(cp->id));
      }
@@ -4524,6 +4972,28 @@ st_collections_group_max(void)
    pc = eina_list_data_get(eina_list_last(edje_collections));
    pc->prop.max.w = parse_int_range(0, 0, 0x7fffffff);
    pc->prop.max.h = parse_int_range(1, 0, 0x7fffffff);
+}
+
+/**
+    @page edcref
+    @property
+        scne_size
+    @parameters
+        [width] [height]
+    @effect
+        Size of scene.
+    @endproperty
+*/
+static void
+st_collections_group_scene_size(void)
+{
+   Edje_Part_Collection *pc;
+
+   check_arg_count(2);
+
+   pc = eina_list_data_get(eina_list_last(edje_collections));
+   pc->scene_size.width = parse_float(0);
+   pc->scene_size.height = parse_float(1);
 }
 
 /**
@@ -4718,9 +5188,18 @@ ob_collections_group_script(void)
 	     cd->l2 = get_verbatim_line2();
 	     if (cd->shared)
 	       {
-		  ERR("parse error %s:%i. There is already an existing script section for the group",
-		      file_in, line - 1);
-		  exit(-1);
+                  if (script_override)
+                    {
+                       free(cd->shared);
+                       free(cd->original);
+                       script_override = EINA_FALSE;
+                    }
+                  else
+                    {
+                       ERR("parse error %s:%i. There is already an existing script section for the group",
+                           file_in, line - 1);
+                       exit(-1);
+                    }
 	       }
 	     cd->shared = s;
              cd->original = strdup(s);
@@ -5297,6 +5776,7 @@ edje_cc_handlers_part_make(int id)
    ep->access = 0;
    ep->clip_to_id = -1;
    ep->no_render = 0;
+   ep->required = 0;
    ep->dragable.confine_id = -1;
    ep->dragable.threshold_id = -1;
    ep->dragable.event_id = -1;
@@ -5346,6 +5826,7 @@ _part_desc_free(Edje_Part_Collection *pc,
       case EDJE_PART_TYPE_TABLE:
       case EDJE_PART_TYPE_IMAGE:
       case EDJE_PART_TYPE_SNAPSHOT:
+      case EDJE_PART_TYPE_VECTOR:
          /* Nothing todo here */
          break;
       case EDJE_PART_TYPE_TEXT:
@@ -5464,6 +5945,7 @@ ob_collections_group_parts_part_short(void)
                   "proxy", EDJE_PART_TYPE_PROXY,
                   "spacer", EDJE_PART_TYPE_SPACER,
                   "snapshot", EDJE_PART_TYPE_SNAPSHOT,
+                  "vector", EDJE_PART_TYPE_VECTOR,
                   NULL);
 
    stack_pop_quick(EINA_TRUE, EINA_TRUE);
@@ -5572,8 +6054,11 @@ st_collections_group_parts_part_inherit(void)
 static void
 _program_free(Edje_Program *pr)
 {
+   Edje_Part_Collection *pc;
    Edje_Program_Target *prt;
    Edje_Program_After *pa;
+
+   pc = eina_list_last_data_get(edje_collections);
 
    free((void*)pr->name);
    free((void*)pr->signal);
@@ -5585,7 +6070,10 @@ _program_free(Edje_Program *pr)
    free((void*)pr->sample_name);
    free((void*)pr->tone_name);
    EINA_LIST_FREE(pr->targets, prt)
-      free(prt);
+     {
+        part_lookup_del(pc, &prt->id);
+        free(prt);
+     }
    EINA_LIST_FREE(pr->after, pa)
       free(pa);
    free(pr);
@@ -5605,6 +6093,11 @@ _program_remove(const char *name, Edje_Program **pgrms, unsigned int count)
           Edje_Program *pr = pgrms[i];
 
           _edje_program_remove(pc, pr);
+
+          if (pr->action == EDJE_ACTION_TYPE_SCRIPT)
+            {
+               anonymous_delete = &pr->id;
+            }
 
           _program_free(pr);
           return EINA_TRUE;
@@ -5655,6 +6148,11 @@ st_collections_group_program_remove(void)
         success |= _program_remove(name, pc->programs.nocmp, pc->programs.nocmp_count);
 
         copied_program_lookup_delete(pc, name);
+        if (anonymous_delete)
+          {
+             copied_program_anonymous_lookup_delete(pc, anonymous_delete);
+             anonymous_delete = NULL;
+          }
         if (!success)
           {
              ERR("Attempted removal of nonexistent program '%s' in group '%s'.",
@@ -5847,8 +6345,12 @@ st_collections_group_parts_part_type(void)
                      "TABLE", EDJE_PART_TYPE_TABLE,
                      "EXTERNAL", EDJE_PART_TYPE_EXTERNAL,
                      "PROXY", EDJE_PART_TYPE_PROXY,
+                     "MESH_NODE", EDJE_PART_TYPE_MESH_NODE,
+                     "LIGHT", EDJE_PART_TYPE_LIGHT,
+                     "CAMERA", EDJE_PART_TYPE_CAMERA,
                      "SPACER", EDJE_PART_TYPE_SPACER,
                      "SNAPSHOT", EDJE_PART_TYPE_SNAPSHOT,
+                     "VECTOR", EDJE_PART_TYPE_VECTOR,
                      NULL);
 
    pc = eina_list_data_get(eina_list_last(edje_collections));
@@ -5982,16 +6484,12 @@ st_collections_group_parts_part_physics_body(void)
 static void
 st_collections_group_parts_part_insert_before(void)
 {
-   /* Edje_Part_Collection *pc; */
    Edje_Part_Parser *epp;
-   char *name;
 
    check_arg_count(1);
 
-   /* pc = eina_list_data_get(eina_list_last(edje_collections)); */
-   name = parse_str(0);
    epp = (Edje_Part_Parser *)current_part;
-   epp->reorder.insert_before = name;
+   epp->reorder.insert_before = parse_str(0);
 }
 
 /**
@@ -6010,16 +6508,12 @@ st_collections_group_parts_part_insert_before(void)
 static void
 st_collections_group_parts_part_insert_after(void)
 {
-   /* Edje_Part_Collection *pc; */
    Edje_Part_Parser *epp;
-   char *name;
 
    check_arg_count(1);
 
-   /* pc = eina_list_data_get(eina_list_last(edje_collections)); */
-   name = parse_str(0);
    epp = (Edje_Part_Parser *)current_part;
-   epp->reorder.insert_after = name;
+   epp->reorder.insert_after = parse_str(0);
 }
 
 /**
@@ -6334,6 +6828,33 @@ static void
 st_collections_group_parts_part_render(void)
 {
    current_part->no_render = EINA_FALSE;
+}
+
+/**
+    @page edcref
+    @property
+        required
+    @parameters
+        [1 or 0]
+    @effect
+        If the required flag is set, this part will be considered
+        stable and it is safe to use by any application."
+    @since 1.18
+    @endproperty
+*/
+static void
+st_collections_group_parts_part_required(void)
+{
+   if (check_range_arg_count(0, 1) == 1)
+     current_part->required = parse_bool(0);
+   else /* lazEDC form */
+     current_part->required = EINA_TRUE;
+}
+
+static void
+st_collections_group_parts_part_norequired(void)
+{
+   current_part->required = EINA_FALSE;
 }
 
 /**
@@ -7625,18 +8146,7 @@ st_collections_group_parts_part_description_inherit(void)
               ted->text.text_class = STRDUP(ted->text.text_class);
               ted->text.font.str = STRDUP(ted->text.font.str);
 
-              /* Filters stuff */
-              ted->filter.code = STRDUP(ted->filter.code);
-              if (ted->filter.code)
-                {
-                   Eina_List *list, *l;
-                   const char *name;
-                   list = ted->filter.sources;
-                   ted->filter.sources = NULL;
-                   EINA_LIST_FOREACH(list, l, name)
-                     ted->filter.sources = eina_list_append(ted->filter.sources, STRDUP(name));
-                }
-
+              _filter_copy(&ted->filter, &tparent->filter);
               data_queue_copied_part_nest_lookup(pc, &(tparent->text.id_source), &(ted->text.id_source), &ted->text.id_source_part);
               data_queue_copied_part_nest_lookup(pc, &(tparent->text.id_text_source), &(ted->text.id_text_source), &ted->text.id_text_source_part);
 
@@ -7667,17 +8177,7 @@ st_collections_group_parts_part_description_inherit(void)
                    ied->image.tweens[i] = iid_new;
                 }
 
-              /* Filters stuff */
-              ied->filter.code = STRDUP(iparent->filter.code);
-              if (ied->filter.code)
-                {
-                   Eina_List *list, *l;
-                   const char *name;
-                   list = iparent->filter.sources;
-                   ied->filter.sources = NULL;
-                   EINA_LIST_FOREACH(list, l, name)
-                     ied->filter.sources = eina_list_append(ied->filter.sources, STRDUP(name));
-                }
+              _filter_copy(&ied->filter, &iparent->filter);
 
               break;
            }
@@ -7686,17 +8186,7 @@ st_collections_group_parts_part_description_inherit(void)
               Edje_Part_Description_Snapshot *sed = (Edje_Part_Description_Snapshot*) ed;
               Edje_Part_Description_Snapshot *sparent = (Edje_Part_Description_Snapshot*) parent;
 
-              /* Filters stuff */
-              sed->filter.code = STRDUP(sparent->filter.code);
-              if (sed->filter.code)
-                {
-                   Eina_List *list, *l;
-                   const char *name;
-                   list = sparent->filter.sources;
-                   sed->filter.sources = NULL;
-                   EINA_LIST_FOREACH(list, l, name)
-                     sed->filter.sources = eina_list_append(sed->filter.sources, STRDUP(name));
-                }
+              _filter_copy(&sed->filter, &sparent->filter);
 
               break;
            }
@@ -7706,18 +8196,7 @@ st_collections_group_parts_part_description_inherit(void)
               Edje_Part_Description_Proxy *pparent = (Edje_Part_Description_Proxy*) parent;
 
               data_queue_copied_part_lookup(pc, &(pparent->proxy.id), &(ped->proxy.id));
-
-              /* Filters stuff */
-              ped->filter.code = STRDUP(pparent->filter.code);
-              if (ped->filter.code)
-                {
-                   Eina_List *list, *l;
-                   const char *name;
-                   list = pparent->filter.sources;
-                   ped->filter.sources = NULL;
-                   EINA_LIST_FOREACH(list, l, name)
-                     ped->filter.sources = eina_list_append(ped->filter.sources, STRDUP(name));
-                }
+              _filter_copy(&ped->filter, &pparent->filter);
 
               break;
            }
@@ -7796,6 +8275,14 @@ st_collections_group_parts_part_description_inherit(void)
 
               data_queue_copied_part_lookup(pc, &(mparent->mesh_node.orientation.look_to), &(med->mesh_node.orientation.look_to));
 
+              break;
+           }
+      case EDJE_PART_TYPE_VECTOR:
+           {
+              Edje_Part_Description_Vector *ied = (Edje_Part_Description_Vector *) ed;
+              Edje_Part_Description_Vector *iparent = (Edje_Part_Description_Vector *) parent;
+              ied->vg.set = iparent->vg.set;
+              ied->vg.id = iparent->vg.id;
               break;
            }
      }
@@ -8323,19 +8810,39 @@ st_collections_group_parts_part_description_color_class(void)
 static void
 st_collections_group_parts_part_description_color(void)
 {
-   check_arg_count(4);
+   int nargs = get_arg_count();
 
    if (current_part->type == EDJE_PART_TYPE_SPACER)
      {
        ERR("parse error %s:%i. SPACER part can't have a color defined",
-	   file_in, line - 1);
+           file_in, line - 1);
        exit(-1);
      }
 
-   current_desc->color.r = parse_int_range(0, 0, 255);
-   current_desc->color.g = parse_int_range(1, 0, 255);
-   current_desc->color.b = parse_int_range(2, 0, 255);
-   current_desc->color.a = parse_int_range(3, 0, 255);
+   if (nargs == 1)
+     {
+        int r, g, b, a;
+        char *str = parse_str(0);
+
+        convert_color_code(str, &r, &g, &b, &a);
+        current_desc->color.r = r;
+        current_desc->color.g = g;
+        current_desc->color.b = b;
+        current_desc->color.a = a;
+     }
+   else if (nargs == 4)
+     {
+        current_desc->color.r = parse_int_range(0, 0, 255);
+        current_desc->color.g = parse_int_range(1, 0, 255);
+        current_desc->color.b = parse_int_range(2, 0, 255);
+        current_desc->color.a = parse_int_range(3, 0, 255);
+     }
+   else
+     {
+        ERR("%s:%i. color code should be a string or a set of 4 integers.",
+            file_in, line - 1);
+        exit(-1);
+     }
 }
 
 /**
@@ -8351,19 +8858,39 @@ st_collections_group_parts_part_description_color(void)
 static void
 st_collections_group_parts_part_description_color2(void)
 {
-   check_arg_count(4);
+   int nargs = get_arg_count();
 
    if (current_part->type == EDJE_PART_TYPE_SPACER)
      {
        ERR("parse error %s:%i. SPACER part can't have a color defined",
-	   file_in, line - 1);
+           file_in, line - 1);
        exit(-1);
      }
 
-   current_desc->color2.r = parse_int_range(0, 0, 255);
-   current_desc->color2.g = parse_int_range(1, 0, 255);
-   current_desc->color2.b = parse_int_range(2, 0, 255);
-   current_desc->color2.a = parse_int_range(3, 0, 255);
+   if (nargs == 1)
+     {
+        int r, g, b, a;
+        char *str = parse_str(0);
+
+        convert_color_code(str, &r, &g, &b, &a);
+        current_desc->color2.r = r;
+        current_desc->color2.g = g;
+        current_desc->color2.b = b;
+        current_desc->color2.a = a;
+     }
+   else if (nargs == 4)
+     {
+        current_desc->color2.r = parse_int_range(0, 0, 255);
+        current_desc->color2.g = parse_int_range(1, 0, 255);
+        current_desc->color2.b = parse_int_range(2, 0, 255);
+        current_desc->color2.a = parse_int_range(3, 0, 255);
+     }
+   else
+     {
+        ERR("%s:%i. color code should be a string or a set of 4 integers.",
+            file_in, line - 1);
+        exit(-1);
+     }
 }
 
 /**
@@ -8381,8 +8908,7 @@ st_collections_group_parts_part_description_color3(void)
 {
    Edje_Part_Collection *pc;
    Edje_Part_Description_Text *ed;
-
-   check_arg_count(4);
+   int nargs = get_arg_count();
 
    pc = eina_list_data_get(eina_list_last(edje_collections));
 
@@ -8396,10 +8922,30 @@ st_collections_group_parts_part_description_color3(void)
 
    ed = (Edje_Part_Description_Text*)current_desc;
 
-   ed->text.color3.r = parse_int_range(0, 0, 255);
-   ed->text.color3.g = parse_int_range(1, 0, 255);
-   ed->text.color3.b = parse_int_range(2, 0, 255);
-   ed->text.color3.a = parse_int_range(3, 0, 255);
+   if (nargs == 1)
+     {
+        int r, g, b, a;
+        char *str = parse_str(0);
+
+        convert_color_code(str, &r, &g, &b, &a);
+        ed->text.color3.r = r;
+        ed->text.color3.g = g;
+        ed->text.color3.b = b;
+        ed->text.color3.a = a;
+     }
+   else if (nargs == 4)
+     {
+        ed->text.color3.r = parse_int_range(0, 0, 255);
+        ed->text.color3.g = parse_int_range(1, 0, 255);
+        ed->text.color3.b = parse_int_range(2, 0, 255);
+        ed->text.color3.a = parse_int_range(3, 0, 255);
+     }
+   else
+     {
+        ERR("%s:%i. color code should be a string or a set of 4 integers.",
+            file_in, line - 1);
+        exit(-1);
+     }
 }
 
 /**
@@ -8737,6 +9283,7 @@ st_collections_group_parts_part_description_rel2_to_y(void)
             ..
             image {
                 normal: "filename.ext";
+                normal: "filename.svg";
                 tween:  "filename2.ext";
                 ..
                 tween:  "filenameN.ext";
@@ -8765,6 +9312,11 @@ st_collections_group_parts_part_description_image_normal(void)
    Edje_Part_Description_Image *ed;
 
    check_arg_count(1);
+
+   if (current_part->type == EDJE_PART_TYPE_VECTOR)
+     {
+        return _handle_vector_image();
+     }
 
    if (current_part->type != EDJE_PART_TYPE_IMAGE)
      {
@@ -10569,6 +11121,17 @@ st_collections_group_parts_part_description_camera_properties(void)
         ed->camera.camera.frustum_near = FROM_DOUBLE(parse_float(2));
         ed->camera.camera.frustum_far = FROM_DOUBLE(parse_float(3));
      }
+   else if (current_part->type == EDJE_PART_TYPE_LIGHT)
+     {
+        Edje_Part_Description_Light *ed;
+
+        ed = (Edje_Part_Description_Light*) current_desc;
+
+        ed->light.light.fovy = FROM_DOUBLE(parse_float(0));
+        ed->light.light.aspect = FROM_DOUBLE(parse_float(1));
+        ed->light.light.frustum_near = FROM_DOUBLE(parse_float(2));
+        ed->light.light.frustum_far = FROM_DOUBLE(parse_float(3));
+     }
    else
      {
         ERR("parse error %s:%i. camera attributes in non-CAMERA and non-LIGHT part.",
@@ -10628,10 +11191,10 @@ st_collections_group_parts_part_description_properties_ambient(void)
 
            ed = (Edje_Part_Description_Light*) current_desc;
 
-           ed->light.properties.specular.r = parse_int_range(0, 0, 255);
-           ed->light.properties.specular.g = parse_int_range(1, 0, 255);
-           ed->light.properties.specular.b = parse_int_range(2, 0, 255);
-           ed->light.properties.specular.a = parse_int_range(3, 0, 255);
+           ed->light.properties.ambient.r = parse_int_range(0, 0, 255);
+           ed->light.properties.ambient.g = parse_int_range(1, 0, 255);
+           ed->light.properties.ambient.b = parse_int_range(2, 0, 255);
+           ed->light.properties.ambient.a = parse_int_range(3, 0, 255);
            break;
         }
       case EDJE_PART_TYPE_MESH_NODE:
@@ -10640,10 +11203,10 @@ st_collections_group_parts_part_description_properties_ambient(void)
 
            ed = (Edje_Part_Description_Mesh_Node*) current_desc;
 
-           ed->mesh_node.properties.specular.r = parse_int_range(0, 0, 255);
-           ed->mesh_node.properties.specular.g = parse_int_range(1, 0, 255);
-           ed->mesh_node.properties.specular.b = parse_int_range(2, 0, 255);
-           ed->mesh_node.properties.specular.a = parse_int_range(3, 0, 255);
+           ed->mesh_node.properties.ambient.r = parse_int_range(0, 0, 255);
+           ed->mesh_node.properties.ambient.g = parse_int_range(1, 0, 255);
+           ed->mesh_node.properties.ambient.b = parse_int_range(2, 0, 255);
+           ed->mesh_node.properties.ambient.a = parse_int_range(3, 0, 255);
            break;
         }
       default:
@@ -10728,10 +11291,10 @@ st_collections_group_parts_part_description_properties_specular(void)
 
            ed = (Edje_Part_Description_Light*) current_desc;
 
-           ed->light.properties.specular.r = parse_float_range(0, 0.0, 1.0);
-           ed->light.properties.specular.g = parse_float_range(1, 0.0, 1.0);
-           ed->light.properties.specular.b = parse_float_range(2, 0.0, 1.0);
-           ed->light.properties.specular.a = parse_float_range(3, 0.0, 1.0);
+           ed->light.properties.specular.r = parse_int_range(0, 0, 255);
+           ed->light.properties.specular.g = parse_int_range(1, 0, 255);
+           ed->light.properties.specular.b = parse_int_range(2, 0, 255);
+           ed->light.properties.specular.a = parse_int_range(3, 0, 255);
         }
       case EDJE_PART_TYPE_MESH_NODE:
         {
@@ -10739,10 +11302,10 @@ st_collections_group_parts_part_description_properties_specular(void)
 
            ed = (Edje_Part_Description_Mesh_Node*) current_desc;
 
-           ed->mesh_node.properties.specular.r = parse_float_range(0, 0.0, 1.0);
-           ed->mesh_node.properties.specular.g = parse_float_range(1, 0.0, 1.0);
-           ed->mesh_node.properties.specular.b = parse_float_range(2, 0.0, 1.0);
-           ed->mesh_node.properties.specular.a = parse_float_range(3, 0.0, 1.0);
+           ed->mesh_node.properties.specular.r = parse_int_range(0, 0, 255);
+           ed->mesh_node.properties.specular.g = parse_int_range(1, 0, 255);
+           ed->mesh_node.properties.specular.b = parse_int_range(2, 0, 255);
+           ed->mesh_node.properties.specular.a = parse_int_range(3, 0, 255);
            break;
         }
       default:
@@ -10887,12 +11450,12 @@ st_collections_group_parts_part_description_properties_shade(void)
    check_arg_count(1);
 
    shade = parse_enum(0,
-                     "VERTEX_COLOR", EVAS_CANVAS3D_SHADE_MODE_VERTEX_COLOR,
-                     "PARENT", EVAS_CANVAS3D_SHADE_MODE_DIFFUSE,
-                     "WORLD", EVAS_CANVAS3D_SHADE_MODE_FLAT,
-                     "PHONG", EVAS_CANVAS3D_SHADE_MODE_PHONG,
-                     "NORMAL_MAP", EVAS_CANVAS3D_SHADE_MODE_NORMAL_MAP,
-                     "RENDER", EVAS_CANVAS3D_SHADE_MODE_SHADOW_MAP_RENDER,
+                     "VERTEX_COLOR", EVAS_CANVAS3D_SHADER_MODE_VERTEX_COLOR,
+                     "PARENT", EVAS_CANVAS3D_SHADER_MODE_DIFFUSE,
+                     "WORLD", EVAS_CANVAS3D_SHADER_MODE_FLAT,
+                     "PHONG", EVAS_CANVAS3D_SHADER_MODE_PHONG,
+                     "NORMAL_MAP", EVAS_CANVAS3D_SHADER_MODE_NORMAL_MAP,
+                     "RENDER", EVAS_CANVAS3D_SHADER_MODE_SHADOW_MAP_RENDER,
                      NULL);
 
    if (current_part->type == EDJE_PART_TYPE_MESH_NODE)
@@ -14555,19 +15118,6 @@ edje_cc_handlers_hierarchy_free(void)
    part_hierarchy = NULL;
 }
 
-static Eina_Bool
-_part_text_ellipsis_check(Edje_Part *ep, Edje_Part_Description_Common *desc)
-{
-   Edje_Part_Description_Text *ed;
-
-   if ((ep->type != EDJE_PART_TYPE_TEXT) && (ep->type != EDJE_PART_TYPE_TEXTBLOCK))
-     return EINA_FALSE;
-
-   ed = (Edje_Part_Description_Text*)desc;
-
-   return ((ed->text.ellipsis != -1) && ed->text.min_x);
-}
-
 static void
 edje_cc_handlers_hierarchy_pop(void)
 {  /* Remove part from hierarchy stack when finished parsing it */
@@ -14577,6 +15127,12 @@ edje_cc_handlers_hierarchy_pop(void)
      {
         unsigned int i;
 
+        if (!current_part->name)
+          {
+             WRN("Parse error near %s:%i. Unnamed part exists in Group \"%s\".",
+                 file_in, line - 1, current_de->entry);
+          }
+
         for (i = 0; i < current_part->other.desc_count; i++)
           {
              if (!current_part->other.desc[i]->state.name)
@@ -14585,25 +15141,11 @@ edje_cc_handlers_hierarchy_pop(void)
                         file_in, line - 1, current_de->entry, current_part->name);
                     exit(-1);
                }
-             if (_part_text_ellipsis_check(current_part, current_part->other.desc[i]))
-               {
-                  WRN("Part '%s' in group '%s' contains description '%s:%g' which has text.min: 1 X; but not text.ellipsis: -1;",
-                      current_part->name, current_de->entry,
-                      current_part->other.desc[i]->state.name, current_part->other.desc[i]->state.value);
-                  WRN("This is almost certainly not what you want.");
-               }
           }
 
         /* auto-add default desc if it was omitted */
         if (!current_part->default_desc)
           ob_collections_group_parts_part_description();
-        else if (_part_text_ellipsis_check(current_part, current_part->default_desc))
-          {
-             WRN("Part '%s' in group '%s' contains description '%s:%g' which has text.min: 1 X; but not text.ellipsis: -1;",
-                 current_part->name, current_de->entry,
-                 current_part->default_desc->state.name, current_part->default_desc->state.value);
-             WRN("This is almost certainly not what you want.");
-          }
      }
 
    if (info)
@@ -14726,6 +15268,13 @@ edje_cc_handlers_wildcard(void)
          _style_name(token);
          stack_pop_quick(EINA_FALSE, EINA_FALSE);
          return EINA_TRUE;
+     }
+   if (edje_file->color_classes && (!strcmp(last, "color_class")))
+     {
+        if (!had_quote) return EINA_FALSE;
+        _color_class_name(token);
+        stack_pop_quick(EINA_FALSE, EINA_FALSE);
+        return EINA_TRUE;
      }
    if (edje_file->text_classes && (!strcmp(last, "text_class")))
      {

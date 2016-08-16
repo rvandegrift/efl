@@ -3,27 +3,27 @@ class Object_Impl (Base) {
       @property a {
          set {
             values {
-                value: const(list<int>)*;
+                value: const(list<int>);
             }
             return: bool (false);
          }
          get {
          }
          keys {
-            part: const(char)*;
+            part: string;
          }
          values {
-            value: own(list<int>*);
+            value: own(list<int>);
          }
       }
       @property b {
          set {
          }
-         get {
+         get @virtual_pure {
             /* set as virtual pure - no implementation expected */
          }
          values {
-            value: own(list<int>*);
+            value: own(list<int>);
          }
       }
       constructor_1 {
@@ -47,10 +47,10 @@ class Object_Impl (Base) {
          [[comment foo]]
          params {
             @in a: int;
-            @in b: const(char)*;
+            @in b: string;
          }
       }
-      pure_foo3 {
+      pure_foo3 @virtual_pure {
          /* set as virtual pure - no implementation expected */
       }
    }
@@ -59,8 +59,6 @@ class Object_Impl (Base) {
       class.destructor;
       Base.constructor;
       Base.destructor;
-      @virtual .pure_foo3;
-      @virtual .b.get;
    }
    constructors {
       .constructor_1;

@@ -13,13 +13,10 @@
 #define WIDTH  (320)
 #define HEIGHT (240)
 
-static Eina_Bool
-_playback_started_cb(void *data EINA_UNUSED,
-            Eo *o EINA_UNUSED, const Eo_Event_Description *desc EINA_UNUSED, void *event_info EINA_UNUSED)
+static void
+_playback_started_cb(void *data EINA_UNUSED, const Eo_Event *ev EINA_UNUSED)
 {
     printf("Emotion object started playback.\n");
-
-    return EINA_TRUE;
 }
 
 static void
@@ -80,8 +77,8 @@ main(int argc, const char *argv[])
    if (subtitle_filename)
      emotion_object_video_subtitle_file_set(em, subtitle_filename);
 
-   eo_do(em, eo_event_callback_add
-     (EMOTION_OBJECT_EVENT_PLAYBACK_STARTED, _playback_started_cb, NULL));
+   eo_event_callback_add
+     (em, EMOTION_OBJECT_EVENT_PLAYBACK_STARTED, _playback_started_cb, NULL);
 
    emotion_object_file_set(em, filename);
 

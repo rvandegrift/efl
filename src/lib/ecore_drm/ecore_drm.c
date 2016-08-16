@@ -1,6 +1,30 @@
-#ifdef HAVE_CONFIG_H
-# include "config.h"
-#endif
+/* Portions of this code have been derived from Weston
+ *
+ * Copyright © 2008-2012 Kristian Høgsberg
+ * Copyright © 2010-2012 Intel Corporation
+ * Copyright © 2010-2011 Benjamin Franzke
+ * Copyright © 2011-2012 Collabora, Ltd.
+ * Copyright © 2010 Red Hat <mjg@redhat.com>
+ *
+ * Permission is hereby granted, free of charge, to any person obtaining a
+ * copy of this software and associated documentation files (the "Software"),
+ * to deal in the Software without restriction, including without limitation
+ * the rights to use, copy, modify, merge, publish, distribute, sublicense,
+ * and/or sell copies of the Software, and to permit persons to whom the
+ * Software is furnished to do so, subject to the following conditions:
+ *
+ * The above copyright notice and this permission notice (including the next
+ * paragraph) shall be included in all copies or substantial portions of the
+ * Software.
+ *
+ * THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
+ * IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
+ * FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT.  IN NO EVENT SHALL
+ * THE AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
+ * LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING
+ * FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER
+ * DEALINGS IN THE SOFTWARE.
+ */
 
 #include "ecore_drm_private.h"
 
@@ -69,7 +93,7 @@ ecore_drm_init(void)
      }
 
    /* set logging level */
-   eina_log_level_set(EINA_LOG_LEVEL_DBG);
+   /* eina_log_level_set(EINA_LOG_LEVEL_DBG); */
 
    /* try to create logging domain */
    _ecore_drm_log_dom = 
@@ -79,10 +103,6 @@ ecore_drm_init(void)
         EINA_LOG_ERR("Could not create log domain for Ecore_Drm");
         goto log_err;
      }
-
-   /* set default logging level for this domain */
-   if (!eina_log_domain_level_check(_ecore_drm_log_dom, EINA_LOG_LEVEL_DBG))
-     eina_log_domain_level_set("ecore_drm", EINA_LOG_LEVEL_DBG);
 
    /* try to init eeze */
    if (!eeze_init()) goto eeze_err;

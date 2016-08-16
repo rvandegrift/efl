@@ -892,9 +892,9 @@ eina_log_domain_str_get(const char *name, const char *color)
         if (!d)
            return NULL;
 
-               memcpy((char *)d,                          color, color_len);
-               memcpy((char *)(d + color_len),            name,  name_len);
-               memcpy((char *)(d + color_len + name_len), EINA_COLOR_RESET,
+        memcpy((char *)d,                          color, color_len);
+        memcpy((char *)(d + color_len),            name,  name_len);
+        memcpy((char *)(d + color_len + name_len), EINA_COLOR_RESET,
                strlen(EINA_COLOR_RESET));
         ((char *)d)[color_len + name_len + strlen(EINA_COLOR_RESET)] = '\0';
      }
@@ -941,11 +941,8 @@ eina_log_domain_free(Eina_Log_Domain *d)
 {
    EINA_SAFETY_ON_NULL_RETURN(d);
 
-   if (d->domain_str)
-      free((char *)d->domain_str);
-
-   if (d->name)
-      free((char *)d->name);
+   free((char *)d->domain_str);
+   free((char *)d->name);
 }
 
 /*
@@ -975,9 +972,12 @@ eina_log_domain_parse_pendings(void)
         level = strtol((char *)(end + 1), &tmp, 10);
         if (tmp == (end + 1))
            goto parse_end;
-
+        // If the name of the log is more than 64k it's silly so give up
+        // as it's pointless and in theory could overflow pointer
+        if ((end - start) > 0xffff)
+           break;
         // Parse name
-        p = malloc(sizeof(Eina_Log_Domain_Level_Pending) + end - start + 1);
+        p = malloc(sizeof(Eina_Log_Domain_Level_Pending) + (end - start) + 1);
         if (!p)
            break;
 
@@ -1021,9 +1021,12 @@ eina_log_domain_parse_pending_globs(void)
         level = strtol((char *)(end + 1), &tmp, 10);
         if (tmp == (end + 1))
            goto parse_end;
-
+        // If the name of the log is more than 64k it's silly so give up
+        // as it's pointless and in theory could overflow pointer
+        if ((end - start) > 0xffff)
+           break;
         // Parse name
-        p = malloc(sizeof(Eina_Log_Domain_Level_Pending) + end - start + 1);
+        p = malloc(sizeof(Eina_Log_Domain_Level_Pending) + (end - start) + 1);
         if (!p)
            break;
 
@@ -1191,6 +1194,16 @@ eina_log_domain_unregister_unlocked(int domain)
    d->deleted = 1;
 }
 
+#ifdef EINA_LOG_BACKTRACE
+# define DISPLAY_BACKTRACE(File, Level) \
+   if (EINA_UNLIKELY(Level <= _backtrace_level)) { \
+      fprintf(File, "*** Backtrace ***\n"); \
+      EINA_BT(File); \
+   }
+#else
+# define DISPLAY_BACKTRACE(File, Level)
+#endif
+
 static inline void
 eina_log_print_unlocked(int domain,
                         Eina_Log_Level level,
@@ -1206,28 +1219,35 @@ eina_log_print_unlocked(int domain,
    if (EINA_UNLIKELY((unsigned int)domain >= _log_domains_count) ||
        EINA_UNLIKELY(domain < 0))
      {
-        if (file && fnc && fmt)
+        DECLARE_LEVEL_NAME(level);
+        if (level > _log_level)
           {
-             fprintf(
-              stderr,
-              "CRI: %s:%d %s() eina_log_print() unknown domain %d, original message format '%s'\n",
-              file,
-              line,
-              fnc,
-              domain,
-              fmt);
+             fprintf(stderr, "CRI<%u>:eina_log %s:%d %s() unknown log domain %d, "
+                     "original message level was: %s\n", eina_log_pid_get(),
+                     file, line, fnc, domain, name);
           }
         else
           {
-             fprintf(
-              stderr,
-              "CRI: eina_log_print() unknown domain %d, original message format '%s'\n",
-              domain,
-              fmt ? fmt : "");
+             if (file && fnc && fmt)
+               {
+                  fprintf(stderr, "CRI<%u>:eina_log %s:%d %s() unknown log domain %d, "
+                                  "original message was: %s: '", eina_log_pid_get(),
+                          file, line, fnc, domain, name);
+                  vfprintf(stderr, fmt, args);
+               }
+             else
+               {
+                  fprintf(stderr, "CRI<%u>:eina_log unknown log domain %d, original "
+                                  "message was: %s: '", eina_log_pid_get(), domain, name);
+                  if (fmt)
+                    vfprintf(stderr, fmt, args);
+               }
+             fputs("'\n", stderr);
           }
 
-        if (_abort_on_critical)
-           abort();
+        DISPLAY_BACKTRACE(stderr, level);
+        if (EINA_UNLIKELY(_abort_on_critical))
+          abort();
 
         return;
      }
@@ -1237,9 +1257,22 @@ eina_log_print_unlocked(int domain,
 #ifdef EINA_SAFETY_CHECKS
    if (EINA_UNLIKELY(d->deleted))
      {
-           fprintf(stderr,
-                "ERR: eina_log_print() domain %d is deleted\n",
-                domain);
+        if (level > d->level)
+          fprintf(stderr, "ERR<%u>:eina_log %s:%d %s() log domain %d was deleted\n",
+                  eina_log_pid_get(), file, line, fnc, domain);
+        else
+          {
+             DECLARE_LEVEL_NAME(level);
+             fprintf(stderr, "ERR<%u>:eina_log %s:%d %s() log domain %d was "
+                             "deleted, original message was: %s: '",
+                     eina_log_pid_get(), file, line, fnc, domain, name);
+             vfprintf(stderr, fmt, args);
+             fputs("'\n", stderr);
+          }
+        DISPLAY_BACKTRACE(stderr, level);
+        if (EINA_UNLIKELY(_abort_on_critical) &&
+            EINA_UNLIKELY(level <= _abort_level_on_critical))
+           abort();
         return;
      }
 
@@ -1852,16 +1885,6 @@ eina_log_domain_registered_level_set(int domain, int level)
    (void) level;
 #endif
 }
-
-#ifdef EINA_LOG_BACKTRACE
-# define DISPLAY_BACKTRACE(File, Level) \
-   if (EINA_UNLIKELY(Level <= _backtrace_level)) { \
-      fprintf(File, "*** Backtrace ***\n"); \
-      EINA_BT(File); \
-   }
-#else
-# define DISPLAY_BACKTRACE(File, Level)
-#endif
 
 EAPI void
 eina_log_print_cb_stderr(const Eina_Log_Domain *d,

@@ -30,9 +30,18 @@
 #  endif // ifdef __GNUC__
 # endif // ifdef _MSC_VER
 
+# warning The Ecore_Drm library has been deprecated. Please use the Ecore_Drm2 library
+
 # ifdef __cplusplus
 extern "C" {
 # endif
+
+# define ECORE_DRM_PLANE_ROTATION_NORMAL 1
+# define ECORE_DRM_PLANE_ROTATION_90 2
+# define ECORE_DRM_PLANE_ROTATION_180 4
+# define ECORE_DRM_PLANE_ROTATION_270 8
+# define ECORE_DRM_PLANE_ROTATION_REFLECT_X 16
+# define ECORE_DRM_PLANE_ROTATION_REFLECT_Y 32
 
 typedef enum _Ecore_Drm_Evdev_Capabilities
 {
@@ -153,6 +162,13 @@ struct _Ecore_Drm_Event_Output
    Eina_Bool plug : 1;
 };
 
+typedef enum _Ecore_Drm_Plane_Type
+{
+   ECORE_DRM_PLANE_TYPE_OVERLAY,
+   ECORE_DRM_PLANE_TYPE_PRIMARY,
+   ECORE_DRM_PLANE_TYPE_CURSOR
+} Ecore_Drm_Plane_Type;
+
 /* opaque structure to represent a drm device */
 typedef struct _Ecore_Drm_Device Ecore_Drm_Device;
 
@@ -182,6 +198,10 @@ typedef struct _Ecore_Drm_Sprite Ecore_Drm_Sprite;
 
 /* structure to inform drm activation state */
 typedef struct _Ecore_Drm_Event_Activate Ecore_Drm_Event_Activate;
+
+/* opaque structure to represent a drm hardware plane */
+/** @since 1.18 */
+typedef struct _Ecore_Drm_Plane Ecore_Drm_Plane;
 
 /* structure to inform drm output plug events */
 /** @since 1.14 */
@@ -653,10 +673,12 @@ EAPI void ecore_drm_fb_dirty(Ecore_Drm_Fb *fb, Eina_Rectangle *rects, unsigned i
  * @param dev The Ecore_Drm_Device to use
  * @param fb The Ecore_Drm_Fb to make the current framebuffer
  *
+ * @deprecated just call ecore_drm_fb_send() instead.
+ *
  * @ingroup Ecore_Drm_Fb_Group
  * @since 1.14
  */
-EAPI void ecore_drm_fb_set(Ecore_Drm_Device *dev, Ecore_Drm_Fb *fb);
+EINA_DEPRECATED EAPI void ecore_drm_fb_set(Ecore_Drm_Device *dev, Ecore_Drm_Fb *fb);
 
 /**
  * Send an Ecore_Drm_Fb to the Ecore_Drm_Device
@@ -816,6 +838,20 @@ EAPI void ecore_drm_output_gamma_set(Ecore_Drm_Output *output, uint16_t size, ui
 EAPI void ecore_drm_device_pointer_xy_get(Ecore_Drm_Device *dev, int *x, int *y);
 
 /**
+ * Warp the pointer position of Ecore_Drm_Device
+ *
+ * This function will set the pointer position of Ecore_Drm_Device
+ *
+ * @param dev The Ecore_Drm_Device to set pointer position for
+ * @param x The new x co-ordinate
+ * @param y The new y co-ordinate
+ *
+ * @ingroup Ecore_Drm_Device_Group
+ * @since 1.18
+ */
+EAPI void ecore_drm_device_pointer_warp(Ecore_Drm_Device *dev, int x, int y);
+
+/**
  * Get the list of drm devices which are allocated.
  *
  * @return Eina_List of drm devices, NULL otherwise
@@ -878,7 +914,7 @@ EAPI Eina_Bool ecore_drm_output_backlight_get(Ecore_Drm_Output *output);
 /**
  * Get the edid of a given output
  *
- * @param output The Ecore_Drm_Output to get the backlight of
+ * @param output The Ecore_Drm_Output to get the edid of
  *
  * @return A string representing the edid
  *
@@ -983,6 +1019,14 @@ EAPI Eina_Bool ecore_drm_output_possible_crtc_get(Ecore_Drm_Output *output, unsi
  * @since 1.15
  */
 EAPI Eina_Bool ecore_drm_output_mode_set(Ecore_Drm_Output *output, Ecore_Drm_Output_Mode *mode, int x, int y);
+
+/* TODO: doxy */
+/* @since 1.18 */
+EAPI unsigned int ecore_drm_output_supported_rotations_get(Ecore_Drm_Output *output, Ecore_Drm_Plane_Type type);
+
+/* TODO: doxy */
+/* @since 1.18 */
+EAPI Eina_Bool ecore_drm_output_rotation_set(Ecore_Drm_Output *output, Ecore_Drm_Plane_Type type, unsigned int rotation);
 
 /**
  * Enable key remap functionality on a Ecore_Drm_Evdev

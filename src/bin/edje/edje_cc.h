@@ -181,6 +181,7 @@ void   *data_queue_program_lookup(Edje_Part_Collection *pc, const char *name, in
 void    program_lookup_rename(void *p, const char *name);
 void    copied_program_lookup_delete(Edje_Part_Collection *pc, const char *name);
 void    data_queue_copied_program_lookup(Edje_Part_Collection *pc, int *src, int *dest);
+void    copied_program_anonymous_lookup_delete(Edje_Part_Collection *pc, int *dest);
 void    data_queue_anonymous_lookup(Edje_Part_Collection *pc, Edje_Program *ep, int *dest);
 void    data_queue_copied_anonymous_lookup(Edje_Part_Collection *pc, int *src, int *dest);
 void    data_queue_image_lookup(char *name, int *dest, Eina_Bool *set);
@@ -194,6 +195,7 @@ void    data_queue_spectrum_slave_lookup(int *master, int *slave);
 void    data_process_lookups(void);
 void    data_process_scripts(void);
 void    data_process_script_lookups(void);
+void    process_color_tree(char *s, const char *file_in, int line);
 
 void    part_description_image_cleanup(Edje_Part *ep);
 
@@ -218,6 +220,7 @@ int     get_arg_count(void);
 void    check_arg_count(int n);
 void    check_min_arg_count(int n);
 int     check_range_arg_count(int n, int m);
+int     param_had_quote(int n);
 
 int     object_handler_num(void);
 int     object_handler_short_num(void);
@@ -240,7 +243,6 @@ char   *mem_strdup(const char *s);
 #define SZ sizeof
 
 void    using_file(const char *filename, const char type);
-Eina_Bool needed_part_exists(Edje_Part_Collection *pc, const char *name);
 
 void    error_and_abort(Eet_File *ef, const char *fmt, ...);
 
@@ -251,6 +253,12 @@ void edje_cc_handlers_hierarchy_alloc(void);
 void edje_cc_handlers_hierarchy_free(void);
 void edje_cc_handlers_pop_notify(const char *token);
 int get_param_index(char *str);
+
+void color_tree_root_free(void);
+void convert_color_code(char *str, int *r, int *g, int *b, int *a);
+
+Svg_Node* _svg_load(Eina_File *f, const char *key EINA_UNUSED);
+
 
 /* global vars */
 extern Eina_List             *ext_dirs;
@@ -297,6 +305,8 @@ extern int                    compress_mode;
 extern int                    threads;
 extern int                    annotate;
 extern Eina_Bool current_group_inherit;
+extern Eina_List             *color_tree_root;
+extern int                    beta;
 
 extern int had_quote;
 

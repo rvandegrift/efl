@@ -1,9 +1,10 @@
 ACLOCAL_AMFLAGS = -I m4
 AM_MAKEFLAGS = --no-print-directory
 AM_DISTCHECK_CONFIGURE_FLAGS = \
---with-tests=regular
+--with-tests=regular \
+--enable-always-build-examples
 
-SUBDIRS = src data doc
+SUBDIRS = src data config doc
 
 if HAVE_PO
 
@@ -42,6 +43,7 @@ m4/efl_compiler.m4 \
 m4/efl_doxygen.m4 \
 m4/efl_path_max.m4 \
 m4/efl_threads.m4 \
+m4/efl_libunwind.m4 \
 m4/eina_check.m4 \
 m4/eina_config.m4 \
 m4/eio_check_options.m4 \
@@ -153,7 +155,8 @@ pc/edje.pc \
 pc/emotion.pc \
 pc/ethumb.pc \
 pc/ethumb_client.pc \
-pc/elocation.pc
+pc/elocation.pc \
+pc/elementary.pc
 
 if HAVE_CXX11
 pkgconfig_DATA += \
@@ -165,7 +168,8 @@ pc/eolian-cxx.pc \
 pc/edje-cxx.pc \
 pc/eet-cxx.pc \
 pc/eo-cxx.pc \
-pc/eio-cxx.pc
+pc/eio-cxx.pc \
+pc/elementary-cxx.pc
 endif
 
 if HAVE_ELUA
@@ -186,6 +190,10 @@ endif
 
 if BUILD_ENGINE_FB
 pkgconfig_DATA += pc/evas-fb.pc
+endif
+
+if BUILD_ENGINE_EGLFS
+pkgconfig_DATA += pc/evas-eglfs.pc
 endif
 
 if BUILD_ENGINE_BUFFER
@@ -278,6 +286,14 @@ endif
 
 if HAVE_ECORE_BUFFER
 pkgconfig_DATA += pc/ecore-buffer.pc
+endif
+
+if HAVE_ELPUT
+pkgconfig_DATA += pc/elput.pc
+endif
+
+if HAVE_ECORE_DRM2
+pkgconfig_DATA += pc/ecore-drm2.pc
 endif
 
 # Cmake configs:
@@ -382,6 +398,11 @@ ethumbclient_cmakeconfig_DATA = \
 cmakeconfig/EthumbClientConfig.cmake \
 cmakeconfig/EthumbClientConfigVersion.cmake
 
+cmakeconfigdir = $(libdir)/cmake/Elementary
+cmakeconfig_DATA = \
+cmakeconfig/ElementaryConfig.cmake \
+cmakeconfig/ElementaryConfigVersion.cmake
+
 emotion_cmakeconfigdir =  $(libdir)/cmake/Emotion/
 emotion_cmakeconfig_DATA = \
 cmakeconfig/EmotionConfig.cmake \
@@ -428,13 +449,19 @@ lcov-reset:
 	@find $(top_builddir) -name "*.gcda" -delete
 	@lcov --zerocounters --directory $(top_builddir)
 
-lcov-report:
+lcov-baseline:
 	$(MKDIR_P) $(top_builddir)/coverage
-	lcov --capture --compat-libtool --no-external --output-file $(top_builddir)/coverage/coverage.info --directory $(top_builddir) --base-directory $(top_srcdir)/src/
-	lcov --remove $(top_builddir)/coverage/coverage.info '*.h' --output-file $(top_builddir)/coverage/coverage.cleaned.info
-	lcov --remove $(top_builddir)/coverage/coverage.cleaned.info '*/tests/*' --output-file $(top_builddir)/coverage/coverage.cleaned2.info
-	lcov --remove $(top_builddir)/coverage/coverage.cleaned2.info '*NONE*' --output-file $(top_builddir)/coverage/coverage.cleaned3.info
-	genhtml --branch-coverage -t "$(PACKAGE_STRING)" -o $(top_builddir)/coverage/html $(top_builddir)/coverage/coverage.cleaned3.info
+	lcov --capture --initial --compat-libtool --no-external --output-file $(top_builddir)/coverage/coverage-baseline.info --directory $(top_builddir) --config-file .lcov-config --rc lcov_branch_coverage=1
+
+lcov-report:
+	lcov --capture --compat-libtool --no-external --output-file $(top_builddir)/coverage/coverage-check.info --directory $(top_builddir) --config-file .lcov-config --rc lcov_branch_coverage=1
+	lcov --no-external --compat-libtool --add-tracefile $(top_builddir)/coverage/coverage-baseline.info --add-tracefile $(top_builddir)/coverage/coverage-check.info --output-file $(top_builddir)/coverage/coverage.info --config-file .lcov-config --rc lcov_branch_coverage=1
+	lcov --no-external --compat-libtool --remove $(top_builddir)/coverage/coverage.info '*.h' --output-file $(top_builddir)/coverage/coverage.cleaned.info --config-file .lcov-config --rc lcov_branch_coverage=1
+	lcov --no-external --compat-libtool --remove $(top_builddir)/coverage/coverage.cleaned.info '*/tests/*' --output-file $(top_builddir)/coverage/coverage.cleaned2.info --config-file .lcov-config --rc lcov_branch_coverage=1
+	lcov --no-external --compat-libtool --remove $(top_builddir)/coverage/coverage.cleaned2.info '*NONE*' --output-file $(top_builddir)/coverage/coverage.cleaned3.info --config-file .lcov-config --rc lcov_branch_coverage=1
+	lcov --no-external --compat-libtool --remove $(top_builddir)/coverage/coverage.cleaned3.info '*/doc/*' --output-file $(top_builddir)/coverage/coverage.cleaned4.info --config-file .lcov-config --rc lcov_branch_coverage=1
+	lcov --no-external --compat-libtool --remove $(top_builddir)/coverage/coverage.cleaned4.info '*usr/include*' --output-file $(top_builddir)/coverage/coverage.cleaned5.info --config-file .lcov-config --rc lcov_branch_coverage=1
+	genhtml --config-file .lcov-config --legend -t "$(PACKAGE_STRING)" -o $(top_builddir)/coverage/html $(top_builddir)/coverage/coverage.cleaned5.info
 	@echo "Coverage Report at $(top_builddir)/coverage/html"
 
 endif
@@ -444,6 +471,7 @@ if EFL_ENABLE_TESTS
 lcov-check:
 if EFL_ENABLE_COVERAGE
 	@$(MAKE) $(AM_MAKEFLAGS) lcov-reset
+	@$(MAKE) $(AM_MAKEFLAGS) lcov-baseline
 endif
 	@$(MAKE) $(AM_MAKEFLAGS) check
 if EFL_ENABLE_COVERAGE
@@ -477,3 +505,19 @@ pkgbuild::
 
 clean-local:
 	rm -rf benchmark coverage
+
+DISTCLEANFILES= \
+./src/lib/emile/Makefile \
+./src/lib/eo/Makefile \
+./src/lib/eet/Makefile \
+./src/lib/ecore/Makefile \
+./src/lib/efl/Makefile \
+./src/lib/eina/Makefile \
+./src/lib/eio/Makefile \
+./src/lib/elementary/Makefile \
+./src/lib/ector/Makefile \
+./src/lib/evil/Makefile \
+./src/lib/edje/Makefile \
+./src/lib/efl/Efl_Config.h \
+./src/lib/eina/eina_config.h \
+./src/lib/elementary/Elementary.h

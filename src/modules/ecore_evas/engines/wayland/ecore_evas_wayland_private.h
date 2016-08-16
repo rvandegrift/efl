@@ -5,6 +5,9 @@
 # include "config.h"
 #endif
 
+#define ECORE_EVAS_INTERNAL
+
+#ifndef ELEMENTARY_H
 //#define LOGFNS 1
 #ifdef LOGFNS
 # include <stdio.h>
@@ -16,13 +19,14 @@
 
 #include <Eina.h>
 #include <Ecore.h>
-#include "ecore_private.h"
 #include <Ecore_Input.h>
 #include <Ecore_Input_Evas.h>
 #include <Ecore_Wl2.h>
-#include "ecore_wl2_private.h"
 
 #include <Ecore_Evas.h>
+#endif
+#include "ecore_wl2_private.h"
+#include "ecore_private.h"
 #include "ecore_evas_private.h"
 #include "ecore_evas_wayland.h"
 
@@ -31,16 +35,25 @@ typedef struct _Ecore_Evas_Engine_Wl_Data Ecore_Evas_Engine_Wl_Data;
 struct _Ecore_Evas_Engine_Wl_Data 
 {
    Ecore_Wl2_Display *display;
+   void (*display_unset)(Ecore_Evas*);
+   Eina_List *regen_objs;
    Ecore_Wl2_Window *parent, *win;
+   Ecore_Event_Handler *sync_handler;
    Evas_Object *frame;
    int fx, fy, fw, fh;
 #ifdef BUILD_ECORE_EVAS_WAYLAND_EGL
    struct wl_egl_window *egl_win;
 #endif
+   Eina_Rectangle content;
    struct wl_callback *anim_callback;
+   int x_rel;
+   int y_rel;
+   uint32_t timestamp;
+   Eina_Bool dragging : 1;
 
    Eina_Bool sync_done : 1;
    Eina_Bool defer_show : 1;
+   Eina_Bool reset_pending : 1;
 };
 
 Ecore_Evas_Interface_Wayland *_ecore_evas_wl_interface_new(void);
@@ -92,6 +105,8 @@ Evas_Object * _ecore_evas_wl_common_frame_add(Evas *evas);
 void _ecore_evas_wl_common_frame_border_size_set(Evas_Object *obj, int fx, int fy, int fw, int fh);
 
 void _ecore_evas_wl_common_pointer_xy_get(const Ecore_Evas *ee, Evas_Coord *x, Evas_Coord *y);
+
+extern Eina_List *ee_list;
 
 #ifdef BUILD_ECORE_EVAS_WAYLAND_SHM
 void _ecore_evas_wayland_shm_resize(Ecore_Evas *ee, int location);

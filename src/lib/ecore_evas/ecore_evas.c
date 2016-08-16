@@ -2,6 +2,9 @@
 # include <config.h>
 #endif
 
+#define ECORE_EVAS_INTERNAL
+#define EFL_EVENT_PROTECTED
+
 #include <stdlib.h>
 #include <string.h>
 #include <sys/types.h>
@@ -34,6 +37,9 @@
 #include "ecore_evas_extn.h"
 #include "ecore_evas_win32.h"
 
+#define EFL_INTERNAL_UNSTABLE
+#include "interfaces/efl_common_internal.h"
+
 #ifndef O_BINARY
 # define O_BINARY 0
 #endif
@@ -48,9 +54,8 @@ static Ecore_Idle_Enterer *ecore_evas_idle_enterer = NULL;
 static Ecore_Evas *ecore_evases = NULL;
 static int _ecore_evas_fps_debug = 0;
 
-#define RENDER_SYNC 1
-
-#ifdef RENDER_SYNC
+//RENDER_SYNC
+static int _ecore_evas_render_sync = 1;
 static Ecore_Animator *ecore_evas_animator = NULL;
 static Eina_Bool ecore_evas_animator_ticked = EINA_FALSE;
 static Eina_Bool ecore_evas_first = EINA_TRUE;
@@ -93,7 +98,6 @@ _ecore_evas_changes_check(void)
      }
    return EINA_FALSE;
 }
-#endif
 
 static Eina_Bool
 _ecore_evas_idle_enter(void *data EINA_UNUSED)
@@ -108,26 +112,27 @@ _ecore_evas_idle_enter(void *data EINA_UNUSED)
 
    if (!ecore_evases) return ECORE_CALLBACK_RENEW;
 
-#ifdef RENDER_SYNC
-   if (!ecore_evas_first)
+   if (_ecore_evas_render_sync)
      {
-        if ((!ecore_evas_animator_ticked) &&
-            (!ecore_main_loop_animator_ticked_get()))
+        if (!ecore_evas_first)
           {
-             if (_ecore_evas_changes_check())
+             if ((!ecore_evas_animator_ticked) &&
+                 (!ecore_main_loop_animator_ticked_get()))
                {
-                  if (!ecore_evas_animator)
+                  if (_ecore_evas_changes_check())
                     {
-                       overtick = 1;
-                       ecore_evas_animator = ecore_animator_add(_ecore_evas_animator, NULL);
+                       if (!ecore_evas_animator)
+                         {
+                            overtick = 1;
+                            ecore_evas_animator = ecore_animator_add(_ecore_evas_animator, NULL);
+                         }
                     }
+                  return ECORE_CALLBACK_RENEW;
                }
-             return ECORE_CALLBACK_RENEW;
+             ecore_evas_animator_ticked = EINA_FALSE;
           }
-        ecore_evas_animator_ticked = EINA_FALSE;
+        ecore_evas_first = EINA_FALSE;
      }
-   ecore_evas_first = EINA_FALSE;
-#endif
 
    if (_ecore_evas_fps_debug)
      {
@@ -392,6 +397,7 @@ ecore_evas_init(void)
    ecore_evas_idle_enterer =
      ecore_idle_enterer_add(_ecore_evas_idle_enter, NULL);
    if (getenv("ECORE_EVAS_FPS_DEBUG")) _ecore_evas_fps_debug = 1;
+   if (getenv("ECORE_EVAS_RENDER_NOSYNC")) _ecore_evas_render_sync = 0;
    if (_ecore_evas_fps_debug) _ecore_evas_fps_debug_init();
 
 #ifdef BUILD_ECORE_EVAS_EWS
@@ -435,10 +441,12 @@ ecore_evas_shutdown(void)
    if (_ecore_evas_fps_debug) _ecore_evas_fps_debug_shutdown();
    ecore_idle_enterer_del(ecore_evas_idle_enterer);
    ecore_evas_idle_enterer = NULL;
-#ifdef RENDER_SYNC
-   if (ecore_evas_animator) ecore_animator_del(ecore_evas_animator);
-   ecore_evas_animator = NULL;
-#endif
+
+   if (_ecore_evas_render_sync)
+     {
+        if (ecore_evas_animator) ecore_animator_del(ecore_evas_animator);
+        ecore_evas_animator = NULL;
+     }
 
    _ecore_evas_extn_shutdown();
 
@@ -1811,6 +1819,7 @@ ecore_evas_layer_set(Ecore_Evas *ee, int layer)
      }
    IFC(ee, fn_layer_set) (ee, layer);
    IFE;
+   ee->prop.layer = layer;
 }
 
 EAPI int
@@ -1836,6 +1845,17 @@ ecore_evas_focus_set(Ecore_Evas *ee, Eina_Bool on)
      }
    IFC(ee, fn_focus_set) (ee, on);
    IFE;
+   if (on)
+     {
+        evas_focus_in(ee->evas);
+        if (ee->func.fn_focus_in) ee->func.fn_focus_in(ee);
+     }
+   else
+     {
+        evas_focus_out(ee->evas);
+        if (ee->func.fn_focus_out) ee->func.fn_focus_out(ee);
+     }
+   ee->prop.focused = !!on;
 }
 
 EAPI Eina_Bool
@@ -1861,6 +1881,7 @@ ecore_evas_iconified_set(Ecore_Evas *ee, Eina_Bool on)
      }
    IFC(ee, fn_iconified_set) (ee, on);
    IFE;
+   ee->prop.iconified = !!on;
 }
 
 EAPI Eina_Bool
@@ -1886,6 +1907,7 @@ ecore_evas_borderless_set(Ecore_Evas *ee, Eina_Bool on)
      }
    IFC(ee, fn_borderless_set) (ee, on);
    IFE;
+   ee->prop.borderless = !!on;
 }
 
 EAPI Eina_Bool
@@ -1911,6 +1933,7 @@ ecore_evas_override_set(Ecore_Evas *ee, Eina_Bool on)
      }
    IFC(ee, fn_override_set) (ee, on);
    IFE;
+   ee->prop.override = !!on;
 }
 
 EAPI Eina_Bool
@@ -3069,6 +3092,151 @@ _ecore_evas_fps_debug_rendertime_add(double t)
      }
 }
 
+static Ecore_Evas *_general_tick = NULL;
+
+EAPI void
+ecore_evas_animator_tick(Ecore_Evas *ee, Eina_Rectangle *viewport)
+{
+   Ecore_Evas *subee;
+   Eina_List *l;
+   Efl_Event_Animator_Tick a = { { 0, 0, 0, 0 } };
+
+   if (!viewport)
+     {
+        evas_output_size_get(ee->evas, &a.update_area.w, &a.update_area.h);
+     }
+   else
+     {
+        a.update_area = *viewport;
+     }
+
+   eo_event_callback_call(ee->evas, EFL_EVENT_ANIMATOR_TICK, &a);
+
+   // FIXME: We do not support partial animator in the subcanvas
+   EINA_LIST_FOREACH(ee->sub_ecore_evas, l, subee)
+     {
+        ecore_evas_animator_tick(subee, NULL);
+     }
+
+   // We are the source of sync for general animator.
+   if (_general_tick == ee)
+     {
+        // Check first we didn't tick during this loop
+        if (!ecore_main_loop_animator_ticked_get())
+          ecore_animator_custom_tick();
+     }
+
+   DBG("Animator ticked on %p.", ee->evas);
+}
+
+static void
+_ecore_evas_tick_source_find(void)
+{
+   Ecore_Evas *ee;
+
+   _general_tick = NULL;
+   EINA_INLIST_FOREACH(ecore_evases, ee)
+     if (ee->anim_count &&
+                ee->engine.func->fn_animator_register &&
+         ee->engine.func->fn_animator_unregister)
+       {
+          _general_tick = ee;
+          break;
+       }
+
+   if (!_general_tick)
+     {
+        ecore_animator_source_set(ECORE_ANIMATOR_SOURCE_TIMER);
+     }
+   else
+     {
+        ecore_animator_source_set(ECORE_ANIMATOR_SOURCE_CUSTOM);
+     }
+}
+
+static Eina_Bool
+_ecore_evas_animator_fallback(void *data)
+{
+   ecore_evas_animator_tick(data, NULL);
+   return EINA_TRUE;
+}
+
+static void
+_check_animator_event_catcher_add(void *data, const Eo_Event *event)
+{
+   const Eo_Callback_Array_Item *array = event->info;
+   Ecore_Evas *ee = data;
+   int i;
+
+   for (i = 0; array[i].desc != NULL; i++)
+     {
+        if (array[i].desc == EFL_EVENT_ANIMATOR_TICK)
+          {
+             if (ee->anim_count++ > 0) return;
+             INF("Setting up animator for %p from '%s' with title '%s'.", ee->evas, ee->driver, ee->prop.title);
+
+             if (ee->engine.func->fn_animator_register &&
+                 ee->engine.func->fn_animator_unregister)
+               {
+                  // Backend support per window vsync
+                  ee->engine.func->fn_animator_register(ee);
+                  if (!_general_tick) _general_tick = ee;
+               }
+             else
+               {
+                  // Backend doesn't support per window vsync, fallback to generic support
+                  ee->anim = ecore_animator_add(_ecore_evas_animator_fallback, ee);
+               }
+
+             // No need to walk more than once per array as you can not del
+             // a partial array
+             return;
+          }
+     }
+}
+
+static void
+_check_animator_event_catcher_del(void *data, const Eo_Event *event)
+{
+   const Eo_Callback_Array_Item *array = event->info;
+   Ecore_Evas *ee = data;
+   int i;
+
+   for (i = 0; array[i].desc != NULL; i++)
+     {
+        if (array[i].desc == EFL_EVENT_ANIMATOR_TICK)
+          {
+             if ((--ee->anim_count) > 0) return;
+
+             INF("Unsetting up animator for %p from '%s' titled '%s'.", ee->evas, ee->driver, ee->prop.title);
+             if (ee->engine.func->fn_animator_register &&
+                 ee->engine.func->fn_animator_unregister)
+               {
+                  // Backend support per window vsync
+                  ee->engine.func->fn_animator_unregister(ee);
+                  if (_general_tick == ee) _ecore_evas_tick_source_find();
+               }
+             else
+               {
+                  // Backend doesn't support per window vsync, fallback to generic support
+                  ecore_animator_del(ee->anim);
+                  ee->anim = NULL;
+               }
+             return;
+          }
+     }
+}
+
+EO_CALLBACKS_ARRAY_DEFINE(animator_watch,
+                          { EO_EVENT_CALLBACK_ADD, _check_animator_event_catcher_add },
+                          { EO_EVENT_CALLBACK_DEL, _check_animator_event_catcher_del });
+
+EAPI void
+_ecore_evas_register_animators(Ecore_Evas *ee)
+{
+   eo_event_callback_array_add(ee->evas, animator_watch(), ee);
+}
+
 EAPI void
 _ecore_evas_register(Ecore_Evas *ee)
 {
@@ -3076,9 +3244,9 @@ _ecore_evas_register(Ecore_Evas *ee)
    ecore_evases = (Ecore_Evas *)eina_inlist_prepend
      (EINA_INLIST_GET(ecore_evases), EINA_INLIST_GET(ee));
 
-#ifdef RENDER_SYNC
-   ecore_evas_first = EINA_TRUE;
-#endif
+   _ecore_evas_register_animators(ee);
+
+   if (_ecore_evas_render_sync) ecore_evas_first = EINA_TRUE;
 }
 
 EAPI void
@@ -3106,6 +3274,18 @@ _ecore_evas_free(Ecore_Evas *ee)
 
    ee->deleted = EINA_TRUE;
    if (ee->refcount > 0) return;
+
+   // Stop all vsync first
+   if (ee->engine.func->fn_animator_register &&
+       ee->engine.func->fn_animator_unregister)
+     {
+        // Backend support per window vsync
+        ee->engine.func->fn_animator_unregister(ee);
+        if (_general_tick == ee) _ecore_evas_tick_source_find();
+     }
+   if (ee->anim)
+     ecore_animator_del(ee->anim);
+   ee->anim = NULL;
 
    if (ee->func.fn_pre_free) ee->func.fn_pre_free(ee);
    while (ee->sub_ecore_evas)
@@ -3182,8 +3362,8 @@ _ecore_evas_idle_timeout_update(Ecore_Evas *ee)
      ecore_timer_add(IDLE_FLUSH_TIME, _ecore_evas_cb_idle_flush, ee);
 }
 
-EAPI void
-_ecore_evas_mouse_move_process(Ecore_Evas *ee, int x, int y, unsigned int timestamp)
+static void
+_ecore_evas_mouse_move_process_internal(Ecore_Evas *ee, int x, int y, unsigned int timestamp, Eina_Bool feed)
 {
    int fx, fy, fw, fh;
    ee->mouse.x = x;
@@ -3211,6 +3391,7 @@ _ecore_evas_mouse_move_process(Ecore_Evas *ee, int x, int y, unsigned int timest
                            y - fx - ee->prop.cursor.hot.x,
                            ee->w + fh - x - fy - 1 - ee->prop.cursor.hot.y);
      }
+   if (!feed) return;
    if (ee->rotation == 0)
      evas_event_input_mouse_move(ee->evas, x, y, timestamp, NULL);
    else if (ee->rotation == 90)
@@ -3219,6 +3400,12 @@ _ecore_evas_mouse_move_process(Ecore_Evas *ee, int x, int y, unsigned int timest
      evas_event_input_mouse_move(ee->evas, ee->w + fw - x - 1, ee->h + fh - y - 1, timestamp, NULL);
    else if (ee->rotation == 270)
      evas_event_input_mouse_move(ee->evas, y, ee->w + fh - x - 1, timestamp, NULL);
+}
+
+EAPI void
+_ecore_evas_mouse_move_process(Ecore_Evas *ee, int x, int y, unsigned int timestamp)
+{
+   _ecore_evas_mouse_move_process_internal(ee, x, y, timestamp, EINA_TRUE);
 }
 
 EAPI void
@@ -3426,6 +3613,7 @@ ecore_evas_input_event_register(Ecore_Evas *ee)
                                (Ecore_Event_Multi_Move_Cb)_ecore_evas_mouse_multi_move_process,
                                (Ecore_Event_Multi_Down_Cb)_ecore_evas_mouse_multi_down_process,
                                (Ecore_Event_Multi_Up_Cb)_ecore_evas_mouse_multi_up_process);
+   _ecore_event_window_direct_cb_set((Ecore_Window)ee, _ecore_evas_input_direct_cb);
 }
 
 EAPI void
@@ -4103,4 +4291,311 @@ ecore_evas_psl1ght_new(const char* name, int w, int h)
    EINA_SAFETY_ON_NULL_RETURN_VAL(new, NULL);
 
    return new(name, w, h);
+}
+
+
+/* new input model with eo:
+ *  1. pass all events from ecore_input_evas through
+ *     ecore_evas and send eo events from here
+ *  2. those eo events can then be translated to legacy by evas
+ *  3. let evas send legacy & eo events to the objects
+ */
+
+#define EVENT_XY_SET(EV, MX, MY, FX, FY) do { \
+   EV->cur.x = (MX) - (FX); EV->cur.y = (MY) - (FY); \
+   } while (0)
+
+static inline void
+_pointer_position_set(Efl_Event_Pointer_Data *ev, Ecore_Evas *ee, int x, int y,
+                      double mx, double my)
+{
+   int fx, fy, fw, fh;
+
+   if (!mx && !my)
+     {
+        mx = x;
+        my = y;
+     }
+
+   evas_output_framespace_get(ee->evas, &fx, &fy, &fw, &fh);
+   if (ee->rotation == 0)
+     EVENT_XY_SET(ev, mx, my, fx, fy);
+   else if (ee->rotation == 90)
+     EVENT_XY_SET(ev, ee->h + fw - my - 1, mx, fx, fy);
+   else if (ee->rotation == 180)
+     EVENT_XY_SET(ev, ee->w + fw - mx - 1, ee->h + fh - my - 1, fx, fy);
+   else if (ee->rotation == 270)
+     EVENT_XY_SET(ev, my, ee->w + fh - mx - 1, fx, fy);
+}
+
+static const Eo_Event_Description *
+_event_description_get(Efl_Pointer_Action action)
+{
+   switch (action)
+     {
+      case EFL_POINTER_ACTION_MOVE:
+        return EFL_EVENT_POINTER_MOVE;
+      case EFL_POINTER_ACTION_DOWN:
+        return EFL_EVENT_POINTER_DOWN;
+      case EFL_POINTER_ACTION_UP:
+        return EFL_EVENT_POINTER_UP;
+      case EFL_POINTER_ACTION_CANCEL:
+        return EFL_EVENT_POINTER_CANCEL;
+      case EFL_POINTER_ACTION_IN:
+        return EFL_EVENT_POINTER_IN;
+      case EFL_POINTER_ACTION_OUT:
+        return EFL_EVENT_POINTER_OUT;
+      case EFL_POINTER_ACTION_WHEEL:
+        return EFL_EVENT_POINTER_WHEEL;
+      default: return NULL;
+     }
+}
+
+static Eina_Bool
+_direct_mouse_updown(Ecore_Evas *ee, const Ecore_Event_Mouse_Button *info, Efl_Pointer_Action action)
+{
+   Efl_Event_Pointer_Data *ev;
+   Efl_Event_Pointer *evt;
+   Evas *e = ee->evas;
+   Eina_Bool processed;
+
+   /* Unused information:
+    * same_screen
+    * root.{x,y}
+    * root_window
+    * event_window
+    * same_screen
+    * modifiers (already passed to evas, no need to do anything)
+    */
+
+   evt = efl_event_instance_get(EFL_EVENT_POINTER_CLASS, e, (void **) &ev);
+   if (!evt) return EINA_FALSE;
+
+   ev->action = action;
+   ev->button = info->buttons;
+   if (info->double_click) ev->button_flags |= EFL_POINTER_FLAGS_DOUBLE_CLICK;
+   if (info->triple_click) ev->button_flags |= EFL_POINTER_FLAGS_TRIPLE_CLICK;
+   ev->timestamp = info->timestamp;
+   ev->finger = info->multi.device;
+   _pointer_position_set(ev, ee, info->x, info->y, info->multi.x, info->multi.y);
+   ev->radius = info->multi.radius;
+   ev->radius_x = info->multi.radius_x;
+   ev->radius_y = info->multi.radius_y;
+   ev->pressure = info->multi.pressure;
+   ev->angle = info->multi.angle - ee->rotation;
+
+   eo_event_callback_call(e, _event_description_get(ev->action), evt);
+   processed = ev->evas_done;
+   eo_del(evt);
+
+   return processed;
+}
+
+static Eina_Bool
+_direct_mouse_down_cb(Ecore_Evas *ee, const Ecore_Event_Mouse_Button *info)
+{
+   return _direct_mouse_updown(ee, info, EFL_POINTER_ACTION_DOWN);
+}
+
+static Eina_Bool
+_direct_mouse_up_cb(Ecore_Evas *ee, const Ecore_Event_Mouse_Button *info)
+{
+   return _direct_mouse_updown(ee, info, EFL_POINTER_ACTION_UP);
+}
+
+static Eina_Bool
+_direct_mouse_cancel_cb(Ecore_Evas *ee, const Ecore_Event_Mouse_Button *info)
+{
+   return _direct_mouse_updown(ee, info, EFL_POINTER_ACTION_CANCEL);
+}
+
+static Eina_Bool
+_direct_mouse_move_cb(Ecore_Evas *ee, const Ecore_Event_Mouse_Move *info)
+{
+   Efl_Event_Pointer_Data *ev;
+   Efl_Event_Pointer *evt;
+   Evas *e = ee->evas;
+   Eina_Bool processed;
+
+   _ecore_evas_mouse_move_process_internal(ee, info->x, info->y, info->timestamp, EINA_FALSE);
+
+   /* Unused information:
+    * same_screen
+    * root.{x,y}
+    * root_window
+    * event_window
+    * same_screen
+    * modifiers (already passed to evas, no need to do anything)
+    */
+
+   evt = efl_event_instance_get(EFL_EVENT_POINTER_CLASS, e, (void **) &ev);
+   if (!evt) return EINA_FALSE;
+
+   ev->action = EFL_POINTER_ACTION_MOVE;
+   ev->timestamp = info->timestamp;
+   ev->finger = info->multi.device;
+   _pointer_position_set(ev, ee, info->x, info->y, info->multi.x, info->multi.y);
+
+   ev->radius = info->multi.radius;
+   ev->radius_x = info->multi.radius_x;
+   ev->radius_y = info->multi.radius_y;
+   ev->pressure = info->multi.pressure;
+   ev->angle = info->multi.angle - ee->rotation;
+
+   eo_event_callback_call(e, _event_description_get(ev->action), evt);
+   processed = ev->evas_done;
+   eo_del(evt);
+
+   return processed;
+}
+
+static Eina_Bool
+_direct_mouse_wheel_cb(Ecore_Evas *ee, const Ecore_Event_Mouse_Wheel *info)
+{
+   Efl_Event_Pointer_Data *ev;
+   Efl_Event_Pointer *evt;
+   Evas *e = ee->evas;
+   Eina_Bool processed;
+
+   /* Unused information:
+    * same_screen
+    * root.{x,y}
+    * root_window
+    * event_window
+    * modifiers (already passed to evas, no need to do anything)
+    */
+
+   evt = efl_event_instance_get(EFL_EVENT_POINTER_CLASS, e, (void **) &ev);
+   if (!evt) return EINA_FALSE;
+
+   ev->action = EFL_POINTER_ACTION_WHEEL;
+   ev->timestamp = info->timestamp;
+   _pointer_position_set(ev, ee, info->x, info->y, info->x, info->y);
+   ev->wheel.z = info->z;
+   ev->wheel.dir = info->direction ? EFL_ORIENT_HORIZONTAL : EFL_ORIENT_VERTICAL;
+
+   eo_event_callback_call(e, _event_description_get(ev->action), evt);
+   processed = ev->evas_done;
+   eo_del(evt);
+
+   return processed;
+}
+
+static Eina_Bool
+_direct_mouse_inout(Ecore_Evas *ee, const Ecore_Event_Mouse_IO *info, Efl_Pointer_Action action)
+{
+   Efl_Event_Pointer_Data *ev;
+   Efl_Event_Pointer *evt;
+   Evas *e = ee->evas;
+   Eina_Bool processed;
+
+   /* Unused information:
+    * event_window
+    * modifiers (already passed to evas, no need to do anything)
+    */
+
+   evt = efl_event_instance_get(EFL_EVENT_POINTER_CLASS, e, (void **) &ev);
+   if (!evt) return EINA_FALSE;
+
+   ev->action = action;
+   ev->timestamp = info->timestamp;
+   _pointer_position_set(ev, ee, info->x, info->y, info->x, info->y);
+
+   eo_event_callback_call(e, _event_description_get(ev->action), evt);
+   processed = ev->evas_done;
+   eo_del(evt);
+
+   return processed;
+}
+
+static Eina_Bool
+_direct_mouse_in_cb(Ecore_Evas *ee, const Ecore_Event_Mouse_IO *info)
+{
+   return _direct_mouse_inout(ee, info, EFL_POINTER_ACTION_IN);
+}
+
+static Eina_Bool
+_direct_mouse_out_cb(Ecore_Evas *ee, const Ecore_Event_Mouse_IO *info)
+{
+   return _direct_mouse_inout(ee, info, EFL_POINTER_ACTION_OUT);
+}
+
+static Eina_Bool
+_direct_key_updown_cb(Ecore_Evas *ee, const Ecore_Event_Key *info, Eina_Bool down)
+{
+   Efl_Event_Key_Data *ev;
+   Efl_Event_Key *evt;
+   Evas *e = ee->evas;
+   Eina_Bool processed;
+
+   /* Unused information:
+    * window
+    * root_window
+    * event_window
+    * same_screen
+    * modifiers (already passed to evas, no need to do anything)
+    */
+
+   evt = efl_event_instance_get(EFL_EVENT_KEY_CLASS, e, (void **) &ev);
+   if (!evt || !ev) return EINA_FALSE;
+
+   ev->timestamp = info->timestamp;
+   ev->pressed = down;
+   eina_stringshare_replace(&ev->keyname, info->keyname);
+   eina_stringshare_replace(&ev->key, info->key);
+   eina_stringshare_replace(&ev->string, info->string);
+   eina_stringshare_replace(&ev->compose, info->compose);
+   ev->keycode = info->keycode;
+   ev->data = info->data;
+   ev->event_flags = 0;
+   ev->device = NULL; /* FIXME */
+
+   if (down)
+     eo_event_callback_call(e, EFL_EVENT_KEY_DOWN, evt);
+   else
+     eo_event_callback_call(e, EFL_EVENT_KEY_UP, evt);
+
+   processed = ev->evas_done;
+   eo_del(evt);
+
+   return processed;
+}
+
+static Eina_Bool
+_direct_axis_update_cb(Ecore_Evas *ee EINA_UNUSED, const Ecore_Event_Axis_Update *info EINA_UNUSED)
+{
+   /* TODO: Add joystick event type. */
+   return EINA_FALSE;
+}
+
+EAPI Eina_Bool
+_ecore_evas_input_direct_cb(void *window, int type, const void *info)
+{
+   Ecore_Evas *ee = window;
+
+   if (type == ECORE_EVENT_MOUSE_MOVE)
+     return _direct_mouse_move_cb(ee, (const Ecore_Event_Mouse_Move *) info);
+   else if (type == ECORE_EVENT_MOUSE_BUTTON_DOWN)
+     return _direct_mouse_down_cb(ee, (const Ecore_Event_Mouse_Button *) info);
+   else if (type == ECORE_EVENT_MOUSE_BUTTON_UP)
+     return _direct_mouse_up_cb(ee, (const Ecore_Event_Mouse_Button *) info);
+   else if (type == ECORE_EVENT_MOUSE_WHEEL)
+     return _direct_mouse_wheel_cb(ee, (const Ecore_Event_Mouse_Wheel *) info);
+   else if (type == ECORE_EVENT_MOUSE_IN)
+     return _direct_mouse_in_cb(ee, (const Ecore_Event_Mouse_IO *) info);
+   else if (type == ECORE_EVENT_MOUSE_OUT)
+     return _direct_mouse_out_cb(ee, (const Ecore_Event_Mouse_IO *) info);
+   else if (type == ECORE_EVENT_KEY_DOWN)
+     return _direct_key_updown_cb(ee, (const Ecore_Event_Key *) info, EINA_TRUE);
+   else if (type == ECORE_EVENT_KEY_UP)
+     return _direct_key_updown_cb(ee, (const Ecore_Event_Key *) info, EINA_FALSE);
+   else if (type == ECORE_EVENT_MOUSE_BUTTON_CANCEL)
+     return _direct_mouse_cancel_cb(ee, (const Ecore_Event_Mouse_Button *) info);
+   else if (type == ECORE_EVENT_AXIS_UPDATE)
+     return _direct_axis_update_cb(ee, (const Ecore_Event_Axis_Update *) info);
+   else
+     {
+        ERR("unhandled input event type %d", type);
+        return EINA_FALSE;
+     }
 }

@@ -41,9 +41,9 @@ _edje_signal_match_key_hash(const void *key, int key_length EINA_UNUSED)
         hash ^= eina_hash_int64((const unsigned long long int *)&a->matches[i].source, sizeof (char *));
         hash ^= eina_hash_int64((const unsigned long long int *)&a->matches[i].func, sizeof (Edje_Signal_Cb));
 #else
-        hash ^= eina_hash_int32((const unsigned int *)a->matches[i].signal, sizeof (char *));
-        hash ^= eina_hash_int32((const unsigned int *)a->matches[i].source, sizeof (char *));
-        hash ^= eina_hash_int32((const unsigned int *)a->matches[i].func, sizeof (Edje_Signal_Cb));
+        hash ^= eina_hash_int32((const unsigned int *)&a->matches[i].signal, sizeof (char *));
+        hash ^= eina_hash_int32((const unsigned int *)&a->matches[i].source, sizeof (char *));
+        hash ^= eina_hash_int32((const unsigned int *)&a->matches[i].func, sizeof (Edje_Signal_Cb));
 #endif
      }
    return hash;
@@ -294,7 +294,9 @@ _edje_signal_callback_free(const Edje_Signal_Callback_Group *cgp)
    _edje_signal_callback_matches_unref((Edje_Signal_Callback_Matches *)gp->matches);
    gp->matches = NULL;
    free(gp->flags);
+   gp->flags = NULL;
    free(gp->custom_data);
+   gp->custom_data = NULL;
    free(gp);
 }
 
@@ -314,7 +316,8 @@ _edje_signal_callback_disable(const Edje_Signal_Callback_Group *cgp,
         if (sig == gp->matches->matches[i].signal &&
             src == gp->matches->matches[i].source &&
             func == gp->matches->matches[i].func &&
-            gp->custom_data[i] == data)
+            gp->custom_data[i] == data &&
+            !gp->flags[i].delete_me)
           {
              gp->flags[i].delete_me = EINA_TRUE;
              return gp->custom_data[i];
@@ -327,7 +330,8 @@ _edje_signal_callback_disable(const Edje_Signal_Callback_Group *cgp,
           {
              if (sig == gp->matches->matches[i].signal &&
                  src == gp->matches->matches[i].source &&
-                 func == gp->matches->matches[i].func)
+                 func == gp->matches->matches[i].func &&
+                 !gp->flags[i].delete_me)
                {
                   gp->flags[i].delete_me = EINA_TRUE;
                   return gp->custom_data[i];

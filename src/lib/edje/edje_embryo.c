@@ -169,6 +169,11 @@
  * map_persp_on[on]
  * persp_zplane[z]
  * persp_focal[z]
+ * box[layout]
+ * box[fallback_layout]
+ * box[Float:align_x, Float:align_y]
+ * box[padding_x, padding_y]
+ * box[min_x, min_y]
  *
  * ** part_id and program_id need to be able to be "found" from strings
  *
@@ -2716,6 +2721,75 @@ _edje_embryo_fn_set_state_val(Embryo_Program *ep, Embryo_Cell *params)
          break;
       }
 
+      case EDJE_STATE_PARAM_BOX_LAYOUT:
+      {
+         Edje_Part_Description_Box *box;
+         if ((rp->part->type != EDJE_PART_TYPE_BOX)) return 0;
+         CHKPARAM(3);
+
+         GETSTR(s, params[3]);
+         s = strdup(s);
+
+         box = (Edje_Part_Description_Box *)rp->custom->description;
+         box->box.layout = s;
+
+         break;
+      }
+
+      case EDJE_STATE_PARAM_BOX_FALLBACK_LAYOUT:
+      {
+         Edje_Part_Description_Box *box;
+         if ((rp->part->type != EDJE_PART_TYPE_BOX)) return 0;
+         CHKPARAM(3);
+
+         GETSTR(s, params[3]);
+         s = strdup(s);
+
+         box = (Edje_Part_Description_Box *)rp->custom->description;
+         box->box.alt_layout = s;
+
+         break;
+      }
+
+      case EDJE_STATE_PARAM_BOX_ALIGN:
+      {
+         Edje_Part_Description_Box *box;
+         if ((rp->part->type != EDJE_PART_TYPE_BOX)) return 0;
+         CHKPARAM(4);
+
+         box = (Edje_Part_Description_Box *)rp->custom->description;
+         GETFLOAT_T(box->box.align.x, params[3]);
+         GETFLOAT_T(box->box.align.y, params[4]);
+
+         break;
+      }
+
+      case EDJE_STATE_PARAM_BOX_PADDING:
+      {
+         Edje_Part_Description_Box *box;
+         if ((rp->part->type != EDJE_PART_TYPE_BOX)) return 0;
+         CHKPARAM(4);
+
+         box = (Edje_Part_Description_Box *)rp->custom->description;
+         GETINT(box->box.padding.x, params[3]);
+         GETINT(box->box.padding.y, params[4]);
+
+         break;
+      }
+
+      case EDJE_STATE_PARAM_BOX_MIN:
+      {
+         Edje_Part_Description_Box *box;
+         if ((rp->part->type != EDJE_PART_TYPE_BOX)) return 0;
+         CHKPARAM(4);
+
+         box = (Edje_Part_Description_Box *)rp->custom->description;
+         GETINT(box->box.min.h, params[3]);
+         GETINT(box->box.min.v, params[4]);
+
+         break;
+      }
+
 #ifdef HAVE_EPHYSICS
       case EDJE_STATE_PARAM_PHYSICS_MASS:
         CHKPARAM(3);
@@ -4123,32 +4197,36 @@ _edje_embryo_fn_physics_components_get(Embryo_Program *ep, Embryo_Cell *params, 
 static Embryo_Cell
 _edje_embryo_fn_physics_impulse(Embryo_Program *ep, Embryo_Cell *params)
 {
+   if (!EPH_LOAD()) return 0;
    return _edje_embryo_fn_physics_components_set(
-            ep, params, ephysics_body_central_impulse_apply);
+            ep, params, EPH_CALL(ephysics_body_central_impulse_apply));
 }
 
 /* physics_torque_impulse(part_id, Float:x, Float:y, Float:z) */
 static Embryo_Cell
 _edje_embryo_fn_physics_torque_impulse(Embryo_Program *ep, Embryo_Cell *params)
 {
+   if (!EPH_LOAD()) return 0;
    return _edje_embryo_fn_physics_components_set(
-            ep, params, ephysics_body_torque_impulse_apply);
+            ep, params, EPH_CALL(ephysics_body_torque_impulse_apply));
 }
 
 /* physics_force(part_id, Float:x, Float:y, Float:z) */
 static Embryo_Cell
 _edje_embryo_fn_physics_force(Embryo_Program *ep, Embryo_Cell *params)
 {
+   if (!EPH_LOAD()) return 0;
    return _edje_embryo_fn_physics_components_set(
-            ep, params, ephysics_body_central_force_apply);
+            ep, params, EPH_CALL(ephysics_body_central_force_apply));
 }
 
 /* physics_torque(part_id, Float:x, Float:y, Float:z) */
 static Embryo_Cell
 _edje_embryo_fn_physics_torque(Embryo_Program *ep, Embryo_Cell *params)
 {
+   if (!EPH_LOAD()) return 0;
    return _edje_embryo_fn_physics_components_set(
-            ep, params, ephysics_body_torque_apply);
+            ep, params, EPH_CALL(ephysics_body_torque_apply));
 }
 
 /* physics_clear_forces(part_id) */
@@ -4161,13 +4239,14 @@ _edje_embryo_fn_physics_clear_forces(Embryo_Program *ep, Embryo_Cell *params)
 
    CHKPARAM(1);
 
+   if (!EPH_LOAD()) return 0;
    ed = embryo_program_data_get(ep);
    part_id = params[1];
    if (part_id < 0) return 0;
 
    rp = ed->table_parts[part_id % ed->table_parts_size];
    if ((rp) && (rp->body))
-     ephysics_body_forces_clear(rp->body);
+     EPH_CALL(ephysics_body_forces_clear)(rp->body);
 
    return 0;
 }
@@ -4176,48 +4255,54 @@ _edje_embryo_fn_physics_clear_forces(Embryo_Program *ep, Embryo_Cell *params)
 static Embryo_Cell
 _edje_embryo_fn_physics_get_forces(Embryo_Program *ep, Embryo_Cell *params)
 {
+   if (!EPH_LOAD()) return 0;
    return _edje_embryo_fn_physics_components_get(
-            ep, params, ephysics_body_forces_get);
+            ep, params, EPH_CALL(ephysics_body_forces_get));
 }
 
 /* physics_get_torques(part_id, &Float:x, &Float:y, &Float:z) */
 static Embryo_Cell
 _edje_embryo_fn_physics_get_torques(Embryo_Program *ep, Embryo_Cell *params)
 {
+   if (!EPH_LOAD()) return 0;
    return _edje_embryo_fn_physics_components_get(
-            ep, params, ephysics_body_torques_get);
+            ep, params, EPH_CALL(ephysics_body_torques_get));
 }
 
 /* physics_set_velocity(part_id, Float:x, Float:y, Float:z) */
 static Embryo_Cell
 _edje_embryo_fn_physics_set_velocity(Embryo_Program *ep, Embryo_Cell *params)
 {
+   if (!EPH_LOAD()) return 0;
    return _edje_embryo_fn_physics_components_set(
-            ep, params, ephysics_body_linear_velocity_set);
+            ep, params, EPH_CALL(ephysics_body_linear_velocity_set));
 }
 
 /* physics_get_velocity(part_id, &Float:x, &Float:y, &Float:z) */
 static Embryo_Cell
 _edje_embryo_fn_physics_get_velocity(Embryo_Program *ep, Embryo_Cell *params)
 {
+   if (!EPH_LOAD()) return 0;
    return _edje_embryo_fn_physics_components_get(
-            ep, params, ephysics_body_linear_velocity_get);
+            ep, params, EPH_CALL(ephysics_body_linear_velocity_get));
 }
 
 /* physics_set_ang_velocity(part_id, Float:x, Float:y, Float:z) */
 static Embryo_Cell
 _edje_embryo_fn_physics_set_ang_velocity(Embryo_Program *ep, Embryo_Cell *params)
 {
+   if (!EPH_LOAD()) return 0;
    return _edje_embryo_fn_physics_components_set(
-            ep, params, ephysics_body_angular_velocity_set);
+            ep, params, EPH_CALL(ephysics_body_angular_velocity_set));
 }
 
 /* physics_get_ang_velocity(part_id, &Float:x, &Float:y, &Float:z) */
 static Embryo_Cell
 _edje_embryo_fn_physics_get_ang_velocity(Embryo_Program *ep, Embryo_Cell *params)
 {
+   if (!EPH_LOAD()) return 0;
    return _edje_embryo_fn_physics_components_get(
-            ep, params, ephysics_body_angular_velocity_get);
+            ep, params, EPH_CALL(ephysics_body_angular_velocity_get));
 }
 
 /* physics_stop(part_id) */
@@ -4230,13 +4315,14 @@ _edje_embryo_fn_physics_stop(Embryo_Program *ep, Embryo_Cell *params)
 
    CHKPARAM(1);
 
+   if (!EPH_LOAD()) return 0;
    ed = embryo_program_data_get(ep);
    part_id = params[1];
    if (part_id < 0) return 0;
 
    rp = ed->table_parts[part_id % ed->table_parts_size];
    if ((rp) && (rp->body))
-     ephysics_body_stop(rp->body);
+     EPH_CALL(ephysics_body_stop)(rp->body);
 
    return 0;
 }
@@ -4251,6 +4337,7 @@ _edje_embryo_fn_physics_set_rotation(Embryo_Program *ep, Embryo_Cell *params)
 
    CHKPARAM(5);
 
+   if (!EPH_LOAD()) return 0;
    ed = embryo_program_data_get(ep);
    part_id = params[1];
    if (part_id < 0) return 0;
@@ -4266,9 +4353,9 @@ _edje_embryo_fn_physics_set_rotation(Embryo_Program *ep, Embryo_Cell *params)
         y = (double)EMBRYO_CELL_TO_FLOAT(params[4]);
         z = (double)EMBRYO_CELL_TO_FLOAT(params[5]);
 
-        ephysics_quaternion_set(&quat, x, y, z, w);
-        ephysics_quaternion_normalize(&quat);
-        ephysics_body_rotation_set(rp->body, &quat);
+        EPH_CALL(ephysics_quaternion_set)(&quat, x, y, z, w);
+        EPH_CALL(ephysics_quaternion_normalize)(&quat);
+        EPH_CALL(ephysics_body_rotation_set)(rp->body, &quat);
      }
 
    return 0;
@@ -4284,6 +4371,7 @@ _edje_embryo_fn_physics_get_rotation(Embryo_Program *ep, Embryo_Cell *params)
 
    CHKPARAM(5);
 
+   if (!EPH_LOAD()) return 0;
    ed = embryo_program_data_get(ep);
    part_id = params[1];
    if (part_id < 0) return 0;
@@ -4294,8 +4382,8 @@ _edje_embryo_fn_physics_get_rotation(Embryo_Program *ep, Embryo_Cell *params)
         EPhysics_Quaternion quat;
         double w, x, y, z;
 
-        ephysics_body_rotation_get(rp->body, &quat);
-        ephysics_quaternion_get(&quat, &x, &y, &z, &w);
+        EPH_CALL(ephysics_body_rotation_get)(rp->body, &quat);
+        EPH_CALL(ephysics_quaternion_get)(&quat, &x, &y, &z, &w);
 
         SETFLOAT(w, params[2]);
         SETFLOAT(x, params[3]);

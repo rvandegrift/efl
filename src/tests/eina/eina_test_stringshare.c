@@ -25,8 +25,9 @@
 #include <string.h>
 #include <time.h>
 
+#include <Eina.h>
+
 #include "eina_suite.h"
-#include "Eina.h"
 
 #define TEST0 "test/0"
 #define TEST1 "test/1"
@@ -186,7 +187,7 @@ START_TEST(eina_stringshare_collision)
    for (i = 0; i < 1000; ++i)
       eina_stringshare_del(eina_array_pop(ea));
 
-      eina_shutdown();
+   eina_shutdown();
 
    eina_array_free(ea);
 }

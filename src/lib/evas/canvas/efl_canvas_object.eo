@@ -1,0 +1,619 @@
+import evas_types;
+import efl_text_types;
+
+abstract Efl.Canvas.Object (Eo.Base, Efl.Gfx, Efl.Gfx.Stack, Efl.Animator,
+                            Efl.Input.Interface, Efl.Gfx.Size.Hint,
+                            Efl.Gfx.Map)
+{
+   legacy_prefix: evas_object;
+   data: Evas_Object_Protected_Data;
+   methods {
+      legacy_ctor @protected @beta {
+          [[Internal function. Do not use.]]
+      }
+      @property type @protected {
+         set {
+            [[Sets the legacy type name of this Evas object.]]
+            legacy: null;
+         }
+         values {
+            type: string; [[The type of the object.]]
+         }
+      }
+      @property pointer_mode {
+         [[Low-level pointer behaviour.
+
+           This function has a direct effect on event callbacks related to
+           pointers (mouse, ...).
+
+           If the value is @Efl.Event.Object_Pointer_Mode.auto_grab (default),
+           then when mouse is pressed down over this object, events will be
+           restricted to it as source, mouse moves, for example, will be
+           emitted even when the pointer goes outside this objects
+           geometry.
+
+           If the value is @Efl.Event.Object_Pointer_Mode.no_grab, then events
+           will be emitted just when inside this object area.
+
+           The default value is @Efl.Event.Object_Pointer_Mode.auto_grab.
+         ]]
+         values {
+            pointer_mode: Efl.Event.Object_Pointer_Mode;
+         }
+      }
+      @property render_op {
+         [[Render mode to be used for compositing the Evas object.
+
+           Only two modes are supported:
+           - @Efl.Gfx.Render_Op.blend means the object will be merged on
+           top of objects below it using simple alpha compositing.
+           - @Efl.Gfx.Render_Op.copy means this object's pixels will replace
+           everything that is below, making this object opaque.
+
+           Please do not assume that @Efl.Gfx.Render_Op.copy mode can be
+           used to "poke" holes in a window (to see through it), as only the
+           compositor can ensure that. Copy mode should only be used with
+           otherwise opaque widgets, or inside non-window surfaces (eg. a
+           transparent background inside a buffer canvas).
+         ]]
+         set {
+            legacy: null;
+         }
+         get {
+            legacy: null;
+         }
+         values {
+            render_op: Efl.Gfx.Render_Op; [[Blend or copy.]]
+         }
+      }
+      @property freeze_events {
+         set {
+            [[Set whether an Evas object is to freeze (discard) events.
+
+              If $freeze is $true, it will make events on $obj to be
+              discarded. Unlike @.pass_events.set, events will not be
+              passed to next lower object. This API can be used for
+              blocking events while $obj is on transiting.
+
+              If $freeze is $false, events will be processed on that
+              object as normal.
+            
+              Warning: If you block only key/mouse up events with this API,
+              we won't guarantee the state of the object, that only had
+              key/mouse down events, will be.
+
+              @since 1.1
+            ]]
+         }
+         get {
+            [[Determine whether an object is set to freeze (discard) events.
+
+              @since 1.1
+            ]]
+         }
+         values {
+            freeze: bool; [[Pass when $obj is to freeze events ($true)
+                            or not ($false).]]
+         }
+      }
+      @property clip {
+         set {
+            [[Clip one object to another.
+
+              This function will clip the object $obj to the area occupied
+              by the object $clip. This means the object $obj will only be
+              visible within the area occupied by the clipping object
+              ($clip).
+
+              The color of the object being clipped will be multiplied by
+              the color of the clipping one, so the resulting color for the
+              former will be "RESULT = (OBJ * CLIP) / (255 * 255)", per color
+              element (red, green, blue and alpha).
+
+              Clipping is recursive, so clipping objects may be clipped by
+              others, and their color will in term be multiplied. You may
+              not set up circular clipping lists (i.e. object 1 clips
+              object 2, which clips object 1): the behavior of Evas is
+              undefined in this case.
+
+              Objects which do not clip others are visible in the canvas as
+              normal; those that clip one or more objects become invisible
+              themselves, only affecting what they clip. If an object ceases
+              to have other objects being clipped by it, it will become
+              visible again.
+
+              The visibility of an object affects the objects that are
+              clipped by it, so if the object clipping others is not shown
+              (as in \@ref evas_object_show), the objects clipped by it will
+              not be shown  either.
+
+              If $obj was being clipped by another object when this function
+              is  called, it gets implicitly removed from the old clipper's
+              domain and is made now to be clipped by its new clipper.
+
+              Note: At the moment the only objects that can validly be used
+              to clip other objects are rectangle objects. All other object
+              types are invalid and the result of using them is undefined.
+              The clip object $clip must be a valid object, but can also be
+              $null, in which case the effect of this function is the same
+              as @.clip_unset on the $obj object.
+            ]]
+            /* FIXME-doc
+            The following figure illustrates some clipping in Evas:
+
+            @image html clipping.png
+            @image rtf clipping.png
+            @image latex clipping.eps
+            ---
+            Example:
+            @dontinclude evas-object-manipulation.c
+            @skip solid white clipper (note that it's the default color for a
+            @until evas_object_show(d.clipper);
+
+            See the full @ref Example_Evas_Object_Manipulation "example".
+            */
+         }
+         get {
+            [[Get the object clipping $obj (if any).
+
+              This function returns the object clipping $obj. If $obj is
+              not being clipped at all, $null is returned. The object $obj
+              must be a valid Evas_Object.
+            ]]
+            /* FIXME-doc
+            Example:
+            @dontinclude evas-object-manipulation.c
+            @skip if (evas_object_clip_get(d.img) == d.clipper)
+            @until return
+
+            See the full @ref Example_Evas_Object_Manipulation "example".
+            */
+         }
+         values {
+            clip: Efl.Canvas.Object @nonull; [[The object to clip $obj by.]]
+         }
+      }
+      @property repeat_events {
+         set {
+            [[Set whether an Evas object is to repeat events.
+
+              If $repeat is $true, it will make events on $obj to also be
+              repeated for the next lower object in the objects' stack (see
+              see \@ref evas_object_below_get).
+
+              If $repeat is $false, events occurring on $obj will be
+              processed only on it.
+            ]]
+            /* FIXME-doc
+            Example:
+            @dontinclude evas-stacking.c
+            @skip if (strcmp(ev->key, "r") == 0)
+            @until }
+
+            See the full @ref Example_Evas_Stacking "example".
+            */
+         }
+         get {
+            [[Determine whether an object is set to repeat events.]]
+         }
+         values {
+            repeat: bool; [[Whether $obj is to repeat events ($true) or
+                            not ($false).]]
+         }
+      }
+      @property scale {
+         set {
+            [[Sets the scaling factor for an Evas object. Does not affect
+              all objects.
+
+              This will multiply the object's dimension by the given factor,
+              thus altering its geometry (width and height). Useful when
+              you want scalable UI elements, possibly at run time.
+
+              Note: Only text and textblock objects have scaling change
+              handlers. Other objects won't change visually on this call.
+            ]]
+         }
+         get {
+            [[Retrieves the scaling factor for the given Evas object.]]
+         }
+         values {
+            scale: double; [[The scaling factor. 1.0 means no scaling,
+                             default size.]]
+         }
+      }
+      @property key_focus {
+         [[Indicates that this object is the keyboard event receiver on
+           its canvas.
+
+           Changing focus only affects where (key) input events go.
+           There can be only one object focused at any time. If $focus
+           is $true, $obj will be set as the currently focused object
+           and it will receive all keyboard events that are not
+           exclusive key grabs on other objects.
+         ]]
+         set {
+            legacy: evas_object_focus_set;
+         }
+         get {
+            legacy: evas_object_focus_get;
+         }
+         values {
+            focus: bool; [[$true when set as focused or $false otherwise.]]
+         }
+      }
+      @property is_frame_object {
+         set {
+            [[@since 1.2]]
+         }
+         get {
+            [[@since 1.2]]
+         }
+         values {
+            is_frame: bool;
+         }
+      }
+      @property precise_is_inside {
+         set {
+            [[Set whether to use precise (usually expensive) point collision
+              detection for a given Evas object.
+
+              Use this function to make Evas treat objects' transparent
+              areas as not belonging to it with regard to mouse pointer
+              events. By default, all of the object's boundary rectangle
+              will be taken in account for them.
+
+              Warning: By using precise point collision detection you'll be
+              making Evas more resource intensive.
+            ]]
+            /* FIXME-doc
+            Example code follows.
+            @dontinclude evas-events.c
+            @skip if (strcmp(ev->key, "p") == 0)
+            @until }
+
+            See the full example @ref Example_Evas_Events "here".
+            */
+         }
+         get {
+            [[Determine whether an object is set to use precise point
+              collision detection.
+            ]]
+         }
+         values {
+            precise: bool; [[Whether to use precise point collision
+                             detection or not. The default value is false.]]
+         }
+      }
+      @property propagate_events {
+         set {
+            [[Set whether events on a smart object's member should get
+              propagated up to its parent.
+
+              This function has no effect if $obj is not a member of a
+              smart object.
+
+              If $prop is $true, events occurring on this object will be
+              propagated on to the smart object of which $obj is a member.
+              If $prop is $false, events occurring on this object will not
+              be propagated on to the smart object of which $obj is a
+              member. The default value is $true.
+
+              See also @.repeat_events.set, @.pass_events.set,
+              @.freeze_events.set.
+            ]]
+         }
+         get {
+            [[Retrieve whether an Evas object is set to propagate events.
+
+              See also @.repeat_events.get, @.pass_events.get,
+              @.freeze_events.get.
+            ]]
+         }
+         values {
+            propagate: bool; [[Whether to propagate events ($true) or not
+                               ($false).]]
+         }
+      }
+      @property pass_events {
+         set {
+            [[Set whether an Evas object is to pass (ignore) events.
+
+              If $pass is $true, it will make events on $obj to be ignored.
+              They will be triggered on the next lower object (that is not
+              set to pass events), instead (see \@ref evas_object_below_get).
+
+              If $pass is $false, events will be processed on that object
+              as normal.
+
+              See also @.repeat_events.set, @.propagate_events.set,
+              @.freeze_events.set.
+            ]]
+         }
+         get {
+            [[Determine whether an object is set to pass (ignore) events.
+
+              See also @.repeat_events.get, @.propagate_events.get,
+              @.freeze_events.get.
+            ]]
+            /* FIXME-doc
+            Example:
+            @dontinclude evas-stacking.c
+            @skip if (strcmp(ev->key, "p") == 0)
+            @until }
+
+            See the full @ref Example_Evas_Stacking "example".
+            */
+         }
+         values {
+            pass: bool; [[Whether $obj is to pass events ($true) or not
+                         ($false).]]
+         }
+      }
+      @property anti_alias {
+         set {
+            [[Sets whether or not the given Evas object is to be drawn
+              anti-aliased.
+            ]]
+         }
+         get {
+            [[Retrieves whether or not the given Evas object is to be drawn
+              anti_aliased.
+            ]]
+         }
+         values {
+            anti_alias: bool; [[$true if the object is to be anti_aliased,
+                                $false otherwise.]]
+         }
+      }
+      @property clipees {
+         get {
+            [[Return a list of objects currently clipped by $obj.
+
+              This returns the internal list handle that contains all
+              objects clipped by the object $obj. If none are clipped by
+              it, the call returns $null. This list is only valid until
+              the clip list is changed and should be fetched again with
+              another call to this function if any objects being clipped
+              by this object are unclipped, clipped by a new object,
+              deleted or get the clipper deleted. These operations will
+              invalidate the list returned, so it should not be used
+              anymore after that point. Any use of the list after this
+              may have undefined results, possibly leading to crashes.
+
+              See also @.clip and @.clip_unset.
+            ]]
+            legacy: null;
+            return: iterator<Efl.Canvas.Object> @warn_unused; [[An iterator over the
+                                             list of objects clipped by $obj.]]
+         }
+      }
+      @property render_parent @protected {
+         [[Gets the parent smart object of a given Evas object, if it has one.
+
+           This can be different from @Eo.Base.parent because this one is
+           used internally for rendering and the normal parent is what the
+           user expects to be the parent.
+
+           @since 1.18
+         ]]
+         get {
+            legacy: evas_object_smart_parent_get;
+         }
+         values {
+            parent: Efl.Canvas.Object; [[The parent smart object of $obj or $null.]]
+         }
+      }
+      @property paragraph_direction {
+         [[This handles text paragraph direction of the given object.
+           Even if the given object is not textblock or text, its smart child
+           objects can inherit the paragraph direction from the given object.
+           The default paragraph direction is $inherit.
+         ]]
+         values {
+            dir: Efl.Text.Bidirectional_Type; [[Paragraph direction for the given object.]]
+         }
+      }
+      clipees_has @const {
+         [[Test if any object is clipped by $obj.
+
+           @since 1.8
+         ]]
+         return: bool @warn_unused;
+      }
+      key_grab {
+         [[Requests $keyname key events be directed to $obj.
+
+           Key grabs allow one or more objects to receive key events for
+           specific key strokes even if other objects have focus. Whenever
+           a key is grabbed, only the objects grabbing it will get the
+           events for the given keys.
+
+           $keyname is a platform dependent symbolic name for the key
+           pressed (see \@ref Evas_Keys for more information).
+
+           $modifiers and $not_modifiers are bit masks of all the
+           modifiers that must and mustn't, respectively, be pressed along
+           with $keyname key in order to trigger this new key grab.
+           Modifiers can be things such as Shift and Ctrl as well as
+           user defined types via \@ref evas_key_modifier_add. Retrieve
+           them with \@ref evas_key_modifier_mask_get or use 0 for empty
+           masks.
+
+           $exclusive will make the given object the only one permitted to
+           grab the given key. If given $true, subsequent calls on this
+           function with different $obj arguments will fail, unless the key
+           is ungrabbed again.
+
+           Warning: Providing impossible modifier sets creates undefined
+           behavior.
+
+           See also @.key_ungrab, @.key_focus.get, @.key_focus.set,
+           \@ref evas_focus_get, \@ref evas_key_modifier_add.
+         ]]
+         /* FIXME-doc
+         Example code follows.
+         @dontinclude evas-events.c
+         @skip if (d.focus)
+         @until else
+
+         See the full example @ref Example_Evas_Events "here".
+         */
+
+         return: bool @warn_unused; [[$true if the call succeeded, $false otherwise.]]
+         params {
+            @in keyname: string @nonull; [[The key to request events for.]]
+            @in modifiers: Evas.Modifier_Mask; [[A mask of modifiers that must be
+                                                present to trigger the event.]]
+            @in not_modifiers: Evas.Modifier_Mask; [[A mask of modifiers that must
+                                                     not be present to trigger the event.]]
+            @in exclusive: bool; [[Request that the $obj is the only object
+                                   receiving the $keyname events.]]
+         }
+      }
+      key_ungrab {
+         [[Removes the grab on $keyname key events by $obj.
+
+           Removes a key grab on $obj if $keyname, $modifiers, and
+           $not_modifiers match.
+
+           See also @.key_grab, @.key_focus.get, @.key_focus.set,
+           \@ref evas_focus_get.
+         ]]
+         /* FIXME-doc
+         Example code follows.
+         @dontinclude evas-events.c
+         @skip got here by key grabs
+         @until }
+
+         See the full example @ref Example_Evas_Events "here".
+         */
+         params {
+            @in keyname: string @nonull; [[he key the grab is set for.]]
+            @in modifiers: Evas.Modifier_Mask; [[A mask of modifiers that must be
+                                                 present to trigger the event.]]
+            @in not_modifiers: Evas.Modifier_Mask; [[A mask of modifiers that mus
+                                                     not not be present to trigger
+                                                     the event.
+                                                   ]]
+         }
+      }
+      clip_unset {
+         [[Disable/cease clipping on a clipped $obj object.
+
+           This function disables clipping for the object $obj, if it was
+           already clipped, i.e., its visibility and color get detached from
+           the previous clipper. If it wasn't, this has no effect. The
+           object $obj must be a valid Evas_Object.
+
+           See also @.clip.set, @.clipees.get and @.clip.get.
+         ]]
+      }
+      @property no_render {
+         get {
+            [[Returns the state of the "no-render" flag, which means, when
+              true, that an object should never be rendered on the canvas.
+
+              This flag can be used to avoid rendering visible clippers on
+              the canvas, even if they currently don't clip any object.
+
+              @since 1.15
+            ]]
+            legacy: null;
+         }
+         set {
+            [[Disable all rendering on the canvas.
+
+              This flag will be used to indicate to Evas that this object
+              should never be rendered on the canvas under any
+              circurmstances. In particular, this is useful to avoid
+              drawing clipper objects (or masks) even when they don't
+              clip any object. This can also be used to replace the old
+              source_visible flag with proxy objects.
+
+              This is different to the visible property, as even visible
+              objects marked as "no-render" will never appear on screen.
+              But those objects can still be used as proxy sources or
+              clippers. When hidden, all "no-render" objects will
+              completely disappear from the canvas, and hide their
+              clippees or be invisible when used as proxy sources.
+
+              @since 1.15
+            ]]
+            legacy: null;
+         }
+         values {
+            enable: bool; [[Enable "no-render" mode.]]
+         }
+      }
+   }
+   constructors {
+      .legacy_ctor;
+      .type;
+   }
+   implements {
+      Eo.Base.constructor;
+      Eo.Base.destructor;
+      Eo.Base.dbg_info_get;
+      Eo.Base.provider_find;
+      Efl.Gfx.visible.set;
+      Efl.Gfx.visible.get;
+      Efl.Gfx.color.set;
+      Efl.Gfx.color.get;
+      Efl.Gfx.color_part.set;
+      Efl.Gfx.color_part.get;
+      Efl.Gfx.geometry.set;
+      Efl.Gfx.geometry.get;
+      Efl.Gfx.position.set;
+      Efl.Gfx.position.get;
+      Efl.Gfx.size.set;
+      Efl.Gfx.size.get;
+      Efl.Gfx.Stack.layer.set;
+      Efl.Gfx.Stack.layer.get;
+      Efl.Gfx.Stack.below.get;
+      Efl.Gfx.Stack.above.get;
+      Efl.Gfx.Stack.stack_below;
+      Efl.Gfx.Stack.stack_above;
+      Efl.Gfx.Stack.raise;
+      Efl.Gfx.Stack.lower;
+      Efl.Gfx.Size.Hint.hint_aspect.set;
+      Efl.Gfx.Size.Hint.hint_aspect.get;
+      Efl.Gfx.Size.Hint.hint_align.set;
+      Efl.Gfx.Size.Hint.hint_align.get;
+      Efl.Gfx.Size.Hint.hint_combined_min.get;
+      Efl.Gfx.Size.Hint.hint_display_mode.set;
+      Efl.Gfx.Size.Hint.hint_display_mode.get;
+      Efl.Gfx.Size.Hint.hint_restricted_min.set;
+      Efl.Gfx.Size.Hint.hint_restricted_min.get;
+      Efl.Gfx.Size.Hint.hint_min.set;
+      Efl.Gfx.Size.Hint.hint_min.get;
+      Efl.Gfx.Size.Hint.hint_max.set;
+      Efl.Gfx.Size.Hint.hint_max.get;
+      Efl.Gfx.Size.Hint.hint_margin.set;
+      Efl.Gfx.Size.Hint.hint_margin.get;
+      Efl.Gfx.Size.Hint.hint_request.set;
+      Efl.Gfx.Size.Hint.hint_request.get;
+      Efl.Gfx.Size.Hint.hint_weight.set;
+      Efl.Gfx.Size.Hint.hint_weight.get;
+      Efl.Gfx.Map.map_enable.set;
+      Efl.Gfx.Map.map_enable.get;
+   }
+   events {
+       mouse,in @beta; [[Mouse In Event ]]
+       mouse,out @beta; [[Mouse Out Event ]]
+       mouse,down @beta; [[Mouse Button Down Event ]]
+       mouse,up @beta; [[Mouse Button Up Event ]]
+       mouse,move @beta; [[Mouse Move Event ]]
+       mouse,wheel @beta; [[Mouse Wheel Event ]]
+       multi,down @beta; [[Mouse-touch Down Event ]]
+       multi,up @beta; [[Mouse-touch Up Event ]]
+       multi,move @beta; [[Multi-touch Move Event ]]
+       free @beta; [[Object Being Freed (Called after Del) ]]
+       key,down @beta; [[Key Press Event ]]
+       key,up @beta; [[Key Release Event ]]
+       focus,in; [[Focus In Event ]]
+       focus,out; [[Focus Out Event ]]
+       del @beta; [[Object Being Deleted (called before Free) ]]
+       hold @beta; [[Events go on/off hold ]]
+   }
+}

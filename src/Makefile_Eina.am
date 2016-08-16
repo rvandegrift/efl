@@ -96,7 +96,10 @@ lib/eina/eina_util.h \
 lib/eina/eina_quaternion.h \
 lib/eina/eina_vector.h \
 lib/eina/eina_inline_vector.x \
-lib/eina/eina_bezier.h
+lib/eina/eina_promise.h \
+lib/eina/eina_bezier.h \
+lib/eina/eina_safepointer.h \
+lib/eina/eina_inline_safepointer.x
 
 lib_eina_libeina_la_SOURCES = \
 lib/eina/eina_abi.c \
@@ -166,7 +169,9 @@ lib/eina/eina_private.h \
 lib/eina/eina_share_common.h \
 lib/eina/eina_strbuf_common.h \
 lib/eina/eina_quaternion.c \
-lib/eina/eina_bezier.c
+lib/eina/eina_promise.c \
+lib/eina/eina_bezier.c \
+lib/eina/eina_safepointer.c
 
 if HAVE_WIN32
 lib_eina_libeina_la_SOURCES += lib/eina/eina_file_win32.c
@@ -273,6 +278,7 @@ check_PROGRAMS += tests/eina/eina_suite tests/eina/cxx_compile_test
 TESTS += tests/eina/eina_suite
 
 tests_eina_eina_suite_SOURCES = \
+tests/efl_check.h \
 tests/eina/eina_suite.c \
 tests/eina/eina_suite.h \
 tests/eina/eina_test_abi.c \
@@ -322,7 +328,9 @@ tests/eina/eina_test_quad.c \
 tests/eina/eina_test_matrix.c \
 tests/eina/eina_test_quaternion.c \
 tests/eina/eina_test_vector.c \
-tests/eina/eina_test_bezier.c
+tests/eina/eina_test_promise.c \
+tests/eina/eina_test_bezier.c \
+tests/eina/eina_test_safepointer.c
 
 tests_eina_eina_suite_CPPFLAGS = -I$(top_builddir)/src/lib/efl \
 -DTESTS_WD=\"`pwd`\" \
@@ -353,9 +361,10 @@ tests_eina_module_dummy_la_LIBTOOLFLAGS = --tag=disable-static
 
 endif
 
-EXTRA_DIST += \
+EXTRA_DIST2 += \
 lib/eina/eina_strbuf_template_c.x \
 lib/eina/eina_binbuf_template_c.x \
 lib/eina/eina_inline_private.h \
 tests/eina/sample.gpx \
+lib/eina/eina_config.h.in \
 $(bin_SCRIPTS)

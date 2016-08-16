@@ -1,0 +1,35 @@
+enum Efl.Orient
+{
+   [[Orientation
+
+     See also @Efl.Orientation
+   ]]
+   none = 0,
+   up = 0, [[orient up]]
+   right = 90, [[orient right]]
+   down = 180, [[orient down]]
+   left = 270, [[orient left]]
+   vertical = 0, [[orient vertical]]
+   horizontal = 90 [[orient horizontal]]
+
+}
+
+interface Efl.Orientation
+{
+   methods {
+       @property orientation{
+         [[Control the orientation of a given widget
+
+           Use this function to change how your widget is to be
+           disposed: vertically or horizontally or inverted vertically
+           or inverted horizontally]]
+         set {
+         }
+         get {
+         }
+         values {
+            dir: Efl.Orient; [[Direction]]
+         }
+      }
+   }
+}

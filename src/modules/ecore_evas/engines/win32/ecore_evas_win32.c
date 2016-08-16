@@ -1200,7 +1200,10 @@ static Ecore_Evas_Engine_Func _ecore_win32_engine_func =
      NULL, // wm_rot_manual_rotation_done_set
      NULL, // wm_rot_manual_rotation_done
 
-     NULL  // aux_hints_set
+     NULL, // aux_hints_set
+
+     NULL, // fn_animator_register
+     NULL  // fn_animator_unregister
 };
 
 #endif /* BUILD_ECORE_EVAS_WIN32 */
@@ -1374,6 +1377,7 @@ _ecore_evas_win32_new_internal(int (*_ecore_evas_engine_backend_init)(Ecore_Evas
                                (Ecore_Event_Multi_Move_Cb)_ecore_evas_mouse_multi_move_process,
                                (Ecore_Event_Multi_Down_Cb)_ecore_evas_mouse_multi_down_process,
                                (Ecore_Event_Multi_Up_Cb)_ecore_evas_mouse_multi_up_process);
+   _ecore_event_window_direct_cb_set(ee->prop.window, _ecore_evas_input_direct_cb);
 
    return ee;
 }

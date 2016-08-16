@@ -250,8 +250,11 @@ _ecore_wl2_input_mouse_down_send(Ecore_Wl2_Input *input, Ecore_Wl2_Window *windo
    ev->multi.root.x = input->pointer.sx;
    ev->multi.root.y = input->pointer.sy;
 
-   ev->window = window->id;
-   ev->event_window = window->id;
+   if (window)
+     {
+        ev->window = window->id;
+        ev->event_window = window->id;
+     }
 
    ecore_event_add(ECORE_EVENT_MOUSE_BUTTON_DOWN, ev, NULL, NULL);
 
@@ -354,63 +357,94 @@ _ecore_wl2_input_focus_out_send(Ecore_Wl2_Input *input, Ecore_Wl2_Window *window
 static int
 _ecore_wl2_input_key_translate(xkb_keysym_t keysym, unsigned int modifiers, char *buffer, int bytes)
 {
-   unsigned long hbytes = 0;
-   unsigned char c;
-
    if (!keysym) return 0;
-   hbytes = (keysym >> 8);
 
-   if (!(bytes &&
-         ((hbytes == 0) ||
-          ((hbytes == 0xFF) &&
-           (((keysym >= XKB_KEY_BackSpace) && (keysym <= XKB_KEY_Clear)) ||
-            (keysym == XKB_KEY_Return) || (keysym == XKB_KEY_Escape) ||
-            (keysym == XKB_KEY_KP_Space) || (keysym == XKB_KEY_KP_Tab) ||
-            (keysym == XKB_KEY_KP_Enter) ||
-            ((keysym >= XKB_KEY_KP_Multiply) && (keysym <= XKB_KEY_KP_9)) ||
-            (keysym == XKB_KEY_KP_Equal) || (keysym == XKB_KEY_Delete))))))
-     return 0;
-
-   if (keysym == XKB_KEY_KP_Space)
-     c = (XKB_KEY_space & 0x7F);
-   else if (hbytes == 0xFF)
-     c = (keysym & 0x7F);
-   else
-     c = (keysym & 0xFF);
-
+   /* check for possible control codes */
    if (modifiers & ECORE_EVENT_MODIFIER_CTRL)
      {
-        if (((c >= '@') && (c < '\177')) || c == ' ')
+        Eina_Bool valid_control_code = EINA_TRUE;
+        unsigned long hbytes = 0;
+        unsigned char c;
+
+        hbytes = (keysym >> 8);
+
+        if (keysym == XKB_KEY_KP_Space)
+          c = (XKB_KEY_space & 0x7F);
+        else if (hbytes == 0xFF)
+          c = (keysym & 0x7F);
+        else
+          c = (keysym & 0xFF);
+
+        /* We are building here a control code
+           for more details, read:
+           https://en.wikipedia.org/wiki/C0_and_C1_control_codes#C0_.28ASCII_and_derivatives.29
+         */
+
+        if (((c >= '@') && (c <= '_')) || /* those are the one defined in C0 with capital letters */
+             ((c >= 'a') && (c <= 'z')) ||  /* the lowercase symbols (not part of the standard, but usefull */
+              c == ' ')
           c &= 0x1F;
-        else if (c == '2')
-          c = '\000';
-        else if ((c >= '3') && (c <= '7'))
-          c -= ('3' - '\033');
-        else if (c == '8')
+        else if (c == '\x7f')
           c = '\177';
+        /* following codes are alternatives, they are longer here, i dont want to change them */
+        else if (c == '2')
+          c = '\000'; /* 0 code */
+        else if ((c >= '3') && (c <= '7'))
+          c -= ('3' - '\033'); /* from escape to unitseperator code*/
+        else if (c == '8')
+          c = '\177'; /* delete code */
         else if (c == '/')
-          c = '_' & 0x1F;
+          c = '_' & 0x1F; /* unit seperator code */
+        else
+          valid_control_code = EINA_FALSE;
+
+        if (valid_control_code)
+          buffer[0] = c;
+        else
+          return 0;
      }
-   buffer[0] = c;
+   else
+     {
+        /* if its not a control code, try to produce a usefull output */
+        if (!xkb_keysym_to_utf8(keysym, buffer, bytes))
+          return 0;
+     }
+
    return 1;
 }
 
 static void
-_ecore_wl2_input_key_send(Ecore_Wl2_Input *input, Ecore_Wl2_Window *window, xkb_keysym_t sym, unsigned int code, unsigned int state, unsigned int timestamp)
+_ecore_wl2_input_symbol_rep_find(xkb_keysym_t keysym, char *buffer, int size, unsigned int code)
+{
+    int n = 0;
+
+    n = xkb_keysym_to_utf8(keysym, buffer, size);
+
+    /* check if we are a control code */
+    if (n > 0 && !(
+        (buffer[0] > 0x0 && buffer[0] < 0x20) || /* others 0x0 to 0x1F control codes */
+        buffer[0] == 0x7F)) /*delete control code */
+      return;
+
+    if (xkb_keysym_get_name(keysym, buffer, size) != 0)
+      return;
+
+    snprintf(buffer, size, "Keycode-%u", code);
+}
+
+static void
+_ecore_wl2_input_key_send(Ecore_Wl2_Input *input, Ecore_Wl2_Window *window, xkb_keysym_t sym, xkb_keysym_t sym_name, unsigned int code, unsigned int state, unsigned int timestamp)
 {
    Ecore_Event_Key *ev;
    char key[256], keyname[256], compose[256];
 
    memset(key, 0, sizeof(key));
-   xkb_keysym_get_name(sym, key, sizeof(key));
-
    memset(keyname, 0, sizeof(keyname));
-   memcpy(keyname, key, sizeof(keyname));
-
-   if (keyname[0] == '\0')
-     snprintf(keyname, sizeof(keyname), "Keycode-%u", code);
-
    memset(compose, 0, sizeof(compose));
+
+   /*try to get a name or utf char of the given symbol */
+   _ecore_wl2_input_symbol_rep_find(sym, key, sizeof(key), code);
+   _ecore_wl2_input_symbol_rep_find(sym_name, keyname, sizeof(keyname), code);
    _ecore_wl2_input_key_translate(sym, input->keyboard.modifiers,
                                   compose, sizeof(compose));
 
@@ -433,6 +467,8 @@ _ecore_wl2_input_key_send(Ecore_Wl2_Input *input, Ecore_Wl2_Window *window, xkb_
    ev->modifiers = input->keyboard.modifiers;
    ev->keycode = code;
 
+   /* DBG("Emitting Key event (%s,%s,%s,%s)\n", ev->keyname, ev->key, ev->compose, ev->string); */
+
    if (state)
      ecore_event_add(ECORE_EVENT_KEY_DOWN, ev, NULL, NULL);
    else
@@ -449,12 +485,13 @@ _ecore_wl2_input_grab(Ecore_Wl2_Input *input, Ecore_Wl2_Window *window, unsigned
 void
 _ecore_wl2_input_ungrab(Ecore_Wl2_Input *input)
 {
-   if ((input->grab.window) && (input->grab.button))
+   if ((input->grab.window) && (input->grab.button) && (input->grab.count))
      _ecore_wl2_input_mouse_up_send(input, input->grab.window, 0,
                                     input->grab.button, input->grab.timestamp);
 
    input->grab.window = NULL;
    input->grab.button = 0;
+   input->grab.count = 0;
 }
 
 static void
@@ -487,6 +524,7 @@ _pointer_cb_enter(void *data, struct wl_pointer *pointer EINA_UNUSED, unsigned i
    if (!window) return;
 
    window->input = input;
+   input->focus.prev_pointer = NULL;
    input->focus.pointer = window;
 
    _ecore_wl2_input_mouse_in_send(input, window);
@@ -509,6 +547,7 @@ _pointer_cb_leave(void *data, struct wl_pointer *pointer EINA_UNUSED, unsigned i
    if (!input) return;
 
    input->display->serial = serial;
+   input->focus.prev_pointer = input->focus.pointer;
    input->focus.pointer = NULL;
 
    /* trap for a surface that was just destroyed */
@@ -561,7 +600,8 @@ _pointer_cb_button(void *data, struct wl_pointer *pointer EINA_UNUSED, unsigned 
 
    if (state == WL_POINTER_BUTTON_STATE_PRESSED)
      {
-        if ((input->focus.pointer) && (!input->grab.window))
+        if ((input->focus.pointer) &&
+            (!input->grab.window) && (!input->grab.count))
           {
              _ecore_wl2_input_grab(input, input->focus.pointer, button);
              input->grab.timestamp = timestamp;
@@ -570,14 +610,19 @@ _pointer_cb_button(void *data, struct wl_pointer *pointer EINA_UNUSED, unsigned 
         if (input->focus.pointer)
           _ecore_wl2_input_mouse_down_send(input, input->focus.pointer,
                                            0, button, timestamp);
+
+        input->grab.count++;
      }
    else
      {
-        if ((input->grab.window) && (input->grab.button == button))
-          _ecore_wl2_input_ungrab(input);
-        else if (input->focus.pointer)
+        if (input->focus.pointer)
           _ecore_wl2_input_mouse_up_send(input, input->focus.pointer,
                                          0, button, timestamp);
+
+        if (input->grab.count) input->grab.count--;
+        if ((input->grab.window) && (input->grab.button == button) &&
+            (!input->grab.count))
+          _ecore_wl2_input_ungrab(input);
      }
 }
 
@@ -600,6 +645,10 @@ static const struct wl_pointer_listener _pointer_listener =
    _pointer_cb_motion,
    _pointer_cb_button,
    _pointer_cb_axis,
+   NULL, /* frame */
+   NULL, /* axis_source */
+   NULL, /* axis_stop */
+   NULL, /* axis_discrete */
 };
 
 static const struct wl_callback_listener _pointer_surface_listener =
@@ -666,6 +715,7 @@ _keyboard_cb_keymap(void *data, struct wl_keyboard *keyboard EINA_UNUSED, unsign
    /* free any existing keymap and state */
    if (input->xkb.keymap) xkb_map_unref(input->xkb.keymap);
    if (input->xkb.state) xkb_state_unref(input->xkb.state);
+   if (input->xkb.maskless_state) xkb_state_unref(input->xkb.maskless_state);
 
    input->xkb.keymap =
      xkb_map_new_from_string(input->display->xkb_context, map,
@@ -681,7 +731,9 @@ _keyboard_cb_keymap(void *data, struct wl_keyboard *keyboard EINA_UNUSED, unsign
      }
 
    input->xkb.state = xkb_state_new(input->xkb.keymap);
-   if (!input->xkb.state)
+   input->xkb.maskless_state = xkb_state_new(input->xkb.keymap);
+
+   if (!input->xkb.state || !input->xkb.maskless_state)
      {
         ERR("Failed to create keymap state");
         xkb_map_unref(input->xkb.keymap);
@@ -774,8 +826,13 @@ _keyboard_cb_repeat(void *data)
    window = input->focus.keyboard;
    if (!window) goto out;
 
-   _ecore_wl2_input_key_send(input, input->focus.keyboard, input->repeat.sym, input->repeat.key + 8, WL_KEYBOARD_KEY_STATE_PRESSED,  input->repeat.time);
+   _ecore_wl2_input_key_send(input, input->focus.keyboard, input->repeat.sym, input->repeat.sym_name, input->repeat.key + 8, WL_KEYBOARD_KEY_STATE_PRESSED,  input->repeat.time);
 
+   if (!input->repeat.repeating)
+     {
+        ecore_timer_interval_set(input->repeat.timer, input->repeat.rate);
+        input->repeat.repeating = EINA_TRUE;
+     }
    return ECORE_CALLBACK_RENEW;
 
 out:
@@ -790,9 +847,8 @@ _keyboard_cb_key(void *data, struct wl_keyboard *keyboard EINA_UNUSED, unsigned 
 {
    Ecore_Wl2_Input *input;
    Ecore_Wl2_Window *window;
-   unsigned int code, nsyms;
-   const xkb_keysym_t *syms;
-   xkb_keysym_t sym = XKB_KEY_NoSymbol;
+   unsigned int code;
+   xkb_keysym_t sym = XKB_KEY_NoSymbol, sym_name = XKB_KEY_NoSymbol;
 
    input = data;
    if (!input) return;
@@ -806,10 +862,10 @@ _keyboard_cb_key(void *data, struct wl_keyboard *keyboard EINA_UNUSED, unsigned 
    /* xkb rules reflect X broken keycodes, so offset by 8 */
    code = keycode + 8;
 
-   nsyms = xkb_state_key_get_syms(input->xkb.state, code, &syms);
-   if (nsyms == 1) sym = syms[0];
+   sym = xkb_state_key_get_one_sym(input->xkb.state, code);
+   sym_name = xkb_state_key_get_one_sym(input->xkb.maskless_state, code);
 
-   _ecore_wl2_input_key_send(input, window, sym, code, state, timestamp);
+   _ecore_wl2_input_key_send(input, window, sym, sym_name, code, state, timestamp);
 
    if (!xkb_keymap_key_repeats(input->xkb.keymap, code)) return;
 
@@ -828,6 +884,7 @@ _keyboard_cb_key(void *data, struct wl_keyboard *keyboard EINA_UNUSED, unsigned 
         if (!input->repeat.enabled) return;
 
         input->repeat.sym = sym;
+        input->repeat.sym_name = sym;
         input->repeat.key = keycode;
         input->repeat.time = timestamp;
 
@@ -837,9 +894,9 @@ _keyboard_cb_key(void *data, struct wl_keyboard *keyboard EINA_UNUSED, unsigned 
 
         if (!input->repeat.timer)
           {
+             input->repeat.repeating = EINA_FALSE;
              input->repeat.timer =
-               ecore_timer_add(input->repeat.rate, _keyboard_cb_repeat, input);
-             ecore_timer_delay(input->repeat.timer, input->repeat.delay);
+               ecore_timer_add(input->repeat.delay, _keyboard_cb_repeat, input);
           }
      }
 }
@@ -899,8 +956,8 @@ _keyboard_cb_repeat_setup(void *data, struct wl_keyboard *keyboard EINA_UNUSED, 
      }
 
    input->repeat.enabled = EINA_TRUE;
-   input->repeat.rate = (rate / 10000);
-   input->repeat.delay = (delay / 1000);
+   input->repeat.rate = (1.0 / rate);
+   input->repeat.delay = (delay / 1000.0);
 }
 
 static const struct wl_keyboard_listener _keyboard_listener =
@@ -952,11 +1009,13 @@ _touch_cb_up(void *data, struct wl_touch *touch EINA_UNUSED, unsigned int serial
    input->timestamp = timestamp;
    input->display->serial = serial;
 
-   if ((input->grab.window) && (input->grab.button == BTN_LEFT))
+   _ecore_wl2_input_mouse_up_send(input, input->focus.touch, id,
+                                  BTN_LEFT, timestamp);
+
+   if (input->grab.count) input->grab.count--;
+   if ((input->grab.window) && (input->grab.button == BTN_LEFT) &&
+       (!input->grab.count))
      _ecore_wl2_input_ungrab(input);
-   else
-     _ecore_wl2_input_mouse_up_send(input, input->focus.touch, id,
-                                    BTN_LEFT, timestamp);
 }
 
 static void
@@ -1008,7 +1067,7 @@ _data_cb_offer(void *data, struct wl_data_device *data_device EINA_UNUSED, struc
 }
 
 static void
-_data_cb_enter(void *data, struct wl_data_device *data_device EINA_UNUSED, unsigned int timestamp, struct wl_surface *surface, wl_fixed_t x, wl_fixed_t y, struct wl_data_offer *offer)
+_data_cb_enter(void *data, struct wl_data_device *data_device EINA_UNUSED, uint32_t serial, struct wl_surface *surface, wl_fixed_t x, wl_fixed_t y, struct wl_data_offer *offer)
 {
    Ecore_Wl2_Input *input;
 
@@ -1016,7 +1075,7 @@ _data_cb_enter(void *data, struct wl_data_device *data_device EINA_UNUSED, unsig
    if (!input) return;
 
    _ecore_wl2_dnd_enter(input, offer, surface,
-                        wl_fixed_to_int(x), wl_fixed_to_int(y), timestamp);
+                        wl_fixed_to_int(x), wl_fixed_to_int(y), serial);
 }
 
 static void
@@ -1031,7 +1090,7 @@ _data_cb_leave(void *data, struct wl_data_device *data_device EINA_UNUSED)
 }
 
 static void
-_data_cb_motion(void *data, struct wl_data_device *data_device EINA_UNUSED, unsigned int timestamp, wl_fixed_t x, wl_fixed_t y)
+_data_cb_motion(void *data, struct wl_data_device *data_device EINA_UNUSED, uint32_t serial, wl_fixed_t x, wl_fixed_t y)
 {
    Ecore_Wl2_Input *input;
 
@@ -1039,7 +1098,7 @@ _data_cb_motion(void *data, struct wl_data_device *data_device EINA_UNUSED, unsi
    if (!input) return;
 
    _ecore_wl2_dnd_motion(input, wl_fixed_to_int(x),
-                         wl_fixed_to_int(y), timestamp);
+                         wl_fixed_to_int(y), serial);
 }
 
 static void
@@ -1099,10 +1158,11 @@ _seat_cb_capabilities(void *data, struct wl_seat *seat, enum wl_seat_capability 
         if (input->cursor.surface) wl_surface_destroy(input->cursor.surface);
         input->cursor.surface = NULL;
 
-        /* FIXME: Enable these when new wayland git is released */
-        /* if (input->seat_version >= WL_POINTER_RELEASE_SINCE_VERSION) */
-        /*   wl_pointer_release(input->wl.pointer); */
-        /* else */
+#ifdef WL_POINTER_RELEASE_SINCE_VERSION
+        if (input->seat_version >= WL_POINTER_RELEASE_SINCE_VERSION)
+          wl_pointer_release(input->wl.pointer);
+        else
+#endif
           wl_pointer_destroy(input->wl.pointer);
         input->wl.pointer = NULL;
      }
@@ -1115,10 +1175,11 @@ _seat_cb_capabilities(void *data, struct wl_seat *seat, enum wl_seat_capability 
      }
    else if (!(caps & WL_SEAT_CAPABILITY_KEYBOARD) && (input->wl.keyboard))
      {
-        /* FIXME: Enable these when new wayland git is released */
-        /* if (input->seat_version >= WL_KEYBOARD_RELEASE_SINCE_VERSION) */
-        /*   wl_keyboard_release(input->wl.keyboard); */
-        /* else */
+#ifdef WL_KEYBOARD_RELEASE_SINCE_VERSION
+        if (input->seat_version >= WL_KEYBOARD_RELEASE_SINCE_VERSION)
+          wl_keyboard_release(input->wl.keyboard);
+        else
+#endif
           wl_keyboard_destroy(input->wl.keyboard);
         input->wl.keyboard = NULL;
      }
@@ -1131,19 +1192,28 @@ _seat_cb_capabilities(void *data, struct wl_seat *seat, enum wl_seat_capability 
      }
    else if (!(caps & WL_SEAT_CAPABILITY_TOUCH) && (input->wl.touch))
      {
-        /* FIXME: Enable these when new wayland git is released */
-        /* if (input->seat_version >= WL_TOUCH_RELEASE_SINCE_VERSION) */
-        /*   wl_touch_release(input->wl.touch); */
-        /* else */
+#ifdef WL_TOUCH_RELEASE_SINCE_VERSION
+        if (input->seat_version >= WL_TOUCH_RELEASE_SINCE_VERSION)
+          wl_touch_release(input->wl.touch);
+        else
+#endif
           wl_touch_destroy(input->wl.touch);
         input->wl.touch = NULL;
      }
 }
 
+static void
+_seat_cb_name(void *data EINA_UNUSED, struct wl_seat *seat EINA_UNUSED, const char *name EINA_UNUSED)
+{
+   /* NB: No-Op as we don't care about seat name right now.
+    *
+    * This will likely change as we hash out remaining multi-seat issues */
+}
+
 static const struct wl_seat_listener _seat_listener =
 {
    _seat_cb_capabilities,
-   NULL
+   _seat_cb_name,
 };
 
 static void
@@ -1246,7 +1316,7 @@ _ecore_wl2_input_add(Ecore_Wl2_Display *display, unsigned int id, unsigned int v
    _ecore_wl2_input_cursor_setup(input);
 
    input->wl.seat =
-     wl_registry_bind(display->wl.registry, id, &wl_seat_interface, 1);
+     wl_registry_bind(display->wl.registry, id, &wl_seat_interface, 4);
 
    display->inputs =
      eina_inlist_append(display->inputs, EINA_INLIST_GET(input));
@@ -1308,6 +1378,7 @@ _ecore_wl2_input_del(Ecore_Wl2_Input *input)
    if (input->data.device) wl_data_device_destroy(input->data.device);
 
    if (input->xkb.state) xkb_state_unref(input->xkb.state);
+   if (input->xkb.maskless_state) xkb_state_unref(input->xkb.maskless_state);
    if (input->xkb.keymap) xkb_map_unref(input->xkb.keymap);
 
    if (input->wl.seat) wl_seat_destroy(input->wl.seat);

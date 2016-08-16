@@ -8,15 +8,13 @@
 #endif
 
 #include <stdio.h>
+#include <locale.h>
 
 #include <Eina.h>
+#include <Evas.h>
 
 #include "evas_suite.h"
-#include "Evas.h"
-
 #include "evas_tests_helpers.h"
-
-#include <locale.h>
 
 /* Functions defined in evas_object_textblock.c */
 EAPI Eina_Bool
@@ -70,6 +68,14 @@ START_TEST(evas_textblock_simple)
    const char *buf = "Th<i>i</i>s is a <br/> te<b>s</b>t.";
    evas_object_textblock_text_markup_set(tb, buf);
    fail_if(strcmp(evas_object_textblock_text_markup_get(tb), buf));
+
+   /* Set markup text(includes tag) without setting style */
+   Evas_Object *tb2 = evas_object_textblock_add(evas);
+   fail_if(!tb2);
+   evas_object_textblock_text_markup_set(tb2, buf);
+   ck_assert("Crash Not occurred");
+   evas_object_del(tb2);
+
    END_TB_TEST();
 }
 END_TEST
@@ -200,7 +206,7 @@ START_TEST(evas_textblock_cursor)
         evas_textblock_cursor_pos_set(cur, i);
 
         evas_textblock_cursor_paragraph_last(cur);
-        fail_if(evas_textblock_cursor_pos_get(cur) != (int) len);
+        ck_assert_int_eq(evas_textblock_cursor_pos_get(cur), (int) len);
      }
 
    /* Paragraph next */
@@ -937,6 +943,35 @@ START_TEST(evas_textblock_cursor)
         ck_assert_int_eq(pos, 44);
      }
 
+     {
+        /* Test multiple cursors:
+         * Deleting characters should "pull" all the cursors positioned *after*
+         * the deleted position, and "push" on insertion.
+         * Testing with one additional cursor will suffice. */
+        int j, pos;
+        Evas_Textblock_Cursor *cur2;
+
+        cur2 = evas_object_textblock_cursor_new(tb);
+        evas_object_textblock_text_markup_set(tb, "Hello world");
+        evas_textblock_cursor_pos_set(cur2, 0);
+        evas_textblock_cursor_pos_set(cur, 5);
+        for (j = 5; j >= 0; j--)
+          {
+             pos = evas_textblock_cursor_pos_get(cur);
+             ck_assert_int_eq(pos, j);
+             evas_textblock_cursor_char_delete(cur2);
+          }
+        evas_object_textblock_text_markup_set(tb, "Hello world");
+        evas_textblock_cursor_pos_set(cur2, 0);
+        evas_textblock_cursor_pos_set(cur, 5);
+        for (j = 5; j <= 10; j++)
+          {
+             pos = evas_textblock_cursor_pos_get(cur);
+             ck_assert_int_eq(pos, j);
+             evas_textblock_cursor_text_append(cur2, "a");
+          }
+        evas_textblock_cursor_free(cur2);
+     }
    END_TB_TEST();
 }
 END_TEST
@@ -958,9 +993,8 @@ START_TEST(evas_textblock_split_cursor)
 
    /* Logical cursor after "test " */
    evas_textblock_cursor_pos_set(cur, 6);
-   fail_if(!evas_textblock_cursor_geometry_bidi_get(cur, &cx, NULL, NULL,
-                                                    NULL, &cx2, NULL, NULL, NULL,
-                                                    EVAS_TEXTBLOCK_CURSOR_BEFORE));
+   fail_if(!evas_textblock_cursor_geometry_bidi_get(cur, &cx, NULL, NULL, NULL,
+            &cx2, NULL, NULL, NULL, EVAS_TEXTBLOCK_CURSOR_BEFORE));
    evas_textblock_cursor_pos_set(cur, 18);
    evas_textblock_cursor_pen_geometry_get(cur, &x, NULL, NULL, NULL);
    evas_textblock_cursor_pos_set(cur, 20);
@@ -970,9 +1004,8 @@ START_TEST(evas_textblock_split_cursor)
 
    /* Logical cursor before "a" */
    evas_textblock_cursor_pos_set(cur, 11);
-   fail_if(!evas_textblock_cursor_geometry_bidi_get(cur, &cx, NULL, NULL,
-                                                    NULL, &cx2, NULL, NULL, NULL,
-                                                    EVAS_TEXTBLOCK_CURSOR_BEFORE));
+   fail_if(!evas_textblock_cursor_geometry_bidi_get(cur, &cx, NULL, NULL, NULL,
+            &cx2, NULL, NULL, NULL, EVAS_TEXTBLOCK_CURSOR_BEFORE));
    evas_textblock_cursor_pos_set(cur, 11);
    evas_textblock_cursor_pen_geometry_get(cur, &x, NULL, NULL, NULL);
    evas_textblock_cursor_pos_set(cur, 10);
@@ -2212,6 +2245,20 @@ START_TEST(evas_textblock_wrapping)
    evas_object_textblock_size_formatted_get(tb, NULL, &h);
    ck_assert_int_ge(h, bh);
 
+   /* Check char-wrapping for small items */
+   evas_object_textblock_text_markup_set(tb, "x");
+   evas_object_textblock_size_native_get(tb, &bw, NULL);
+   evas_object_textblock_text_markup_set(tb, "AxAx");
+   evas_textblock_cursor_format_prepend(cur, "+ wrap=char");
+   evas_object_textblock_size_native_get(tb, &nw, &nh);
+   evas_object_resize(tb, nw - bw, nh);
+   evas_object_textblock_size_formatted_get(tb, &bw, NULL);
+
+   evas_object_textblock_text_markup_set(tb, "A<color=#f00>x</color>Ax");
+   evas_textblock_cursor_format_prepend(cur, "+ wrap=char");
+   evas_object_textblock_size_formatted_get(tb, &w, NULL);
+   ck_assert_int_eq(bw, w);
+
    END_TB_TEST();
 }
 END_TEST
@@ -2405,6 +2452,15 @@ START_TEST(evas_textblock_geometries)
       free(tr2);
 
    /* Same run different scripts */
+   evas_object_textblock_text_markup_set(tb, "עברית");
+   evas_textblock_cursor_pos_set(main_cur, 4); // last character
+   evas_textblock_cursor_pos_set(cur, 5); // after last character
+
+   rects = evas_textblock_cursor_range_geometry_get(cur, main_cur);
+   fail_if(!rects);
+   EINA_LIST_FREE(rects, tr)
+      free(tr);
+
    evas_object_textblock_text_markup_set(tb, "עבריתenglishрусскийעברית");
 
    evas_textblock_cursor_pos_set(cur, 3);
@@ -2792,6 +2848,15 @@ START_TEST(evas_textblock_geometries)
 
    eina_iterator_free(it);
 
+   /* Check trivial case with format items */
+   evas_object_textblock_text_markup_set(tb, "abc<item size=32x32>efg");
+   evas_textblock_cursor_pos_set(cur, 3);
+   evas_textblock_cursor_pos_set(main_cur, 3);
+   it = evas_textblock_cursor_range_simple_geometry_get(cur, main_cur);
+   rects = eina_iterator_container_get(it);
+   ck_assert(!rects);
+   eina_iterator_free(it);
+
    END_TB_TEST();
 }
 END_TEST
@@ -3158,6 +3223,7 @@ START_TEST(evas_textblock_formats)
    START_TB_TEST();
    const char *buf = "Th<b>i<font_size=15 wrap=none>s i</font_size=13>s</> a <br/> te<ps/>st<item></>.";
    const Evas_Object_Textblock_Node_Format *fnode;
+   Evas_Coord w, h, nw, nh;
    evas_object_textblock_text_markup_set(tb, buf);
 
    /* Walk from the start */
@@ -3294,7 +3360,6 @@ START_TEST(evas_textblock_formats)
 
    /* Format text nodes invalidation */
      {
-        Evas_Coord w, h, nw, nh;
         evas_object_textblock_text_markup_set(tb, "Test");
         evas_object_textblock_size_formatted_get(tb, &w, &h);
         evas_textblock_cursor_paragraph_first(cur);
@@ -3408,9 +3473,33 @@ START_TEST(evas_textblock_formats)
    evas_object_textblock_text_markup_set(tb, "f<color=#f00>i</color>f");
    evas_object_textblock_size_formatted_get(tb, NULL, NULL);
 
+   /* Scaling Line size */
+   evas_object_scale_set(tb, 1.0);
+   evas_object_textblock_text_markup_set(tb, "<linesize=100>Line size 100</linesize>");
+   evas_object_resize(tb, 400, 400);
+   evas_object_textblock_size_formatted_get(tb, NULL, &h);
+   ck_assert_int_ge(h, 100);
+
+   evas_object_scale_set(tb, 2.0);
+   evas_object_textblock_size_formatted_get(tb, NULL, &h);
+   ck_assert_int_ge(h, 200);
+
+   /* Scaling Line gap */
+   evas_object_scale_set(tb, 1.0);
+   evas_object_textblock_text_markup_set(tb, "<linegap=100>Line gap 100</linegap>");
+   evas_object_resize(tb, 50, 400);
+   evas_object_textblock_size_formatted_get(tb, NULL, &h);
+   ck_assert_int_ge(h, 100);
+
+   evas_object_scale_set(tb, 2.0);
+   evas_object_textblock_size_formatted_get(tb, NULL, &h);
+   ck_assert_int_ge(h, 200);
+
+   /* Restore scale */
+   evas_object_scale_set(tb, 1.0);
+
    /* Line gap and multi language */
    {
-      Evas_Coord h;
       Evas_Textblock_Style *newst;
       buf = "This is a test suite for line gap - ഈ ലൈൻ "
                   "വിടവ് ടെസ്റ്റ് ടെസ്റ്റ് ടെസ്റ്റ് ടെസ്റ്റ് ഒരു പരീക്ഷണ വെയര് ";
@@ -3866,6 +3955,7 @@ START_TEST(evas_textblock_obstacle)
 }
 END_TEST;
 
+#ifdef HAVE_HYPHEN
 static void
 _hyphenation_width_stress(Evas_Object *tb, Evas_Textblock_Cursor *cur)
 {
@@ -3890,11 +3980,31 @@ _hyphenation_width_stress(Evas_Object *tb, Evas_Textblock_Cursor *cur)
 START_TEST(evas_textblock_hyphenation)
 {
    START_TB_TEST();
+   Evas_Coord w, fw;
+
+   const char *buf = "Automati-";
+   evas_object_textblock_text_markup_set(tb, buf);
+   evas_object_textblock_size_formatted_get(tb, &w, NULL);
+   evas_object_resize(tb, w, 100);
+
+   setlocale(LC_MESSAGES, "en_US.UTF-8");
+   /* Language should be reinitialized after calling setlocale(). */
+   evas_language_reinit();
+
+   buf = "Automatically";
+   evas_object_textblock_text_markup_set(tb, buf);
+   evas_textblock_cursor_format_prepend(cur, "<wrap=hyphenation>");
+   evas_object_textblock_size_formatted_get(tb, &fw, NULL);
+   ck_assert_int_eq(w, fw);
+
+   /* Restore locale */
+   setlocale(LC_MESSAGES, "C");
+   evas_language_reinit();
 
    /* SHY-HYPHEN (&shy;) */
    /* Note: placing &shy; in a ligature is errornuos, so for the sake
     * of this test, it was removed from the "officia" word */
-   const char *buf =
+   buf =
       "Lorem ipsum dolor sit amet, cons&shy;ectetur adipisicing elit,"
       " sed do eiusmod tempor incididunt ut labore et dolore magna aliqua."
       " Ut enim ad minim veniam, quis nostrud exer&shy;citation ullamco"
@@ -3907,7 +4017,8 @@ START_TEST(evas_textblock_hyphenation)
    evas_object_textblock_text_markup_set(tb, buf);
 
    /* Dictionary + locale fallback (en_US) */
-   setlocale(LC_MESSAGES, "en_US.UTF8");
+   setlocale(LC_MESSAGES, "en_US.UTF-8");
+   evas_language_reinit();
 
    /* Mixture of Dictionary with SHY-HYPHEN */
    _hyphenation_width_stress(tb, cur);
@@ -3929,6 +4040,338 @@ START_TEST(evas_textblock_hyphenation)
    END_TB_TEST();
 }
 END_TEST;
+#endif
+
+START_TEST(evas_textblock_text_iface)
+{
+   START_TB_TEST();
+   Evas_Coord nw, nh;
+   Evas_Coord bw, bh;
+   Evas_Coord w, h;
+   const char *utf8;
+
+   /* Set text */
+   efl_text_set(tb, "hello world");
+   evas_object_textblock_size_native_get(tb, &bw, &bh);
+   efl_text_set(tb, "hello\nworld");
+   evas_object_textblock_size_native_get(tb, &nw, &nh);
+   ck_assert_int_gt(nh, bh);
+   ck_assert_int_gt(bw, nw);
+   efl_text_set(tb, "hello\nworld\ngoodbye\nworld");
+   evas_object_textblock_size_native_get(tb, &nw, &nh);
+   ck_assert_int_ge(nh, bh * 3);
+
+   /* Delete text */
+   efl_text_set(tb, "a");
+   evas_object_textblock_size_native_get(tb, &bw, &bh);
+   efl_text_set(tb, "a\nb");
+   evas_textblock_cursor_pos_set(cur, 1);
+   evas_textblock_cursor_char_delete(cur);
+   evas_object_textblock_size_native_get(tb, &nw, &nh);
+   ck_assert_int_eq(nh, bh);
+
+   /* Paragraph checks */
+   efl_text_set(tb, "d");
+   evas_object_textblock_size_native_get(tb, &w, &h);
+   efl_text_set(tb, "aa\nb\nc\nd");
+   evas_object_textblock_size_native_get(tb, &bw, &bh);
+   evas_textblock_cursor_pos_set(cur, 0);
+   evas_textblock_cursor_char_delete(cur); // delete 'a'
+   evas_object_textblock_size_native_get(tb, &nw, &nh);
+   ck_assert_int_eq(nh, bh);
+   evas_textblock_cursor_char_delete(cur); // delete 'a'
+   evas_textblock_cursor_char_delete(cur); // delete '\n'
+   evas_object_textblock_size_native_get(tb, &nw, &nh);
+   ck_assert_int_lt(nh, bh);
+   /* "b\nc\nd" is left */
+   evas_textblock_cursor_char_delete(cur); // b
+   evas_textblock_cursor_char_delete(cur); // \n
+   evas_textblock_cursor_char_delete(cur); // c
+   evas_textblock_cursor_char_delete(cur); // \n
+   /* expecting "d" only */
+   evas_object_textblock_size_native_get(tb, &nw, &nh);
+   ck_assert_int_eq(nh, h);
+   ck_assert_int_eq(nw, w);
+
+   /* Text get */
+   utf8 = "a";
+   efl_text_set(tb, utf8);
+   ck_assert_str_eq(utf8, efl_text_get(tb));
+   utf8 = "a\nb";
+   efl_text_set(tb, utf8);
+   ck_assert_str_eq(utf8, efl_text_get(tb));
+   utf8 = "a\u2029b";
+   efl_text_set(tb, utf8);
+   ck_assert_str_eq(utf8, efl_text_get(tb));
+   utf8 = "a\u2029bc\ndef\n\u2029";
+   efl_text_set(tb, utf8);
+   ck_assert_str_eq(utf8, efl_text_get(tb));
+   utf8 = "\u2029\n\n\n\n\u2029\n\u2029\n\n\n";
+   efl_text_set(tb, utf8);
+   ck_assert_str_eq(utf8, efl_text_get(tb));
+
+   END_TB_TEST();
+}
+END_TEST;
+
+static void
+_test_check_annotation(Evas_Object *tb,
+      size_t start_pos, size_t end_pos,
+      size_t len, const char **formats)
+{
+   Efl_Canvas_Text_Annotation *an;
+   Eo *start, *end;
+
+   start = evas_object_textblock_cursor_new(tb);
+   end = evas_object_textblock_cursor_new(tb);
+
+   evas_textblock_cursor_pos_set(start, start_pos);
+   evas_textblock_cursor_pos_set(end, end_pos);
+
+   Eina_Iterator *it =
+      efl_canvas_text_range_annotations_get(tb, start, end);
+
+   evas_textblock_cursor_free(start);
+   evas_textblock_cursor_free(end);
+
+   size_t i = 0;
+   EINA_ITERATOR_FOREACH(it, an)
+     {
+        const char *fmt = efl_canvas_text_annotation_get(tb,
+              an);
+        ck_assert_msg((i < len),
+              "No formats to check but current annotation is: %s\n", fmt);
+        ck_assert_str_eq(fmt, *formats);
+        formats++;
+        i++;
+     }
+   ck_assert_msg((i == len),
+         "Expected next format (index %lu): %s, but reached end of annotations\n",
+         i, *formats);
+
+   eina_iterator_free(it);
+}
+
+#define _COMP_STR(...) ((const char *[]) { __VA_ARGS__ })
+#define _CREATE_PARAMS(X) (sizeof(X) / sizeof(X[0])), (X)
+#define _COMP_PARAMS(...) _CREATE_PARAMS(_COMP_STR(__VA_ARGS__))
+
+START_TEST(evas_textblock_annotation)
+{
+   START_TB_TEST();
+   Efl_Canvas_Text_Annotation *an, *an2;
+   Eo *start, *end;
+
+   start = evas_object_textblock_cursor_new(tb);
+   end   = evas_object_textblock_cursor_new(tb);
+
+   const char *buf =
+      "This text will check annotation."
+      " By \"annotating\" the text, we can apply formatting simply by"
+      " specifying a range (start, end) in the text, and the format we want"
+      " for it."
+      ;
+
+   efl_text_set(tb, buf);
+
+   /* Check some trivial cases */
+   evas_textblock_cursor_pos_set(start, 0);
+   evas_textblock_cursor_pos_set(end, 3);
+   ck_assert(!efl_canvas_text_annotation_insert(tb, start, end, NULL));
+   evas_textblock_cursor_pos_set(start, 0);
+   evas_textblock_cursor_pos_set(end, 3);
+   ck_assert(!efl_canvas_text_annotation_insert(tb, start, end, ""));
+   evas_textblock_cursor_pos_set(start, 1);
+   evas_textblock_cursor_pos_set(end, 0);
+   ck_assert(!efl_canvas_text_annotation_insert(tb, start, end, "color=#fff"));
+
+   /* Insert and check correct positions */
+   _test_check_annotation(tb, 0, 10, _COMP_PARAMS());
+
+   evas_textblock_cursor_pos_set(start, 0);
+   evas_textblock_cursor_pos_set(end, 3);
+   efl_canvas_text_annotation_insert(tb, start, end, "font_weight=bold");
+   _test_check_annotation(tb, 0, 2, _COMP_PARAMS("font_weight=bold"));
+   _test_check_annotation(tb, 0, 2, _COMP_PARAMS("font_weight=bold"));
+   _test_check_annotation(tb, 4, 10, _COMP_PARAMS());
+
+   evas_textblock_cursor_pos_set(start, 50);
+   evas_textblock_cursor_pos_set(end, 60);
+   efl_canvas_text_annotation_insert(tb, start, end, "color=#0ff");
+   _test_check_annotation(tb, 0, 49, _COMP_PARAMS("font_weight=bold"));
+   _test_check_annotation(tb, 0, 50, _COMP_PARAMS("font_weight=bold", "color=#0ff"));
+   _test_check_annotation(tb, 0, 55, _COMP_PARAMS("font_weight=bold", "color=#0ff"));
+   _test_check_annotation(tb, 0, 59, _COMP_PARAMS("font_weight=bold", "color=#0ff"));
+   _test_check_annotation(tb, 40, 50, _COMP_PARAMS("color=#0ff"));
+   _test_check_annotation(tb, 40, 51, _COMP_PARAMS("color=#0ff"));
+   _test_check_annotation(tb, 40, 61, _COMP_PARAMS("color=#0ff"));
+   _test_check_annotation(tb, 59, 60, _COMP_PARAMS("color=#0ff"));
+   _test_check_annotation(tb, 60, 61, _COMP_PARAMS());
+
+   /* See that annotation's positions are updated as text is inserted */
+   efl_text_set(tb, "hello");
+   evas_textblock_cursor_pos_set(start, 0);
+   evas_textblock_cursor_pos_set(end, 2);
+   an = efl_canvas_text_annotation_insert(tb, start, end, "color=#fff");
+   _test_check_annotation(tb, 2, 3, _COMP_PARAMS());
+   evas_textblock_cursor_pos_set(cur, 0);
+   evas_textblock_cursor_text_append(cur, "a");
+   _test_check_annotation(tb, 2, 3, _COMP_PARAMS("color=#fff"));
+   _test_check_annotation(tb, 3, 4, _COMP_PARAMS());
+
+   /* Replace annotations's format */
+   efl_canvas_text_annotation_set(tb, an, "font_size=14");
+   _test_check_annotation(tb, 2, 3, _COMP_PARAMS("font_size=14"));
+   _test_check_annotation(tb, 3, 4, _COMP_PARAMS());
+
+   efl_text_set(tb, "hello world");
+   evas_textblock_cursor_pos_set(start, 0);
+   evas_textblock_cursor_pos_set(end, 2);
+   an = efl_canvas_text_annotation_insert(tb, start, end, "color=#fff");
+   evas_textblock_cursor_pos_set(start, 2);
+   evas_textblock_cursor_pos_set(end, 3);
+   an2 = efl_canvas_text_annotation_insert(tb, start, end, "font_size=14");
+   _test_check_annotation(tb, 0, 1, _COMP_PARAMS("color=#fff"));
+   _test_check_annotation(tb, 2, 3, _COMP_PARAMS("font_size=14"));
+   _test_check_annotation(tb, 0, 3, _COMP_PARAMS("color=#fff", "font_size=14"));
+   efl_canvas_text_annotation_set(tb, an, "font_size=10");
+   efl_canvas_text_annotation_set(tb, an2, "color=#000");
+   _test_check_annotation(tb, 2, 3, _COMP_PARAMS("color=#000"));
+   _test_check_annotation(tb, 0, 1, _COMP_PARAMS("font_size=10"));
+   _test_check_annotation(tb, 0, 3, _COMP_PARAMS("font_size=10", "color=#000"));
+
+   /* Delete annotations directly */
+   efl_text_set(tb, "hello world");
+   evas_textblock_cursor_pos_set(start, 0);
+   evas_textblock_cursor_pos_set(end, 2);
+   an = efl_canvas_text_annotation_insert(tb, start, end, "color=#fff");
+   evas_textblock_cursor_pos_set(start, 3);
+   evas_textblock_cursor_pos_set(end, 4);
+   an2 = efl_canvas_text_annotation_insert(tb, start, end, "font_size=14");
+   efl_canvas_text_annotation_del(tb, an);
+   _test_check_annotation(tb, 0, 3, _COMP_PARAMS("font_size=14"));
+   efl_canvas_text_annotation_del(tb, an2);
+   _test_check_annotation(tb, 0, 3, _COMP_PARAMS());
+   evas_textblock_cursor_pos_set(start, 0);
+   evas_textblock_cursor_pos_set(end, 1);
+   an = efl_canvas_text_annotation_insert(tb, start, end, "color=#fff");
+   _test_check_annotation(tb, 1, 3, _COMP_PARAMS());
+   _test_check_annotation(tb, 0, 0, _COMP_PARAMS("color=#fff"));
+   efl_canvas_text_annotation_del(tb, an);
+   _test_check_annotation(tb, 0, 0, _COMP_PARAMS());
+
+   /* Check blocking of "item formats" */
+   efl_text_set(tb, "hello world");
+   evas_textblock_cursor_pos_set(start, 0);
+   evas_textblock_cursor_pos_set(end, 1);
+   efl_canvas_text_annotation_insert(tb, start, end, "ps");
+   _test_check_annotation(tb, 0, 1, _COMP_PARAMS());
+   evas_textblock_cursor_pos_set(start, 0);
+   evas_textblock_cursor_pos_set(end, 1);
+   efl_canvas_text_annotation_insert(tb, start, end, "color=#fff");
+   _test_check_annotation(tb, 0, 1, _COMP_PARAMS("color=#fff"));
+   evas_textblock_cursor_pos_set(start, 2);
+   evas_textblock_cursor_pos_set(end, 3);
+   efl_canvas_text_annotation_insert(tb, start, end, "br");
+   evas_textblock_cursor_pos_set(start, 6);
+   evas_textblock_cursor_pos_set(end, 7);
+   efl_canvas_text_annotation_insert(tb, start, end, "item");
+   _test_check_annotation(tb, 0, 8, _COMP_PARAMS("color=#fff"));
+
+   /* Check "item" annotations */
+   efl_text_set(tb, "abcd");
+   evas_textblock_cursor_pos_set(cur, 4);
+   an = efl_canvas_text_cursor_object_item_insert(cur, "size=16x16");
+   _test_check_annotation(tb, 4, 4, _COMP_PARAMS("size=16x16"));
+
+   /* Check that format is not extended if it's an "object item" */
+   evas_textblock_cursor_pos_set(cur, 5);
+   efl_canvas_text_cursor_text_insert(cur, "a");
+   _test_check_annotation(tb, 5, 7, _COMP_PARAMS());
+   _test_check_annotation(tb, 0, 3, _COMP_PARAMS());
+
+   /* Remove annotation of "item" also removes the OBJ character */
+     {
+        int blen, len;
+        evas_textblock_cursor_pos_set(cur, 5);
+        blen = evas_textblock_cursor_paragraph_text_length_get(cur);
+        efl_canvas_text_annotation_del(tb, an);
+        len = evas_textblock_cursor_paragraph_text_length_get(cur);
+        ck_assert_int_eq(len, blen - 1);
+        _test_check_annotation(tb, 0, 5, _COMP_PARAMS());
+     }
+
+   /* Using annotations with new text API */
+   efl_text_set(tb, "hello");
+   evas_textblock_cursor_pos_set(start, 0);
+   evas_textblock_cursor_pos_set(end, 5);
+   efl_canvas_text_annotation_insert(tb, start, end, "color=#fff");
+   _test_check_annotation(tb, 3, 3, _COMP_PARAMS("color=#fff"));
+   /* Old API */
+   evas_textblock_cursor_pos_set(cur, 5);
+   efl_canvas_text_cursor_text_insert(cur, "a");
+   _test_check_annotation(tb, 0, 0, _COMP_PARAMS("color=#fff"));
+   _test_check_annotation(tb, 5, 5, _COMP_PARAMS());
+
+   /* Specific case with PS */
+   efl_text_set(tb, "hello\nworld");
+   evas_textblock_cursor_pos_set(start, 0);
+   evas_textblock_cursor_pos_set(end, 5);
+   efl_canvas_text_annotation_insert(tb, start, end, "color=#fff");
+   _test_check_annotation(tb, 4, 4, _COMP_PARAMS("color=#fff"));
+   evas_textblock_cursor_pos_set(cur, 4);
+   /* Cursor position is now: hello|\nworld */
+   efl_canvas_text_cursor_text_insert(cur, "a");
+   _test_check_annotation(tb, 0, 0, _COMP_PARAMS("color=#fff"));
+   _test_check_annotation(tb, 5, 5, _COMP_PARAMS("color=#fff"));
+
+   /* Test getting of object item */
+   evas_textblock_cursor_pos_set(cur, 4);
+   an = efl_canvas_text_cursor_object_item_annotation_get(cur);
+   ck_assert(!an);
+
+   an = efl_canvas_text_cursor_object_item_insert(cur, "size=16x16");
+   evas_textblock_cursor_pos_set(cur, 4);
+   an = efl_canvas_text_cursor_object_item_annotation_get(cur);
+   ck_assert(an);
+   ck_assert_str_eq("size=16x16", efl_canvas_text_annotation_get(tb, an));
+
+   END_TB_TEST();
+}
+END_TEST;
+
+START_TEST(efl_canvas_text_cursor)
+{
+   START_TB_TEST();
+
+#ifdef HAVE_FRIBIDI
+   Evas_Coord x, x2;
+   Evas_Coord nw, nh;
+   Evas_Coord cx, cx2;
+
+   /* Split cursor in LTR paragraph.
+    * Russian 't' in the beginnning to create additional item.*/
+                   /*01234    5 6789012345678  19  01234 */
+   efl_text_set(tb, "тest \u202bנסיוןabcנסיון\u202c bang");
+   efl_canvas_text_size_native_get(tb, &nw, &nh);
+   efl_gfx_size_set(tb, nw, nh);
+
+   /* Logical cursor after "test " */
+   evas_textblock_cursor_pos_set(cur, 6);
+   fail_if(!efl_canvas_text_cursor_geometry_get(cur,
+            EFL_CANVAS_TEXT_CURSOR_TYPE_BEFORE, &cx, NULL, NULL, NULL, &cx2,
+            NULL, NULL, NULL));
+   evas_textblock_cursor_pos_set(cur, 18);
+   evas_textblock_cursor_pen_geometry_get(cur, &x, NULL, NULL, NULL);
+   evas_textblock_cursor_pos_set(cur, 20);
+   evas_textblock_cursor_pen_geometry_get(cur, &x2, NULL, NULL, NULL);
+   ck_assert_int_eq(cx, x);
+   ck_assert_int_eq(cx2, x2);
+#endif
+
+   END_TB_TEST();
+}
+END_TEST
 
 void evas_test_textblock(TCase *tc)
 {
@@ -3952,6 +4395,11 @@ void evas_test_textblock(TCase *tc)
    tcase_add_test(tc, evas_textblock_items);
    tcase_add_test(tc, evas_textblock_delete);
    tcase_add_test(tc, evas_textblock_obstacle);
+#ifdef HAVE_HYPHEN
    tcase_add_test(tc, evas_textblock_hyphenation);
+#endif
+   tcase_add_test(tc, evas_textblock_text_iface);
+   tcase_add_test(tc, evas_textblock_annotation);
+   tcase_add_test(tc, efl_canvas_text_cursor);
 }
 

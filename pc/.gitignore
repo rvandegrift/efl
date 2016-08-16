@@ -33,6 +33,7 @@
 /eio.pc
 /eio-cxx.pc
 /eldbus.pc
+/elementary.pc
 /elocation.pc
 /embryo.pc
 /emotion.pc
@@ -44,6 +45,7 @@
 /ethumb_client.pc
 /evas-drm.pc
 /evas-fb.pc
+/evas-eglfs.pc
 /evas-opengl-cocoa.pc
 /evas-opengl-sdl.pc
 /evas-opengl-x11.pc
@@ -70,3 +72,6 @@
 /elua.pc
 /emile.pc
 /efl-js.pc
+/elementary-cxx.pc
+/elput.pc
+/ecore-drm2.pc

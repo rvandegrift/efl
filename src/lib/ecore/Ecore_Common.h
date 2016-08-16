@@ -4,6 +4,8 @@ extern "C" {
 
 #include <Efl_Config.h>
 
+#include "ecore_types.eot.h"
+
 /**
  * @defgroup Ecore_Init_Group Ecore initialization, shutdown functions and reset on fork.
  * @ingroup Ecore
@@ -47,6 +49,17 @@ EAPI int ecore_init(void);
  * loop, as the main loop will then fall over and not function properly.
  */
 EAPI int ecore_shutdown(void);
+
+#ifdef EFL_BETA_API_SUPPORT
+/**
+ * @brief Inform EFL of the version this application was built for.
+ *
+ * This is transparently called from $EFL_MAIN().
+ *
+ * @since 1.18 (as beta)
+ */
+EWAPI void efl_build_version_set(int vmaj, int vmin, int vmic, int revision, const char *flavor, const char *build_id);
+#endif
 
 /**
  * @}
@@ -936,26 +949,6 @@ EAPI extern int ECORE_EXE_EVENT_DATA;    /**< Data from a child process. */
 EAPI extern int ECORE_EXE_EVENT_ERROR;    /**< Errors from a child process. */
 
 /**
- * @enum _Ecore_Exe_Flags
- * Flags for executing a child with its stdin and/or stdout piped back.
- */
-enum _Ecore_Exe_Flags    /* flags for executing a child with its stdin and/or stdout piped back */
-{
-   ECORE_EXE_NONE = 0, /**< No exe flags at all */
-   ECORE_EXE_PIPE_READ = 1, /**< Exe Pipe Read mask */
-   ECORE_EXE_PIPE_WRITE = 2, /**< Exe Pipe Write mask */
-   ECORE_EXE_PIPE_ERROR = 4, /**< Exe Pipe error mask */
-   ECORE_EXE_PIPE_READ_LINE_BUFFERED = 8, /**< Reads are buffered until a newline and split 1 line per Ecore_Exe_Event_Data_Line */
-   ECORE_EXE_PIPE_ERROR_LINE_BUFFERED = 16, /**< Errors are buffered until a newline and split 1 line per Ecore_Exe_Event_Data_Line */
-   ECORE_EXE_PIPE_AUTO = 32, /**< stdout and stderr are buffered automatically */
-   ECORE_EXE_RESPAWN = 64, /**< FIXME: Exe is restarted if it dies */
-   ECORE_EXE_USE_SH = 128, /**< Use /bin/sh to run the command. */
-   ECORE_EXE_NOT_LEADER = 256, /**< Do not use setsid() to have the executed process be its own session leader */
-   ECORE_EXE_TERM_WITH_PARENT = 512 /**< Makes child receive SIGTERM when parent dies. */
-};
-typedef enum _Ecore_Exe_Flags Ecore_Exe_Flags;
-
-/**
  * @enum _Ecore_Exe_Win32_Priority
  * Defines the priority of the process.
  */
@@ -970,7 +963,10 @@ enum _Ecore_Exe_Win32_Priority
 };
 typedef enum _Ecore_Exe_Win32_Priority Ecore_Exe_Win32_Priority;
 
-typedef Eo              Ecore_Exe; /**< A handle for spawned processes */
+#ifdef EFL_BETA_API_SUPPORT
+#include "ecore_exe.eo.h"
+#endif
+#include "ecore_exe.eo.legacy.h"
 
 #define _ECORE_EXE_EO_CLASS_TYPE
 
@@ -983,8 +979,6 @@ typedef void                            (*Ecore_Exe_Cb)(void *data, const Ecore_
 
 typedef struct _Ecore_Exe_Event_Add       Ecore_Exe_Event_Add; /**< Spawned Exe add event */
 typedef struct _Ecore_Exe_Event_Del       Ecore_Exe_Event_Del; /**< Spawned Exe exit event */
-typedef struct _Ecore_Exe_Event_Data_Line Ecore_Exe_Event_Data_Line; /**< Lines from a child process */
-typedef struct _Ecore_Exe_Event_Data      Ecore_Exe_Event_Data; /**< Data from a child process */
 
 /**
  * @struct _Ecore_Exe_Event_Add
@@ -1005,35 +999,13 @@ struct _Ecore_Exe_Event_Del
    pid_t      pid; /**< The process ID of the process that exited */
    int        exit_code; /**< The exit code of the process */
    Ecore_Exe *exe; /**< The handle to the exited process, or @c NULL if not found */
-   int        exit_signal; /** < The signal that caused the process to exit */
-   Eina_Bool  exited    : 1; /** < set to 1 if the process exited of its own accord */
-   Eina_Bool  signalled : 1; /** < set to 1 id the process exited due to uncaught signal */
+   int        exit_signal; /**< The signal that caused the process to exit */
+   Eina_Bool  exited    : 1; /**< Set to 1 if the process exited of its own accord */
+   Eina_Bool  signalled : 1; /**< Set to 1 if the process exited due to uncaught signal */
    void      *ext_data; /**< Extension data - not used */
 #if !defined (_WIN32) && !defined (__lv2ppu__) && !defined (EXOTIC_NO_SIGNAL)
    siginfo_t  data; /**< Signal info */
 #endif
-};
-
-/**
- * @struct _Ecore_Exe_Event_Data_Line
- * @brief A structure that stores information of lines data from a child process.
- */
-struct _Ecore_Exe_Event_Data_Line
-{
-   char *line; /**< The bytes of a line of buffered data */
-   int   size; /**< The size of the line buffer in bytes */
-};
-
-/**
- * @struct _Ecore_Exe_Event_Data
- * @brief A structure that stores information of data from a child process event.
- */
-struct _Ecore_Exe_Event_Data
-{
-   Ecore_Exe                 *exe; /**< The handle to the process */
-   void                      *data; /**< the raw binary data from the child process that was received */
-   int                        size; /**< the size of this data in bytes */
-   Ecore_Exe_Event_Data_Line *lines; /**< an array of line data if line buffered, the last one has it's line member set to @c NULL */
 };
 
 /**
@@ -2630,43 +2602,6 @@ EAPI double ecore_throttle_get(void);
  */
 
 /**
- * @enum _Ecore_Poller_Type
- * Defines the frequency of ticks for the poller.
- */
-enum _Ecore_Poller_Type    /* Poller types */
-{
-   ECORE_POLLER_CORE = 0 /**< The core poller interval */
-};
-typedef enum _Ecore_Poller_Type Ecore_Poller_Type;
-
-/*
- * @since 1.8
- */
-
-typedef Eo    Ecore_Poller; /**< A handle for pollers */
-
-#define _ECORE_POLLER_EO_CLASS_TYPE
-
-/**
- * @brief Sets the time(in seconds) between ticks for the given poller type.
- * @param type The poller type to adjust.
- * @param poll_time The time(in seconds) between ticks of the timer.
- *
- * This will adjust the time between ticks of the given timer type defined by
- * @p type to the time period defined by @p poll_time.
- */
-EAPI void ecore_poller_poll_interval_set(Ecore_Poller_Type type, double poll_time);
-
-/**
- * @brief Gets the time(in seconds) between ticks for the given poller type.
- * @param type The poller type to query.
- * @return The time in seconds between ticks of the poller timer.
- *
- * This will get the time between ticks of the specified poller timer.
- */
-EAPI double ecore_poller_poll_interval_get(Ecore_Poller_Type type);
-
-/**
  * @}
  */
 
@@ -2708,26 +2643,6 @@ EAPI double ecore_poller_poll_interval_get(Ecore_Poller_Type type);
  */
 
 /**
- * @enum _Ecore_Pos_Map
- * Defines the position mappings for the animation.
- */
-enum _Ecore_Pos_Map    /* Position mappings */
-{
-   ECORE_POS_MAP_LINEAR, /**< Linear 0.0 -> 1.0 */
-   ECORE_POS_MAP_ACCELERATE, /**< Start slow then speed up */
-   ECORE_POS_MAP_DECELERATE, /**< Start fast then slow down */
-   ECORE_POS_MAP_SINUSOIDAL, /**< Start slow, speed up then slow down at end */
-   ECORE_POS_MAP_ACCELERATE_FACTOR, /**< Start slow then speed up, v1 being a power factor, 0.0 being linear, 1.0 being normal accelerate, 2.0 being much more pronounced accelerate (squared), 3.0 being cubed, etc. */
-   ECORE_POS_MAP_DECELERATE_FACTOR, /**< Start fast then slow down, v1 being a power factor, 0.0 being linear, 1.0 being normal decelerate, 2.0 being much more pronounced decelerate (squared), 3.0 being cubed, etc. */
-   ECORE_POS_MAP_SINUSOIDAL_FACTOR, /**< Start slow, speed up then slow down at end, v1 being a power factor, 0.0 being linear, 1.0 being normal sinusoidal, 2.0 being much more pronounced sinusoidal (squared), 3.0 being cubed, etc. */
-   ECORE_POS_MAP_DIVISOR_INTERP, /**< Start at gradient * v1, interpolated via power of v2 curve */
-   ECORE_POS_MAP_BOUNCE, /**< Start at 0.0 then "drop" like a ball bouncing to the ground at 1.0, and bounce v2 times, with decay factor of v1 */
-   ECORE_POS_MAP_SPRING, /**< Start at 0.0 then "wobble" like a spring rest position 1.0, and wobble v2 times, with decay factor of v1 */
-   ECORE_POS_MAP_CUBIC_BEZIER /**< Follow the cubic-bezier curve calculated with the control points (x1, y1), (x2, y2) */
-};
-typedef enum _Ecore_Pos_Map Ecore_Pos_Map;
-
-/**
  * @enum _Ecore_Animator_Source
  * Defines the timing sources for animators.
  */
@@ -2747,9 +2662,6 @@ typedef Eina_Bool (*Ecore_Timeline_Cb)(void *data, double pos);
 /*
  * @since 1.8
  */
-typedef Eo Ecore_Animator; /**< A handle for animators */
-
-#define _ECORE_ANIMATOR_EO_CLASS_TYPE
 
 /**
  * @brief Set the animator call interval in seconds.
@@ -2833,7 +2745,7 @@ EAPI double ecore_animator_frametime_get(void);
  * This will make an animation that bounces 7 each times diminishing by a
  * factor of 1.8.
  *
- * @see _Ecore_Pos_Map
+ * @see Ecore_Pos_Map
  *
  * @since 1.1.0
  */
@@ -2899,7 +2811,7 @@ EAPI double ecore_animator_pos_map(double pos, Ecore_Pos_Map map, double v1, dou
  * This will make an animation that bounces 7 each times diminishing by a
  * factor of 1.8.
  *
- * @see _Ecore_Pos_Map
+ * @see Ecore_Pos_Map
  */
 EAPI double ecore_animator_pos_map_n(double pos, Ecore_Pos_Map map, int v_size, double *v);
 
@@ -3132,23 +3044,17 @@ EAPI char *ecore_timer_dump(void);
 /*
  * @since 1.8
  */
-typedef Eo Ecore_Idler; /**< A handle for idlers */
-
-#define _ECORE_IDLER_EO_CLASS_TYPE
+typedef struct _Ecore_Factorized_Idle Ecore_Idler; /**< A handle for idlers */
 
 /*
  * @since 1.8
  */
-typedef Eo Ecore_Idle_Enterer; /**< A handle for idle enterers */
-
-#define _ECORE_IDLE_ENTERER_EO_CLASS_TYPE
+typedef struct _Ecore_Factorized_Idle Ecore_Idle_Enterer; /**< A handle for idle enterers */
 
 /*
  * @since 1.8
  */
-typedef Eo Ecore_Idle_Exiter; /**< A handle for idle exiters */
-
-#define _ECORE_IDLE_EXITER_EO_CLASS_TYPE
+typedef struct _Ecore_Factorized_Idle Ecore_Idle_Exiter; /**< A handle for idle exiters */
 
 /**
  * @}
@@ -3181,12 +3087,32 @@ typedef Eo Ecore_Idle_Exiter; /**< A handle for idle exiters */
 /**
  * @since 1.8
  */
-typedef Eo Ecore_Job;    /**< A job handle */
+typedef struct _Ecore_Job Ecore_Job;    /**< A job handle */
 
 #define _ECORE_JOB_EO_CLASS_TYPE
 /**
  * @}
  */
+
+
+#ifdef EFL_BETA_API_SUPPORT
+
+/*
+ * @brief Function callback type for when creating Ecore_Thread that
+ * uses Ecore_Promise for communication
+ */
+typedef void(*Ecore_Thread_Promise_Cb)(const void* data, Eina_Promise_Owner* promise, Ecore_Thread* thread);
+
+/*
+ * @brief Function that instantiates a Ecore_Promise and automatically
+ * executes func_blocking callback function in another thread
+ */
+EAPI Ecore_Thread* ecore_thread_promise_run(Ecore_Thread_Promise_Cb func_heavy,
+                                            Ecore_Thread_Promise_Cb func_cancel,
+                                            const void* data,
+                                            Eina_Promise** promise);
+
+#endif
 
 #ifdef __cplusplus
 }

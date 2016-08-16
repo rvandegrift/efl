@@ -6,10 +6,10 @@ EDJE_CODEGEN = EFL_RUN_IN_TREE=1 $(top_builddir)/src/bin/edje/edje_codegen
 EDJE_CODEGEN_FLAGS = --prefix=codegen_example
 
 if ENABLE_MULTISENSE
-SND_DIR = -sd $(srcdir)
+SND_DIR = -sd $(top_srcdir)/src/examples/edje/
 endif
 
-MO_DIR = -md $(srcdir)
+MO_DIR = -md $(top_builddir)/src/examples/edje/
 
 #put here all EDCs one needs to the examples
 EDCS = \
@@ -50,7 +50,8 @@ box_example.edc \
 embryo_tween_anim.edc \
 embryo_set_state_anim.edc \
 bezier-transition-example.edc \
-textblock-hyphen.edc
+textblock-hyphen.edc \
+svg.edc
 
 DIST_EDCS = $(EDCS)
 
@@ -72,9 +73,20 @@ EDCS += $(PHYSICS_EDCS)
 endif
 DIST_EDCS += $(PHYSICS_EDCS)
 
+# Support for SVG
+EDJE_CC_FLAGS += -beta
+
 .edc.edj:
 	$(AM_V_EDJ)$(EDJE_CC) $(EDJE_CC_FLAGS) $(SND_DIR) $(MO_DIR) $< $(builddir)/$(@F)
 
+text.edj: text.edc
+	@cp -ua $(top_srcdir)/src/examples/edje/en_IN/ $(top_builddir)/src/examples/edje/ || true
+	@cp -ua $(top_srcdir)/src/examples/edje/hi_IN/ $(top_builddir)/src/examples/edje/ || true
+	@cp -ua $(top_srcdir)/src/examples/edje/ta_IN/ $(top_builddir)/src/examples/edje/ || true
+	@chmod -R +w $(top_builddir)/src/examples/edje/en_IN/ || true
+	@chmod -R +w $(top_builddir)/src/examples/edje/hi_IN/ || true
+	@chmod -R +w $(top_builddir)/src/examples/edje/ta_IN/ || true
+	$(AM_V_EDJ)$(EDJE_CC) $(EDJE_CC_FLAGS) $(SND_DIR) $(MO_DIR) $(top_srcdir)/src/examples/edje/text.edc $(top_builddir)/src/examples/edje/text.edj
 
 EDJS = $(EDCS:%.edc=%.edj)
 
@@ -85,6 +97,34 @@ red.png \
 test.png \
 Vera.ttf \
 duck.wav \
+dst.svg \
+atom.svg \
+bojo.svg \
+bzrfeed.svg \
+yinyang.svg \
+ubuntu.svg \
+duke.svg \
+cartman.svg \
+ibm.svg \
+hg0.svg \
+fsm.svg \
+osa.svg \
+wikimedia.svg \
+scion.svg \
+eee.svg \
+google.svg \
+tiger.svg \
+venus.svg \
+lineargrad1.svg \
+radialgrad1.svg \
+yadis.svg \
+favorite_on.svg \
+favorite_off.svg \
+batman1.svg \
+batman2.svg \
+en_IN/domain_name.po \
+hi_IN/domain_name.po \
+ta_IN/domain_name.mo \
 Makefile.examples
 
 SRCS = \
@@ -108,7 +148,8 @@ signals2.c \
 edje-swallow2.c \
 edje-multisense.c \
 edje-edit-part-box.c \
-edje-textblock-hyphenation.c
+edje-textblock-hyphenation.c \
+svg-test.c
 
 EXTRA_DIST = $(DIST_EDCS) $(DATA_FILES)
 
@@ -178,7 +219,8 @@ edje-basic2 \
 signals2 \
 edje-swallow2 \
 edje-edit-part-box \
-edje-textblock-hyphenation
+edje-textblock-hyphenation \
+svg-test
 
 if ENABLE_MULTISENSE
 EXTRA_PROGRAMS += edje-multisense
@@ -207,15 +249,20 @@ examples: $(EXTRA_PROGRAMS) $(EDJS)
 
 clean-local:
 	rm -f $(EXTRA_PROGRAMS) $(EDJS) $(CODEGEN_GENERATED)
+	if [ $(top_builddir)/ != $(top_srcdir)/  ]; then \
+		rm -f $(top_builddir)/src/examples/edje/hi_IN/domain_name.po; \
+		rm -f $(top_builddir)/src/examples/edje/ta_IN/domain_name.mo; \
+		rm -f $(top_builddir)/src/examples/edje/en_IN/domain_name.po; \
+	fi
 
 install-examples: $(EDJS)
-	$(MKDIR_P) $(datadir)/edje/examples
-	cd $(srcdir) && $(install_sh_DATA) -c $(SRCS) $(DIST_EDCS) $(DATA_FILES) $(datadir)/edje/examples
-	cd $(builddir) && $(install_sh_DATA) -c $(EDJS) $(datadir)/edje/examples
+	$(MKDIR_P) $(DESTDIR)$(datadir)/edje/examples
+	cd $(srcdir) && $(install_sh_DATA) -c $(SRCS) $(DIST_EDCS) $(DATA_FILES) $(DESTDIR)$(datadir)/edje/examples
+	cd $(builddir) && $(install_sh_DATA) -c $(EDJS) $(DESTDIR)$(datadir)/edje/examples
 
 uninstall-local:
 	for f in $(SRCS) $(DIST_EDCS) $(DATA_FILES); do \
-	  rm -f $(datadir)/edje/examples/$$f ; \
+	  rm -f $(DESTDIR)$(datadir)/edje/examples/$$f ; \
 	done
 
 if ALWAYS_BUILD_EXAMPLES

@@ -54,7 +54,7 @@ _flags_need_tex_coord(E3D_Shader_Flag flags)
 struct _E3D_Draw_Data
 {
    E3D_Shader_Flag      flags;
-   Evas_Canvas3D_Shade_Mode   mode;
+   Evas_Canvas3D_Shader_Mode   mode;
 
    Eina_Matrix4   matrix_mvp;
    Eina_Matrix4   matrix_mv;
@@ -98,10 +98,10 @@ struct _E3D_Draw_Data
 
    struct {
         Eina_Quaternion   position;
-        Evas_Vec3   spot_dir;
+        Eina_Vector3   spot_dir;
         Evas_Real   spot_exp;
         Evas_Real   spot_cutoff_cos;
-        Evas_Vec3   atten;
+        Eina_Vector3   atten;
         Evas_Color  ambient;
         Evas_Color  diffuse;
         Evas_Color  specular;
@@ -114,6 +114,9 @@ struct _E3D_Draw_Data
    Evas_Real               constant_bias;
 
    Eina_Bool               render_to_texture;
+
+   Evas_Real frame_size_h;
+   Evas_Real frame_size_w;
 };
 
 struct _E3D_Texture
@@ -160,10 +163,10 @@ struct _E3D_Drawable
 void                 e3d_texture_param_update(E3D_Texture *texture);
 
 /* Program */
-E3D_Program         *e3d_program_new(Evas_Canvas3D_Shade_Mode mode, E3D_Shader_Flag flags);
+E3D_Program         *e3d_program_new(Evas_Canvas3D_Shader_Mode mode, E3D_Shader_Flag flags);
 void                 e3d_program_free(E3D_Program *program);
 GLuint               e3d_program_id_get(const E3D_Program *program);
-Evas_Canvas3D_Shade_Mode   e3d_program_shade_mode_get(const E3D_Program *program);
+Evas_Canvas3D_Shader_Mode   e3d_program_shader_mode_get(const E3D_Program *program);
 E3D_Shader_Flag      e3d_program_shader_flags_get(const E3D_Program *program);
 void                 e3d_program_uniform_upload(E3D_Program *program, const E3D_Draw_Data *data);
 
@@ -175,4 +178,6 @@ void                 e3d_renderer_draw(E3D_Renderer *renderer, E3D_Draw_Data *da
 void                 e3d_renderer_flush(E3D_Renderer *renderer);
 void                 e3d_renderer_color_pick_target_set(E3D_Renderer *renderer, E3D_Drawable *drawable);
 Eina_Bool            e3d_renderer_rendering_to_texture_get(E3D_Renderer *renderer);
+GLint                e3d_renderer_sampler_colortexture_get(E3D_Renderer *renderer);
+GLint                e3d_renderer_sampler_shadowmap_get(E3D_Renderer *renderer);
 #endif /* EVAS_GL_3D_PRIVATE_H */

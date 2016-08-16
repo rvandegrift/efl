@@ -27,12 +27,22 @@ edje_object_add(Evas *evas)
 EOLIAN static Eo *
 _edje_object_eo_base_constructor(Eo *obj, Edje *ed)
 {
-   ed->base = eo_data_ref(obj, EVAS_SMART_CLIPPED_CLASS);
+   Eo *parent;
+   Evas *e;
+   void *tmp;
+
+   ed->base = eo_data_ref(obj, EFL_CANVAS_GROUP_CLIPPED_CLASS);
    ed->duration_scale = 1.0;
 
-   obj = eo_do_super_ret(obj, MY_CLASS, obj, eo_constructor());
-   eo_do(obj, evas_obj_type_set(MY_CLASS_NAME_LEGACY));
+   obj = eo_constructor(eo_super(obj, MY_CLASS));
+   efl_canvas_object_type_set(obj, MY_CLASS_NAME_LEGACY);
    _edje_lib_ref();
+
+   parent = eo_parent_get(obj);
+   e = evas_object_evas_get(parent);
+   tmp = ecore_evas_ecore_evas_get(e);
+
+   ed->canvas_animator = !!tmp;
 
    return obj;
 }
@@ -40,23 +50,28 @@ _edje_object_eo_base_constructor(Eo *obj, Edje *ed)
 EOLIAN static void
 _edje_object_eo_base_destructor(Eo *obj, Edje *class_data)
 {
-   eo_do_super(obj, MY_CLASS, eo_destructor());
+   if (class_data->file_obj)
+     {
+        eo_del(class_data->file_obj);
+        class_data->file_obj = NULL;
+     }
+   eo_destructor(eo_super(obj, MY_CLASS));
    eo_data_unref(obj, class_data->base);
 }
 
 EOLIAN static void
 _edje_object_eo_base_dbg_info_get(Eo *eo_obj, Edje *_pd EINA_UNUSED, Eo_Dbg_Info *root) EINA_ARG_NONNULL(3)
 {
-   eo_do_super(eo_obj, MY_CLASS, eo_dbg_info_get(root));
+   eo_dbg_info_get(eo_super(eo_obj, MY_CLASS), root);
    Eo_Dbg_Info *group = EO_DBG_INFO_LIST_APPEND(root, MY_CLASS_NAME);
 
    const char *file, *edje_group;
-   eo_do(eo_obj, efl_file_get(&file, &edje_group));
+   efl_file_get(eo_obj, &file, &edje_group);
    EO_DBG_INFO_APPEND(group, "File", EINA_VALUE_TYPE_STRING, file);
    EO_DBG_INFO_APPEND(group, "Group", EINA_VALUE_TYPE_STRING, edje_group);
 
    Edje_Load_Error error = EDJE_LOAD_ERROR_NONE;
-   eo_do(eo_obj, error = edje_obj_load_error_get());
+   error = edje_obj_load_error_get(eo_obj);
    if (error != EDJE_LOAD_ERROR_NONE)
      {
         EO_DBG_INFO_APPEND(group, "Error", EINA_VALUE_TYPE_STRING,
@@ -94,13 +109,13 @@ _edje_size_class_free(void *data)
 
 /* Private Routines */
 EOLIAN static void
-_edje_object_evas_object_smart_add(Eo *obj, Edje *ed)
+_edje_object_efl_canvas_group_group_add(Eo *obj, Edje *ed)
 {
    Evas *tev = evas_object_evas_get(obj);
 
    evas_event_freeze(tev);
 
-   eo_do_super(obj, MY_CLASS, evas_obj_smart_add());
+   efl_canvas_group_add(eo_super(obj, MY_CLASS));
 
    ed->is_rtl = EINA_FALSE;
    ed->have_objects = EINA_TRUE;
@@ -132,7 +147,7 @@ _edje_object_evas_object_smart_add(Eo *obj, Edje *ed)
 }
 
 EOLIAN static void
-_edje_object_evas_object_smart_del(Eo *obj, Edje *ed)
+_edje_object_efl_canvas_group_group_del(Eo *obj, Edje *ed)
 {
    _edje_block_violate(ed);
    ed->delete_me = 1;
@@ -141,10 +156,13 @@ _edje_object_evas_object_smart_del(Eo *obj, Edje *ed)
    if (_edje_lua_script_only(ed)) _edje_lua_script_only_shutdown(ed);
 #ifdef HAVE_EPHYSICS
    /* clear physics world  / shutdown ephysics */
-   if ((ed->collection) && (ed->collection->physics_enabled))
+   if ((ed->collection) && (ed->collection->physics_enabled) && (ed->world))
      {
-        ephysics_world_del(ed->world);
-        ephysics_shutdown();
+        if (EPH_LOAD())
+          {
+             EPH_CALL(ephysics_world_del)(ed->world);
+             EPH_CALL(ephysics_shutdown)();
+          }
      }
 #endif
    if (ed->persp) edje_object_perspective_set(obj, NULL);
@@ -155,9 +173,9 @@ _edje_object_evas_object_smart_del(Eo *obj, Edje *ed)
 }
 
 EOLIAN static void
-_edje_object_evas_object_smart_move(Eo *obj EINA_UNUSED, Edje *ed, Evas_Coord x, Evas_Coord y)
+_edje_object_efl_canvas_group_group_move(Eo *obj EINA_UNUSED, Edje *ed, Evas_Coord x, Evas_Coord y)
 {
-   unsigned int i;
+   unsigned short i;
 
    if ((ed->x == x) && (ed->y == y)) return;
    ed->x = x;
@@ -245,7 +263,7 @@ _edje_limit_get(Edje *ed, Edje_Limit **limits, unsigned int length, Evas_Coord s
 }
 
 EOLIAN static void
-_edje_object_evas_object_smart_resize(Eo *obj EINA_UNUSED, Edje *ed, Evas_Coord w, Evas_Coord h)
+_edje_object_efl_canvas_group_group_resize(Eo *obj EINA_UNUSED, Edje *ed, Evas_Coord w, Evas_Coord h)
 {
    if ((w == ed->w) && (h == ed->h)) return;
    if (ed->collection)
@@ -257,9 +275,12 @@ _edje_object_evas_object_smart_resize(Eo *obj EINA_UNUSED, Edje *ed, Evas_Coord 
    ed->h = h;
 #ifdef HAVE_EPHYSICS
    if ((ed->collection) && (ed->world))
-     ephysics_world_render_geometry_set(
-       ed->world, ed->x, ed->y, ed->collection->physics.world.z,
-       ed->w, ed->h, ed->collection->physics.world.depth);
+     {
+        if (EPH_LOAD())
+          EPH_CALL(ephysics_world_render_geometry_set)
+            (ed->world, ed->x, ed->y, ed->collection->physics.world.z,
+             ed->w, ed->h, ed->collection->physics.world.depth);
+     }
 #endif
 #ifdef EDJE_CALC_CACHE
    ed->all_part_change = EINA_TRUE;
@@ -276,12 +297,12 @@ _edje_object_evas_object_smart_resize(Eo *obj EINA_UNUSED, Edje *ed, Evas_Coord 
 }
 
 EOLIAN static void
-_edje_object_evas_object_smart_show(Eo *obj, Edje *ed)
+_edje_object_efl_canvas_group_group_show(Eo *obj, Edje *ed)
 {
    Eina_List *l;
    Edje *edg;
 
-   eo_do_super(obj, MY_CLASS, evas_obj_smart_show());
+   efl_canvas_group_show(eo_super(obj, MY_CLASS));
    if (evas_object_visible_get(obj)) return;
    if (_edje_lua_script_only(ed))
      {
@@ -304,12 +325,12 @@ _edje_object_evas_object_smart_show(Eo *obj, Edje *ed)
 }
 
 EOLIAN static void
-_edje_object_evas_object_smart_hide(Eo *obj, Edje *ed)
+_edje_object_efl_canvas_group_group_hide(Eo *obj, Edje *ed)
 {
    Eina_List *l;
    Edje *edg;
 
-   eo_do_super(obj, MY_CLASS, evas_obj_smart_hide());
+   efl_canvas_group_hide(eo_super(obj, MY_CLASS));
    if (!evas_object_visible_get(obj)) return;
    if (_edje_lua_script_only(ed))
      {
@@ -322,13 +343,26 @@ _edje_object_evas_object_smart_hide(Eo *obj, Edje *ed)
 }
 
 EOLIAN static void
-_edje_object_evas_object_smart_calculate(Eo *obj EINA_UNUSED, Edje *ed)
+_edje_object_efl_canvas_group_group_no_render_set(Eo *obj, Edje *ed, Eina_Bool hide)
+{
+   Eina_List *l;
+   Edje *edg;
+
+   efl_canvas_group_no_render_set(eo_super(obj, MY_CLASS), hide);
+   if (efl_canvas_object_no_render_get(obj) == hide) return;
+
+   EINA_LIST_FOREACH(ed->groups, l, edg)
+     if (edg != ed) efl_canvas_group_no_render_set(edg->obj, hide);
+}
+
+EOLIAN static void
+_edje_object_efl_canvas_group_group_calculate(Eo *obj EINA_UNUSED, Edje *ed)
 {
    _edje_recalc_do(ed);
 }
 
 EOLIAN static Eina_Bool
-_edje_object_efl_file_file_set(Eo *obj, Edje *_pd EINA_UNUSED, const char *file, const char *group)
+_edje_object_efl_file_file_set(Eo *obj, Edje *ed, const char *file, const char *group)
 {
    Eina_Bool ret;
    Eina_File *f = NULL;
@@ -336,14 +370,28 @@ _edje_object_efl_file_file_set(Eo *obj, Edje *_pd EINA_UNUSED, const char *file,
 
    ret = EINA_FALSE;
 
+   if (ed->file_obj)
+     {
+        eo_del(ed->file_obj);
+        ed->file_obj = NULL;
+     }
    if (file)
      {
-        f = eina_file_open(file, EINA_FALSE);
+        const char *file2;
+
+        ed->file_obj = efl_vpath_manager_fetch(EFL_VPATH_MANAGER_CLASS, file);
+        efl_vpath_file_do(ed->file_obj);
+        // XXX:FIXME: allow this to be async
+        efl_vpath_file_wait(ed->file_obj);
+        file2 = efl_vpath_file_result_get(ed->file_obj);
+
+        f = eina_file_open(file2, EINA_FALSE);
         if (!f)
           {
-             Edje *ed;
-
-             ed = _edje_fetch(obj);
+             eo_del(ed->file_obj);
+             ed->file_obj = NULL;
+             if (ed->path) eina_stringshare_del(ed->path);
+             ed->path = NULL;
              ed->load_error = EDJE_LOAD_ERROR_DOES_NOT_EXIST;
              return ret;
           }
@@ -351,7 +399,23 @@ _edje_object_efl_file_file_set(Eo *obj, Edje *_pd EINA_UNUSED, const char *file,
    nested = eina_array_new(8);
 
    if (_edje_object_file_set_internal(obj, f, group, NULL, NULL, nested))
-     ret = EINA_TRUE;
+     {
+        if (file)
+          {
+             ed->path = eina_stringshare_add(file);
+          }
+        else
+          {
+             if (ed->path) eina_stringshare_del(ed->path);
+             ed->path = NULL;
+          }
+        ret = EINA_TRUE;
+     }
+   else
+     {
+        if (ed->path) eina_stringshare_del(ed->path);
+        ed->path = NULL;
+     }
 
    eina_array_free(nested);
    eina_file_close(f);
@@ -391,34 +455,30 @@ _edje_object_efl_file_mmap_get(Eo *obj EINA_UNUSED, Edje *pd,
 EAPI Eina_Bool
 edje_object_mmap_set(Edje_Object *obj, const Eina_File *file, const char *group)
 {
-   Eina_Bool ret;
-
-   return eo_do_ret(obj, ret, efl_file_mmap_set(file, group));
+   return efl_file_mmap_set(obj, file, group);
 }
 
 EAPI Eina_Bool
 edje_object_file_set(Edje_Object *obj, const char *file, const char *group)
 {
-   Eina_Bool ret = 0;
-   eo_do(obj, ret = efl_file_set(file, group));
-   return ret;
+   return efl_file_set(obj, file, group);
 }
 
 EAPI void
 edje_object_file_get(const Edje_Object *obj, const char **file, const char **group)
 {
-   eo_do((Edje_Object *)obj, efl_file_get(file, group));
+   efl_file_get((Edje_Object *)obj, file, group);
 }
 
 EOLIAN static void
-_edje_object_evas_object_paragraph_direction_set(Eo *obj, Edje *ed, Evas_BiDi_Direction dir)
+_edje_object_efl_canvas_object_paragraph_direction_set(Eo *obj, Edje *ed, Evas_BiDi_Direction dir)
 {
-   eo_do_super(obj, MY_CLASS, evas_obj_paragraph_direction_set(dir));
+   efl_canvas_object_paragraph_direction_set(eo_super(obj, MY_CLASS), dir);
 
    /* Make it dirty to recalculate edje.
       It needs to move text objects according to new paragraph direction */
    ed->dirty = EINA_TRUE;
-   eo_do(obj, evas_obj_smart_need_recalculate_set(1));
+   efl_canvas_group_need_recalculate_set(obj, 1);
 }
 
 #include "edje_object.eo.c"

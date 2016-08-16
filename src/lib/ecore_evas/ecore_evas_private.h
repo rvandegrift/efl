@@ -153,6 +153,9 @@ struct _Ecore_Evas_Engine_Func
    void (*fn_wm_rot_manual_rotation_done) (Ecore_Evas *ee);
 
    void (*fn_aux_hints_set) (Ecore_Evas *ee, const char *hints);
+
+   void (*fn_animator_register)  (Ecore_Evas *ee);
+   void (*fn_animator_unregister)(Ecore_Evas *ee);
 };
 
 struct _Ecore_Evas_Interface
@@ -294,6 +297,10 @@ struct _Ecore_Evas
    Ecore_Evas_Engine engine;
    Eina_List *sub_ecore_evas;
 
+   // Animator code
+   Ecore_Animator *anim;
+   unsigned int anim_count;
+
    struct {
       unsigned char avoid_damage;
       unsigned char resize_shape : 1;
@@ -354,6 +361,7 @@ EAPI void _ecore_evas_fps_debug_init(void);
 EAPI void _ecore_evas_fps_debug_shutdown(void);
 EAPI void _ecore_evas_fps_debug_rendertime_add(double t);
 EAPI void _ecore_evas_register(Ecore_Evas *ee);
+EAPI void _ecore_evas_register_animators(Ecore_Evas *ee);
 EAPI void _ecore_evas_free(Ecore_Evas *ee);
 EAPI void _ecore_evas_idle_timeout_update(Ecore_Evas *ee);
 EAPI void _ecore_evas_mouse_move_process(Ecore_Evas *ee, int x, int y, unsigned int timestamp);
@@ -383,6 +391,7 @@ EAPI void _ecore_evas_mouse_multi_up_process(Ecore_Evas *ee, int device,
                                         double mx, double my,
                                         Evas_Button_Flags flags,
                                         unsigned int timestamp);
+EAPI Eina_Bool _ecore_evas_input_direct_cb(void *window, int type, const void *info);
 
 EAPI extern Eina_Bool _ecore_evas_app_comp_sync;
 
@@ -418,6 +427,8 @@ Eina_Module *_ecore_evas_engine_load(const char *engine);
 const Eina_List *_ecore_evas_available_engines_get(void);
 void _ecore_evas_engine_init(void);
 void _ecore_evas_engine_shutdown(void);
+
+EAPI void ecore_evas_animator_tick(Ecore_Evas *ee, Eina_Rectangle *viewport);
 
 #undef EAPI
 #define EAPI

@@ -3,12 +3,12 @@
 #endif
 
 #include <Ecore_Audio.h>
+#include <ecore_audio.eo.h>
 #include <Ecore_Audio.hh>
 
 #include <iostream>
 
 int main()
 {
-   std::cout << "Ecore Audio C++ headers compile";
    return 0;
 }

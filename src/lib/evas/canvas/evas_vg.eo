@@ -1,4 +1,4 @@
-class Evas.VG (Evas.Object, Efl.Gfx.Fill, Efl.Gfx.View)
+class Evas.VG (Efl.Canvas.Object, Efl.Gfx.Fill, Efl.Gfx.View)
 {
    legacy_prefix: evas_object_vg;
    eo_prefix: evas_obj_vg;
@@ -14,7 +14,7 @@ class Evas.VG (Evas.Object, Efl.Gfx.Fill, Efl.Gfx.View)
               @since 1.14]]
          }
          values {
-            container: Efl_VG *; [[Root node of the VG canvas.]]
+            container: Eo.Base; [[Root node of the VG canvas.]] /* FIXME: Should be Efl.VG */
          }
       }
    }
@@ -24,7 +24,7 @@ class Evas.VG (Evas.Object, Efl.Gfx.Fill, Efl.Gfx.View)
       Eo.Base.destructor;
       Efl.Gfx.Fill.fill.set;
       Efl.Gfx.Fill.fill.get;
-      Efl.Gfx.View.size.set;
-      Efl.Gfx.View.size.get;
+      Efl.Gfx.View.view_size.set;
+      Efl.Gfx.View.view_size.get;
    }
 }

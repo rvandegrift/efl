@@ -2,13 +2,14 @@
 # include "config.h"
 #endif
 
-#include <unistd.h>
 #include <stdio.h>
+#include <unistd.h>
 
+#include <Evas.h>
 #include "../../lib/evas/include/evas_common_private.h"
 #include "../../lib/evas/include/evas_private.h"
+
 #include "evas_suite.h"
-#include "Evas.h"
 #include "evas_tests_helpers.h"
 
 #define TESTS_MESH_DIR TESTS_SRC_DIR"/meshes"
@@ -48,19 +49,19 @@
        fail_if(mesh == NULL);                                           \
        fail_if(mesh2 == NULL);                                          \
        snprintf(buffer, PATH_MAX, "%s%s", tmp, ext);                    \
-       eo_do(mesh, set_ok = efl_file_set(file->path, NULL),             \
-             save_ok = efl_file_save(buffer, NULL, NULL));              \
+       set_ok = efl_file_set(mesh, file->path, NULL); \
+       save_ok = efl_file_save(mesh, buffer, NULL, NULL);              \
        fail_if(!set_ok);                                                \
        fail_if(!save_ok);                                               \
-       eo_do(mesh2, set_ok = efl_file_set(buffer, NULL));               \
+       set_ok = efl_file_set(mesh2, buffer, NULL);               \
        fail_if(!set_ok);                                                \
        res = _compare_meshes(mesh, mesh2);                              \
        fail_if(res == 1);                                               \
-       eo_do(mesh, set_ok = efl_file_mmap_set(eina_file_open(file->path, 0), NULL), \
-             save_ok = efl_file_save(buffer, NULL, NULL));              \
+       set_ok = efl_file_mmap_set(mesh, eina_file_open(file->path, 0), NULL); \
+       save_ok = efl_file_save(mesh, buffer, NULL, NULL);              \
        fail_if(!set_ok);                                                \
        fail_if(!save_ok);                                               \
-       eo_do(mesh2, set_ok = efl_file_mmap_set(eina_file_open(buffer, 0), NULL)); \
+       set_ok = efl_file_mmap_set(mesh2, eina_file_open(buffer, 0), NULL); \
        fail_if(!set_ok);                                                \
        res = _compare_meshes(mesh, mesh2);                              \
        fail_if(res == 1);                                               \
@@ -105,9 +106,18 @@ static int _compare_meshes(Evas_Canvas3D_Mesh *mesh1, Evas_Canvas3D_Mesh *mesh2)
    if ((pd1->vertex_count) != (pd2->vertex_count))
       return 1;
 
+#ifdef __clang__
+#pragma clang diagnostic push
+#pragma clang diagnostic ignored "-Wtautological-compare"
+#endif
+
    COMPARE_GEOMETRICS(EVAS_CANVAS3D_VERTEX_ATTRIB_POSITION)
    COMPARE_GEOMETRICS(EVAS_CANVAS3D_VERTEX_ATTRIB_NORMAL)
    COMPARE_GEOMETRICS(EVAS_CANVAS3D_VERTEX_ATTRIB_TEXCOORD)
+
+#ifdef __clang__
+#pragma clang diagnostic pop
+#endif
 
    return 0;
 }

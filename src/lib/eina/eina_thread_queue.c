@@ -6,6 +6,9 @@
 #include "Eina.h"
 #include "eina_thread_queue.h"
 #include "eina_safety_checks.h"
+#include "eina_log.h"
+
+#include "eina_private.h"
 
 #ifdef __ATOMIC_RELAXED
 #define ATOMIC 1
@@ -69,9 +72,20 @@ struct _Eina_Thread_Queue_Msg_Block
 // a pool of spare message blocks that are only of the minimum size so we
 // avoid reallocation via malloc/free etc. to avoid free memory pages and
 // pressure on the malloc subsystem
+static int _eina_thread_queue_log_dom = -1;
 static int _eina_thread_queue_block_pool_count = 0;
 static Eina_Spinlock _eina_thread_queue_block_pool_lock;
 static Eina_Thread_Queue_Msg_Block *_eina_thread_queue_block_pool = NULL;
+
+#ifdef ERR
+# undef ERR
+#endif
+#define ERR(...) EINA_LOG_DOM_ERR(_eina_thread_queue_log_dom, __VA_ARGS__)
+
+#ifdef DBG
+# undef DBG
+#endif
+#define DBG(...) EINA_LOG_DOM_DBG(_eina_thread_queue_log_dom, __VA_ARGS__)
 
 // api's to get message blocks from the pool or put them back in
 static Eina_Thread_Queue_Msg_Block *
@@ -102,7 +116,11 @@ _eina_thread_queue_msg_block_new(int size)
    blk = malloc(sizeof(Eina_Thread_Queue_Msg_Block) -
                 sizeof(Eina_Thread_Queue_Msg) +
                 size);
-   if (!blk) return NULL;
+   if (!blk)
+     {
+        ERR("Thread queue block buffer of size %i allocation failed", size);
+        return NULL;
+     }
    blk->next = NULL;
 #ifndef ATOMIC
    eina_spinlock_new(&(blk->lock_ref));
@@ -119,8 +137,12 @@ _eina_thread_queue_msg_block_new(int size)
 static void
 _eina_thread_queue_msg_block_real_free(Eina_Thread_Queue_Msg_Block *blk)
 {
+   eina_lock_take(&(blk->lock_non_0_ref));
+   eina_lock_release(&(blk->lock_non_0_ref));
    eina_lock_free(&(blk->lock_non_0_ref));
 #ifndef ATOMIC
+   eina_lock_take(&(blk->lock_ref));
+   eina_lock_release(&(blk->lock_ref));
    eina_spinlock_free(&(blk->lock_ref));
 #endif
    free(blk);
@@ -148,10 +170,10 @@ _eina_thread_queue_msg_block_free(Eina_Thread_Queue_Msg_Block *blk)
    else _eina_thread_queue_msg_block_real_free(blk);
 }
 
-static void
+static Eina_Bool
 _eina_thread_queue_msg_block_pool_init(void)
 {
-   eina_spinlock_new(&_eina_thread_queue_block_pool_lock);
+   return eina_spinlock_new(&_eina_thread_queue_block_pool_lock);
 }
 
 static void
@@ -171,6 +193,7 @@ _eina_thread_queue_msg_block_pool_shutdown(void)
              _eina_thread_queue_block_pool = blknext;
           }
      }
+   eina_spinlock_release(&(_eina_thread_queue_block_pool_lock));
    eina_spinlock_free(&_eina_thread_queue_block_pool_lock);
 }
 
@@ -178,13 +201,15 @@ _eina_thread_queue_msg_block_pool_shutdown(void)
 static void
 _eina_thread_queue_wait(Eina_Thread_Queue *thq)
 {
-   eina_semaphore_lock(&(thq->sem));
+   if (!eina_semaphore_lock(&(thq->sem)))
+     ERR("Thread queue semaphore lock/wait failed - bad things will happen");
 }
 
 static void
 _eina_thread_queue_wake(Eina_Thread_Queue *thq)
 {
-   eina_semaphore_release(&(thq->sem), 1);
+   if (!eina_semaphore_release(&(thq->sem), 1))
+     ERR("Thread queue semaphore release/wakeup faile - bad things will happen");
 }
 
 // how to allocate or release memory within one of the message blocks for
@@ -334,7 +359,18 @@ _eina_thread_queue_msg_fetch_done(Eina_Thread_Queue_Msg_Block *blk)
 Eina_Bool
 eina_thread_queue_init(void)
 {
-   _eina_thread_queue_msg_block_pool_init();
+   _eina_thread_queue_log_dom = eina_log_domain_register("eina_thread_queue",
+                                                         EINA_LOG_COLOR_DEFAULT);
+   if (_eina_thread_queue_log_dom < 0)
+     {
+        EINA_LOG_ERR("Could not register log domain: eina_thread_queue");
+        return EINA_FALSE;
+     }
+   if (!_eina_thread_queue_msg_block_pool_init())
+     {
+        ERR("Cannot init thread queue block pool spinlock");
+        return EINA_FALSE;
+     }
    return EINA_TRUE;
 }
 
@@ -342,6 +378,7 @@ Eina_Bool
 eina_thread_queue_shutdown(void)
 {
    _eina_thread_queue_msg_block_pool_shutdown();
+   eina_log_domain_unregister(_eina_thread_queue_log_dom);
    return EINA_TRUE;
 }
 
@@ -351,9 +388,18 @@ eina_thread_queue_new(void)
    Eina_Thread_Queue *thq;
 
    thq = calloc(1, sizeof(Eina_Thread_Queue));
-   if (!thq) return NULL;
+   if (!thq)
+     {
+        ERR("Allocation of Thread queue structure failed");
+        return NULL;
+     }
    thq->fd = -1;
-   eina_semaphore_new(&(thq->sem), 0);
+   if (!eina_semaphore_new(&(thq->sem), 0))
+     {
+        ERR("Cannot init new semaphore for eina_threadqueue");
+        free(thq);
+        return NULL;
+     }
    RWLOCK_NEW(&(thq->lock_read));
    RWLOCK_NEW(&(thq->lock_write));
 #ifndef ATOMIC
@@ -418,7 +464,7 @@ eina_thread_queue_send_done(Eina_Thread_Queue *thq, void *allocref)
      {
         char dummy = 0;
         if (write(thq->fd, &dummy, 1) != 1)
-          fprintf(stderr, "Eina Threadqueue write to fd %i failed\n", thq->fd);
+          ERR("Eina Threadqueue write to fd %i failed", thq->fd);
      }
 }
 
@@ -481,9 +527,9 @@ eina_thread_queue_pending_get(const Eina_Thread_Queue *thq)
 #ifdef ATOMIC
    __atomic_load(&(thq->pending), &pending, __ATOMIC_RELAXED);
 #else
-   eina_spinlock_take(&(thq->lock_pending));
+   eina_spinlock_take((Eina_Spinlock *)&(thq->lock_pending));
    pending = thq->pending;
-   eina_spinlock_release(&(thq->lock_pending));
+   eina_spinlock_release((Eina_Spinlock *)&(thq->lock_pending));
 #endif
    return pending;
 }

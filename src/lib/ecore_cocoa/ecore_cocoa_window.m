@@ -6,7 +6,6 @@
 
 #include <Ecore.h>
 #include <Ecore_Cocoa.h>
-#include <Ecore_Cocoa_Cursor.h>
 #import "ecore_cocoa_window.h"
 #import "ecore_cocoa_app.h"
 #include "ecore_cocoa_private.h"
@@ -35,6 +34,8 @@ static NSCursor *_cursors[__ECORE_COCOA_CURSOR_LAST];
 
    [self setCollectionBehavior:NSWindowCollectionBehaviorFullScreenPrimary];
 
+   _live_resize = 0;
+
    return self;
 }
 
@@ -55,8 +56,7 @@ static NSCursor *_cursors[__ECORE_COCOA_CURSOR_LAST];
 
 - (void)windowWillClose:(NSNotification *) notification
 {
-   NSLog(@"window is going to be closed");
-   Ecore_Cocoa_Event_Window *event;
+   Ecore_Cocoa_Event_Window_Destroy *event;
 
    event = malloc(sizeof(*event));
    if (EINA_UNLIKELY(event == NULL))
@@ -64,42 +64,50 @@ static NSCursor *_cursors[__ECORE_COCOA_CURSOR_LAST];
         CRI("Failed to allocate Ecore_Cocoa_Event_Window");
         return;
      }
-   event->wid = [notification object];
+   event->cocoa_window = [notification object];
    ecore_event_add(ECORE_COCOA_EVENT_WINDOW_DESTROY, event, NULL, NULL);
 }
 
 - (void)windowDidResize:(NSNotification *) notif
 {
-   Ecore_Cocoa_Event_Video_Resize *event;
+   Ecore_Cocoa_Event_Window_Resize_Request *event;
    NSSize size = self.frame.size;
 
-   event = malloc(sizeof(*event));
-   if (EINA_UNLIKELY(event == NULL))
-     {
-        CRI("Failed to allocate Ecore_Cocoa_Event_Video_Resize");
-        return;
-     }
-   event->w = size.width;
-   event->h = size.height -
-      (([self isFullScreen] == YES) ? 0 : ecore_cocoa_titlebar_height_get());
-   event->wid = [notif object];
-   ecore_event_add(ECORE_COCOA_EVENT_RESIZE, event, NULL, NULL);
-
    /*
-    * During live resize, NSRunLoop blocks, and prevent the ecore_main_loop
-    * to be run.
-    * This, combined with the -pauseNSRunLoopMonitoring and
-    * -resumeNSRunLoopMonitoring methods invoked in
-    * -windowWillStartLiveResize and -windowDidEndLiveResize
-    * allow the ecore_main_loop to run withing NSRunLoop during the
-    * live resizing of a window.
+    * Only throw a resize event and manipulate the main loop when
+    * we are 100% sure we are in a live resize, and the main loop
+    * has already been paused!!
     */
-   ecore_main_loop_iterate();
+   if (_live_resize > 0)
+     {
+        event = malloc(sizeof(*event));
+        if (EINA_UNLIKELY(event == NULL))
+          {
+             CRI("Failed to allocate Ecore_Cocoa_Event_Window_Resize_Request");
+             return;
+          }
+        event->w = size.width;
+        event->h = size.height -
+           (([self isFullScreen] == YES) ? 0 : ecore_cocoa_titlebar_height_get());
+        event->cocoa_window = [notif object];
+        ecore_event_add(ECORE_COCOA_EVENT_WINDOW_RESIZE_REQUEST, event, NULL, NULL);
+
+        /*
+         * During live resize, NSRunLoop blocks, and prevent the ecore_main_loop
+         * to be run.
+         * This, combined with the -pauseNSRunLoopMonitoring and
+         * -resumeNSRunLoopMonitoring methods invoked in
+         * -windowWillStartLiveResize and -windowDidEndLiveResize
+         * allow the ecore_main_loop to run withing NSRunLoop during the
+         * live resizing of a window.
+         */
+        ecore_main_loop_iterate();
+     }
 }
 
 - (void)windowDidBecomeKey:(NSNotification *)notification
 {
-   Ecore_Cocoa_Event_Window *e;
+   Ecore_Cocoa_Event_Window_Focused *e;
 
    e = malloc(sizeof(*e));
    if (EINA_UNLIKELY(e == NULL))
@@ -107,23 +115,27 @@ static NSCursor *_cursors[__ECORE_COCOA_CURSOR_LAST];
         CRI("Failed to allocate Ecore_Cocoa_Event_Window");
         return;
      }
-   e->wid = [notification object];
-   ecore_event_add(ECORE_COCOA_EVENT_GOT_FOCUS, e, NULL, NULL);
+   e->cocoa_window = [notification object];
+   ecore_event_add(ECORE_COCOA_EVENT_WINDOW_FOCUSED, e, NULL, NULL);
 }
 
 - (void) windowWillStartLiveResize:(NSNotification *) EINA_UNUSED notification
 {
+   /* Live resize must be set AFTER pausing the main loop */
    [NSApp pauseNSRunLoopMonitoring];
+   _live_resize++;
 }
 
 - (void) windowDidEndLiveResize:(NSNotification *) EINA_UNUSED notification
 {
+   /* Live resize must be clear BEFORE resuming the main loop */
+   _live_resize--;
    [NSApp resumeNSRunLoopMonitoring];
 }
 
 - (void)windowDidResignKey:(NSNotification *)notification
 {
-   Ecore_Cocoa_Event_Window *e;
+   Ecore_Cocoa_Event_Window_Unfocused *e;
 
    e = malloc(sizeof(*e));
    if (EINA_UNLIKELY(e == NULL))
@@ -131,8 +143,8 @@ static NSCursor *_cursors[__ECORE_COCOA_CURSOR_LAST];
         CRI("Failed to allocate Ecore_Cocoa_Event_Window");
         return;
      }
-   e->wid = [notification object];
-   ecore_event_add(ECORE_COCOA_EVENT_LOST_FOCUS, e, NULL, NULL);
+   e->cocoa_window = [notification object];
+   ecore_event_add(ECORE_COCOA_EVENT_WINDOW_UNFOCUSED, e, NULL, NULL);
 }
 
 - (void) mouseDown:(NSEvent*) event
@@ -279,6 +291,10 @@ static NSCursor *_cursors[__ECORE_COCOA_CURSOR_LAST];
    ev->event_window = ev->window;
    ev->modifiers = 0; /* FIXME: keep modifier around. */
 
+   ev->multi.device = 0;
+   ev->multi.x = ev->x;
+   ev->multi.y = ev->y;
+
    ecore_event_add(ECORE_EVENT_MOUSE_MOVE, ev, NULL, NULL);
 }
 
@@ -292,19 +308,18 @@ static NSCursor *_cursors[__ECORE_COCOA_CURSOR_LAST];
 EAPI Ecore_Cocoa_Window *
 ecore_cocoa_window_new(int x,
                        int y,
-                       int width,
-                       int height)
+                       int w,
+                       int h)
 {
-   Ecore_Cocoa_Window *w;
+   Ecore_Cocoa_Window *win;
    EcoreCocoaWindow *window;
-   NSRect frame = NSMakeRect(x, y, width, height);
    NSUInteger style =
       NSTitledWindowMask        |
       NSClosableWindowMask      |
       NSResizableWindowMask     |
       NSMiniaturizableWindowMask;
 
-   window = [[EcoreCocoaWindow alloc] initWithContentRect:frame
+   window = [[EcoreCocoaWindow alloc] initWithContentRect:NSMakeRect(x, y, w, h)
                                                 styleMask:style
                                                 backing:NSBackingStoreBuffered
                                                   defer:NO];
@@ -314,19 +329,19 @@ ecore_cocoa_window_new(int x,
         return NULL;
      }
 
-   w = calloc(1, sizeof(Ecore_Cocoa_Window));
-   if (EINA_UNLIKELY(w == NULL))
+   win = calloc(1, sizeof(*win));
+   if (EINA_UNLIKELY(win == NULL))
      {
         CRI("Failed to allocate Ecore_Cocoa_Window");
         [window release];
         return NULL;
      }
-   w->window = window;
-   w->borderless = 0;
+   win->window = window;
+   win->borderless = 0;
 
-   window.ecore_window_data = w;
+   window.ecore_window_data = win;
 
-   return w;
+   return win;
 }
 
 EAPI void
@@ -341,8 +356,8 @@ ecore_cocoa_window_free(Ecore_Cocoa_Window *window)
 
 EAPI void
 ecore_cocoa_window_size_min_set(Ecore_Cocoa_Window *window,
-                                unsigned int w,
-                                unsigned int h)
+                                int                 w,
+                                int                 h)
 {
    EINA_SAFETY_ON_NULL_RETURN(window);
 
@@ -350,9 +365,21 @@ ecore_cocoa_window_size_min_set(Ecore_Cocoa_Window *window,
 }
 
 EAPI void
+ecore_cocoa_window_size_min_get(const Ecore_Cocoa_Window *window,
+                                int                      *w,
+                                int                      *h)
+{
+   EINA_SAFETY_ON_NULL_RETURN(window);
+
+   const NSSize size = window->window.contentMinSize;
+   if (w) *w = size.width;
+   if (h) *h = size.height;
+}
+
+EAPI void
 ecore_cocoa_window_size_max_set(Ecore_Cocoa_Window *window,
-                                unsigned int w,
-                                unsigned int h)
+                                int                 w,
+                                int                 h)
 {
    EINA_SAFETY_ON_NULL_RETURN(window);
 
@@ -360,13 +387,37 @@ ecore_cocoa_window_size_max_set(Ecore_Cocoa_Window *window,
 }
 
 EAPI void
+ecore_cocoa_window_size_max_get(const Ecore_Cocoa_Window *window,
+                                int                      *w,
+                                int                      *h)
+{
+   EINA_SAFETY_ON_NULL_RETURN(window);
+
+   const NSSize size = window->window.contentMaxSize;
+   if (w) *w = size.width;
+   if (h) *h = size.height;
+}
+
+EAPI void
 ecore_cocoa_window_size_step_set(Ecore_Cocoa_Window *window,
-                                 unsigned int w,
-                                 unsigned int h)
+                                 int                 w,
+                                 int                 h)
 {
    EINA_SAFETY_ON_NULL_RETURN(window);
 
    window->window.contentResizeIncrements = NSMakeSize(w, h);
+}
+
+EAPI void
+ecore_cocoa_window_size_step_get(const Ecore_Cocoa_Window *window,
+                                 int                      *w,
+                                 int                      *h)
+{
+   EINA_SAFETY_ON_NULL_RETURN(window);
+
+   const NSSize size = window->window.contentResizeIncrements;
+   if (w) *w = size.width;
+   if (h) *h = size.height;
 }
 
 EAPI void
@@ -387,36 +438,64 @@ ecore_cocoa_window_move(Ecore_Cocoa_Window *window,
 
 EAPI void
 ecore_cocoa_window_resize(Ecore_Cocoa_Window *window,
-                          int                 width,
-                          int                 height)
+                          int                 w,
+                          int                 h)
 {
    EINA_SAFETY_ON_NULL_RETURN(window);
 
    NSRect win_frame;
 
    win_frame = [window->window frame];
-   win_frame.size.height = height +
+   win_frame.size.height = h +
       (([window->window isFullScreen] == YES) ? 0 : ecore_cocoa_titlebar_height_get());
-   win_frame.size.width = width;
+   win_frame.size.width = w;
 
    [window->window setFrame:win_frame display:YES];
+}
+
+EAPI void
+ecore_cocoa_window_geometry_get(const Ecore_Cocoa_Window *window,
+                                int                      *x,
+                                int                      *y,
+                                int                      *w,
+                                int                      *h)
+{
+   EINA_SAFETY_ON_NULL_RETURN(window);
+
+   const NSRect frame = window->window.frame;
+   if (x) *x = frame.origin.x;
+   if (y) *y = frame.origin.y;
+   if (w) *w = frame.size.width;
+   if (h) *h = frame.size.height;
+}
+
+EAPI void
+ecore_cocoa_window_size_get(const Ecore_Cocoa_Window *window,
+                            int                      *w,
+                            int                      *h)
+{
+   EINA_SAFETY_ON_NULL_RETURN(window);
+
+   const NSSize size = window->window.frame.size;
+   if (w) *w = size.width;
+   if (h) *h = size.height;
 }
 
 EAPI void
 ecore_cocoa_window_move_resize(Ecore_Cocoa_Window *window,
                                int                 x,
                                int                 y,
-                               int                 width,
-                               int                 height)
+                               int                 w,
+                               int                 h)
 {
    EINA_SAFETY_ON_NULL_RETURN(window);
 
    NSRect win_frame;
 
    win_frame = [window->window frame];
-   win_frame.size.height = height +
+   win_frame.size.height = h +
       (([window->window isFullScreen] == YES) ? 0 : ecore_cocoa_titlebar_height_get());
-   win_frame.size.width = width;
+   win_frame.size.width = w;
    win_frame.origin.x = x;
    win_frame.origin.y = y;
 
@@ -446,7 +525,7 @@ ecore_cocoa_window_hide(Ecore_Cocoa_Window *window)
 {
    EINA_SAFETY_ON_NULL_RETURN(window);
 
-   if (![window->window isVisible])
+   if ([window->window isVisible])
      [window->window orderOut:NSApp];
 }
 
@@ -473,7 +552,7 @@ ecore_cocoa_window_activate(Ecore_Cocoa_Window *window)
 
 EAPI void
 ecore_cocoa_window_iconified_set(Ecore_Cocoa_Window *window,
-                                 int                 on)
+                                 Eina_Bool           on)
 {
    EINA_SAFETY_ON_NULL_RETURN(window);
 
@@ -489,18 +568,22 @@ ecore_cocoa_window_iconified_set(Ecore_Cocoa_Window *window,
 
 EAPI void
 ecore_cocoa_window_borderless_set(Ecore_Cocoa_Window *window,
-                                  int                 on)
+                                  Eina_Bool           on)
 {
    EINA_SAFETY_ON_NULL_RETURN(window);
 
    if (on)
      [window->window setContentBorderThickness:0.0
                                        forEdge:NSMinXEdge | NSMinYEdge | NSMaxXEdge | NSMaxYEdge];
+   else
+     {
+        // TODO
+     }
 }
 
 EAPI void
 ecore_cocoa_window_view_set(Ecore_Cocoa_Window *window,
-                            void *view)
+                            Ecore_Cocoa_Object *view)
 {
    EINA_SAFETY_ON_NULL_RETURN(window);
    EINA_SAFETY_ON_NULL_RETURN(view);
@@ -520,8 +603,8 @@ ecore_cocoa_window_view_set(Ecore_Cocoa_Window *window,
    [area release];
 }
 
-EAPI Ecore_Cocoa_Window_Id
-ecore_cocoa_window_get_window_id(const Ecore_Cocoa_Window *window)
+EAPI Ecore_Cocoa_Object *
+ecore_cocoa_window_get(const Ecore_Cocoa_Window *window)
 {
    EINA_SAFETY_ON_NULL_RETURN_VAL(window, NULL);
    return window->window;

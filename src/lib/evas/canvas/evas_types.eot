@@ -1,80 +1,8 @@
+type @extern Evas.Load_Error: int; /* FIXME: Need to migrate emile. */
+struct @extern Evas.Video_Surface; /* FIXME: The structure is full of the unsupported func pointers. */
+
 type Evas.Modifier_Mask: ullong;  [[An Evas modifier mask type]]
 type Evas.Coord: int; [[A type for coordinates]]
-enum Evas.Aspect_Control {
-   [[Aspect types/policies for scaling size hints, used for
-     evas_object_size_hint_aspect_set()]]
-   none = 0, [[Preference on scaling unset]]
-   neither = 1, [[Same effect as unset preference on scaling]]
-   horizontal = 2, [[Use all horizontal container space to place an object,
-                     using the given aspect]]
-   vertical = 3, [[Use all vertical container space to place an object, using
-                   the given aspect]]
-   both = 4 [[Use all horizontal and vertical container spaces to place an
-              object (never growing it out of those bounds), using the given
-              aspect]]
-}
-
-enum Evas.Render_Op {
-   [[How the object should be rendered to output.]]
-   legacy: Evas_Render;
-
-   blend = 0,     [[Default render operation: d = d*(1-sa) + s. The object will be merged onto the bottom objects using simple alpha compositing (a over b).]]
-   blend_rel = 1, [[DEPRECATED. d = d*(1 - sa) + s*da]]
-   copy = 2,      [[Copy mode, d = s. The object's pixels will replace everything that was below, effectively hiding them.]]
-   copy_rel = 3,  [[DEPRECATED. d = s*da]]
-   add = 4,       [[DEPRECATED. d = d + s]]
-   add_rel = 5,   [[DEPRECATED. d = d + s*da]]
-   sub = 6,       [[DEPRECATED. d = d - s]]
-   sub_rel = 7,   [[DEPRECATED. d = d - s*da]]
-   tint = 8,      [[DEPRECATED. d = d*s + d*(1 - sa) + s*(1 - da)]]
-   tint_rel = 9,  [[DEPRECATED. d = d*(1 - sa + s)]]
-   mask = 10,     [[DEPRECATED. d = d*sa. For masking support, please use Evas.Object.clip_set or EDC "clip_to" instead.]]
-   mul = 11       [[DEPRECATED. d = d*s]]
-}
-
-enum Evas.Object_Pointer_Mode {
-   [[How the mouse pointer should be handled by Evas.
-
-     In the mode #EVAS_OBJECT_POINTER_MODE_AUTOGRAB, when a mouse button
-     is pressed down over an object and held, with the mouse pointer
-     being moved outside of it, the pointer still behaves as being bound
-     to that object, albeit out of its drawing region. When the button
-     is released, the event will be fed to the object, that may check if
-     the final position is over it or not and do something about it.
-
-     In the mode #EVAS_OBJECT_POINTER_MODE_NOGRAB, the pointer will
-     always be bound to the object right below it.
-   ]]
-   autograb, [[default, X11-like]]
-   nograb, [[pointer always bound to the object right below it]]
-   nograb_no_repeat_updown [[useful on object with "repeat events" enabled,
-                             where mouse/touch up and down events WONT be
-                             repeated to objects and these objects wont be
-                             auto-grabbed.
-
-                             @since 1.2
-                           ]]
-}
-
-enum Evas.Display_Mode {
-   none = 0, [[Default mode]]
-   compress = 1, [[Use this mode when you want to give compress display mode
-                   hint to an object]]
-   expand = 2, [[Use this mode when you want to give expand display mode hint
-                 to an object]]
-   dont_change = 3 [[Use this mode when an object should not change its display
-                     mode]]
-}
-
-enum Evas.BiDi_Direction {
-   /* BiDi exposed stuff */
-   /*FIXME: document */
-   natural = 0,
-   neutral = 0,
-   ltr,
-   rtl,
-   inherit
-}
 
 enum Evas.Text_Style_Type {
    [[Types of styles to be applied on text objects. The
@@ -114,30 +42,6 @@ enum Evas.Font.Hinting_Flags {
    none, [[No font hinting]]
    auto, [[Automatic font hinting]]
    bytecode [[Bytecode font hinting]]
-}
-
-struct Evas.Map; [[An opaque handle to map points
-
-                   See \@ref evas_map_new, \@ref evas_map_free,
-                   \@ref evas_map_dup.
-                 ]]
-
-enum Evas.Button_Flags {
-   [[Flags for Mouse Button events]]
-   legacy: Evas_Button;
-
-   none = 0, [[No extra mouse button data]]
-   double_click = (1 << 0), [[This mouse button press was the 2nd press of a double click]]
-   triple_click = (1 << 1) [[This mouse button press was the 3rd press of a triple click]]
-}
-
-enum Evas.Event_Flags {
-   [[Flags for Events]]
-   legacy: Evas_Event_Flag;
-
-   none = 0, [[No fancy flags set]]
-   on_hold = (1 << 0), [[This event is being delivered but should be put "on hold" until the on hold flag is unset. The event should be used for informational purposes and maybe some indications visually, but not actually perform anything]]
-   on_scroll = (1 << 1) [[This event flag indicates the event occurs while scrolling; for example, DOWN event occurs during scrolling; the event should be used for informational purposes and maybe some indications visually, but not actually perform anything]]
 }
 
 enum Evas.Touch_Point_State {
@@ -224,6 +128,31 @@ enum Evas.Callback_Type
    last [[kept as last element/sentinel -- not really an event]]
 }
 
+enum Evas.Image.Orient
+{
+   [[Possible orientation options for evas_object_image_orient_set().
+     @since 1.14]]
+   legacy: evas_image;
+   orient_none = 0, [[no orientation change]]
+   orient_0 = 0, [[no orientation change]]
+   orient_90 = 1, [[orient 90 degrees clockwise]]
+   orient_180 = 2, [[orient 180 degrees clockwise]]
+   orient_270 = 3, [[rotate 90 degrees counter-clockwise (i.e. 270 degrees clockwise)]]
+   flip_horizontal = 4, [[flip image horizontally]]
+   flip_vertical = 5, [[flip image vertically]]
+   flip_transpose = 6, [[flip image along the y = (width - x) line (bottom-left to top-right)]]
+   flip_transverse = 7 [[flip image along the y = x line (top-left to bottom-right)]]
+}
+
+enum Evas.Border_Fill_Mode
+{
+   [[How an image's center region (the complement to the border region) should be rendered by Evas]]
+   legacy: evas_border_fill;
+   none = 0, [[Image's center region is $b not to be rendered]]
+   default = 1, [[Image's center region is to be $b blended with objects underneath it, if it has transparency. This is the default behavior for image objects]]
+   solid = 2 [[Image's center region is to be made solid, even if it has transparency on it]]
+}
+
 struct Evas.Modifier; [[An opaque type containing information on which modifier keys are registered in an Evas canvas]]
 struct Evas.Lock; [[An opaque type containing information on which lock keys are registered in an Evas canvas]]
 struct Evas.Engine_Info; [[A generic Evas Engine information structure]]
@@ -266,6 +195,7 @@ enum Evas.Canvas3D.State
    scene_shadows_enabled,
    scene_updated, [[@since 1.14]]
    scene_shadows_depth,
+   scene_render_to_texture,
 
    texture_data = 1,
    texture_wrap,
@@ -282,7 +212,7 @@ enum Evas.Canvas3D.State
    mesh_vertex_data,
    mesh_index_data,
    mesh_vertex_assembly,
-   mesh_shade_mode,
+   mesh_shader_mode,
    mesh_fog,
    mesh_blending,
    mesh_alpha_test,
@@ -307,7 +237,7 @@ enum Evas.Canvas3D.State
    node_mesh_geometry,
    node_mesh_material,
    node_mesh_frame,
-   node_mesh_shade_mode,
+   node_mesh_shader_mode,
    node_mesh_material_id,
    node_light,
    node_camera,
@@ -315,7 +245,8 @@ enum Evas.Canvas3D.State
    node_parent_orientation,
    node_parent_scale,
    node_member,
-   node_parent_billboard [[@since 1.14]]
+   node_parent_billboard, [[@since 1.14]]
+   node_lod [[@since 1.18]]
 }
 
 enum Evas.Canvas3D.Space
@@ -450,19 +381,20 @@ enum Evas.Canvas3D.Primitive_Mode
    alternative_uv [[Ptimitive with alternative uv (supported for sphere)]]
 }
 
-enum Evas.Canvas3D.Shade_Mode
+enum Evas.Canvas3D.Shader_Mode
 {
    [[Shader shade modes
 
     @since 1.10]]
-   vertex_color = 0,  [[Shaded using vertex color attribute]]
-   diffuse,           [[Shaded using material diffuse term]]
-   flat,              [[Per-vertex flat lighting]]
-   phong,             [[Per-pixel phong shading]]
-   normal_map,        [[Per-pixel normal map shading]]
-   shadow_map_render, [[Fragment color is defined by its z-coord]]
-   color_pick,        [[Rendering to additional frame bufer]]
-   parallax_occlusion [[Per-pixel parallax occlusion map shading]]
+   vertex_color = 0,    [[Shaded using vertex color attribute]]
+   diffuse,             [[Shaded using material diffuse term]]
+   flat,                [[Per-vertex flat lighting]]
+   phong,               [[Per-pixel phong shading]]
+   normal_map,          [[Per-pixel normal map shading]]
+   shadow_map_render,   [[Fragment color is defined by its z-coord]]
+   color_pick,          [[Rendering to additional frame bufer]]
+   parallax_occlusion,  [[Per-pixel parallax occlusion map shading]]
+   post_processing_FXAA [[Render full screen quard]]
 }
 
 enum Evas.Canvas3D.Vertex_Attrib
@@ -513,3 +445,5 @@ enum Evas.Canvas3D.Material_Attrib
 }
 
 type Evas.Canvas3D.Surface_Func: __undefined_type;
+
+struct Efl.Canvas.Text.Annotation;

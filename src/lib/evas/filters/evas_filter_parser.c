@@ -2202,8 +2202,13 @@ _lua_print(lua_State *L)
         lua_getglobal(L, _lua_errfunc_name);
         lua_getglobal(L, "tostring"); //+1
         lua_pushvalue(L, i); //+1
-        lua_pcall(L, 1, 1, -3); //-2/+1
-        str = lua_tostring(L, -1);
+        if (lua_pcall(L, 1, 1, -3) == 0) //-2/+1
+          str = lua_tostring(L, -1);
+        else
+          {
+             ERR("tostring() failed inside print(): %s", lua_tostring(L, -1));
+             str = "(invalid)";
+          }
         eina_strbuf_append(s, str ? str : "(nil)");
         lua_pop(L, 2);
         eina_strbuf_append_char(s, ' ');
@@ -2352,7 +2357,7 @@ _filter_program_buffers_set(Evas_Filter_Program *pgm)
                   Evas_Filter_Proxy_Binding *bind = tup->data;
                   Evas_Object_Protected_Data *obj;
 
-                  obj = eo_data_scope_get(bind->eo_source, EVAS_OBJECT_CLASS);
+                  obj = eo_data_scope_get(bind->eo_source, EFL_CANVAS_OBJECT_CLASS);
                   buf->w = obj->cur->geometry.w;
                   buf->h = obj->cur->geometry.h;
                }
@@ -2726,7 +2731,10 @@ _filter_program_state_set(Evas_Filter_Program *pgm)
                {
                   if (db->execute)
                     {
-                       if (luaL_dostring(L, db->value) != 0)
+                       char *buf = alloca(strlen(db->name) + strlen(db->value) + 4);
+                       if (!buf) return EINA_FALSE;
+                       sprintf(buf, "%s = %s", db->name, db->value);
+                       if (luaL_dostring(L, buf) != 0)
                          {
                             ERR("Failed to run value: %s", lua_tostring(L, -1));
                             return EINA_FALSE;
@@ -2871,7 +2879,7 @@ _buffers_update(Evas_Filter_Context *ctx, Evas_Filter_Program *pgm)
              fb->source_name = eina_stringshare_ref(pb->name);
              fb->ctx->has_proxies = EINA_TRUE;
 
-             source = eo_data_scope_get(fb->source, EVAS_OBJECT_CLASS);
+             source = eo_data_scope_get(fb->source, EFL_CANVAS_OBJECT_CLASS);
              if ((source->cur->geometry.w != buf->w) ||
                  (source->cur->geometry.h != buf->h))
                pgm->changed = EINA_TRUE;
@@ -2990,31 +2998,14 @@ evas_filter_program_state_set(Evas_Filter_Program *pgm, Evas_Object *eo_obj,
    pgm->state.next.name = next_state;
    pgm->state.next.value = next_val;
 
-   eo_do(eo_obj,
-         efl_gfx_color_get(&pgm->state.color.r,
-                           &pgm->state.color.g,
-                           &pgm->state.color.b,
-                           &pgm->state.color.a));
+   efl_gfx_color_get(eo_obj, &pgm->state.color.r, &pgm->state.color.g, &pgm->state.color.b, &pgm->state.color.a);
 
    if (eo_isa(eo_obj, EVAS_TEXT_CLASS))
      {
-        eo_do(eo_obj,
-              evas_obj_text_shadow_color_get(&pgm->state.text.shadow.r,
-                                             &pgm->state.text.shadow.g,
-                                             &pgm->state.text.shadow.b,
-                                             &pgm->state.text.shadow.a),
-              evas_obj_text_outline_color_get(&pgm->state.text.outline.r,
-                                              &pgm->state.text.outline.g,
-                                              &pgm->state.text.outline.b,
-                                              &pgm->state.text.outline.a),
-              evas_obj_text_glow_color_get(&pgm->state.text.glow.r,
-                                           &pgm->state.text.glow.g,
-                                           &pgm->state.text.glow.b,
-                                           &pgm->state.text.glow.a),
-              evas_obj_text_glow2_color_get(&pgm->state.text.glow2.r,
-                                            &pgm->state.text.glow2.g,
-                                            &pgm->state.text.glow2.b,
-                                            &pgm->state.text.glow2.a));
+        evas_obj_text_shadow_color_get(eo_obj, &pgm->state.text.shadow.r, &pgm->state.text.shadow.g, &pgm->state.text.shadow.b, &pgm->state.text.shadow.a);
+        evas_obj_text_outline_color_get(eo_obj, &pgm->state.text.outline.r, &pgm->state.text.outline.g, &pgm->state.text.outline.b, &pgm->state.text.outline.a);
+        evas_obj_text_glow_color_get(eo_obj, &pgm->state.text.glow.r, &pgm->state.text.glow.g, &pgm->state.text.glow.b, &pgm->state.text.glow.a);
+        evas_obj_text_glow2_color_get(eo_obj, &pgm->state.text.glow2.r, &pgm->state.text.glow2.g, &pgm->state.text.glow2.b, &pgm->state.text.glow2.a);
      }
 
    if (memcmp(&old_state, &pgm->state, sizeof(Evas_Filter_Program_State)) != 0)

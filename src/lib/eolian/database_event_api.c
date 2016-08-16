@@ -40,13 +40,29 @@ eolian_event_is_beta(const Eolian_Event *event)
    return event->is_beta;
 }
 
+EAPI Eina_Bool
+eolian_event_is_hot(const Eolian_Event *event)
+{
+   EINA_SAFETY_ON_NULL_RETURN_VAL(event, EINA_FALSE);
+   return event->is_hot;
+}
+
+EAPI Eina_Bool
+eolian_event_is_restart(const Eolian_Event *event)
+{
+   EINA_SAFETY_ON_NULL_RETURN_VAL(event, EINA_FALSE);
+   return event->is_restart;
+}
+
 EAPI Eina_Stringshare *
 eolian_event_c_name_get(const Eolian_Event *event)
 {
     char  buf[512];
     char *tmp = buf;
-    snprintf(buf, sizeof(buf), "%s_EVENT_%s", event->klass->full_name,
-             event->name);
+    const char *pfx = event->klass->ev_prefix;
+    if (!pfx) pfx = event->klass->eo_prefix;
+    if (!pfx) pfx = event->klass->full_name;
+    snprintf(buf, sizeof(buf), "%s_EVENT_%s", pfx, event->name);
     eina_str_toupper(&tmp);
     while ((tmp = strpbrk(tmp, ".,"))) *tmp = '_';
     return eina_stringshare_add(buf);

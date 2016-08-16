@@ -16,8 +16,8 @@
  * License along with this library;
  * if not, see <http://www.gnu.org/licenses/>.
  */
+#include <Efreet_Mime.h>
 #include "eio_private.h"
-#include "Eio.h"
 
 /*============================================================================*
  *                                  Local                                     *
@@ -56,6 +56,7 @@ static Eina_Spinlock memory_pool_lock;
 static Eina_Lock memory_pool_mutex;
 static Eina_Condition memory_pool_cond;
 static Eina_Bool memory_pool_suspended = 1;
+static Efl_Io_Manager *io_manager = NULL;
 
 static void *
 _eio_pool_malloc(Eio_Alloc_Pool *pool)
@@ -259,6 +260,7 @@ void
 eio_file_unregister(Eio_File *common)
 {
    tracked_thread = eina_list_remove(tracked_thread, common);
+   common->thread = NULL;
 }
 
 /**
@@ -315,9 +317,14 @@ eio_init(void)
 
    eio_monitor_init();
 
+   efreet_mime_init();
+
+   io_manager = eo_add(EFL_IO_MANAGER_CLASS, ecore_main_loop_get());
+   efl_loop_register(ecore_main_loop_get(), EFL_IO_MANAGER_CLASS, io_manager);
+
    eina_log_timing(_eio_log_dom_global,
-		   EINA_LOG_STATE_STOP,
-		   EINA_LOG_STATE_INIT);
+                   EINA_LOG_STATE_STOP,
+                   EINA_LOG_STATE_INIT);
 
    return _eio_init_count;
 
@@ -351,6 +358,9 @@ eio_shutdown(void)
                    EINA_LOG_STATE_START,
                    EINA_LOG_STATE_SHUTDOWN);
 
+   eo_del(io_manager);
+   io_manager = NULL;
+
    EINA_LIST_FOREACH(tracked_thread, l, f)
      ecore_thread_cancel(f->thread);
 
@@ -359,6 +369,8 @@ eio_shutdown(void)
         if (!ecore_thread_wait(f->thread, 0.5))
           CRI("We couldn't terminate in less than 30s some pending IO. This can led to some crash.");
      }
+
+   efreet_mime_shutdown();
 
    eio_monitor_shutdown();
 

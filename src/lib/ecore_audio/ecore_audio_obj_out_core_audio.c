@@ -50,16 +50,6 @@ typedef struct
 #define MY_CLASS ECORE_AUDIO_OUT_CORE_AUDIO_CLASS
 #define MY_CLASS_NAME "Ecore_Audio_Out_Core_Audio"
 
-/*
- * Unused structure. Only here because of Eolian.
- * XXX Maybe it is possible to get rid of it.
- */
-typedef struct
-{
-   void *this_data_is_here_to_silent_warnings;
-} Ecore_Audio_Out_Core_Audio_Data;
-
-
 /*============================================================================*
  *                                 Helper API                                 *
  *============================================================================*/
@@ -185,7 +175,7 @@ _audio_io_proc_cb(AudioObjectID          obj_id         EINA_UNUSED,
 
    if (helper->fake_stereo)
      {
-        eo_do(helper->input, bread = ecore_audio_obj_in_read(buf, size * 2));
+        bread = ecore_audio_obj_in_read(helper->input, buf, size * 2);
 
         for (k = bread - 1; k >= 0; --k)
           {
@@ -196,7 +186,7 @@ _audio_io_proc_cb(AudioObjectID          obj_id         EINA_UNUSED,
      }
    else
      {
-        eo_do(helper->input, bread = ecore_audio_obj_in_read(buf, size * 4));
+        bread = ecore_audio_obj_in_read(helper->input, buf, size * 4);
         bread /= 4;
      }
 
@@ -216,21 +206,21 @@ _audio_io_proc_cb(AudioObjectID          obj_id         EINA_UNUSED,
  *============================================================================*/
 
 EOLIAN static void
-_ecore_audio_out_core_audio_ecore_audio_volume_set(Eo *obj, Ecore_Audio_Out_Core_Audio_Data *sd EINA_UNUSED, double volume)
+_ecore_audio_out_core_audio_ecore_audio_volume_set(Eo *obj, void *sd EINA_UNUSED, double volume)
 {
    // TODO Change volume of playing inputs
-   eo_do_super(obj, MY_CLASS, ecore_audio_obj_volume_set(volume));
+   ecore_audio_obj_volume_set(eo_super(obj, MY_CLASS), volume);
 }
 
 EOLIAN static Eina_Bool
-_ecore_audio_out_core_audio_ecore_audio_out_input_attach(Eo *obj, Ecore_Audio_Out_Core_Audio_Data *sd EINA_UNUSED, Eo *input)
+_ecore_audio_out_core_audio_ecore_audio_out_input_attach(Eo *obj, void *sd EINA_UNUSED, Eo *input)
 {
    Core_Audio_Helper *helper;
    UInt32 channels;
    OSStatus err;
    Eina_Bool chk;
 
-   eo_do_super(obj, MY_CLASS, chk = ecore_audio_obj_out_input_attach(input));
+   chk = ecore_audio_obj_out_input_attach(eo_super(obj, MY_CLASS), input);
    if (EINA_UNLIKELY(!chk))
      {
         ERR("Failed to attach input (eo_do_super)");
@@ -266,10 +256,10 @@ _ecore_audio_out_core_audio_ecore_audio_out_input_attach(Eo *obj, Ecore_Audio_Ou
      }
 
    /* Forward samplerate to CoreAudio */
-   eo_do(input, helper->format.mSampleRate = ecore_audio_obj_in_samplerate_get());
+   helper->format.mSampleRate = ecore_audio_obj_in_samplerate_get(input);
 
    /* Set channels. If only 1 channel, emulate stereo */
-   eo_do(input, channels = ecore_audio_obj_in_channels_get());
+   channels = ecore_audio_obj_in_channels_get(input);
    if (channels == 1)
      {
         DBG("Fake stereo enabled for input %p", input);
@@ -303,7 +293,7 @@ _ecore_audio_out_core_audio_ecore_audio_out_input_attach(Eo *obj, Ecore_Audio_Ou
      }
 
    /* Keep track of data for deallocation */
-   eo_do(input, eo_key_data_set("coreaudio_data", helper));
+   eo_key_data_set(input, "coreaudio_data", helper);
 
    /* Start playing */
    helper->is_playing = EINA_TRUE;
@@ -322,23 +312,23 @@ free_proc_id:
 free_helper:
    free(helper);
 detach:
-   eo_do_super(obj, MY_CLASS, ecore_audio_obj_out_input_detach(input));
+   ecore_audio_obj_out_input_detach(eo_super(obj, MY_CLASS), input);
 return_failure:
    return EINA_FALSE;
 }
 
 EOLIAN static Eina_Bool
-_ecore_audio_out_core_audio_ecore_audio_out_input_detach(Eo *obj, Ecore_Audio_Out_Core_Audio_Data *sd EINA_UNUSED, Eo *input)
+_ecore_audio_out_core_audio_ecore_audio_out_input_detach(Eo *obj, void *sd EINA_UNUSED, Eo *input)
 {
    Core_Audio_Helper *data;
    Eina_Bool ret;
 
    DBG("Detach");
    /* Free helper */
-   eo_do(input, data = eo_key_data_get("coreaudio_data"));
+   data = eo_key_data_get(input, "coreaudio_data");
    _core_audio_helper_free(data);
 
-   eo_do_super(obj, MY_CLASS, ret = ecore_audio_obj_out_input_detach(input));
+   ret = ecore_audio_obj_out_input_detach(eo_super(obj, MY_CLASS), input);
 
    return ret;
 }

@@ -6,10 +6,15 @@
 #include "eolian_database.h"
 
 EAPI Eolian_Object_Scope
-eolian_function_scope_get(const Eolian_Function *fid)
+eolian_function_scope_get(const Eolian_Function *fid, Eolian_Function_Type ftype)
 {
    EINA_SAFETY_ON_NULL_RETURN_VAL(fid, EOLIAN_SCOPE_PUBLIC);
-   return fid->scope;
+   switch (ftype)
+     {
+      case EOLIAN_UNRESOLVED: case EOLIAN_METHOD: case EOLIAN_PROPERTY: case EOLIAN_PROP_GET: return fid->get_scope; break;
+      case EOLIAN_PROP_SET: return fid->set_scope; break;
+      default: return EOLIAN_SCOPE_PUBLIC;
+     }
 }
 
 EAPI Eolian_Function_Type
@@ -30,13 +35,9 @@ static const char *
 _get_eo_prefix(const Eolian_Function *foo_id, char *buf, Eina_Bool use_legacy)
 {
     char *tmp = buf;
-    if (use_legacy && foo_id->klass->legacy_prefix)
-      {
-         if (!strcmp(foo_id->klass->legacy_prefix, "null"))
-           return NULL;
-         return foo_id->klass->legacy_prefix;
-      }
-    else if (!use_legacy && foo_id->klass->eo_prefix)
+    if (use_legacy)
+      return foo_id->klass->legacy_prefix;
+    else if (foo_id->klass->eo_prefix)
       return foo_id->klass->eo_prefix;
     strcpy(buf, foo_id->klass->full_name);
     eina_str_tolower(&buf);
@@ -300,8 +301,8 @@ eolian_function_return_is_warn_unused(const Eolian_Function *fid,
    EINA_SAFETY_ON_NULL_RETURN_VAL(fid, EINA_FALSE);
    switch (ftype)
      {
-      case EOLIAN_METHOD: case EOLIAN_PROP_GET: case EOLIAN_PROPERTY: return fid->get_return_warn_unused;
       case EOLIAN_PROP_SET: return fid->set_return_warn_unused;
+      case EOLIAN_UNRESOLVED: case EOLIAN_METHOD: case EOLIAN_PROPERTY: case EOLIAN_PROP_GET: return fid->get_return_warn_unused;
       default: return EINA_FALSE;
      }
 }

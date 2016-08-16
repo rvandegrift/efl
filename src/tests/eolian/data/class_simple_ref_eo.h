@@ -19,7 +19,7 @@ typedef Eo Class_Simple;
  */
 #define CLASS_SIMPLE_CLASS class_simple_class_get()
 
-EAPI const Eo_Class *class_simple_class_get(void) EINA_CONST;
+EWAPI const Eo_Class *class_simple_class_get(void);
 
 #ifdef CLASS_SIMPLE_BETA
 /**
@@ -33,7 +33,7 @@ EAPI const Eo_Class *class_simple_class_get(void) EINA_CONST;
  *
  * @ingroup Class_Simple
  */
-EOAPI Eina_Bool evas_obj_simple_a_set(int value);
+EOAPI Eina_Bool efl_canvas_object_simple_a_set(Eo *obj, int value);
 #endif
 
 #ifdef CLASS_SIMPLE_BETA
@@ -44,26 +44,28 @@ EOAPI Eina_Bool evas_obj_simple_a_set(int value);
  *
  * @ingroup Class_Simple
  */
-EOAPI int evas_obj_simple_a_get(void);
+EOAPI int efl_canvas_object_simple_a_get(const Eo *obj);
 #endif
 
-EOAPI void evas_obj_simple_b_set(void);
+EOAPI void efl_canvas_object_simple_b_set(Eo *obj);
 
 #ifdef CLASS_SIMPLE_BETA
 /**
  * @brief comment foo
  *
+ * @param[in] a a
  * @param[in,out] b
  * @param[out] c
+ * @param[in] d
  *
  * @return comment for method return
  *
  * @ingroup Class_Simple
  */
-EOAPI char *evas_obj_simple_foo(int a, char *b, double *c);
+EOAPI char *efl_canvas_object_simple_foo(Eo *obj, int a, char *b, double *c, int *d);
 #endif
 
-EOAPI int evas_obj_simple_bar(int x);
+EOAPI int *efl_canvas_object_simple_bar(Eo *obj, int x);
 
 
 #endif

@@ -1,6 +1,30 @@
-#ifdef HAVE_CONFIG_H
-# include <config.h>
-#endif
+/* Portions of this code have been derived from Weston
+ *
+ * Copyright © 2008-2012 Kristian Høgsberg
+ * Copyright © 2010-2012 Intel Corporation
+ * Copyright © 2010-2011 Benjamin Franzke
+ * Copyright © 2011-2012 Collabora, Ltd.
+ * Copyright © 2010 Red Hat <mjg@redhat.com>
+ *
+ * Permission is hereby granted, free of charge, to any person obtaining a
+ * copy of this software and associated documentation files (the "Software"),
+ * to deal in the Software without restriction, including without limitation
+ * the rights to use, copy, modify, merge, publish, distribute, sublicense,
+ * and/or sell copies of the Software, and to permit persons to whom the
+ * Software is furnished to do so, subject to the following conditions:
+ *
+ * The above copyright notice and this permission notice (including the next
+ * paragraph) shall be included in all copies or substantial portions of the
+ * Software.
+ *
+ * THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
+ * IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
+ * FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT.  IN NO EVENT SHALL
+ * THE AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
+ * LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING
+ * FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER
+ * DEALINGS IN THE SOFTWARE.
+ */
 
 #include "ecore_drm_private.h"
 #include <ctype.h>
@@ -399,7 +423,7 @@ _device_pointer_motion(Ecore_Drm_Evdev *edev, struct libinput_event_pointer *eve
    ev->window = (Ecore_Window)input->dev->window;
    ev->event_window = (Ecore_Window)input->dev->window;
    ev->root_window = (Ecore_Window)input->dev->window;
-   ev->timestamp = libinput_event_pointer_get_time(event);
+   if (event) ev->timestamp = libinput_event_pointer_get_time(event);
    ev->same_screen = 1;
 
    _device_modifiers_update(edev);
@@ -422,6 +446,12 @@ _device_pointer_motion(Ecore_Drm_Evdev *edev, struct libinput_event_pointer *eve
    ev->multi.root.y = ev->y;
 
    ecore_event_add(ECORE_EVENT_MOUSE_MOVE, ev, NULL, NULL);
+}
+
+void
+_ecore_drm_pointer_motion_post(Ecore_Drm_Evdev *edev)
+{
+   _device_pointer_motion(edev, NULL);
 }
 
 static void 
@@ -555,6 +585,22 @@ _device_handle_button(struct libinput_device *device, struct libinput_event_poin
      ecore_event_add(ECORE_EVENT_MOUSE_BUTTON_UP, ev, NULL, NULL);
 }
 
+#if LIBINPUT_HIGHER_08
+static double
+_event_scroll_get(struct libinput_event_pointer *pe, enum libinput_pointer_axis axis)
+{
+   switch (libinput_event_pointer_get_axis_source(pe))
+     {
+      case LIBINPUT_POINTER_AXIS_SOURCE_WHEEL:
+         return libinput_event_pointer_get_axis_value_discrete(pe, axis);
+      case LIBINPUT_POINTER_AXIS_SOURCE_FINGER:
+      case LIBINPUT_POINTER_AXIS_SOURCE_CONTINUOUS:
+         return libinput_event_pointer_get_axis_value(pe, axis);
+     }
+   return 0.0;
+}
+#endif
+
 static void 
 _device_handle_axis(struct libinput_device *device, struct libinput_event_pointer *event)
 {
@@ -588,13 +634,13 @@ _device_handle_axis(struct libinput_device *device, struct libinput_event_pointe
 #if LIBINPUT_HIGHER_08
    axis = LIBINPUT_POINTER_AXIS_SCROLL_VERTICAL;
    if (libinput_event_pointer_has_axis(event, axis))
-     ev->z = libinput_event_pointer_get_axis_value(event, axis);
+     ev->z = _event_scroll_get(event, axis);
 
    axis = LIBINPUT_POINTER_AXIS_SCROLL_HORIZONTAL;
    if (libinput_event_pointer_has_axis(event, axis)) 
      {
         ev->direction = 1;
-        ev->z = libinput_event_pointer_get_axis_value(event, axis);
+        ev->z = _event_scroll_get(event, axis);
      }
 #else
    axis = libinput_event_pointer_get_axis(event);
@@ -777,7 +823,6 @@ _device_handle_touch_motion_send(Ecore_Drm_Evdev *edev, struct libinput_event_to
 
    _device_modifiers_update(edev);
    ev->modifiers = edev->xkb.modifiers;
-   ev->modifiers = 0;
 
    ev->x = edev->seat->ptr.ix;
    ev->y = edev->seat->ptr.iy;

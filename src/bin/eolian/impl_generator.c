@@ -39,7 +39,6 @@ _params_generate(const Eolian_Function *foo, Eolian_Function_Type ftype, Eina_Bo
    eina_iterator_free(itr);
    if (!var_as_ret)
      {
-        Eina_Bool add_star = (ftype == EOLIAN_PROP_GET);
         itr = is_prop ? eolian_property_values_get(foo, ftype) : eolian_function_parameters_get(foo);
         EINA_ITERATOR_FOREACH(itr, param)
           {
@@ -47,15 +46,15 @@ _params_generate(const Eolian_Function *foo, Eolian_Function_Type ftype, Eina_Bo
              const char *pname = eolian_parameter_name_get(param);
              const char *ptype = eolian_type_c_type_get(ptypet);
              Eolian_Parameter_Dir pdir = eolian_parameter_direction_get(param);
+             const char *add_star = _get_add_star(ftype, pdir);
              Eina_Bool had_star = !!strchr(ptype, '*');
-             if (ftype == EOLIAN_UNRESOLVED || ftype == EOLIAN_METHOD) add_star = (pdir == EOLIAN_OUT_PARAM || pdir == EOLIAN_INOUT_PARAM);
              if (eina_strbuf_length_get(params))
                {
                   eina_strbuf_append(params, ", ");
                   eina_strbuf_append(short_params, ", ");
                }
              eina_strbuf_append_printf(params, "%s%s%s%s",
-                   ptype, had_star?"":" ", add_star?"*":"", pname);
+                   ptype, had_star?"":" ", add_star, pname);
              eina_strbuf_append_printf(short_params, "%s", pname);
              eina_stringshare_del(ptype);
           }
@@ -160,6 +159,8 @@ _prototype_generate(const Eolian_Function *foo, Eolian_Function_Type ftype, Eina
    _params_generate(foo, ftype, var_as_ret, params, short_params);
    if (eina_strbuf_length_get(params))
       eina_strbuf_prepend_printf(params, ", ");
+   if (eina_strbuf_length_get(short_params))
+      eina_strbuf_prepend_printf(short_params, ", ");
 
    fname = eolian_function_name_get(foo);
    if (fname)
@@ -172,9 +173,9 @@ _prototype_generate(const Eolian_Function *foo, Eolian_Function_Type ftype, Eina
                {
                   eina_strbuf_append_printf
                   (super_invok,
-                   "   eo_do_super(obj, %s_%s, %s_%s(%s));\n",
-                   class_env.upper_eo_prefix, class_env.upper_classtype,
+                   "   %s_%s(eo_super(obj, %s_%s)%s);\n",
                    impl_env.lower_eo_prefix, eolian_function_name_get(foo),
+                   class_env.upper_eo_prefix, class_env.upper_classtype,
                    eina_strbuf_string_get(short_params));
                }
           }

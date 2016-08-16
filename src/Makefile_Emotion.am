@@ -11,15 +11,11 @@ BUILT_SOURCES += \
                  $(emotion_eolian_c) \
                  $(emotion_eolian_h)
 
-CLEANFILES += \
-              $(emotion_eolian_c) \
-              $(emotion_eolian_h)
-
 emotioneolianfilesdir = $(datadir)/eolian/include/emotion-@VMAJ@
 emotioneolianfiles_DATA = \
                           $(emotion_eolian_files)
 
-EXTRA_DIST += \
+EXTRA_DIST2 += \
               ${emotioneolianfiles_DATA}
 
 lib_LTLIBRARIES += \
@@ -304,7 +300,7 @@ endif
 
 # Those probably should be in the if block, but then
 # "make distcheck" would not work
-EXTRA_DIST += \
+EXTRA_DIST2 += \
 tests/emotion/data/bpause.png \
 tests/emotion/data/bplay.png \
 tests/emotion/data/bstop.png \
@@ -341,7 +337,7 @@ emotion_eolian_lua = $(emotion_eolian_files:%.eo=%.eo.lua)
 
 generated_emotion_lua_all = $(emotion_eolian_lua)
 
-CLEANFILES += $(generated_emotion_lua_all)
+GENERATED_LUA_BINDINGS += $(generated_emotion_lua_all)
 
 installed_emotionluadir = $(datadir)/elua/modules/emotion
 nodist_installed_emotionlua_DATA = $(generated_emotion_lua_all)
@@ -353,8 +349,33 @@ if HAVE_JS
 
 generated_emotion_js_bindings = $(emotion_eolian_files:%.eo=%.eo.js.cc)
 
-CLEANFILES += $(generated_emotion_js_bindings)
-
 GENERATED_JS_BINDINGS += $(generated_emotion_js_bindings)
 
+endif
+
+emotiongenericplayersdir = \
+$(libdir)/emotion/generic_players/$(MODULE_ARCH)
+
+emotiongenericplayers_PROGRAMS =
+
+if HAVE_GENERIC_VLC
+
+emotiongenericplayers_PROGRAMS += generic/emotion/vlc/vlc
+generic_emotion_vlc_vlc_SOURCES = generic/emotion/vlc/emotion_generic_vlc.c
+generic_emotion_vlc_vlc_CPPFLAGS = \
+-I$(top_srcdir)/src/lib/efl \
+-I$(top_builddir)/src/lib/efl \
+-I$(top_srcdir)/src/lib/eina \
+-I$(top_builddir)/src/lib/eina \
+-I$(top_srcdir)/src/lib/eo \
+-I$(top_srcdir)/src/lib/ecore \
+-I$(top_srcdir)/src/modules/emotion/generic \
+-DPACKAGE_BIN_DIR=\"$(bindir)\" \
+-DPACKAGE_LIB_DIR=\"$(libdir)\" \
+-DPACKAGE_DATA_DIR=\"$(datadir)/emotion\" \
+-DPACKAGE_BUILD_DIR=\"$(abs_top_builddir)\" \
+-DEMOTION_GENERIC_PLAYERS_DIR=\"$(libdir)/emotion/generic_players/$(MODULE_ARCH)\" \
+@GENERIC_VLC_CFLAGS@
+generic_emotion_vlc_vlc_LDADD = @GENERIC_VLC_LIBS@ @USE_EINA_LIBS@ @USE_ECORE_LIBS@
+generic_emotion_vlc_vlc_DEPENDENCIES = @USE_EINA_INTERNAL_LIBS@ @USE_ECORE_INTERNAL_LIBS@
 endif

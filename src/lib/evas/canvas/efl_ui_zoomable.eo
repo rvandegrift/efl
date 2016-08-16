@@ -1,0 +1,9 @@
+interface Efl.Ui.Zoomable ()
+{
+   event_prefix: efl_ui;
+   events {
+      zoom,start;
+      zoom,stop;
+      zoom,change;
+   }
+}

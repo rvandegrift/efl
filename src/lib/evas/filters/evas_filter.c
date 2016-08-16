@@ -42,7 +42,7 @@ _evas_image_get(Ector_Buffer *buf)
    if (!buf) return NULL;
    /* FIXME: This MAY return RGBA_Image because engine_image_set MAY pass an
     * RGBA_Image... Baaaaah */
-   eo_do(buf, evas_ector_buffer_engine_image_get(NULL, &image));
+   evas_ector_buffer_engine_image_get(buf, NULL, &image);
    return image;
 }
 
@@ -105,13 +105,13 @@ evas_filter_context_proxy_render_all(Evas_Filter_Context *ctx, Eo *eo_obj,
    Eina_List *li;
 
    if (!ctx->has_proxies) return;
-   obj = eo_data_scope_get(eo_obj, EVAS_OBJECT_CLASS);
+   obj = eo_data_scope_get(eo_obj, EFL_CANVAS_OBJECT_CLASS);
 
    EINA_LIST_FOREACH(ctx->buffers, li, fb)
      if (fb->source)
        {
           // TODO: Lock current object as proxyrendering (see image obj)
-          source = eo_data_scope_get(fb->source, EVAS_OBJECT_CLASS);
+          source = eo_data_scope_get(fb->source, EFL_CANVAS_OBJECT_CLASS);
           _assert(fb->w == source->cur->geometry.w);
           _assert(fb->h == source->cur->geometry.h);
           if (source->proxy->surface && !source->proxy->redraw)

@@ -27,6 +27,8 @@
 #  define EAPI
 # endif
 
+# warning The Ecore_Wayland library has been deprecated. Please use the Ecore_Wl2 library
+
 #ifdef __cplusplus
 extern "C" {
 #endif
@@ -441,6 +443,13 @@ EAPI Eina_Inlist *ecore_wl_outputs_get(void);
  */
 EAPI void ecore_wl_input_cursor_size_set(Ecore_Wl_Input *input, const int size);
 EAPI void ecore_wl_input_cursor_theme_name_set(Ecore_Wl_Input *input, const char *cursor_theme_name);
+
+/**
+ * @ingroup Ecore_Wl_Input_Group
+ * @since 1.17
+ */
+EAPI struct xkb_keymap *ecore_wl_input_keymap_get(Ecore_Wl_Input *input);
+
 
 /**
  * Retrieves the Wayland Globals Interface list used for the current Wayland connection.

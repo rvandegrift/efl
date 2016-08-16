@@ -549,7 +549,10 @@ static Ecore_Evas_Engine_Func _ecore_sdl_engine_func =
    NULL, // wm_rot_manual_rotation_done_set
    NULL, // wm_rot_manual_rotation_done
 
-   NULL  // aux_hints_set
+   NULL, // aux_hints_set
+
+   NULL, // fn_animator_register
+   NULL  // fn_animator_unregister
 };
 
 static Ecore_Evas*
@@ -712,6 +715,7 @@ _ecore_evas_internal_sdl_new(int rmethod, const char* name, int w, int h, int fu
                                (Ecore_Event_Multi_Move_Cb)_ecore_evas_mouse_multi_move_process,
                                (Ecore_Event_Multi_Down_Cb)_ecore_evas_mouse_multi_down_process,
                                (Ecore_Event_Multi_Up_Cb)_ecore_evas_mouse_multi_up_process);
+   _ecore_event_window_direct_cb_set(SDL_GetWindowID(swd->w), _ecore_evas_input_direct_cb);
    SDL_SetWindowData(swd->w, "_Ecore_Evas", ee);
 
    SDL_ShowCursor(SDL_ENABLE);

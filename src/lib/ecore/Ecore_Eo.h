@@ -18,38 +18,12 @@ extern "C" {
  */
 
 /**
- * @ingroup Ecore_Animator_Group
- *
- * @{
- */
-
-#include "ecore_animator.eo.h"
-
-/**
- * @}
- */
-
-/**
  * @ingroup Ecore_Timer_Group
  *
  * @{
  */
 
-#include "ecore_timer.eo.h"
-
-/**
- * @}
- */
-
-/**
- * @ingroup Ecore_Idle_Group
- *
- * @{
- */
-
-#include "ecore_idler.eo.h"
-#include "ecore_idle_exiter.eo.h"
-#include "ecore_idle_enterer.eo.h"
+#include "efl_loop_timer.eo.h"
 
 /**
  * @}
@@ -69,24 +43,16 @@ extern "C" {
 
 
 /**
- * @ingroup Ecore_Job_Group
- *
- * @{
- */
-
-#include "ecore_job.eo.h"
-
-/**
- * @}
- */
-
-/**
  * @ingroup Ecore_MainLoop_Group
  *
  * @{
  */
 
-#include "ecore_mainloop.eo.h"
+#include "efl_loop.eo.h"
+
+#include "efl_loop_user.eo.h"
+
+#include "efl_loop_fd.eo.h"
 
 /* We ue the factory pattern here, so you shouldn't call eo_add directly. */
 EAPI Eo *ecore_main_loop_get(void);

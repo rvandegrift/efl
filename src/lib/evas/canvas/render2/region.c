@@ -84,13 +84,6 @@ struct _Region
 #define PIXREGION_END(reg)       PIXREGION_BOX(reg, (reg)->data->num - 1)
 #define PIXREGION_SZOF(n)        (sizeof(Region_Data) + ((n) * sizeof(Box)))
 
-#ifndef MIN
-# define MIN(a, b) ((a) < (b) ? (a) : (b))
-#endif
-#ifndef MAX
-# define MAX(a, b) ((a) > (b) ? (a) : (b))
-#endif
-
 // r1 and r2 overlap
 #define OVERLAP(r1, r2) \
    (!(((r1)->x2 <= (r2)->x1) || ((r1)->x1 >= (r2)->x2)  || \
@@ -104,7 +97,7 @@ struct _Region
     ((r1)->y1 <= (r2)->y1) && ((r1)->y2 >= (r2)->y2))
 
 #define ALLOC(n) malloc(PIXREGION_SZOF(n))
-#define FREE_DATA(reg) if ((reg)->data && (reg)->data->size) free((reg)->data)
+#define FREE_DATA(reg) if ((reg)->data && ((reg)->data != &_region_brokendata) && (reg)->data->size) free((reg)->data)
 #define RECTALLOC_BAIL(pReg ,n, bail) \
    if (!(pReg)->data || (((pReg)->data->num + (n)) > (pReg)->data->size)) \
      { \
@@ -172,9 +165,9 @@ if (((num) < ((reg)->data->size >> 1)) && ((reg)->data->size > 50)) { \
    rects[b] = __t; \
 }
 
-static Box _region_emptybox = {0, 0, 0, 0};
-static Region_Data _region_emptydata = {0, 0};
-static Region_Data _region_brokendata = {0, 0};
+static const Box _region_emptybox = {0, 0, 0, 0};
+static const Region_Data _region_emptydata = {0, 0};
+static const Region_Data _region_brokendata = {0, 0};
 
 static Eina_Bool _region_break(Region *region);
 
@@ -183,7 +176,7 @@ _region_break(Region *region)
 {
    FREE_DATA(region);
    region->bound = _region_emptybox;
-   region->data = &_region_brokendata;
+   region->data = (Region_Data *)&_region_brokendata;
    return EINA_FALSE;
 }
 
@@ -337,12 +330,12 @@ _region_op(Region *dest, // Place to store result
    if (((dest == reg1) && (new_size > 1)) || ((dest == reg2) && (num > 1)))
      {
         old_data = dest->data;
-        dest->data = &_region_emptydata;
+        dest->data = (Region_Data *)&_region_emptydata;
      }
    // guess at new size
    if (num > new_size) new_size = num;
    new_size <<= 1;
-   if (!dest->data) dest->data = &_region_emptydata;
+   if (!dest->data) dest->data = (Region_Data *)&_region_emptydata;
    else if (dest->data->size)
    dest->data->num = 0;
    if (new_size > dest->data->size)
@@ -468,7 +461,7 @@ _region_op(Region *dest, // Place to store result
    if (!(num = dest->data->num))
      {
         FREE_DATA(dest);
-        dest->data = &_region_emptydata;
+        dest->data = (Region_Data *)&_region_emptydata;
      }
    else if (num == 1)
     {
@@ -718,7 +711,7 @@ region_new(int w, int h)
    Region *region = calloc(1, sizeof(Region));
    if (!region) return NULL;
    region->bound = _region_emptybox;
-   region->data = &_region_emptydata;
+   region->data = (Region_Data *)&_region_emptydata;
    region->w = w;
    region->h = h;
    return region;
@@ -791,15 +784,19 @@ region_intersect(Region *dest, Region *source)
        !OVERLAP(&dest->bound, &source->bound))
      {
         // Covers about 20% of all cases
-        FREE_DATA(dest);
         dest->bound.x2 = dest->bound.x1;
         dest->bound.y2 = dest->bound.y1;
         if (PIXREGION_NAR(dest) || PIXREGION_NAR(source))
           {
-             dest->data = &_region_brokendata;
+             FREE_DATA(dest);
+             dest->data = (Region_Data *)&_region_brokendata;
              return EINA_FALSE;
           }
-        else dest->data = &_region_emptydata;
+        else
+          {
+             FREE_DATA(dest);
+             dest->data = (Region_Data *)&_region_emptydata;
+          }
      }
    else if (!dest->data && !source->data)
      {
@@ -850,12 +847,7 @@ region_add(Region *dest, Region *source)
      }
 
    // Region 2 is empty
-   if (PIXREGION_NIL(source))
-     {
-        if (PIXREGION_NAR(source)) return _region_break(dest);
-        if (dest != source) return region_copy(dest, source);
-        return EINA_TRUE;
-     }
+   if (PIXREGION_NIL(source)) return EINA_TRUE;
 
    // Region 1 completely subsumes region 2
    if (!dest->data && CONTAINS(&dest->bound, &source->bound))
@@ -1192,7 +1184,7 @@ region_del(Region *dest, Region *source)
         FREE_DATA(dest);
         dest->bound.x2 = dest->bound.x1;
         dest->bound.y2 = dest->bound.y1;
-        dest->data = &_region_emptydata;
+        dest->data = (Region_Data *)&_region_emptydata;
         return EINA_TRUE;
      }
 
@@ -1387,7 +1379,7 @@ region_empty(Region *region)
    FREE_DATA(region);
    region->bound.x2 = region->bound.x1;
    region->bound.y2 = region->bound.y1;
-   region->data = &_region_emptydata;
+   region->data = (Region_Data *)&_region_emptydata;
    region->last_del.w = 0;
    region->last_add.w = 0;
 }

@@ -1,21 +1,20 @@
-class Eldbus.Model_Signal (Eldbus.Model_Arguments) {
-    legacy_prefix: null;
+class Eldbus.Model.Signal (Eldbus.Model.Arguments) {
+    [[Eldbus model signal class]]
+
     methods {
         constructor {
               [[Custom Eldbus_Model_Signal constructor.
 
                 @since 1.16]]
             params {
-                @in proxy: Eldbus_Proxy*; [[Eldbus proxy]]
-                @in signal: const(Eldbus_Introspection_Signal)*; [[The introspected method]]
+                @in proxy: Eldbus.Proxy*; [[Eldbus proxy]]
+                @in signal: const(Eldbus.Introspection.Signal)*; [[The introspected method]]
             }
         }
     }
     implements {
         Eo.Base.constructor;
         Eo.Base.destructor;
-        Efl.Model.Base.properties_load;
-        Efl.Model.Base.unload;
     }
     constructors {
         .constructor;

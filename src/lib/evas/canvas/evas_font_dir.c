@@ -339,7 +339,7 @@ static Style_Map _style_weight_map[] =
      {"semibold", EVAS_FONT_WEIGHT_SEMIBOLD},
      {"bold", EVAS_FONT_WEIGHT_BOLD},
      {"ultrabold", EVAS_FONT_WEIGHT_ULTRABOLD},
-     {"extrabold", EVAS_FONT_WEIGHT_ULTRABOLD},
+     {"extrabold", EVAS_FONT_WEIGHT_EXTRABOLD},
      {"black", EVAS_FONT_WEIGHT_BLACK},
      {"extrablack", EVAS_FONT_WEIGHT_EXTRABLACK}
 };
@@ -420,6 +420,7 @@ evas_font_desc_unref(Evas_Font_Description *fdesc)
    if (--(fdesc->ref) == 0)
      {
         eina_stringshare_del(fdesc->name);
+        eina_stringshare_del(fdesc->style);
         eina_stringshare_del(fdesc->fallbacks);
         eina_stringshare_del(fdesc->lang);
         free(fdesc);
@@ -455,6 +456,7 @@ evas_font_desc_dup(const Evas_Font_Description *fdesc)
    new->name = eina_stringshare_ref(new->name);
    new->fallbacks = eina_stringshare_ref(new->fallbacks);
    new->lang = eina_stringshare_ref(new->lang);
+   new->style = eina_stringshare_ref(new->style);
 
    return new;
 }
@@ -467,6 +469,17 @@ evas_font_desc_cmp(const Evas_Font_Description *a,
    return !((a->name == b->name) && (a->weight == b->weight) &&
          (a->slant == b->slant) && (a->width == b->width) &&
          (a->spacing == b->spacing) && (a->lang == b->lang));
+}
+
+const char *
+evas_font_lang_normalize(const char *lang)
+{
+   if (!lang || !strcmp(lang, "none")) return NULL;
+
+   if (!strcmp(lang, "auto"))
+     return evas_common_language_from_locale_full_get();
+
+   return lang;
 }
 
 void
@@ -495,6 +508,7 @@ evas_font_name_parse(Evas_Font_Description *fdesc, const char *name)
 #define _SET_STYLE(x, len) \
              fdesc->x = _evas_font_style_find_internal(name + len, tend, \
                    _style_##x##_map, _STYLE_MAP_LEN(_style_##x##_map));
+             eina_stringshare_replace_length(&(fdesc->style), name + 7, tend - (name + 7));
              _SET_STYLE(slant, 7);
              _SET_STYLE(weight, 7);
              _SET_STYLE(width, 7);
@@ -520,6 +534,12 @@ evas_font_name_parse(Evas_Font_Description *fdesc, const char *name)
           {
              const char *tmp = name + 6;
              eina_stringshare_replace_length(&(fdesc->lang), tmp, tend - tmp);
+             eina_stringshare_replace(&(fdesc->lang), evas_font_lang_normalize(fdesc->lang));
+          }
+        else if (!strncmp(name, ":fallbacks=", 11))
+          {
+             const char *tmp = name + 11;
+             eina_stringshare_replace_length(&(fdesc->fallbacks), tmp, tend - tmp);
           }
      }
 }
@@ -786,6 +806,9 @@ evas_font_load(Evas *eo_evas, Evas_Font_Description *fdesc, const char *source, 
 #endif
               NULL);
         FcPatternAddString (p_nm, FC_FAMILY, (FcChar8*) fdesc->name);
+
+        if (fdesc->style)
+          FcPatternAddString (p_nm, FC_STYLE, (FcChar8*) fdesc->style);
 
         /* Handle font fallbacks */
         if (fdesc->fallbacks)
@@ -1410,7 +1433,7 @@ evas_font_path_global_list(void)
 void
 evas_font_object_rehint(Evas_Object *eo_obj)
 {
-   Evas_Object_Protected_Data *obj = eo_data_scope_get(eo_obj, EVAS_OBJECT_CLASS);
+   Evas_Object_Protected_Data *obj = eo_data_scope_get(eo_obj, EFL_CANVAS_OBJECT_CLASS);
    if (obj->is_smart)
      {
 	EINA_INLIST_FOREACH(evas_object_smart_members_get_direct(eo_obj), obj)
@@ -1452,7 +1475,7 @@ _evas_canvas_font_hinting_get(Eo *eo_e EINA_UNUSED, Evas_Public_Data *e)
 EOLIAN Eina_Bool
 _evas_canvas_font_hinting_can_hint(Eo *eo_e EINA_UNUSED, Evas_Public_Data *e, Evas_Font_Hinting_Flags hinting)
 {
-   if (e->engine.func->font_hinting_can_hint)
+   if (e->engine.func->font_hinting_can_hint && e->engine.data.output)
      return e->engine.func->font_hinting_can_hint(e->engine.data.output,
 						  hinting);
    else return EINA_FALSE;
@@ -1463,7 +1486,8 @@ _evas_canvas_font_cache_flush(Eo *eo_e EINA_UNUSED, Evas_Public_Data *e)
 {
    evas_canvas_async_block(e);
    evas_render_rendering_wait(e);
-   e->engine.func->font_cache_flush(e->engine.data.output);
+   if (e->engine.data.output)
+     e->engine.func->font_cache_flush(e->engine.data.output);
 }
 
 EOLIAN void
@@ -1472,14 +1496,16 @@ _evas_canvas_font_cache_set(Eo *eo_e EINA_UNUSED, Evas_Public_Data *e, int size)
    if (size < 0) size = 0;
    evas_canvas_async_block(e);
    evas_render_rendering_wait(e);
-   e->engine.func->font_cache_set(e->engine.data.output, size);
+   if (e->engine.data.output)
+     e->engine.func->font_cache_set(e->engine.data.output, size);
 }
 
 EOLIAN int
 _evas_canvas_font_cache_get(Eo *eo_e EINA_UNUSED, Evas_Public_Data *e)
 {
-   return e->engine.func->font_cache_get(e->engine.data.output);
-
+   if (e->engine.data.output)
+     return e->engine.func->font_cache_get(e->engine.data.output);
+   return -1;
 }
 
 EOLIAN Eina_List*

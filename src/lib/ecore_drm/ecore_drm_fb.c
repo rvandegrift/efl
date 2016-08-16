@@ -1,6 +1,30 @@
-#ifdef HAVE_CONFIG_H
-# include <config.h>
-#endif
+/* Portions of this code have been derived from Weston
+ *
+ * Copyright © 2008-2012 Kristian Høgsberg
+ * Copyright © 2010-2012 Intel Corporation
+ * Copyright © 2010-2011 Benjamin Franzke
+ * Copyright © 2011-2012 Collabora, Ltd.
+ * Copyright © 2010 Red Hat <mjg@redhat.com>
+ *
+ * Permission is hereby granted, free of charge, to any person obtaining a
+ * copy of this software and associated documentation files (the "Software"),
+ * to deal in the Software without restriction, including without limitation
+ * the rights to use, copy, modify, merge, publish, distribute, sublicense,
+ * and/or sell copies of the Software, and to permit persons to whom the
+ * Software is furnished to do so, subject to the following conditions:
+ *
+ * The above copyright notice and this permission notice (including the next
+ * paragraph) shall be included in all copies or substantial portions of the
+ * Software.
+ *
+ * THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
+ * IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
+ * FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT.  IN NO EVENT SHALL
+ * THE AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
+ * LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING
+ * FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER
+ * DEALINGS IN THE SOFTWARE.
+ */
 
 #include "ecore_drm_private.h"
 
@@ -170,7 +194,67 @@ ecore_drm_fb_dirty(Ecore_Drm_Fb *fb, Eina_Rectangle *rects, unsigned int count)
 }
 
 EAPI void
-ecore_drm_fb_set(Ecore_Drm_Device *dev, Ecore_Drm_Fb *fb)
+ecore_drm_fb_set(Ecore_Drm_Device *dev EINA_UNUSED, Ecore_Drm_Fb *fb EINA_UNUSED)
+{
+  /* ecore_drm_fb_set no longer has any functionality distinct from
+   * ecore_drm_fb_send so it is reduced to NO-OP to prevent messing up state
+   */
+}
+
+void
+_ecore_drm_output_fb_send(Ecore_Drm_Device *dev, Ecore_Drm_Fb *fb, Ecore_Drm_Output *output)
+{
+   if (output->next) WRN("fb reused too soon, tearing may be visible");
+
+   /* If we changed display parameters or haven't displayed anything
+    * yet we need to do a SetCrtc
+    */
+   if ((!output->current) ||
+       (output->current->stride != fb->stride))
+     {
+        int x = 0, y = 0;
+
+        if (!output->cloned)
+          {
+             x = output->x;
+             y = output->y;
+          }
+        if (drmModeSetCrtc(dev->drm.fd, output->crtc_id, fb->id,
+                           x, y, &output->conn_id, 1,
+                           &output->current_mode->info))
+          {
+             ERR("Failed to set Mode %dx%d for Output %s: %m",
+                 output->current_mode->width, output->current_mode->height,
+                 output->name);
+             return;
+          }
+          output->current = fb;
+          output->next = NULL;
+
+          /* TODO: set dpms on ?? */
+          return;
+     }
+
+   /* The normal case: We do a flip which waits for vblank and
+    * posts an event.
+    */
+   if (drmModePageFlip(dev->drm.fd, output->crtc_id, fb->id,
+                       DRM_MODE_PAGE_FLIP_EVENT, output) < 0)
+     {
+        /* Failure to flip - likely there's already a flip
+         * queued, and we can't cancel, so just store this
+         * fb for later and it'll be queued in the flip
+         * handler */
+        DBG("flip crtc %u for connector %u failed, re-queued",
+            output->crtc_id, output->conn_id);
+        output->next = fb;
+        return;
+     }
+   output->current = fb;
+}
+
+EAPI void
+ecore_drm_fb_send(Ecore_Drm_Device *dev, Ecore_Drm_Fb *fb, Ecore_Drm_Pageflip_Cb func EINA_UNUSED, void *data EINA_UNUSED)
 {
    Ecore_Drm_Output *output;
    Eina_List *l;
@@ -188,88 +272,12 @@ ecore_drm_fb_set(Ecore_Drm_Device *dev, Ecore_Drm_Fb *fb)
           }
      }
 
-   if (!dev->next) dev->next = fb;
-   if (!dev->next) return;
-
-   EINA_LIST_FOREACH(dev->outputs, l, output)
-     {
-        int x = 0, y = 0;
-
-        if ((!output->enabled) || (!output->current_mode)) continue;
-
-        if (!output->cloned)
-          {
-             x = output->x;
-             y = output->y;
-          }
-
-        if ((!dev->current) ||
-            (dev->current->stride != dev->next->stride))
-          {
-             if (drmModeSetCrtc(dev->drm.fd, output->crtc_id, dev->next->id,
-                                x, y, &output->conn_id, 1,
-                                &output->current_mode->info))
-               {
-                  ERR("Failed to set Mode %dx%d for Output %s: %m",
-                      output->current_mode->width, output->current_mode->height,
-                      output->name);
-               }
-
-             /* TODO: set dpms on ?? */
-          }
-     }
-}
-
-EAPI void
-ecore_drm_fb_send(Ecore_Drm_Device *dev, Ecore_Drm_Fb *fb, Ecore_Drm_Pageflip_Cb func, void *data)
-{
-   Ecore_Drm_Output *output;
-   Eina_List *l;
-   Ecore_Drm_Pageflip_Callback *cb;
-
-   EINA_SAFETY_ON_NULL_RETURN(dev);
-   EINA_SAFETY_ON_NULL_RETURN(fb);
-   EINA_SAFETY_ON_NULL_RETURN(func);
-
-   if (eina_list_count(dev->outputs) < 1) return;
-
-   if (fb->pending_flip) return;
-
-   if (!(cb = calloc(1, sizeof(Ecore_Drm_Pageflip_Callback))))
-     return;
-
-   cb->dev = dev;
-   cb->func = func;
-   cb->data = data;
-
-   EINA_LIST_FOREACH(dev->outputs, l, output)
-     if (output->enabled) cb->count++;
+   if (!dev->outputs) return;
 
    EINA_LIST_FOREACH(dev->outputs, l, output)
      {
         if ((!output->enabled) || (!output->current_mode)) continue;
 
-        if (drmModePageFlip(dev->drm.fd, output->crtc_id, fb->id,
-                            DRM_MODE_PAGE_FLIP_EVENT, cb) < 0)
-          {
-             ERR("Cannot flip crtc %u for connector %u: %m",
-                 output->crtc_id, output->conn_id);
-             continue;
-          }
-
-        fb->pending_flip = EINA_TRUE;
-     }
-
-   while (fb->pending_flip)
-     {
-        int ret = 0;
-
-        ret = drmHandleEvent(dev->drm.fd, &dev->drm_ctx);
-        if (ret < 0)
-          {
-             ERR("drmHandleEvent Failed");
-             free(cb);
-             break;
-          }
+        _ecore_drm_output_fb_send(dev, fb, output);
      }
 }

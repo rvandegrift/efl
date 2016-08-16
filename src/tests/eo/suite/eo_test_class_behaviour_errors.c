@@ -4,7 +4,8 @@
 
 #include <stdio.h>
 
-#include "Eo.h"
+#include <Eo.h>
+
 #include "eo_suite.h"
 #include "eo_error_msgs.h"
 #include "eo_test_class_simple.h"
@@ -15,7 +16,7 @@ const Eo_Class *klass;
 
 static void _destructor_unref(Eo *obj, void *class_data EINA_UNUSED)
 {
-   eo_do_super(obj, klass, eo_destructor());
+   eo_destructor(eo_super(obj, klass));
 
    /* this triggers an eo stack overflow if not correctly protected */
    eo_unref(obj);
@@ -47,7 +48,7 @@ START_TEST(eo_destructor_unref)
    Eo *obj = eo_add(klass, NULL);
    fail_if(!obj);
 
-   TEST_EO_ERROR("_eo_unref", "Object %p deletion already triggered. You wrongly call eo_unref() within a destructor.");
+   TEST_EO_ERROR("eo_unref", "Obj:%p. User refcount (%d) < 0. Too many unrefs.");
    eo_unref(obj);
 
    eina_log_print_cb_set(eina_log_print_cb_stderr, NULL);
@@ -79,7 +80,7 @@ START_TEST(eo_destructor_double_del)
    eo_manual_free_set(obj, EINA_TRUE);
    fail_if(!obj);
 
-   TEST_EO_ERROR("_eo_unref", "Object %p already destructed.");
+   TEST_EO_ERROR("eo_unref", "Obj:%p. User refcount (%d) < 0. Too many unrefs.");
    eo_del(obj);
    eo_del(obj);
 

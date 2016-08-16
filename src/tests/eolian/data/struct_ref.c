@@ -13,8 +13,10 @@ typedef Eo Struct;
 
 typedef struct _Named
 {
-  int field;
+  int *field;
   const char *something;
+  int arr[16];
+  const char **tarr;
 } Named;
 
 typedef struct _Another
@@ -28,7 +30,7 @@ typedef struct _Opaque Opaque;
 #endif
 #define STRUCT_CLASS struct_class_get()
 
-EAPI const Eo_Class *struct_class_get(void) EINA_CONST;
+EWAPI const Eo_Class *struct_class_get(void);
 
 /**
  * @brief Foo docs. This is @c monospace. This is alone-standing $.
@@ -37,9 +39,9 @@ EAPI const Eo_Class *struct_class_get(void) EINA_CONST;
  *
  * @ingroup Struct
  */
-EOAPI char *struct_foo(int idx);
+EOAPI char *struct_foo(Eo *obj, int idx);
 
-EOAPI Named *struct_bar(void);
+EOAPI Named *struct_bar(Eo *obj);
 
 
 #endif

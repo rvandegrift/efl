@@ -303,6 +303,7 @@
 
 #include <Eina.h>
 #include <Eo.h>
+#include <Efl.h>
 
 #ifdef EAPI
 # undef EAPI

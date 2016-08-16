@@ -222,8 +222,8 @@ _box_blur_apply(Evas_Filter_Command *cmd, Eina_Bool vert, Eina_Bool rgba)
      }
    else ret = EINA_FALSE;
 
-   eo_do(cmd->input->buffer, ector_buffer_unmap(src, src_len));
-   eo_do(cmd->output->buffer, ector_buffer_unmap(dst, dst_len));
+   ector_buffer_unmap(cmd->input->buffer, src, src_len);
+   ector_buffer_unmap(cmd->output->buffer, dst, dst_len);
 
    return ret;
 }
@@ -347,8 +347,8 @@ _gaussian_blur_apply(Evas_Filter_Command *cmd, Eina_Bool vert, Eina_Bool rgba)
      }
    else ret = EINA_FALSE;
 
-   eo_do(cmd->input->buffer, ector_buffer_unmap(src, src_len));
-   eo_do(cmd->output->buffer, ector_buffer_unmap(dst, dst_len));
+   ector_buffer_unmap(cmd->input->buffer, src, src_len);
+   ector_buffer_unmap(cmd->output->buffer, dst, dst_len);
 
    return ret;
 }
@@ -404,7 +404,7 @@ evas_filter_blur_cpu_func_get(Evas_Filter_Command *cmd)
              else if (cmd->blur.dy)
                return _box_blur_vert_apply_alpha;
           }
-
+        break;
       case EVAS_FILTER_BLUR_GAUSSIAN:
         if (!cmd->output->alpha_only)
           {
@@ -420,9 +420,11 @@ evas_filter_blur_cpu_func_get(Evas_Filter_Command *cmd)
              else if (cmd->blur.dy)
                return _gaussian_blur_vert_apply_alpha;
           }
-
+        break;
       default:
         CRI("Unsupported blur type %d", cmd->blur.type);
         return NULL;
      }
+
+   return NULL;
 }

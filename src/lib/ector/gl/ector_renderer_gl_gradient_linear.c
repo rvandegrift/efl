@@ -12,13 +12,13 @@
 typedef struct _Ector_Renderer_GL_Gradient_Linear_Data Ector_Renderer_GL_Gradient_Linear_Data;
 struct _Ector_Renderer_GL_Gradient_Linear_Data
 {
-   Ector_Renderer_Generic_Gradient_Linear_Data *linear;
-   Ector_Renderer_Generic_Gradient_Data *gradient;
-   Ector_Renderer_Generic_Base_Data *base;
+   Ector_Renderer_Gradient_Linear_Data *linear;
+   Ector_Renderer_Gradient_Data *gradient;
+   Ector_Renderer_Data *base;
 };
 
 static Eina_Bool
-_ector_renderer_gl_gradient_linear_ector_renderer_generic_base_prepare(Eo *obj,
+_ector_renderer_gl_gradient_linear_ector_renderer_prepare(Eo *obj,
                                                                        Ector_Renderer_GL_Gradient_Linear_Data *pd)
 {
    // FIXME: prepare something
@@ -29,10 +29,9 @@ _ector_renderer_gl_gradient_linear_ector_renderer_generic_base_prepare(Eo *obj,
 }
 
 static Eina_Bool
-_ector_renderer_gl_gradient_linear_ector_renderer_generic_base_draw(Eo *obj, Ector_Renderer_GL_Gradient_Linear_Data *pd, Efl_Gfx_Render_Op op, Eina_Array *clips, unsigned int mul_col)
+_ector_renderer_gl_gradient_linear_ector_renderer_draw(Eo *obj, Ector_Renderer_GL_Gradient_Linear_Data *pd, Efl_Gfx_Render_Op op, Eina_Array *clips, unsigned int mul_col)
 {
-   eo_do_super(obj, ECTOR_RENDERER_GL_GRADIENT_LINEAR_CLASS,
-               ector_renderer_draw(op, clips, mul_col));
+   ector_renderer_draw(eo_super(obj, ECTOR_RENDERER_GL_GRADIENT_LINEAR_CLASS), op, clips, mul_col);
 
    // FIXME: draw something !
    (void) pd;
@@ -41,7 +40,7 @@ _ector_renderer_gl_gradient_linear_ector_renderer_generic_base_draw(Eo *obj, Ect
 }
 
 static void
-_ector_renderer_gl_gradient_linear_ector_renderer_generic_base_bounds_get(Eo *obj EINA_UNUSED,
+_ector_renderer_gl_gradient_linear_ector_renderer_bounds_get(Eo *obj EINA_UNUSED,
                                                                           Ector_Renderer_GL_Gradient_Linear_Data *pd,
                                                                           Eina_Rectangle *r)
 {
@@ -53,7 +52,7 @@ _ector_renderer_gl_gradient_linear_ector_renderer_generic_base_bounds_get(Eo *ob
 }
 
 static Eina_Bool
-_ector_renderer_gl_gradient_linear_ector_renderer_gl_base_fill(Eo *obj, Ector_Renderer_GL_Gradient_Linear_Data *pd, uint64_t flags, GLshort *vertex, unsigned int vertex_count, unsigned int mul_col)
+_ector_renderer_gl_gradient_linear_ector_renderer_gl_fill(Eo *obj, Ector_Renderer_GL_Gradient_Linear_Data *pd, uint64_t flags, GLshort *vertex, unsigned int vertex_count, unsigned int mul_col)
 {
    // FIXME: The idea here is to select the right shader and push the needed parameter for it
    // along with the other value
@@ -70,13 +69,13 @@ _ector_renderer_gl_gradient_linear_ector_renderer_gl_base_fill(Eo *obj, Ector_Re
 static Eo_Base *
 _ector_renderer_gl_gradient_linear_eo_base_constructor(Eo *obj, Ector_Renderer_GL_Gradient_Linear_Data *pd)
 {
-   eo_do_super(obj, ECTOR_RENDERER_GL_GRADIENT_LINEAR_CLASS, obj = eo_constructor());
+   obj = eo_constructor(eo_super(obj, ECTOR_RENDERER_GL_GRADIENT_LINEAR_CLASS));
 
    if (!obj) return NULL;
 
-   pd->base = eo_data_xref(obj, ECTOR_RENDERER_GENERIC_BASE_CLASS, obj);
-   pd->linear = eo_data_xref(obj, ECTOR_RENDERER_GENERIC_GRADIENT_LINEAR_MIXIN, obj);
-   pd->gradient = eo_data_xref(obj, ECTOR_RENDERER_GENERIC_GRADIENT_MIXIN, obj);
+   pd->base = eo_data_xref(obj, ECTOR_RENDERER_CLASS, obj);
+   pd->linear = eo_data_xref(obj, ECTOR_RENDERER_GRADIENT_LINEAR_MIXIN, obj);
+   pd->gradient = eo_data_xref(obj, ECTOR_RENDERER_GRADIENT_MIXIN, obj);
 
    return obj;
 }
@@ -90,24 +89,22 @@ _ector_renderer_gl_gradient_linear_eo_base_destructor(Eo *obj, Ector_Renderer_GL
 }
 
 static void
-_ector_renderer_gl_gradient_linear_efl_gfx_gradient_base_stop_set(Eo *obj, Ector_Renderer_GL_Gradient_Linear_Data *pd EINA_UNUSED, const Efl_Gfx_Gradient_Stop *colors, unsigned int length)
+_ector_renderer_gl_gradient_linear_efl_gfx_gradient_stop_set(Eo *obj, Ector_Renderer_GL_Gradient_Linear_Data *pd EINA_UNUSED, const Efl_Gfx_Gradient_Stop *colors, unsigned int length)
 {
-   eo_do_super(obj, ECTOR_RENDERER_GL_GRADIENT_LINEAR_CLASS,
-               efl_gfx_gradient_stop_set(colors, length));
+   efl_gfx_gradient_stop_set(eo_super(obj, ECTOR_RENDERER_GL_GRADIENT_LINEAR_CLASS), colors, length);
 }
 
 static unsigned int
-_ector_renderer_gl_gradient_linear_ector_renderer_generic_base_crc_get(Eo *obj, Ector_Renderer_GL_Gradient_Linear_Data *pd)
+_ector_renderer_gl_gradient_linear_ector_renderer_crc_get(Eo *obj, Ector_Renderer_GL_Gradient_Linear_Data *pd)
 {
    unsigned int crc;
 
-   eo_do_super(obj, ECTOR_RENDERER_GL_GRADIENT_LINEAR_CLASS,
-               crc = ector_renderer_crc_get());
+   crc = ector_renderer_crc_get(eo_super(obj, ECTOR_RENDERER_GL_GRADIENT_LINEAR_CLASS));
 
    crc = eina_crc((void*) pd->gradient->s, sizeof (Efl_Gfx_Gradient_Spread), crc, EINA_FALSE);
    if (pd->gradient->colors_count)
      crc = eina_crc((void*) pd->gradient->colors, sizeof (Efl_Gfx_Gradient_Stop) * pd->gradient->colors_count, crc, EINA_FALSE);
-   crc = eina_crc((void*) pd->linear, sizeof (Ector_Renderer_Generic_Gradient_Linear_Data), crc, EINA_FALSE);
+   crc = eina_crc((void*) pd->linear, sizeof (Ector_Renderer_Gradient_Linear_Data), crc, EINA_FALSE);
 
    return crc;
 }

@@ -8,108 +8,77 @@
 #include <Eio.h>
 #include <Ecore.h>
 #include <Efl.h>
-#include <eio_model.h>
 #include <stdio.h>
 
 #include <check.h>
 
-Eina_Bool children_added = EINA_FALSE;
 Eina_Tmpstr* temp_filename = NULL;
 const char* tmpdir = NULL;
+Eina_Bool children_deleted = EINA_FALSE;
 
-static Eina_Bool
-_load_monitor_status_cb(void *data, Eo *obj, const Eo_Event_Description *desc EINA_UNUSED, void *event_info)
+struct _pair
 {
-  Efl_Model_Load* st = event_info;
-  Eo* parent = data;
-  const Eina_Value* value_prop = NULL;
-  const char* str = NULL;
+  Eo *parent, *child;
+};
 
-  if (!(st->status & EFL_MODEL_LOAD_STATUS_LOADED_PROPERTIES))
-    return EINA_TRUE;
-
-  eo_do(obj, efl_model_property_get("path", &value_prop));
-  fail_if(!value_prop, "ERROR: Cannot get property!\n");
-
-  str = eina_value_to_string(value_prop);
-  fail_if(!str, "ERROR: Cannot convert value to string!\n");
-  fprintf(stderr, "new children filename %s\n", str);
-  if(temp_filename && strcmp(str, temp_filename) == 0)
-    {
-      fprintf(stderr, "is child that we want\n");
-      eo_do(obj, eo_event_callback_del(EFL_MODEL_BASE_EVENT_LOAD_STATUS, _load_monitor_status_cb, data));
-      children_added = EINA_TRUE;
-      eo_do(parent, efl_model_child_del(obj));
-    }
-
-    return EINA_FALSE;
-}
-
-static Eina_Bool
-_children_removed_cb(void *data EINA_UNUSED, Eo *obj EINA_UNUSED, const Eo_Event_Description *desc EINA_UNUSED, void* event_info EINA_UNUSED)
+static void
+_children_removed_cb(void *data EINA_UNUSED, const Eo_Event* event)
 {
-  if(children_added)
-    {
-       Efl_Model_Children_Event* evt = event_info;
-
-       Eina_Bool b;
-       eo_do(evt->child, b = efl_model_load_status_get() & EFL_MODEL_LOAD_STATUS_LOADED_PROPERTIES);
-       if(b)
-         {
-            const Eina_Value* value_prop = NULL;
-            const char* str = NULL;
-
-            eo_do(evt->child, efl_model_property_get("path", &value_prop));
-            fail_if(!value_prop, "ERROR: Cannot get property!\n");
-
-            str = eina_value_to_string(value_prop);
-            fail_if(!str, "ERROR: Cannot convert value to string!\n");
-            if(temp_filename && strcmp(str, temp_filename) == 0)
-              ecore_main_loop_quit();
-         }
-    }
-  return EINA_TRUE;
-}
-
-static Eina_Bool
-_children_added_cb(void *data EINA_UNUSED, Eo *obj EINA_UNUSED, const Eo_Event_Description *desc EINA_UNUSED, void *event_info)
-{
-  Efl_Model_Children_Event* evt = event_info;
-  if (evt == NULL)
-    return EINA_TRUE;
-
-  eo_do(evt->child, eo_event_callback_add(EFL_MODEL_BASE_EVENT_LOAD_STATUS, _load_monitor_status_cb, obj));
-  eo_do(evt->child, efl_model_load());
-
-  return EINA_TRUE;
-}
-
-static Eina_Bool
-_children_count_cb(void *data EINA_UNUSED, Eo *obj, const Eo_Event_Description *desc EINA_UNUSED, void *event_info)
-{
-   unsigned int *len = event_info;
-   Eina_Accessor *accessor;
-   Efl_Model_Load_Status status;
-   Eo *child;
-   unsigned int i = 0;
-   int fd = 0;
-
-   fprintf(stderr, "Children count number=%d\n", *len);
-
-   /**< get full list */
-   eo_do(obj, status = efl_model_children_slice_get(0 ,0 ,(Eina_Accessor **)&accessor));
-   if(accessor != NULL)
+   fprintf(stderr, __FILE__ ":%d %s\n", __LINE__, __func__);
+   if(children_deleted)
      {
-        EINA_ACCESSOR_FOREACH(accessor, i, child) {}
-        fprintf(stdout, "Got %d childs from Accessor. status=%d\n", i, status);
-     }
+        Efl_Model_Children_Event* evt = event->info;
 
+        Eina_Promise* promise;
+        promise = efl_model_property_get(evt->child, "path");
+        Eina_Value const* value = eina_promise_value_get(promise);
+        char* filename = eina_value_to_string(value);
+
+        if(temp_filename && strcmp(filename, temp_filename) == 0)
+             ecore_main_loop_quit();
+        free(filename);
+        eina_promise_unref(promise);
+     }
+}
+
+static void
+_children_added_cb(void *data EINA_UNUSED, const Eo_Event* event)
+{
+   fprintf(stderr, __FILE__ ":%d %s\n", __LINE__, __func__);
+   Efl_Model_Children_Event* evt = event->info;
+
+   Eina_Promise* promise;
+   promise = efl_model_property_get(evt->child, "path");
+   Eina_Value const* value = eina_promise_value_get(promise);
+   char* filename = eina_value_to_string(value);
+
+   if(temp_filename && strcmp(temp_filename, filename) == 0)
+     {
+        children_deleted = EINA_TRUE;
+        efl_model_child_del(event->object, evt->child);
+     }
+   free(filename);
+
+   eina_promise_unref(promise);
+}
+
+static void
+_create_file(void *data EINA_UNUSED, void* value EINA_UNUSED)
+{
+   int fd;
    if((fd = eina_file_mkstemp("prefixXXXXXX.ext", &temp_filename)) > 0)
      {
-       close(fd);
+        fprintf(stderr, __FILE__ ":%d %s\n", __LINE__, __func__);
+        close(fd);
      }
+}
 
-   return EINA_TRUE;
+
+static void
+_create_file_error(void *data EINA_UNUSED, Eina_Error value EINA_UNUSED)
+{
+   ck_abort_msg(0, "Error Promise cb called in Create file");
+   ecore_main_loop_quit();
 }
 
 START_TEST(eio_model_test_test_monitor_add)
@@ -120,18 +89,21 @@ START_TEST(eio_model_test_test_monitor_add)
 
    fail_if(!eina_init(), "ERROR: Cannot init Eina!\n");
    fail_if(!ecore_init(), "ERROR: Cannot init Ecore!\n");
+   fail_if(!eo_init(), "ERROR: Cannot init EO!\n");
    fail_if(!eio_init(), "ERROR: Cannot init EIO!\n");
 
    tmpdir = eina_environment_tmp_get();
-   
-   filemodel = eo_add(EIO_MODEL_CLASS, NULL, eio_model_path_set(tmpdir));
+
+   filemodel = eo_add(EIO_MODEL_CLASS, NULL, eio_model_path_set(eo_self, tmpdir));
    fail_if(!filemodel, "ERROR: Cannot init model!\n");
 
-   eo_do(filemodel, eo_event_callback_add(EFL_MODEL_BASE_EVENT_CHILD_ADDED, _children_added_cb, NULL));
-   eo_do(filemodel, eo_event_callback_add(EFL_MODEL_BASE_EVENT_CHILD_REMOVED, _children_removed_cb, NULL));
-   eo_do(filemodel, eo_event_callback_add(EFL_MODEL_BASE_EVENT_CHILDREN_COUNT_CHANGED, _children_count_cb, NULL));
+   eo_event_callback_add(filemodel, EFL_MODEL_EVENT_CHILD_ADDED, &_children_added_cb, filemodel);
+   eo_event_callback_add(filemodel, EFL_MODEL_EVENT_CHILD_REMOVED, &_children_removed_cb, NULL);
 
-   eo_do(filemodel, efl_model_load());
+   Eina_Promise* promise;
+   promise = efl_model_children_slice_get(filemodel, 0, 0);
+
+   eina_promise_then(promise, &_create_file, &_create_file_error, NULL);
 
    ecore_main_loop_begin();
 
@@ -141,7 +113,7 @@ START_TEST(eio_model_test_test_monitor_add)
    ecore_shutdown();
    eina_shutdown();
 
-   fail_if(!children_added);
+   fail_if(!children_deleted);
 }
 END_TEST
 

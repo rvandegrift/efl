@@ -1,6 +1,16 @@
 #include "evas_gl_private.h"
 #include "evas_gl_3d_private.h"
 
+#define CHECK_LOD_DISTANCE \
+   if (pd_mesh_node->lod) \
+     { \
+        if (pdmesh->near_lod_boundary > data->lod_distance) \
+          continue; \
+        else if ((pdmesh->near_lod_boundary < data->lod_distance) && \
+                 (pdmesh->far_lod_boundary < data->lod_distance)) \
+         continue; \
+     }
+
 #define RENDER_MESH_NODE_ITERATE_BEGIN(param)                                                      \
    Eina_Matrix4          matrix_mv;                                                                   \
    Eina_Matrix4          matrix_mvp;                                                                  \
@@ -11,8 +21,9 @@
    it = eina_hash_iterator_data_new(pd_mesh_node->data.mesh.node_meshes);                          \
    while (eina_iterator_next(it, &ptr))                                                            \
      {                                                                                             \
-        Evas_Canvas3D_Node_Mesh *nm = (Evas_Canvas3D_Node_Mesh *)ptr;                                          \
-        Evas_Canvas3D_Mesh_Data *pdmesh = eo_data_scope_get(nm->mesh, EVAS_CANVAS3D_MESH_CLASS);
+        Evas_Canvas3D_Node_Mesh *nm = (Evas_Canvas3D_Node_Mesh *)ptr;                              \
+        Evas_Canvas3D_Mesh_Data *pdmesh = eo_data_scope_get(nm->mesh, EVAS_CANVAS3D_MESH_CLASS);   \
+        CHECK_LOD_DISTANCE
 
 #define RENDER_MESH_NODE_ITERATE_END \
    }                                 \
@@ -268,6 +279,27 @@ e3d_texture_filter_get(const E3D_Texture *texture,
      *mag = _to_e3d_texture_filter(texture->filter_mag);
 }
 
+static void
+_gen_texture_2d(GLuint *texture, GLenum wrap_type, GLfloat filter_type)
+{
+   glGenTextures(1, texture);
+   glBindTexture(GL_TEXTURE_2D, *texture);
+   glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_S, wrap_type);
+   glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_T, wrap_type);
+   glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, filter_type);
+   glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, filter_type);
+}
+
+static void
+_gen_depth_stencil_buffer(GLuint *buffer, GLenum format, GLenum attach,
+                          int size_w, int size_h)
+{
+   glGenRenderbuffers(1, buffer);
+   glBindRenderbuffer(GL_RENDERBUFFER, *buffer);
+   glRenderbufferStorage(GL_RENDERBUFFER, format, size_w, size_h);
+   glFramebufferRenderbuffer(GL_FRAMEBUFFER, attach, GL_RENDERBUFFER, *buffer);
+}
+
 E3D_Drawable *
 e3d_drawable_new(int w, int h, int alpha, GLenum depth_format, GLenum stencil_format)
 {
@@ -278,33 +310,17 @@ e3d_drawable_new(int w, int h, int alpha, GLenum depth_format, GLenum stencil_fo
    GLuint         stencil_buf = 0;
    Eina_Bool      depth_stencil = EINA_FALSE;
 
-   glGenTextures(1, &tex);
-   glBindTexture(GL_TEXTURE_2D, tex);
-   glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_S, GL_CLAMP_TO_EDGE);
-   glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_T, GL_CLAMP_TO_EDGE);
-   glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_NEAREST);
-   glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_NEAREST);
-
+   _gen_texture_2d(&tex, GL_CLAMP_TO_EDGE, GL_NEAREST);
    if (alpha)
      glTexImage2D(GL_TEXTURE_2D, 0, GL_RGBA, w, h, 0, GL_RGBA, GL_UNSIGNED_BYTE, NULL);
    else
      glTexImage2D(GL_TEXTURE_2D, 0, GL_RGB, w, h, 0, GL_RGB, GL_UNSIGNED_BYTE, NULL);
 
-   glGenTextures(1, &texDepth);
-   glBindTexture(GL_TEXTURE_2D, texDepth);
-   glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_S, GL_CLAMP_TO_EDGE);
-   glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_T, GL_CLAMP_TO_EDGE);
-   glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_NEAREST);
-   glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_NEAREST);
+   _gen_texture_2d(&texDepth, GL_CLAMP_TO_EDGE, GL_NEAREST);
    glTexImage2D(GL_TEXTURE_2D, 0, GL_RGBA, w, h, 0, GL_RGBA, GL_UNSIGNED_BYTE, NULL);
 
    glGenFramebuffers(1, &color_pick_fb_id);
-   glGenTextures(1, &texcolorpick);
-   glBindTexture(GL_TEXTURE_2D, texcolorpick);
-   glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_S, GL_REPEAT);
-   glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_T, GL_REPEAT);
-   glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_NEAREST);
-   glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_NEAREST);
+   _gen_texture_2d(&texcolorpick, GL_CLAMP_TO_EDGE, GL_NEAREST);
    glTexImage2D(GL_TEXTURE_2D, 0, GL_RGBA, w, h, 0, GL_RGBA, GL_UNSIGNED_BYTE, NULL);
 
    glGenFramebuffers(1, &fbo);
@@ -314,13 +330,7 @@ e3d_drawable_new(int w, int h, int alpha, GLenum depth_format, GLenum stencil_fo
 #ifdef GL_GLES
    if (depth_format == GL_DEPTH_STENCIL_OES)
      {
-        glGenTextures(1, &depth_stencil_buf);
-        glBindTexture(GL_TEXTURE_2D, depth_stencil_buf);
-        glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_S, GL_CLAMP_TO_EDGE);
-        glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_T, GL_CLAMP_TO_EDGE);
-        glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_NEAREST);
-        glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_NEAREST);
-
+        _gen_texture_2d(&depth_stencil_buf, GL_CLAMP_TO_EDGE, GL_NEAREST);
         glTexImage2D(GL_TEXTURE_2D, 0, GL_DEPTH_STENCIL_OES, w, h, 0,
                      GL_DEPTH_STENCIL_OES, GL_UNSIGNED_INT_24_8_OES, NULL);
 
@@ -334,33 +344,17 @@ e3d_drawable_new(int w, int h, int alpha, GLenum depth_format, GLenum stencil_fo
 #else
    if (depth_format == GL_DEPTH24_STENCIL8)
      {
-        glGenRenderbuffers(1, &depth_stencil_buf);
-        glBindRenderbuffer(GL_RENDERBUFFER, depth_stencil_buf);
-        glRenderbufferStorage(GL_RENDERBUFFER, GL_DEPTH24_STENCIL8, w, h);
-        glFramebufferRenderbuffer(GL_FRAMEBUFFER, GL_DEPTH_STENCIL_ATTACHMENT,
-                                  GL_RENDERBUFFER, depth_stencil_buf);
-
+        _gen_depth_stencil_buffer(&depth_stencil_buf, GL_DEPTH24_STENCIL8,
+                                  GL_DEPTH_STENCIL_ATTACHMENT, w, h);
         depth_stencil = EINA_TRUE;
      }
 #endif
 
    if ((!depth_stencil) && (depth_format))
-     {
-        glGenRenderbuffers(1, &depth_buf);
-        glBindRenderbuffer(GL_RENDERBUFFER, depth_buf);
-        glRenderbufferStorage(GL_RENDERBUFFER, depth_format, w, h);
-        glFramebufferRenderbuffer(GL_FRAMEBUFFER, GL_DEPTH_ATTACHMENT,
-                                  GL_RENDERBUFFER, depth_buf);
-     }
+     _gen_depth_stencil_buffer(&depth_buf, depth_format, GL_DEPTH_ATTACHMENT, w, h);
 
    if ((!depth_stencil) && (stencil_format))
-     {
-        glGenRenderbuffers(1, &stencil_buf);
-        glBindRenderbuffer(GL_RENDERBUFFER, stencil_buf);
-        glRenderbufferStorage(GL_RENDERBUFFER, stencil_format, w, h);
-        glFramebufferRenderbuffer(GL_FRAMEBUFFER, GL_STENCIL_ATTACHMENT,
-                                  GL_RENDERBUFFER, stencil_buf);
-     }
+     _gen_depth_stencil_buffer(&stencil_buf, stencil_format, GL_STENCIL_ATTACHMENT, w, h);
 
    if (glCheckFramebufferStatus(GL_FRAMEBUFFER) != GL_FRAMEBUFFER_COMPLETE)
      goto error;
@@ -899,7 +893,7 @@ _light_build(E3D_Draw_Data *data,
    Evas_Canvas3D_Node_Data *pd_light_node = eo_data_scope_get(light, EVAS_CANVAS3D_NODE_CLASS);
    Evas_Canvas3D_Light *l = pd_light_node ? pd_light_node->data.light.light : NULL;
    Evas_Canvas3D_Light_Data *pdl = l ? eo_data_scope_get(l, EVAS_CANVAS3D_LIGHT_CLASS) : NULL;
-   Evas_Vec3      pos, dir;
+   Eina_Vector3      pos, dir;
 
    if (pdl == NULL)
      return;
@@ -910,12 +904,12 @@ _light_build(E3D_Draw_Data *data,
         data->flags |= E3D_SHADER_FLAG_LIGHT_DIRECTIONAL;
 
         /* Negative Z. */
-        evas_vec3_set(&dir, 0.0, 0.0, 1.0);
-        evas_vec3_quaternion_rotate(&dir, &dir, &pd_light_node->orientation);
+        eina_vector3_set(&dir, 0.0, 0.0, 1.0);
+        eina_vector3_quaternion_rotate(&dir, &dir, &pd_light_node->orientation);
 
         /* Transform to eye space. */
-        evas_vec3_homogeneous_direction_transform(&dir, &dir, matrix_eye);
-        evas_vec3_normalize(&dir, &dir);
+        eina_vector3_homogeneous_direction_transform(&dir, matrix_eye, &dir);
+        eina_vector3_normalize(&dir, &dir);
 
         data->light.position.x = dir.x;
         data->light.position.y = dir.y;
@@ -924,8 +918,8 @@ _light_build(E3D_Draw_Data *data,
      }
    else
      {
-        evas_vec3_copy(&pos, &pd_light_node->position_world);
-        evas_vec3_homogeneous_position_transform(&pos, &pos, matrix_eye);
+        eina_vector3_copy(&pos, &pd_light_node->position_world);
+        eina_vector3_homogeneous_position_transform(&pos, matrix_eye, &pos);
 
         data->light.position.x = pos.x;
         data->light.position.y = pos.y;
@@ -944,9 +938,9 @@ _light_build(E3D_Draw_Data *data,
         if (pdl->spot_cutoff < 180.0)
           {
              data->flags |= E3D_SHADER_FLAG_LIGHT_SPOT;
-             evas_vec3_set(&dir, 0.0, 0.0, -1.0);
-             evas_vec3_quaternion_rotate(&dir, &dir, &pd_light_node->orientation);
-             evas_vec3_homogeneous_direction_transform(&dir, &dir, matrix_eye);
+             eina_vector3_set(&dir, 0.0, 0.0, -1.0);
+             eina_vector3_quaternion_rotate(&dir, &dir, &pd_light_node->orientation);
+             eina_vector3_homogeneous_direction_transform(&dir, matrix_eye, &dir);
 
              data->light.spot_dir = dir;
              data->light.spot_exp = pdl->spot_exp;
@@ -1000,7 +994,7 @@ _mesh_draw_data_build(E3D_Draw_Data *data,
    data->blending = pdmesh->blending;
    data->blend_sfactor = pdmesh->blend_sfactor;
    data->blend_dfactor = pdmesh->blend_dfactor;
-   data->mode = pdmesh->shade_mode;
+   data->mode = pdmesh->shader_mode;
    data->assembly = pdmesh->assembly;
    data->vertex_count = pdmesh->vertex_count;
    data->index_count = pdmesh->index_count;
@@ -1024,12 +1018,12 @@ _mesh_draw_data_build(E3D_Draw_Data *data,
           }                                                                   \
    } while (0)
 
-   if (pdmesh->shade_mode == EVAS_CANVAS3D_SHADE_MODE_VERTEX_COLOR)
+   if (pdmesh->shader_mode == EVAS_CANVAS3D_SHADER_MODE_VERTEX_COLOR)
      {
         BUILD(vertex_attrib,     VERTEX_ATTRIB_POSITION,     EINA_TRUE);
         BUILD(vertex_attrib,     VERTEX_ATTRIB_COLOR,        EINA_TRUE);
      }
-   else if (pdmesh->shade_mode == EVAS_CANVAS3D_SHADE_MODE_SHADOW_MAP_RENDER)
+   else if (pdmesh->shader_mode == EVAS_CANVAS3D_SHADER_MODE_SHADOW_MAP_RENDER)
      {
         BUILD(vertex_attrib,     VERTEX_ATTRIB_POSITION,     EINA_TRUE);
         if (pdmesh->alpha_test_enabled)
@@ -1040,11 +1034,11 @@ _mesh_draw_data_build(E3D_Draw_Data *data,
                BUILD(vertex_attrib,     VERTEX_ATTRIB_TEXCOORD,     EINA_FALSE);
           }
      }
-   else if (pdmesh->shade_mode == EVAS_CANVAS3D_SHADE_MODE_COLOR_PICK)
+   else if (pdmesh->shader_mode == EVAS_CANVAS3D_SHADER_MODE_COLOR_PICK)
      {
         BUILD(vertex_attrib,     VERTEX_ATTRIB_POSITION,     EINA_TRUE);
      }
-   else if (pdmesh->shade_mode == EVAS_CANVAS3D_SHADE_MODE_DIFFUSE)
+   else if (pdmesh->shader_mode == EVAS_CANVAS3D_SHADER_MODE_DIFFUSE)
      {
         BUILD(vertex_attrib,     VERTEX_ATTRIB_POSITION,     EINA_TRUE);
         BUILD(material_color,    MATERIAL_ATTRIB_DIFFUSE,    EINA_TRUE);
@@ -1053,7 +1047,7 @@ _mesh_draw_data_build(E3D_Draw_Data *data,
         if (_flags_need_tex_coord(data->flags))
           BUILD(vertex_attrib,     VERTEX_ATTRIB_TEXCOORD,     EINA_FALSE);
      }
-   else if (pdmesh->shade_mode == EVAS_CANVAS3D_SHADE_MODE_FLAT)
+   else if (pdmesh->shader_mode == EVAS_CANVAS3D_SHADER_MODE_FLAT)
      {
         BUILD(vertex_attrib,     VERTEX_ATTRIB_POSITION,     EINA_TRUE);
         BUILD(vertex_attrib,     VERTEX_ATTRIB_NORMAL,       EINA_TRUE);
@@ -1074,7 +1068,7 @@ _mesh_draw_data_build(E3D_Draw_Data *data,
         if (_flags_need_tex_coord(data->flags))
           BUILD(vertex_attrib,     VERTEX_ATTRIB_TEXCOORD,     EINA_FALSE);
      }
-   else if (pdmesh->shade_mode == EVAS_CANVAS3D_SHADE_MODE_PHONG)
+   else if (pdmesh->shader_mode == EVAS_CANVAS3D_SHADER_MODE_PHONG)
      {
         BUILD(vertex_attrib,     VERTEX_ATTRIB_POSITION,     EINA_TRUE);
         BUILD(vertex_attrib,     VERTEX_ATTRIB_NORMAL,       EINA_TRUE);
@@ -1095,8 +1089,8 @@ _mesh_draw_data_build(E3D_Draw_Data *data,
         if (_flags_need_tex_coord(data->flags))
           BUILD(vertex_attrib,     VERTEX_ATTRIB_TEXCOORD,     EINA_FALSE);
      }
-   else if ((pdmesh->shade_mode == EVAS_CANVAS3D_SHADE_MODE_NORMAL_MAP) ||
-            (pdmesh->shade_mode == EVAS_CANVAS3D_SHADE_MODE_PARALLAX_OCCLUSION))
+   else if ((pdmesh->shader_mode == EVAS_CANVAS3D_SHADER_MODE_NORMAL_MAP) ||
+            (pdmesh->shader_mode == EVAS_CANVAS3D_SHADER_MODE_PARALLAX_OCCLUSION))
      {
         BUILD(vertex_attrib,     VERTEX_ATTRIB_POSITION,     EINA_TRUE);
         BUILD(vertex_attrib,     VERTEX_ATTRIB_NORMAL,       EINA_TRUE);
@@ -1105,7 +1099,7 @@ _mesh_draw_data_build(E3D_Draw_Data *data,
         BUILD(vertex_attrib,     VERTEX_ATTRIB_TANGENT,      EINA_FALSE);
 
 
-        if (pdmesh->shade_mode == EVAS_CANVAS3D_SHADE_MODE_NORMAL_MAP)
+        if (pdmesh->shader_mode == EVAS_CANVAS3D_SHADER_MODE_NORMAL_MAP)
           BUILD(vertex_attrib,     VERTEX_ATTRIB_TANGENT,      EINA_FALSE);
         else BUILD(vertex_attrib,     VERTEX_ATTRIB_TANGENT,      EINA_TRUE);
 
@@ -1162,7 +1156,7 @@ void _shadowmap_render(E3D_Drawable *drawable, E3D_Renderer *renderer,
 {
    Eina_List        *l;
    Evas_Canvas3D_Node     *n;
-   Evas_Canvas3D_Shade_Mode shade_mode;
+   Evas_Canvas3D_Shader_Mode shader_mode;
    Eina_Bool       blend_enabled;
    Evas_Color      c = {1.0, 1.0, 1.0, 1.0};
    Eina_Matrix4 matrix_vp;
@@ -1173,7 +1167,6 @@ void _shadowmap_render(E3D_Drawable *drawable, E3D_Renderer *renderer,
    glFramebufferTexture2D(GL_FRAMEBUFFER, GL_COLOR_ATTACHMENT0, GL_TEXTURE_2D,
                           drawable->texDepth, 0);
 
-   e3d_renderer_target_set(renderer, drawable);
    e3d_renderer_clear(renderer, &c);
 
    Evas_Canvas3D_Node_Data *pd_light_node = eo_data_scope_get(light, EVAS_CANVAS3D_NODE_CLASS);
@@ -1192,32 +1185,33 @@ void _shadowmap_render(E3D_Drawable *drawable, E3D_Renderer *renderer,
           {
              RENDER_MESH_NODE_ITERATE_BEGIN(light_eye)
                {
-                  shade_mode = pdmesh->shade_mode;
+                  shader_mode = pdmesh->shader_mode;
                   blend_enabled = pdmesh->blending;
                   pdmesh->blending = EINA_FALSE;
-                  pdmesh->shade_mode = EVAS_CANVAS3D_SHADE_MODE_SHADOW_MAP_RENDER;
+                  pdmesh->shader_mode = EVAS_CANVAS3D_SHADER_MODE_SHADOW_MAP_RENDER;
                   _mesh_draw(renderer, nm->mesh, nm->frame, light, matrix_light_eye,
                              &matrix_mv, &matrix_mvp, &matrix_mvp);
-                  pdmesh->shade_mode = shade_mode;
+                  pdmesh->shader_mode = shader_mode;
                   pdmesh->blending = blend_enabled;
                }
              RENDER_MESH_NODE_ITERATE_END
           }
      }
 
-     glDisable(GL_POLYGON_OFFSET_FILL);
+   glDisable(GL_POLYGON_OFFSET_FILL);
 
-     if (data->render_to_texture)
-       {
-          data->render_to_texture = EINA_FALSE;
-          e3d_renderer_color_pick_target_set(renderer, drawable);
-       }
-     else
-       {
-          glFramebufferTexture2D(GL_FRAMEBUFFER, GL_COLOR_ATTACHMENT0, GL_TEXTURE_2D,
-                                 drawable->tex, 0);
-          e3d_renderer_clear(renderer, &data->bg_color);
-       }
+   if (data->render_to_texture)
+     {
+        glFramebufferTexture2D(GL_FRAMEBUFFER, GL_COLOR_ATTACHMENT0, GL_TEXTURE_2D,
+                               drawable->texcolorpick, 0);
+        e3d_renderer_clear(renderer, &data->bg_color);
+     }
+   else
+     {
+        glFramebufferTexture2D(GL_FRAMEBUFFER, GL_COLOR_ATTACHMENT0, GL_TEXTURE_2D,
+                               drawable->tex, 0);
+        e3d_renderer_clear(renderer, &data->bg_color);
+     }
 }
 
 void
@@ -1282,6 +1276,10 @@ _scene_render(E3D_Drawable *drawable, E3D_Renderer *renderer, Evas_Canvas3D_Scen
                {
                   Evas_Canvas3D_Node_Mesh *nm = (Evas_Canvas3D_Node_Mesh *)ptr;
                   Evas_Canvas3D_Mesh_Data *pdmesh = eo_data_scope_get(nm->mesh, EVAS_CANVAS3D_MESH_CLASS);
+                  /*In case LOD enable pass in render only LOD meshes in dependences of the
+                  distance to the camera node:
+                  near_boundary <= distance <= far_boundary*/
+                  CHECK_LOD_DISTANCE
                   if (data->shadows_enabled)
                     {
                        pdmesh->shadowed = EINA_TRUE;
@@ -1303,8 +1301,49 @@ e3d_drawable_scene_render(E3D_Drawable *drawable, E3D_Renderer *renderer, Evas_C
    e3d_renderer_target_set(renderer, drawable);
    e3d_renderer_clear(renderer, &data->bg_color);
 
-   /*Render scene data*/
-   _scene_render(drawable, renderer, data);
+   if (data->post_processing)
+     e3d_drawable_scene_render_to_texture(drawable, renderer, data);//Render to additional texture
+   else
+     _scene_render(drawable, renderer, data);//Common main render
+}
+
+void
+_scene_post_render(E3D_Drawable *drawable, E3D_Renderer *renderer, Evas_Canvas3D_Scene_Public_Data *data)
+{
+   E3D_Draw_Data   drawable_data;
+   float vertices_of_square[] = {-1.0, 1.0, 0.0, 1.0, 1.0, 0.0,
+                                 -1.0, -1.0, 0.0, 1.0, -1.0, 0.0};
+   unsigned short indices_of_square[] = {0, 1, 2, 2, 1, 3};
+
+   memset(&drawable_data, 0x00, sizeof(E3D_Draw_Data));
+
+   drawable_data.flags |= E3D_SHADER_FLAG_VERTEX_POSITION;
+   drawable_data.mode = data->post_processing_type;
+   drawable_data.assembly = EVAS_CANVAS3D_VERTEX_ASSEMBLY_TRIANGLES;
+   drawable_data.indices = indices_of_square;
+   drawable_data.vertex_count = 4;
+   drawable_data.index_count = 6;
+   drawable_data.index_format = EVAS_CANVAS3D_INDEX_FORMAT_UNSIGNED_SHORT;
+   eina_matrix4_identity(&drawable_data.matrix_mv);
+   eina_matrix4_identity(&drawable_data.matrix_mvp);
+   drawable_data.frame_size_h = (Evas_Real)drawable->h;
+   drawable_data.frame_size_w = (Evas_Real)drawable->w;
+   /*Initialize Evas_Canvas3D_Vertex_Buffer for full screen quard*/
+   drawable_data.vertices[EVAS_CANVAS3D_VERTEX_ATTRIB_POSITION].vertex0.data = (void *)vertices_of_square;
+   drawable_data.vertices[EVAS_CANVAS3D_VERTEX_ATTRIB_POSITION].vertex0.element_count = 3;
+   drawable_data.vertices[EVAS_CANVAS3D_VERTEX_ATTRIB_POSITION].vertex0.stride = 3 * sizeof(float);
+   drawable_data.vertices[EVAS_CANVAS3D_VERTEX_ATTRIB_POSITION].vertex0.owns_data = EINA_FALSE;
+   drawable_data.vertices[EVAS_CANVAS3D_VERTEX_ATTRIB_POSITION].vertex0.size = 0;
+
+   e3d_renderer_clear(renderer, &data->bg_color);
+
+   /*Initialize texture units*/
+   drawable_data.smap_sampler = e3d_renderer_sampler_shadowmap_get(renderer);
+   drawable_data.colortex_sampler = e3d_renderer_sampler_colortexture_get(renderer);
+
+   /*Render full screen quard with color pick texture unit*/
+   e3d_renderer_draw(renderer, &drawable_data);
+   e3d_renderer_flush(renderer);
 }
 
 Eina_Bool
@@ -1312,15 +1351,15 @@ e3d_drawable_scene_render_to_texture(E3D_Drawable *drawable, E3D_Renderer *rende
                                      Evas_Canvas3D_Scene_Public_Data *data)
 {
    const Eina_Matrix4  *matrix_eye;
-   Evas_Canvas3D_Shade_Mode shade_mode;
+   Evas_Canvas3D_Shader_Mode shader_mode;
    Eina_Stringshare *tmp;
    Eina_Iterator *itmn;
    void *ptrmn;
    Eina_List *repeat_node = NULL;
-   Evas_Color c = {0.0, 0.0, 0.0, 0.0}, *unic_color = NULL;
+   Evas_Color *unic_color = NULL;
 
    e3d_renderer_color_pick_target_set(renderer, drawable);
-   e3d_renderer_clear(renderer, &c);
+   e3d_renderer_clear(renderer, &data->bg_color);
 
    if (data->color_pick_enabled) //Use rendering to texture in color pick mechanism
      {
@@ -1359,11 +1398,11 @@ e3d_drawable_scene_render_to_texture(E3D_Drawable *drawable, E3D_Renderer *rende
                              pdmesh->color_pick_key.r = unic_color->r;
                              pdmesh->color_pick_key.g = unic_color->g;
                              pdmesh->color_pick_key.b = unic_color->b;
-                             shade_mode = pdmesh->shade_mode;
-                             pdmesh->shade_mode = EVAS_CANVAS3D_SHADE_MODE_COLOR_PICK;
+                             shader_mode = pdmesh->shader_mode;
+                             pdmesh->shader_mode = EVAS_CANVAS3D_SHADER_MODE_COLOR_PICK;
                              _mesh_draw(renderer, nm->mesh, nm->frame, NULL, matrix_eye, &matrix_mv,
                                         &matrix_mvp, NULL);
-                             pdmesh->shade_mode = shade_mode;
+                             pdmesh->shader_mode = shader_mode;
                           }
                         eina_stringshare_del(tmp);
                      }
@@ -1376,9 +1415,11 @@ e3d_drawable_scene_render_to_texture(E3D_Drawable *drawable, E3D_Renderer *rende
    else
      {
         _scene_render(drawable, renderer, data); //Just render scene in texture
+        glBindFramebuffer(GL_FRAMEBUFFER, drawable->fbo);
+        /*Render full screen quard*/
+        if (data->post_processing)
+          _scene_post_render(drawable, renderer, data);
      }
-
-   glBindFramebuffer(GL_FRAMEBUFFER, drawable->fbo);
 
    return EINA_TRUE;
 }
@@ -1400,5 +1441,54 @@ e3d_drawable_texture_pixel_color_get(GLuint tex EINA_UNUSED, int x, int y,
    glBindFramebuffer(GL_FRAMEBUFFER, d->fbo);
 }
 
+void
+e3d_drawable_texture_rendered_pixels_get(GLuint tex EINA_UNUSED, int x, int y, int w, int h,
+                                         void *drawable EINA_UNUSED, void *data)
+{
+   DATA32 *buffer = (DATA32 *)data;
+   DATA32 *datarowup = NULL, *datarowlow = NULL;
+   DATA32 pixel;
+   int i, j, width = 0, up, bellow;
+
+   glReadPixels(x, y, w, h, GL_RGBA, GL_UNSIGNED_BYTE, (GLubyte *)buffer);
+
+  /*Due to returned pixels buffer filled as from the
+   bottom left of the screen going up to the top right*/
+   datarowup = malloc(w * sizeof(DATA32));
+   datarowlow = malloc(w * sizeof(DATA32));
+
+   if (!datarowup || !datarowlow)
+     {
+        ERR("Not enough memory");
+        if (datarowup) free(datarowup);
+        if (datarowlow) free(datarowlow);
+        return;
+     }
+   for (j = 0; j < h / 2; j++)
+     {
+        bellow = h * w - width;
+        up = w + width;
+
+        for (i = w - 1; i >= 0; i--)
+          {
+             pixel = buffer[bellow];
+             datarowlow[i] = ((pixel & 0x000000ff) << 16) +
+                             ((pixel & 0x00ff0000) >> 16)  +
+                             ((pixel & 0xff00ff00));
+             pixel = buffer[up];
+             datarowup[i] = ((pixel & 0x000000ff) << 16) +
+                             ((pixel & 0x00ff0000) >> 16)  +
+                             ((pixel & 0xff00ff00));
+             bellow--;
+             up--;
+          }
+        memcpy(buffer + width, datarowlow, w * sizeof(DATA32));
+        width += w;
+        memcpy(buffer + (h * w - width), datarowup, w * sizeof(DATA32));
+     }
+   free(datarowup);
+   free(datarowlow);
+}
+#undef CHECK_LOD_DISTANCE
 #undef RENDER_MESH_NODE_ITERATE_BEGIN
 #undef RENDER_MESH_NODE_ITERATE_END

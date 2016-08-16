@@ -67,7 +67,8 @@ ecore_exe_pipe_run(const char     *exe_cmd,
                    Ecore_Exe_Flags flags,
                    const void     *data)
 {
-   Ecore_Exe *ret = eo_add(MY_CLASS, NULL, ecore_obj_exe_command_set(exe_cmd, flags));
+   EINA_MAIN_LOOP_CHECK_RETURN_VAL(NULL);
+   Ecore_Exe *ret = eo_add(MY_CLASS, NULL, ecore_obj_exe_command_set(eo_self, exe_cmd, flags));
    if (ret)
      {
         Ecore_Exe_Data *pd = eo_data_scope_get(ret, MY_CLASS);
@@ -80,6 +81,7 @@ ecore_exe_pipe_run(const char     *exe_cmd,
 EOLIAN static void
 _ecore_exe_command_set(Eo *obj EINA_UNUSED, Ecore_Exe_Data *pd, const char *cmd, Ecore_Exe_Flags flags)
 {
+   if (!cmd) return;
    pd->cmd = strdup(cmd);
    pd->flags = flags;
 }
@@ -95,7 +97,7 @@ EOLIAN static Eo *
 _ecore_exe_eo_base_finalize(Eo *obj, Ecore_Exe_Data *exe)
 {
    EINA_MAIN_LOOP_CHECK_RETURN_VAL(NULL);
-   eo_do_super(obj, MY_CLASS, obj = eo_finalize());
+   obj = eo_finalize(eo_super(obj, MY_CLASS));
 
    if (!obj)
       return obj;
@@ -216,7 +218,7 @@ ecore_exe_free(Ecore_Exe *obj)
 EOLIAN static void
 _ecore_exe_eo_base_destructor(Eo *obj, Ecore_Exe_Data *exe)
 {
-   eo_do_super(obj, ECORE_EXE_CLASS, eo_destructor());
+   eo_destructor(eo_super(obj, ECORE_EXE_CLASS));
 
    _impl_ecore_exe_eo_base_destructor(obj, exe);
 }
@@ -247,7 +249,7 @@ ecore_exe_cmd_get(const Ecore_Exe *obj)
    EINA_MAIN_LOOP_CHECK_RETURN_VAL(NULL);
    const char *ret = NULL;
 
-   eo_do(obj, ecore_obj_exe_command_get(&ret, NULL));
+   ecore_obj_exe_command_get(obj, &ret, NULL);
 
    return ret;
 }
@@ -292,13 +294,13 @@ ecore_exe_flags_get(const Ecore_Exe *obj)
 EAPI void
 ecore_exe_pause(Ecore_Exe *obj)
 {
-   eo_do(obj, efl_control_suspend_set(EINA_TRUE));
+   efl_control_suspend_set(obj, EINA_TRUE);
 }
 
 EAPI void
 ecore_exe_continue(Ecore_Exe *obj)
 {
-   eo_do(obj, efl_control_suspend_set(EINA_FALSE));
+   efl_control_suspend_set(obj, EINA_FALSE);
 }
 
 EOLIAN static void

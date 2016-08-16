@@ -1,11 +1,11 @@
 MAINTAINERCLEANFILES = Makefile.in
 
 AM_CPPFLAGS = \
--I$(top_builddir)/src/lib/efl \
 -I$(top_srcdir)/src/lib/eina \
 -I$(top_srcdir)/src/lib/eet \
 -I$(top_srcdir)/src/lib/emile \
 -I$(top_srcdir)/src/lib/eo \
+-I$(top_srcdir)/src/lib/efl \
 -I$(top_srcdir)/src/lib/evas \
 -I$(top_srcdir)/src/lib/ecore \
 -I$(top_srcdir)/src/lib/ecore_input \
@@ -20,6 +20,7 @@ AM_CPPFLAGS = \
 -I$(top_builddir)/src/lib/eet \
 -I$(top_builddir)/src/lib/emile \
 -I$(top_builddir)/src/lib/eo \
+-I$(top_builddir)/src/lib/efl \
 -I$(top_builddir)/src/lib/evas \
 -I$(top_builddir)/src/lib/ecore \
 -I$(top_builddir)/src/lib/ecore_file \
@@ -263,11 +264,15 @@ ecore_timer_example_LDADD = $(ECORE_COMMON_LDADD)
 ecore_getopt_example_SOURCES = ecore_getopt_example.c
 ecore_getopt_example_LDADD = $(ECORE_COMMON_LDADD)
 
-ecore_con_eet_client_example_SOURCES = ecore_con_eet_client_example.c ecore_con_eet_descriptor_example.c
+ecore_con_eet_client_example_SOURCES = ecore_con_eet_client_example.c \
+				       ecore_con_eet_descriptor_example.c \
+				       ecore_con_eet_descriptor_example.h
 ecore_con_eet_client_example_LDADD = $(ECORE_CON_COMMON_LDADD) \
 $(top_builddir)/src/lib/eet/libeet.la
 
-ecore_con_eet_server_example_SOURCES = ecore_con_eet_server_example.c ecore_con_eet_descriptor_example.c
+ecore_con_eet_server_example_SOURCES = ecore_con_eet_server_example.c \
+				       ecore_con_eet_descriptor_example.c \
+				       ecore_con_eet_descriptor_example.h
 ecore_con_eet_server_example_LDADD = $(ECORE_CON_COMMON_LDADD) \
 $(top_builddir)/src/lib/eet/libeet.la
 
@@ -276,9 +281,6 @@ ecore_animator_example.c \
 ecore_buffer_example.c \
 ecore_buffer_consumer_example.c \
 ecore_buffer_provider_example.c \
-ecore_audio_custom.c \
-ecore_audio_playback.c \
-ecore_audio_to_ogg.c \
 ecore_client_bench.c \
 ecore_compose_get_example.c \
 ecore_con_client_example.c \
@@ -331,12 +333,12 @@ clean-local:
 	rm -f $(EXTRA_PROGRAMS)
 
 install-examples:
-	$(MKDIR_P) $(datadir)/ecore/examples
-	cd $(srcdir) && $(install_sh_DATA) -c $(SRCS) $(DATA_FILES) $(datadir)/ecore/examples
+	$(MKDIR_P) $(DESTDIR)$(datadir)/ecore/examples
+	cd $(srcdir) && $(install_sh_DATA) -c $(SRCS) $(DATA_FILES) $(DESTDIR)$(datadir)/ecore/examples
 
 uninstall-local:
 	for f in $(SRCS) $(DATA_FILES); do \
-	  rm -f $(datadir)/ecore/examples/$$f ; \
+	  rm -f $(DESTDIR)$(datadir)/ecore/examples/$$f ; \
 	done
 
 if ALWAYS_BUILD_EXAMPLES

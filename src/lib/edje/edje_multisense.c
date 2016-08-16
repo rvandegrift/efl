@@ -7,21 +7,18 @@ static Eo *out = NULL;
 static int outs = 0;
 static Eina_Bool outfail = EINA_FALSE;
 
-static Eina_Bool
-_play_finished(void *data EINA_UNUSED, Eo *in, const Eo_Event_Description *desc EINA_UNUSED, void *event_info EINA_UNUSED)
+static void
+_play_finished(void *data EINA_UNUSED, const Eo_Event *event)
 {
-   eo_del(in);
-
-   return EINA_TRUE;
+   eo_del(event->object);
 }
 
-static Eina_Bool
-_out_fail(void *data EINA_UNUSED, Eo *output EINA_UNUSED, const Eo_Event_Description *desc EINA_UNUSED, void *event_info EINA_UNUSED)
+static void
+_out_fail(void *data EINA_UNUSED, const Eo_Event *event)
 {
    outfail = EINA_TRUE;
-   eo_del(out);
+   eo_del(event->object);
    out = NULL;
-   return EINA_TRUE;
 }
 
 struct _edje_multisense_eet_data
@@ -202,18 +199,13 @@ _edje_multisense_internal_sound_sample_play(Edje *ed, const char *sample_name, c
              eet_data->vio.tell = eet_snd_file_tell;
              eet_data->offset = 0;
 
-             in = eo_add(ECORE_AUDIO_IN_SNDFILE_CLASS, NULL,
-                         ecore_audio_obj_name_set(snd_id_str),
-                         ecore_audio_obj_in_speed_set(speed),
-                         ecore_audio_obj_vio_set(&eet_data->vio, eet_data, _free),
-                         eo_event_callback_add(ECORE_AUDIO_IN_EVENT_IN_STOPPED, _play_finished, NULL));
+             in = eo_add(ECORE_AUDIO_IN_SNDFILE_CLASS, NULL, ecore_audio_obj_name_set(eo_self, snd_id_str), ecore_audio_obj_in_speed_set(eo_self, speed), ecore_audio_obj_vio_set(eo_self, &eet_data->vio, eet_data, _free), eo_event_callback_add(eo_self, ECORE_AUDIO_IN_EVENT_IN_STOPPED, _play_finished, NULL));
              if (!out)
                {
 #if HAVE_COREAUDIO
                   out = eo_add(ECORE_AUDIO_OUT_CORE_AUDIO_CLASS, NULL);
 #elif HAVE_PULSE
-                  out = eo_add(ECORE_AUDIO_OUT_PULSE_CLASS, NULL,
-                               eo_event_callback_add(ECORE_AUDIO_OUT_PULSE_EVENT_CONTEXT_FAIL, _out_fail, NULL));
+                  out = eo_add(ECORE_AUDIO_OUT_PULSE_CLASS, NULL, eo_event_callback_add(eo_self, ECORE_AUDIO_OUT_PULSE_EVENT_CONTEXT_FAIL, _out_fail, NULL));
 #endif
                   if (out) outs++;
                }
@@ -227,7 +219,7 @@ _edje_multisense_internal_sound_sample_play(Edje *ed, const char *sample_name, c
                   eo_del(in);
                   return EINA_FALSE;
                }
-             eo_do(out, ret = ecore_audio_obj_out_input_attach(in));
+             ret = ecore_audio_obj_out_input_attach(out, in);
              if (!ret)
                {
                   ERR("Could not attach input");
@@ -275,23 +267,22 @@ _edje_multisense_internal_sound_tone_play(Edje *ed, const char *tone_name, const
         if (!strcmp(tone->name, tone_name))
           {
              in = eo_add(ECORE_AUDIO_IN_TONE_CLASS, NULL);
-             eo_do(in, ecore_audio_obj_name_set("tone"));
-             eo_do(in, eo_key_data_set(ECORE_AUDIO_ATTR_TONE_FREQ, &tone->value));
-             eo_do(in, ecore_audio_obj_in_length_set(duration));
-             eo_do(in, eo_event_callback_add(ECORE_AUDIO_IN_EVENT_IN_STOPPED, _play_finished, NULL));
+             ecore_audio_obj_name_set(in, "tone");
+             eo_key_data_set(in, ECORE_AUDIO_ATTR_TONE_FREQ, &tone->value);
+             ecore_audio_obj_in_length_set(in, duration);
+             eo_event_callback_add(in, ECORE_AUDIO_IN_EVENT_IN_STOPPED, _play_finished, NULL);
 
              if (!out)
                {
 #if HAVE_COREAUDIO
                   out = eo_add(ECORE_AUDIO_OUT_CORE_AUDIO_CLASS, NULL);
 #elif HAVE_PULSE
-                  out = eo_add(ECORE_AUDIO_OUT_PULSE_CLASS, NULL,
-                               eo_event_callback_add(ECORE_AUDIO_OUT_PULSE_EVENT_CONTEXT_FAIL, _out_fail, NULL));
+                  out = eo_add(ECORE_AUDIO_OUT_PULSE_CLASS, NULL, eo_event_callback_add(eo_self, ECORE_AUDIO_OUT_PULSE_EVENT_CONTEXT_FAIL, _out_fail, NULL));
 #endif
                   if (out) outs++;
                }
 
-             eo_do(out, ret = ecore_audio_obj_out_input_attach(in));
+             ret = ecore_audio_obj_out_input_attach(out, in);
              if (!ret)
                {
                   ERR("Could not attach input");

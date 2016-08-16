@@ -71,7 +71,7 @@ esac
 case "$host_os" in
    mingw*)
       $2="yes"
-      EFL_ADD_LIBS([$1], [lib/evil/libevil.la])
+      EFL_ADD_LIBS([$1], [-levil])
    ;;
    *)
       EFL_FIND_LIB_FOR_CODE([$1], [$dllibs], [$2], [[
@@ -100,7 +100,7 @@ esac
 case "$host_os" in
    mingw*)
       $2="yes"
-      EFL_ADD_LIBS([$1], [lib/evil/libevil.la])
+      EFL_ADD_LIBS([$1], [-levil])
    ;;
    *)
       EFL_FIND_LIB_FOR_CODE([$1], [$dllibs], [$2], [[
@@ -125,7 +125,7 @@ esac
 case "$host_os" in
    mingw*)
       $2="yes"
-      EFL_ADD_LIBS([$1], [lib/evil/libevil.la])
+      EFL_ADD_LIBS([$1], [-levil])
    ;;
    *)
       EFL_FIND_LIB_FOR_CODE([$1], [$dllibs], [$2], [[
@@ -170,6 +170,15 @@ case "$host_os" in
 ]], [[int g = fnmatch(NULL, NULL, 0);]])
    ;;
 esac
+])
+
+dnl _EFL_CHECK_FUNC_SCHED_GETCPU is for internal use
+dnl _EFL_CHECK_FUNC_SCHED_GETCPU(EFL, VARIABLE)
+AC_DEFUN([_EFL_CHECK_FUNC_SCHED_GETCPU],
+[
+   EFL_CHECK_LIB_CODE([$1], [], [$2], [[
+#include <sched.h>
+]], [[int cpu = sched_getcpu();]])
 ])
 
 dnl _EFL_CHECK_FUNC_GETTIMEOFDAY is for internal use

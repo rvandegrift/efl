@@ -1,0 +1,23 @@
+class Elm.Genlist.Pan (Elm.Pan)
+{
+   legacy_prefix: elm_genlist_pan;
+   eo_prefix: elm_obj_genlist_pan;
+   event_prefix: elm_genlist_pan;
+   implements {
+      class.constructor;
+      Eo.Base.destructor;
+      Efl.Canvas.Group.group_calculate;
+      Efl.Canvas.Group.group_move;
+      Efl.Canvas.Group.group_del;
+      Efl.Canvas.Group.group_resize;
+      Elm.Pan.content_size.get;
+      Elm.Pan.pos;
+      Elm.Pan.pos_min.get;
+      Elm.Pan.pos_max.get;
+   }
+   events {
+      item,focused;
+      item,unfocused;
+   }
+
+}

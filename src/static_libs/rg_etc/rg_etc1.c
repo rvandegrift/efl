@@ -33,8 +33,12 @@ typedef unsigned int uint;
 typedef unsigned int uint32;
 typedef unsigned char DATA8;
 
-#define MIN(A, B) ((A < B) ? A : B)
-#define MAX(A, B) ((A > B) ? A : B)
+#ifndef MIN
+# define MIN(A, B) ((A < B) ? A : B)
+#endif
+#ifndef MAX
+# define MAX(A, B) ((A > B) ? A : B)
+#endif
 #define CLAMP(Value, Low, High) ((Value < Low) ? Low : ((Value > High) ? High : Value))
 #define SQUARE(Value) (Value * Value)
 
@@ -2793,9 +2797,12 @@ rg_etc1_pack_block(void* pETC1_block, const unsigned int* pSrc_pixels_BGRA, rg_e
      }
    else
      {
-        if (dr < 0) dr += 8; dst_block[0] = (uint8)((best_results[0].m_block_color_unscaled.comp.r << 3) | dr);
-        if (dg < 0) dg += 8; dst_block[1] = (uint8)((best_results[0].m_block_color_unscaled.comp.g << 3) | dg);
-        if (db < 0) db += 8; dst_block[2] = (uint8)((best_results[0].m_block_color_unscaled.comp.b << 3) | db);
+        if (dr < 0) dr += 8;
+        dst_block[0] = (uint8)((best_results[0].m_block_color_unscaled.comp.r << 3) | dr);
+        if (dg < 0) dg += 8;
+        dst_block[1] = (uint8)((best_results[0].m_block_color_unscaled.comp.g << 3) | dg);
+        if (db < 0) db += 8;
+        dst_block[2] = (uint8)((best_results[0].m_block_color_unscaled.comp.b << 3) | db);
      }
 
    dst_block[3] = (uint8)((best_results[1].m_block_inten_table << 2) |

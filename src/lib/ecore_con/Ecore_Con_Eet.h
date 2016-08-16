@@ -48,7 +48,14 @@ extern "C" {
 #endif
 
 typedef Eo Ecore_Con_Eet;
+
+#ifndef _ECORE_CON_EET_BASE_EO_TYPES
+#define _ECORE_CON_EET_BASE_EO_TYPES
+
 typedef struct _Ecore_Con_Reply Ecore_Con_Reply;
+
+
+#endif
 
 /**
  * @typedef Ecore_Con_Eet_Data_Cb
@@ -77,7 +84,7 @@ typedef Eina_Bool (*Ecore_Con_Eet_Server_Cb)(void *data, Ecore_Con_Reply *reply,
 #ifndef EFL_NOLEGACY_API_SUPPORT
 #include "Ecore_Con_Eet_Legacy.h"
 #endif
-#ifdef EFL_EO_API_SUPPORT
+#ifdef EFL_BETA_API_SUPPORT
 #include "Ecore_Con_Eet_Eo.h"
 #endif
 

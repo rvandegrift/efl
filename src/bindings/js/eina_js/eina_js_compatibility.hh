@@ -134,6 +134,22 @@ struct container_wrapper
 };
 
 template <typename T>
+inline T get_c_container_data(void* ptr, typename std::enable_if<
+  std::is_pointer<T>::value
+>::type* = 0)
+{
+  return static_cast<T>(ptr);
+}
+
+template <typename T>
+inline T get_c_container_data(void* ptr, typename std::enable_if<
+  !std::is_pointer<T>::value
+>::type* = 0)
+{
+  return *static_cast<T*>(ptr);
+}
+
+template <typename T>
 T container_wrap(T&& v)
 {
   return std::forward<T>(v);
@@ -258,6 +274,12 @@ v8::Local<v8::Object> export_accessor(::efl::eina::accessor<W>&, v8::Isolate*, c
 
 template <typename T>
 ::efl::eina::accessor<T>& import_accessor(v8::Handle<v8::Object>);
+
+// Iterator
+template <typename T>
+inline v8::Local<v8::Object> export_iterator(Eina_Iterator*, v8::Isolate*, const char*);
+
+inline Eina_Iterator* import_iterator(v8::Handle<v8::Object>);
 
 // Wrap value functions
 template <typename R, typename T>
@@ -829,12 +851,11 @@ struct _v8_get_current_context<T, true> : T
   }
 };
 
-template <typename T>
 inline v8::Local<v8::Value>
-new_v8_external_instance(v8::Handle<v8::Function>& ctor, T v, v8::Isolate* isolate)
+new_v8_external_instance(v8::Handle<v8::Function>& ctor, void const* v, v8::Isolate* isolate)
 {
   // TODO: ensure v8::External ownership ??? (memory leak in case NewInstance throws)
-  v8::Handle<v8::Value> a[] = {efl::eina::js::compatibility_new<v8::External>(isolate, v)};
+  v8::Handle<v8::Value> a[] = {efl::eina::js::compatibility_new<v8::External>(isolate, const_cast<void*>(v))};
   return ctor->NewInstance(1, a);
 }
 
@@ -842,10 +863,10 @@ inline
 compatibility_return_type cast_function(compatibility_callback_info_type args);
 
 inline v8::Local<v8::Value>
-new_v8_external_instance(v8::Handle<v8::Function>& ctor, Eo* v, v8::Isolate* isolate)
+new_v8_external_instance(v8::Handle<v8::Function>& ctor, Eo const* v, v8::Isolate* isolate)
 {
   // TODO: ensure v8::External ownership ??? (memory leak in case NewInstance throws)
-  v8::Handle<v8::Value> a[] = {efl::eina::js::compatibility_new<v8::External>(isolate, v)};
+  v8::Handle<v8::Value> a[] = {efl::eina::js::compatibility_new<v8::External>(isolate, const_cast<Eo*>(v))};
   auto obj = ctor->NewInstance(1, a);
   obj->Set(compatibility_new<v8::String>(isolate, "cast"),
            compatibility_new<v8::FunctionTemplate>(isolate, &cast_function)->GetFunction());
@@ -906,8 +927,9 @@ compatibility_return_type cast_function(compatibility_callback_info_type args)
       char* class_name = *str;
 
       auto ctor = ::efl::eina::js::get_class_constructor(class_name);
-      return compatibility_return
-        (new_v8_external_instance(ctor, ::eo_ref(eo), isolate), args);
+      auto obj = new_v8_external_instance(ctor, ::eo_ref(eo), isolate);
+      efl::eina::js::make_weak(isolate, obj, [eo]{ ::eo_unref(eo); });
+      return compatibility_return(obj, args);
     }
   else
     {

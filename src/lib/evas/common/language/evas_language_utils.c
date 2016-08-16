@@ -45,6 +45,9 @@
 #define EXPLICIT_SCRIPT(script) \
    (((script) != EVAS_SCRIPT_UNKNOWN) && ((script) > EVAS_SCRIPT_INHERITED))
 
+static char lang[6]; /* FIXME: Maximum length I know about */
+static char lang_full[32];
+
 static Evas_Script_Type
 _evas_common_language_char_script_search(Eina_Unicode unicode)
 {
@@ -135,7 +138,6 @@ evas_common_language_script_type_get(const Eina_Unicode *str, size_t len)
 const char *
 evas_common_language_from_locale_get(void)
 {
-   static char lang[6]; /* FIXME: Maximum length I know about */
    if (*lang) return lang;
 
    const char *locale;
@@ -143,8 +145,9 @@ evas_common_language_from_locale_get(void)
    if (locale && *locale)
      {
         char *itr;
-        strncpy(lang, locale, 5);
-        lang[5] = '\0';
+        const size_t size = sizeof(lang);
+        strncpy(lang, locale, size - 1);
+        lang[size - 1] = '\0';
         itr = lang;
         while (*itr)
           {
@@ -163,13 +166,13 @@ evas_common_language_from_locale_get(void)
 const char *
 evas_common_language_from_locale_full_get(void)
 {
-   static char lang[32];
-   if (*lang) return lang;
+   if (*lang_full) return lang_full;
 
    const char *locale;
    locale = setlocale(LC_MESSAGES, NULL);
    if (locale && *locale)
      {
+        const size_t size = sizeof(lang_full);
         size_t i;
         for (i = 0 ; locale[i] ; i++)
           {
@@ -177,12 +180,24 @@ evas_common_language_from_locale_full_get(void)
              if ((c == '.') || (c == '@') || (c == ' ')) /* Looks like en_US.UTF8 or de_DE@euro or aa_ER UTF-8*/
                 break;
           }
-        strncpy(lang, locale, i);
-        lang[i] = '\0';
-        return lang;
+
+        if (i >= size)
+          {
+             i = size - 1;
+          }
+
+        strncpy(lang_full, locale, i);
+        lang_full[i] = '\0';
+        return lang_full;
      }
 
    return "";
+}
+
+void
+evas_common_language_reinit(void)
+{
+   *lang = *lang_full = '\0';
 }
 
 /*

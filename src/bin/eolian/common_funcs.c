@@ -130,28 +130,12 @@ _template_fill(Eina_Strbuf *buf, const char *templ, const Eolian_Class *class, c
      }
 }
 
-char*
-_nextline(char *str, unsigned int lines)
+const char *
+_get_add_star(Eolian_Function_Type ftype, Eolian_Parameter_Dir pdir)
 {
-   if (!str) return NULL;
-
-   char *ret = str;
-   while (lines--)
-     {
-        ret= strchr(ret, '\n');
-        if (ret) ret++;
-        else return NULL;
-     }
-   return ret;
-}
-
-char*
-_startline(char *str, char *pos)
-{
-   if (!str || !pos) return NULL;
-
-   char *ret =  pos;
-   while ((ret > str) && (*(ret-1)!='\n')) ret--;
-
-   return ret;
+   if (ftype == EOLIAN_PROP_GET)
+     return "*";
+   if ((pdir == EOLIAN_OUT_PARAM) || (pdir == EOLIAN_INOUT_PARAM))
+     return "*";
+   return "";
 }

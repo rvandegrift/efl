@@ -34,8 +34,6 @@
 #  ifdef GL_GLES
 #   include <GLES2/gl2.h>
 #   include <GLES2/gl2ext.h>
-#   include <GLES3/gl3.h>
-#   include <GLES3/gl3ext.h>
 #  else
 #   include <GL/gl.h>
 #   include <GL/glext.h>
@@ -280,10 +278,6 @@ struct _Evas_Engine_GL_Context
          Shader_Type     type;
       } region;
       struct {
-         int             x, y, w, h;
-         Eina_Bool       active : 1;
-      } clip;
-      struct {
          Evas_GL_Program *prog;
          Evas_GL_Image  *surface;
          GLuint          cur_tex, cur_texu, cur_texv, cur_texa, cur_texm;
@@ -430,16 +424,17 @@ struct _Evas_GL_Image
    struct {
       void         *data;
       struct {
-         void     (*bind)    (void *data, void *image);
-         void     (*unbind)  (void *data, void *image);
-         void     (*free)    (void *data, void *image);
-         int      (*yinvert) (void *data, void *image);
-         void      *data;
+         void     (*bind)    (void *image);
+         void     (*unbind)  (void *image);
+         void     (*free)    (void *image);
+         int      (*yinvert) (void *image);
       } func;
       int           yinvert;
       int           target;
       int           mipmap;
       unsigned char loose : 1;
+      void         *disp;
+      Evas_GL_Shared  *shared;
    } native;
 
    struct {

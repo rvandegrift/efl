@@ -23,9 +23,7 @@ tmpl_eapi_body[] ="\
 EAPI @#ret_type\n\
 @#eapi_func(@#full_params)\n\
 {\n\
-   @#ret_type ret;\n\
-   eo_do(@#eo_obj, ret = @#eo_func(@#eo_params));\n\
-   return ret;\n\
+   return @#eo_func(@#eo_obj@#eo_params);\n\
 }\n\
 ";
 static const char
@@ -34,7 +32,7 @@ tmpl_eapi_body_void[] ="\
 EAPI void\n\
 @#eapi_func(@#full_params)\n\
 {\n\
-   eo_do(@#eo_obj, @#eo_func(@#eo_params));\n\
+   @#eo_func(@#eo_obj@#eo_params);\n\
 }\n\
 ";
 
@@ -46,7 +44,6 @@ _eapi_decl_func_generate(const Eolian_Class *class, const Eolian_Function *funci
    const Eolian_Type *rettypet = NULL;
    const char *rettype = NULL;
    Eina_Bool var_as_ret = EINA_FALSE;
-   Eina_Bool add_star = EINA_FALSE;
    Eina_Bool is_prop = (ftype == EOLIAN_PROP_GET || ftype == EOLIAN_PROP_SET);
    Eina_Iterator *itr;
    void *data, *data2;
@@ -60,7 +57,6 @@ _eapi_decl_func_generate(const Eolian_Class *class, const Eolian_Function *funci
    rettypet = eolian_function_return_type_get(funcid, ftype);
    if (ftype == EOLIAN_PROP_GET)
      {
-        add_star = EINA_TRUE;
         if (!rettypet)
           {
              itr = eolian_property_values_get(funcid, ftype);
@@ -131,14 +127,11 @@ _eapi_decl_func_generate(const Eolian_Class *class, const Eolian_Function *funci
             const char *ptype = eolian_type_c_type_get(ptypet);
             Eolian_Parameter_Dir pdir = eolian_parameter_direction_get(param);
             Eina_Bool had_star = !!strchr(ptype, '*');
-            if (ftype == EOLIAN_UNRESOLVED || ftype == EOLIAN_METHOD) add_star = (pdir == EOLIAN_OUT_PARAM || pdir == EOLIAN_INOUT_PARAM);
-            else if (ftype == EOLIAN_PROP_GET) pdir = EOLIAN_OUT_PARAM;
-            else if (ftype == EOLIAN_PROP_SET) pdir = EOLIAN_IN_PARAM;
 
             leg_param_idx++;
             if (eina_strbuf_length_get(fparam)) eina_strbuf_append(fparam, ", ");
             eina_strbuf_append_printf(fparam, "%s%s%s%s",
-                  ptype, had_star?"":" ", add_star?"*":"", pname);
+                  ptype, had_star?"":" ", _get_add_star(ftype, pdir), pname);
             eina_stringshare_del(ptype);
             if (eolian_parameter_is_nonull((Eolian_Function_Parameter*)data))
               {
@@ -192,7 +185,6 @@ _eapi_func_generate(const Eolian_Class *class, const Eolian_Function *funcid, Eo
    const Eolian_Type *rettypet = NULL;
    const char *rettype = NULL;
    const char *retname = NULL;
-   Eina_Bool add_star = EINA_FALSE;
    Eina_Bool ret_is_void = EINA_FALSE;
    Eina_Bool is_prop = (ftype == EOLIAN_PROP_GET || ftype == EOLIAN_PROP_SET);
 
@@ -210,7 +202,6 @@ _eapi_func_generate(const Eolian_Class *class, const Eolian_Function *funcid, Eo
    retname = "ret";
    if (ftype == EOLIAN_PROP_GET)
      {
-        add_star = EINA_TRUE;
         if (!rettypet)
           {
              itr = eolian_property_values_get(funcid, ftype);
@@ -266,8 +257,7 @@ _eapi_func_generate(const Eolian_Class *class, const Eolian_Function *funcid, Eo
         if (eina_strbuf_length_get(fparam)) eina_strbuf_append(fparam, ", ");
         eina_strbuf_append_printf(fparam, "%s %s", ptype, pname);
         eina_stringshare_del(ptype);
-        if (eina_strbuf_length_get(eoparam)) eina_strbuf_append(eoparam, ", ");
-        eina_strbuf_append_printf(eoparam, "%s", pname);
+        eina_strbuf_append_printf(eoparam, ", %s", pname);
      }
    eina_iterator_free(itr);
    if (!var_as_ret)
@@ -281,13 +271,11 @@ _eapi_func_generate(const Eolian_Class *class, const Eolian_Function *funcid, Eo
             const char *ptype = eolian_type_c_type_get(ptypet);
             Eolian_Parameter_Dir pdir = eolian_parameter_direction_get(param);
             Eina_Bool had_star = !!strchr(ptype, '*');
-            if (ftype == EOLIAN_UNRESOLVED || ftype == EOLIAN_METHOD) add_star = (pdir == EOLIAN_OUT_PARAM || pdir == EOLIAN_INOUT_PARAM);
             if (eina_strbuf_length_get(fparam)) eina_strbuf_append(fparam, ", ");
             eina_strbuf_append_printf(fparam, "%s%s%s%s",
-                  ptype, had_star?"":" ", add_star?"*":"", pname);
+                  ptype, had_star?"":" ", _get_add_star(ftype, pdir), pname);
             eina_stringshare_del(ptype);
-            if (eina_strbuf_length_get(eoparam)) eina_strbuf_append(eoparam, ", ");
-            eina_strbuf_append_printf(eoparam, "%s", pname);
+            eina_strbuf_append_printf(eoparam, ", %s", pname);
         }
       eina_iterator_free(itr);
    }
@@ -358,6 +346,8 @@ legacy_header_generate(const Eolian_Class *class, Eina_Strbuf *buf)
                continue;
              Eolian_Function_Type ftype = EOLIAN_UNRESOLVED;
              const Eolian_Function *fid = eolian_implement_function_get(impl, &ftype);
+             if (eolian_function_is_beta(fid))
+               continue;
              switch (ftype)
                {
                 case EOLIAN_PROP_GET: case EOLIAN_PROP_SET:
@@ -397,6 +387,8 @@ legacy_source_generate(const Eolian_Class *class, Eina_Strbuf *buf)
                continue;
              Eolian_Function_Type ftype = EOLIAN_UNRESOLVED;
              const Eolian_Function *fid = eolian_implement_function_get(impl, &ftype);
+             if (eolian_function_is_beta(fid))
+               continue;
              switch (ftype)
                {
                 case EOLIAN_PROP_GET: case EOLIAN_PROP_SET:

@@ -8,6 +8,8 @@ extern "C" {
  * @{
  */
 
+#include "ecore_poller.eo.legacy.h"
+
 /**
  * @brief Creates a poller to call the given function at a particular tick interval.
  * @param type The ticker type to attach the poller to. Must be ECORE_POLLER_CORE.
@@ -46,7 +48,24 @@ EAPI Ecore_Poller *ecore_poller_add(Ecore_Poller_Type type, int interval, Ecore_
  */
 EAPI void *ecore_poller_del(Ecore_Poller *poller);
 
-#include "ecore_poller.eo.legacy.h"
+/**
+ * @brief Sets the time(in seconds) between ticks for the given poller type.
+ * @param type The poller type to adjust.
+ * @param poll_time The time(in seconds) between ticks of the timer.
+ *
+ * This will adjust the time between ticks of the given timer type defined by
+ * @p type to the time period defined by @p poll_time.
+ */
+EAPI void ecore_poller_poll_interval_set(Ecore_Poller_Type type, double poll_time);
+
+/**
+ * @brief Gets the time(in seconds) between ticks for the given poller type.
+ * @param type The poller type to query.
+ * @return The time in seconds between ticks of the poller timer.
+ *
+ * This will get the time between ticks of the specified poller timer.
+ */
+EAPI double ecore_poller_poll_interval_get(Ecore_Poller_Type type);
 
 /**
  * @}
@@ -57,6 +76,8 @@ EAPI void *ecore_poller_del(Ecore_Poller *poller);
  *
  * @{
  */
+
+typedef struct _Ecore_Animator Ecore_Animator;
 
 /**
  * @brief Add an animator to call @p func at every animation tick during main
@@ -153,8 +174,6 @@ EAPI void ecore_animator_freeze(Ecore_Animator *animator);
  */
 EAPI void ecore_animator_thaw(Ecore_Animator *animator);
 
-#include "ecore_animator.eo.legacy.h"
-
 /**
  * @}
  */
@@ -216,7 +235,7 @@ EAPI Eina_Bool ecore_timer_freeze_get(Ecore_Timer *timer);
 
 EAPI void ecore_timer_thaw(Ecore_Timer *timer);
 
-#include "ecore_timer.eo.legacy.h"
+#include "efl_loop_timer.eo.legacy.h"
 
 /**
  * @}
@@ -227,6 +246,7 @@ EAPI void ecore_timer_thaw(Ecore_Timer *timer);
  *
  * @{
  */
+
 /**
  * Add an idler handler.
  * @param  func The function to call when idling.
@@ -302,8 +322,6 @@ EAPI Ecore_Idle_Exiter *ecore_idle_exiter_add(Ecore_Task_Cb func, const void *da
  */
 EAPI void *ecore_idle_exiter_del(Ecore_Idle_Exiter *idle_exiter);
 
-#include "ecore_idler.eo.legacy.h"
-
 /**
  * @}
  */
@@ -342,8 +360,6 @@ EAPI Ecore_Job *ecore_job_add(Ecore_Cb func, const void *data);
  * @return  The data pointer that was to be passed to the job.
  */
 EAPI void *ecore_job_del(Ecore_Job *obj);
-
-#include "ecore_job.eo.legacy.h"
 
 /**
  * @}

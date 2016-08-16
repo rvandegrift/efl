@@ -1,0 +1,196 @@
+interface Efl.Canvas ()
+{
+   [[Common interface for Window and some internal classes in EFL.]]
+   methods {
+      @property pointer_canvas_xy {
+         get {
+            [[This function returns the current known pointer coordinates
+
+              This function returns the current known canvas unit
+              coordinates of the mouse pointer and sets the contents of
+              the Evas_Coords pointed to by $x and $y to contain these
+              coordinates. If $e is not a valid canvas the results of
+              this function are undefined.
+            ]]
+         }
+         values {
+            x: int; [[The pointer to hold the return value of pointer's x position.]]
+            y: int; [[The pointer to hold the return value of pointer's y position.]]
+         }
+      }
+      @property pointer_inside {
+         get {
+            [[Returns whether the mouse pointer is logically inside the
+              canvas.
+
+              When this function is called it will return a value of either
+              $false or $true, depending on if event_feed_mouse_in or
+              event_feed_mouse_out have been called to feed in a  mouse
+              enter event into the canvas.
+
+              A return value of $true indicates the mouse is logically
+              inside the canvas, and $false implies it is logically
+              outside the canvas.
+
+              A canvas begins with the mouse being assumed outside ($false).
+
+              If $e is not a valid canvas, the return value is undefined.
+            ]]
+            return: bool @warn_unused;
+         }
+      }
+      @property image_max_size {
+         get {
+            [[Get the maximum image size evas can possibly handle.
+
+              This function returns the largest image or surface size that
+              evas can handle in pixels, and if there is one, returns $true.
+              It returns $false if no extra constraint on maximum image
+              size exists. You still should check the return values of
+              $maxw and $maxh as there may still be a limit, just a
+              much higher one.
+
+            ]]
+            return: bool;
+         }
+         values {
+            maxw: int; [[Pointer to hold the return value in pixels of the maximum width.]]
+            maxh: int; [[Pointer to hold the return value in pixels of the maximum height.]]
+         }
+      }
+      smart_objects_calculate {
+         [[Call user-provided $calculate smart functions and unset the
+           flag signalling that the object needs to get recalculated to
+           all smart objects in the canvas.
+         ]]
+      }
+      objects_at_xy_get @const {
+         [[Retrieve a list of objects lying over a given position in
+           a canvas.
+
+           This function will traverse all the layers of the given canvas,
+           from top to bottom, querying for objects with areas covering the
+           given position. The user can remove from query objects which are
+           hidden and/or which are set to pass events.
+
+           Warning: This function will skip objects parented by smart
+           objects, acting only on the ones at the "top level", with
+           regard to object parenting.
+         ]]
+         return: free(own(iterator<Efl.Gfx>), eina_iterator_free) @warn_unused; [[
+            The list of objects that are over the given position in $e.
+         ]]
+         params {
+            @in x: int; [[The horizontal coordinate of the position.]]
+            @in y: int; [[The vertical coordinate of the position.]]
+            @in include_pass_events_objects: bool; [[
+               Boolean flag to include or not objects which pass events
+               in this calculation.
+            ]]
+            @in include_hidden_objects: bool; [[
+               Boolean flag to include or not hidden objects in this
+               calculation.
+            ]]
+         }
+      }
+      object_top_at_xy_get @const {
+         [[Retrieve the object stacked at the top of a given position
+           in a canvas.
+
+           This function will traverse all the layers of the given canvas,
+           from top to bottom, querying for objects with areas covering the
+           given position. The user can remove from the query
+           objects which are hidden and/or which are set to pass events.
+
+           Warning: This function will skip objects parented by smart
+           objects, acting only on the ones at the "top level", with
+           regard to object parenting.
+         ]]
+         return: Efl.Gfx @warn_unused; [[The Evas object that is over all other objects at the given position.]]
+         params {
+            @in x: int; [[The horizontal coordinate of the position.]]
+            @in y: int; [[The vertical coordinate of the position.]]
+            @in include_pass_events_objects: bool; [[
+               Boolean flag to include or not objects which pass events
+               in this calculation.
+            ]]
+            @in include_hidden_objects: bool; [[
+               Boolean flag to include or not hidden objects in this
+               calculation.
+            ]]
+         }
+      }
+      objects_in_rectangle_get @const {
+         [[Retrieve a list of objects lying over a given
+           rectangular region in a canvas.
+
+           This function will traverse all the layers of the given canvas,
+           from top to bottom, querying for objects with areas overlapping
+           with the given rectangular region inside $e. The user can remove
+           from the query objects which are hidden and/or which are set to
+           pass events.
+
+           Warning: This function will skip objects parented by smart
+           objects, acting only on the ones at the "top level", with
+           regard to object parenting.
+         ]]
+         return: free(own(iterator<Efl.Gfx>), eina_iterator_free) @warn_unused;
+         params {
+            @in x: int;
+            @in y: int;
+            @in w: int;
+            @in h: int;
+            @in include_pass_events_objects: bool;
+            @in include_hidden_objects: bool;
+         }
+      }
+      object_top_in_rectangle_get @const {
+         [[Retrieve the Evas object stacked at the top of a given
+           rectangular region in a canvas
+
+           This function will traverse all the layers of the given canvas,
+           from top to bottom, querying for objects with areas overlapping
+           with the given rectangular region inside $e. The user can remove
+           from the query objects which are hidden and/or which are set to
+           pass events.
+
+           Warning: This function will skip objects parented by smart
+           objects, acting only on the ones at the "top level", with
+           regard to object parenting.
+         ]]
+         return: Efl.Gfx @warn_unused; [[
+            The object that is over all other objects at the given
+            rectangular region.
+         ]]
+         params {
+            @in x: int; [[
+               The top left corner's horizontal coordinate for the
+               rectangular region.
+            ]]
+            @in y: int; [[
+               The top left corner's vertical coordinate for the
+               rectangular region.
+            ]]
+            @in w: int; [[The width of the rectangular region.]]
+            @in h: int; [[The height of the rectangular region.]]
+            @in include_pass_events_objects: bool; [[
+               Boolean flag to include or not objects which pass events
+               in this calculation.
+            ]]
+            @in include_hidden_objects: bool; [[
+               Boolean flag to include or not hidden objects in this
+               calculation.
+            ]]
+         }
+      }
+   }
+   events {
+      focus,in;
+      focus,out;
+      object,focus,in: Efl.Gfx;
+      object,focus,out: Efl.Gfx;
+      render,pre;
+      render,post;
+      device,changed: Efl.Input.Device;
+   }
+}

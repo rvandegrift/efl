@@ -638,8 +638,11 @@ static Ecore_Evas_Engine_Func _ecore_fb_engine_func =
      NULL, // wm_rot_manual_rotation_done_set
      NULL, // wm_rot_manual_rotation_done
 
-     NULL  // aux_hints_set
- };
+     NULL,  // aux_hints_set
+
+     NULL, // fn_animator_register
+     NULL  // fn_animator_unregister
+};
 
 EAPI Ecore_Evas *
 ecore_evas_fb_new_internal(const char *disp_name, int rotation, int w, int h)
@@ -741,6 +744,7 @@ ecore_evas_fb_new_internal(const char *disp_name, int rotation, int w, int h)
 			       (Ecore_Event_Multi_Move_Cb)_ecore_evas_mouse_multi_move_process,
 			       (Ecore_Event_Multi_Down_Cb)_ecore_evas_mouse_multi_down_process,
 			       (Ecore_Event_Multi_Up_Cb)_ecore_evas_mouse_multi_up_process);              
+   _ecore_event_window_direct_cb_set(1, _ecore_evas_input_direct_cb);
    evas_event_feed_mouse_in(ee->evas, (unsigned int)((unsigned long long)(ecore_time_get() * 1000.0) & 0xffffffff), NULL);
    return ee;
 }

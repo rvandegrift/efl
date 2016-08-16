@@ -11,20 +11,6 @@ static const char o_type[] = "vectors";
 
 const char *o_vg_type = o_type;
 
-/* private struct for rectangle object internal data */
-typedef struct _Evas_VG_Data      Evas_VG_Data;
-
-struct _Evas_VG_Data
-{
-   void   *engine_data;
-   Efl_VG *root;
-
-   Eina_Rectangle fill;
-
-   unsigned int width, height;
-
-   Eina_Array cleanup;
-};
 
 static void evas_object_vg_render(Evas_Object *eo_obj,
                                   Evas_Object_Protected_Data *obj,
@@ -94,11 +80,8 @@ _evas_vg_root_node_get(Eo *obj EINA_UNUSED, Evas_VG_Data *pd)
    return pd->root;
 }
 
-static Eina_Bool
-_cleanup_reference(void *data,
-                   Eo *obj EINA_UNUSED,
-                   const Eo_Event_Description *desc EINA_UNUSED,
-                   void *event_info EINA_UNUSED)
+static void
+_cleanup_reference(void *data, const Eo_Event *event EINA_UNUSED)
 {
    Evas_VG_Data *pd = data;
    Eo *renderer;
@@ -106,8 +89,6 @@ _cleanup_reference(void *data,
    /* unref all renderer and may also destroy them async */
    while ((renderer = eina_array_pop(&pd->cleanup)))
      eo_unref(renderer);
-
-   return EO_CALLBACK_CONTINUE;
 }
 
 void
@@ -116,23 +97,23 @@ _evas_vg_eo_base_destructor(Eo *eo_obj, Evas_VG_Data *pd)
    Evas_Object_Protected_Data *obj;
    Evas *e = evas_object_evas_get(eo_obj);
 
-   obj = eo_data_scope_get(eo_obj, EVAS_OBJECT_CLASS);
+   obj = eo_data_scope_get(eo_obj, EFL_CANVAS_OBJECT_CLASS);
    if (pd->engine_data)
      obj->layer->evas->engine.func->ector_free(pd->engine_data);
 
-   eo_do(e, eo_event_callback_del(EVAS_CANVAS_EVENT_RENDER_POST, _cleanup_reference, pd));
+   eo_event_callback_del(e, EFL_CANVAS_EVENT_RENDER_POST, _cleanup_reference, pd);
 
    eo_unref(pd->root);
    pd->root = NULL;
-   eo_do_super(eo_obj, MY_CLASS, eo_destructor());
+   eo_destructor(eo_super(eo_obj, MY_CLASS));
 }
 
 Eo *
 _evas_vg_eo_base_constructor(Eo *eo_obj, Evas_VG_Data *pd)
 {
-   Evas_Object_Protected_Data *obj = eo_data_scope_get(eo_obj, EVAS_OBJECT_CLASS);
+   Evas_Object_Protected_Data *obj = eo_data_scope_get(eo_obj, EFL_CANVAS_OBJECT_CLASS);
 
-   eo_obj = eo_do_super_ret(eo_obj, MY_CLASS, eo_obj, eo_constructor());
+   eo_obj = eo_constructor(eo_super(eo_obj, MY_CLASS));
 
    /* set up methods (compulsory) */
    obj->func = &object_func;
@@ -155,7 +136,7 @@ _evas_vg_eo_base_finalize(Eo *obj, Evas_VG_Data *pd)
 
    // TODO: If we start to have to many Evas_Object_VG per canvas, it may be nice
    // to actually have one event per canvas and one array per canvas to.
-   eo_do(e, eo_event_callback_add(EVAS_CANVAS_EVENT_RENDER_POST, _cleanup_reference, pd));
+   eo_event_callback_add(e, EFL_CANVAS_EVENT_RENDER_POST, _cleanup_reference, pd);
 
    return obj;
 }
@@ -180,9 +161,9 @@ _evas_vg_render(Evas_Object_Protected_Data *obj, Evas_VG_Data *vd,
      }
    else
      {
-        Efl_VG_Base_Data *nd;
+        Efl_VG_Data *nd;
 
-        nd = eo_data_scope_get(n, EFL_VG_BASE_CLASS);
+        nd = eo_data_scope_get(n, EFL_VG_CLASS);
 
         obj->layer->evas->engine.func->ector_renderer_draw(output, context, surface, vd->engine_data, nd->renderer, clips, do_async);
 
@@ -245,7 +226,7 @@ evas_object_vg_render_pre(Evas_Object *eo_obj,
                           void *type_private_data)
 {
    Evas_VG_Data *vd = type_private_data;
-   Efl_VG_Base_Data *rnd;
+   Efl_VG_Data *rnd;
    int is_v, was_v;
    Ector_Surface *s;
 
@@ -281,7 +262,7 @@ evas_object_vg_render_pre(Evas_Object *eo_obj,
 
    // FIXME: for now the walking Evas_VG_Node tree doesn't trigger any damage
    // So just forcing it here if necessary
-   rnd = eo_data_scope_get(vd->root, EFL_VG_BASE_CLASS);
+   rnd = eo_data_scope_get(vd->root, EFL_VG_CLASS);
 
    // Once the destructor has been called, root node will be zero
    // and a full redraw is still necessary.
@@ -428,16 +409,16 @@ evas_object_vg_was_opaque(Evas_Object *eo_obj EINA_UNUSED,
 }
 
 void
-_evas_vg_efl_gfx_view_size_get(Eo *obj EINA_UNUSED, Evas_VG_Data *pd,
-                               int *w, int *h)
+_evas_vg_efl_gfx_view_view_size_get(Eo *obj EINA_UNUSED, Evas_VG_Data *pd,
+                                    int *w, int *h)
 {
    if (w) *w = pd->width;
    if (h) *h = pd->height;
 }
 
 void
-_evas_vg_efl_gfx_view_size_set(Eo *obj EINA_UNUSED, Evas_VG_Data *pd,
-                               int w, int h)
+_evas_vg_efl_gfx_view_view_size_set(Eo *obj EINA_UNUSED, Evas_VG_Data *pd,
+                                    int w, int h)
 {
    pd->width = w;
    pd->height = h;

@@ -1,4 +1,3 @@
-#include <stdio.h>
 #include "evas_common_private.h"
 #include "evas_private.h"
 
@@ -38,9 +37,6 @@ _evas_canvas3d_eet_file_get()
 void
 _evas_canvas3d_eet_file_init()
 {
-   eina_init();
-   eet_init();
-
 /* initialization of bonding between structure units in eet file */
    Eet_Data_Descriptor_Class eddc;
    EET_EINA_FILE_DATA_DESCRIPTOR_CLASS_SET(&eddc, Evas_Canvas3D_Vec2_Eet);
@@ -212,6 +208,4 @@ _evas_canvas3d_eet_file_free(Evas_Canvas3D_File_Eet* eet_file)
      }
 
    _evas_canvas3d_eet_descriptor_shutdown();
-   eet_shutdown();
-   eina_shutdown();
 }

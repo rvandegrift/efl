@@ -154,6 +154,11 @@ evas_images4_SOURCES = evas-images4.c
 evas_images4_LDADD = $(ECORE_EVAS_COMMON_LDADD)
 evas_images4_CPPFLAGS = $(ECORE_EVAS_COMMON_CPPFLAGS)
 
+EXTRA_PROGRAMS += evas_images5
+evas_images5_SOURCES = evas-images5.c
+evas_images5_LDADD = $(ECORE_EVAS_COMMON_LDADD)
+evas_images5_CPPFLAGS = $(ECORE_EVAS_COMMON_CPPFLAGS)
+
 EXTRA_PROGRAMS += evas_text
 evas_text_SOURCES = evas-text.c
 evas_text_LDADD = $(ECORE_EVAS_COMMON_LDADD)
@@ -188,6 +193,16 @@ EXTRA_PROGRAMS += evas_map_aa
 evas_map_aa_SOURCES = evas-map-aa.c
 evas_map_aa_LDADD = $(ECORE_EVAS_COMMON_LDADD)
 evas_map_aa_CPPFLAGS = $(ECORE_EVAS_COMMON_CPPFLAGS)
+
+EXTRA_PROGRAMS += evas_map_utils_eo
+evas_map_utils_eo_SOURCES = evas-map-utils-eo.c
+evas_map_utils_eo_LDADD = $(ECORE_EVAS_COMMON_LDADD)
+evas_map_utils_eo_CPPFLAGS = $(ECORE_EVAS_COMMON_CPPFLAGS)
+
+EXTRA_PROGRAMS += evas_map_aa_eo
+evas_map_aa_eo_SOURCES = evas-map-aa-eo.c
+evas_map_aa_eo_LDADD = $(ECORE_EVAS_COMMON_LDADD)
+evas_map_aa_eo_CPPFLAGS = $(ECORE_EVAS_COMMON_CPPFLAGS)
 
 EXTRA_PROGRAMS += evas_table
 evas_table_SOURCES = evas-table.c
@@ -244,6 +259,11 @@ evas_canvas3d_hull_SOURCES = evas-3d-hull.c
 evas_canvas3d_hull_LDADD = $(ECORE_EVAS_COMMON_LDADD) @EFL_PTHREAD_LIBS@
 evas_canvas3d_hull_CPPFLAGS = $(ECORE_EVAS_COMMON_CPPFLAGS)
 
+EXTRA_PROGRAMS += evas_canvas3d_fog
+evas_canvas3d_fog_SOURCES = evas-3d-fog.c
+evas_canvas3d_fog_LDADD = $(ECORE_EVAS_COMMON_LDADD) @EFL_PTHREAD_LIBS@
+evas_canvas3d_fog_CPPFLAGS = $(ECORE_EVAS_COMMON_CPPFLAGS)
+
 EXTRA_PROGRAMS += evas_canvas3d_frustum
 evas_canvas3d_frustum_SOURCES = evas-3d-frustum.c
 evas_canvas3d_frustum_LDADD = $(ECORE_EVAS_COMMON_LDADD) @EFL_PTHREAD_LIBS@
@@ -297,6 +317,11 @@ evas_canvas3d_parallax_occlusion_SOURCES = evas-3d-parallax-occlusion.c
 evas_canvas3d_parallax_occlusion_LDADD = $(ECORE_EVAS_COMMON_LDADD) @EFL_PTHREAD_LIBS@
 evas_canvas3d_parallax_occlusion_CPPFLAGS = $(ECORE_EVAS_COMMON_CPPFLAGS)
 
+EXTRA_PROGRAMS += evas_canvas3d_static_lod
+evas_canvas3d_static_lod_SOURCES = evas-3d-static-lod.c
+evas_canvas3d_static_lod_LDADD = $(ECORE_EVAS_COMMON_LDADD) @EFL_PTHREAD_LIBS@
+evas_canvas3d_static_lod_CPPFLAGS = $(ECORE_EVAS_COMMON_CPPFLAGS)
+
 EXTRA_PROGRAMS += evas_gl
 evas_gl_SOURCES = evas-gl.c
 evas_gl_LDADD = $(ECORE_EVAS_COMMON_LDADD) @EFL_PTHREAD_LIBS@
@@ -339,12 +364,12 @@ evas-aspect-hints.c \
 evas-box.c \
 evas-buffer-simple.c \
 evas-events.c \
-evas-3d-fog.c \
 evas-hints.c \
 evas-images.c \
 evas-images2.c \
 evas-images3.c \
 evas-images4.c \
+evas-images5.c \
 evas-init-shutdown.c \
 evas-map-utils.c \
 evas-map-aa.c \
@@ -391,6 +416,9 @@ resources/models/sweet_home.obj \
 resources/models/sweet_home_only_vertex_coords.obj \
 resources/models/sweet_home_without_normals.obj \
 resources/models/sweet_home_without_tex_coords.obj \
+resources/models/lod/iso_sphere0.obj \
+resources/models/lod/iso_sphere1.obj \
+resources/models/lod/iso_sphere2.obj \
 resources/models/convex_hull/column_blender_ch.ply \
 resources/models/convex_hull/column.ply \
 resources/models/convex_hull/cube_blender_ch.ply \
@@ -431,12 +459,12 @@ clean-local:
 	rm -f $(EXTRA_PROGRAMS) $(EDJS)
 
 install-examples:
-	$(MKDIR_P) $(datadir)/evas/examples
-	cd $(srcdir) && $(install_sh_DATA) -c $(SRCS) $(EDCS) $(DATA_FILES) $(datadir)/evas/examples
+	$(MKDIR_P) $(DESTDIR)$(datadir)/evas/examples
+	cd $(srcdir) && $(install_sh_DATA) -c $(SRCS) $(EDCS) $(DATA_FILES) $(DESTDIR)$(datadir)/evas/examples
 
 uninstall-local:
 	for f in $(SRCS) $(EDCS) $(DATA_FILES); do \
-	  rm -f $(datadir)/evas/examples/$$f ; \
+	  rm -f $(DESTDIR)$(datadir)/evas/examples/$$f ; \
 	done
 
 EXTRA_DIST = $(EDCS) $(DATA_FILES)

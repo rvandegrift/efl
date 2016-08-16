@@ -30,6 +30,9 @@
 # endif
 #endif /* ! _WIN32 */
 
+extern EAPI Eina_List *_evas_canvas_image_data_unset(Evas *eo_e);
+extern EAPI void _evas_canvas_image_data_regenerate(Eina_List *list);
+
 /* local function prototypes */
 static void _ecore_evas_wl_move_resize(Ecore_Evas *ee, int x, int y, int w, int h);
 static void _ecore_evas_wl_show(Ecore_Evas *ee);
@@ -109,10 +112,26 @@ static Ecore_Evas_Engine_Func _ecore_wl_engine_func =
    NULL, // wm_rot_manual_rotation_done_set
    NULL, // wm_rot_manual_rotation_done
 
-   NULL  // aux_hints_set
+   NULL, // aux_hints_set
+
+   NULL, // fn_animator_register
+   NULL  // fn_animator_unregister
 };
 
 /* external variables */
+
+void
+_ee_egl_display_unset(Ecore_Evas *ee)
+{
+   Evas_Engine_Info_Wayland_Egl *einfo;
+   Ecore_Evas_Engine_Wl_Data *wdata;
+
+   einfo = (Evas_Engine_Info_Wayland_Egl *)evas_engine_info_get(ee->evas);
+   einfo->info.display = NULL;
+   wdata = ee->engine.data;
+   wdata->regen_objs = _evas_canvas_image_data_unset(ecore_evas_get(ee));
+   evas_engine_info_set(ee->evas, (Evas_Engine_Info *)einfo);
+}
 
 static Eina_Bool
 _ee_cb_sync_done(void *data, int type EINA_UNUSED, void *event EINA_UNUSED)
@@ -133,10 +152,19 @@ _ee_cb_sync_done(void *data, int type EINA_UNUSED, void *event EINA_UNUSED)
         einfo->info.rotation = ee->rotation;
         einfo->info.surface = ecore_wl2_window_surface_get(wdata->win);
 
-        if (!evas_engine_info_set(ee->evas, (Evas_Engine_Info *)einfo))
+        if (wdata->reset_pending)
           {
-             ERR("Failed to set Evas Engine Info for '%s'", ee->driver);
+             ecore_evas_manual_render_set(ee, 0);
           }
+        if (evas_engine_info_set(ee->evas, (Evas_Engine_Info *)einfo))
+          {
+             if (wdata->reset_pending)
+               _evas_canvas_image_data_regenerate(wdata->regen_objs);
+             wdata->regen_objs = NULL;
+          }
+        else
+          ERR("Failed to set Evas Engine Info for '%s'", ee->driver);
+        wdata->reset_pending = 0;
      }
    else
      {
@@ -161,15 +189,9 @@ _ee_cb_sync_done(void *data, int type EINA_UNUSED, void *event EINA_UNUSED)
              einfo = (Evas_Engine_Info_Wayland_Egl *)evas_engine_info_get(ee->evas);
              if (einfo)
                {
-                  struct wl_surface *surf;
-
-                  surf = ecore_wl2_window_surface_get(wdata->win);
-                  if ((!einfo->info.surface) || (einfo->info.surface != surf))
-                    {
-                       einfo->info.surface = surf;
-                       evas_engine_info_set(ee->evas, (Evas_Engine_Info *)einfo);
-                       evas_damage_rectangle_add(ee->evas, 0, 0, ee->w + fw, ee->h + fh);
-                    }
+                  evas_damage_rectangle_add(ee->evas, 0, 0, ee->w + fw, ee->h + fh);
+                  einfo->www_avail = !!wdata->win->www_surface;
+                  einfo->just_mapped = EINA_TRUE;
                }
           }
 
@@ -194,6 +216,62 @@ _ee_cb_sync_done(void *data, int type EINA_UNUSED, void *event EINA_UNUSED)
    return ECORE_CALLBACK_PASS_ON;
 }
 
+static void
+_ecore_evas_wl_egl_render_flush_pre(void *data, Evas *e, void *event_info EINA_UNUSED)
+{
+   Ecore_Evas *ee = data;
+   Evas_Engine_Info_Wayland_Egl *einfo;
+   Ecore_Evas_Engine_Wl_Data *wdata;
+   int fx, fy;
+
+   einfo = (Evas_Engine_Info_Wayland_Egl *)evas_engine_info_get(e);
+   wdata = ee->engine.data;
+   einfo->window.x = wdata->win->geometry.x;
+   einfo->window.y = wdata->win->geometry.y;
+   einfo->window.w = wdata->win->geometry.w;
+   einfo->window.h = wdata->win->geometry.h;
+   if (einfo->resizing)
+     {
+        einfo->x_rel = 0;
+        einfo->y_rel = 0;
+     }
+   else
+     {
+        einfo->x_rel = wdata->x_rel;
+        einfo->y_rel = wdata->y_rel;
+     }
+   einfo->timestamp = wdata->timestamp;
+   evas_canvas_pointer_canvas_xy_get(e, &einfo->x_cursor, &einfo->y_cursor);
+   evas_output_framespace_get(e, &fx, &fy, NULL, NULL);
+   einfo->x_cursor -= fx;
+   einfo->y_cursor -= fy;
+   wdata->x_rel = wdata->y_rel = 0;
+   einfo->resizing = wdata->win->resizing;
+   einfo->dragging = wdata->dragging;
+   einfo->drag_start = EINA_FALSE;
+   einfo->drag_stop = EINA_FALSE;
+   if (einfo->drag_ack && !einfo->dragging) einfo->drag_stop = EINA_TRUE;
+   if (einfo->dragging && !einfo->drag_ack) einfo->drag_start = EINA_TRUE;
+   einfo->drag_ack = wdata->dragging;
+}
+
+static void
+_ecore_evas_wl_egl_render_post(void *data, Evas *e, void *event_info EINA_UNUSED)
+{
+   Ecore_Evas *ee = data;
+   Evas_Engine_Info_Wayland_Egl *einfo;
+   Ecore_Evas_Engine_Wl_Data *wdata;
+   int fw, fh;
+
+   einfo = (Evas_Engine_Info_Wayland_Egl *)evas_engine_info_get(e);
+   wdata = ee->engine.data;
+   if (!einfo->wobbling) return;
+   evas_output_framespace_get(e, NULL, NULL, &fw, &fh);
+   evas_damage_rectangle_add(e, 0, 0, ee->w + fw, ee->h + fh);
+   ecore_wl2_window_opaque_region_set(wdata->win,
+     wdata->win->opaque.x, wdata->win->opaque.y, wdata->win->opaque.w, wdata->win->opaque.h);
+}
+
 /* external functions */
 EAPI Ecore_Evas *
 ecore_evas_wayland_egl_new_internal(const char *disp_name, unsigned int parent,
@@ -204,7 +282,7 @@ ecore_evas_wayland_egl_new_internal(const char *disp_name, unsigned int parent,
    Evas_Engine_Info_Wayland_Egl *einfo;
    Ecore_Evas_Interface_Wayland *iface;
    Ecore_Evas_Engine_Wl_Data *wdata;
-   Ecore_Evas *ee;
+   Ecore_Evas *ee = NULL;
    int method = 0;
    int fx = 0, fy = 0, fw = 0, fh = 0;
 
@@ -232,14 +310,14 @@ ecore_evas_wayland_egl_new_internal(const char *disp_name, unsigned int parent,
    if (!(ee = calloc(1, sizeof(Ecore_Evas))))
      {
         ERR("Failed to allocate Ecore_Evas");
-        goto ee_err;
+        goto err;
      }
 
    if (!(wdata = calloc(1, sizeof(Ecore_Evas_Engine_Wl_Data))))
      {
         ERR("Failed to allocate Ecore_Evas_Engine_Wl_Data");
 	free(ee);
-        goto ee_err;
+        goto err;
      }
 
    ECORE_MAGIC_SET(ee, ECORE_MAGIC_EVAS);
@@ -301,6 +379,7 @@ ecore_evas_wayland_egl_new_internal(const char *disp_name, unsigned int parent,
    wdata->sync_done = EINA_FALSE;
    wdata->parent = p;
    wdata->display = ewd;
+   wdata->display_unset = _ee_egl_display_unset;
    wdata->win = ecore_wl2_window_new(ewd, p, x, y, w + fw, h + fh);
    ee->prop.window = ecore_wl2_window_id_get(wdata->win);
 
@@ -316,6 +395,10 @@ ecore_evas_wayland_egl_new_internal(const char *disp_name, unsigned int parent,
 
    evas_event_callback_add(ee->evas, EVAS_CALLBACK_RENDER_FLUSH_PRE,
                            _ecore_evas_wl_common_render_flush_pre, ee);
+   evas_event_callback_add(ee->evas, EVAS_CALLBACK_RENDER_FLUSH_PRE,
+                           _ecore_evas_wl_egl_render_flush_pre, ee);
+   evas_event_callback_add(ee->evas, EVAS_CALLBACK_RENDER_POST,
+                           _ecore_evas_wl_egl_render_post, ee);
 
    /* FIXME: This needs to be set based on theme & scale */
    if (ee->prop.draw_frame)
@@ -366,15 +449,19 @@ ecore_evas_wayland_egl_new_internal(const char *disp_name, unsigned int parent,
                                (Ecore_Event_Multi_Move_Cb)_ecore_evas_mouse_multi_move_process, 
                                (Ecore_Event_Multi_Down_Cb)_ecore_evas_mouse_multi_down_process, 
                                (Ecore_Event_Multi_Up_Cb)_ecore_evas_mouse_multi_up_process);
+   _ecore_event_window_direct_cb_set(ee->prop.window,
+                                     _ecore_evas_input_direct_cb);
 
-   ecore_event_handler_add(ECORE_WL2_EVENT_SYNC_DONE, _ee_cb_sync_done, ee);
+   wdata->sync_handler =
+     ecore_event_handler_add(ECORE_WL2_EVENT_SYNC_DONE, _ee_cb_sync_done, ee);
+
+   ee_list = eina_list_append(ee_list, ee);
 
    return ee;
 
 err:
-   ecore_evas_free(ee);
-ee_err:
-   ecore_wl2_display_disconnect(ewd);
+   if (ee) ecore_evas_free(ee);
+   else ecore_wl2_display_disconnect(ewd);
 conn_err:
    ecore_wl2_shutdown();
    return NULL;
@@ -449,6 +536,8 @@ _ecore_evas_wl_show(Ecore_Evas *ee)
                   evas_engine_info_set(ee->evas, (Evas_Engine_Info *)einfo);
                   evas_damage_rectangle_add(ee->evas, 0, 0, ee->w + fw, ee->h + fh);
                }
+             einfo->www_avail = !!wdata->win->www_surface;
+             einfo->just_mapped = EINA_TRUE;
           }
      }
 

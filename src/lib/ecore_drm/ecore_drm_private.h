@@ -1,3 +1,31 @@
+/* Portions of this code have been derived from Weston
+ *
+ * Copyright © 2008-2012 Kristian Høgsberg
+ * Copyright © 2010-2012 Intel Corporation
+ * Copyright © 2010-2011 Benjamin Franzke
+ * Copyright © 2011-2012 Collabora, Ltd.
+ * Copyright © 2010 Red Hat <mjg@redhat.com>
+ *
+ * Permission is hereby granted, free of charge, to any person obtaining a
+ * copy of this software and associated documentation files (the "Software"),
+ * to deal in the Software without restriction, including without limitation
+ * the rights to use, copy, modify, merge, publish, distribute, sublicense,
+ * and/or sell copies of the Software, and to permit persons to whom the
+ * Software is furnished to do so, subject to the following conditions:
+ *
+ * The above copyright notice and this permission notice (including the next
+ * paragraph) shall be included in all copies or substantial portions of the
+ * Software.
+ *
+ * THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
+ * IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
+ * FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT.  IN NO EVENT SHALL
+ * THE AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
+ * LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING
+ * FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER
+ * DEALINGS IN THE SOFTWARE.
+ */
+
 #ifndef _ECORE_DRM_PRIVATE_H
 # define _ECORE_DRM_PRIVATE_H
 
@@ -106,10 +134,20 @@ typedef struct _Ecore_Drm_Backlight
    Ecore_Drm_Backlight_Type type;
 } Ecore_Drm_Backlight;
 
+struct _Ecore_Drm_Plane
+{
+   int id;
+   unsigned int rotation;
+   unsigned int rotation_map[6];
+   unsigned int supported_rotations;
+   Ecore_Drm_Plane_Type type;
+};
+
 struct _Ecore_Drm_Output
 {
    Ecore_Drm_Device *dev;
    unsigned int crtc_id;
+   unsigned int crtc_index;
    unsigned int conn_id;
    unsigned int conn_type;
    drmModeCrtcPtr crtc;
@@ -125,6 +163,10 @@ struct _Ecore_Drm_Output
    Ecore_Drm_Output_Mode *current_mode;
    Eina_List *modes;
 
+   unsigned int primary_plane_id;
+   unsigned int rotation_prop_id;
+   Eina_List *planes;
+
    unsigned char *edid_blob;
 
    struct
@@ -136,6 +178,7 @@ struct _Ecore_Drm_Output
      } edid;
 
    Ecore_Drm_Backlight *backlight;   
+   Ecore_Drm_Fb *current, *next;
 
    Eina_Bool primary : 1;
    Eina_Bool connected : 1;
@@ -268,6 +311,7 @@ void _ecore_drm_tty_restore(Ecore_Drm_Device *dev);
 Ecore_Drm_Evdev *_ecore_drm_evdev_device_create(Ecore_Drm_Seat *seat, struct libinput_device *device);
 void _ecore_drm_evdev_device_destroy(Ecore_Drm_Evdev *evdev);
 Eina_Bool _ecore_drm_evdev_event_process(struct libinput_event *event);
+void _ecore_drm_pointer_motion_post(Ecore_Drm_Evdev *evdev);
 
 Ecore_Drm_Fb *_ecore_drm_fb_create(Ecore_Drm_Device *dev, int width, int height);
 void _ecore_drm_fb_destroy(Ecore_Drm_Fb *fb);
@@ -278,6 +322,7 @@ void _ecore_drm_output_frame_finish(Ecore_Drm_Output *output);
 void _ecore_drm_outputs_update(Ecore_Drm_Device *dev);
 void _ecore_drm_output_render_enable(Ecore_Drm_Output *output);
 void _ecore_drm_output_render_disable(Ecore_Drm_Output *output);
+void _ecore_drm_output_fb_send(Ecore_Drm_Device *dev, Ecore_Drm_Fb *fb, Ecore_Drm_Output *output);
 
 Eina_Bool _ecore_drm_logind_connect(Ecore_Drm_Device *dev);
 void _ecore_drm_logind_disconnect(Ecore_Drm_Device *dev);

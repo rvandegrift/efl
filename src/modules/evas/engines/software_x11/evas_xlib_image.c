@@ -6,7 +6,7 @@
 #include "evas_xlib_image.h"
 
 static void
-evas_xlib_image_update(void *data EINA_UNUSED, void *image, int x, int y, int w, int h)
+evas_xlib_image_update(void *image, int x, int y, int w, int h)
 {
    RGBA_Image *im = image;
    Native *n = im->native.data;
@@ -33,19 +33,19 @@ evas_xlib_image_update(void *data EINA_UNUSED, void *image, int x, int y, int w,
 }
 
 static void
-_native_bind_cb(void *data, void *image, int x, int y, int w, int h)
+_native_bind_cb(void *image, int x, int y, int w, int h)
 {
    RGBA_Image *im = image;
    Native *n = im->native.data;
 
    if ((n) && (n->ns.type == EVAS_NATIVE_SURFACE_X11))
      {
-        evas_xlib_image_update(data, image, x, y, w, h);
+        evas_xlib_image_update(image, x, y, w, h);
      }
 }
 
 static void
-_native_free_cb(void *data EINA_UNUSED, void *image)
+_native_free_cb(void *image)
 {
    RGBA_Image *im = image;
    Native *n = im->native.data;
@@ -58,7 +58,6 @@ _native_free_cb(void *data EINA_UNUSED, void *image)
    n->ns_data.x11.visual = NULL;
 
    im->native.data        = NULL;
-   im->native.func.data   = NULL;
    im->native.func.bind   = NULL;
    im->native.func.unbind = NULL;
    im->native.func.free   = NULL;
@@ -67,7 +66,7 @@ _native_free_cb(void *data EINA_UNUSED, void *image)
 }
 
 void *
-evas_xlib_image_native_set(void *data, void *image, void *native)
+evas_xlib_image_native_set(void *data EINA_UNUSED, void *image, void *native)
 {
    RGBA_Image *im = image;
    Evas_Native_Surface *ns = native;
@@ -103,11 +102,10 @@ evas_xlib_image_native_set(void *data, void *image, void *native)
         n->ns_data.x11.visual = vis;
         n->ns_data.x11.exim = exim;
         im->native.data = n;
-        im->native.func.data = NULL;
         im->native.func.bind = _native_bind_cb;
         im->native.func.free = _native_free_cb;
 
-        evas_xlib_image_update(data, image, 0, 0, w, h);
+        evas_xlib_image_update(image, 0, 0, w, h);
      }
    return im;
 }

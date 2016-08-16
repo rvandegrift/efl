@@ -34,6 +34,10 @@ edje_cache_emp_alloc(Edje_Part_Collection_Directory_Entry *ce)
   INIT_EMP_BOTH(EXTERNAL, Edje_Part_Description_External, ce);
   INIT_EMP_BOTH(SPACER, Edje_Part_Description_Common, ce);
   INIT_EMP_BOTH(SNAPSHOT, Edje_Part_Description_Snapshot, ce);
+  INIT_EMP_BOTH(MESH_NODE, Edje_Part_Description_Mesh_Node, ce);
+  INIT_EMP_BOTH(LIGHT, Edje_Part_Description_Light, ce);
+  INIT_EMP_BOTH(CAMERA, Edje_Part_Description_Camera, ce);
+  INIT_EMP_BOTH(VECTOR, Edje_Part_Description_Vector, ce);
   INIT_EMP(part, Edje_Part, ce);
 }
 
@@ -53,6 +57,10 @@ edje_cache_emp_free(Edje_Part_Collection_Directory_Entry *ce)
   eina_mempool_del(ce->mp.EXTERNAL);
   eina_mempool_del(ce->mp.SPACER);
   eina_mempool_del(ce->mp.SNAPSHOT);
+  eina_mempool_del(ce->mp.MESH_NODE);
+  eina_mempool_del(ce->mp.LIGHT);
+  eina_mempool_del(ce->mp.CAMERA);
+  eina_mempool_del(ce->mp.VECTOR);
   eina_mempool_del(ce->mp.part);
   memset(&ce->mp, 0, sizeof (ce->mp));
 
@@ -68,6 +76,9 @@ edje_cache_emp_free(Edje_Part_Collection_Directory_Entry *ce)
   eina_mempool_del(ce->mp_rtl.EXTERNAL);
   eina_mempool_del(ce->mp_rtl.SPACER);
   eina_mempool_del(ce->mp_rtl.SNAPSHOT);
+  eina_mempool_del(ce->mp_rtl.MESH_NODE);
+  eina_mempool_del(ce->mp_rtl.LIGHT);
+  eina_mempool_del(ce->mp_rtl.CAMERA);
   memset(&ce->mp_rtl, 0, sizeof (ce->mp_rtl));
   ce->ref = NULL;
 }
@@ -259,14 +270,16 @@ _edje_file_coll_open(Edje_File *edf, const char *coll)
 }
 
 static Edje_File *
-_edje_file_open(const Eina_File *f, int *error_ret, time_t mtime)
+_edje_file_open(const Eina_File *f, int *error_ret, time_t mtime, Eina_Bool coll)
 {
+   Edje_Color_Tree_Node *ctn;
    Edje_Color_Class *cc;
    Edje_Text_Class *tc;
    Edje_Size_Class *sc;
    Edje_File *edf;
-   Eina_List *l;
+   Eina_List *l, *ll;
    Eet_File *ef;
+   char *name;
 
    ef = eet_mmap(f);
    if (!ef)
@@ -292,7 +305,7 @@ _edje_file_open(const Eina_File *f, int *error_ret, time_t mtime)
         _edje_file_free(edf);
         return NULL;
      }
-   if (!edf->collection)
+   if (!edf->collection && coll)
      {
         *error_ret = EDJE_LOAD_ERROR_CORRUPT_FILE;
         _edje_file_free(edf);
@@ -315,6 +328,12 @@ _edje_file_open(const Eina_File *f, int *error_ret, time_t mtime)
 
    /* This should be done at edje generation time */
    _edje_textblock_style_parse_and_fix(edf);
+
+   edf->color_tree_hash = eina_hash_string_small_new(NULL);
+   EINA_LIST_FOREACH(edf->color_tree, l, ctn)
+     EINA_LIST_FOREACH(ctn->color_classes, ll, name)
+       eina_hash_add(edf->color_tree_hash, name, ctn);
+
    edf->color_hash = eina_hash_string_small_new(NULL);
    EINA_LIST_FOREACH(edf->color_classes, l, cc)
      if (cc->name)
@@ -384,7 +403,7 @@ find_list:
           }
      }
 
-   edf = _edje_file_open(file, error_ret, eina_file_mtime_get(file));
+   edf = _edje_file_open(file, error_ret, eina_file_mtime_get(file), !!coll);
    if (!edf) return NULL;
 
    eina_hash_direct_add(_edje_file_hash, &edf->f, edf);

@@ -22,10 +22,6 @@
 #define EFL_BETA_API_SUPPORT 1
 #endif
 
-#ifndef EFL_EO_API_SUPPORT
-#define EFL_EO_API_SUPPORT 1
-#endif
-
 #include <Eo.h>
 #include <Efl.h>
 #include <Evas.h>
@@ -39,353 +35,12 @@
 #define PATH_KAPPA 0.5522847498
 #define PI         3.1415926535
 
-typedef struct _Bezier
-{
-float x1, y1, x2, y2, x3, y3, x4, y4;
-}Bezier;
-
-typedef struct _Point
-{
-    int x;
-    int y;
-}Point;
 
 static Efl_VG *beginning = NULL;
 static Efl_VG *end = NULL;
 static Efl_VG *root = NULL;
 static double start_time = 0;
 static Ecore_Animator *anim = NULL;
-
-static
-Bezier bezierFromPoints(Point p1, Point p2,
-                            Point p3, Point p4)
-{
-    Bezier b;
-    b.x1 = p1.x;
-    b.y1 = p1.y;
-    b.x2 = p2.x;
-    b.y2 = p2.y;
-    b.x3 = p3.x;
-    b.y3 = p3.y;
-    b.x4 = p4.x;
-    b.y4 = p4.y;
-    return b;
-}
-
-static inline void
-parameterSplitLeft(Bezier *b, float t, Bezier *left)
-{
-    left->x1 = b->x1;
-    left->y1 = b->y1;
-
-    left->x2 = b->x1 + t * ( b->x2 - b->x1 );
-    left->y2 = b->y1 + t * ( b->y2 - b->y1 );
-
-    left->x3 = b->x2 + t * ( b->x3 - b->x2 ); // temporary holding spot
-    left->y3 = b->y2 + t * ( b->y3 - b->y2 ); // temporary holding spot
-
-    b->x3 = b->x3 + t * ( b->x4 - b->x3 );
-    b->y3 = b->y3 + t * ( b->y4 - b->y3 );
-
-    b->x2 = left->x3 + t * ( b->x3 - left->x3);
-    b->y2 = left->y3 + t * ( b->y3 - left->y3);
-
-    left->x3 = left->x2 + t * ( left->x3 - left->x2 );
-    left->y3 = left->y2 + t * ( left->y3 - left->y2 );
-
-    left->x4 = b->x1 = left->x3 + t * (b->x2 - left->x3);
-    left->y4 = b->y1 = left->y3 + t * (b->y2 - left->y3);
-}
-static
-Bezier bezierOnInterval(Bezier *b, float t0, float t1)
-{
-    if (t0 == 0 && t1 == 1)
-        return *b;
-
-    Bezier result;
-    parameterSplitLeft(b, t0, &result);
-    float trueT = (t1-t0)/(1-t0);
-    parameterSplitLeft(b, trueT, &result);
-
-    return result;
-}
-
-static inline void
-_bezier_coefficients(float t, float *ap, float *bp, float *cp, float *dp)
-{
-    float a,b,c,d;
-    float m_t = 1. - t;
-    b = m_t * m_t;
-    c = t * t;
-    d = c * t;
-    a = b * m_t;
-    b *= 3. * t;
-    c *= 3. * m_t;
-    *ap = a;
-    *bp = b;
-    *cp = c;
-    *dp = d;
-}
-
-static
-float _t_for_arc_angle(float angle)
-{
-    if (angle < 0.00001)
-        return 0;
-
-    if (angle == 90.0)
-        return 1;
-
-    float radians = PI * angle / 180;
-    float cosAngle = cos(radians);
-    float sinAngle = sin(radians);
-
-    // initial guess
-    float tc = angle / 90;
-    // do some iterations of newton's method to approximate cosAngle
-    // finds the zero of the function b.pointAt(tc).x() - cosAngle
-    tc -= ((((2-3*PATH_KAPPA) * tc + 3*(PATH_KAPPA-1)) * tc) * tc + 1 - cosAngle) // value
-         / (((6-9*PATH_KAPPA) * tc + 6*(PATH_KAPPA-1)) * tc); // derivative
-    tc -= ((((2-3*PATH_KAPPA) * tc + 3*(PATH_KAPPA-1)) * tc) * tc + 1 - cosAngle) // value
-         / (((6-9*PATH_KAPPA) * tc + 6*(PATH_KAPPA-1)) * tc); // derivative
-
-    // initial guess
-    float ts = tc;
-    // do some iterations of newton's method to approximate sinAngle
-    // finds the zero of the function b.pointAt(tc).y() - sinAngle
-    ts -= ((((3*PATH_KAPPA-2) * ts -  6*PATH_KAPPA + 3) * ts + 3*PATH_KAPPA) * ts - sinAngle)
-         / (((9*PATH_KAPPA-6) * ts + 12*PATH_KAPPA - 6) * ts + 3*PATH_KAPPA);
-    ts -= ((((3*PATH_KAPPA-2) * ts -  6*PATH_KAPPA + 3) * ts + 3*PATH_KAPPA) * ts - sinAngle)
-         / (((9*PATH_KAPPA-6) * ts + 12*PATH_KAPPA - 6) * ts + 3*PATH_KAPPA);
-
-    // use the average of the t that best approximates cosAngle
-    // and the t that best approximates sinAngle
-    float t = 0.5 * (tc + ts);
-    return t;
-}
-
-static void
-_find_ellipse_coords(int x, int y, int w, int h, float angle, float length,
-                            Point* startPoint, Point *endPoint)
-{
-    if (!w || !h ) {
-        if (startPoint)
-            startPoint->x = 0 , startPoint->y = 0;
-        if (endPoint)
-            endPoint->x = 0 , endPoint->y = 0;
-        return;
-    }
-
-    int w2 = w / 2;
-    int h2 = h / 2;
-
-    float angles[2] = { angle, angle + length };
-    Point *points[2] = { startPoint, endPoint };
-    int i =0;
-    for (i = 0; i < 2; ++i) {
-        if (!points[i])
-            continue;
-
-        float theta = angles[i] - 360 * floor(angles[i] / 360);
-        float t = theta / 90;
-        // truncate
-        int quadrant = (int)t;
-        t -= quadrant;
-
-        t = _t_for_arc_angle(90 * t);
-
-        // swap x and y?
-        if (quadrant & 1)
-            t = 1 - t;
-
-        float a, b, c, d;
-        _bezier_coefficients(t, &a, &b, &c, &d);
-        float px = a + b + c*PATH_KAPPA;
-        float py = d + c + b*PATH_KAPPA;
-
-        // left quadrants
-        if (quadrant == 1 || quadrant == 2)
-            px = -px;
-
-        // top quadrants
-        if (quadrant == 0 || quadrant == 1)
-            py = -py;
-           int cx = x+w/2;
-           int cy = y+h/2;
-         points[i]->x = cx + w2 * px;
-         points[i]->y = cy + h2 * py;
-    }
-}
-
-
-//// The return value is the starting point of the arc
-static
-Point _curves_for_arc(int x, int y, int w, int h,
-                      float startAngle, float sweepLength,
-                      Point *curves, int *point_count)
-{
-    *point_count = 0;
-    int w2 = w / 2;
-    int w2k = w2 * PATH_KAPPA;
-
-    int h2 = h / 2;
-    int h2k = h2 * PATH_KAPPA;
-
-    Point points[16] =
-    {
-      // start point
-      { x + w, y + h2 },
-
-      // 0 -> 270 degrees
-      { x + w, y + h2 + h2k },
-      { x + w2 + w2k, y + h },
-      { x + w2, y + h },
-
-      // 270 -> 180 degrees
-      { x + w2 - w2k, y + h },
-      { x, y + h2 + h2k },
-      { x, y + h2 },
-
-      // 180 -> 90 degrees
-      { x, y + h2 - h2k },
-      { x + w2 - w2k, y },
-      { x + w2, y },
-
-      // 90 -> 0 degrees
-      { x + w2 + w2k, y },
-      { x + w, y + h2 - h2k },
-      { x + w, y + h2 }
-    };
-
-    if (sweepLength > 360) sweepLength = 360;
-    else if (sweepLength < -360) sweepLength = -360;
-
-    // Special case fast paths
-    if (startAngle == 0) {
-        if (sweepLength == 360) {
-	    int i;
-            for (i = 11; i >= 0; --i)
-                curves[(*point_count)++] = points[i];
-            return points[12];
-        } else if (sweepLength == -360) {
-	    int i ;
-            for (i = 1; i <= 12; ++i)
-                curves[(*point_count)++] = points[i];
-            return points[0];
-        }
-    }
-
-    int startSegment = (int)(floor(startAngle / 90));
-    int endSegment = (int)(floor((startAngle + sweepLength) / 90));
-
-    float startT = (startAngle - startSegment * 90) / 90;
-    float endT = (startAngle + sweepLength - endSegment * 90) / 90;
-
-    int delta = sweepLength > 0 ? 1 : -1;
-    if (delta < 0) {
-        startT = 1 - startT;
-        endT = 1 - endT;
-    }
-
-    // avoid empty start segment
-    if (startT == 1.0) {
-        startT = 0;
-        startSegment += delta;
-    }
-
-    // avoid empty end segment
-    if (endT == 0) {
-        endT = 1;
-        endSegment -= delta;
-    }
-
-    startT = _t_for_arc_angle(startT * 90);
-    endT = _t_for_arc_angle(endT * 90);
-
-    Eina_Bool splitAtStart = !(fabs(startT) <= 0.00001f);
-    Eina_Bool splitAtEnd = !(fabs(endT - 1.0) <= 0.00001f);
-
-    const int end = endSegment + delta;
-
-    // empty arc?
-    if (startSegment == end) {
-        const int quadrant = 3 - ((startSegment % 4) + 4) % 4;
-        const int j = 3 * quadrant;
-        return delta > 0 ? points[j + 3] : points[j];
-    }
-
-
-    Point startPoint, endPoint;
-    _find_ellipse_coords(x, y, w, h, startAngle, sweepLength, &startPoint, &endPoint);
-    int i;
-    for (i = startSegment; i != end; i += delta) {
-        const int quadrant = 3 - ((i % 4) + 4) % 4;
-        const int j = 3 * quadrant;
-
-        Bezier b;
-        if (delta > 0)
-            b = bezierFromPoints(points[j + 3], points[j + 2], points[j + 1], points[j]);
-        else
-            b = bezierFromPoints(points[j], points[j + 1], points[j + 2], points[j + 3]);
-
-        // empty arc?
-        if (startSegment == endSegment && (startT == endT))
-            return startPoint;
-
-        if (i == startSegment) {
-            if (i == endSegment && splitAtEnd)
-                b = bezierOnInterval(&b, startT, endT);
-            else if (splitAtStart)
-                b = bezierOnInterval(&b, startT, 1);
-        } else if (i == endSegment && splitAtEnd) {
-            b = bezierOnInterval(&b, 0, endT);
-        }
-
-        // push control points
-        curves[(*point_count)].x = b.x2;
-        curves[(*point_count)++].y = b.y2;
-        curves[(*point_count)].x = b.x3;
-        curves[(*point_count)++].y = b.y3;
-        curves[(*point_count)].x = b.x4;
-        curves[(*point_count)++].y = b.y4;
-    }
-
-    curves[*(point_count)-1] = endPoint;
-
-    return startPoint;
-}
-
-void _arcto(Efl_VG *obj, int x, int y, int width, int height, int startAngle, int sweepLength)
-{
-    int point_count;
-
-    Point pts[15];
-    Point curve_start = _curves_for_arc(x, y, width, height, startAngle, sweepLength, pts, &point_count);
-    int cx = x + (width)/2;
-    int cy = y + (height)/2;
-    int i;
-
-    evas_vg_shape_shape_append_move_to(obj, cx, cy);
-    evas_vg_shape_shape_append_line_to(obj, curve_start.x, curve_start.y);
-    for (i = 0; i < point_count; i += 3)
-      {
-         evas_vg_shape_shape_append_cubic_to(obj,
-                                             pts[i].x, pts[i].y,
-                                             pts[i+1].x, pts[i+1].y,
-                                             pts[i+2].x, pts[i+2].y);
-      }
-    evas_vg_shape_shape_append_close(obj);
-}
-
-void _rect_add(Efl_VG *obj, int x, int y, int w, int h)
-{
-   evas_vg_shape_shape_append_move_to(obj, x, y);
-   evas_vg_shape_shape_append_line_to(obj, x + w, y);
-   evas_vg_shape_shape_append_line_to(obj, x + w, y +h);
-   evas_vg_shape_shape_append_line_to(obj, x, y +h);
-   evas_vg_shape_shape_append_close(obj);
-}
-
 
 struct example_data
 {
@@ -417,9 +72,9 @@ static void
 vector_set(int x, int y, int w, int h)
 {
    int vg_w = w, vg_h = h;
+   Efl_VG *root_node, *tmp_vg;
 
    //Create VG Object
-
    Evas_Object *tmp = evas_object_rectangle_add(d.evas);
    evas_object_resize(tmp, vg_w, vg_h);
    evas_object_color_set(tmp, 100, 100, 50, 100);
@@ -446,24 +101,20 @@ vector_set(int x, int y, int w, int h)
    eina_matrix3_identity(&matrix);
    eina_matrix3_rotate(&matrix, radian);
 
-   root = evas_object_vg_root_node_get(d.vg);
-   //eo_do(root, evas_vg_node_transformation_set(&matrix));
+   root = eo_add(EFL_VG_CONTAINER_CLASS, NULL);
+   //evas_vg_node_transformation_set(root, &matrix);
 
-   Efl_VG *bg = eo_add(EFL_VG_SHAPE_CLASS, root,
-                       efl_vg_name_set("bg"));
-   _rect_add(bg, 0, 0 , vg_w, vg_h);
+   Efl_VG *bg = eo_add(EFL_VG_SHAPE_CLASS, root, efl_vg_name_set(eo_self, "bg"));
+   evas_vg_shape_shape_append_rect(bg, 0, 0 , vg_w, vg_h, 0, 0);
    evas_vg_node_origin_set(bg, 0,0);
    evas_vg_shape_stroke_width_set(bg, 1.0);
    evas_vg_node_color_set(bg, 80, 80, 80, 80);
 
-   Efl_VG *shape = eo_add(EFL_VG_SHAPE_CLASS, root,
-                          efl_vg_name_set("shape"));
-   Efl_VG *rgradient = eo_add(EFL_VG_GRADIENT_RADIAL_CLASS, NULL,
-                              efl_vg_name_set("rgradient"));
-   Efl_VG *lgradient = eo_add(EFL_VG_GRADIENT_LINEAR_CLASS, NULL,
-                              efl_vg_name_set("lgradient"));
+   Efl_VG *shape = eo_add(EFL_VG_SHAPE_CLASS, root, efl_vg_name_set(eo_self, "shape"));
+   Efl_VG *rgradient = eo_add(EFL_VG_GRADIENT_RADIAL_CLASS, NULL, efl_vg_name_set(eo_self, "rgradient"));
+   Efl_VG *lgradient = eo_add(EFL_VG_GRADIENT_LINEAR_CLASS, NULL, efl_vg_name_set(eo_self, "lgradient"));
 
-   _arcto(shape, 0, 0, 100, 100, 25, 330);
+   evas_vg_shape_shape_append_arc(shape, 0, 0, 100, 100, 25, 330);
 
    Efl_Gfx_Gradient_Stop stops[3];
    stops[0].r = 255;
@@ -502,62 +153,62 @@ vector_set(int x, int y, int w, int h)
    evas_vg_node_color_set(shape, 0, 0, 255, 255);
    evas_vg_shape_stroke_color_set(shape, 0, 0, 255, 128);
 
-   Efl_VG *rect = eo_add(EFL_VG_SHAPE_CLASS, root,
-                         efl_vg_name_set("rect"));
-   _rect_add(rect, 0, 0, 100, 100);
+   Efl_VG *rect = eo_add(EFL_VG_SHAPE_CLASS, root, efl_vg_name_set(eo_self, "rect"));
+   evas_vg_shape_shape_append_rect(rect, 0, 0, 100, 100, 0, 0);
    evas_vg_node_origin_set(rect, 100, 100);
    evas_vg_shape_fill_set(rect, lgradient);
    evas_vg_shape_stroke_width_set(rect, 2.0);
    evas_vg_shape_stroke_join_set(rect, EFL_GFX_JOIN_ROUND);
    evas_vg_shape_stroke_color_set(rect, 255, 255, 255, 255);
 
-   Efl_VG *rect1 = eo_add(EFL_VG_SHAPE_CLASS, root,
-                          efl_vg_name_set("rect1"));
-   _rect_add(rect1, 0, 0, 70, 70);
+   Efl_VG *rect1 = eo_add(EFL_VG_SHAPE_CLASS, root, efl_vg_name_set(eo_self, "rect1"));
+   evas_vg_shape_shape_append_rect(rect1, 0, 0, 70, 70, 0, 0);
    evas_vg_node_origin_set(rect1, 50, 70);
    evas_vg_shape_stroke_scale_set(rect1, 2);
    evas_vg_shape_stroke_width_set(rect1, 8.0);
    evas_vg_shape_stroke_join_set(rect1, EFL_GFX_JOIN_ROUND);
    evas_vg_shape_stroke_color_set(rect1, 0, 100, 80, 100);
 
-   Efl_VG *circle = eo_add(EFL_VG_SHAPE_CLASS, root,
-                           efl_vg_name_set("circle"));
-   _arcto(circle, 0, 0, 250, 100, 30, 300);
+   Efl_VG *circle = eo_add(EFL_VG_SHAPE_CLASS, root, efl_vg_name_set(eo_self, "circle"));
+   evas_vg_shape_shape_append_arc(circle, 0, 0, 250, 100, 30, 300);
    evas_vg_shape_fill_set(circle, lgradient);
    //evas_vg_node_transformation_set(&matrix),
    evas_vg_node_origin_set(circle, 50,50);
    evas_vg_node_color_set(circle, 50, 0, 0, 50);
 
    // Foreground
-   Efl_VG *fg = eo_add(EFL_VG_SHAPE_CLASS, root,
-                       efl_vg_name_set("fg"));
-   _rect_add(fg, 0, 0, vg_w, vg_h);
+   Efl_VG *fg = eo_add(EFL_VG_SHAPE_CLASS, root, efl_vg_name_set(eo_self, "fg"));
+   evas_vg_shape_shape_append_rect(fg, 0, 0, vg_w, vg_h, 0, 0);
    evas_vg_node_origin_set(fg, 0, 0);
    evas_vg_shape_stroke_width_set(fg, 5.0);
    evas_vg_shape_stroke_join_set(fg, EFL_GFX_JOIN_ROUND);
    evas_vg_shape_stroke_color_set(fg, 70, 70, 0, 70);
 
-   Efl_VG *tst = eo_add(EFL_VG_SHAPE_CLASS, root,
-                        efl_vg_name_set("tst"));
+   Efl_VG *tst = eo_add(EFL_VG_SHAPE_CLASS, root, efl_vg_name_set(eo_self, "tst"));
    evas_vg_shape_shape_append_rect(tst, 50, 25, 200, 200, 3, 5);
    evas_vg_node_color_set(tst, 0, 0, 200, 200);
    evas_vg_shape_stroke_width_set(tst, 2);
    evas_vg_shape_stroke_color_set(tst, 255, 0, 0, 255);
 
-   Efl_VG *vc = eo_add(EFL_VG_SHAPE_CLASS, root,
-                         efl_vg_name_set("vc"));
+   Efl_VG *vc = eo_add(EFL_VG_SHAPE_CLASS, root, efl_vg_name_set(eo_self, "vc"));
    evas_vg_shape_shape_append_circle(vc, 100, 100, 23);
    evas_vg_node_color_set(vc, 0, 200, 0, 255);
    evas_vg_shape_stroke_width_set(vc, 4);
    evas_vg_shape_stroke_color_set(vc, 255, 0, 0, 255);
 
-   beginning = eo_add(EFL_VG_CONTAINER_CLASS, NULL,
-                      efl_vg_dup(root));
-   end = eo_add(EFL_VG_CONTAINER_CLASS, NULL,
-                efl_vg_dup(root));
+   beginning = eo_add(EFL_VG_CONTAINER_CLASS, NULL, efl_vg_dup(eo_self, root));
+   end = eo_add(EFL_VG_CONTAINER_CLASS, NULL, efl_vg_dup(eo_self, root));
 
-   eo_do(end, circle = efl_vg_container_child_get("circle"));
-   eo_do(circle, efl_vg_transformation_set(&matrix));
+   circle = efl_vg_container_child_get(end, "circle");
+   efl_vg_transformation_set(circle, &matrix);
+
+   root_node = evas_object_vg_root_node_get(d.vg);
+   // check if the dupe is working properly or not
+   eo_parent_set(beginning, root_node);
+
+   tmp_vg = root;
+   root = beginning;
+   beginning = tmp_vg;
 }
 
 static Eina_Bool
@@ -578,7 +229,7 @@ _anim(void *data EINA_UNUSED)
 
    pos = ecore_animator_pos_map((now - start_time) / 3, ECORE_POS_MAP_SINUSOIDAL, 0, 0);
 
-   eo_do(root, efl_vg_interpolate(beginning, end, pos));
+   efl_vg_interpolate(root, beginning, end, pos);
 
    return EINA_TRUE;
 }
@@ -600,7 +251,7 @@ _keydown(void *data EINA_UNUSED, Evas *evas EINA_UNUSED, Evas_Object *o EINA_UNU
              ecore_animator_del(anim);
              anim = NULL;
           }
-        /* eo_do(root, efl_vg_interpolate(beginning, end, 0.5)); */
+        /* efl_vg_interpolate(root, beginning, end, 0.5); */
      }
    fprintf(stderr, "key: [%s]\n", ev->key);
 }

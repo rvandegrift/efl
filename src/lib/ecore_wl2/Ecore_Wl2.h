@@ -44,6 +44,22 @@ typedef struct _Ecore_Wl2_Pointer Ecore_Wl2_Pointer;
 typedef struct _Ecore_Wl2_Keyboard Ecore_Wl2_Keyboard;
 typedef struct _Ecore_Wl2_Touch Ecore_Wl2_Touch;
 
+/* matches protocol values */
+typedef enum
+{
+   ECORE_WL2_DRAG_ACTION_NONE = 0,
+   ECORE_WL2_DRAG_ACTION_COPY = 1,
+   ECORE_WL2_DRAG_ACTION_MOVE = 2,
+   ECORE_WL2_DRAG_ACTION_ASK = 4,
+} Ecore_Wl2_Drag_Action;
+
+struct _Ecore_Wl2_Event_Connection
+{
+   Ecore_Wl2_Display *display;
+};
+typedef struct _Ecore_Wl2_Event_Connection Ecore_Wl2_Event_Connect;
+typedef struct _Ecore_Wl2_Event_Connection Ecore_Wl2_Event_Disconnect;
+
 typedef struct _Ecore_Wl2_Global
 {
    Eina_Stringshare *interface;
@@ -99,10 +115,15 @@ typedef struct _Ecore_Wl2_Event_Dnd_End
    unsigned int win, source;
 } Ecore_Wl2_Event_Dnd_End;
 
-typedef struct _Ecore_Wl2_Event_Data_Source_Cancelled
+struct _Ecore_Wl2_Event_Data_Source_Event
 {
    unsigned int win, source;
-} Ecore_Wl2_Event_Data_Source_Cancelled;
+   Ecore_Wl2_Drag_Action action;
+};
+
+typedef struct _Ecore_Wl2_Event_Data_Source_Event Ecore_Wl2_Event_Data_Source_End;
+typedef struct _Ecore_Wl2_Event_Data_Source_Event Ecore_Wl2_Event_Data_Source_Drop;
+typedef struct _Ecore_Wl2_Event_Data_Source_Event Ecore_Wl2_Event_Data_Source_Action;
 
 typedef struct _Ecore_Wl2_Event_Data_Source_Target
 {
@@ -115,17 +136,31 @@ typedef struct _Ecore_Wl2_Event_Data_Source_Send
    int fd;
 } Ecore_Wl2_Event_Data_Source_Send;
 
+typedef enum
+{
+   ECORE_WL2_SELECTION_CNP,
+   ECORE_WL2_SELECTION_DND
+} Ecore_Wl2_Selection_Type;
+
 typedef struct _Ecore_Wl2_Event_Selection_Data_Ready
 {
    char *data;
    int len;
-   Eina_Bool done;
+   Ecore_Wl2_Selection_Type sel_type;
 } Ecore_Wl2_Event_Selection_Data_Ready;
+
+typedef enum
+{
+   ECORE_WL2_WINDOW_STATE_NONE = 0,
+   ECORE_WL2_WINDOW_STATE_FULLSCREEN = (1 << 0),
+   ECORE_WL2_WINDOW_STATE_MAXIMIZED = (1 << 1),
+} Ecore_Wl2_Window_States;
 
 typedef struct _Ecore_Wl2_Event_Window_Configure
 {
    unsigned int win, event_win, edges;
-   int x, y, w, h;
+   unsigned int w, h;
+   unsigned int states;
 } Ecore_Wl2_Event_Window_Configure;
 
 typedef struct _Ecore_Wl2_Event_Sync_Done
@@ -137,9 +172,6 @@ typedef enum _Ecore_Wl2_Window_Type
 {
    ECORE_WL2_WINDOW_TYPE_NONE,
    ECORE_WL2_WINDOW_TYPE_TOPLEVEL,
-   ECORE_WL2_WINDOW_TYPE_FULLSCREEN,
-   ECORE_WL2_WINDOW_TYPE_MAXIMIZED,
-   ECORE_WL2_WINDOW_TYPE_TRANSIENT,
    ECORE_WL2_WINDOW_TYPE_MENU,
    ECORE_WL2_WINDOW_TYPE_DND,
    ECORE_WL2_WINDOW_TYPE_CUSTOM,
@@ -149,6 +181,8 @@ typedef enum _Ecore_Wl2_Window_Type
 typedef void (*Ecore_Wl2_Bind_Cb)(struct wl_client *client, void *data, uint32_t version, uint32_t id);
 typedef void (*Ecore_Wl2_Unbind_Cb)(struct wl_resource *resource);
 
+EAPI extern int ECORE_WL2_EVENT_DISCONNECT; /** @since 1.18 */
+EAPI extern int ECORE_WL2_EVENT_CONNECT; /** @since 1.18 */
 EAPI extern int ECORE_WL2_EVENT_GLOBAL_ADDED; /** @since 1.17 */
 EAPI extern int ECORE_WL2_EVENT_GLOBAL_REMOVED; /** @since 1.17 */
 EAPI extern int ECORE_WL2_EVENT_FOCUS_IN; /** @since 1.17 */
@@ -158,10 +192,13 @@ EAPI extern int ECORE_WL2_EVENT_DND_LEAVE; /** @since 1.17 */
 EAPI extern int ECORE_WL2_EVENT_DND_MOTION; /** @since 1.17 */
 EAPI extern int ECORE_WL2_EVENT_DND_DROP; /** @since 1.17 */
 EAPI extern int ECORE_WL2_EVENT_DND_END; /** @since 1.17 */
-EAPI extern int ECORE_WL2_EVENT_DATA_SOURCE_CANCELLED; /** @since 1.17 */
+EAPI extern int ECORE_WL2_EVENT_DND_DATA_READY; /** @since 1.18 */
+EAPI extern int ECORE_WL2_EVENT_DATA_SOURCE_END; /** @since 1.18 */
+EAPI extern int ECORE_WL2_EVENT_DATA_SOURCE_DROP; /** @since 1.18 */
+EAPI extern int ECORE_WL2_EVENT_DATA_SOURCE_ACTION; /** @since 1.18 */
 EAPI extern int ECORE_WL2_EVENT_DATA_SOURCE_TARGET; /** @since 1.17 */
 EAPI extern int ECORE_WL2_EVENT_DATA_SOURCE_SEND; /** @since 1.17 */
-EAPI extern int ECORE_WL2_EVENT_SELECTION_DATA_READY; /** @since 1.17 */
+EAPI extern int ECORE_WL2_EVENT_CNP_DATA_READY; /** @since 1.18 */
 EAPI extern int ECORE_WL2_EVENT_WINDOW_CONFIGURE; /** @since 1.17 */
 EAPI extern int ECORE_WL2_EVENT_SYNC_DONE; /** @since 1.17 */
 
@@ -319,6 +356,28 @@ EAPI struct wl_display *ecore_wl2_display_get(Ecore_Wl2_Display *display);
  * @since 1.17
  */
 EAPI struct wl_shm *ecore_wl2_display_shm_get(Ecore_Wl2_Display *display);
+
+/**
+ * Retrieve the wl_dmabuf from a given Ecore_Wl2_Display
+ *
+ *
+ * @param display The Ecore_Wl2_Display for which to retrieve the existing
+ *                Wayland dmabuf interface from
+ *
+ *
+ * @return The wl_dmabuf which this Ecore_Wl2_Display is using
+ *
+ * @ingroup Ecore_Wl2_Display_Group
+ *
+ * @note This is intended for client use only and should be used only
+ *       after ecore_wl2_display_connect().  Also, the return type is
+ *       void * instead of zpw_linux_dmabuf_v1 * since we don't want
+ *       to change our public API every time the version changes in
+ *       wayland-protocols.
+ *
+ * @since 1.18
+ */
+EAPI void *ecore_wl2_display_dmabuf_get(Ecore_Wl2_Display *display);
 
 /**
  * Return an Eina_Iterator that can be used to iterate through globals

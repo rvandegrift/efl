@@ -3,6 +3,8 @@
 
 #include <assert.h>
 
+#include "ecore_internal.h"
+
 #ifdef EAPI
 # undef EAPI
 #endif
@@ -69,14 +71,6 @@ extern int _ecore_log_dom;
 # define PATH_MAX 4096
 #endif
 
-#ifndef MIN
-# define MIN(x, y)          (((x) > (y)) ? (y) : (x))
-#endif
-
-#ifndef MAX
-# define MAX(x, y)          (((x) > (y)) ? (x) : (y))
-#endif
-
 #ifndef ABS
 # define ABS(x)             ((x) < 0 ? -(x) : (x))
 #endif
@@ -84,6 +78,16 @@ extern int _ecore_log_dom;
 #ifndef CLAMP
 # define CLAMP(x, min, max) (((x) > (max)) ? (max) : (((x) < (min)) ? (min) : (x)))
 #endif
+
+typedef struct _Ecore_Factorized_Idle Ecore_Factorized_Idle;
+
+typedef struct _Efl_Loop_Data Efl_Loop_Data;
+struct _Efl_Loop_Data
+{
+   Eina_Hash *providers;
+
+   int idlers;
+};
 
 #define EVAS_FRAME_QUEUING        1 /* for test */
 
@@ -150,32 +154,28 @@ EAPI void _ecore_magic_fail(const void *d,
 
 void         _ecore_time_init(void);
 
-Ecore_Timer *_ecore_timer_loop_add(double in,
-                                   Ecore_Task_Cb func,
-                                   const void *data);
-void        *_ecore_timer_del(Ecore_Timer *timer);
-void         _ecore_timer_util_delay(Ecore_Timer *timer,
-                                double add);
-void         _ecore_timer_shutdown(void);
-void         _ecore_timer_cleanup(void);
-void         _ecore_timer_enable_new(void);
-double       _ecore_timer_next_get(void);
-void         _ecore_timer_expired_timers_call(double when);
-int          _ecore_timers_exists(void);
+void        *_efl_loop_timer_del(Ecore_Timer *timer);
+void         _efl_loop_timer_shutdown(void);
+void         _efl_loop_timer_enable_new(void);
+double       _efl_loop_timer_next_get(void);
+void         _efl_loop_timer_expired_timers_call(double when);
+int          _efl_loop_timers_exists(void);
 
-int          _ecore_timer_expired_call(double when);
+int          _efl_loop_timer_expired_call(double when);
 
-void         _ecore_idler_shutdown(void);
-int          _ecore_idler_all_call(void);
-int          _ecore_idler_exist(void);
+Ecore_Factorized_Idle *_ecore_factorized_idle_add(const Eo_Callback_Array_Item*desc,
+                                                  Ecore_Task_Cb func,
+                                                  const void   *data);
+void        *_ecore_factorized_idle_del(Ecore_Idler *idler);
+void    _ecore_factorized_idle_process(void *data, const Eo_Event *event);
+void    _ecore_factorized_idle_event_del(void *data, const Eo_Event *event);
 
-void         _ecore_idle_enterer_shutdown(void);
-void         _ecore_idle_enterer_call(void);
-int          _ecore_idle_enterer_exist(void);
+void         _ecore_idler_all_call(Eo *loop);
+int          _ecore_idler_exist(Eo *loop);
 
-void         _ecore_idle_exiter_shutdown(void);
-void         _ecore_idle_exiter_call(void);
-int          _ecore_idle_exiter_exist(void);
+void         _ecore_idle_enterer_call(Eo *loop);
+
+void         _ecore_idle_exiter_call(Eo *loop);
 
 void         _ecore_event_shutdown(void);
 int          _ecore_event_exist(void);
@@ -248,6 +248,7 @@ void       _ecore_exe_event_del_free(void *data,
 void _ecore_animator_shutdown(void);
 void _ecore_animator_run_reset(void);
 Eina_Bool _ecore_animator_run_get(void);
+Eina_Bool _ecore_animator_flush(void);
 
 void _ecore_poller_shutdown(void);
 
@@ -274,82 +275,19 @@ void _ecore_throttle(void);
 
 void _ecore_main_call_flush(void);
 
-extern int _ecore_main_lock_count;
-extern Eina_Lock _ecore_main_loop_lock;
 
-static inline void
-_ecore_lock(void)
-{
-#ifdef HAVE_THREAD_SAFETY
-   /* THIS IS BROKEN AND NEEDS FIXING
-    *
-    * the concept of lock to execute main-loop related functions is okay
-    * and the code below is correct per se, but with its usage in Ecore
-    * is leading to hard locks that must be investigated.
-    *
-    * One failure possibility is missing _ecore_unlock() that leaves
-    * the lock taken and on next take it will block.
-    *
-    * Another failure possibility is one function that takes the lock
-    * and calls some API function that also takes the lock, leading to
-    * block.
-    *
-    * When these are fixed, remove the HAVE_THREAD_SAFETY and leave it
-    * always on. To eliminate the lock overhead for non-threaded
-    * applications, have a global boolean that is set to TRUE by user
-    * if he uses this features, much like eina_log_threads_enable().
-    *  -- Gustavo, December 6th 2012.
-    */
-   eina_lock_take(&_ecore_main_loop_lock);
-#else
-   /* at least check we're not being called from a thread */
-   EINA_MAIN_LOOP_CHECK_RETURN;
-#endif
-   _ecore_main_lock_count++;
-   /* assert(_ecore_main_lock_count == 1); */
-}
-
-static inline void
-_ecore_unlock(void)
-{
-#ifndef HAVE_THREAD_SAFETY
-   /* see _ecore_lock(); no-op unless EINA_HAVE_DEBUG_THREADS is defined */
-   EINA_MAIN_LOOP_CHECK_RETURN;
-#endif
-   _ecore_main_lock_count--;
-   /* assert(_ecore_main_lock_count == 0); */
-#ifdef HAVE_THREAD_SAFETY
-   eina_lock_release(&_ecore_main_loop_lock);
-#endif
-}
-
-/*
- * Callback wrappers all assume that ecore _ecore_lock has been called
- */
 static inline Eina_Bool
 _ecore_call_task_cb(Ecore_Task_Cb func,
                     void *data)
 {
-   Eina_Bool r;
-
-   _ecore_unlock();
-   r = func(data);
-   _ecore_lock();
-
-   return r;
+   return func(data);
 }
 
 static inline void *
 _ecore_call_data_cb(Ecore_Data_Cb func,
                     void *data)
 {
-   void *r;
-
-   _ecore_unlock();
-   r = func(data);
-   _ecore_lock();
-
-   return r;
+   return func(data);
 }
 
 static inline void
@@ -357,9 +295,7 @@ _ecore_call_end_cb(Ecore_End_Cb func,
                    void *user_data,
                    void *func_data)
 {
-   _ecore_unlock();
    func(user_data, func_data);
-   _ecore_lock();
 }
 
 static inline Eina_Bool
@@ -369,13 +305,7 @@ _ecore_call_filter_cb(Ecore_Filter_Cb func,
                       int type,
                       void *event)
 {
-   Eina_Bool r;
-
-   _ecore_unlock();
-   r = func(data, loop_data, type, event);
-   _ecore_lock();
-
-   return r;
+   return func(data, loop_data, type, event);
 }
 
 static inline Eina_Bool
@@ -384,13 +314,7 @@ _ecore_call_handler_cb(Ecore_Event_Handler_Cb func,
                        int type,
                        void *event)
 {
-   Eina_Bool r;
-
-   _ecore_unlock();
-   r = func(data, type, event);
-   _ecore_lock();
-
-   return r;
+   return func(data, type, event);
 }
 
 static inline void
@@ -398,9 +322,7 @@ _ecore_call_prep_cb(Ecore_Fd_Prep_Cb func,
                     void *data,
                     Ecore_Fd_Handler *fd_handler)
 {
-   _ecore_unlock();
    func(data, fd_handler);
-   _ecore_lock();
 }
 
 static inline Eina_Bool
@@ -408,19 +330,14 @@ _ecore_call_fd_cb(Ecore_Fd_Cb func,
                   void *data,
                   Ecore_Fd_Handler *fd_handler)
 {
-   Eina_Bool r;
-
-   _ecore_unlock();
-   r = func(data, fd_handler);
-   _ecore_lock();
-
-   return r;
+   return func(data, fd_handler);
 }
 
 extern int _ecore_fps_debug;
 extern double _ecore_time_loop_time;
 extern Eina_Bool _ecore_glib_always_integrate;
 extern Ecore_Select_Function main_loop_select;
+extern int in_main_loop;
 
 Eina_Bool ecore_mempool_init(void);
 void ecore_mempool_shutdown(void);
@@ -448,9 +365,14 @@ GENERIC_ALLOC_FREE_HEADER(Ecore_Win32_Handler, ecore_win32_handler);
 
 #undef GENERIC_ALLOC_FREE_HEADER
 
+extern Eo *_mainloop_singleton;
 extern Eo *_ecore_parent;
+extern Efl_Version _app_efl_version;
 #define ECORE_PARENT_CLASS ecore_parent_class_get()
 EAPI const Eo_Class *ecore_parent_class_get(void) EINA_CONST;
+
+// access to direct input cb
+#define ECORE_EVAS_INTERNAL
 
 #undef EAPI
 #define EAPI

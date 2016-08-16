@@ -44,8 +44,6 @@ _read_data(float *array, int place, int count, char *current, float divider)
 static inline Eina_Bool
 _read_ply_header(char *map, Evas_Model_Load_Save_Header *header)
 {
-   eina_init();
-
    Eina_Bool reading_vertices = EINA_TRUE, check_next_char = EINA_FALSE;
    int vertex_lines, triangles = 0, vertices_in_current_face = 0;
    char **helping_pointer;
@@ -191,9 +189,9 @@ void
 evas_model_load_file_ply(Evas_Canvas3D_Mesh *mesh, Eina_File *file)
 {
    char *current = NULL, *map = NULL;
-   Evas_Model_Load_Save_Header header;
-   Evas_Model_Load_Save_Data data;
-   Evas_Model_Load_Save_Stride stride;
+   Evas_Model_Load_Save_Header header = { 0, 0, 0, 0, 0, 0 };
+   Evas_Model_Load_Save_Data data = { NULL, NULL, NULL, NULL, NULL };
+   Evas_Model_Load_Save_Stride stride = { 0, 0, 0, 0 };
 
    map = eina_file_map_all(file, EINA_FILE_SEQUENTIAL);
    if (map == NULL)

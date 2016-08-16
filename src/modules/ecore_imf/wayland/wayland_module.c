@@ -61,7 +61,7 @@ static Ecore_IMF_Context_Class wayland_imf_class =
    wayland_im_context_input_mode_set,         /* input_mode_set */
    wayland_im_context_filter_event,           /* filter_event */
    wayland_im_context_preedit_string_with_attributes_get, /* preedit_string_with_attribute_get */
-   NULL,                                      /* prediction_allow_set */
+   wayland_im_context_prediction_allow_set,   /* prediction_allow_set */
    wayland_im_context_autocapital_type_set,   /* autocapital_type_set */
    NULL,                                      /* control panel show */
    NULL,                                      /* control panel hide */
@@ -79,7 +79,7 @@ static Ecore_IMF_Context_Class wayland_imf_class =
    NULL,                                      /* input_panel_state_get */
    NULL,                                      /* input_panel_event_callback_add */
    NULL,                                      /* input_panel_event_callback_del */
-   NULL,                                      /* input_panel_language_locale_get */
+   wayland_im_context_input_panel_language_locale_get, /* input_panel_language_locale_get */
    NULL,                                      /* candidate_window_geometry_get */
    wayland_im_context_input_hint_set,         /* input_hint_set */
    NULL                                       /* bidi_direction_set */

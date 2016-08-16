@@ -54,6 +54,11 @@
 #ifdef BUILD_LOADER_EET
 # include <Eet.h>
 #endif
+
+#ifndef EFL_CANVAS_OBJECT_PROTECTED
+# define EFL_CANVAS_OBJECT_PROTECTED
+#endif
+
 #include "Evas.h"
 
 #ifdef EAPI
@@ -428,6 +433,7 @@ typedef struct _RGBA_Font_Source      RGBA_Font_Source;
 typedef struct _RGBA_Font_Glyph       RGBA_Font_Glyph;
 typedef struct _RGBA_Font_Glyph_Out   RGBA_Font_Glyph_Out;
 typedef struct _RGBA_Gfx_Compositor   RGBA_Gfx_Compositor;
+typedef struct _RGBA_Image_Data_Map   RGBA_Image_Data_Map;
 
 typedef struct _Cutout_Rect             Cutout_Rect;
 typedef struct _Cutout_Rects            Cutout_Rects;
@@ -568,6 +574,7 @@ struct _Image_Entry_Flags
    Eina_Bool updated_data  : 1;
    Eina_Bool flipped       : 1;
    Eina_Bool textured      : 1;
+   Eina_Bool preload_pending : 1;
 };
 
 struct _Image_Entry_Frame
@@ -831,23 +838,22 @@ struct _RGBA_Pipe_Thread_Info
 };
 #endif
 
+struct _RGBA_Image_Data_Map {
+   EINA_INLIST;
+   unsigned char  *ptr, *baseptr;
+   int             size, stride; // in bytes
+   int             rx, ry, rw, rh; // actual map region
+   int             plane;
+   Evas_Colorspace cspace;
+   Eina_Bool       allocated; // ptr is malloc() for cow or cspace conv
+   Efl_Gfx_Buffer_Access_Mode mode;
+};
+
 struct _RGBA_Image
 {
    Image_Entry          cache_entry;
-
    RGBA_Image_Flags     flags;
-   struct
-     {
-/*	void           *module; */
-/*	void           *loader; */
-/*	char           *real_file; */
-	char           *comment;
-//	int             format;
-     } info;
-
    void                *extended_info;
-
-/*    unsigned char        scale; */
 
    /* Colorspace stuff. */
    struct {
@@ -884,12 +890,14 @@ struct _RGBA_Image
    struct {
       void   *data; //Evas_Native_Surface ns;
       struct {
-        void (*bind) (void *data, void *image, int x, int y, int w, int h);
-        void (*unbind) (void *data, void *image);
-        void (*free) (void *data, void *image);
-        void *data;
+        void (*bind) (void *image, int x, int y, int w, int h);
+        void (*unbind) (void *image);
+        void (*free) (void *image);
       } func;
    } native;
+
+   /* data map/unmap */
+   RGBA_Image_Data_Map *maps;
 };
 
 struct _RGBA_Polygon_Point

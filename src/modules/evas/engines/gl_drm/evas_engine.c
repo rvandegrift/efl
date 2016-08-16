@@ -118,12 +118,9 @@ static const EVGL_Interface evgl_funcs =
 Eina_Bool
 eng_gbm_init(Evas_Engine_Info_GL_Drm *info)
 {
-   Ecore_Drm_Device *dev;
-
    if (!info) return EINA_FALSE;
-   if (!(dev = info->info.dev)) return EINA_FALSE;
 
-   if (!(info->info.gbm = gbm_create_device(dev->drm.fd)))
+   if (!(info->info.gbm = gbm_create_device(info->info.fd)))
      {
         ERR("Coult not create gbm device");
         return EINA_FALSE;
@@ -144,13 +141,6 @@ eng_gbm_shutdown(Evas_Engine_Info_GL_Drm *info)
      }
 
    return EINA_TRUE;
-}
-
-/* local inline functions */
-static inline Outbuf *
-eng_get_ob(Render_Engine *re)
-{
-   return re->generic.software.ob;
 }
 
 /* local functions */
@@ -362,6 +352,8 @@ evgl_eng_native_window_create(void *data)
    Render_Engine *re;
    struct gbm_surface *surface;
    Evas_Engine_Info_GL_Drm *info;
+   unsigned int format = GBM_FORMAT_XRGB8888;
+   unsigned int flags = GBM_BO_USE_SCANOUT | GBM_BO_USE_RENDERING;
 
    re = (Render_Engine *)data;
    if (!re)
@@ -377,9 +369,9 @@ evgl_eng_native_window_create(void *data)
         return NULL;
      }
 
-   surface = gbm_surface_create(info->info.gbm,
-                                eng_get_ob(re)->w, eng_get_ob(re)->h,
-                                info->info.format, info->info.flags);
+   surface =
+     gbm_surface_create(info->info.gbm,
+                        eng_get_ob(re)->w, eng_get_ob(re)->h, format, flags);
    if (!surface)
      {
         ERR("Could not create gl drm window");
@@ -608,8 +600,68 @@ _re_winfree(Render_Engine *re)
    evas_outbuf_unsurf(eng_get_ob(re));
 }
 
+/* Code from weston's gl-renderer... */
+static EGLImageKHR
+import_simple_dmabuf(EGLDisplay display, struct dmabuf_attributes *attributes)
+{
+   EGLint attribs[30];
+   int atti = 0;
+
+   /* This requires the Mesa commit in
+    * Mesa 10.3 (08264e5dad4df448e7718e782ad9077902089a07) or
+    * Mesa 10.2.7 (55d28925e6109a4afd61f109e845a8a51bd17652).
+    * Otherwise Mesa closes the fd behind our back and re-importing
+    * will fail.
+    * https://bugs.freedesktop.org/show_bug.cgi?id=76188
+    */
+
+   attribs[atti++] = EGL_WIDTH;
+   attribs[atti++] = attributes->width;
+   attribs[atti++] = EGL_HEIGHT;
+   attribs[atti++] = attributes->height;
+   attribs[atti++] = EGL_LINUX_DRM_FOURCC_EXT;
+   attribs[atti++] = attributes->format;
+   /* XXX: Add modifier here when supported */
+
+   if (attributes->n_planes > 0)
+     {
+        attribs[atti++] = EGL_DMA_BUF_PLANE0_FD_EXT;
+        attribs[atti++] = attributes->fd[0];
+        attribs[atti++] = EGL_DMA_BUF_PLANE0_OFFSET_EXT;
+        attribs[atti++] = attributes->offset[0];
+        attribs[atti++] = EGL_DMA_BUF_PLANE0_PITCH_EXT;
+        attribs[atti++] = attributes->stride[0];
+     }
+
+   if (attributes->n_planes > 1)
+     {
+        attribs[atti++] = EGL_DMA_BUF_PLANE1_FD_EXT;
+        attribs[atti++] = attributes->fd[1];
+        attribs[atti++] = EGL_DMA_BUF_PLANE1_OFFSET_EXT;
+        attribs[atti++] = attributes->offset[1];
+        attribs[atti++] = EGL_DMA_BUF_PLANE1_PITCH_EXT;
+        attribs[atti++] = attributes->stride[1];
+     }
+
+   if (attributes->n_planes > 2)
+     {
+        attribs[atti++] = EGL_DMA_BUF_PLANE2_FD_EXT;
+        attribs[atti++] = attributes->fd[2];
+        attribs[atti++] = EGL_DMA_BUF_PLANE2_OFFSET_EXT;
+        attribs[atti++] = attributes->offset[2];
+        attribs[atti++] = EGL_DMA_BUF_PLANE2_PITCH_EXT;
+        attribs[atti++] = attributes->stride[2];
+     }
+
+   attribs[atti++] = EGL_NONE;
+
+   return glsym_eglCreateImage(display, EGL_NO_CONTEXT,
+                               EGL_LINUX_DMA_BUF_EXT,
+                               NULL, attribs);
+}
+
 static void
-_native_cb_bind(void *data EINA_UNUSED, void *image)
+_native_cb_bind(void *image)
 {
    Evas_GL_Image *img;
    Native *n;
@@ -617,7 +669,18 @@ _native_cb_bind(void *data EINA_UNUSED, void *image)
    if (!(img = image)) return;
    if (!(n = img->native.data)) return;
 
-   if (n->ns.type == EVAS_NATIVE_SURFACE_WL)
+   if (n->ns.type == EVAS_NATIVE_SURFACE_WL_DMABUF)
+     {
+        void *v;
+
+        /* Must re-import every time for coherency. */
+        if (n->ns_data.wl_surface_dmabuf.image)
+          glsym_eglDestroyImage(img->native.disp, n->ns_data.wl_surface_dmabuf.image);
+        v = import_simple_dmabuf(img->native.disp, &n->ns_data.wl_surface_dmabuf.attr);
+        glsym_glEGLImageTargetTexture2DOES(GL_TEXTURE_2D, v);
+        n->ns_data.wl_surface_dmabuf.image = v;
+     }
+   else if (n->ns.type == EVAS_NATIVE_SURFACE_WL)
      {
         if (n->ns_data.wl_surface.surface)
           {
@@ -637,7 +700,7 @@ _native_cb_bind(void *data EINA_UNUSED, void *image)
 }
 
 static void
-_native_cb_unbind(void *data EINA_UNUSED, void *image)
+_native_cb_unbind(void *image)
 {
    Evas_GL_Image *img;
    Native *n;
@@ -645,7 +708,13 @@ _native_cb_unbind(void *data EINA_UNUSED, void *image)
    if (!(img = image)) return;
    if (!(n = img->native.data)) return;
 
-   if (n->ns.type == EVAS_NATIVE_SURFACE_WL)
+   if (n->ns.type == EVAS_NATIVE_SURFACE_WL_DMABUF)
+     {
+        if (n->ns_data.wl_surface_dmabuf.image)
+          glsym_eglDestroyImage(img->native.disp, n->ns_data.wl_surface_dmabuf.image);
+        n->ns_data.wl_surface_dmabuf.image = NULL;
+     }
+   else if (n->ns.type == EVAS_NATIVE_SURFACE_WL)
      {
         //glBindTexture(GL_TEXTURE_2D, 0); //really need?
      }
@@ -656,31 +725,40 @@ _native_cb_unbind(void *data EINA_UNUSED, void *image)
 }
 
 static void
-_native_cb_free(void *data, void *image)
+_native_cb_free(void *image)
 {
-   Render_Engine *re;
-   Outbuf *ob;
    Evas_GL_Image *img;
    Native *n;
    uint32_t texid;
    void *wlid;
 
-   if (!(re = (Render_Engine *)data)) return;
    if (!(img = image)) return;
    if (!(n = img->native.data)) return;
-   if (!(ob = eng_get_ob(re))) return;
+   if (!(img->native.shared)) return;
 
-   if (n->ns.type == EVAS_NATIVE_SURFACE_WL)
+   if (n->ns.type == EVAS_NATIVE_SURFACE_WL_DMABUF)
+     {
+        wlid = n->ns_data.wl_surface_dmabuf.resource;
+        eina_hash_del(img->native.shared->native_wl_hash, &wlid, img);
+        if (n->ns_data.wl_surface.surface)
+          {
+             if (glsym_eglDestroyImage && n->ns_data.wl_surface_dmabuf.image)
+               {
+                  glsym_eglDestroyImage(img->native.disp, n->ns_data.wl_surface_dmabuf.image);
+                  GLERRV("eglDestroyImage() failed.");
+               }
+          }
+     }
+   else if (n->ns.type == EVAS_NATIVE_SURFACE_WL)
      {
         wlid = (void*)n->ns_data.wl_surface.wl_buf;
-        eina_hash_del(ob->gl_context->shared->native_wl_hash, &wlid, img);
+        eina_hash_del(img->native.shared->native_wl_hash, &wlid, img);
         if (n->ns_data.wl_surface.surface)
           {
              if (glsym_eglDestroyImage)
                {
-                  glsym_eglDestroyImage(ob->egl.disp, n->ns_data.wl_surface.surface);
-                  if (eglGetError() != EGL_SUCCESS)
-                    ERR("eglDestroyImage() failed.");
+                  glsym_eglDestroyImage(img->native.disp, n->ns_data.wl_surface.surface);
+                  GLERRV("eglDestroyImage() failed.");
                }
              else
                ERR("Try eglDestroyImage on EGL with  no support");
@@ -689,16 +767,46 @@ _native_cb_free(void *data, void *image)
    else if (n->ns.type == EVAS_NATIVE_SURFACE_OPENGL)
      {
         texid = n->ns.data.opengl.texture_id;
-        eina_hash_del(ob->gl_context->shared->native_tex_hash, &texid, img);
+        eina_hash_del(img->native.shared->native_tex_hash, &texid, img);
      }
 
    img->native.data = NULL;
-   img->native.func.data = NULL;
    img->native.func.bind = NULL;
    img->native.func.unbind = NULL;
    img->native.func.free = NULL;
 
    free(n);
+}
+
+static void
+_cb_vblank(int fd, unsigned int frame EINA_UNUSED, unsigned int sec EINA_UNUSED, unsigned int usec EINA_UNUSED, void *data)
+{
+   evas_outbuf_vblank(data, fd);
+}
+
+static void
+_cb_page_flip(int fd, unsigned int frame EINA_UNUSED, unsigned int sec EINA_UNUSED, unsigned int usec EINA_UNUSED, void *data)
+{
+   evas_outbuf_page_flip(data, fd);
+}
+
+static Eina_Bool
+_cb_drm_event(void *data, Ecore_Fd_Handler *hdlr EINA_UNUSED)
+{
+   Render_Engine *re;
+   int ret;
+
+   re = data;
+   if (!re) return EINA_TRUE;
+
+   ret = drmHandleEvent(re->fd, &re->ctx);
+   if (ret)
+     {
+        ERR("drmHandleEvent failed to read an event: %m");
+        return EINA_FALSE;
+     }
+
+   return EINA_TRUE;
 }
 
 /* engine specific override functions */
@@ -814,6 +922,17 @@ eng_setup(Evas *evas, void *in)
              return 0;
           }
 
+        re->fd = info->info.fd;
+
+        memset(&re->ctx, 0, sizeof(re->ctx));
+        re->ctx.version = DRM_EVENT_CONTEXT_VERSION;
+        re->ctx.vblank_handler = _cb_vblank;
+        re->ctx.page_flip_handler = _cb_page_flip;
+
+        re->hdlr =
+          ecore_main_fd_handler_add(info->info.fd, ECORE_FD_READ,
+                                    _cb_drm_event, re, NULL, NULL);
+
         /* try to create new outbuf */
         ob = evas_outbuf_new(info, epd->output.w, epd->output.h, swap_mode);
         if (!ob)
@@ -885,16 +1004,16 @@ eng_setup(Evas *evas, void *in)
                   re->generic.software.ob = NULL;
                   gl_wins--;
 
+                  if (ob_old) evas_outbuf_free(ob_old);
+
                   ob = evas_outbuf_new(info, epd->output.w, epd->output.h, swap_mode);
                   if (!ob)
                     {
-                       if (ob_old) evas_outbuf_free(ob_old);
                        free(re);
                        return 0;
                     }
 
                   evas_outbuf_use(ob);
-                  if (ob_old) evas_outbuf_free(ob_old);
 
                   ob->evas = evas;
 
@@ -1012,6 +1131,34 @@ eng_output_dump(void *data)
    _re_winfree(re);
 }
 
+static int
+eng_image_native_init(void *data EINA_UNUSED, Evas_Native_Surface_Type type)
+{
+   switch (type)
+     {
+      case EVAS_NATIVE_SURFACE_OPENGL:
+      case EVAS_NATIVE_SURFACE_WL:
+        return 1;
+      default:
+        ERR("Native surface type %d not supported!", type);
+        return 0;
+     }
+}
+
+static void
+eng_image_native_shutdown(void *data EINA_UNUSED, Evas_Native_Surface_Type type)
+{
+   switch (type)
+     {
+      case EVAS_NATIVE_SURFACE_OPENGL:
+      case EVAS_NATIVE_SURFACE_WL:
+        return;
+      default:
+        ERR("Native surface type %d not supported!", type);
+        return;
+     }
+}
+
 static void *
 eng_image_native_set(void *data, void *image, void *native)
 {
@@ -1049,7 +1196,19 @@ eng_image_native_set(void *data, void *image, void *native)
 
    if (ns)
      {
-        if (ns->type == EVAS_NATIVE_SURFACE_WL)
+        if (ns->type == EVAS_NATIVE_SURFACE_WL_DMABUF)
+          {
+             wl_buf = ns->data.wl_dmabuf.resource;
+             if (img->native.data)
+               {
+                  Evas_Native_Surface *ens;
+
+                  ens = img->native.data;
+                  if (ens->data.wl_dmabuf.resource == wl_buf)
+                    return img;
+               }
+          }
+        else if (ns->type == EVAS_NATIVE_SURFACE_WL)
           {
              wl_buf = ns->data.wl.legacy_buffer;
              if (img->native.data)
@@ -1084,13 +1243,28 @@ eng_image_native_set(void *data, void *image, void *native)
    if (img->native.data)
      {
         if (img->native.func.free)
-          img->native.func.free(img->native.func.data, img);
+          img->native.func.free(img);
         glsym_evas_gl_common_image_native_disable(img);
      }
 
    if (!ns) return img;
 
-   if (ns->type == EVAS_NATIVE_SURFACE_WL)
+   if (ns->type == EVAS_NATIVE_SURFACE_WL_DMABUF)
+     {
+        wlid = wl_buf;
+        img2 = eina_hash_find(ob->gl_context->shared->native_wl_hash, &wlid);
+        if (img2 == img) return img;
+        if (img2)
+          {
+             if((n = img2->native.data))
+               {
+                  glsym_evas_gl_common_image_ref(img2);
+                  glsym_evas_gl_common_image_free(img);
+                  return img2;
+               }
+          }
+     }
+   else if (ns->type == EVAS_NATIVE_SURFACE_WL)
      {
         wlid = wl_buf;
         img2 = eina_hash_find(ob->gl_context->shared->native_wl_hash, &wlid);
@@ -1128,7 +1302,45 @@ eng_image_native_set(void *data, void *image, void *native)
 
    if (!(img = img2)) return NULL;
 
-   if (ns->type == EVAS_NATIVE_SURFACE_WL)
+   if (ns->type == EVAS_NATIVE_SURFACE_WL_DMABUF)
+     {
+        if (native)
+          {
+             struct dmabuf_attributes *a;
+
+             a = ns->data.wl_dmabuf.attr;
+             if (a->version != 1)
+               {
+                  glsym_evas_gl_common_image_free(img);
+                  return NULL;
+               }
+             if ((n = calloc(1, sizeof(Native))))
+               {
+                  struct dmabuf_attributes *a2;
+
+                  a2 = ns->data.wl_dmabuf.attr;
+                  memcpy(&(n->ns), ns, sizeof(Evas_Native_Surface));
+                  memcpy(&n->ns_data.wl_surface_dmabuf.attr, a2, sizeof(*a2));
+                  eina_hash_add(ob->gl_context->shared->native_wl_hash,
+                                &wlid, img);
+
+                  n->ns_data.wl_surface_dmabuf.resource = wl_buf;
+                  img->native.yinvert = 1;
+                  img->native.loose = 0;
+                  img->native.disp = ob->egl.disp;
+                  img->native.shared = ob->gl_context->shared;
+                  img->native.data = n;
+                  img->native.func.bind = _native_cb_bind;
+                  img->native.func.unbind = _native_cb_unbind;
+                  img->native.func.free = _native_cb_free;
+                  img->native.target = GL_TEXTURE_2D;
+                  img->native.mipmap = 0;
+
+                  glsym_evas_gl_common_image_native_enable(img);
+               }
+          }
+     }
+   else if (ns->type == EVAS_NATIVE_SURFACE_WL)
      {
         if (native)
           {
@@ -1191,8 +1403,9 @@ eng_image_native_set(void *data, void *image, void *native)
                   //img->native.yinvert = yinvert;
                   img->native.yinvert = 1;
                   img->native.loose = 0;
+                  img->native.disp = ob->egl.disp;
+                  img->native.shared = ob->gl_context->shared;
                   img->native.data = n;
-                  img->native.func.data = re;
                   img->native.func.bind = _native_cb_bind;
                   img->native.func.unbind = _native_cb_unbind;
                   img->native.func.free = _native_cb_free;
@@ -1217,8 +1430,9 @@ eng_image_native_set(void *data, void *image, void *native)
 
                   img->native.yinvert = 0;
                   img->native.loose = 0;
+                  img->native.disp = ob->egl.disp;
+                  img->native.shared = ob->gl_context->shared;
                   img->native.data = n;
-                  img->native.func.data = re;
                   img->native.func.bind = _native_cb_bind;
                   img->native.func.unbind = _native_cb_unbind;
                   img->native.func.free = _native_cb_free;
@@ -1259,6 +1473,8 @@ module_open(Evas_Module *em)
         return 0;
      }
 
+   ecore_init();
+
    /* store it for later use */
    func = pfunc;
 
@@ -1270,6 +1486,8 @@ module_open(Evas_Module *em)
    EVAS_API_OVERRIDE(output_free, &func, eng_);
    EVAS_API_OVERRIDE(output_dump, &func, eng_);
    EVAS_API_OVERRIDE(image_native_set, &func, eng_);
+   EVAS_API_OVERRIDE(image_native_init, &func, eng_);
+   EVAS_API_OVERRIDE(image_native_shutdown, &func, eng_);
 
    /* Mesa's EGL driver loads wayland egl by default. (called by eglGetProcaddr() )
     * implicit env set (EGL_PLATFORM=drm) prevent that. */
@@ -1289,6 +1507,8 @@ module_close(Evas_Module *em EINA_UNUSED)
    /* unregister the eina log domain for this engine */
    eina_log_domain_unregister(_evas_engine_gl_drm_log_dom);
    _evas_engine_gl_drm_log_dom = -1;
+
+   ecore_shutdown();
 }
 
 static Evas_Module_Api evas_modapi =

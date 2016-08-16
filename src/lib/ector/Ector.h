@@ -114,17 +114,6 @@ typedef Eo Ector_Renderer;
 /* typedef Evas_Colorspace Ector_Colorspace; */
 
 /**
- * Quality values
- */
-typedef enum _Ector_Quality
-{
-  ECTOR_QUALITY_BEST, /**< Best quality */
-  ECTOR_QUALITY_GOOD, /**< Good quality */
-  ECTOR_QUALITY_FAST, /**< Lower quality, fastest */
-  ECTOR_QUALITY_LAST
-} Ector_Quality;
-
-/**
  * Priorities
  */
 typedef enum _Ector_Priority
@@ -163,6 +152,10 @@ EAPI int ector_init(void);
 EAPI int ector_shutdown(void);
 
 EAPI Eina_Bool ector_glsym_set(void *(*glsym)(void *lib, const char *name), void *lib);
+
+/* Avoid redefinition of types */
+#define _ECTOR_SURFACE_EO_CLASS_TYPE
+#define _ECTOR_RENDERER_EO_CLASS_TYPE
 
 #include "ector_surface.h"
 #include "ector_renderer.h"

@@ -30,7 +30,7 @@ _get_impl_func(Eolian_Class *cl, Eolian_Implement *impl,
    else
      return EINA_TRUE;
    if (strchr(imstr, '.'))
-     return EINA_FALSE;
+     return EINA_TRUE;
    impl->klass = cl;
    *foo_id = (Eolian_Function*)eolian_class_function_get_by_name(cl, imstr,
                                                                  ftype);
@@ -62,25 +62,7 @@ _db_fill_implement(Eolian_Class *cl, Eolian_Implement *impl)
    else if (impl->is_prop_set)
      ftype = EOLIAN_PROP_SET;
 
-   if (impl->is_virtual)
-     {
-        foo_id = (Eolian_Function*)eolian_class_function_get_by_name(cl,
-          impl_name, ftype);
-        if (!foo_id)
-          return _func_error(cl, impl);
-        if (impl->is_prop_set)
-          foo_id->set_virtual_pure = EINA_TRUE;
-        else
-          foo_id->get_virtual_pure = EINA_TRUE;
-
-        impl->full_name = eina_stringshare_printf("%s.%s", cl->full_name,
-                                                  impl_name);
-        eina_stringshare_del(impl_name);
-        impl_name = impl->full_name;
-
-        _write_impl(foo_id, impl);
-     }
-   else if (impl->is_auto)
+   if (impl->is_auto)
      {
         if (!_get_impl_func(cl, impl, ftype, &foo_id))
           return _func_error(cl, impl);
@@ -108,6 +90,14 @@ _db_fill_implement(Eolian_Class *cl, Eolian_Implement *impl)
      }
    else if (!_get_impl_func(cl, impl, ftype, &foo_id))
      return _func_error(cl, impl);
+
+   if (foo_id && foo_id->klass == cl && eolian_function_is_virtual_pure(foo_id, ftype))
+     {
+        fprintf(stderr, "eolian:%s:%d:%d: impl of pure virtual '%s%s'\n",
+                impl->base.file, impl->base.line, impl->base.column, impl->full_name,
+                (impl->is_prop_get ? ".get" : (impl->is_prop_set ? ".set" : "")));
+        return EINA_FALSE;
+     }
 
 pasttags:
    if (impl_name[0] == '.')
@@ -148,9 +138,31 @@ _db_build_implement(Eolian_Class *cl, Eolian_Function *foo_id)
 
    if (foo_id->type == EOLIAN_PROPERTY)
      {
+        /* FIXME fugly hack, ideally rework the whole implements api altogether */
+        if (foo_id->get_virtual_pure && !foo_id->get_impl)
+          {
+             impl->is_virtual = EINA_TRUE;
+             impl->is_prop_get = EINA_TRUE;
+             foo_id->get_impl = impl;
+             cl->implements = eina_list_append(cl->implements, impl);
+             /* repeat for set */
+             _db_build_implement(cl, foo_id);
+             return;
+          }
+        else if (foo_id->set_virtual_pure && !foo_id->set_impl)
+          {
+             impl->is_virtual = EINA_TRUE;
+             impl->is_prop_set = EINA_TRUE;
+             foo_id->set_impl = impl;
+             cl->implements = eina_list_append(cl->implements, impl);
+             /* repeat for get */
+             _db_build_implement(cl, foo_id);
+             return;
+          }
         if (foo_id->get_impl)
           {
              impl->is_prop_set = EINA_TRUE;
+             impl->is_virtual = foo_id->set_virtual_pure;
              foo_id->set_impl = impl;
           }
         else if (foo_id->set_impl)
@@ -164,15 +176,20 @@ _db_build_implement(Eolian_Class *cl, Eolian_Function *foo_id)
    else if (foo_id->type == EOLIAN_PROP_SET)
      {
         impl->is_prop_set = EINA_TRUE;
+        impl->is_virtual = foo_id->get_virtual_pure;
         foo_id->set_impl = impl;
      }
    else if (foo_id->type == EOLIAN_PROP_GET)
      {
         impl->is_prop_get = EINA_TRUE;
+        impl->is_virtual = foo_id->set_virtual_pure;
         foo_id->get_impl = impl;
      }
    else
-     foo_id->get_impl = foo_id->set_impl = impl;
+     {
+        impl->is_virtual = foo_id->get_virtual_pure;
+        foo_id->get_impl = foo_id->set_impl = impl;
+     }
 
    cl->implements = eina_list_append(cl->implements, impl);
 }
@@ -217,7 +234,6 @@ eo_parser_database_fill(const char *filename, Eina_Bool eot)
    Eina_Iterator *itr;
    Eolian_Class *cl;
    Eo_Lexer *ls;
-   const char *dep;
 
    if (eina_hash_find(_parsedeos, filename))
      return EINA_TRUE;
@@ -280,20 +296,6 @@ eo_parser_database_fill(const char *filename, Eina_Bool eot)
           database_function_constructor_add((Eolian_Function*)ctor_func, ctor->klass);
      }
    eina_iterator_free(itr);
-
-   /* parse deferred eos (doc dependencies) */
-   itr = eina_hash_iterator_data_new(_defereos);
-   EINA_ITERATOR_FOREACH(itr, dep)
-     {
-        if (!eina_hash_find(_parsingeos, dep) && !eolian_file_parse(dep))
-          {
-             eina_iterator_free(itr);
-             eina_hash_free_buckets(_defereos);
-             goto error;
-          }
-     }
-   eina_iterator_free(itr);
-   eina_hash_free_buckets(_defereos);
 
 done:
    eina_hash_set(_parsedeos, filename, (void *)EINA_TRUE);

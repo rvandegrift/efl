@@ -227,7 +227,7 @@ struct _Evas_Filter_Buffer
 
    Evas_Object *source;
    Eina_Stringshare *source_name;
-   Ector_Generic_Buffer *buffer;
+   Ector_Buffer *buffer;
    int w, h;
 
    Eina_Bool alpha_only : 1;  // 1 channel (A) instead of 4 (RGBA)
@@ -282,8 +282,8 @@ _buffer_map_all(Ector_Buffer *buf, unsigned int *len, Ector_Buffer_Access_Flag m
    void *ret = NULL;
    int w, h;
    if (!buf) return NULL;
-   eo_do(buf, ector_buffer_size_get(&w, &h);
-         ret = ector_buffer_map(len, mode, 0, 0, w, h, cspace, stride));
+   ector_buffer_size_get(buf, &w, &h);
+   ret = ector_buffer_map(buf, len, mode, 0, 0, w, h, cspace, stride);
    return ret;
 }
 

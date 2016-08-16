@@ -19,9 +19,9 @@
 
 #include "ecore_cocoa_private.h"
 
-EAPI int ECORE_COCOA_EVENT_GOT_FOCUS = 0;
-EAPI int ECORE_COCOA_EVENT_LOST_FOCUS = 0;
-EAPI int ECORE_COCOA_EVENT_RESIZE = 0;
+EAPI int ECORE_COCOA_EVENT_WINDOW_UNFOCUSED = 0;
+EAPI int ECORE_COCOA_EVENT_WINDOW_FOCUSED = 0;
+EAPI int ECORE_COCOA_EVENT_WINDOW_RESIZE_REQUEST = 0;
 EAPI int ECORE_COCOA_EVENT_WINDOW_DESTROY = 0;
 
 static int _ecore_cocoa_init_count = 0;
@@ -51,9 +51,9 @@ ecore_cocoa_init(void)
 
    DBG("");
 
-   ECORE_COCOA_EVENT_GOT_FOCUS  = ecore_event_type_new();
-   ECORE_COCOA_EVENT_LOST_FOCUS = ecore_event_type_new();
-   ECORE_COCOA_EVENT_RESIZE     = ecore_event_type_new();
+   ECORE_COCOA_EVENT_WINDOW_UNFOCUSED = ecore_event_type_new();
+   ECORE_COCOA_EVENT_WINDOW_FOCUSED = ecore_event_type_new();
+   ECORE_COCOA_EVENT_WINDOW_RESIZE_REQUEST = ecore_event_type_new();
    ECORE_COCOA_EVENT_WINDOW_DESTROY = ecore_event_type_new();
 
 
@@ -295,7 +295,7 @@ _ecore_cocoa_feed_events(void *anEvent)
            Ecore_Event_Mouse_Wheel *ev;
            float dx, dy = 0;
 
-           ev = malloc(sizeof(Ecore_Event_Mouse_Wheel));
+           ev = calloc(1, sizeof(Ecore_Event_Mouse_Wheel));
            if (!ev) return pass;
 
            if ([event hasPreciseScrollingDeltas])
@@ -349,7 +349,7 @@ ecore_cocoa_screen_size_get(Ecore_Cocoa_Screen *screen EINA_UNUSED, int *w, int 
 
    if (w) *w = (int)pt.width;
    if (h) *h = (int)pt.height;
-   
+
    DBG("Screen size get : %dx%d", (int)pt.width, (int)pt.height);
 }
 

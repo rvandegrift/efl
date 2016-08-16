@@ -168,6 +168,13 @@ struct _Sound_Write
    int i;
 };
 
+struct _Vector_Write
+{
+   Eet_File *ef;
+   Svg_Node *root;
+   int i;
+};
+
 struct _Mo_Write
 {
    Eet_File *ef;
@@ -220,6 +227,7 @@ Eina_List *fonts = NULL;
 Eina_List *codes = NULL;
 Eina_List *code_lookups = NULL;
 Eina_List *aliases = NULL;
+Eina_List *color_tree_root = NULL;
 
 static Eet_Data_Descriptor *edd_edje_file = NULL;
 static Eet_Data_Descriptor *edd_edje_part_collection = NULL;
@@ -1143,7 +1151,7 @@ tgv_file_check_and_add(Eet_File *ef, Edje_Image_Directory_Entry *img, int *image
    Image_Write *iw = NULL;
    Eina_List *li;
    const char *s;
-   Eina_File *f;
+   Eina_File *f = NULL;
    void *data;
 
    EINA_LIST_FOREACH(img_dirs, li, s)
@@ -1222,6 +1230,56 @@ on_error:
    if (data) eina_file_map_free(f, data);
    eina_file_close(f);
    return EINA_FALSE;
+}
+
+static void
+data_write_vectors(Eet_File *ef, int *vector_num)
+{
+   unsigned int i;
+   Svg_Node *root;
+   Eet_Data_Descriptor *svg_node_eet;
+   Eina_List *ll;
+   char *s;
+   Eina_File *f = NULL;
+   Edje_Vector_Directory_Entry *vector;
+   Eina_Strbuf *buf;
+   Eina_Bool found = EINA_FALSE;
+
+   if (!((edje_file) && (edje_file->image_dir))) return;
+
+   svg_node_eet = _edje_svg_node_eet();
+   buf = eina_strbuf_new();
+   for (i = 0; i < edje_file->image_dir->vectors_count; i++)
+     {
+        if (!beta)
+          error_and_abort(ef, "Vector part are currently a beta feature, please enable them by running edje_cc with -beta.");
+
+        vector = &edje_file->image_dir->vectors[i];
+        EINA_LIST_FOREACH(img_dirs, ll, s)
+          {
+             eina_strbuf_reset(buf);
+             eina_strbuf_append_printf(buf, "%s/%s", s, vector->entry);
+             f = eina_file_open(eina_strbuf_string_get(buf), EINA_FALSE);
+             if (!f) continue;
+             root = _svg_load(f, NULL);
+             if(!root)
+               error_and_abort(ef, "Failed to parse svg : %s", vector->entry);
+             eina_strbuf_reset(buf);
+             eina_strbuf_append_printf(buf, "edje/vectors/%i", vector->id);
+             if(!eet_data_write(ef, svg_node_eet, eina_strbuf_string_get(buf), root, compress_mode))
+               error_and_abort(ef, "Failed to write data in Eet for svg :%s", vector->entry);
+             *vector_num += 1;
+             eina_file_close(f);
+             found = EINA_TRUE;
+             _edje_svg_node_free(root);
+             break;
+          }
+        if (!found)
+          error_and_abort(ef, "Unable to find the svg :%s", vector->entry);
+        found = EINA_FALSE;
+     }
+   eina_strbuf_free(buf);
+
 }
 
 static void
@@ -1349,7 +1407,7 @@ data_check_models(Eet_File *ef EINA_UNUSED, int *model_num EINA_UNUSED)
           }
         if (!file_exist)
           {
-             ERR("Unablegstsh to load model \"%s\". Check if path to file is correct (both directory and file name).",
+             ERR("Unable to load model \"%s\". Check if path to file is correct (both directory and file name).",
                  model->entry);
              exit(-1);
           }
@@ -1598,7 +1656,7 @@ data_write_mo(Eet_File *ef, int *mo_num)
 
         for (i = 0; i < (int)edje_file->mo_dir->mo_entries_count; i++)
           {
-             Mo_Write *mw;
+             Mo_Write *mw, *mw2;
              mw = calloc(1, sizeof(Mo_Write));
              if (!mw) continue;
              mw->ef = ef;
@@ -1619,17 +1677,23 @@ data_write_mo(Eet_File *ef, int *mo_num)
                        if (ecore_file_exists(po_path))
                          {
                             snprintf(buf, sizeof(buf), "msgfmt -o %s %s", mo_path, po_path);
-                            mw->mo_path = strdup(mo_path);
-                            mw->exe = ecore_exe_run(buf, mw);
-                            ecore_event_handler_add(ECORE_EXE_EVENT_DEL,
-                                                       _exe_del_cb, mw);
+                            mw2 = malloc(sizeof(Mo_Write));
+                            if (mw2)
+                              {
+                                 memcpy(mw2, mw, sizeof(Mo_Write));
+                                 mw2->mo_path = strdup(mo_path);
+                                 mw2->exe = ecore_exe_run(buf, mw2);
+                                 ecore_event_handler_add(ECORE_EXE_EVENT_DEL,
+                                                         _exe_del_cb, mw2);
+                              }
                          }
                        else
                          error_and_abort(mw->ef, "Invalid .po file.");
                     }
+                  free(mw);
                }
              else
-               { 
+               {
                   if (threads)
                     ecore_thread_run(data_thread_mo, data_thread_mo_end, NULL, mw);
                   else
@@ -1980,6 +2044,19 @@ data_thread_script(void *data, Ecore_Thread *thread EINA_UNUSED)
 //   close(sc->tmpo_fd);
 }
 
+typedef struct
+{
+   char *exe;
+   Script_Write *sc;
+} Pending_Script_Write;
+
+#define PENDING_COMMANDS_MAX 8
+
+static int pending_write_commands = 0;
+static Eina_List *pending_script_writes = NULL;
+
+static void data_write_script_queue(Script_Write *sc, const char *exeline);
+
 static void
 data_thread_script_end(void *data, Ecore_Thread *thread EINA_UNUSED)
 {
@@ -2002,6 +2079,20 @@ data_scripts_exe_del_cb(void *data EINA_UNUSED, int evtype EINA_UNUSED, void *ev
 
    if (!ev->exe) return ECORE_CALLBACK_RENEW;
    if (ecore_exe_data_get(ev->exe) != sc) return ECORE_CALLBACK_RENEW;
+   pending_write_commands--;
+   if (pending_write_commands < PENDING_COMMANDS_MAX)
+     {
+        if (pending_script_writes)
+          {
+             Pending_Script_Write *pend = pending_script_writes->data;
+
+             pending_script_writes = eina_list_remove_list
+               (pending_script_writes, pending_script_writes);
+             data_write_script_queue(pend->sc, pend->exe);
+             free(pend->exe);
+             free(pend);
+          }
+     }
    if (ev->exit_code != 0)
      {
         error_and_abort(sc->ef, "Compiling script code not clean.");
@@ -2018,6 +2109,41 @@ data_scripts_exe_del_cb(void *data EINA_UNUSED, int evtype EINA_UNUSED, void *ev
      }
    if (pending_threads <= 0) ecore_main_loop_quit();
    return ECORE_CALLBACK_CANCEL;
+}
+
+static void
+data_write_script_queue(Script_Write *sc, const char *exeline)
+{
+   if (pending_write_commands >= PENDING_COMMANDS_MAX)
+     {
+        Pending_Script_Write *pend = malloc(sizeof(Pending_Script_Write));
+        if (pend)
+          {
+             pend->sc = sc;
+             pend->exe = strdup(exeline);
+             if (!pend->exe)
+               {
+                  error_and_abort(sc->ef,
+                                  "Unable to allocate mem pending string.");
+                  free(pend);
+                  return;
+               }
+             pending_script_writes = eina_list_append(pending_script_writes,
+                                                      pend);
+          }
+        else
+          error_and_abort(sc->ef,
+                          "Unable to allocate mem for pending script.");
+     }
+   else
+     {
+        pending_threads++;
+        sc->exe = ecore_exe_run(exeline, sc);
+        if (!sc->exe) error_and_abort(sc->ef, "Unable to fork off embryo_cc.");
+        ecore_event_handler_add(ECORE_EXE_EVENT_DEL,
+                                data_scripts_exe_del_cb, sc);
+        pending_write_commands++;
+     }
 }
 
 static void
@@ -2085,10 +2211,7 @@ data_write_scripts(Eet_File *ef)
         snprintf(buf, sizeof(buf),
                  "%s -i %s -o %s %s", embryo_cc_path, inc_path,
                  sc->tmpo, sc->tmpn);
-        pending_threads++;
-        sc->exe = ecore_exe_run(buf, sc);
-        ecore_event_handler_add(ECORE_EXE_EVENT_DEL,
-                                data_scripts_exe_del_cb, sc);
+        data_write_script_queue(sc, buf);
      }
 }
 
@@ -2467,6 +2590,7 @@ data_write(void)
    int vibration_num = 0;
    int font_num = 0;
    int collection_num = 0;
+   int vector_num = 0;
    double t;
 
    if (!edje_file)
@@ -2521,6 +2645,8 @@ data_write(void)
    INF("fontmap: %3.5f", ecore_time_get() - t); t = ecore_time_get();
    data_write_images(ef, &image_num);
    INF("images: %3.5f", ecore_time_get() - t); t = ecore_time_get();
+   data_write_vectors(ef, &vector_num);
+   INF("vectors: %3.5f", ecore_time_get() - t); t = ecore_time_get();
    data_check_models(ef, &model_num);
    INF("models: %3.5f", ecore_time_get() - t); t = ecore_time_get();
    data_write_fonts(ef, &font_num);
@@ -2588,7 +2714,8 @@ reorder_parts(void)
           {
              ep = (Edje_Part_Parser *)pc->parts[i];
              if (ep->reorder.insert_before && ep->reorder.insert_after)
-               ERR("Unable to use together insert_before and insert_after in part \"%s\".", pc->parts[i]->name);
+               error_and_abort(NULL, "In group \"%s\": Unable to use together insert_before and insert_after in part \"%s\".",
+                               pc->part, pc->parts[i]->name);
 
              if (ep->reorder.done)
                {
@@ -2602,15 +2729,13 @@ reorder_parts(void)
                        if (ep->reorder.insert_before &&
                            !strcmp(ep->reorder.insert_before, pc->parts[j]->name))
                          {
-                            needed_part_exists(pc, ep->reorder.insert_before);
-
                             ep2 = (Edje_Part_Parser *)pc->parts[j];
                             if (ep2->reorder.after)
-                              ERR("The part \"%s\" is ambiguous ordered part.",
-                                  pc->parts[i]->name);
+                              error_and_abort(NULL, "In group \"%s\": The part \"%s\" is ambiguous ordered part.",
+                                              pc->part, pc->parts[i]->name);
                             if (ep2->reorder.linked_prev)
-                              ERR("Unable to insert two or more parts in same part \"%s\".",
-                                  pc->parts[j]->name);
+                              error_and_abort(NULL, "In group \"%s\": Unable to insert two or more parts in same part \"%s\".",
+                                              pc->part, pc->parts[j]->name);
                             /* Need it to be able to insert an element before the first */
                             if (j == 0) k = 0;
                             else k = j - 1;
@@ -2627,13 +2752,13 @@ reorder_parts(void)
                        else if (ep->reorder.insert_after &&
                                 !strcmp(ep->reorder.insert_after, pc->parts[j]->name))
                          {
-                            needed_part_exists(pc, ep->reorder.insert_after);
-
                             ep2 = (Edje_Part_Parser *)pc->parts[j];
                             if (ep2->reorder.before)
-                              ERR("The part \"%s\" is ambiguous ordered part.", pc->parts[i]->name);
+                              error_and_abort(NULL, "In group \"%s\": The part \"%s\" is ambiguous ordered part.",
+                                              pc->part, pc->parts[i]->name);
                             if (ep2->reorder.linked_next)
-                              ERR("Unable to insert two or more parts in same part \"%s\".", pc->parts[j]->name);
+                              error_and_abort(NULL, "In group \"%s\": Unable to insert two or more parts in same part \"%s\".",
+                                              pc->part, pc->parts[j]->name);
                             k = j;
                             found = EINA_TRUE;
                             ep2->reorder.linked_next += ep->reorder.linked_next + 1;
@@ -2652,7 +2777,7 @@ reorder_parts(void)
 
                        if (((i > k) && ((i - ep->reorder.linked_prev) <= k))
                            || ((i < k) && ((i + ep->reorder.linked_next) >= k)))
-                         ERR("The part order is wrong. It has circular dependency.");
+                         error_and_abort(NULL, "In group \"%s\": The part order is wrong. It has circular dependency.", pc->part);
 
                        amount = ep->reorder.linked_prev + ep->reorder.linked_next + 1;
                        linked = i - ep->reorder.linked_prev;
@@ -2691,6 +2816,15 @@ reorder_parts(void)
                          }
                        ep->reorder.done = EINA_TRUE;
                        free(parts);
+                    }
+                  else
+                    {
+                       if (ep->reorder.insert_before)
+                         error_and_abort(NULL, "In group \"%s\": Unable to find part \"%s\" for insert_before in part \"%s\".",
+                                         pc->part, ep->reorder.insert_before, pc->parts[i]->name);
+                       else
+                         error_and_abort(NULL, "In group \"%s\": Unable to find part \"%s\" for insert_after in part \"%s\".",
+                                         pc->part, ep->reorder.insert_after, pc->parts[i]->name);
                     }
                }
           }
@@ -2923,6 +3057,39 @@ data_queue_anonymous_lookup(Edje_Part_Collection *pc, Edje_Program *ep, int *des
         pl->u.ep = ep;
         pl->dest = dest;
         pl->anonymous = EINA_TRUE;
+     }
+}
+
+void
+copied_program_anonymous_lookup_delete(Edje_Part_Collection *pc, int *dest)
+{
+   Program_Lookup *pl;
+   Eina_List *l, *ll;
+
+   EINA_LIST_FOREACH_SAFE(program_lookups, l, ll, pl)
+     {
+        if ((!pl->anonymous) || (pl->pc != pc) || (dest != &pl->u.ep->id)) continue;
+        program_lookups = eina_list_remove_list(program_lookups, l);
+
+        Code *cd;
+        Code_Program *cp;
+        Edje_Part_Collection_Directory_Entry *de;
+        Eina_List *l2, *ll2;
+
+        de = eina_hash_find(edje_file->collection, pl->pc->part);
+        cd = eina_list_nth(codes, de->id);
+
+        EINA_LIST_FOREACH_SAFE(cd->programs, l2, ll2, cp)
+          {
+             if (pl->dest == &cp->id)
+               {
+                  cd->programs = eina_list_remove_list(cd->programs, l2);
+                  free(cp);
+                  break;
+               }
+          }
+
+        free(pl);
      }
 }
 
@@ -4107,28 +4274,241 @@ using_file(const char *filename, const char type)
      }
 }
 
-Eina_Bool
-needed_part_exists(Edje_Part_Collection *pc, const char *name)
+void
+color_tree_root_free(void)
 {
-   Eina_Bool found;
-   unsigned int i;
+   char *name;
 
-   found = EINA_FALSE;
+   EINA_LIST_FREE(color_tree_root, name)
+     free(name);
+}
 
-   for (i = 0; i < pc->parts_count; i++)
+char *
+color_tree_token_next(char *dst, char *src, int *ln)
+{
+   Eina_Bool begin = EINA_FALSE, next = EINA_FALSE;
+
+   while (!next)
      {
-        if (!strcmp(pc->parts[i]->name, name))
+        if (*src == '\0') break;
+
+        if (*src == '"')
           {
-             found = EINA_TRUE;
-             break;
+             if (!begin) begin = EINA_TRUE;
+             else next = EINA_TRUE;
+          }
+        else if ((!begin) && ((*src == '{') || (*src == '}') || (*src == ';')))
+          {
+             *dst++ = *src;
+             next = EINA_TRUE;
+          }
+        else if ((!begin) && (*src == '\n'))
+          {
+             (*ln)++;
+          }
+        else if (begin)
+          {
+             *dst++ = *src;
+          }
+        src++;
+     }
+   *dst = '\0';
+   return src;
+}
+
+Edje_Color_Tree_Node *
+color_tree_parent_node_get(const char *color_class)
+{
+   Edje_Color_Tree_Node *ctn;
+   Eina_List *l, *ll;
+   char *name;
+
+   EINA_LIST_FOREACH(edje_file->color_tree, l, ctn)
+      if (ctn->color_classes)
+         EINA_LIST_FOREACH(ctn->color_classes, ll, name)
+            if (!strcmp(name, color_class))
+              return ctn;
+
+   return NULL;
+}
+
+void
+process_color_tree(char *s, const char *f_in, int ln)
+{
+   char token[2][1024];
+   int id = 0;
+   Eina_Array *array;
+   Edje_Color_Tree_Node *ctn;
+   Eina_List *l;
+   char *name;
+
+   if (!s) return;
+
+   array = eina_array_new(4);
+
+   do
+     {
+        s = color_tree_token_next(token[id], s, &ln);
+
+        if (!strcmp(token[id], "{"))
+          {
+             if (!token[!id][0])
+               error_and_abort(NULL, "parse error %s:%i. color class is not set to newly opened node block.",
+                               f_in, ln - 1);
+
+             ctn = mem_alloc(SZ(Edje_Color_Tree_Node));
+             ctn->name = strdup(token[!id]);
+             ctn->color_classes = NULL;
+
+             edje_file->color_tree = eina_list_append(edje_file->color_tree, ctn);
+
+             eina_array_push(array, ctn);
+             token[id][0] = '\0';
+          }
+        else if (!strcmp(token[id], "}"))
+          {
+             eina_array_pop(array);
+             token[id][0] = '\0';
+          }
+        else if (!strcmp(token[id], ";"))
+          {
+             token[id][0] = '\0';
+          }
+        else if (*s != '\0')
+          {
+             if (eina_array_count(array))
+               {
+                  if (color_tree_root)
+                    EINA_LIST_FOREACH(color_tree_root, l, name)
+                      if (!strcmp(name, token[id]))
+                        {
+                           error_and_abort(NULL, "parse error %s:%i. The color class \"%s\" already belongs to the root node.",
+                                           f_in, ln -1, token[id]);
+                        }
+
+                  if ((ctn = color_tree_parent_node_get(token[id])))
+                    error_and_abort(NULL, "parse error %s:%i. The color class \"%s\" already belongs to the \"%s\" node.",
+                                    f_in, ln -1, token[id], ctn->name);
+
+                  ctn = eina_array_data_get(array, eina_array_count(array) - 1);
+                  ctn->color_classes = eina_list_append(ctn->color_classes, strdup(token[id]));
+               }
+             else
+               {
+                  if ((ctn = color_tree_parent_node_get(token[id])))
+                    error_and_abort(NULL, "parse error %s:%i. The color class \"%s\" already belongs to the \"%s\" node.",
+                                    f_in, ln -1, token[id], ctn->name);
+
+                  color_tree_root = eina_list_append(color_tree_root, strdup(token[id]));
+               }
+          }
+
+        id = !id;
+
+     } while (*s);
+
+   if (eina_array_count(array))
+     error_and_abort(NULL, "parse error %s:%i. check pair of parens.", f_in, ln - 1);
+
+   eina_array_clean(array);
+   eina_array_free(array);
+}
+
+char
+validate_hex_digit(char c)
+{
+   if ((c >= '0' && c <= '9') || (c >= 'A' && c <= 'F') || (c >= 'a' && c <= 'f'))
+    return c;
+
+   ERR("%s:%i. invalid character '%c' is used in color code.",
+       file_in, line - 1, c);
+   exit(-1);
+}
+
+void
+convert_color_code(char *str, int *r, int *g, int *b, int *a)
+{
+   char buf[3];
+   int len;
+
+   len = strlen(str);
+
+   if ((str[0] != '#') || (len != 4 && len != 5 && len != 7 && len != 9))
+     {
+        ERR("%s:%i color code should start with '#' and have 4 or 8 digit hex number. (3 or 6 digits are allowed to omit alpha value of 255)",
+            file_in, line - 1);
+        exit(-1);
+     }
+
+   buf[2] = '\0';
+
+   if (r)
+     {
+        if ((len == 4) || (len == 5))
+          {
+             buf[0] = validate_hex_digit(str[1]);
+             buf[1] = validate_hex_digit(str[1]);
+          }
+        else
+          {
+             buf[0] = validate_hex_digit(str[1]);
+             buf[1] = validate_hex_digit(str[2]);
+          }
+
+        *r = (int)strtol(buf, NULL, 16);
+     }
+   if (g)
+     {
+        if ((len == 4) || (len == 5))
+          {
+             buf[0] = validate_hex_digit(str[2]);
+             buf[1] = validate_hex_digit(str[2]);
+          }
+        else
+          {
+             buf[0] = validate_hex_digit(str[3]);
+             buf[1] = validate_hex_digit(str[4]);
+          }
+
+        *g = (int)strtol(buf, NULL, 16);
+     }
+   if (b)
+     {
+        if ((len == 4) || (len == 5))
+          {
+             buf[0] = validate_hex_digit(str[3]);
+             buf[1] = validate_hex_digit(str[3]);
+          }
+        else
+          {
+             buf[0] = validate_hex_digit(str[5]);
+             buf[1] = validate_hex_digit(str[6]);
+          }
+
+        *b = (int)strtol(buf, NULL, 16);
+     }
+   if (a)
+     {
+        if ((len == 5) || (len == 9))
+          {
+             if (len == 5)
+               {
+                  buf[0] = validate_hex_digit(str[4]);
+                  buf[1] = validate_hex_digit(str[4]);
+               }
+             else
+               {
+                  buf[0] = validate_hex_digit(str[7]);
+                  buf[1] = validate_hex_digit(str[8]);
+               }
+
+             *a = (int)strtol(buf, NULL, 16);
+          }
+        else
+          {
+             *a = 255;
           }
      }
 
-   if (!found)
-     {
-        ERR("Unable to find part name \"%s\" needed in group \"%s\".",
-            name, pc->part);
-        exit(-1);
-     }
-   return found;
+   free(str);
 }

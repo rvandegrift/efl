@@ -1,3 +1,5 @@
+#define EFL_CANVAS_OBJECT_BETA
+
 #include "evas_common_private.h"
 #include "evas_private.h"
 #include <errno.h>
@@ -34,6 +36,7 @@ struct _Evas_Object_Table_Option
 
 struct _Evas_Object_Table_Cache
 {
+   int ref;
    struct {
       struct {
          double h, v;
@@ -181,6 +184,7 @@ _evas_object_table_cache_alloc(int cols, int rows)
         return NULL;
      }
 
+   cache->ref = 1;
    cache->weights.h = (double *)(cache + 1);
    cache->weights.v = (double *)(cache->weights.h + cols);
    cache->sizes.h = (Evas_Coord *)(cache->weights.v + rows);
@@ -194,7 +198,8 @@ _evas_object_table_cache_alloc(int cols, int rows)
 static void
 _evas_object_table_cache_free(Evas_Object_Table_Cache *cache)
 {
-   free(cache);
+   cache->ref--;
+   if (cache->ref == 0) free(cache);
 }
 
 static void
@@ -243,42 +248,37 @@ _evas_object_table_option_del(Evas_Object *o)
    return evas_object_data_del(o, EVAS_OBJECT_TABLE_OPTION_KEY);
 }
 
-static Eina_Bool
-_on_child_del(void *data, Eo *child, const Eo_Event_Description *desc EINA_UNUSED, void *einfo EINA_UNUSED)
+static void
+_on_child_del(void *data, const Eo_Event *event)
 {
    Evas_Object *table = data;
-   evas_object_table_unpack(table, child);
-
-   return EO_CALLBACK_CONTINUE;
+   evas_object_table_unpack(table, event->object);
 }
 
-static Eina_Bool
-_on_child_hints_changed(void *data, Eo *child EINA_UNUSED, const Eo_Event_Description *desc EINA_UNUSED, void *einfo EINA_UNUSED)
+static void
+_on_child_hints_changed(void *data, const Eo_Event *event EINA_UNUSED)
 {
    Evas_Object *table = data;
-   EVAS_OBJECT_TABLE_DATA_GET_OR_RETURN_VAL(table, priv, EO_CALLBACK_CONTINUE);
+   EVAS_OBJECT_TABLE_DATA_GET_OR_RETURN(table, priv);
    _evas_object_table_cache_invalidate(priv);
    evas_object_smart_changed(table);
-
-   return EO_CALLBACK_CONTINUE;
 }
 
-static const Eo_Callback_Array_Item evas_object_table_callbacks[] = {
-  { EVAS_OBJECT_EVENT_DEL, _on_child_del },
-  { EVAS_OBJECT_EVENT_CHANGED_SIZE_HINTS, _on_child_hints_changed },
-  { NULL, NULL }
-};
+EO_CALLBACKS_ARRAY_DEFINE(evas_object_table_callbacks,
+  { EFL_CANVAS_OBJECT_EVENT_DEL, _on_child_del },
+  { EFL_GFX_EVENT_CHANGE_SIZE_HINTS, _on_child_hints_changed }
+);
 
 static void
 _evas_object_table_child_connect(Evas_Object *o, Evas_Object *child)
 {
-   eo_do(child, eo_event_callback_array_add(evas_object_table_callbacks, o));
+   eo_event_callback_array_add(child, evas_object_table_callbacks(), o);
 }
 
 static void
 _evas_object_table_child_disconnect(Evas_Object *o, Evas_Object *child)
 {
-   eo_do(child, eo_event_callback_array_del(evas_object_table_callbacks, o));
+   eo_event_callback_array_del(child, evas_object_table_callbacks(), o);
 }
 
 static void
@@ -342,7 +342,7 @@ _evas_object_table_calculate_hints_homogeneous(Evas_Object *o, Evas_Table_Data *
         Evas_Coord child_minw, child_minh, cell_minw, cell_minh;
         double weightw, weighth;
 
-        evas_object_size_hint_min_get(child, &opt->min.w, &opt->min.h);
+        efl_gfx_size_hint_combined_min_get(child, &opt->min.w, &opt->min.h);
         evas_object_size_hint_max_get(child, &opt->max.w, &opt->max.h);
         evas_object_size_hint_padding_get
            (child, &opt->pad.l, &opt->pad.r, &opt->pad.t, &opt->pad.b);
@@ -433,7 +433,7 @@ _evas_object_table_calculate_layout_homogeneous_sizes_item(const Evas_Object *o,
    Evas_Coord minw, minh;
    Eina_Bool expand_h, expand_v;
 
-   evas_object_size_hint_min_get(o, &minw, &minh);
+   efl_gfx_size_hint_combined_min_get(o, &minw, &minh);
    expand_h = priv->expand_h;
    expand_v = priv->expand_v;
 
@@ -646,6 +646,7 @@ _evas_object_table_calculate_hints_regular(Evas_Object *o, Evas_Table_Data *priv
           return;
      }
    c = priv->cache;
+   c->ref++;
    _evas_object_table_cache_reset(priv);
 
    /* cache interesting data */
@@ -656,7 +657,7 @@ _evas_object_table_calculate_hints_regular(Evas_Object *o, Evas_Table_Data *priv
         Evas_Object *child = opt->obj;
         double weightw, weighth;
 
-        evas_object_size_hint_min_get(child, &opt->min.w, &opt->min.h);
+        efl_gfx_size_hint_combined_min_get(child, &opt->min.w, &opt->min.h);
         evas_object_size_hint_max_get(child, &opt->max.w, &opt->max.h);
         evas_object_size_hint_padding_get
            (child, &opt->pad.l, &opt->pad.r, &opt->pad.t, &opt->pad.b);
@@ -770,7 +771,7 @@ _evas_object_table_calculate_hints_regular(Evas_Object *o, Evas_Table_Data *priv
 
    if ((c->total.min.w > 0) || (c->total.min.h > 0))
      evas_object_size_hint_min_set(o, c->total.min.w, c->total.min.h);
-
+   _evas_object_table_cache_free(c);
    // XXX hint max?
 }
 
@@ -786,6 +787,7 @@ _evas_object_table_calculate_layout_regular(Evas_Object *o, Evas_Table_Data *pri
    c = priv->cache;
    if (!c) return;
 
+   c->ref++;
    evas_object_geometry_get(o, &x, &y, &w, &h);
 
    /* handle horizontal */
@@ -874,6 +876,7 @@ _evas_object_table_calculate_layout_regular(Evas_Object *o, Evas_Table_Data *pri
              if (rows) free(rows);
           }
      }
+   _evas_object_table_cache_free(c);
 }
 
 static void
@@ -885,7 +888,7 @@ _evas_object_table_smart_calculate_regular(Evas_Object *o, Evas_Table_Data *priv
 }
 
 EOLIAN static void
-_evas_table_evas_object_smart_add(Eo *obj, Evas_Table_Data *priv)
+_evas_table_efl_canvas_group_group_add(Eo *obj, Evas_Table_Data *priv)
 {
    priv->pad.h = 0;
    priv->pad.v = 0;
@@ -899,11 +902,11 @@ _evas_table_evas_object_smart_add(Eo *obj, Evas_Table_Data *priv)
    priv->expand_h = 0;
    priv->expand_v = 0;
 
-   eo_do_super(obj, MY_CLASS, evas_obj_smart_add());
+   efl_canvas_group_add(eo_super(obj, MY_CLASS));
 }
 
 EOLIAN static void
-_evas_table_evas_object_smart_del(Eo *obj, Evas_Table_Data *priv)
+_evas_table_efl_canvas_group_group_del(Eo *obj, Evas_Table_Data *priv)
 {
    Eina_List *l;
 
@@ -923,11 +926,11 @@ _evas_table_evas_object_smart_del(Eo *obj, Evas_Table_Data *priv)
         priv->cache = NULL;
      }
 
-   eo_do_super(obj, MY_CLASS, evas_obj_smart_del());
+   efl_canvas_group_del(eo_super(obj, MY_CLASS));
 }
 
 EOLIAN static void
-_evas_table_evas_object_smart_resize(Eo *obj, Evas_Table_Data *_pd EINA_UNUSED, Evas_Coord w, Evas_Coord h)
+_evas_table_efl_canvas_group_group_resize(Eo *obj, Evas_Table_Data *_pd EINA_UNUSED, Evas_Coord w, Evas_Coord h)
 {
    Evas_Coord ow, oh;
    evas_object_geometry_get(obj, NULL, NULL, &ow, &oh);
@@ -936,7 +939,7 @@ _evas_table_evas_object_smart_resize(Eo *obj, Evas_Table_Data *_pd EINA_UNUSED, 
 }
 
 EOLIAN static void
-_evas_table_evas_object_smart_calculate(Eo *o, Evas_Table_Data *priv)
+_evas_table_efl_canvas_group_group_calculate(Eo *o, Evas_Table_Data *priv)
 {
    Evas *e;
 
@@ -971,8 +974,8 @@ evas_object_table_add(Evas *evas)
 EOLIAN static Eo *
 _evas_table_eo_base_constructor(Eo *obj, Evas_Table_Data *class_data EINA_UNUSED)
 {
-   obj = eo_do_super_ret(obj, MY_CLASS, obj, eo_constructor());
-   eo_do(obj, evas_obj_type_set(MY_CLASS_NAME_LEGACY));
+   obj = eo_constructor(eo_super(obj, MY_CLASS));
+   efl_canvas_object_type_set(obj, MY_CLASS_NAME_LEGACY);
 
    return obj;
 }
@@ -1373,6 +1376,12 @@ _evas_table_children_get(Eo *o EINA_UNUSED, Evas_Table_Data *priv)
    return new_list;
 }
 
+EOLIAN static int
+_evas_table_count(Eo *o EINA_UNUSED, Evas_Table_Data *priv)
+{
+   return eina_list_count(priv->children);
+}
+
 EOLIAN static Evas_Object *
 _evas_table_child_get(Eo *o EINA_UNUSED, Evas_Table_Data *priv, unsigned short col, unsigned short row)
 {
@@ -1397,7 +1406,7 @@ _evas_table_mirrored_set(Eo *o, Evas_Table_Data *priv, Eina_Bool mirrored)
    if (priv->is_mirrored != mirrored)
      {
         priv->is_mirrored = mirrored;
-        eo_do(o, evas_obj_smart_calculate());
+        efl_canvas_group_calculate(o);
      }
 }
 

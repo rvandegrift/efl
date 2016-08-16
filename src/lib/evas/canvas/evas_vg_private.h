@@ -3,12 +3,26 @@
 
 #include <Ector.h>
 
-typedef struct _Efl_VG_Base_Data Efl_VG_Base_Data;
+typedef struct _Efl_VG_Data Efl_VG_Data;
 typedef struct _Efl_VG_Container_Data Efl_VG_Container_Data;
 typedef struct _Efl_VG_Gradient_Data Efl_VG_Gradient_Data;
 typedef struct _Efl_VG_Interpolation Efl_VG_Interpolation;
 
-struct _Efl_VG_Base_Data
+typedef struct _Evas_VG_Data      Evas_VG_Data;
+
+struct _Evas_VG_Data
+{
+   void   *engine_data;
+   Efl_VG *root;
+
+   Eina_Rectangle fill;
+
+   unsigned int width, height;
+
+   Eina_Array cleanup;
+};
+
+struct _Efl_VG_Data
 {
    const char *name;
 
@@ -18,11 +32,12 @@ struct _Efl_VG_Base_Data
    Efl_VG *mask;
    Ector_Renderer *renderer;
 
-   void (*render_pre)(Eo *obj, Eina_Matrix3 *parent, Ector_Surface *s, void *data, Efl_VG_Base_Data *nd);
+   void (*render_pre)(Eo *obj, Eina_Matrix3 *parent, Ector_Surface *s, void *data, Efl_VG_Data *nd);
    void *data;
 
    double x, y;
    int r, g, b, a;
+   Efl_Gfx_Change_Flag flags;
 
    Eina_Bool visibility : 1;
    Eina_Bool changed : 1;
@@ -53,14 +68,14 @@ struct _Efl_VG_Interpolation
    Eina_Point_3D skew;
 };
 
-static inline Efl_VG_Base_Data *
+static inline Efl_VG_Data *
 _evas_vg_render_pre(Efl_VG *child, Ector_Surface *s, Eina_Matrix3 *m)
 {
-   Efl_VG_Base_Data *child_nd = NULL;
+   Efl_VG_Data *child_nd = NULL;
 
    // FIXME: Prevent infinite loop
    if (child)
-     child_nd = eo_data_scope_get(child, EFL_VG_BASE_CLASS);
+     child_nd = eo_data_scope_get(child, EFL_VG_CLASS);
    if (child_nd)
      child_nd->render_pre(child, m, s, child_nd->data, child_nd);
 
@@ -68,9 +83,9 @@ _evas_vg_render_pre(Efl_VG *child, Ector_Surface *s, Eina_Matrix3 *m)
 }
 
 static inline void
-_efl_vg_base_changed(Eo *obj)
+_efl_vg_changed(Eo *obj)
 {
-   eo_do(obj, eo_event_callback_call(EFL_GFX_CHANGED, NULL));
+   eo_event_callback_call(obj, EFL_GFX_CHANGED, NULL);
 }
 
 static inline void *

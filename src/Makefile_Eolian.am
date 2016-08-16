@@ -111,28 +111,35 @@ tests/eolian/eolian_suite
 tests_eolian_eolian_suite_SOURCES = \
 tests/eolian/eolian_parsing.c \
 tests/eolian/eolian_generation.c \
+tests/eolian/eolian_generated_promise.c \
 tests/eolian/eolian_suite.c \
 tests/eolian/eolian_suite.h
 
-tests_eolian_eolian_suite_CPPFLAGS = -I$(top_builddir)/src/lib/efl \
+tests/eolian/tests_eolian_eolian_suite-eolian_generated_promise.$(OBJEXT): tests/eolian/generated_promise.eo.h tests/eolian/generated_promise.eo.c
+
+CLEANFILES += tests/eolian/generated_promise.eo.h tests/eolian/generated_promise.eo.c
+
+tests_eolian_eolian_suite_CPPFLAGS = -I$(top_builddir)/src/lib/efl -I$(top_builddir)/src/tests/eolian \
 -DTESTS_BUILD_DIR=\"$(top_builddir)/src/tests/eolian\" \
 -DPACKAGE_DATA_DIR=\"$(top_srcdir)/src/tests/eolian\" \
 -DPACKAGE_BUILD_DIR=\"$(abs_top_builddir)\" \
 @CHECK_CFLAGS@ \
-@EOLIAN_CFLAGS@
+@EOLIAN_CFLAGS@ @EO_CFLAGS@
 TESTS += tests/eolian/eolian_suite
 
-tests_eolian_eolian_suite_LDADD = @CHECK_LIBS@ @USE_EOLIAN_LIBS@
-tests_eolian_eolian_suite_DEPENDENCIES = @USE_EOLIAN_INTERNAL_LIBS@
+tests_eolian_eolian_suite_LDADD = @CHECK_LIBS@ @USE_EOLIAN_LIBS@ @USE_EO_LIBS@
+tests_eolian_eolian_suite_DEPENDENCIES = @USE_EOLIAN_INTERNAL_LIBS@ @USE_EO_INTERNAL_LIBS@
 tests_eolian_eolian_suite.$(OBJEXT): $(EOLIAN_TESTS_EOS_GENERATED)
 
 endif
 
-EXTRA_DIST += \
+EXTRA_DIST2 += \
 tests/eolian/data/object_impl_ref.c \
 tests/eolian/data/object_impl_add_ref.c \
 tests/eolian/data/typedef_ref.c \
+tests/eolian/data/typedef_ref_stub.c \
 tests/eolian/data/struct_ref.c \
+tests/eolian/data/struct_ref_stub.c \
 tests/eolian/data/class_simple_ref.c \
 tests/eolian/data/override_ref.c \
 tests/eolian/data/class_simple_ref_eo.h \
@@ -140,4 +147,5 @@ tests/eolian/data/class_simple_ref_legacy.h \
 tests/eolian/data/import_types_ref.h \
 tests/eolian/data/docs_ref.h \
 tests/eolian/data/docs_ref_legacy.h \
+tests/eolian/generated_promise.eo \
 $(EOLIAN_TESTS_EOS)

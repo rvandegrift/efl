@@ -12,7 +12,7 @@ typedef struct {
 } cairo_matrix_t;
 
 typedef struct _Ector_Cairo_Surface_Data Ector_Cairo_Surface_Data;
-typedef struct _Ector_Renderer_Cairo_Base_Data Ector_Renderer_Cairo_Base_Data;
+typedef struct _Ector_Renderer_Cairo_Data Ector_Renderer_Cairo_Data;
 
 struct _Ector_Cairo_Surface_Data
 {
@@ -22,10 +22,10 @@ struct _Ector_Cairo_Surface_Data
    } current;
 };
 
-struct _Ector_Renderer_Cairo_Base_Data
+struct _Ector_Renderer_Cairo_Data
 {
    Ector_Cairo_Surface_Data *parent;
-   Ector_Renderer_Generic_Base_Data *generic;
+   Ector_Renderer_Data *generic;
 
    cairo_matrix_t *m;
 };
@@ -60,12 +60,12 @@ _ector_cairo_extent_get(Efl_Gfx_Gradient_Spread s)
   if (!Sym) return Error;
 
 static inline void *
-_ector_cairo_symbol_get(Ector_Renderer_Generic_Base_Data *base,
+_ector_cairo_symbol_get(Ector_Renderer_Data *base,
                         const char *name)
 {
    void *sym;
 
-   eo_do(base->surface, sym = ector_cairo_surface_symbol_get(name));
+   sym = ector_cairo_surface_symbol_get(base->surface, name);
    return sym;
 }
 
@@ -74,7 +74,7 @@ extern void (*cairo_pattern_add_color_stop_rgba)(cairo_pattern_t *pattern, doubl
 
 static inline void
 _ector_renderer_cairo_gradient_prepare(cairo_pattern_t *pat,
-                                       Ector_Renderer_Generic_Gradient_Data *src,
+                                       Ector_Renderer_Gradient_Data *src,
                                        unsigned int mul_col)
 {
    unsigned int i;

@@ -25,14 +25,14 @@ enum Tokens
 #define KEYWORDS KW(class), KW(const), KW(enum), KW(return), KW(struct), \
     \
     KW(abstract), KW(constructor), KW(constructors), KW(data), \
-    KW(destructor), KW(eo), KW(eo_prefix), KW(events), KW(free), \
+    KW(destructor), KW(eo), KW(eo_prefix), KW(event_prefix), KW(events), KW(free), \
     KW(get), KW(implements), KW(import), KW(interface), KW(keys), KW(legacy), \
-    KW(legacy_prefix), KW(methods), KW(mixin), KW(own), KW(params), \
+    KW(legacy_prefix), KW(methods), KW(mixin), KW(own), KW(params), KW(ref), \
     KW(set), KW(type), KW(values), KW(var), KWAT(auto), KWAT(beta), \
     KWAT(c_only), KWAT(class), KWAT(const), KWAT(empty), KWAT(extern), \
-    KWAT(free), KWAT(in), KWAT(inout), KWAT(nonull), KWAT(nullable), \
+    KWAT(free), KWAT(hot), KWAT(in), KWAT(inout), KWAT(nonull), KWAT(nullable), \
     KWAT(optional), KWAT(out), KWAT(private), KWAT(property), \
-    KWAT(protected), KWAT(virtual), KWAT(warn_unused), \
+    KWAT(protected), KWAT(restart), KWAT(virtual_pure), KWAT(warn_unused), \
     \
     KW(byte), KW(ubyte), KW(char), KW(short), KW(ushort), KW(int), KW(uint), \
     KW(long), KW(ulong), KW(llong), KW(ullong), \
@@ -50,9 +50,15 @@ enum Tokens
     \
     KW(void), \
     \
-    KW(accessor), KW(array), KW(iterator), KW(hash), KW(list), KW(generic_value), \
+    KW(static_array), KW(terminated_array), \
     \
-    KW(__builtin_event_cb), KW(__undefined_type), \
+    KW(accessor), KW(array), KW(iterator), KW(hash), KW(list), \
+    KW(promise), \
+    KW(generic_value), KW(string), KW(stringshare), \
+    \
+    KW(void_ptr), \
+    KW(__builtin_event_cb), \
+    KW(__undefined_type), \
     \
     KW(true), KW(false), KW(null)
 
@@ -118,6 +124,7 @@ typedef struct _Eo_Lexer_Temps
    Eolian_Variable *var;
    Eina_List *str_bufs;
    Eina_List *type_defs;
+   Eina_List *type_decls;
    Eina_List *expr_defs;
    Eina_List *strs;
 } Eo_Lexer_Temps;
@@ -131,8 +138,8 @@ typedef struct _Eo_Lexer
     * it points to the beginning of it after the lexing is done, icolumn is
     * token unaware, always pointing to current column */
    int          column, icolumn;
-   /* the current line number */
-   int          line_number;
+   /* the current line number, token aware and unaware */
+   int          line_number, iline_number;
    /* t: "normal" - token to lex into, "lookahead" - a lookahead token, used
     * to look one token past "t", when we need to check for a token after the
     * current one and use it in a conditional without consuming the current

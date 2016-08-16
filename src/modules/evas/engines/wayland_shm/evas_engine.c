@@ -5,6 +5,11 @@
 #endif
 
 #include "evas_engine.h"
+#include "../software_generic/evas_native_common.h"
+
+#ifdef HAVE_DLSYM
+# include <dlfcn.h>
+#endif
 
 /* logging domain variable */
 int _evas_engine_way_shm_log_dom = -1;
@@ -12,18 +17,19 @@ int _evas_engine_way_shm_log_dom = -1;
 /* evas function tables - filled in later (func and parent func) */
 static Evas_Func func, pfunc;
 
+Evas_Native_Tbm_Surface_Image_Set_Call  glsym__evas_native_tbm_surface_image_set = NULL;
+Evas_Native_Tbm_Surface_Stride_Get_Call  glsym__evas_native_tbm_surface_stride_get = NULL;
+
 /* engine structure data */
 typedef struct _Render_Engine Render_Engine;
 struct _Render_Engine
 {
    Render_Engine_Software_Generic generic;
-
-   void (*outbuf_reconfigure)(Outbuf *ob, int x, int y, int w, int h, int rot, Outbuf_Depth depth, Eina_Bool alpha, Eina_Bool resize);
 };
 
 /* LOCAL FUNCTIONS */
-Render_Engine *
-_render_engine_swapbuf_setup(int w, int h, unsigned int rotation, unsigned int depth, Eina_Bool alpha, struct wl_shm *shm, struct wl_surface *surface, struct wl_display *disp, int compositor_version)
+static Render_Engine *
+_render_engine_swapbuf_setup(int w, int h, Evas_Engine_Info_Wayland_Shm *einfo)
 {
    Render_Engine *re;
    Outbuf *ob;
@@ -35,8 +41,7 @@ _render_engine_swapbuf_setup(int w, int h, unsigned int rotation, unsigned int d
    /* try to allocate space for new render engine */
    if (!(re = calloc(1, sizeof(Render_Engine)))) return NULL;
 
-   ob = _evas_outbuf_setup(w, h, rotation, depth, alpha, shm, surface, disp,
-                           compositor_version);
+   ob = _evas_outbuf_setup(w, h, einfo);
    if (!ob) goto err;
 
    if (!evas_render_engine_software_generic_init(&re->generic, ob, 
@@ -52,8 +57,6 @@ _render_engine_swapbuf_setup(int w, int h, unsigned int rotation, unsigned int d
                                                  _evas_outbuf_free,
                                                  w, h))
      goto err;
-
-   re->outbuf_reconfigure = _evas_outbuf_reconfigure;
 
    s = getenv("EVAS_WAYLAND_PARTIAL_MERGE");
    if (s)
@@ -77,6 +80,23 @@ err:
    return NULL;
 }
 
+static void
+_symbols(void)
+{
+   static int done = 0;
+
+   if (done) return;
+
+#define LINK2GENERIC(sym) \
+   glsym_##sym = dlsym(RTLD_DEFAULT, #sym);
+
+   // Get function pointer to native_common that is now provided through the link of SW_Generic.
+   LINK2GENERIC(_evas_native_tbm_surface_image_set);
+   LINK2GENERIC(_evas_native_tbm_surface_stride_get);
+
+   done = 1;
+}
+
 /* ENGINE API FUNCTIONS WE PROVIDE */
 static void *
 eng_info(Evas *eo_evas EINA_UNUSED)
@@ -92,6 +112,7 @@ eng_info(Evas *eo_evas EINA_UNUSED)
    /* fill in engine info */
    einfo->magic.magic = rand();
    einfo->render_mode = EVAS_RENDER_MODE_BLOCKING;
+   einfo->evas = eo_evas;
 
    /* return allocated engine info */
    return einfo;
@@ -132,37 +153,21 @@ eng_setup(Evas *eo_evas, void *info)
         /* if we have no engine data, assume we have not initialized yet */
         evas_common_init();
 
-        re = _render_engine_swapbuf_setup(epd->output.w, epd->output.h,
-                                          einfo->info.rotation, 
-                                          einfo->info.depth, 
-                                          einfo->info.destination_alpha,
-                                          einfo->info.wl_shm, 
-                                          einfo->info.wl_surface,
-                                          einfo->info.wl_disp,
-                                          einfo->info.compositor_version);
+        re = _render_engine_swapbuf_setup(epd->output.w, epd->output.h, einfo);
 
         if (re) 
           re->generic.ob->info = einfo;
         else
           goto err;
      }
-   else
+   else if (einfo->info.wl_surface)
      {
         Outbuf *ob;
 
-        ob = _evas_outbuf_setup(epd->output.w, epd->output.h, 
-                                einfo->info.rotation, einfo->info.depth, 
-                                einfo->info.destination_alpha, 
-                                einfo->info.wl_shm, einfo->info.wl_surface,
-                                einfo->info.wl_disp,
-                                einfo->info.compositor_version);
-        if (ob)
-          {
-             ob->info = einfo;
-             evas_render_engine_software_generic_update(&re->generic, ob, 
-                                                        epd->output.w, 
-                                                        epd->output.h);
-          }
+        ob = _evas_outbuf_setup(epd->output.w, epd->output.h, einfo);
+        if (ob)  evas_render_engine_software_generic_update(&re->generic, ob,
+                                                            epd->output.w,
+                                                            epd->output.h);
      }
 
    epd->engine.data.output = re;
@@ -204,7 +209,6 @@ eng_output_resize(void *data, int w, int h)
 {
    Render_Engine *re;
    Evas_Engine_Info_Wayland_Shm *einfo;
-   int dx = 0, dy = 0;
    Eina_Bool resize = EINA_FALSE;
 
    LOGFN(__FILE__, __LINE__, __FUNCTION__);
@@ -212,27 +216,11 @@ eng_output_resize(void *data, int w, int h)
    if (!(re = (Render_Engine *)data)) return;
    if (!(einfo = re->generic.ob->info)) return;
 
-   if (einfo->info.edges & 4) // resize from left
-     {
-        if ((einfo->info.rotation == 90) || (einfo->info.rotation == 270))
-          dx = re->generic.ob->h - h;
-        else
-          dx = re->generic.ob->w - w;
-     }
-
-   if (einfo->info.edges & 1) // resize from top
-     {
-        if ((einfo->info.rotation == 90) || (einfo->info.rotation == 270))
-          dy = re->generic.ob->w - w;
-        else
-          dy = re->generic.ob->h - h;
-     }
-
    if (einfo->info.edges) resize = EINA_TRUE;
 
-   re->outbuf_reconfigure(re->generic.ob, dx, dy, w, h, 
-                          einfo->info.rotation, einfo->info.depth, 
-                          einfo->info.destination_alpha, resize);
+   _evas_outbuf_reconfigure(re->generic.ob, w, h,
+                            einfo->info.rotation, einfo->info.depth,
+                            einfo->info.destination_alpha, resize);
 
    evas_common_tilebuf_free(re->generic.tb);
    if ((re->generic.tb = evas_common_tilebuf_new(w, h)))
@@ -240,6 +228,140 @@ eng_output_resize(void *data, int w, int h)
 
    re->generic.w = w;
    re->generic.h = h;
+}
+
+static int
+eng_image_native_init(void *data EINA_UNUSED, Evas_Native_Surface_Type type)
+{
+   switch (type)
+     {
+      case EVAS_NATIVE_SURFACE_TBM:
+        return _evas_native_tbm_init();
+      case EVAS_NATIVE_SURFACE_EVASGL:
+        return 1;
+      default:
+        ERR("Native surface type %d not supported!", type);
+        return 0;
+     }
+}
+
+static void
+eng_image_native_shutdown(void *data EINA_UNUSED, Evas_Native_Surface_Type type)
+{
+   switch (type)
+     {
+      case EVAS_NATIVE_SURFACE_TBM:
+        _evas_native_tbm_shutdown();
+        return;
+      default:
+        ERR("Native surface type %d not supported!", type);
+        return;
+     }
+}
+
+static void
+_native_evasgl_free(void *image)
+{
+   RGBA_Image *im = image;
+   Native *n = im->native.data;
+
+   im->native.data        = NULL;
+   im->native.func.bind   = NULL;
+   im->native.func.unbind = NULL;
+   im->native.func.free   = NULL;
+   //im->image.data         = NULL;
+   free(n);
+}
+
+static void *
+eng_image_native_set(void *data EINA_UNUSED, void *image, void *native)
+{
+   Evas_Native_Surface *ns = native;
+   Image_Entry *ie = image;
+   RGBA_Image *im = image, *im2;
+   int stride;
+
+   if (!im || !ns) return im;
+
+   if (ns->type == EVAS_NATIVE_SURFACE_TBM)
+     {
+        if (im->native.data)
+          {
+             //image have native surface already
+             Evas_Native_Surface *ens = im->native.data;
+
+             if ((ens->type == ns->type) &&
+                 (ens->data.tbm.buffer == ns->data.tbm.buffer))
+                return im;
+          }
+      }
+
+   if (ns->type == EVAS_NATIVE_SURFACE_EVASGL)
+     {
+        im2 = (RGBA_Image *) evas_cache_image_data(evas_common_image_cache_get(),
+                                                   ie->w, ie->h, ns->data.evasgl.surface, 1,
+                                                   EVAS_COLORSPACE_ARGB8888);
+     }
+   else if (ns->type == EVAS_NATIVE_SURFACE_TBM)
+     {
+        stride = glsym__evas_native_tbm_surface_stride_get(NULL, ns);
+        im2 = (RGBA_Image *)evas_cache_image_copied_data(evas_common_image_cache_get(),
+                                                         stride, ie->h, NULL, ie->flags.alpha,
+                                                         EVAS_COLORSPACE_ARGB8888);
+     }
+   else
+     im2 = (RGBA_Image *)evas_cache_image_data(evas_common_image_cache_get(),
+                                               ie->w, ie->h,
+                                               NULL, 1,
+                                               EVAS_COLORSPACE_ARGB8888);
+
+   if (im->native.data)
+      {
+         if (im->native.func.free)
+            im->native.func.free(im);
+      }
+
+#ifdef EVAS_CSERVE2
+   if (evas_cserve2_use_get() && evas_cache2_image_cached(ie))
+     evas_cache2_image_close(ie);
+   else
+#endif
+   evas_cache_image_drop(ie);
+   im = im2;
+
+   if (ns->type == EVAS_NATIVE_SURFACE_TBM)
+     {
+        return glsym__evas_native_tbm_surface_image_set(NULL, im, ns);
+     }
+   else if (ns->type == EVAS_NATIVE_SURFACE_EVASGL)
+     {
+        /* Native contains Evas_Native_Surface. What a mess. */
+        Native *n = calloc(1, sizeof(Native));
+        if (n)
+          {
+             n->ns_data.evasgl.surface = ns->data.evasgl.surface;
+             n->ns.type = EVAS_NATIVE_SURFACE_EVASGL;
+             n->ns.version = EVAS_NATIVE_SURFACE_VERSION;
+             n->ns.data.evasgl.surface = ns->data.evasgl.surface;
+             im->native.data = n;
+             im->native.func.free = _native_evasgl_free;
+             im->native.func.bind = NULL;
+             im->native.func.unbind = NULL;
+          }
+     }
+
+   return im;
+}
+
+static void *
+eng_image_native_get(void *data EINA_UNUSED, void *image)
+{
+   RGBA_Image *im = image;
+   Native *n;
+   if (!im) return NULL;
+   n = im->native.data;
+   if (!n) return NULL;
+   return &(n->ns);
 }
 
 /* EVAS MODULE FUNCTIONS */
@@ -273,7 +395,12 @@ module_open(Evas_Module *em)
    ORD(setup);
    ORD(output_free);
    ORD(output_resize);
+   ORD(image_native_set);
+   ORD(image_native_get);
+   ORD(image_native_init);
+   ORD(image_native_shutdown);
 
+   _symbols();
    /* advertise our own engine functions */
    em->functions = (void *)(&func);
 

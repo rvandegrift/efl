@@ -8,9 +8,12 @@
 static int _ecore_wl2_init_count = 0;
 
 /* external variables */
+Eina_Bool no_session_recovery;
 int _ecore_wl2_log_dom = -1;
 
 /* public API variables */
+EAPI int ECORE_WL2_EVENT_CONNECT = 0;
+EAPI int ECORE_WL2_EVENT_DISCONNECT = 0;
 EAPI int ECORE_WL2_EVENT_GLOBAL_ADDED = 0;
 EAPI int ECORE_WL2_EVENT_GLOBAL_REMOVED = 0;
 EAPI int ECORE_WL2_EVENT_FOCUS_IN = 0;
@@ -20,12 +23,18 @@ EAPI int ECORE_WL2_EVENT_DND_LEAVE = 0;
 EAPI int ECORE_WL2_EVENT_DND_MOTION = 0;
 EAPI int ECORE_WL2_EVENT_DND_DROP = 0;
 EAPI int ECORE_WL2_EVENT_DND_END = 0;
-EAPI int ECORE_WL2_EVENT_DATA_SOURCE_CANCELLED = 0;
+EAPI int ECORE_WL2_EVENT_DATA_SOURCE_END = 0;
+EAPI int ECORE_WL2_EVENT_DATA_SOURCE_DROP = 0;
+EAPI int ECORE_WL2_EVENT_DATA_SOURCE_ACTION = 0;
 EAPI int ECORE_WL2_EVENT_DATA_SOURCE_TARGET = 0;
 EAPI int ECORE_WL2_EVENT_DATA_SOURCE_SEND = 0;
-EAPI int ECORE_WL2_EVENT_SELECTION_DATA_READY = 0;
+EAPI int ECORE_WL2_EVENT_CNP_DATA_READY = 0;
+EAPI int ECORE_WL2_EVENT_DND_DATA_READY = 0;
 EAPI int ECORE_WL2_EVENT_WINDOW_CONFIGURE = 0;
 EAPI int ECORE_WL2_EVENT_SYNC_DONE = 0;
+
+EAPI int _ecore_wl2_event_window_www = -1;
+EAPI int _ecore_wl2_event_window_www_drag = -1;
 
 /* public API functions */
 EAPI int
@@ -62,6 +71,8 @@ ecore_wl2_init(void)
    /* handle creating new Ecore_Wl2 event types */
    if (!ECORE_WL2_EVENT_GLOBAL_ADDED)
      {
+        ECORE_WL2_EVENT_CONNECT = ecore_event_type_new();
+        ECORE_WL2_EVENT_DISCONNECT = ecore_event_type_new();
         ECORE_WL2_EVENT_GLOBAL_ADDED = ecore_event_type_new();
         ECORE_WL2_EVENT_GLOBAL_REMOVED = ecore_event_type_new();
         ECORE_WL2_EVENT_FOCUS_IN = ecore_event_type_new();
@@ -71,13 +82,19 @@ ecore_wl2_init(void)
         ECORE_WL2_EVENT_DND_MOTION = ecore_event_type_new();
         ECORE_WL2_EVENT_DND_DROP = ecore_event_type_new();
         ECORE_WL2_EVENT_DND_END = ecore_event_type_new();
-        ECORE_WL2_EVENT_DATA_SOURCE_CANCELLED = ecore_event_type_new();
+        ECORE_WL2_EVENT_DATA_SOURCE_END = ecore_event_type_new();
+        ECORE_WL2_EVENT_DATA_SOURCE_DROP = ecore_event_type_new();
+        ECORE_WL2_EVENT_DATA_SOURCE_ACTION = ecore_event_type_new();
         ECORE_WL2_EVENT_DATA_SOURCE_TARGET = ecore_event_type_new();
         ECORE_WL2_EVENT_DATA_SOURCE_SEND = ecore_event_type_new();
-        ECORE_WL2_EVENT_SELECTION_DATA_READY = ecore_event_type_new();
+        ECORE_WL2_EVENT_CNP_DATA_READY = ecore_event_type_new();
+        ECORE_WL2_EVENT_DND_DATA_READY = ecore_event_type_new();
         ECORE_WL2_EVENT_WINDOW_CONFIGURE = ecore_event_type_new();
         ECORE_WL2_EVENT_SYNC_DONE = ecore_event_type_new();
+        _ecore_wl2_event_window_www = ecore_event_type_new();
+        _ecore_wl2_event_window_www_drag = ecore_event_type_new();
      }
+   no_session_recovery = !!getenv("EFL_NO_WAYLAND_SESSION_RECOVERY");
 
    return _ecore_wl2_init_count;
 
@@ -105,6 +122,8 @@ ecore_wl2_shutdown(void)
    if (--_ecore_wl2_init_count != 0) return _ecore_wl2_init_count;
 
    /* reset events */
+   ECORE_WL2_EVENT_CONNECT = 0;
+   ECORE_WL2_EVENT_DISCONNECT = 0;
    ECORE_WL2_EVENT_GLOBAL_ADDED = 0;
    ECORE_WL2_EVENT_GLOBAL_REMOVED = 0;
    ECORE_WL2_EVENT_FOCUS_IN = 0;
@@ -114,10 +133,13 @@ ecore_wl2_shutdown(void)
    ECORE_WL2_EVENT_DND_MOTION = 0;
    ECORE_WL2_EVENT_DND_DROP = 0;
    ECORE_WL2_EVENT_DND_END = 0;
-   ECORE_WL2_EVENT_DATA_SOURCE_CANCELLED = 0;
+   ECORE_WL2_EVENT_DATA_SOURCE_END = 0;
+   ECORE_WL2_EVENT_DATA_SOURCE_DROP = 0;
+   ECORE_WL2_EVENT_DATA_SOURCE_ACTION = 0;
    ECORE_WL2_EVENT_DATA_SOURCE_TARGET = 0;
    ECORE_WL2_EVENT_DATA_SOURCE_SEND = 0;
-   ECORE_WL2_EVENT_SELECTION_DATA_READY = 0;
+   ECORE_WL2_EVENT_DND_DATA_READY = 0;
+   ECORE_WL2_EVENT_CNP_DATA_READY = 0;
    ECORE_WL2_EVENT_WINDOW_CONFIGURE = 0;
    ECORE_WL2_EVENT_SYNC_DONE = 0;
 

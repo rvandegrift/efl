@@ -1,0 +1,75 @@
+class Efl.Ui.Video (Elm.Layout, Efl.File,
+                 Efl.Player, Elm.Interface.Atspi_Widget_Action)
+{
+   legacy_prefix: elm_video;
+   methods {
+      @property remember_position {
+         set {
+            [[Set whether the object can remember the last played position.
+
+              Note: This API only serves as indication. System support is
+              required.
+            ]]
+         }
+         get {
+            [[Set whether the object can remember the last played position.
+
+              Note: This API only serves as indication. System support is
+              required.
+            ]]
+         }
+         values {
+            remember: bool; [[The value.]]
+         }
+      }
+      @property is_playing {
+         get {
+            [[Is the video actually playing.
+
+              You should consider watching event on the object instead of
+              polling the object state.
+            ]]
+            return: bool;
+         }
+      }
+      @property emotion {
+         get {
+            [[Get the underlying Emotion object.]]
+            return: Efl.Canvas.Object; [[the underlying Emotion object.]]
+         }
+      }
+      @property title {
+         get {
+            [[Get the title (for instance DVD title) from this emotion object.
+
+              This function is only useful when playing a DVD.
+
+              Note: Don't change or free the string returned by this function.
+            ]]
+            return: string; [[A string containing the title.]]
+         }
+      }
+      play {
+         [[Start playing a video.]]
+      }
+      pause {
+         [[Pause a video.]]
+      }
+      stop {
+         [[Stop a video.]]
+      }
+   }
+   implements {
+      class.constructor;
+      Eo.Base.constructor;
+      Efl.File.file.set;
+      Efl.File.file.get;
+      Efl.Canvas.Group.group_add;
+      Efl.Canvas.Group.group_del;
+      Elm.Widget.focus_next_manager_is;
+      Elm.Widget.focus_direction_manager_is;
+      Elm.Widget.event;
+      Elm.Layout.sizing_eval;
+      Elm.Interface.Atspi_Widget_Action.elm_actions.get;
+   }
+}

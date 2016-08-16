@@ -1268,7 +1268,8 @@ typedef enum _Edje_Part_Type
    EDJE_PART_TYPE_LIGHT     = 14,
    EDJE_PART_TYPE_CAMERA    = 15,
    EDJE_PART_TYPE_SNAPSHOT  = 16, /**< Snapshot @since 1.16 */
-   EDJE_PART_TYPE_LAST      = 17  /**< Last type value */
+   EDJE_PART_TYPE_VECTOR    = 17, /**< Vector @since 1.18 */
+   EDJE_PART_TYPE_LAST      = 18  /**< Last type value */
 } Edje_Part_Type;
 /**
  * @}
@@ -1798,6 +1799,17 @@ EAPI void              edje_mmap_collection_list_free(Eina_List *lst);
  * @return 1 if a match is found, 0 otherwise
  */
 EAPI Eina_Bool         edje_mmap_group_exists(Eina_File *f, const char *glob);
+
+/**
+ * Determine whether a group have 3D Scene.
+ * @param f The mapped file
+ * @param glob The group name
+ *
+ * @return 1 if a Scene is found is found, 0 otherwise
+ *
+ * @since 1.18
+ */
+EAPI Eina_Bool         edje_mmap_3d_has(Eina_File *f, const char *group);
 
 /**
  * @brief Iterate over all the opened Edje file.
@@ -2337,6 +2349,23 @@ EAPI Eina_Bool edje_audio_channel_mute_get(Edje_Channel channel);
  * @since 1.10
  */
 EAPI const char *edje_object_part_object_name_get(const Evas_Object *obj);
+
+#ifdef EFL_BETA_API_SUPPORT
+
+/**
+ * Create scene and root node which contains all 3D parts of edje object
+ * @param obj An edje part object
+ * @param root node to collect all 3D parts
+ * @param scene
+ * @return scene and root node which contains all 3D parts of edje object
+ * @note If this function returns @c EINA_FALSE, @p the scene or the root
+ * node wasn't made
+ * @since 1.18
+ */
+EAPI Eina_Bool edje_3d_object_add(Evas_Object *obj, Eo **root_node, Eo *scene);
+
+#endif
+
 /**
  * @}
  */

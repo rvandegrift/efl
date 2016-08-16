@@ -159,8 +159,8 @@ eng_output_resize(void *data, int w, int h)
    re->win->width = w;
    re->win->height = h;
    
-   eng_window_resize(re->win, w, h);
    evas_gl_common_context_resize(re->win->gl_context, w, h, 0);
+   eng_window_resize(re->win, w, h);
 }
 
 static void
@@ -444,28 +444,6 @@ eng_image_alpha_set(void *data, void *image, int has_alpha)
    //   return image;
 }
 
-static void *
-eng_image_border_set(void *data EINA_UNUSED, void *image, int l EINA_UNUSED, int r EINA_UNUSED, int t EINA_UNUSED, int b EINA_UNUSED)
-{
-   return image;
-}
-
-static void
-eng_image_border_get(void *data EINA_UNUSED, void *image EINA_UNUSED, int *l EINA_UNUSED, int *r EINA_UNUSED, int *t EINA_UNUSED, int *b EINA_UNUSED)
-{
-}
-
-static char *
-eng_image_comment_get(void *data EINA_UNUSED, void *image, char *key EINA_UNUSED)
-{
-   Evas_GL_Image *im;
-
-   if (!image) return NULL;
-   im = image;
-   if (!im->im) return NULL;
-   return im->im->info.comment;
-}
-
 static Evas_Colorspace
 eng_image_file_colorspace_get(void *data EINA_UNUSED, void *image)
 {
@@ -477,18 +455,14 @@ eng_image_file_colorspace_get(void *data EINA_UNUSED, void *image)
    return im->im->cache_entry.space;
 }
 
-static Eina_Bool
-eng_image_data_has(void *data EINA_UNUSED, void *image, Evas_Colorspace *cspace)
+static void *
+eng_image_data_direct(void *data EINA_UNUSED, void *image, Evas_Colorspace *cspace)
 {
    Evas_GL_Image *im = image;
 
-   if (!im || !im->im) return EINA_FALSE;
-   if (im->im->image.data)
-     {
-        if (cspace) *cspace = im->im->cache_entry.space;
-        return EINA_TRUE;
-     }
-   return EINA_FALSE;
+   if (!im || !im->im) return NULL;
+   if (cspace) *cspace = im->im->cache_entry.space;
+   return im->im->image.data;
 }
 
 static void
@@ -608,7 +582,7 @@ eng_image_free(void *data, void *image)
    re = (Render_Engine *)data;
    if (!image) return;
    eng_window_use(re->win);
-   evas_gl_common_image_free(image);
+   evas_gl_common_image_unref(image);
 }
 
 static void
@@ -1145,6 +1119,11 @@ evgl_glShaderBinary(GLsizei n, const GLuint* shaders, GLenum binaryformat, const
 
 #endif 
 
+static void
+eng_output_idle_flush(void *data EINA_UNUSED)
+{
+}
+
 static void *
 eng_gl_api_get(void *data, int version EINA_UNUSED)
 {
@@ -1363,7 +1342,7 @@ module_open(Evas_Module *em)
    ORD(context_cutout_add);
    ORD(context_cutout_clear);
    ORD(output_flush);
-   //   ORD(output_idle_flush);
+   ORD(output_idle_flush);
    //   ORD(output_dump);
    ORD(rectangle_draw);
    ORD(line_draw);
@@ -1381,15 +1360,12 @@ module_open(Evas_Module *em)
    ORD(image_dirty_region);
    ORD(image_data_get);
    ORD(image_data_put);
-   ORD(image_data_has);
+   ORD(image_data_direct);
    ORD(image_data_preload_request);
    ORD(image_data_preload_cancel);
    ORD(image_alpha_set);
    ORD(image_alpha_get);
-   ORD(image_border_set);
-   ORD(image_border_get);
    ORD(image_draw);
-   ORD(image_comment_get);
    ORD(image_colorspace_set);
    ORD(image_colorspace_get);
    ORD(image_file_colorspace_get);

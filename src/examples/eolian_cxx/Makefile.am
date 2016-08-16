@@ -25,12 +25,12 @@ AM_CXXFLAGS = \
 	-I$(top_builddir)/src/lib/emile \
 	-I$(top_srcdir)/src/lib/eo \
 	-I$(top_builddir)/src/lib/eo \
-	-I$(top_srcdir)/src/bindings/eo_cxx \
-	-I$(top_builddir)/src/bindings/eo_cxx \
-	-I$(top_srcdir)/src/bindings/eina_cxx \
-	-I$(top_builddir)/src/bindings/eina_cxx \
-	-I$(top_srcdir)/src/bindings/ecore_cxx \
-	-I$(top_builddir)/src/bindings/ecore_cxx \
+	-I$(top_srcdir)/src/bindings/cxx/eo_cxx \
+	-I$(top_builddir)/src/bindings/cxx/eo_cxx \
+	-I$(top_srcdir)/src/bindings/cxx/eina_cxx \
+	-I$(top_builddir)/src/bindings/cxx/eina_cxx \
+	-I$(top_srcdir)/src/bindings/cxx/ecore_cxx \
+	-I$(top_builddir)/src/bindings/cxx/ecore_cxx \
 	-I$(top_srcdir)/src/lib/evas/ \
 	-I$(top_builddir)/src/lib/evas/ \
 	-I$(top_srcdir)/src/lib/evas/common \
@@ -69,45 +69,39 @@ LDADD = \
 	$(top_builddir)/src/lib/ecore_evas/libecore_evas.la
 
 GENERATED = \
-	colourable.eo.c \
-	colourable.eo.h \
-	colourable.eo.hh \
-	colourable.eo.impl.hh \
-	colourablesquare.eo.c \
-	colourablesquare.eo.h \
-	colourablesquare.eo.hh \
-	colourablesquare.eo.impl.hh
+	ns_colourable.eo.c \
+	ns_colourable.eo.h \
+	ns_colourable.eo.hh \
+	ns_colourable.eo.impl.hh \
+	ns_colourablesquare.eo.c \
+	ns_colourablesquare.eo.h \
+	ns_colourablesquare.eo.hh \
+	ns_colourablesquare.eo.impl.hh
 
 BUILT_SOURCES = $(GENERATED)
 CLEANFILES += $(BUILT_SOURCES)
 
 ECXX_EXAMPLE_EOS = \
-	colourable.eo \
-	colourablesquare.eo
+	ns_colourable.eo \
+	ns_colourablesquare.eo
 
 IMPL = \
 	colourable.c \
 	colourable_cxx.cc \
 	colourablesquare.c \
-	colourablesquare_cxx.cc \
-	colourable_stub.c \
-	colourablesquare_stub.c
+	colourablesquare_cxx.cc
 
 SRCS = \
 	eolian_cxx_simple_01.cc \
-	eolian_cxx_inherit_01.cc \
 	eolian_cxx_callbacks_01.cc \
-	eolian_cxx_eo_events_01.cc \
-	eolian_cxx_complex_types_01.cc \
 	$(IMPL)
+#	eolian_cxx_inherit_01.cc
 
 EXTRA_PROGRAMS = \
 	eolian_cxx_simple_01 \
 	eolian_cxx_simple_01_cxx_impl \
-	eolian_cxx_inherit_01 \
-	eolian_cxx_callbacks_01 \
-	eolian_cxx_eo_events_01 \
-	eolian_cxx_complex_types_01
+	eolian_cxx_callbacks_01
+#	eolian_cxx_inherit_01
 
 DATA_FILES = Makefile.examples $(ECXX_EXAMPLE_EOS)
 EXTRA_DIST = $(DATA_FILES)
@@ -120,25 +114,21 @@ eolian_cxx_simple_01.$(OBJEXT): $(GENERATED)
 
 eolian_cxx_simple_01_cxx_impl_SOURCES = \
 	eolian_cxx_simple_01.cc \
-	colourable_stub.c \
-	colourable_stub.h \
-	colourablesquare_stub.c \
-	colourablesquare_stub.h \
+	colourable.c \
+	colourablesquare.c \
 	colourable_cxx.cc \
+	colourablesquare_stub.h \
+	colourable_stub.h \
 	colourablesquare_cxx.cc
 eolian_cxx_simple_01_cxx_impl.$(OBJEXT): $(GENERATED)
 
-eolian_cxx_inherit_01_SOURCES = \
-	eolian_cxx_inherit_01.cc \
-	colourable.c \
-	colourablesquare.c
-eolian_cxx_inherit_01.$(OBJEXT): $(GENERATED)
+# eolian_cxx_inherit_01_SOURCES = \
+# 	eolian_cxx_inherit_01.cc \
+# 	colourable.c \
+# 	colourablesquare.c
+# eolian_cxx_inherit_01.$(OBJEXT): $(GENERATED)
 
 eolian_cxx_callbacks_01_SOURCES = eolian_cxx_callbacks_01.cc
-
-eolian_cxx_eo_events_01_SOURCES = eolian_cxx_eo_events_01.cc
-
-eolian_cxx_complex_types_01_SOURCES = eolian_cxx_complex_types_01.cc
 
 %.eo.hh: %.eo
 	$(AM_V_EOLCXX)$(EOLIAN_CXX) $(EOLIAN_FLAGS) -I${abs_srcdir} -o $@ $<
@@ -158,12 +148,12 @@ clean-local:
 	rm -f $(EXTRA_PROGRAMS) $(GENERATED)
 
 install-examples:
-	$(MKDIR_P) $(datadir)/eolian_cxx/examples
-	cd $(abs_srcdir) && $(install_sh_DATA) -c $(SRCS) $(DATA_FILES) $(datadir)/eolian_cxx/examples
+	$(MKDIR_P) $(DESTDIR)$(datadir)/eolian_cxx/examples
+	cd $(abs_srcdir) && $(install_sh_DATA) -c $(SRCS) $(DATA_FILES) $(DESTDIR)$(datadir)/eolian_cxx/examples
 
 uninstall-local:
 	for f in $(SRCS) $(DATA_FILES); do \
-	  rm -f $(datadir)/eolian_cxx/examples/$$f ; \
+	  rm -f $(DESTDIR)$(datadir)/eolian_cxx/examples/$$f ; \
 	done
 
 if ALWAYS_BUILD_EXAMPLES

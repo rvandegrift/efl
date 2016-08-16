@@ -72,7 +72,7 @@ ecore_con_local_connect(Ecore_Con_Server *obj,
 #ifndef HAVE_LOCAL_SOCKETS
    return 0;
 #else
-   Ecore_Con_Server_Data *svr = eo_data_scope_get(obj, ECORE_CON_SERVER_CLASS);
+   Efl_Network_Server_Data *svr = eo_data_scope_get(obj, EFL_NETWORK_SERVER_CLASS);
    char buf[4096];
    struct sockaddr_un socket_unix;
    int curstate = 0;
@@ -213,7 +213,7 @@ ecore_con_local_listen(
   EINA_UNUSED)
 {
 #ifdef HAVE_LOCAL_SOCKETS
-   Ecore_Con_Server_Data *svr = eo_data_scope_get(obj, ECORE_CON_SERVER_CLASS);
+   Efl_Network_Server_Data *svr = eo_data_scope_get(obj, EFL_NETWORK_SERVER_CLASS);
    char buf[4096];
    struct sockaddr_un socket_unix;
    struct linger lin;
@@ -379,18 +379,18 @@ start:
 
    if (bind(svr->fd, (struct sockaddr *)&socket_unix, socket_unix_len) < 0)
      {
-        ERR("Local socket '%s' bind failed: %s", buf, strerror(errno));
+        DBG("Local socket '%s' bind failed: %s", buf, strerror(errno));
         if ((((svr->type & ECORE_CON_TYPE) == ECORE_CON_LOCAL_USER) ||
              ((svr->type & ECORE_CON_TYPE) == ECORE_CON_LOCAL_SYSTEM)) &&
             (connect(svr->fd, (struct sockaddr *)&socket_unix,
                      socket_unix_len) < 0))
           {
-             ERR("Local socket '%s' connect test failed: %s", buf, strerror(errno));
+             DBG("Local socket '%s' connect test failed: %s", buf, strerror(errno));
              if (unlink(buf) >= 0)
                goto start;
              else
                {
-                  ERR("Local socket '%s' removal failed: %s", buf, strerror(errno));
+                  DBG("Local socket '%s' removal failed: %s", buf, strerror(errno));
                   goto error_fd;
                }
           }

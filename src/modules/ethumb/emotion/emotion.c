@@ -80,9 +80,8 @@ _resize_movie(struct _emotion_plugin *_plugin)
    emotion_object_audio_mute_set(_plugin->video, 1);
 }
 
-static Eina_Bool
-_frame_decode_cb(void *data,
-      Eo *obj EINA_UNUSED, const Eo_Event_Description *desc EINA_UNUSED, void *event_info EINA_UNUSED)
+static void
+_frame_decode_cb(void *data, const Eo_Event *event EINA_UNUSED)
 {
    struct _emotion_plugin *_plugin = data;
 
@@ -91,21 +90,17 @@ _frame_decode_cb(void *data,
    else
      _frame_grab_single(data);
 
-   return EINA_TRUE;
+   return;
  }
 
-static Eina_Bool
-_frame_resized_cb(void *data,
-      Eo *obj EINA_UNUSED, const Eo_Event_Description *desc EINA_UNUSED, void *event_info EINA_UNUSED)
+static void
+_frame_resized_cb(void *data, const Eo_Event *event EINA_UNUSED)
 {
    _resize_movie(data);
-
-   return EINA_TRUE;
 }
 
-static Eina_Bool
-_video_stopped_cb(void *data,
-      Eo *obj EINA_UNUSED, const Eo_Event_Description *desc EINA_UNUSED, void *event_info EINA_UNUSED)
+static void
+_video_stopped_cb(void *data, const Eo_Event *event EINA_UNUSED)
 {
    struct _emotion_plugin *_plugin = data;
 
@@ -114,8 +109,6 @@ _video_stopped_cb(void *data,
    _plugin->ptotal = 0;
    _plugin->first = EINA_FALSE;
    _plugin->total_time = _plugin->tmp_time;
-
-   return EINA_TRUE;
 }
 
 static void
@@ -217,12 +210,9 @@ _finish_thumb_generation(struct _emotion_plugin *_plugin, int success)
 {
    int r = 0;
 
-   eo_do(_plugin->video, eo_event_callback_del(
-           EMOTION_OBJECT_EVENT_FRAME_RESIZE,  _frame_resized_cb, _plugin));
-   eo_do(_plugin->video, eo_event_callback_del(
-           EMOTION_OBJECT_EVENT_FRAME_DECODE, _frame_decode_cb, _plugin));
-   eo_do(_plugin->video, eo_event_callback_del(
-           EMOTION_OBJECT_EVENT_DECODE_STOP, _video_stopped_cb, _plugin));
+   eo_event_callback_del(_plugin->video, EMOTION_OBJECT_EVENT_FRAME_RESIZE, _frame_resized_cb, _plugin);
+   eo_event_callback_del(_plugin->video, EMOTION_OBJECT_EVENT_FRAME_DECODE, _frame_decode_cb, _plugin);
+   eo_event_callback_del(_plugin->video, EMOTION_OBJECT_EVENT_DECODE_STOP, _video_stopped_cb, _plugin);
 
    emotion_object_play_set(_plugin->video, 0);
 
@@ -266,8 +256,7 @@ _frame_grab_single(void *data)
 
    ethumb_image_save(e);
 
-   eo_do(_plugin->video, eo_event_callback_del(
-           EMOTION_OBJECT_EVENT_FRAME_RESIZE,  _frame_resized_cb, _plugin));
+   eo_event_callback_del(_plugin->video, EMOTION_OBJECT_EVENT_FRAME_RESIZE, _frame_resized_cb, _plugin);
 
    emotion_object_play_set(_plugin->video, 0);
 
@@ -410,12 +399,12 @@ _thumb_generate(Ethumb *e)
    _plugin->pcount = 1;
 
    _resize_movie(_plugin);
-   eo_do(o, eo_event_callback_add
-     (EMOTION_OBJECT_EVENT_FRAME_DECODE, _frame_decode_cb, _plugin));
-   eo_do(o, eo_event_callback_add
-     (EMOTION_OBJECT_EVENT_FRAME_RESIZE,_frame_resized_cb, _plugin));
-   eo_do(o, eo_event_callback_add
-     (EMOTION_OBJECT_EVENT_DECODE_STOP, _video_stopped_cb, _plugin));
+   eo_event_callback_add
+     (o, EMOTION_OBJECT_EVENT_FRAME_DECODE, _frame_decode_cb, _plugin);
+   eo_event_callback_add
+     (o, EMOTION_OBJECT_EVENT_FRAME_RESIZE, _frame_resized_cb, _plugin);
+   eo_event_callback_add
+     (o, EMOTION_OBJECT_EVENT_DECODE_STOP, _video_stopped_cb, _plugin);
 
    if (f == ETHUMB_THUMB_EET)
      {

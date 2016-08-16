@@ -57,9 +57,24 @@ include Makefile_Elua_Helper.am
 eluaappsdir = $(datadir)/elua/apps
 
 eluaapps_DATA = \
-	scripts/elua/apps/lualian.lua
+	scripts/elua/apps/lualian.lua \
+	scripts/elua/apps/gendoc.lua \
+	scripts/elua/apps/README-docgen.md
 
-EXTRA_DIST += $(eluaapps_DATA)
+EXTRA_DIST2 += $(eluaapps_DATA)
+
+eluadocgendir = $(datadir)/elua/apps/docgen
+
+eluadocgen_DATA = \
+	scripts/elua/apps/docgen/doctree.lua \
+	scripts/elua/apps/docgen/keyref.lua \
+	scripts/elua/apps/docgen/mappings.lua \
+	scripts/elua/apps/docgen/serializers.lua \
+	scripts/elua/apps/docgen/stats.lua \
+	scripts/elua/apps/docgen/util.lua \
+	scripts/elua/apps/docgen/writer.lua
+
+EXTRA_DIST2 += $(eluadocgen_DATA)
 
 eluamodulesdir = $(datadir)/elua/modules
 
@@ -70,7 +85,7 @@ eluamodules_DATA = \
 	bindings/luajit/eo.lua \
 	bindings/luajit/eolian.lua
 
-EXTRA_DIST += $(eluamodules_DATA)
+EXTRA_DIST2 += $(eluamodules_DATA)
 
 eluaeinadir = $(eluamodulesdir)/eina
 
@@ -86,16 +101,17 @@ eluaeina_DATA = \
 	bindings/luajit/eina/tiler.lua \
 	bindings/luajit/eina/xattr.lua
 
-EXTRA_DIST += $(eluaeina_DATA)
+EXTRA_DIST2 += $(eluaeina_DATA)
 
 eluacoredir = $(datadir)/elua/core
 
 eluacore_DATA = \
 	scripts/elua/core/gettext.lua \
 	scripts/elua/core/module.lua \
+	scripts/elua/core/serializer.lua \
 	scripts/elua/core/util.lua
 
-EXTRA_DIST += $(eluacore_DATA)
+EXTRA_DIST2 += $(eluacore_DATA)
 
 if EFL_ENABLE_TESTS
 
@@ -130,6 +146,6 @@ tests_elua_elua_suite_DEPENDENCIES = @USE_ELUA_INTERNAL_LIBS@
 
 endif
 
-EXTRA_DIST += tests/elua/data/apps/test.lua
+EXTRA_DIST2 += tests/elua/data/apps/test.lua
 
 endif

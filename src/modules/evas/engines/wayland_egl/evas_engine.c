@@ -683,8 +683,14 @@ eng_setup(Evas *evas, void *info)
                  (ob->info->info.screen != ob->screen) ||
                  (ob->info->info.destination_alpha != ob->alpha))
                {
-                  ob->gl_context->references++;
                   gl_wins--;
+                  if (!ob->info->info.display)
+                    {
+                       eng_window_free(re->generic.software.ob);
+                       re->generic.software.ob = NULL;
+                       epd->engine.data.output = NULL;
+                       goto ob_err;
+                    }
 
                   ob = eng_window_new(evas, inf, epd->output.w, epd->output.h, swap_mode);
                   if (!ob) goto ob_err;
@@ -694,7 +700,6 @@ eng_setup(Evas *evas, void *info)
                   evas_render_engine_software_generic_update(&re->generic.software, ob,
                                                              epd->output.w, epd->output.h);
                   gl_wins++;
-                  eng_get_ob(re)->gl_context->references--;
                }
              else if ((ob->w != epd->output.w) || (ob->h != epd->output.h) ||
                       (ob->info->info.rotation != ob->rot))
@@ -796,7 +801,7 @@ eng_output_dump(void *data)
 }
 
 static void
-_native_cb_bind(void *data EINA_UNUSED, void *image)
+_native_cb_bind(void *image)
 {
    Evas_GL_Image *img;
    Native *n;
@@ -823,14 +828,14 @@ _native_cb_bind(void *data EINA_UNUSED, void *image)
      }
    else if (n->ns.type == EVAS_NATIVE_SURFACE_EVASGL)
      {
-        if (n->ns_data.evasgl.surface)
+        if (n->ns_data.evasgl.surface && glsym_evgl_native_surface_buffer_get)
           {
              Eina_Bool is_egl_image = EINA_FALSE;
              void *surface;
 
-             if (glsym_evgl_native_surface_buffer_get)
-               surface = glsym_evgl_native_surface_buffer_get(n->ns_data.evasgl.surface, &is_egl_image);
-
+             surface =
+               glsym_evgl_native_surface_buffer_get(n->ns_data.evasgl.surface,
+                                                    &is_egl_image);
              if (is_egl_image)
                {
                   if (glsym_glEGLImageTargetTexture2DOES)
@@ -867,7 +872,7 @@ _native_cb_bind(void *data EINA_UNUSED, void *image)
 }
 
 static void
-_native_cb_unbind(void *data EINA_UNUSED, void *image)
+_native_cb_unbind(void *image)
 {
    Evas_GL_Image *img;
    Native *n;
@@ -894,29 +899,26 @@ _native_cb_unbind(void *data EINA_UNUSED, void *image)
 }
 
 static void
-_native_cb_free(void *data, void *image)
+_native_cb_free(void *image)
 {
-   Render_Engine *re;
-   Outbuf *ob;
    Evas_GL_Image *img;
    Native *n;
    uint32_t texid;
    void *wlid;
 
-   if (!(re = (Render_Engine *)data)) return;
    if (!(img = image)) return;
    if (!(n = img->native.data)) return;
-   if (!(ob = eng_get_ob(re))) return;
+   if (!(img->native.shared)) return;
 
    if (n->ns.type == EVAS_NATIVE_SURFACE_WL)
      {
         wlid = (void*)n->ns_data.wl_surface.wl_buf;
-        eina_hash_del(ob->gl_context->shared->native_wl_hash, &wlid, img);
+        eina_hash_del(img->native.shared->native_wl_hash, &wlid, img);
         if (n->ns_data.wl_surface.surface)
           {
              if (glsym_eglDestroyImage)
                {
-                  glsym_eglDestroyImage(ob->egl_disp, n->ns_data.wl_surface.surface);
+                  glsym_eglDestroyImage(img->native.disp, n->ns_data.wl_surface.surface);
                   if (eglGetError() != EGL_SUCCESS)
                     ERR("eglDestroyImage() failed.");
                }
@@ -927,22 +929,22 @@ _native_cb_free(void *data, void *image)
    else if (n->ns.type == EVAS_NATIVE_SURFACE_OPENGL)
      {
         texid = n->ns.data.opengl.texture_id;
-        eina_hash_del(ob->gl_context->shared->native_tex_hash, &texid, img);
+        eina_hash_del(img->native.shared->native_tex_hash, &texid, img);
      }
   else if (n->ns.type == EVAS_NATIVE_SURFACE_EVASGL)
     {
-      eina_hash_del(eng_get_ob(re)->gl_context->shared->native_evasgl_hash, &n->ns_data.evasgl.surface, img);
+      eina_hash_del(img->native.shared->native_evasgl_hash, &n->ns_data.evasgl.surface, img);
     }
   else if (n->ns.type == EVAS_NATIVE_SURFACE_TBM)
     {
-       eina_hash_del(ob->gl_context->shared->native_tbm_hash, &n->ns_data.tbm.buffer, img);
+       eina_hash_del(img->native.shared->native_tbm_hash, &n->ns_data.tbm.buffer, img);
 #ifdef GL_GLES
       if (n->ns_data.tbm.surface)
         {
            int err;
            if (glsym_eglDestroyImage)
              {
-                glsym_eglDestroyImage(ob->egl_disp,
+                glsym_eglDestroyImage(img->native.disp,
                                       n->ns_data.tbm.surface);
                 if ((err = eglGetError()) != EGL_SUCCESS)
                   {
@@ -955,7 +957,6 @@ _native_cb_free(void *data, void *image)
 #endif
     }
    img->native.data = NULL;
-   img->native.func.data = NULL;
    img->native.func.bind = NULL;
    img->native.func.unbind = NULL;
    img->native.func.free = NULL;
@@ -964,7 +965,7 @@ _native_cb_free(void *data, void *image)
 }
 
 static int
-_native_cb_yinvert(void *data EINA_UNUSED, void *image)
+_native_cb_yinvert(void *image)
 {
    Evas_GL_Image *im = image;
    Native *n = im->native.data;
@@ -990,6 +991,50 @@ _native_cb_yinvert(void *data EINA_UNUSED, void *image)
      }
 
    return yinvert;
+}
+
+static int
+eng_image_native_init(void *data EINA_UNUSED, Evas_Native_Surface_Type type)
+{
+   switch (type)
+     {
+#ifdef GL_GLES
+      case EVAS_NATIVE_SURFACE_TBM:
+        return _evas_native_tbm_init();
+#endif
+      case EVAS_NATIVE_SURFACE_EVASGL:
+      case EVAS_NATIVE_SURFACE_OPENGL:
+        return 1;
+#if defined(GL_GLES) && defined(HAVE_WAYLAND)
+      case EVAS_NATIVE_SURFACE_WL:
+        return (glsym_eglQueryWaylandBufferWL != NULL) ? 1 : 0;
+#endif
+      default:
+        ERR("Native surface type %d not supported!", type);
+        return 0;
+     }
+}
+
+static void
+eng_image_native_shutdown(void *data EINA_UNUSED, Evas_Native_Surface_Type type)
+{
+   switch (type)
+     {
+#ifdef GL_GLES
+      case EVAS_NATIVE_SURFACE_TBM:
+        _evas_native_tbm_shutdown();
+        return;
+#endif
+      case EVAS_NATIVE_SURFACE_EVASGL:
+      case EVAS_NATIVE_SURFACE_OPENGL:
+#if defined(GL_GLES) && defined(HAVE_WAYLAND)
+      case EVAS_NATIVE_SURFACE_WL:
+#endif
+        return;
+      default:
+        ERR("Native surface type %d not supported!", type);
+        return;
+     }
 }
 
 static void *
@@ -1082,7 +1127,7 @@ eng_image_native_set(void *data, void *image, void *native)
    if (img->native.data)
      {
         if (img->native.func.free)
-          img->native.func.free(img->native.func.data, img);
+          img->native.func.free(img);
         glsym_evas_gl_common_image_native_disable(img);
      }
 
@@ -1120,7 +1165,7 @@ eng_image_native_set(void *data, void *image, void *native)
      }
    else if (ns->type == EVAS_NATIVE_SURFACE_EVASGL)
      {
-         img2 = eina_hash_find(eng_get_ob(re)->gl_context->shared->native_evasgl_hash, &buffer);
+         img2 = eina_hash_find(ob->gl_context->shared->native_evasgl_hash, &buffer);
         if (img2 == img) return img;
         if (img2)
           {
@@ -1219,8 +1264,9 @@ eng_image_native_set(void *data, void *image, void *native)
                   //img->native.yinvert = yinvert;
                   img->native.yinvert = 1;
                   img->native.loose = 0;
+                  img->native.disp = ob->egl_disp;
+                  img->native.shared = ob->gl_context->shared;
                   img->native.data = n;
-                  img->native.func.data = re;
                   img->native.func.bind = _native_cb_bind;
                   img->native.func.unbind = _native_cb_unbind;
                   img->native.func.free = _native_cb_free;
@@ -1244,8 +1290,9 @@ eng_image_native_set(void *data, void *image, void *native)
 
                   img->native.yinvert = 0;
                   img->native.loose = 0;
+                  img->native.disp = ob->egl_disp;
+                  img->native.shared = ob->gl_context->shared;
                   img->native.data = n;
-                  img->native.func.data = re;
                   img->native.func.bind = _native_cb_bind;
                   img->native.func.unbind = _native_cb_unbind;
                   img->native.func.free = _native_cb_free;
@@ -1266,13 +1313,14 @@ eng_image_native_set(void *data, void *image, void *native)
              {
                memcpy(&(n->ns), ns, sizeof(Evas_Native_Surface));
 
-               eina_hash_add(eng_get_ob(re)->gl_context->shared->native_evasgl_hash, &buffer, img);
+               eina_hash_add(ob->gl_context->shared->native_evasgl_hash, &buffer, img);
 
                n->ns_data.evasgl.surface = ns->data.evasgl.surface;
                img->native.yinvert     = 0;
                img->native.loose       = 0;
+               img->native.disp        = ob->egl_disp;
+               img->native.shared      = ob->gl_context->shared;
                img->native.data        = n;
-               img->native.func.data   = re;
                img->native.func.bind   = _native_cb_bind;
                img->native.func.unbind = _native_cb_unbind;
                img->native.func.free   = _native_cb_free;
@@ -1291,13 +1339,13 @@ eng_image_native_set(void *data, void *image, void *native)
            n = calloc(1, sizeof(Native));
            if (n)
              {
-               eina_hash_add(eng_get_ob(re)->gl_context->shared->native_tbm_hash, &buffer, img);
+               eina_hash_add(ob->gl_context->shared->native_tbm_hash, &buffer, img);
 
                memcpy(&(n->ns), ns, sizeof(Evas_Native_Surface));
                n->ns_data.tbm.buffer = buffer;
 
                if (glsym_eglCreateImage)
-                 n->ns_data.tbm.surface = glsym_eglCreateImage(eng_get_ob(re)->egl_disp,
+                 n->ns_data.tbm.surface = glsym_eglCreateImage(ob->egl_disp,
                                                                EGL_NO_CONTEXT,
                                                                EGL_NATIVE_SURFACE_TIZEN,
                                                                (void *)buffer,
@@ -1308,8 +1356,9 @@ eng_image_native_set(void *data, void *image, void *native)
                  ERR("eglCreateImage() for %p failed", buffer);
                img->native.yinvert     = 1;
                img->native.loose       = 0;
+               img->native.disp        = ob->egl_disp;
+               img->native.shared      = ob->gl_context->shared;
                img->native.data        = n;
-               img->native.func.data   = re;
                img->native.func.bind   = _native_cb_bind;
                img->native.func.unbind = _native_cb_unbind;
                img->native.func.free   = _native_cb_free;
@@ -1384,6 +1433,8 @@ module_open(Evas_Module *em)
    ORD(output_dump);
 
    ORD(image_native_set);
+   ORD(image_native_init);
+   ORD(image_native_shutdown);
 
    gl_symbols();
 

@@ -1,6 +1,12 @@
+
+struct Generic.Event
+{
+  field1: int;
+  field2: list<int*>;
+}
+
 class Generic (Eo.Base)
 {
-   legacy_prefix: null;
    data: Generic_Data;
    methods {
       @property req_ctor_a_value {
@@ -24,8 +30,7 @@ class Generic (Eo.Base)
       }
       required_ctor_b {
          params {
-            @in cb: Ecore_Cb;
-            @in data: void*;
+            @in value: int;
          }
       }
       optional_ctor_a {
@@ -35,13 +40,59 @@ class Generic (Eo.Base)
       }
       optional_ctor_b {
          params {
-            @in cb: Ecore_Cb;
-            @in data: void*;
+            @in value: int;
          }
       }
-      call_req_ctor_b_callback {
+
+      @property req_ctor_b_value {
+         get {}
+         values {
+            value: int;
+         }
       }
-      call_opt_ctor_b_callback {
+      @property opt_ctor_b_value {
+         get {}
+         values {
+            value: int;
+         }
+      }
+      out_required_ctor_a {
+         params {
+            @out value: int;
+         }
+      }
+      out_required_ctor_b {
+         params {
+            @out value: int;
+         }
+      }
+      out_optional_ctor_a {
+         params {
+            @out value: int;
+         }
+      }
+      out_optional_ctor_b {
+         params {
+            @out value: int;
+         }
+      }
+
+      call_event1 {
+      }
+      call_event2 {
+      }
+      call_event3 {
+      }
+      call_event4 {
+      }
+      call_event5 {
+      }
+
+      protected_method1 @protected {
+      }
+      beta_method1 @beta {
+      }
+      protected_beta_method1 @protected @beta {
       }
    }
    constructors {
@@ -52,5 +103,15 @@ class Generic (Eo.Base)
    }
    implements {
       Eo.Base.constructor;
+   }
+   events {
+     prefix,event1;
+     prefix,event2: Generic;
+     prefix,event3: int;
+     prefix,event4: list<int>;
+     prefix,event5: Generic.Event;
+     protected,event1 @protected;
+     beta,event1 @beta;
+     protected,beta,event1 @beta @protected;
    }
 }

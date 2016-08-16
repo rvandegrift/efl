@@ -319,6 +319,7 @@ efreet_cache_shutdown(void)
 
     icon_cache = efreet_cache_close(icon_cache);
     icon_theme_cache = efreet_cache_close(icon_theme_cache);
+    fallback_cache = efreet_cache_close(fallback_cache);
 
     IF_FREE_HASH(themes);
     IF_FREE_HASH(icons);
@@ -360,6 +361,9 @@ efreet_cache_shutdown(void)
    if (hnd_add) ecore_event_handler_del(hnd_add);
    if (hnd_del) ecore_event_handler_del(hnd_del);
    if (hnd_data) ecore_event_handler_del(hnd_data);
+
+   ecore_ipc_shutdown();
+
    ipc = NULL;
    pfx = NULL;
    hnd_add = NULL;

@@ -1,5 +1,5 @@
 type Evas.Coord: int; /* Simple type definition */
-type List_Objects: own(list<Eo *>*); /* A little more complex */
+type List_Objects: own(list<Eo *>); /* A little more complex */
 
 type Evas.Coord2: Evas.Coord;
 type Evas.Coord3: Evas.Coord2;
@@ -7,6 +7,8 @@ type Evas.Coord3: Evas.Coord2;
 type @extern Evas.Pants: float; /* not generated */
 
 type Undef: __undefined_type; /* not generated */
+
+type Event: __builtin_event_cb; /* specially generated */
 
 enum Enum.Bar
 {

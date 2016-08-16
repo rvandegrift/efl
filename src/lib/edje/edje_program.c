@@ -4,10 +4,16 @@ static void _edje_emit_cb(Edje *ed, const char *sig, const char *src, Edje_Messa
 static void _edje_param_copy(Edje *ed, Edje_Real_Part *src_part, const char *src_param, Edje_Real_Part *dst_part, const char *dst_param);
 static void _edje_param_set(Edje *ed, Edje_Real_Part *part, const char *param, const char *value);
 
-int _edje_anim_count = 0;
-Ecore_Animator *_edje_timer = NULL;
 Eina_List *_edje_animators = NULL;
 static double _edje_transition_duration_scale = 0;
+
+static Eina_Bool
+_edje_animator_cb(void *data)
+{
+   const Eo_Event event = { NULL, NULL, NULL };
+   _edje_timer_cb(data, &event);
+   return EINA_TRUE;
+}
 
 static Eina_Bool
 _edje_emit_aliased(Edje *ed, const char *part, const char *sig, const char *src)
@@ -261,7 +267,7 @@ edje_object_signal_callback_del(Evas_Object *obj, const char *emission, const ch
 {
    if (!obj) return NULL;
    void *ret = NULL;
-   eo_do(obj, ret = edje_obj_signal_callback_del(emission, source, (Edje_Signal_Cb)func, NULL));
+   ret = edje_obj_signal_callback_del(obj, emission, source, (Edje_Signal_Cb)func, NULL);
    return ret;
 }
 
@@ -290,7 +296,7 @@ edje_object_signal_callback_del_full(Evas_Object *obj, const char *emission, con
 {
    if (!obj) return NULL;
    void *ret = NULL;
-   eo_do(obj, ret = edje_obj_signal_callback_del(emission, source, func, data));
+   ret = edje_obj_signal_callback_del(obj, emission, source, func, data);
    return ret;
 }
 
@@ -310,7 +316,7 @@ _edje_object_play_set(Eo *obj EINA_UNUSED, Edje *ed, Eina_Bool play)
    double t;
    Eina_List *l;
    Edje_Running_Program *runp;
-   unsigned int i;
+   unsigned short i;
 
    if (!ed) return;
    if (ed->delete_me) return;
@@ -356,7 +362,7 @@ EOLIAN void
 _edje_object_animation_set(Eo *obj, Edje *ed, Eina_Bool on)
 {
    Eina_List *l;
-   unsigned int i;
+   unsigned short i;
 
    if (!ed) return;
    if (ed->delete_me) return;
@@ -421,6 +427,17 @@ _edje_object_animation_get(Eo *obj EINA_UNUSED, Edje *ed)
 }
 
 /* Private Routines */
+void
+_edje_program_run_cleanup(Edje *ed, Edje_Running_Program *runp)
+{
+   ed->actions = eina_list_remove(ed->actions, runp);
+   if (!ed->actions)
+     {
+        eo_event_callback_del(ed->obj, EFL_EVENT_ANIMATOR_TICK, _edje_timer_cb, ed);
+        ecore_animator_del(ed->animator);
+        ed->animator = NULL;
+     }
+}
 
 Eina_Bool
 _edje_program_run_iterate(Edje_Running_Program *runp, double tim)
@@ -486,12 +503,7 @@ _edje_program_run_iterate(Edje_Running_Program *runp, double tim)
         _edje_recalc(ed);
         runp->delete_me = EINA_TRUE;
         if (!ed->walking_actions)
-          {
-             _edje_anim_count--;
-             ed->actions = eina_list_remove(ed->actions, runp);
-             if (!ed->actions)
-               _edje_animators = eina_list_remove(_edje_animators, ed);
-          }
+          _edje_program_run_cleanup(ed, runp);
         //	_edje_emit(ed, "program,stop", runp->program->name);
         if (_edje_block_break(ed))
           {
@@ -568,13 +580,8 @@ _edje_program_end(Edje *ed, Edje_Running_Program *runp)
    //   pname = runp->program->name;
    if (!ed->walking_actions)
      {
-        _edje_anim_count--;
-        ed->actions = eina_list_remove(ed->actions, runp);
+        _edje_program_run_cleanup(ed, runp);
         free_runp = 1;
-        if (!ed->actions)
-          {
-             _edje_animators = eina_list_remove(_edje_animators, ed);
-          }
      }
    //   _edje_emit(ed, "program,stop", pname);
    _edje_util_thaw(ed);
@@ -726,15 +733,19 @@ low_mem_current:
                   ed->actions = eina_list_append(ed->actions, runp);
                   goto break_prog;
                }
+
              if (!ed->actions)
-               _edje_animators = eina_list_append(_edje_animators, ed);
+               {
+                  if (ed->canvas_animator)
+                    eo_event_callback_add(ed->obj, EFL_EVENT_ANIMATOR_TICK, _edje_timer_cb, ed);
+                  else
+                    ed->animator = ecore_animator_add(_edje_animator_cb, ed);
+               }
              ed->actions = eina_list_append(ed->actions, runp);
+
              runp->start_time = ecore_loop_time_get();
              runp->edje = ed;
              runp->program = pr;
-             if (!_edje_timer)
-               _edje_timer = ecore_animator_add(_edje_timer_cb, NULL);
-             _edje_anim_count++;
           }
         else
           {
@@ -1063,79 +1074,106 @@ low_mem_current:
 
 #ifdef HAVE_EPHYSICS
       case EDJE_ACTION_TYPE_PHYSICS_IMPULSE:
-        if (!_edje_physics_action_set(ed, pr, ephysics_body_central_impulse_apply))
-          goto break_prog;
+        if (EPH_LOAD())
+          {
+             if (!_edje_physics_action_set(ed, pr, EPH_CALL(ephysics_body_central_impulse_apply)))
+               goto break_prog;
+          }
         break;
 
       case EDJE_ACTION_TYPE_PHYSICS_TORQUE_IMPULSE:
-        if (!_edje_physics_action_set(ed, pr, ephysics_body_torque_impulse_apply))
-          goto break_prog;
+        if (EPH_LOAD())
+          {
+             if (!_edje_physics_action_set(ed, pr, EPH_CALL(ephysics_body_torque_impulse_apply)))
+               goto break_prog;
+          }
         break;
 
       case EDJE_ACTION_TYPE_PHYSICS_FORCE:
-        if (!_edje_physics_action_set(ed, pr, ephysics_body_central_force_apply))
-          goto break_prog;
+        if (EPH_LOAD())
+          {
+             if (!_edje_physics_action_set(ed, pr, EPH_CALL(ephysics_body_central_force_apply)))
+               goto break_prog;
+          }
         break;
 
       case EDJE_ACTION_TYPE_PHYSICS_TORQUE:
-        if (!_edje_physics_action_set(ed, pr, ephysics_body_torque_apply))
-          goto break_prog;
+        if (EPH_LOAD())
+          {
+             if (!_edje_physics_action_set(ed, pr, EPH_CALL(ephysics_body_torque_apply)))
+               goto break_prog;
+          }
         break;
 
       case EDJE_ACTION_TYPE_PHYSICS_FORCES_CLEAR:
-        if (_edje_block_break(ed))
-          goto break_prog;
-        EINA_LIST_FOREACH(pr->targets, l, pt)
+        if (EPH_LOAD())
           {
-             if (pt->id >= 0)
+             if (_edje_block_break(ed))
+               goto break_prog;
+             EINA_LIST_FOREACH(pr->targets, l, pt)
                {
-                  rp = ed->table_parts[pt->id % ed->table_parts_size];
-                  if ((rp) && (rp->body))
-                    ephysics_body_forces_clear(rp->body);
+                  if (pt->id >= 0)
+                    {
+                       rp = ed->table_parts[pt->id % ed->table_parts_size];
+                       if ((rp) && (rp->body))
+                         EPH_CALL(ephysics_body_forces_clear)(rp->body);
+                    }
                }
           }
         break;
 
       case EDJE_ACTION_TYPE_PHYSICS_VEL_SET:
-        if (!_edje_physics_action_set(ed, pr, ephysics_body_linear_velocity_set))
-          goto break_prog;
+        if (EPH_LOAD())
+          {
+             if (!_edje_physics_action_set(ed, pr, EPH_CALL(ephysics_body_linear_velocity_set)))
+               goto break_prog;
+          }
         break;
 
       case EDJE_ACTION_TYPE_PHYSICS_ANG_VEL_SET:
-        if (!_edje_physics_action_set(ed, pr, ephysics_body_angular_velocity_set))
-          goto break_prog;
+        if (EPH_LOAD())
+          {
+             if (!_edje_physics_action_set(ed, pr, EPH_CALL(ephysics_body_angular_velocity_set)))
+               goto break_prog;
+          }
         break;
 
       case EDJE_ACTION_TYPE_PHYSICS_STOP:
-        if (_edje_block_break(ed))
-          goto break_prog;
-        EINA_LIST_FOREACH(pr->targets, l, pt)
+        if (EPH_LOAD())
           {
-             if (pt->id >= 0)
+             if (_edje_block_break(ed))
+               goto break_prog;
+             EINA_LIST_FOREACH(pr->targets, l, pt)
                {
-                  rp = ed->table_parts[pt->id % ed->table_parts_size];
-                  if ((rp) && (rp->body))
-                    ephysics_body_stop(rp->body);
+                  if (pt->id >= 0)
+                    {
+                       rp = ed->table_parts[pt->id % ed->table_parts_size];
+                       if ((rp) && (rp->body))
+                         EPH_CALL(ephysics_body_stop)(rp->body);
+                    }
                }
           }
         break;
 
       case EDJE_ACTION_TYPE_PHYSICS_ROT_SET:
-        if (_edje_block_break(ed))
-          goto break_prog;
-        EINA_LIST_FOREACH(pr->targets, l, pt)
+        if (EPH_LOAD())
           {
-             if (pt->id >= 0)
+             if (_edje_block_break(ed))
+               goto break_prog;
+             EINA_LIST_FOREACH(pr->targets, l, pt)
                {
-                  rp = ed->table_parts[pt->id % ed->table_parts_size];
-                  if ((rp) && (rp->body))
+                  if (pt->id >= 0)
                     {
-                       EPhysics_Quaternion quat;
-                       ephysics_quaternion_set(&quat, pr->physics.x,
-                                               pr->physics.y, pr->physics.z,
-                                               pr->physics.w);
-                       ephysics_quaternion_normalize(&quat);
-                       ephysics_body_rotation_set(rp->body, &quat);
+                       rp = ed->table_parts[pt->id % ed->table_parts_size];
+                       if ((rp) && (rp->body))
+                         {
+                            EPhysics_Quaternion quat;
+                            EPH_CALL(ephysics_quaternion_set)(&quat, pr->physics.x,
+                                                              pr->physics.y, pr->physics.z,
+                                                              pr->physics.w);
+                            EPH_CALL(ephysics_quaternion_normalize)(&quat);
+                            EPH_CALL(ephysics_body_rotation_set)(rp->body, &quat);
+                         }
                     }
                }
           }

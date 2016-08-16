@@ -2,28 +2,19 @@
 ### Library
 
 evas_eolian_pub_files = \
-	lib/evas/canvas/evas_object.eo \
-	lib/evas/canvas/evas_line.eo \
-	lib/evas/canvas/evas_polygon.eo \
-	lib/evas/canvas/evas_rectangle.eo \
-	lib/evas/canvas/evas_text.eo \
-	lib/evas/canvas/evas_textblock.eo \
-	lib/evas/canvas/evas_textgrid.eo \
-	lib/evas/canvas/evas_signal_interface.eo \
-	lib/evas/canvas/evas_object_smart.eo \
-	lib/evas/canvas/evas_smart_clipped.eo \
-	lib/evas/canvas/evas_table.eo \
-	lib/evas/canvas/evas_common_interface.eo \
+	lib/evas/canvas/efl_canvas_object.eo \
+	lib/evas/canvas/efl_canvas_polygon.eo \
+	lib/evas/canvas/efl_canvas_rectangle.eo \
+	lib/evas/canvas/efl_canvas_text.eo \
+	lib/evas/canvas/efl_canvas_text_cursor.eo \
+	lib/evas/canvas/efl_canvas_group.eo \
 	lib/evas/canvas/evas_canvas.eo \
-	lib/evas/canvas/evas_grid.eo \
-	lib/evas/canvas/evas_image.eo \
-	lib/evas/canvas/evas_out.eo \
-	lib/evas/canvas/evas_draggable_interface.eo \
-	lib/evas/canvas/evas_clickable_interface.eo \
-	lib/evas/canvas/evas_scrollable_interface.eo \
-	lib/evas/canvas/evas_selectable_interface.eo \
-	lib/evas/canvas/evas_zoomable_interface.eo \
-	lib/evas/canvas/evas_box.eo\
+	lib/evas/canvas/efl_canvas_image_internal.eo \
+	lib/evas/canvas/efl_ui_draggable.eo \
+	lib/evas/canvas/efl_ui_clickable.eo \
+	lib/evas/canvas/efl_ui_scrollable.eo \
+	lib/evas/canvas/efl_ui_selectable.eo \
+	lib/evas/canvas/efl_ui_zoomable.eo \
 	lib/evas/canvas/evas_canvas3d_camera.eo\
 	lib/evas/canvas/evas_canvas3d_texture.eo\
 	lib/evas/canvas/evas_canvas3d_material.eo\
@@ -34,51 +25,76 @@ evas_eolian_pub_files = \
 	lib/evas/canvas/evas_canvas3d_scene.eo\
 	lib/evas/canvas/evas_canvas3d_object.eo \
 	lib/evas/canvas/evas_vg.eo \
-	lib/evas/canvas/efl_vg_base.eo \
+	lib/evas/canvas/efl_vg.eo \
 	lib/evas/canvas/efl_vg_container.eo \
 	lib/evas/canvas/efl_vg_shape.eo \
 	lib/evas/canvas/efl_vg_root_node.eo \
 	lib/evas/canvas/efl_vg_gradient.eo \
 	lib/evas/canvas/efl_vg_gradient_radial.eo \
 	lib/evas/canvas/efl_vg_gradient_linear.eo \
-	lib/evas/canvas/evas_filter.eo \
+	lib/evas/canvas/efl_canvas_image.eo \
+	lib/evas/canvas/efl_canvas_snapshot.eo \
+	lib/evas/canvas/efl_canvas_proxy.eo \
+	lib/evas/canvas/efl_canvas_scene3d.eo \
+	lib/evas/canvas/efl_canvas_surface.eo \
+	lib/evas/canvas/efl_canvas_surface_tbm.eo \
+	lib/evas/canvas/efl_canvas_surface_x11.eo \
+	lib/evas/canvas/efl_canvas_surface_wayland.eo \
+	lib/evas/canvas/efl_canvas_filter_internal.eo \
+	lib/evas/canvas/efl_canvas_group_clipped.eo \
+	lib/evas/canvas/efl_event_input.eo \
+	lib/evas/canvas/efl_event_key.eo \
+	lib/evas/canvas/efl_event_pointer.eo \
+	lib/evas/canvas/efl_event_hold.eo \
+	lib/evas/canvas/efl_gfx_map.eo \
+	$(NULL)
+
+evas_eolian_legacy_files = \
+	lib/evas/canvas/evas_line.eo \
+	lib/evas/canvas/evas_table.eo \
+	lib/evas/canvas/evas_grid.eo \
+	lib/evas/canvas/evas_box.eo\
+	lib/evas/canvas/evas_out.eo \
+	lib/evas/canvas/evas_text.eo \
+	lib/evas/canvas/evas_textgrid.eo \
+	lib/evas/canvas/evas_image.eo \
 	$(NULL)
 
 evas_eolian_priv_files = \
-	lib/evas/include/evas_ector_buffer.eo \
-	$(NULL)
+	lib/evas/include/evas_ector_buffer.eo
 
 evas_eolian_type_files = \
     lib/evas/canvas/evas_types.eot
 
 evas_eolian_priv_c = $(evas_eolian_priv_files:%.eo=%.eo.c)
-evas_eolian_priv_h = $(evas_eolian_priv_files:%.eo=%.eo.h)
+evas_eolian_priv_h = $(evas_eolian_priv_files:%.eo=%.eo.h) \
+		$(evas_eolian_legacy_files:%.eo=%.eo.h)
 
 evas_eolian_pub_c = $(evas_eolian_pub_files:%.eo=%.eo.c)
 evas_eolian_pub_h = $(evas_eolian_pub_files:%.eo=%.eo.h) \
                     $(evas_eolian_pub_files:%.eo=%.eo.legacy.h) \
                     $(evas_eolian_type_files:%.eot=%.eot.h)
 
-evas_eolian_files = $(evas_eolian_pub_files) $(evas_eolian_priv_files) $(evas_eolian_type_files)
-evas_eolian_c = $(evas_eolian_pub_c) $(evas_eolian_priv_c)
-evas_eolian_h = $(evas_eolian_pub_h) $(evas_eolian_priv_h)
+evas_eolian_legacy_c = $(evas_eolian_legacy_files:%.eo=%.eo.c)
+evas_eolian_legacy_h = $(evas_eolian_legacy_files:%.eo=%.eo.legacy.h)
+
+evas_eolian_files = $(evas_eolian_pub_files) $(evas_eolian_type_files)
+evas_eolian_internal_files = $(evas_eolian_priv_files)  $(evas_eolian_legacy_files)
+evas_eolian_c = $(evas_eolian_pub_c) $(evas_eolian_priv_c) $(evas_eolian_legacy_c)
+evas_eolian_h = $(evas_eolian_pub_h) $(evas_eolian_priv_h) $(evas_eolian_legacy_h)
 
 BUILT_SOURCES += \
                  $(evas_eolian_c) \
                  $(evas_eolian_h)
 
-CLEANFILES += \
-              $(evas_eolian_c) \
-              $(evas_eolian_h)
-
 evaseolianfilesdir = $(datadir)/eolian/include/evas-@VMAJ@
 evaseolianfiles_DATA = $(evas_eolian_files)
 
-EXTRA_DIST += \
-              ${evaseolianfiles_DATA}
+EXTRA_DIST2 += \
+        $(evaseolianfiles_DATA) \
+	$(evas_eolian_internal_files)
 
 lib_LTLIBRARIES += lib/evas/libevas.la
-noinst_LTLIBRARIES =
 
 installed_evasmainheadersdir = $(includedir)/evas-@VMAJ@
 dist_installed_evasmainheaders_DATA = \
@@ -90,10 +106,11 @@ lib/evas/Evas_GL.h \
 lib/evas/Evas_Loader.h
 
 installed_evascanvasheadersdir = $(includedir)/evas-@VMAJ@/canvas
-nodist_installed_evascanvasheaders_DATA = $(evas_eolian_pub_h)
-noinst_DATA = $(evas_eolian_priv_h)
+nodist_installed_evascanvasheaders_DATA = $(evas_eolian_pub_h) $(evas_eolian_legacy_h)
+dist_installed_evascanvasheaders_DATA = lib/evas/canvas/evas_textblock_legacy.h
+noinst_DATA += $(evas_eolian_priv_h)
 
-noinst_HEADERS = \
+noinst_HEADERS += \
 lib/evas/include/evas_inline.x \
 lib/evas/include/evas_private.h \
 lib/evas/include/evas_options.h \
@@ -103,6 +120,9 @@ lib/evas/include/evas_common_private.h \
 lib/evas/include/evas_blend_ops.h \
 lib/evas/include/evas_filter.h \
 lib/evas/canvas/evas_vg_private.h \
+lib/evas/canvas/evas_image_private.h \
+lib/evas/canvas/evas_polygon_private.h \
+lib/evas/canvas/efl_canvas_surface.h \
 lib/evas/common3d/primitives/primitive_common.h
 
 # Linebreak
@@ -134,16 +154,17 @@ lib_evas_libevas_la_SOURCES += \
 lib/evas/canvas/common_interfaces.c \
 lib/evas/canvas/evas_callbacks.c \
 lib/evas/canvas/evas_clip.c \
-lib/evas/canvas/evas_common_interface.c \
 lib/evas/canvas/evas_data.c \
 lib/evas/canvas/evas_device.c \
 lib/evas/canvas/evas_events.c \
+lib/evas/canvas/evas_events_legacy.c \
 lib/evas/canvas/evas_focus.c \
 lib/evas/canvas/evas_key.c \
 lib/evas/canvas/evas_key_grab.c \
 lib/evas/canvas/evas_layer.c \
 lib/evas/canvas/evas_main.c \
 lib/evas/canvas/evas_name.c \
+lib/evas/canvas/evas_image_legacy.c \
 lib/evas/canvas/evas_object_image.c \
 lib/evas/canvas/evas_object_main.c \
 lib/evas/canvas/evas_object_inform.c \
@@ -172,9 +193,22 @@ lib/evas/canvas/evas_stats.c \
 lib/evas/canvas/evas_touch_point.c \
 lib/evas/canvas/evas_map.c \
 lib/evas/canvas/evas_gl.c \
-lib/evas/canvas/evas_out.c
+lib/evas/canvas/evas_out.c \
+lib/evas/canvas/efl_canvas_image.c \
+lib/evas/canvas/efl_canvas_proxy.c \
+lib/evas/canvas/efl_canvas_snapshot.c \
+lib/evas/canvas/efl_canvas_scene3d.c \
+lib/evas/canvas/efl_canvas_surface.c \
+lib/evas/canvas/efl_canvas_surface_tbm.c \
+lib/evas/canvas/efl_canvas_surface_x11.c \
+lib/evas/canvas/efl_canvas_surface_wayland.c \
+lib/evas/canvas/efl_event_input.c \
+lib/evas/canvas/efl_event_key.c \
+lib/evas/canvas/efl_event_pointer.c \
+lib/evas/canvas/efl_event_hold.c \
+$(NULL)
 
-EXTRA_DIST += \
+EXTRA_DIST2 += \
 lib/evas/canvas/render2/evas_render2_th_main.c \
 lib/evas/canvas/render2/region.c \
 lib/evas/canvas/render2/region.h
@@ -271,8 +305,13 @@ lib/evas/canvas/evas_vg_shape.c
 # Static draw lib
 lib_evas_libevas_la_SOURCES += \
 static_libs/draw/draw_alpha_main.c \
+static_libs/draw/draw_convert.c \
 static_libs/draw/draw_main_neon.c \
-static_libs/draw/draw_main.c
+static_libs/draw/draw_main.c \
+static_libs/rg_etc/rg_etc1.c \
+static_libs/rg_etc/rg_etc2.c \
+static_libs/rg_etc/rg_etc1.h \
+static_libs/rg_etc/etc2_encoder.c
 
 # Engine
 lib_evas_libevas_la_SOURCES += \
@@ -420,7 +459,7 @@ lib_evas_libevas_la_LDFLAGS = @EFL_LTLIBRARY_FLAGS@
 
 # Linebreak
 
-EXTRA_DIST += \
+EXTRA_DIST2 += \
 static_libs/libunibreak/LICENCE \
 static_libs/libunibreak/AUTHORS \
 static_libs/libunibreak/NEWS \
@@ -429,7 +468,7 @@ static_libs/libunibreak/ChangeLog
 
 # Engines
 
-EXTRA_DIST += \
+EXTRA_DIST2 += \
 lib/evas/common/evas_font_compress_draw.c \
 lib/evas/common/evas_map_image_internal.c \
 lib/evas/common/evas_map_image_core.c \
@@ -445,7 +484,7 @@ lib/evas/common/evas_scale_smooth_scaler_up.c
 
 # evas_op_add
 
-EXTRA_DIST += \
+EXTRA_DIST2 += \
 lib/evas/common/evas_op_add/op_add_color_.c \
 lib/evas/common/evas_op_add/op_add_color_i386.c \
 lib/evas/common/evas_op_add/op_add_mask_color_.c \
@@ -459,7 +498,7 @@ lib/evas/common/evas_op_add/op_add_pixel_mask_i386.c
 
 # evas_op_blend
 
-EXTRA_DIST += \
+EXTRA_DIST2 += \
 lib/evas/common/evas_op_blend/op_blend_color_.c \
 lib/evas/common/evas_op_blend/op_blend_color_i386.c \
 lib/evas/common/evas_op_blend/op_blend_color_neon.c \
@@ -483,7 +522,7 @@ lib/evas/common/evas_op_blend/op_blend_pixel_sse3.c
 
 # evas_op_copy
 
-EXTRA_DIST += \
+EXTRA_DIST2 += \
 lib/evas/common/evas_op_copy/op_copy_color_.c \
 lib/evas/common/evas_op_copy/op_copy_color_i386.c \
 lib/evas/common/evas_op_copy/op_copy_color_neon.c \
@@ -502,7 +541,7 @@ lib/evas/common/evas_op_copy/op_copy_pixel_mask_neon.c
 
 # evas_op_mask
 
-EXTRA_DIST += \
+EXTRA_DIST2 += \
 lib/evas/common/evas_op_mask/op_mask_color_.c \
 lib/evas/common/evas_op_mask/op_mask_color_i386.c \
 lib/evas/common/evas_op_mask/op_mask_mask_color_.c \
@@ -516,7 +555,7 @@ lib/evas/common/evas_op_mask/op_mask_pixel_mask_i386.c
 
 # evas_op_mul
 
-EXTRA_DIST += \
+EXTRA_DIST2 += \
 lib/evas/common/evas_op_mul/op_mul_color_.c \
 lib/evas/common/evas_op_mul/op_mul_color_i386.c \
 lib/evas/common/evas_op_mul/op_mul_mask_color_.c \
@@ -530,7 +569,7 @@ lib/evas/common/evas_op_mul/op_mul_pixel_mask_i386.c
 
 # evas_op_sub
 
-EXTRA_DIST += \
+EXTRA_DIST2 += \
 lib/evas/common/evas_op_sub/op_sub_color_.c \
 lib/evas/common/evas_op_sub/op_sub_color_i386.c \
 lib/evas/common/evas_op_sub/op_sub_mask_color_.c \
@@ -560,7 +599,7 @@ lib/evas/filters/evas_filter_transform.c \
 lib/evas/filters/evas_filter_utils.c \
 lib/evas/filters/evas_filter_private.h
 
-EXTRA_DIST += \
+EXTRA_DIST2 += \
 lib/evas/filters/blur/blur_gaussian_alpha_.c \
 lib/evas/filters/blur/blur_gaussian_rgba_.c \
 lib/evas/filters/blur/blur_box_alpha_.c \
@@ -578,16 +617,12 @@ lib/evas/filters/blur/blur_box_rgba_neon.c
 evas_software_generic_eolian_files = \
 modules/evas/engines/software_generic/evas_ector_software_buffer.eo
 
-EXTRA_DIST += $(evas_software_generic_eolian_files)
+EXTRA_DIST2 += $(evas_software_generic_eolian_files)
 
 evas_software_generic_eolian_c = $(evas_software_generic_eolian_files:%.eo=%.eo.c)
 evas_software_generic_eolian_h = $(evas_software_generic_eolian_files:%.eo=%.eo.h)
 
 BUILT_SOURCES += \
-$(evas_software_generic_eolian_c) \
-$(evas_software_generic_eolian_h)
-
-CLEANFILES += \
 $(evas_software_generic_eolian_c) \
 $(evas_software_generic_eolian_h)
 
@@ -598,6 +633,7 @@ lib_evas_libevas_la_SOURCES += \
 modules/evas/engines/software_generic/evas_engine.c \
 modules/evas/engines/software_generic/Evas_Engine_Software_Generic.h \
 modules/evas/engines/software_generic/evas_native_tbm.c \
+modules/evas/engines/software_generic/evas_native_dmabuf.c \
 modules/evas/engines/software_generic/evas_ector_software_buffer.c \
 modules/evas/engines/software_generic/evas_native_common.h
 lib_evas_libevas_la_LIBADD +=
@@ -615,6 +651,7 @@ modules_evas_engines_software_generic_module_la_SOURCES = \
 modules/evas/engines/software_generic/evas_engine.c \
 modules/evas/engines/software_generic/Evas_Engine_Software_Generic.h \
 modules/evas/engines/software_generic/evas_native_tbm.c \
+modules/evas/engines/software_generic/evas_native_dmabuf.c \
 modules/evas/engines/software_generic/evas_ector_software_buffer.c \
 modules/evas/engines/software_generic/evas_native_common.h
 modules_evas_engines_software_generic_module_la_CPPFLAGS = -I$(top_builddir)/src/lib/efl \
@@ -693,7 +730,6 @@ modules_evas_engines_fb_module_la_LIBTOOLFLAGS = --tag=disable-static
 endif
 endif
 
-if BUILD_ENGINE_GL_COMMON
 GL_COMMON_SOURCES = \
 modules/evas/engines/gl_common/evas_gl_private.h \
 modules/evas/engines/gl_common/evas_gl_common.h \
@@ -719,7 +755,6 @@ modules/evas/engines/gl_common/evas_gl_api_gles1.c \
 modules/evas/engines/gl_common/evas_gl_api_gles3_def.h \
 modules/evas/engines/gl_common/evas_gl_api_ext.c \
 modules/evas/engines/gl_common/shader/evas_gl_shaders.x \
-modules/evas/engines/gl_common/shader_3d/evas_gl_3d_shaders.x \
 $(NULL)
 
 # 3D
@@ -728,20 +763,26 @@ modules/evas/engines/gl_common/evas_gl_3d_common.h \
 modules/evas/engines/gl_common/evas_gl_3d_private.h \
 modules/evas/engines/gl_common/evas_gl_3d.c \
 modules/evas/engines/gl_common/evas_gl_3d_renderer.c \
-modules/evas/engines/gl_common/evas_gl_3d_shader.c
+modules/evas/engines/gl_common/evas_gl_3d_shader.c \
+modules/evas/engines/gl_common/shader_3d/evas_gl_3d_shaders.x \
+$(NULL)
 
-GL_SHADERS_GEN = \
+EVAS_GL_SHADERS_GEN = \
 modules/evas/engines/gl_common/shader/gen_shaders.sh \
 modules/evas/engines/gl_common/shader/fragment.glsl \
 modules/evas/engines/gl_common/shader/vertex.glsl \
 modules/evas/engines/gl_common/shader/include.glsl \
 $(NULL)
 
-EXTRA_DIST += $(GL_SHADERS_GEN)
+EXTRA_DIST2 += $(EVAS_GL_SHADERS_GEN)
 
-modules/evas/engines/gl_common/shader/evas_gl_shaders.x: $(GL_SHADERS_GEN)
-	@echo "  SHADERS  $@"
-	@bash $(srcdir)/modules/evas/engines/gl_common/shader/gen_shaders.sh
+modules/evas/engines/gl_common/shader/evas_gl_shaders.x: $(EVAS_GL_SHADERS_GEN) $(top_srcdir)/src/modules/evas/engines/gl_common/shader/gen_shaders.sh
+	@if [ "x$(EFL_SHD_REGEN)" = "x1" ] ; then \
+	  echo "  SHADERS  $@" ; \
+	  sh $(top_srcdir)/src/modules/evas/engines/gl_common/shader/gen_shaders.sh ; \
+	fi
+
+modules/evas/engines/gl_common/evas_gl_shader.c: modules/evas/engines/gl_common/shader/evas_gl_shaders.x
 
 # NOTE: order here should be equal with modes in file Evas_Eo.h
 GL_SHADERS_3D_GEN = \
@@ -761,15 +802,22 @@ modules/evas/engines/gl_common/shader_3d/color_pick_vert.shd \
 modules/evas/engines/gl_common/shader_3d/color_pick_frag.shd \
 modules/evas/engines/gl_common/shader_3d/parallax_occlusion_vert.shd \
 modules/evas/engines/gl_common/shader_3d/parallax_occlusion_frag.shd \
+modules/evas/engines/gl_common/shader_3d/post_processing_fxaa_vert.shd \
+modules/evas/engines/gl_common/shader_3d/post_processing_fxaa_frag.shd \
 $(NULL)
 
-EXTRA_DIST += \
+EXTRA_DIST2 += \
 modules/evas/engines/gl_common/shader_3d/gen_shaders_3d.sh \
+modules/evas/engines/gl_common/shader_3d/include.shd \
 $(GL_SHADERS_3D_GEN)
 
-modules/evas/engines/gl_common/shader_3d/evas_gl_3d_shaders.x: modules/evas/engines/gl_common/shader_3d/gen_shaders_3d.sh $(GL_SHADERS_3D_GEN)
-	@echo "  SHADERS  $@"
-	@bash $^
+modules/evas/engines/gl_common/shader_3d/evas_gl_3d_shaders.x: $(top_srcdir)/src/modules/evas/engines/gl_common/shader_3d/gen_shaders_3d.sh $(GL_SHADERS_3D_GEN) $(top_srcdir)/src/modules/evas/engines/gl_common/shader_3d/include.shd
+	@if [ "x$(EFL_SHD_REGEN)" = "x1" ] ; then \
+	  echo "  SHADERS  $@" ; \
+	  sh $(top_srcdir)/src/modules/evas/engines/gl_common/shader_3d/gen_shaders_3d.sh $(GL_SHADERS_3D_GEN) ; \
+	fi
+
+modules/evas/engines/gl_common/evas_gl_3d_shader.c: modules/evas/engines/gl_common/shader_3d/evas_gl_3d_shaders.x
 
 
 GL_GENERIC_SOURCES = \
@@ -793,18 +841,16 @@ evas_gl_generic_eolian_h = $(evas_gl_generic_eolian_files:%.eo=%.eo.h) \
 
 BUILT_SOURCES += \
                  $(evas_gl_generic_eolian_c) \
-                 $(evas_gl_generic_eolian_h)
+                 $(evas_gl_generic_eolian_h) \
+                 $(NULL)
 
-CLEANFILES += \
-              $(evas_gl_generic_eolian_c) \
-              $(evas_gl_generic_eolian_h)
-
-EXTRA_DIST += $(evas_gl_generic_eolian_files)
+EXTRA_DIST2 += $(evas_gl_generic_eolian_files)
 
 #evaseolianfilesdir = $(datadir)/eolian/include/evas-@VMAJ@
 #evaseolianfiles_DATA += $(evas_gl_generic_eolian_files)
 
 
+if BUILD_ENGINE_GL_COMMON
 if EVAS_STATIC_BUILD_GL_COMMON
 lib_evas_libevas_la_SOURCES += $(GL_COMMON_SOURCES) $(GL_GENERIC_SOURCES)
 lib_evas_libevas_la_LIBADD += @evas_engine_gl_common_libs@
@@ -853,6 +899,9 @@ modules_evas_engines_gl_common_libevas_engine_gl_common_la_CPPFLAGS += @evas_eng
 endif
 if BUILD_ENGINE_GL_DRM
 modules_evas_engines_gl_common_libevas_engine_gl_common_la_CPPFLAGS += @evas_engine_gl_drm_cflags@
+endif
+if BUILD_ENGINE_EGLFS
+modules_evas_engines_gl_common_libevas_engine_gl_common_la_CPPFLAGS += @evas_engine_eglfs_cflags@
 endif
 modules_evas_engines_gl_common_libevas_engine_gl_common_la_LIBADD = @USE_EVAS_LIBS@
 modules_evas_engines_gl_common_libevas_engine_gl_common_la_DEPENDENCIES = @USE_EVAS_INTERNAL_LIBS@
@@ -1203,10 +1252,21 @@ modules/evas/engines/wayland_shm/Evas_Engine_Wayland_Shm.h \
 modules/evas/engines/wayland_shm/evas_engine.c \
 modules/evas/engines/wayland_shm/evas_engine.h \
 modules/evas/engines/wayland_shm/evas_shm.c \
-modules/evas/engines/wayland_shm/evas_outbuf.c
+modules/evas/engines/wayland_shm/evas_dmabuf.c \
+lib/ecore_wl2/linux-dmabuf-unstable-v1-protocol.c \
+modules/evas/engines/wayland_shm/evas_outbuf.c \
+static_libs/libdrm/drm_fourcc.h \
+static_libs/libdrm/drm.h \
+static_libs/libdrm/drm_mode.h \
+static_libs/libdrm/exynos_drm.h \
+static_libs/libdrm/exynos_drmif.h \
+static_libs/libdrm/i915_drm.h \
+static_libs/libdrm/intel_bufmgr.h \
+static_libs/libdrm/LICENSE
 if EVAS_STATIC_BUILD_WAYLAND_SHM
 lib_evas_libevas_la_SOURCES += $(WAYLAND_SHM_SOURCES)
-lib_evas_libevas_la_CPPFLAGS += @evas_engine_wayland_shm_cflags@
+lib_evas_libevas_la_CPPFLAGS += @evas_engine_wayland_shm_cflags@ \
+-I$(top_srcdir)/src/static_libs/libdrm
 lib_evas_libevas_la_LIBADD += @evas_engine_wayland_shm_libs@
 else
 enginewaylandshmpkgdir = $(libdir)/evas/modules/engines/wayland_shm/$(MODULE_ARCH)
@@ -1221,6 +1281,8 @@ modules_evas_engines_wayland_shm_module_la_SOURCES = $(WAYLAND_SHM_SOURCES)
 modules_evas_engines_wayland_shm_module_la_CPPFLAGS = -I$(top_builddir)/src/lib/efl \
 -I$(top_srcdir)/src/lib/evas/include \
 -I$(top_srcdir)/src/lib/evas/cserve2 \
+-I$(top_srcdir)/src/lib/ecore_wl2 \
+-I$(top_srcdir)/src/static_libs/libdrm \
 @EVAS_CFLAGS@ \
 @evas_engine_wayland_shm_cflags@
 modules_evas_engines_wayland_shm_module_la_LIBADD = \
@@ -1233,7 +1295,6 @@ endif
 endif
 
 if BUILD_ENGINE_DRM
-dist_installed_evasmainheaders_DATA += modules/evas/engines/drm/Evas_Engine_Drm.h
 DRM_SOURCES = \
 modules/evas/engines/drm/evas_outbuf.c \
 modules/evas/engines/drm/evas_engine.c \
@@ -1258,20 +1319,19 @@ modules_evas_engines_drm_module_la_CPPFLAGS = -I$(top_builddir)/src/lib/efl \
 -I$(top_srcdir)/src/lib/evas/cserve2 \
 -I$(top_srcdir)/src/modules/evas/engines/drm \
 @EVAS_CFLAGS@ \
-@ECORE_DRM_CFLAGS@ \
+@ECORE_DRM2_CFLAGS@ \
 @evas_engine_drm_cflags@
 modules_evas_engines_drm_module_la_LIBADD = \
 @USE_EVAS_LIBS@ \
-@USE_ECORE_DRM_LIBS@ \
+@USE_ECORE_DRM2_LIBS@ \
 @evas_engine_drm_libs@
-modules_evas_engines_drm_module_la_DEPENDENCIES = @USE_EVAS_INTERNAL_LIBS@ @USE_ECORE_DRM_INTERNAL_LIBS@
+modules_evas_engines_drm_module_la_DEPENDENCIES = @USE_EVAS_INTERNAL_LIBS@ @USE_ECORE_DRM2_INTERNAL_LIBS@
 modules_evas_engines_drm_module_la_LDFLAGS = -module @EFL_LTMODULE_FLAGS@
 modules_evas_engines_drm_module_la_LIBTOOLFLAGS = --tag=disable-static
 endif
 endif
 
 if BUILD_ENGINE_GL_DRM
-dist_installed_evasmainheaders_DATA += modules/evas/engines/gl_drm/Evas_Engine_GL_Drm.h
 GL_DRM_SOURCES = \
 modules/evas/engines/gl_drm/evas_outbuf.c \
 modules/evas/engines/gl_drm/evas_engine.c \
@@ -1296,15 +1356,53 @@ modules_evas_engines_gl_drm_module_la_CPPFLAGS = -I$(top_builddir)/src/lib/efl \
 -I$(top_srcdir)/src/lib/evas/cserve2 \
 -I$(top_srcdir)/src/modules/evas/engines/gl_drm \
 @EVAS_CFLAGS@ \
-@ECORE_DRM_CFLAGS@ \
+@ECORE_DRM2_CFLAGS@ \
 @evas_engine_gl_drm_cflags@
 modules_evas_engines_gl_drm_module_la_LIBADD = \
 @USE_EVAS_LIBS@ \
-@USE_ECORE_DRM_LIBS@ \
+@USE_ECORE_DRM2_LIBS@ \
 @evas_engine_gl_drm_libs@
-modules_evas_engines_gl_drm_module_la_DEPENDENCIES = @USE_EVAS_INTERNAL_LIBS@ @USE_ECORE_DRM_INTERNAL_LIBS@
+modules_evas_engines_gl_drm_module_la_DEPENDENCIES = @USE_EVAS_INTERNAL_LIBS@ @USE_ECORE_DRM2_INTERNAL_LIBS@
 modules_evas_engines_gl_drm_module_la_LDFLAGS = -module @EFL_LTMODULE_FLAGS@
 modules_evas_engines_gl_drm_module_la_LIBTOOLFLAGS = --tag=disable-static
+endif
+endif
+
+if BUILD_ENGINE_EGLFS
+dist_installed_evasmainheaders_DATA += modules/evas/engines/eglfs/Evas_Engine_Eglfs.h
+EGLFS_SOURCES = \
+modules/evas/engines/eglfs/evas_outbuf.c \
+modules/evas/engines/eglfs/evas_engine.c \
+modules/evas/engines/eglfs/evas_engine.h \
+modules/evas/engines/eglfs/Evas_Engine_Eglfs.h
+if EVAS_STATIC_BUILD_EGLFS
+lib_evas_libevas_la_SOURCES += $(EGLFS_SOURCES)
+lib_evas_libevas_la_CPPFLAGS += @evas_engine_eglfs_cflags@
+lib_evas_libevas_la_LIBADD += @evas_engine_eglfs_libs@
+else
+engineeglfspkgdir = $(libdir)/evas/modules/engines/eglfs/$(MODULE_ARCH)
+engineeglfspkg_LTLIBRARIES = modules/evas/engines/eglfs/module.la
+
+# Workaround for broken parallel install support in automake (relink issue)
+# http://debbugs.gnu.org/cgi/bugreport.cgi?bug=7328
+install_engineeglfspkgLTLIBRARIES = install-engineeglfspkgLTLIBRARIES
+$(install_engineeglfspkgLTLIBRARIES): install-libLTLIBRARIES
+
+modules_evas_engines_eglfs_module_la_SOURCES = $(EGLFS_SOURCES)
+modules_evas_engines_eglfs_module_la_CPPFLAGS = -I$(top_builddir)/src/lib/efl \
+-I$(top_srcdir)/src/lib/evas/include \
+-I$(top_srcdir)/src/lib/evas/cserve2 \
+-I$(top_srcdir)/src/modules/evas/engines/eglfs \
+@EVAS_CFLAGS@ \
+@ECORE_DRM_CFLAGS@ \
+@evas_engine_eglfs_cflags@
+modules_evas_engines_eglfs_module_la_LIBADD = \
+@USE_EVAS_LIBS@ \
+@USE_ECORE_DRM_LIBS@ \
+@evas_engine_eglfs_libs@
+modules_evas_engines_eglfs_module_la_DEPENDENCIES = @USE_EVAS_INTERNAL_LIBS@ @USE_ECORE_DRM_INTERNAL_LIBS@
+modules_evas_engines_eglfs_module_la_LDFLAGS = -module @EFL_LTMODULE_FLAGS@
+modules_evas_engines_eglfs_module_la_LIBTOOLFLAGS = --tag=disable-static
 endif
 endif
 
@@ -2049,15 +2147,11 @@ endif
 endif
 
 if BUILD_LOADER_TGV
-EXTRA_DIST += static_libs/rg_etc/README
+EXTRA_DIST2 += static_libs/rg_etc/README
 if EVAS_STATIC_BUILD_TGV
 lib_evas_libevas_la_SOURCES += \
 modules/evas/image_loaders/tgv/evas_image_load_tgv.c \
-modules/evas/image_savers/tgv/evas_image_save_tgv.c \
-static_libs/rg_etc/rg_etc1.c \
-static_libs/rg_etc/rg_etc2.c \
-static_libs/rg_etc/rg_etc1.h \
-static_libs/rg_etc/etc2_encoder.c
+modules/evas/image_savers/tgv/evas_image_save_tgv.c
 if ! ENABLE_LIBLZ4
 lib_evas_libevas_la_SOURCES += \
 static_libs/lz4/lz4.c \
@@ -2208,7 +2302,7 @@ tests_evas_evas_suite_LDADD = @CHECK_LIBS@ @USE_EVAS_LIBS@ @USE_ECORE_EVAS_LIBS@
 tests_evas_evas_suite_DEPENDENCIES = @USE_EVAS_INTERNAL_LIBS@
 endif
 
-EXTRA_DIST += \
+EXTRA_DIST2 += \
 tests/evas/TestFont.eet \
 tests/evas/images/HM7Y9233-50.tgv \
 tests/evas/images/HM7Y9233.jpg \
@@ -2274,7 +2368,7 @@ evas_eolian_lua = $(evas_eolian_pub_files:%.eo=%.eo.lua)
 
 generated_evas_lua_all = $(evas_eolian_lua)
 
-CLEANFILES += $(generated_evas_lua_all)
+GENERATED_LUA_BINDINGS += $(generated_evas_lua_all)
 
 installed_evasluadir = $(datadir)/elua/modules/evas
 nodist_installed_evaslua_DATA = $(generated_evas_lua_all)
@@ -2293,8 +2387,284 @@ if HAVE_JS
 
 generated_evas_js_bindings = $(evas_eolian_pub_files:%.eo=%.eo.js.cc)
 
-CLEANFILES += $(generated_evas_js_bindings)
-
 GENERATED_JS_BINDINGS += $(generated_evas_js_bindings)
 
+endif
+
+if HAVE_CXX11
+evas_eolian_cxx_hh = $(evas_eolian_pub_files:%.eo=%.eo.hh) $(evas_eolian_legacy_files:%.eo=%.eo.hh)
+evas_eolian_cxx_impl = $(evas_eolian_pub_files:%.eo=%.eo.impl.hh) $(evas_eolian_legacy_files:%.eo=%.eo.impl.hh)
+endif
+
+EXTRA_DIST2 += \
+generic/evas/common/shmfile.c \
+generic/evas/common/shmfile.h \
+generic/evas/common/timeout.c \
+generic/evas/common/timeout.h
+
+evasgenericloadersdir = \
+$(libdir)/evas/utils
+
+evasgenericloaders_PROGRAMS =
+evasgenericloaders_SCRIPTS =
+
+### Libreoffice converter to pdf
+EXTRA_DIST2 += generic/evas/pdf/evas_generic_pdf_loader.libreoffice
+
+if HAVE_POPPLER
+
+evasgenericloaders_SCRIPTS += generic/evas/pdf/evas_generic_pdf_loader.libreoffice
+evasgenericloaders_PROGRAMS += generic/evas/pdf/evas_image_loader.pdf
+
+generic_evas_pdf_evas_image_loader_pdf_SOURCES = \
+generic/evas/pdf/main.cpp \
+generic/evas/common/shmfile.c \
+generic/evas/common/timeout.c
+generic_evas_pdf_evas_image_loader_pdf_CFLAGS = \
+-I$(top_srcdir)/src/lib/efl \
+-I$(top_builddir)/src/lib/efl \
+-I$(top_srcdir)/src/lib/eina \
+-I$(top_builddir)/src/lib/eina \
+-I$(top_srcdir)/src/generic/evas/common \
+@POPPLER_CFLAGS@
+generic_evas_pdf_evas_image_loader_pdf_CXXFLAGS = \
+-I$(top_srcdir)/src/lib/efl \
+-I$(top_builddir)/src/lib/efl \
+-I$(top_srcdir)/src/lib/eina \
+-I$(top_builddir)/src/lib/eina \
+-I$(top_srcdir)/src/generic/evas/common \
+@POPPLER_CFLAGS@
+generic_evas_pdf_evas_image_loader_pdf_LDADD = @USE_EINA_LIBS@ @POPPLER_LIBS@ @SHM_LIBS@
+generic_evas_pdf_evas_image_loader_pdf_DEPENDENCIES = @USE_EINA_INTERNAL_LIBS@
+
+EFL_INSTALL_EXEC_HOOK += \
+mkdir -p $(DESTDIR)$(libdir)/evas/utils; \
+ln -sf evas_image_loader.pdf $(DESTDIR)$(libdir)/evas/utils/evas_image_loader.ppt; \
+ln -sf evas_image_loader.pdf $(DESTDIR)$(libdir)/evas/utils/evas_image_loader.pptx; \
+ln -sf evas_image_loader.pdf $(DESTDIR)$(libdir)/evas/utils/evas_image_loader.odp; \
+ln -sf evas_image_loader.pdf $(DESTDIR)$(libdir)/evas/utils/evas_image_loader.xls; \
+ln -sf evas_image_loader.pdf $(DESTDIR)$(libdir)/evas/utils/evas_image_loader.xlsx; \
+ln -sf evas_image_loader.pdf $(DESTDIR)$(libdir)/evas/utils/evas_image_loader.ods; \
+ln -sf evas_image_loader.pdf $(DESTDIR)$(libdir)/evas/utils/evas_image_loader.doc; \
+ln -sf evas_image_loader.pdf $(DESTDIR)$(libdir)/evas/utils/evas_image_loader.docx; \
+ln -sf evas_image_loader.pdf $(DESTDIR)$(libdir)/evas/utils/evas_image_loader.odt; \
+ln -sf evas_image_loader.pdf $(DESTDIR)$(libdir)/evas/utils/evas_image_loader.rtf; \
+ln -sf evas_generic_pdf_loader.libreoffice $(DESTDIR)$(libdir)/evas/utils/evas_generic_pdf_loader.ppt; \
+ln -sf evas_generic_pdf_loader.libreoffice $(DESTDIR)$(libdir)/evas/utils/evas_generic_pdf_loader.pptx; \
+ln -sf evas_generic_pdf_loader.libreoffice $(DESTDIR)$(libdir)/evas/utils/evas_generic_pdf_loader.odp; \
+ln -sf evas_generic_pdf_loader.libreoffice $(DESTDIR)$(libdir)/evas/utils/evas_generic_pdf_loader.xls; \
+ln -sf evas_generic_pdf_loader.libreoffice $(DESTDIR)$(libdir)/evas/utils/evas_generic_pdf_loader.xlsx; \
+ln -sf evas_generic_pdf_loader.libreoffice $(DESTDIR)$(libdir)/evas/utils/evas_generic_pdf_loader.ods; \
+ln -sf evas_generic_pdf_loader.libreoffice $(DESTDIR)$(libdir)/evas/utils/evas_generic_pdf_loader.doc; \
+ln -sf evas_generic_pdf_loader.libreoffice $(DESTDIR)$(libdir)/evas/utils/evas_generic_pdf_loader.docx; \
+ln -sf evas_generic_pdf_loader.libreoffice $(DESTDIR)$(libdir)/evas/utils/evas_generic_pdf_loader.odt; \
+ln -sf evas_generic_pdf_loader.libreoffice $(DESTDIR)$(libdir)/evas/utils/evas_generic_pdf_loader.rtf;
+
+endif
+
+if HAVE_SPECTRE
+
+evasgenericloaders_PROGRAMS += generic/evas/ps/evas_image_loader.ps
+
+generic_evas_ps_evas_image_loader_ps_SOURCES = \
+generic/evas/ps/main.c \
+generic/evas/common/shmfile.c \
+generic/evas/common/timeout.c
+generic_evas_ps_evas_image_loader_ps_LDADD = @USE_EINA_LIBS@ @SPECTRE_LIBS@ @SHM_LIBS@
+generic_evas_ps_evas_image_loader_ps_DEPENDENCIES = @USE_EINA_INTERNAL_LIBS@
+generic_evas_ps_evas_image_loader_ps_CFLAGS = \
+-I$(top_srcdir)/src/lib/efl \
+-I$(top_builddir)/src/lib/efl \
+-I$(top_srcdir)/src/lib/eina \
+-I$(top_builddir)/src/lib/eina \
+-I$(top_srcdir)/src/generic/evas/common
+
+endif
+
+if HAVE_LIBRAW
+
+evasgenericloaders_PROGRAMS += generic/evas/raw/evas_image_loader.raw
+
+generic_evas_raw_evas_image_loader_raw_SOURCES = \
+generic/evas/raw/main.c \
+generic/evas/common/shmfile.c \
+generic/evas/common/timeout.c
+generic_evas_raw_evas_image_loader_raw_LDADD = @USE_EINA_LIBS@ @SHM_LIBS@ @LIBRAW_LIBS@ -lm
+generic_evas_raw_evas_image_loader_raw_DEPENDENCIES = @USE_EINA_INTERNAL_LIBS@
+generic_evas_raw_evas_image_loader_raw_CFLAGS = \
+-I$(top_srcdir)/src/lib/efl \
+-I$(top_builddir)/src/lib/efl \
+-I$(top_srcdir)/src/lib/eina \
+-I$(top_builddir)/src/lib/eina \
+-I$(top_srcdir)/src/generic/evas/common \
+@LIBRAW_CFLAGS@
+
+EFL_INSTALL_EXEC_HOOK += \
+mkdir -p $(DESTDIR)$(libdir)/evas/utils; \
+ln -sf evas_image_loader.raw $(DESTDIR)$(libdir)/evas/utils/evas_image_loader.arw; \
+ln -sf evas_image_loader.raw $(DESTDIR)$(libdir)/evas/utils/evas_image_loader.cr2; \
+ln -sf evas_image_loader.raw $(DESTDIR)$(libdir)/evas/utils/evas_image_loader.crw; \
+ln -sf evas_image_loader.raw $(DESTDIR)$(libdir)/evas/utils/evas_image_loader.dcr; \
+ln -sf evas_image_loader.raw $(DESTDIR)$(libdir)/evas/utils/evas_image_loader.dng; \
+ln -sf evas_image_loader.raw $(DESTDIR)$(libdir)/evas/utils/evas_image_loader.k25; \
+ln -sf evas_image_loader.raw $(DESTDIR)$(libdir)/evas/utils/evas_image_loader.kdc; \
+ln -sf evas_image_loader.raw $(DESTDIR)$(libdir)/evas/utils/evas_image_loader.erf; \
+ln -sf evas_image_loader.raw $(DESTDIR)$(libdir)/evas/utils/evas_image_loader.mrw; \
+ln -sf evas_image_loader.raw $(DESTDIR)$(libdir)/evas/utils/evas_image_loader.nef; \
+ln -sf evas_image_loader.raw $(DESTDIR)$(libdir)/evas/utils/evas_image_loader.nrf; \
+ln -sf evas_image_loader.raw $(DESTDIR)$(libdir)/evas/utils/evas_image_loader.nrw; \
+ln -sf evas_image_loader.raw $(DESTDIR)$(libdir)/evas/utils/evas_image_loader.orf; \
+ln -sf evas_image_loader.raw $(DESTDIR)$(libdir)/evas/utils/evas_image_loader.rw2; \
+ln -sf evas_image_loader.raw $(DESTDIR)$(libdir)/evas/utils/evas_image_loader.pef; \
+ln -sf evas_image_loader.raw $(DESTDIR)$(libdir)/evas/utils/evas_image_loader.raf; \
+ln -sf evas_image_loader.raw $(DESTDIR)$(libdir)/evas/utils/evas_image_loader.sr2; \
+ln -sf evas_image_loader.raw $(DESTDIR)$(libdir)/evas/utils/evas_image_loader.srf; \
+ln -sf evas_image_loader.raw $(DESTDIR)$(libdir)/evas/utils/evas_image_loader.x3f;
+
+endif
+
+if HAVE_RSVG
+
+evasgenericloaders_PROGRAMS += generic/evas/svg/evas_image_loader.svg
+
+generic_evas_svg_evas_image_loader_svg_SOURCES = \
+generic/evas/svg/main.c \
+generic/evas/common/shmfile.c \
+generic/evas/common/timeout.c
+generic_evas_svg_evas_image_loader_svg_CFLAGS = \
+-I$(top_srcdir)/src/lib/efl \
+-I$(top_builddir)/src/lib/efl \
+-I$(top_srcdir)/src/lib/eina \
+-I$(top_builddir)/src/lib/eina \
+-I$(top_srcdir)/src/generic/evas/common \
+@RSVG_CFLAGS@
+generic_evas_svg_evas_image_loader_svg_LDADD = @USE_EINA_LIBS@ @RSVG_LIBS@ @SHM_LIBS@ -lm
+generic_evas_svg_evas_image_loader_svg_DEPENDENCIES = @USE_EINA_INTERNAL_LIBS@
+
+EFL_INSTALL_EXEC_HOOK += \
+mkdir -p $(DESTDIR)$(libdir)/evas/utils; \
+ln -sf evas_image_loader.svg $(DESTDIR)$(libdir)/evas/utils/evas_image_loader.svgz; \
+ln -sf evas_image_loader.svg $(DESTDIR)$(libdir)/evas/utils/evas_image_loader.svg.gz;
+
+endif
+
+EXTRA_DIST2 += generic/evas/xcf/common.h
+
+if HAVE_XCF
+
+evasgenericloaders_PROGRAMS += generic/evas/xcf/evas_image_loader.xcf
+
+generic_evas_xcf_evas_image_loader_xcf_SOURCES = \
+generic/evas/xcf/main.c \
+generic/evas/xcf/pixelfuncs.c \
+generic/evas/common/shmfile.c \
+generic/evas/common/timeout.c
+generic_evas_xcf_evas_image_loader_xcf_CFLAGS = \
+@EVAS_CFLAGS@ \
+-I$(top_srcdir)/src/lib/efl \
+-I$(top_srcdir)/src/lib/eina \
+-I$(top_builddir)/src/lib/eina \
+-I$(top_srcdir)/src/generic/evas/common
+generic_evas_xcf_evas_image_loader_xcf_LDADD = @USE_EINA_LIBS@ @SHM_LIBS@ -lm -lz
+generic_evas_xcf_evas_image_loader_xcf_DEPENDENCIES = @USE_EINA_INTERNAL_LIBS@
+EFL_INSTALL_EXEC_HOOK += \
+mkdir -p $(DESTDIR)$(libdir)/evas/utils; \
+ln -sf evas_image_loader.xcf $(DESTDIR)$(libdir)/evas/utils/evas_image_loader.xcf.gz;
+
+endif
+
+
+EXTRA_DIST2 += \
+  generic/evas/gst/main_0_10.c \
+  generic/evas/gst/main.c
+
+if HAVE_GSTREAMER
+EFL_INSTALL_EXEC_HOOK += \
+mkdir -p $(DESTDIR)$(libdir)/evas/utils; \
+ln -sf evas_image_loader.gst $(DESTDIR)$(libdir)/evas/utils/evas_image_loader.264; \
+ln -sf evas_image_loader.gst $(DESTDIR)$(libdir)/evas/utils/evas_image_loader.3g2; \
+ln -sf evas_image_loader.gst $(DESTDIR)$(libdir)/evas/utils/evas_image_loader.3gp; \
+ln -sf evas_image_loader.gst $(DESTDIR)$(libdir)/evas/utils/evas_image_loader.3gp2; \
+ln -sf evas_image_loader.gst $(DESTDIR)$(libdir)/evas/utils/evas_image_loader.3gpp; \
+ln -sf evas_image_loader.gst $(DESTDIR)$(libdir)/evas/utils/evas_image_loader.3gpp2; \
+ln -sf evas_image_loader.gst $(DESTDIR)$(libdir)/evas/utils/evas_image_loader.3p2; \
+ln -sf evas_image_loader.gst $(DESTDIR)$(libdir)/evas/utils/evas_image_loader.asf; \
+ln -sf evas_image_loader.gst $(DESTDIR)$(libdir)/evas/utils/evas_image_loader.avi; \
+ln -sf evas_image_loader.gst $(DESTDIR)$(libdir)/evas/utils/evas_image_loader.bdm; \
+ln -sf evas_image_loader.gst $(DESTDIR)$(libdir)/evas/utils/evas_image_loader.bdmv; \
+ln -sf evas_image_loader.gst $(DESTDIR)$(libdir)/evas/utils/evas_image_loader.clpi; \
+ln -sf evas_image_loader.gst $(DESTDIR)$(libdir)/evas/utils/evas_image_loader.cpi; \
+ln -sf evas_image_loader.gst $(DESTDIR)$(libdir)/evas/utils/evas_image_loader.dv; \
+ln -sf evas_image_loader.gst $(DESTDIR)$(libdir)/evas/utils/evas_image_loader.fla; \
+ln -sf evas_image_loader.gst $(DESTDIR)$(libdir)/evas/utils/evas_image_loader.flv; \
+ln -sf evas_image_loader.gst $(DESTDIR)$(libdir)/evas/utils/evas_image_loader.m1v; \
+ln -sf evas_image_loader.gst $(DESTDIR)$(libdir)/evas/utils/evas_image_loader.m2t; \
+ln -sf evas_image_loader.gst $(DESTDIR)$(libdir)/evas/utils/evas_image_loader.m2v; \
+ln -sf evas_image_loader.gst $(DESTDIR)$(libdir)/evas/utils/evas_image_loader.m4v; \
+ln -sf evas_image_loader.gst $(DESTDIR)$(libdir)/evas/utils/evas_image_loader.mkv; \
+ln -sf evas_image_loader.gst $(DESTDIR)$(libdir)/evas/utils/evas_image_loader.mov; \
+ln -sf evas_image_loader.gst $(DESTDIR)$(libdir)/evas/utils/evas_image_loader.mp2; \
+ln -sf evas_image_loader.gst $(DESTDIR)$(libdir)/evas/utils/evas_image_loader.mp2ts; \
+ln -sf evas_image_loader.gst $(DESTDIR)$(libdir)/evas/utils/evas_image_loader.mp4; \
+ln -sf evas_image_loader.gst $(DESTDIR)$(libdir)/evas/utils/evas_image_loader.mpe; \
+ln -sf evas_image_loader.gst $(DESTDIR)$(libdir)/evas/utils/evas_image_loader.mpeg; \
+ln -sf evas_image_loader.gst $(DESTDIR)$(libdir)/evas/utils/evas_image_loader.mpg; \
+ln -sf evas_image_loader.gst $(DESTDIR)$(libdir)/evas/utils/evas_image_loader.mpl; \
+ln -sf evas_image_loader.gst $(DESTDIR)$(libdir)/evas/utils/evas_image_loader.mpls; \
+ln -sf evas_image_loader.gst $(DESTDIR)$(libdir)/evas/utils/evas_image_loader.mts; \
+ln -sf evas_image_loader.gst $(DESTDIR)$(libdir)/evas/utils/evas_image_loader.mxf; \
+ln -sf evas_image_loader.gst $(DESTDIR)$(libdir)/evas/utils/evas_image_loader.nut; \
+ln -sf evas_image_loader.gst $(DESTDIR)$(libdir)/evas/utils/evas_image_loader.nuv; \
+ln -sf evas_image_loader.gst $(DESTDIR)$(libdir)/evas/utils/evas_image_loader.ogg; \
+ln -sf evas_image_loader.gst $(DESTDIR)$(libdir)/evas/utils/evas_image_loader.ogm; \
+ln -sf evas_image_loader.gst $(DESTDIR)$(libdir)/evas/utils/evas_image_loader.ogv; \
+ln -sf evas_image_loader.gst $(DESTDIR)$(libdir)/evas/utils/evas_image_loader.qt; \
+ln -sf evas_image_loader.gst $(DESTDIR)$(libdir)/evas/utils/evas_image_loader.rm; \
+ln -sf evas_image_loader.gst $(DESTDIR)$(libdir)/evas/utils/evas_image_loader.rmj; \
+ln -sf evas_image_loader.gst $(DESTDIR)$(libdir)/evas/utils/evas_image_loader.rmm; \
+ln -sf evas_image_loader.gst $(DESTDIR)$(libdir)/evas/utils/evas_image_loader.rms; \
+ln -sf evas_image_loader.gst $(DESTDIR)$(libdir)/evas/utils/evas_image_loader.rmx; \
+ln -sf evas_image_loader.gst $(DESTDIR)$(libdir)/evas/utils/evas_image_loader.rmvb; \
+ln -sf evas_image_loader.gst $(DESTDIR)$(libdir)/evas/utils/evas_image_loader.rv; \
+ln -sf evas_image_loader.gst $(DESTDIR)$(libdir)/evas/utils/evas_image_loader.swf; \
+ln -sf evas_image_loader.gst $(DESTDIR)$(libdir)/evas/utils/evas_image_loader.ts; \
+ln -sf evas_image_loader.gst $(DESTDIR)$(libdir)/evas/utils/evas_image_loader.webm; \
+ln -sf evas_image_loader.gst $(DESTDIR)$(libdir)/evas/utils/evas_image_loader.weba; \
+ln -sf evas_image_loader.gst $(DESTDIR)$(libdir)/evas/utils/evas_image_loader.wmv;
+endif
+
+if HAVE_GSTREAMER0
+evasgenericloaders_PROGRAMS += generic/evas/gst/evas_image_loader.gst
+generic_evas_gst_evas_image_loader_gst_SOURCES = \
+  generic/evas/gst/main_0_10.c \
+  generic/evas/common/shmfile.c \
+  generic/evas/common/timeout.c
+generic_evas_gst_evas_image_loader_gst_CFLAGS = \
+  -I$(top_srcdir)/src/lib/efl \
+  -I$(top_builddir)/src/lib/efl \
+  -I$(top_srcdir)/src/lib/eina \
+  -I$(top_builddir)/src/lib/eina \
+  -I$(top_srcdir)/src/generic/evas/common \
+  @EMOTION_MODULE_GSTREAMER_CFLAGS@
+generic_evas_gst_evas_image_loader_gst_LDADD = \
+  @USE_EINA_LIBS@ @SHM_LIBS@ -lm @EMOTION_MODULE_GSTREAMER_LIBS@
+generic_evas_gst_evas_image_loader_gst_DEPENDENCIES = @USE_EINA_INTERNAL_LIBS@
+endif
+
+if HAVE_GSTREAMER1
+evasgenericloaders_PROGRAMS += generic/evas/gst/evas_image_loader.gst
+generic_evas_gst_evas_image_loader_gst_SOURCES = \
+  generic/evas/gst/main.c \
+  generic/evas/common/shmfile.c \
+  generic/evas/common/timeout.c
+generic_evas_gst_evas_image_loader_gst_CFLAGS = \
+  -I$(top_srcdir)/src/lib/efl \
+  -I$(top_builddir)/src/lib/efl \
+  -I$(top_srcdir)/src/lib/eina \
+  -I$(top_builddir)/src/lib/eina \
+  -I$(top_srcdir)/src/generic/evas/common \
+  @EMOTION_MODULE_GSTREAMER1_CFLAGS@
+generic_evas_gst_evas_image_loader_gst_LDADD = \
+  @USE_EINA_LIBS@ @SHM_LIBS@ -lm @EMOTION_MODULE_GSTREAMER1_LIBS@
+generic_evas_gst_evas_image_loader_gst_DEPENDENCIES = @USE_EINA_INTERNAL_LIBS@
 endif

@@ -1,13 +1,14 @@
 MAINTAINERCLEANFILES = Makefile.in
 
 AM_CPPFLAGS = \
--I$(top_builddir)/src/lib/efl \
 -I$(top_srcdir)/src/lib/eina \
 -I$(top_srcdir)/src/lib/eo \
+-I$(top_srcdir)/src/lib/efl \
 -I$(top_srcdir)/src/lib/ecore \
 -I$(top_srcdir)/src/lib/ecore_avahi\
 -I$(top_builddir)/src/lib/eina \
 -I$(top_builddir)/src/lib/eo \
+-I$(top_builddir)/src/lib/efl \
 -I$(top_builddir)/src/lib/ecore \
 -I$(top_builddir)/src/lib/ecore_avahi \
 @AVAHI_CLIENT_CFLAGS@
@@ -36,10 +37,10 @@ clean-local:
 	rm -f $(EXTRA_PROGRAMS)
 
 install-examples:
-	$(MKDIR_P) $(datadir)/ecore_avahi/examples
-	$(install_sh_DATA) -c $(srcdir)/ecore_avahi_browse_example.c $(datadir)/ecore_avahi/examples
-	$(install_sh_DATA) -c $(srcdir)/ecore_avahi_example.c $(datadir)/ecore_avahi/examples
+	$(MKDIR_P) $(DESTDIR)$(datadir)/ecore_avahi/examples
+	$(install_sh_DATA) -c $(srcdir)/ecore_avahi_browse_example.c $(DESTDIR)$(datadir)/ecore_avahi/examples
+	$(install_sh_DATA) -c $(srcdir)/ecore_avahi_example.c $(DESTDIR)$(datadir)/ecore_avahi/examples
 
 uninstall-local:
-	rm -f $(datadir)/ecore_avahi/examples/ecore_avahi_example.c
-	rm -f $(datadir)/ecore_avahi/examples/ecore_avahi_browse_example.c
+	rm -f $(DESTDIR)$(datadir)/ecore_avahi/examples/ecore_avahi_example.c
+	rm -f $(DESTDIR)$(datadir)/ecore_avahi/examples/ecore_avahi_browse_example.c

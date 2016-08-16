@@ -105,10 +105,22 @@ _write_file(const char *filename, const Eina_Strbuf *buffer, Eina_Bool append)
         return EINA_FALSE;
      }
 
-   if (eina_strbuf_length_get(buffer))
-     fwrite(eina_strbuf_string_get(buffer), 1, eina_strbuf_length_get(buffer), fd);
+   Eina_Bool ret = EINA_TRUE;
+   size_t blen = eina_strbuf_length_get(buffer);
+
+   if (!blen)
+     goto end;
+
+   if (fwrite(eina_strbuf_string_get(buffer), 1, blen, fd) != blen)
+     {
+        fprintf(stderr, "eolian: could not write '%s' (%s)\n",
+                filename, strerror(errno));
+        ret = EINA_FALSE;
+     }
+
+end:
    fclose(fd);
-   return EINA_TRUE;
+   return ret;
 }
 
 static Eina_Bool
@@ -260,7 +272,7 @@ enum
 int
 main(int argc, char **argv)
 {
-   int gen_what = GEN_NOTHING, do_legacy = 0, ret = 1;
+   int gen_what = GEN_NOTHING, do_legacy = 0, ret = 1, silent_types = 0;
    Eina_Bool help = EINA_FALSE;
    const char *outf = NULL;
 
@@ -286,6 +298,7 @@ main(int argc, char **argv)
       { "output",  required_argument, NULL,       'o'        },
       { "legacy",  no_argument,       &do_legacy, 1          },
       { "include", required_argument, NULL,       'I'        },
+      { "silent-types", no_argument,  &silent_types, 1       },
       { NULL, 0, NULL, 0 }
    };
 
@@ -313,7 +326,7 @@ main(int argc, char **argv)
 
    if (help)
      {
-        printf("Usage: %s [-h/--help] [-I/--include input_dir] [--legacy] [--gh|--gc|--gi] [--output/-o outfile] file.eo ... \n", argv[0]);
+        printf("Usage: %s [-h/--help] [-I/--include input_dir] [--legacy] [--gh|--gs|--gc|--gi] [--output/-o outfile] file.eo ... \n", argv[0]);
         printf("       --help/-h Print that help\n");
         printf("       --include/-I Include 'input_dir' as directory to search .eo files into\n");
         printf("       --output/-o Force output filename to 'outfile'\n");
@@ -322,6 +335,7 @@ main(int argc, char **argv)
         printf("       --gc Generate C source file [.c]\n");
         printf("       --gi Generate C implementation source file [.c]. The output will be a series of functions that have to be filled.\n");
         printf("       --legacy Generate legacy\n");
+        printf("       --silent-types Silence type validation\n");
         ret = 0;
         goto end;
      }
@@ -339,7 +353,7 @@ main(int argc, char **argv)
         goto end;
      }
 
-   if (!eolian_database_validate())
+   if (!eolian_database_validate(silent_types))
      {
         fprintf(stderr, "eolian: error validating database\n");
         goto end;

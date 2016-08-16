@@ -1,22 +1,22 @@
-class Efl.VG.Container (Efl.VG.Base)
+class Efl.VG.Container (Efl.VG)
 {
    legacy_prefix: evas_vg_container;
    methods {
       child_get {
          params {
-            @in name: const(char)*;
+            @in name: string;
          }
-         return: Efl.VG.Base *;
+         return: Efl.VG;
       }
       children_get {
-         return: free(own(iterator<Efl.VG.Base *>*), eina_iterator_free) @warn_unused;
+         return: free(own(iterator<Efl.VG>), eina_iterator_free) @warn_unused;
       }
    }
    implements {
       Eo.Base.constructor;
       Eo.Base.destructor;
-      Efl.VG.Base.bounds_get;
-      Efl.VG.Base.interpolate;
-      Efl.VG.Base.dup;
+      Efl.VG.bounds_get;
+      Efl.VG.interpolate;
+      Efl.VG.dup;
    }
 }

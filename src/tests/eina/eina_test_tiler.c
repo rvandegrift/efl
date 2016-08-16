@@ -22,8 +22,9 @@
 
 #include <stdio.h>
 
+#include <Eina.h>
+
 #include "eina_suite.h"
-#include "Eina.h"
 
 struct test_rect
 {
@@ -200,6 +201,12 @@ START_TEST(eina_test_tiler_stable)
    fail_if(!tl);
 
    eina_tiler_tile_size_set(tl, 1, 1);
+
+   EINA_RECTANGLE_SET(&r, 50, 50, 20, 20);
+   fail_if(!eina_tiler_rect_add(tl, &r));
+
+   EINA_RECTANGLE_SET(&r, 40, 40, 20, 20);
+   eina_tiler_rect_del(tl, &r);
 
    EINA_RECTANGLE_SET(&r, 50, 50, 20, 20);
    fail_if(!eina_tiler_rect_add(tl, &r));

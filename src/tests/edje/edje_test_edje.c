@@ -49,16 +49,6 @@ test_layout_get(const char *name)
 
    snprintf(filename, PATH_MAX, TESTS_BUILD_DIR"/data/%s", name);
 
-   static int is_local = -1;
-   if (is_local == -1)
-     {
-        struct stat st;
-        is_local = (stat(filename, &st) == 0);
-     }
-
-   if (!is_local)
-     snprintf(filename, PATH_MAX, PACKAGE_DATA_DIR"/data/%s", name);
-
    return filename;
 }
 
@@ -178,7 +168,6 @@ START_TEST(edje_test_masking)
    Evas *evas = EDJE_TEST_INIT_EVAS();
    const Evas_Object *sub, *clip2, *clip;
    Evas_Object *obj;
-   Eina_Bool b;
 
    obj = edje_object_add(evas);
    fail_unless(edje_object_file_set(obj, test_layout_get("test_masking.edj"), "test_group"));
@@ -192,15 +181,15 @@ START_TEST(edje_test_masking)
 
    /* check value of no_render flag as seen from evas land */
    sub = edje_object_part_object_get(obj, "mask");
-   fail_if(!eo_do_ret(sub, b, evas_obj_no_render_get()));
+   fail_if(!efl_canvas_object_no_render_get(sub));
 
    /* check that text has a clip (based on description.clip_to) */
    sub = edje_object_part_object_get(obj, "text");
-   fail_if(!eo_do_ret(sub, clip2, evas_obj_clip_get()));
+   fail_if(!efl_canvas_object_clip_get(sub));
 
    /* test description.clip_to override */
    sub = edje_object_part_object_get(obj, "noclip");
-   clip2 = eo_do_ret(sub, clip2, evas_obj_clip_get());
+   clip2 = efl_canvas_object_clip_get(sub);
    fail_if(clip != clip2);
 
    EDJE_TEST_FREE_EVAS();
@@ -213,7 +202,6 @@ START_TEST(edje_test_filters)
    const Evas_Object *text, *sub;
    Evas_Object *obj, *src = NULL;
    const char *prg, *name;
-   Eina_Bool b;
 
    setenv("EVAS_DATA_DIR", EVAS_DATA_DIR, 1);
 
@@ -224,23 +212,23 @@ START_TEST(edje_test_filters)
 
    /* check value of no_render flag as seen from evas land */
    sub = edje_object_part_object_get(obj, "mask");
-   fail_if(!eo_do_ret(sub, b, evas_obj_no_render_get()));
+   fail_if(!efl_canvas_object_no_render_get(sub));
 
    /* check no_render inheritance */
    sub = edje_object_part_object_get(obj, "mask2");
-   fail_if(eo_do_ret(sub, b, evas_obj_no_render_get()));
+   fail_if(efl_canvas_object_no_render_get(sub));
    sub = edje_object_part_object_get(obj, "mask3");
-   fail_if(!eo_do_ret(sub, b, evas_obj_no_render_get()));
+   fail_if(!efl_canvas_object_no_render_get(sub));
 
    /* text part: check filter status */
    text = edje_object_part_object_get(obj, "text");
    fail_if(!text);
 
-   eo_do(text, efl_gfx_filter_program_get(&prg, &name));
+   efl_gfx_filter_program_get(text, &prg, &name);
    fail_if(!prg);
    fail_if(!name || strcmp(name, "filterfile"));
 
-   eo_do(text, efl_gfx_filter_source_get("mask", &src));
+   src = efl_gfx_filter_source_get(text, "mask");
    fail_if(!src);
 
    // TODO: Verify properly that the filter runs well
@@ -254,7 +242,6 @@ START_TEST(edje_test_snapshot)
    Evas *evas = EDJE_TEST_INIT_EVAS();
    const Evas_Object *sub;
    Evas_Object *obj;
-   Eina_Bool b;
 
    setenv("EVAS_DATA_DIR", EVAS_DATA_DIR, 1);
 
@@ -265,7 +252,8 @@ START_TEST(edje_test_snapshot)
 
    /* check value of no_render flag as seen from evas land */
    sub = edje_object_part_object_get(obj, "snap");
-   fail_if(!eo_do_ret(sub, b, evas_obj_image_snapshot_get()));
+   fail_if(!eo_isa(sub, EFL_CANVAS_SNAPSHOT_CLASS) &&
+           !evas_object_image_snapshot_get(sub));
 
    // TODO: Verify that evas snapshot actually works (and has a filter)
 
@@ -327,10 +315,406 @@ START_TEST(edje_test_size_class)
 }
 END_TEST
 
+START_TEST(edje_test_color_class)
+{
+   Evas *evas = EDJE_TEST_INIT_EVAS();
+
+   Eina_File *f;
+   Eina_Iterator *it;
+   Edje_Color_Class *itcc, *cc = NULL;
+   char *filename;
+
+   filename = realpath(test_layout_get("test_color_class.edj"), NULL);
+   fail_if(!filename);
+
+   f = eina_file_open(filename, EINA_FALSE);
+   fail_if(!f);
+
+   it = edje_mmap_color_class_iterator_new(f);
+   fail_if(!it);
+   EINA_ITERATOR_FOREACH(it, itcc)
+     {
+        if (!strcmp(itcc->name, "test_color_class"))
+          {
+             cc = itcc;
+             break;
+          }
+     }
+   fail_if((!cc) || (cc->r != 100) || (cc->g != 100) || (cc->b != 100) || (cc->a != 100));
+
+   eina_iterator_free(it);
+   eina_file_close(f);
+   free(filename);
+
+   EDJE_TEST_FREE_EVAS();
+}
+END_TEST
+
+START_TEST(edje_test_swallows)
+{
+   Evas *evas = EDJE_TEST_INIT_EVAS();
+   Evas_Object *ly, *o1, *o2;
+
+   ly = eo_add(EDJE_OBJECT_CLASS, evas);
+   fail_unless(edje_object_file_set(ly, test_layout_get("test_swallows.edj"), "test_group"));
+
+   fail_unless(edje_object_part_exists(ly, "swallow"));
+
+
+   o1 = eo_add(EDJE_OBJECT_CLASS, ly);
+   fail_if(!edje_object_part_swallow(ly, "swallow", o1));
+   ck_assert_ptr_eq(eo_parent_get(o1), ly);
+
+   edje_object_part_unswallow(ly, o1);
+   ck_assert_ptr_eq(eo_parent_get(o1), evas_object_evas_get(o1));
+
+   fail_if(!edje_object_part_swallow(ly, "swallow", o1));
+   ck_assert_ptr_eq(eo_parent_get(o1), ly);
+
+   o2 = eo_add(EDJE_OBJECT_CLASS, ly);
+   fail_if(!edje_object_part_swallow(ly, "swallow", o2));
+   ck_assert_ptr_eq(eo_parent_get(o2), ly);
+   /* o1 is deleted at this point. */
+   ck_assert_ptr_eq(eo_parent_get(o1), evas_object_evas_get(o1));
+
+   EDJE_TEST_FREE_EVAS();
+}
+END_TEST
+
+START_TEST(edje_test_swallows_eoapi)
+{
+   Evas *evas = EDJE_TEST_INIT_EVAS();
+   Evas_Object *ly, *o1, *o2;
+
+   ly = eo_add(EDJE_OBJECT_CLASS, evas);
+   fail_unless(edje_object_file_set(ly, test_layout_get("test_swallows.edj"), "test_group"));
+
+   fail_unless(edje_object_part_exists(ly, "swallow"));
+
+
+   o1 = eo_add(EDJE_OBJECT_CLASS, ly);
+   fail_if(!efl_content_set(efl_part(ly, "swallow"), o1));
+   ck_assert_ptr_eq(eo_parent_get(o1), ly);
+
+   efl_content_remove(ly, o1);
+   ck_assert_ptr_eq(eo_parent_get(o1), evas_object_evas_get(o1));
+
+   fail_if(!efl_content_set(efl_part(ly, "swallow"), o1));
+   ck_assert_ptr_eq(eo_parent_get(o1), ly);
+
+   o2 = eo_add(EDJE_OBJECT_CLASS, ly);
+   fail_if(!efl_content_set(efl_part(ly, "swallow"), o2));
+   ck_assert_ptr_eq(eo_parent_get(o2), ly);
+   /* o1 is deleted at this point. */
+   ck_assert_ptr_eq(eo_parent_get(o1), evas_object_evas_get(o1));
+
+   EDJE_TEST_FREE_EVAS();
+}
+END_TEST
+
+START_TEST(edje_test_access)
+{
+   Evas *evas = EDJE_TEST_INIT_EVAS();
+   const char *name;
+   Evas_Object *obj;
+   Eina_Iterator *it;
+   Eina_List *list;
+   char buf[20];
+   int i = 0;
+
+   obj = edje_object_add(evas);
+   fail_unless(edje_object_file_set(obj, test_layout_get("test_layout.edj"), "test_group"));
+
+   /* eo api */
+   it = edje_obj_access_part_iterate(obj);
+   fail_if(!it);
+
+   EINA_ITERATOR_FOREACH(it, name)
+     {
+        i++;
+        sprintf(buf, "access_%d", i);
+        fail_if(!name || strcmp(name, buf) != 0);
+     }
+   fail_if(i != 2);
+   eina_iterator_free(it);
+
+   i = 0;
+
+   /* legacy api */
+   list = edje_object_access_part_list_get(obj);
+   fail_if(!list);
+   EINA_LIST_FREE(list, name)
+     {
+        i++;
+        sprintf(buf, "access_%d", i);
+        fail_if(!name || strcmp(name, buf) != 0);
+     }
+   fail_if(i != 2);
+
+   EDJE_TEST_FREE_EVAS();
+}
+END_TEST
+
+START_TEST(edje_test_box)
+{
+   Evas *evas;
+   Evas_Object *obj, *sobj, *sobjs[5];
+   const Evas_Object *box;
+   Eina_Iterator *it;
+   int i;
+
+   evas = EDJE_TEST_INIT_EVAS();
+
+   obj = edje_object_add(evas);
+   fail_unless(edje_object_file_set(obj, test_layout_get("test_box.edj"), "test_group"));
+
+   for (i = 0; i < 5; i++)
+     {
+        sobjs[i] = evas_object_rectangle_add(evas);
+        fail_if(!sobjs[i]);
+     }
+
+   edje_object_part_box_append(obj, "box", sobjs[3]);
+   edje_object_part_box_prepend(obj, "box", sobjs[1]);
+   edje_object_part_box_insert_before(obj, "box", sobjs[0], sobjs[1]);
+   edje_object_part_box_insert_after(obj, "box", sobjs[4], sobjs[3]);
+   edje_object_part_box_insert_at(obj, "box", sobjs[2], 2);
+
+   box = edje_object_part_object_get(obj, "box");
+   it = evas_object_box_iterator_new(box);
+
+   i = 0;
+   EINA_ITERATOR_FOREACH(it, sobj)
+     {
+        fail_if(sobj != sobjs[i++]);
+     }
+   eina_iterator_free(it);
+
+   EDJE_TEST_FREE_EVAS();
+}
+END_TEST
+
+START_TEST(edje_test_box_eoapi)
+{
+   Evas *evas;
+   Evas_Object *obj, *sobj, *sobjs[5];
+   Eina_Iterator *it;
+   int i;
+
+   evas = EDJE_TEST_INIT_EVAS();
+
+   obj = edje_object_add(evas);
+   fail_unless(edje_object_file_set(obj, test_layout_get("test_box.edj"), "test_group"));
+
+   for (i = 0; i < 5; i++)
+     {
+        sobjs[i] = evas_object_rectangle_add(evas);
+        fail_if(!sobjs[i]);
+     }
+
+   /* same test case as legacy api above */
+   efl_pack_end(efl_part(obj, "box"), sobjs[3]);
+   efl_pack_begin(efl_part(obj, "box"), sobjs[1]);
+   efl_pack_before(efl_part(obj, "box"), sobjs[0], sobjs[1]);
+   efl_pack_after(efl_part(obj, "box"), sobjs[4], sobjs[3]);
+   efl_pack_at(efl_part(obj, "box"), sobjs[2], 2);
+   fail_if(efl_content_count(efl_part(obj, "box")) != 5);
+
+   it = efl_content_iterate(efl_part(obj, "box"));
+   i = 0;
+   EINA_ITERATOR_FOREACH(it, sobj)
+     fail_if(sobj != sobjs[i++]);
+   fail_if(i != 5);
+   eina_iterator_free(it);
+
+   /* clear up and test a bit more */
+   efl_pack_unpack_all(efl_part(obj, "box"));
+   fail_if(efl_content_count(efl_part(obj, "box")) != 0);
+
+   efl_pack(efl_part(obj, "box"), sobjs[1]);
+   efl_pack_at(efl_part(obj, "box"), sobjs[0], 0);
+   efl_pack_at(efl_part(obj, "box"), sobjs[2], -1);
+   it = efl_content_iterate(efl_part(obj, "box"));
+   i = 0;
+   EINA_ITERATOR_FOREACH(it, sobj)
+     fail_if(sobj != sobjs[i++]);
+   fail_if(i != 3);
+   eina_iterator_free(it);
+
+   fail_if(!efl_content_remove(efl_part(obj, "box"), sobjs[0]));
+   fail_if(efl_content_count(efl_part(obj, "box")) != 2);
+   fail_if(!efl_pack_unpack_at(efl_part(obj, "box"), 1));
+   fail_if(efl_content_count(efl_part(obj, "box")) != 1);
+   fail_if(efl_pack_index_get(efl_part(obj, "box"), sobjs[1]) != 0);
+
+   efl_pack_clear(efl_part(obj, "box"));
+   fail_if(efl_content_count(efl_part(obj, "box")) != 0);
+
+   EDJE_TEST_FREE_EVAS();
+}
+END_TEST
+
+START_TEST(edje_test_table)
+{
+   Evas *evas;
+   Evas_Object *obj, *sobj, *sobjs[4];
+   int i, k, l, cols, rows;
+
+   evas = EDJE_TEST_INIT_EVAS();
+
+   obj = edje_object_add(evas);
+   fail_unless(edje_object_file_set(obj, test_layout_get("test_table.edj"), "test_group"));
+
+   /* check items from EDC */
+   for (l = 0; l < 2; l++)
+     for (k = 0; k < 2; k++)
+       {
+          const char *txt;
+          char buf[20];
+
+          /* items have a text part "text" containing their position */
+          sprintf(buf, "%d,%d", k, l);
+          sobj = edje_object_part_table_child_get(obj, "table", k, l);
+          fail_if(!sobj);
+          txt = edje_object_part_text_get(sobj, "text");
+          fail_if(!txt);
+          fail_if(strcmp(txt, buf) != 0);
+       }
+
+   /* Add more items */
+   for (l = 0; l < 2; l++)
+     for (k = 0; k < 2; k++)
+       {
+          i = l*2 + k;
+          sobjs[i] = evas_object_rectangle_add(evas);
+          fail_if(!sobjs[i]);
+          edje_object_part_table_pack(obj, "table", sobjs[i], k, l + 2, 1, 1);
+       }
+
+   for (l = 0; l < 2; l++)
+     for (k = 0; k < 2; k++)
+       {
+          i = l*2 + k;
+          sobj = edje_object_part_table_child_get(obj, "table", k, l + 2);
+          fail_if(sobj != sobjs[i]);
+       }
+
+   /* table size and clear */
+   edje_object_part_table_col_row_size_get(obj, "table", &cols, &rows);
+   fail_if(cols != 2);
+   fail_if(rows != 4);
+
+   edje_object_part_table_clear(obj, "table", EINA_TRUE);
+
+   edje_object_part_table_col_row_size_get(obj, "table", &cols, &rows);
+   fail_if(cols != 2);
+   fail_if(rows != 2);
+
+   for (l = 0; l < 2; l++)
+     for (k = 0; k < 2; k++)
+       {
+          const char *txt;
+          char buf[20];
+
+          /* items have a text part "text" containing their position */
+          sprintf(buf, "%d,%d", k, l);
+          sobj = edje_object_part_table_child_get(obj, "table", k, l);
+          fail_if(!sobj);
+          txt = edje_object_part_text_get(sobj, "text");
+          fail_if(!txt);
+          fail_if(strcmp(txt, buf) != 0);
+       }
+
+   EDJE_TEST_FREE_EVAS();
+}
+END_TEST
+
+START_TEST(edje_test_table_eoapi)
+{
+   Evas *evas;
+   Evas_Object *obj, *sobj, *sobjs[4], *proxy;
+   Eina_Iterator *it;
+   int i, k, l, cs, rs, cols, rows;
+
+   evas = EDJE_TEST_INIT_EVAS();
+
+   obj = edje_object_add(evas);
+   fail_unless(edje_object_file_set(obj, test_layout_get("test_table.edj"), "test_group"));
+
+   /* check items from EDC */
+   fail_if(efl_content_count(efl_part(obj, "table")) != 4);
+   for (l = 0; l < 2; l++)
+     for (k = 0; k < 2; k++)
+       {
+          const char *txt;
+          char buf[20];
+
+          /* items have a text part "text" containing their position */
+          sprintf(buf, "%d,%d", k, l);
+          sobj = efl_pack_grid_content_get(efl_part(obj, "table"), k, l);
+          fail_if(!sobj);
+          //txt = efl_part_text_get(sobj, "text");
+          txt = edje_object_part_text_get(sobj, "text");
+          fail_if(!txt);
+          fail_if(strcmp(txt, buf) != 0);
+       }
+
+   /* Add more items */
+   for (l = 0; l < 2; l++)
+     for (k = 0; k < 2; k++)
+       {
+          i = l*2 + k;
+          sobjs[i] = eo_add(EFL_CANVAS_RECTANGLE_CLASS, evas);
+          fail_if(!sobjs[i]);
+          efl_pack_grid(efl_part(obj, "table"), sobjs[i], k, l + 2, 1, 1);
+       }
+
+   fail_if(efl_content_count(efl_part(obj, "table")) != 8);
+
+   i = 0;
+   it = efl_content_iterate(efl_part(obj, "table"));
+   EINA_ITERATOR_FOREACH(it, sobj)
+     {
+        efl_pack_grid_position_get(efl_part(obj, "table"), sobj, &k, &l, &cs, &rs);
+        fail_if(cs != 1);
+        fail_if(rs != 1);
+        if (l >= 2)
+          fail_if(sobj != sobjs[(l - 2)*2 + k]);
+        i++;
+     }
+   eina_iterator_free(it);
+   fail_if(i != 8);
+
+   /* table size and clear */
+   efl_pack_grid_size_get(efl_part(obj, "table"), &cols, &rows);
+   fail_if(cols != 2);
+   fail_if(rows != 4);
+
+   efl_pack_clear(efl_part(obj, "table"));
+   fail_if(efl_content_count(efl_part(obj, "table")) != 4);
+
+   efl_pack_grid_size_get(efl_part(obj, "table"), &cols, &rows);
+   fail_if(cols != 2);
+   fail_if(rows != 2);
+
+   /* test multiple ops on a proxy object */
+   proxy = eo_ref(efl_part(obj, "table"));
+   fail_if(!proxy);
+   fail_if(!efl_pack_clear(proxy));
+   fail_if(efl_content_count(efl_part(obj, "table")) != 4);
+   fail_if(!efl_pack_clear(proxy));
+   fail_if(efl_content_count(efl_part(obj, "table2")) != 1);
+   fail_if(efl_content_count(proxy) != 4);
+   eo_del(proxy);
+
+   EDJE_TEST_FREE_EVAS();
+}
+END_TEST
+
 void edje_test_edje(TCase *tc)
-{    
+{
    tcase_add_test(tc, edje_test_edje_init);
-   tcase_add_test(tc,edje_test_load_simple_layout);
+   tcase_add_test(tc, edje_test_load_simple_layout);
    tcase_add_test(tc, edje_test_edje_load);
    tcase_add_test(tc, edje_test_simple_layout_geometry);
    tcase_add_test(tc, edje_test_complex_layout);
@@ -339,4 +723,12 @@ void edje_test_edje(TCase *tc)
    tcase_add_test(tc, edje_test_filters);
    tcase_add_test(tc, edje_test_snapshot);
    tcase_add_test(tc, edje_test_size_class);
+   tcase_add_test(tc, edje_test_color_class);
+   tcase_add_test(tc, edje_test_swallows);
+   tcase_add_test(tc, edje_test_swallows_eoapi);
+   tcase_add_test(tc, edje_test_access);
+   tcase_add_test(tc, edje_test_box);
+   tcase_add_test(tc, edje_test_box_eoapi);
+   tcase_add_test(tc, edje_test_table);
+   tcase_add_test(tc, edje_test_table_eoapi);
 }

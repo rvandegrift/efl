@@ -1,21 +1,21 @@
 
 ### Library
 ector_eolian_files_generic = \
-	lib/ector/ector_generic_surface.eo \
-	lib/ector/ector_generic_buffer.eo \
-	lib/ector/ector_renderer_generic_base.eo \
-	lib/ector/ector_renderer_generic_shape.eo \
-	lib/ector/ector_renderer_generic_buffer.eo \
-	lib/ector/ector_renderer_generic_gradient.eo \
-	lib/ector/ector_renderer_generic_gradient_radial.eo \
-	lib/ector/ector_renderer_generic_gradient_linear.eo
+	lib/ector/ector_surface.eo \
+	lib/ector/ector_buffer.eo \
+	lib/ector/ector_renderer.eo \
+	lib/ector/ector_renderer_shape.eo \
+	lib/ector/ector_renderer_buffer.eo \
+	lib/ector/ector_renderer_gradient.eo \
+	lib/ector/ector_renderer_gradient_radial.eo \
+	lib/ector/ector_renderer_gradient_linear.eo
 ector_eolian_generic_h = $(ector_eolian_files_generic:%.eo=%.eo.h)
 
 # Handle cairo backend
 ector_eolian_files_cairo = \
 	lib/ector/cairo/ector_cairo_surface.eo \
 	lib/ector/cairo/ector_cairo_software_surface.eo \
-	lib/ector/cairo/ector_renderer_cairo_base.eo \
+	lib/ector/cairo/ector_renderer_cairo.eo \
 	lib/ector/cairo/ector_renderer_cairo_shape.eo \
 	lib/ector/cairo/ector_renderer_cairo_gradient_linear.eo \
 	lib/ector/cairo/ector_renderer_cairo_gradient_radial.eo
@@ -26,7 +26,7 @@ ector_eolian_files_software = \
 	lib/ector/software/ector_software_surface.eo \
 	lib/ector/software/ector_software_buffer.eo \
 	lib/ector/software/ector_software_buffer_base.eo \
-	lib/ector/software/ector_renderer_software_base.eo \
+	lib/ector/software/ector_renderer_software.eo \
 	lib/ector/software/ector_renderer_software_shape.eo \
 	lib/ector/software/ector_renderer_software_buffer.eo \
 	lib/ector/software/ector_renderer_software_gradient_radial.eo \
@@ -38,11 +38,14 @@ ector_eolian_files_gl = \
 	lib/ector/gl/ector_gl_surface.eo \
 	lib/ector/gl/ector_gl_buffer.eo \
 	lib/ector/gl/ector_gl_buffer_base.eo \
-	lib/ector/gl/ector_renderer_gl_base.eo \
+	lib/ector/gl/ector_renderer_gl.eo \
 	lib/ector/gl/ector_renderer_gl_shape.eo \
 	lib/ector/gl/ector_renderer_gl_gradient_radial.eo \
 	lib/ector/gl/ector_renderer_gl_gradient_linear.eo
 ector_eolian_gl_h = $(ector_eolian_files_gl:%.eo=%.eo.h)
+
+ector_eolian_type_files = \
+    lib/ector/ector_types.eot
 
 ector_eolian_files = \
                      $(ector_eolian_files_generic) \
@@ -51,20 +54,17 @@ ector_eolian_files = \
                      $(ector_eolian_files_gl)
 
 ector_eolian_c = $(ector_eolian_files:%.eo=%.eo.c)
-ector_eolian_h = $(ector_eolian_files:%.eo=%.eo.h)
+ector_eolian_h = $(ector_eolian_files:%.eo=%.eo.h) \
+                 $(ector_eolian_type_files:%.eot=%.eot.h)
 
 BUILT_SOURCES += \
 	$(ector_eolian_c) \
 	$(ector_eolian_h)
 
-CLEANFILES += \
-	$(ector_eolian_c) \
-	$(ector_eolian_h)
-
 ectoreolianfilesdir = $(datadir)/eolian/include/ector-@VMAJ@
-ectoreolianfiles_DATA = $(ector_eolian_files)
+ectoreolianfiles_DATA = $(ector_eolian_files) $(ector_eolian_type_files)
 
-EXTRA_DIST += $(ectoreolianfiles_DATA) \
+EXTRA_DIST2 += $(ectoreolianfiles_DATA) \
 lib/ector/Ector.h \
 lib/ector/ector_util.h \
 lib/ector/ector_surface.h \
@@ -81,29 +81,32 @@ lib_LTLIBRARIES += lib/ector/libector.la
 lib_ector_libector_la_SOURCES = \
 lib/ector/ector_main.c \
 lib/ector/ector_gl_internal.h \
-lib/ector/ector_generic_buffer.c \
-lib/ector/ector_renderer_generic_shape.c \
-lib/ector/ector_renderer_generic_base.c \
-lib/ector/ector_renderer_generic_buffer.c \
-lib/ector/ector_renderer_generic_gradient.c \
-lib/ector/ector_renderer_generic_gradient_radial.c \
-lib/ector/ector_renderer_generic_gradient_linear.c
+lib/ector/ector_buffer.c \
+lib/ector/ector_renderer_shape.c \
+lib/ector/ector_renderer.c \
+lib/ector/ector_renderer_buffer.c \
+lib/ector/ector_renderer_gradient.c \
+lib/ector/ector_renderer_gradient_radial.c \
+lib/ector/ector_renderer_gradient_linear.c
 
 # And now the cairo backend
 lib_ector_libector_la_SOURCES += \
 lib/ector/cairo/ector_renderer_cairo_gradient_linear.c \
 lib/ector/cairo/ector_renderer_cairo_gradient_radial.c \
 lib/ector/cairo/ector_renderer_cairo_shape.c \
-lib/ector/cairo/ector_renderer_cairo_base.c \
+lib/ector/cairo/ector_renderer_cairo.c \
 lib/ector/cairo/ector_cairo_software_surface.c \
 lib/ector/cairo/ector_cairo_surface.c
 
 # SW draw static lib
-draw_sources = \
+lib_ector_libector_la_SOURCES += \
 static_libs/draw/draw_main_sse2.c \
 static_libs/draw/draw_main.c \
 static_libs/draw/draw_main_neon.c \
-$(NULL)
+static_libs/rg_etc/rg_etc1.c \
+static_libs/rg_etc/rg_etc2.c \
+static_libs/rg_etc/rg_etc1.h \
+static_libs/rg_etc/etc2_encoder.c
 
 # And the default software backend
 lib_ector_libector_la_SOURCES += \
@@ -117,15 +120,14 @@ lib/ector/software/ector_software_surface.c \
 lib/ector/software/ector_software_buffer.c \
 static_libs/freetype/sw_ft_math.c \
 static_libs/freetype/sw_ft_raster.c \
-static_libs/freetype/sw_ft_stroker.c \
-$(draw_sources)
+static_libs/freetype/sw_ft_stroker.c
 
 # And now the gl backend
 lib_ector_libector_la_SOURCES += \
 lib/ector/gl/ector_renderer_gl_gradient_linear.c \
 lib/ector/gl/ector_renderer_gl_gradient_radial.c \
 lib/ector/gl/ector_renderer_gl_shape.c \
-lib/ector/gl/ector_renderer_gl_base.c \
+lib/ector/gl/ector_renderer_gl.c \
 lib/ector/gl/ector_gl_buffer.c \
 lib/ector/gl/ector_gl_buffer_base.c \
 lib/ector/gl/ector_gl_surface.c \
@@ -133,15 +135,15 @@ lib/ector/gl/ector_gl_private.h \
 lib/ector/gl/shader/ector_gl_shaders.x \
 lib/ector/gl/ector_gl_shader.c
 
-GL_SHADERS_GEN = \
+ECTOR_GL_SHADERS_GEN = \
 lib/ector/gl/shader/gen_shaders.sh \
 lib/ector/gl/shader/fragment.glsl \
 lib/ector/gl/shader/vertex.glsl \
 lib/ector/gl/shader/include.glsl
 
-lib/ector/gl/shader/ector_gl_shaders.x: $(GL_SHADERS_GEN)
+lib/ector/gl/shader/ector_gl_shaders.x: $(ECTOR_GL_SHADERS_GEN)
 	@echo "  SHADERS  $@"
-	@bash $(srcdir)/lib/ector/gl/shader/gen_shaders.sh
+	@sh $(srcdir)/lib/ector/gl/shader/gen_shaders.sh
 
 lib_ector_libector_la_CPPFLAGS = -I$(top_builddir)/src/lib/efl \
 -I$(top_builddir)/src/lib/ector \
@@ -191,7 +193,7 @@ tests_ector_ector_suite_DEPENDENCIES = @USE_ECTOR_INTERNAL_LIBS@
 
 endif
 
-EXTRA_DIST += \
+EXTRA_DIST2 += \
 lib/ector/ector_private.h \
 lib/ector/cairo/ector_cairo_private.h \
 lib/ector/software/ector_software_private.h \
@@ -201,4 +203,4 @@ static_libs/freetype/sw_ft_stroker.h \
 static_libs/freetype/sw_ft_types.h \
 static_libs/draw/draw.h \
 static_libs/draw/draw_private.h \
-$(GL_SHADERS_GEN)
+$(ECTOR_GL_SHADERS_GEN)

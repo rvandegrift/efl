@@ -88,13 +88,7 @@ _evas_ector_gl_image_buffer_evas_ector_buffer_engine_image_set(Eo *obj, Evas_Ect
           }
 
         pd->image = ENFN->image_ref(ENDT, im);
-        eo_do(obj, ector_gl_buffer_base_attach(im->tex->pt->texture,
-                                               im->tex->pt->fb,
-                                               (Efl_Gfx_Colorspace) evas_gl_common_gl_format_to_colorspace(im->tex->pt->format),
-                                               im->tex->w, im->tex->h,
-                                               im->tex->x, im->tex->y,
-                                               im->tex->pt->w, im->tex->pt->h,
-                                               l, r, t, b));
+        ector_gl_buffer_base_attach(obj, im->tex->pt->texture, im->tex->pt->fb, (Efl_Gfx_Colorspace) evas_gl_common_gl_format_to_colorspace(im->tex->pt->format), im->tex->w, im->tex->h, im->tex->x, im->tex->y, im->tex->pt->w, im->tex->pt->h, l, r, t, b);
      }
    else
      {
@@ -114,7 +108,7 @@ _evas_ector_gl_image_buffer_evas_ector_buffer_engine_image_get(Eo *obj EINA_UNUS
 }
 
 EOLIAN static Ector_Buffer_Flag
-_evas_ector_gl_image_buffer_ector_generic_buffer_flags_get(Eo *obj EINA_UNUSED,
+_evas_ector_gl_image_buffer_ector_buffer_flags_get(Eo *obj EINA_UNUSED,
                                                            Evas_Ector_GL_Image_Buffer_Data *pd)
 {
    Ector_Buffer_Flag flags;
@@ -135,7 +129,7 @@ _evas_ector_gl_image_buffer_ector_generic_buffer_flags_get(Eo *obj EINA_UNUSED,
 }
 
 EOLIAN static void *
-_evas_ector_gl_image_buffer_ector_generic_buffer_map(Eo *obj EINA_UNUSED, Evas_Ector_GL_Image_Buffer_Data *pd, unsigned int *length,
+_evas_ector_gl_image_buffer_ector_buffer_map(Eo *obj EINA_UNUSED, Evas_Ector_GL_Image_Buffer_Data *pd, unsigned int *length,
                                                      Ector_Buffer_Access_Flag mode,
                                                      unsigned int x, unsigned int y, unsigned int w, unsigned int h,
                                                      Efl_Gfx_Colorspace cspace, unsigned int *stride)
@@ -191,7 +185,7 @@ _evas_ector_gl_image_buffer_ector_generic_buffer_map(Eo *obj EINA_UNUSED, Evas_E
 }
 
 EOLIAN static void
-_evas_ector_gl_image_buffer_ector_generic_buffer_unmap(Eo *obj EINA_UNUSED, Evas_Ector_GL_Image_Buffer_Data *pd,
+_evas_ector_gl_image_buffer_ector_buffer_unmap(Eo *obj EINA_UNUSED, Evas_Ector_GL_Image_Buffer_Data *pd,
                                                        void *data, unsigned int length)
 {
    Evas_Public_Data *e = eo_data_scope_get(pd->evas, EVAS_CANVAS_CLASS);
@@ -219,19 +213,19 @@ _evas_ector_gl_image_buffer_ector_generic_buffer_unmap(Eo *obj EINA_UNUSED, Evas
 }
 
 EOLIAN static uint8_t *
-_evas_ector_gl_image_buffer_ector_generic_buffer_span_get(Eo *obj, Evas_Ector_GL_Image_Buffer_Data *pd, int x, int y, unsigned int w,
+_evas_ector_gl_image_buffer_ector_buffer_span_get(Eo *obj, Evas_Ector_GL_Image_Buffer_Data *pd, int x, int y, unsigned int w,
                                                           Efl_Gfx_Colorspace cspace, unsigned int *length)
 {
    // ector_buffer_map
-   return _evas_ector_gl_image_buffer_ector_generic_buffer_map
+   return _evas_ector_gl_image_buffer_ector_buffer_map
          (obj, pd, length, ECTOR_BUFFER_ACCESS_FLAG_READ, x, y, w, 1, cspace, NULL);
 }
 
 EOLIAN static void
-_evas_ector_gl_image_buffer_ector_generic_buffer_span_free(Eo *obj, Evas_Ector_GL_Image_Buffer_Data *pd, uint8_t *data)
+_evas_ector_gl_image_buffer_ector_buffer_span_free(Eo *obj, Evas_Ector_GL_Image_Buffer_Data *pd, uint8_t *data)
 {
    // ector_buffer_unmap
-   return _evas_ector_gl_image_buffer_ector_generic_buffer_unmap
+   return _evas_ector_gl_image_buffer_ector_buffer_unmap
          (obj, pd, data, (unsigned int) -1);
 }
 
@@ -239,9 +233,9 @@ _evas_ector_gl_image_buffer_ector_generic_buffer_span_free(Eo *obj, Evas_Ector_G
 EOLIAN static Eo_Base *
 _evas_ector_gl_image_buffer_eo_base_constructor(Eo *obj, Evas_Ector_GL_Image_Buffer_Data *pd)
 {
-   eo_do_super(obj, MY_CLASS, obj = eo_constructor());
+   obj = eo_constructor(eo_super(obj, MY_CLASS));
    pd->base = eo_data_ref(obj, ECTOR_GL_BUFFER_BASE_MIXIN);
-   pd->base->generic = eo_data_ref(obj, ECTOR_GENERIC_BUFFER_MIXIN);
+   pd->base->generic = eo_data_ref(obj, ECTOR_BUFFER_MIXIN);
    pd->base->generic->eo = obj;
    return obj;
 }
@@ -252,7 +246,7 @@ _evas_ector_gl_image_buffer_eo_base_finalize(Eo *obj, Evas_Ector_GL_Image_Buffer
    EINA_SAFETY_ON_NULL_RETURN_VAL(pd->base, NULL);
    EINA_SAFETY_ON_NULL_RETURN_VAL(pd->image, NULL);
    pd->base->generic->immutable = EINA_TRUE;
-   return eo_do_super_ret(obj, MY_CLASS, obj, eo_finalize());
+   return eo_finalize(eo_super(obj, MY_CLASS));
 }
 
 EOLIAN static void
@@ -264,7 +258,7 @@ _evas_ector_gl_image_buffer_eo_base_destructor(Eo *obj, Evas_Ector_GL_Image_Buff
    eo_data_unref(obj, pd->base);
    ENFN->image_free(ENDT, pd->image);
    eo_xunref(pd->evas, obj);
-   eo_do_super(obj, MY_CLASS, eo_destructor());
+   eo_destructor(eo_super(obj, MY_CLASS));
 }
 
 #include "evas_ector_gl_image_buffer.eo.c"

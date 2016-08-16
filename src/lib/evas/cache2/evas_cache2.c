@@ -913,14 +913,14 @@ evas_cache2_image_scale_load(Image_Entry *im,
    lo.scale_load.dst_w = dst_w;
    lo.scale_load.dst_h = dst_h;
    lo.scale_load.smooth = smooth;
-   lo.scale_load.scale_hint = im->scale_hint;
+   lo.scale_load.scale_hint = (Emile_Image_Scale_Hint) im->scale_hint;
 
    evas_cache2_image_cache_key_create(hkey, im->file, pathlen,
                                       im->key, keylen, &lo);
 
    ret = _evas_cache2_image_entry_new(im->cache2, hkey, NULL, im->file, im->key,
                                      &lo, &error);
-   if (error != EVAS_LOAD_ERROR_NONE)
+   if ((!ret) || (error != EVAS_LOAD_ERROR_NONE))
      {
         ERR("Failed to create scale image entry with error code %d.", error);
 
@@ -932,7 +932,7 @@ evas_cache2_image_scale_load(Image_Entry *im,
    error = evas_cache2_image_load_data(ret);
    if (error != EVAS_LOAD_ERROR_NONE)
      {
-        _evas_cache2_image_entry_delete(im->cache2, ret);
+        if (ret) _evas_cache2_image_entry_delete(im->cache2, ret);
         goto parent_out;
      }
 

@@ -1,0 +1,28 @@
+class Elm.Photocam.Pan (Elm.Pan)
+{
+   legacy_prefix: elm_photocam_pan;
+   eo_prefix: elm_obj_photocam_pan;
+   event_prefix: elm_photocam_pan;
+   implements {
+      class.constructor;
+      Eo.Base.destructor;
+      Efl.Canvas.Group.group_calculate;
+      Efl.Canvas.Group.group_move;
+      Efl.Canvas.Group.group_resize;
+      Elm.Pan.content_size.get;
+      Elm.Pan.pos;
+      Elm.Pan.pos_min.get;
+      Elm.Pan.pos_max.get;
+   }
+   events {
+      load;
+      loaded;
+      load,detail;
+      loaded,detail;
+      download,start;
+      download,progress;
+      download,done;
+      download,error;
+   }
+
+}

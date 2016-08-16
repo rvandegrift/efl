@@ -55,6 +55,7 @@ extern "C" {
    EAPI extern int ECORE_EVENT_MOUSE_OUT;
    EAPI extern int ECORE_EVENT_AXIS_UPDATE; /**< @since 1.13 */
    EAPI extern int ECORE_EVENT_MOUSE_BUTTON_CANCEL; /**< @since 1.15 */
+   EAPI extern int ECORE_EVENT_JOYSTICK; /**< @since 1.18 */
 
 #define ECORE_EVENT_MODIFIER_SHIFT      0x0001
 #define ECORE_EVENT_MODIFIER_CTRL       0x0002
@@ -82,6 +83,7 @@ extern "C" {
    typedef struct _Ecore_Event_Modifiers    Ecore_Event_Modifiers;
    typedef struct _Ecore_Event_Axis_Update  Ecore_Event_Axis_Update; /**< @since 1.13 */
    typedef struct _Ecore_Axis               Ecore_Axis; /**< @since 1.13 */
+   typedef struct _Ecore_Event_Joystick     Ecore_Event_Joystick; /**< @since 1.18 */
 
    /**
     * @typedef Ecore_Event_Modifier
@@ -133,6 +135,59 @@ extern "C" {
      } Ecore_Compose_State;
 
    /**
+    * @struct _Ecore_Event_Joystic_Button
+    * Contains information about a joystick button event.
+    */
+   typedef enum _Ecore_Event_Joystick_Button
+     {
+        ECORE_EVENT_JOYSTICK_BUTTON_NONE,
+        ECORE_EVENT_JOYSTICK_BUTTON_FACE_0,
+        ECORE_EVENT_JOYSTICK_BUTTON_FACE_1,
+        ECORE_EVENT_JOYSTICK_BUTTON_FACE_2,
+        ECORE_EVENT_JOYSTICK_BUTTON_FACE_3,
+        ECORE_EVENT_JOYSTICK_BUTTON_LEFT_SHOULDER,
+        ECORE_EVENT_JOYSTICK_BUTTON_RIGHT_SHOULDER,
+        ECORE_EVENT_JOYSTICK_BUTTON_SELECT,
+        ECORE_EVENT_JOYSTICK_BUTTON_START,
+        ECORE_EVENT_JOYSTICK_BUTTON_LEFT_ANALOG_STICK,
+        ECORE_EVENT_JOYSTICK_BUTTON_RIGHT_ANALOG_STICK,
+        ECORE_EVENT_JOYSTICK_BUTTON_META,
+        ECORE_EVENT_JOYSTICK_BUTTON_LAST
+     } Ecore_Event_Joystick_Button; /**< @since 1.18 */
+
+   /**
+    * @struct _Ecore_Event_Joystic_Axis
+    * Contains information about a joystick axis event.
+    */
+   typedef enum _Ecore_Event_Joystick_Axis
+     {
+        ECORE_EVENT_JOYSTICK_AXIS_NONE,
+        ECORE_EVENT_JOYSTICK_AXIS_HAT_X,
+        ECORE_EVENT_JOYSTICK_AXIS_HAT_Y,
+        ECORE_EVENT_JOYSTICK_AXIS_LEFT_SHOULDER,
+        ECORE_EVENT_JOYSTICK_AXIS_RIGHT_SHOULDER,
+        ECORE_EVENT_JOYSTICK_AXIS_LEFT_ANALOG_HOR,
+        ECORE_EVENT_JOYSTICK_AXIS_LEFT_ANALOG_VER,
+        ECORE_EVENT_JOYSTICK_AXIS_RIGHT_ANALOG_HOR,
+        ECORE_EVENT_JOYSTICK_AXIS_RIGHT_ANALOG_VER,
+        ECORE_EVENT_JOYSTICK_AXIS_LAST
+     } Ecore_Event_Joystick_Axis; /**< @since 1.18 */
+
+   /**
+    * @struct _Ecore_Event_Joystic_Event_Type
+    * Contains information about a joystick event type.
+    */
+   typedef enum _Ecore_Event_Joystick_Event
+     {
+        ECORE_EVENT_JOYSTICK_EVENT_TYPE_NONE,
+        ECORE_EVENT_JOYSTICK_EVENT_TYPE_CONNECTED,
+        ECORE_EVENT_JOYSTICK_EVENT_TYPE_DISCONNECTED,
+        ECORE_EVENT_JOYSTICK_EVENT_TYPE_BUTTON,
+        ECORE_EVENT_JOYSTICK_EVENT_TYPE_AXIS,
+        ECORE_EVENT_JOYSTICK_EVENT_TYPE_LAST
+     } Ecore_Event_Joystick_Event_Type; /**< @since 1.18 */
+
+   /**
     * @struct _Ecore_Event_Key
     * Contains information about an Ecore keyboard event.
     */
@@ -147,7 +202,7 @@ extern "C" {
         Ecore_Window     event_window; /**< The child window where event happened */
         
         unsigned int     timestamp; /**< Time when the event occurred */
-        unsigned int     modifiers; /**< The combination of modifiers key (SHIT,CTRL,ALT,..)*/
+        unsigned int     modifiers; /**< The combination of modifiers key (SHIFT,CTRL,ALT,..)*/
         
         int              same_screen; /**< same screen flag */
 
@@ -167,7 +222,7 @@ extern "C" {
         Ecore_Window     event_window; /**< The child window where event happened */
 
         unsigned int     timestamp; /**< Time when the event occurred */
-        unsigned int     modifiers; /**< The combination of modifiers key (SHIT,CTRL,ALT,..)*/
+        unsigned int     modifiers; /**< The combination of modifiers key (SHIFT,CTRL,ALT,..)*/
         unsigned int     buttons; /**< The button that was used */
         unsigned int     double_click; /**< Double click event */
         unsigned int     triple_click; /**< Triple click event */
@@ -203,7 +258,7 @@ extern "C" {
         Ecore_Window     event_window; /**< The child window where event happened */
         
         unsigned int     timestamp; /**< Time when the event occurred */
-        unsigned int     modifiers; /**< The combination of modifiers key (SHIT,CTRL,ALT,..)*/
+        unsigned int     modifiers; /**< The combination of modifiers key (SHIFT,CTRL,ALT,..)*/
         
         int              same_screen; /**< Same screen flag */
         int              direction; /**< Orientation of the wheel (horizontal/vertical) */
@@ -228,7 +283,7 @@ extern "C" {
         Ecore_Window     event_window; /**< The child window where event happened */
         
         unsigned int     timestamp; /**< Time when the event occurred */
-        unsigned int     modifiers; /**< The combination of modifiers key (SHIT,CTRL,ALT,..)*/
+        unsigned int     modifiers; /**< The combination of modifiers key (SHIFT,CTRL,ALT,..)*/
         
         int              same_screen; /**< Same screen flag */
         
@@ -297,7 +352,7 @@ extern "C" {
         Ecore_Window     event_window; /**< The child window where event happened */
         
         unsigned int     timestamp; /**< Time when the event occurred */
-        unsigned int     modifiers; /**< The combination of modifiers key (SHIT,CTRL,ALT,..)*/
+        unsigned int     modifiers; /**< The combination of modifiers key (SHIFT,CTRL,ALT,..)*/
         
         int              x; /**< x coordinate relative to window where event happened */
         int              y; /**< y coordinate relative to window where event happened */
@@ -311,6 +366,32 @@ extern "C" {
      {
         unsigned int size;
         unsigned int array[ECORE_LAST];
+     };
+
+   /**
+    * @struct _Ecore_Event_Joystick
+    * Contains information about a joystick event.
+    */
+   struct _Ecore_Event_Joystick
+     {
+        Ecore_Event_Joystick_Event_Type type;
+        unsigned int                   index;
+        unsigned int               timestamp;
+
+        union
+          {
+             struct
+               {
+                  Ecore_Event_Joystick_Axis index;
+                  double       value;  /* [-1.0 .. 1.0] -1.0 == up or left, 1.0 == down or right */
+               } axis;
+
+             struct
+               {
+                  Ecore_Event_Joystick_Button index;
+                  double       value; /* [0.0 .. 1.0] 0.0 == fully unpressed, 1.0 == fully pressed */
+               } button;
+          };
      };
 
    /**

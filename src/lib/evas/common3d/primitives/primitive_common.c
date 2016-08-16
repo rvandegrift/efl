@@ -11,10 +11,9 @@ void _set_vertex_data_from_array(Evas_Canvas3D_Mesh *mesh,
 {
    float *address, *out;
    int stride, i, j;
-   eo_do(mesh,
-         evas_canvas3d_mesh_frame_vertex_data_copy_set(frame, attr, 0, NULL),
-         address = (float *)evas_canvas3d_mesh_frame_vertex_data_map(frame, attr),
-         stride = evas_canvas3d_mesh_frame_vertex_stride_get(frame, attr));
+   evas_canvas3d_mesh_frame_vertex_data_copy_set(mesh, frame, attr, 0, NULL);
+   address = (float *)evas_canvas3d_mesh_frame_vertex_data_map(mesh, frame, attr);
+   stride = evas_canvas3d_mesh_frame_vertex_stride_get(mesh, frame, attr);
    if (stride == 0) stride = sizeof(float) * attr_count;
    for (i = 0; i < vcount; i++)
      {
@@ -22,23 +21,21 @@ void _set_vertex_data_from_array(Evas_Canvas3D_Mesh *mesh,
         for (j = 0; j < attr_count; j++)
            out[j] = data[start + (line * i) + j];
      }
-   eo_do(mesh,
-         evas_canvas3d_mesh_frame_vertex_data_unmap(frame, attr));
+   evas_canvas3d_mesh_frame_vertex_data_unmap(mesh, frame, attr);
 }
 
 void
 _set_vec3_vertex_data(Evas_Canvas3D_Mesh *mesh,
                       int frame,
                       int vcount,
-                      Evas_Vec3 *data,
+                      Eina_Vector3 *data,
                       Evas_Canvas3D_Vertex_Attrib attr)
 {
    float *address, *out;
    int stride, i;
-   eo_do(mesh,
-         evas_canvas3d_mesh_frame_vertex_data_copy_set(frame, attr, 0, NULL),
-         address = (float *)evas_canvas3d_mesh_frame_vertex_data_map(frame, attr),
-         stride = evas_canvas3d_mesh_frame_vertex_stride_get(frame, attr));
+   evas_canvas3d_mesh_frame_vertex_data_copy_set(mesh, frame, attr, 0, NULL);
+   address = (float *)evas_canvas3d_mesh_frame_vertex_data_map(mesh, frame, attr);
+   stride = evas_canvas3d_mesh_frame_vertex_stride_get(mesh, frame, attr);
    if (stride == 0) stride = sizeof(float) * 3;
    for (i = 0; i < vcount; i++)
      {
@@ -48,23 +45,21 @@ _set_vec3_vertex_data(Evas_Canvas3D_Mesh *mesh,
         out[2] = data[i].z;
      }
    free(data);
-   eo_do(mesh,
-         evas_canvas3d_mesh_frame_vertex_data_unmap(frame, attr));
+   evas_canvas3d_mesh_frame_vertex_data_unmap(mesh, frame, attr);
 }
 
 void
 _set_vec2_vertex_data(Evas_Canvas3D_Mesh *mesh,
                       int frame,
                       int vcount,
-                      Evas_Vec2 *data,
+                      Eina_Vector2 *data,
                       Evas_Canvas3D_Vertex_Attrib attr)
 {
    float *address, *out;
    int stride, i;
-   eo_do(mesh,
-         evas_canvas3d_mesh_frame_vertex_data_copy_set(frame, attr, 0, NULL),
-         address = (float *)evas_canvas3d_mesh_frame_vertex_data_map(frame, attr),
-         stride = evas_canvas3d_mesh_frame_vertex_stride_get(frame, attr));
+   evas_canvas3d_mesh_frame_vertex_data_copy_set(mesh, frame, attr, 0, NULL);
+   address = (float *)evas_canvas3d_mesh_frame_vertex_data_map(mesh, frame, attr);
+   stride = evas_canvas3d_mesh_frame_vertex_stride_get(mesh, frame, attr);
    if (stride == 0) stride = sizeof(float) * 2;
    for (i = 0; i < vcount; i++)
      {
@@ -73,8 +68,7 @@ _set_vec2_vertex_data(Evas_Canvas3D_Mesh *mesh,
         out[1] = data[i].y;
      }
    free(data);
-   eo_do(mesh,
-         evas_canvas3d_mesh_frame_vertex_data_unmap(frame, attr));
+   evas_canvas3d_mesh_frame_vertex_data_unmap(mesh, frame, attr);
 }
 
 void
@@ -99,7 +93,7 @@ _generate_indices(unsigned short *indices, int a, int b)
 }
 
 void
-_primitives_vec3_copy(Evas_Vec3 *dst, const Evas_Vec3 *src)
+_primitives_vec3_copy(Eina_Vector3 *dst, const Eina_Vector3 *src)
 {
    dst->x = src->x;
    dst->y = src->y;
@@ -107,7 +101,7 @@ _primitives_vec3_copy(Evas_Vec3 *dst, const Evas_Vec3 *src)
 }
 
 void
-_primitives_vec3_subtract(Evas_Vec3 *out, const Evas_Vec3 *a, const Evas_Vec3 *b)
+_primitives_vec3_subtract(Eina_Vector3 *out, const Eina_Vector3 *a, const Eina_Vector3 *b)
 {
    out->x = a->x - b->x;
    out->y = a->y - b->y;
@@ -115,9 +109,9 @@ _primitives_vec3_subtract(Evas_Vec3 *out, const Evas_Vec3 *a, const Evas_Vec3 *b
 }
 
 void
-_primitives_vec3_cross_product(Evas_Vec3 *out, const Evas_Vec3 *a, const Evas_Vec3 *b)
+_primitives_vec3_cross_product(Eina_Vector3 *out, const Eina_Vector3 *a, const Eina_Vector3 *b)
 {
-   Evas_Vec3 tmp;
+   Eina_Vector3 tmp;
 
    tmp.x = a->y * b->z - a->z * b->y;
    tmp.y = a->z * b->x - a->x * b->z;
@@ -127,7 +121,7 @@ _primitives_vec3_cross_product(Evas_Vec3 *out, const Evas_Vec3 *a, const Evas_Ve
 }
 
 void
-_primitives_vec3_normalize(Evas_Vec3 *out)
+_primitives_vec3_normalize(Eina_Vector3 *out)
 {
    Evas_Real size = out->x * out->x + out->y *out->y + out->z * out->z;
    size = sqrt(size);
@@ -144,7 +138,7 @@ evas_common_set_model_from_primitive(Evas_Canvas3D_Mesh *model,
    Evas_Real ratio = primitive->ratio;
    int precision = primitive->precision;
    Evas_Canvas3D_Surface_Func *surface = primitive->surface;
-   Evas_Vec2 tex_scale = primitive->tex_scale;
+   Eina_Vector2 tex_scale = primitive->tex_scale;
    Evas_Canvas3D_Primitive_Mode mode = primitive->mode;
 
    switch (primitive->form)

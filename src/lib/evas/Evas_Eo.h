@@ -2,45 +2,12 @@
 # error You shall not include this header directly
 #endif
 
-EAPI extern const Eo_Event_Description _EVAS_CANVAS_EVENT_FOCUS_IN;
-EAPI extern const Eo_Event_Description _EVAS_CANVAS_EVENT_FOCUS_OUT;
-EAPI extern const Eo_Event_Description _EVAS_CANVAS_EVENT_RENDER_FLUSH_PRE;
-EAPI extern const Eo_Event_Description _EVAS_CANVAS_EVENT_RENDER_FLUSH_POST;
-EAPI extern const Eo_Event_Description _EVAS_CANVAS_EVENT_OBJECT_FOCUS_IN;
-EAPI extern const Eo_Event_Description _EVAS_CANVAS_EVENT_OBJECT_FOCUS_OUT;
-EAPI extern const Eo_Event_Description _EVAS_CANVAS_EVENT_RENDER_PRE;
-EAPI extern const Eo_Event_Description _EVAS_CANVAS_EVENT_RENDER_POST;
-EAPI extern const Eo_Event_Description _EVAS_CANVAS_EVENT_DEVICE_CHANGED;
-EAPI extern const Eo_Event_Description _EVAS_CANVAS_EVENT_AXIS_UPDATE;
-EAPI extern const Eo_Event_Description _EVAS_CANVAS_EVENT_VIEWPORT_RESIZE;
-
-// Callbacks events for use with Evas canvases
-#define EVAS_CANVAS_EVENT_FOCUS_IN (&(_EVAS_CANVAS_EVENT_FOCUS_IN))
-#define EVAS_CANVAS_EVENT_FOCUS_OUT (&(_EVAS_CANVAS_EVENT_FOCUS_OUT))
-#define EVAS_CANVAS_EVENT_RENDER_FLUSH_PRE (&(_EVAS_CANVAS_EVENT_RENDER_FLUSH_PRE))
-#define EVAS_CANVAS_EVENT_RENDER_FLUSH_POST (&(_EVAS_CANVAS_EVENT_RENDER_FLUSH_POST))
-#define EVAS_CANVAS_EVENT_OBJECT_FOCUS_IN (&(_EVAS_CANVAS_EVENT_OBJECT_FOCUS_IN))
-#define EVAS_CANVAS_EVENT_OBJECT_FOCUS_OUT (&(_EVAS_CANVAS_EVENT_OBJECT_FOCUS_OUT))
-#define EVAS_CANVAS_EVENT_RENDER_PRE (&(_EVAS_CANVAS_EVENT_RENDER_PRE))
-#define EVAS_CANVAS_EVENT_RENDER_POST (&(_EVAS_CANVAS_EVENT_RENDER_POST))
-#define EVAS_CANVAS_EVENT_DEVICE_CHANGED (&(_EVAS_CANVAS_EVENT_DEVICE_CHANGED))
-#define EVAS_CANVAS_EVENT_AXIS_UPDATE (&(_EVAS_CANVAS_EVENT_AXIS_UPDATE))
-#define EVAS_CANVAS_EVENT_VIEWPORT_RESIZE (&(_EVAS_CANVAS_EVENT_VIEWPORT_RESIZE))
-
-#include "canvas/evas_signal_interface.eo.h"
-#include "canvas/evas_draggable_interface.eo.h"
-#include "canvas/evas_clickable_interface.eo.h"
-#include "canvas/evas_scrollable_interface.eo.h"
-#include "canvas/evas_selectable_interface.eo.h"
-#include "canvas/evas_zoomable_interface.eo.h"
-
-// Interface classes links
-#define EVAS_SMART_SIGNAL_INTERFACE     EVAS_SIGNAL_INTERFACE_INTERFACE
-#define EVAS_SMART_CLICKABLE_INTERFACE  EVAS_CLICKABLE_INTERFACE_INTERFACE
-#define EVAS_SMART_SCROLLABLE_INTERFACE EVAS_SCROLLABLE_INTERFACE_INTERFACE
-#define EVAS_SMART_DRAGGABLE_INTERFACE  EVAS_DRAGGABLE_INTERFACE_INTERFACE
-#define EVAS_SMART_SELECTABLE_INTERFACE EVAS_SELECTABLE_INTERFACE_INTERFACE
-#define EVAS_SMART_ZOOMABLE_INTERFACE   EVAS_ZOOMABLE_INTERFACE_INTERFACE
+#ifdef EFL_EO_API_SUPPORT
+#include "canvas/efl_ui_draggable.eo.h"
+#include "canvas/efl_ui_clickable.eo.h"
+#include "canvas/efl_ui_scrollable.eo.h"
+#include "canvas/efl_ui_selectable.eo.h"
+#include "canvas/efl_ui_zoomable.eo.h"
 
 #include "canvas/evas_canvas.eo.h"
 
@@ -49,47 +16,18 @@ EAPI extern const Eo_Event_Description _EVAS_CANVAS_EVENT_VIEWPORT_RESIZE;
  *
  * @{
  */
-#include "canvas/evas_rectangle.eo.h"
+#include "canvas/efl_canvas_rectangle.eo.h"
 /**
  * @}
  */
 
 /**
- * @ingroup Evas_Object_Text
+ * @ingroup Efl_Canvas_Text
  *
  * @{
  */
-#include "canvas/evas_text.eo.h"
-/**
- * @}
- */
-
-/**
- * @ingroup Evas_Object_Textblock
- *
- * @{
- */
-#include "canvas/evas_textblock.eo.h"
-/**
- * @}
- */
-
-/**
- * @ingroup Evas_Object_Textgrid
- *
- * @{
- */
-#include "canvas/evas_textgrid.eo.h"
-/**
- * @}
- */
-
-/**
- * @ingroup Evas_Object_Line
- *
- * @{
- */
-#include "canvas/evas_line.eo.h"
+#include "canvas/efl_canvas_text_cursor.eo.h"
+#include "canvas/efl_canvas_text.eo.h"
 /**
  * @}
  */
@@ -99,7 +37,7 @@ EAPI extern const Eo_Event_Description _EVAS_CANVAS_EVENT_VIEWPORT_RESIZE;
  *
  * @{
  */
-#include "canvas/evas_polygon.eo.h"
+#include "canvas/efl_canvas_polygon.eo.h"
 /**
  * @}
  */
@@ -109,7 +47,7 @@ EAPI extern const Eo_Event_Description _EVAS_CANVAS_EVENT_VIEWPORT_RESIZE;
  *
  * @{
  */
-#include "canvas/evas_object_smart.eo.h"
+#include "canvas/efl_canvas_group.eo.h"
 /**
  * @}
  */
@@ -119,48 +57,15 @@ EAPI extern const Eo_Event_Description _EVAS_CANVAS_EVENT_VIEWPORT_RESIZE;
  *
  * @{
  */
-#include "canvas/evas_smart_clipped.eo.h"
+#include "canvas/efl_canvas_group_clipped.eo.h"
 /**
  * @}
  */
 
-/**
- * @ingroup Evas_Object_Box
- *
- * @{
- */
-#include "canvas/evas_box.eo.h"
-/**
- * @}
- */
+#include "canvas/efl_canvas_object.eo.h"
+#endif /* EFL_EO_API_SUPPORT */
 
-/**
- * @ingroup Evas_Object_Table
- *
- * @{
- */
-#include "canvas/evas_table.eo.h"
-/**
- * @}
- */
-
-/**
- * @ingroup Evas_Object_Grid
- *
- * @{
- */
-#include "canvas/evas_grid.eo.h"
-/**
- * @}
- */
-
-#include "canvas/evas_common_interface.eo.h"
-
-#include "canvas/evas_object.eo.h"
-
-#include "canvas/evas_out.eo.h"
-
-
+#ifdef EFL_BETA_API_SUPPORT
  /**
  * @defgroup Evas_3D Evas 3D Extensions
  *
@@ -365,8 +270,18 @@ typedef void (Evas_Canvas3D_Surface_Func)(Evas_Real *out_x,
 
 #include "canvas/evas_canvas3d_scene.eo.h"
 
-#include "canvas/evas_image.eo.h"
+#include "canvas/efl_canvas_scene3d.eo.h"
+#endif /* EFL_BETA_API_SUPPORT */
 
+#ifdef EFL_EO_API_SUPPORT
+#include "canvas/efl_canvas_image_internal.eo.h"
+#include "canvas/efl_canvas_image.eo.h"
+#include "canvas/efl_canvas_snapshot.eo.h"
+#include "canvas/efl_canvas_proxy.eo.h"
+#include "canvas/efl_gfx_map.eo.h"
+#endif /* EFL_EO_API_SUPPORT */
+
+#ifdef EFL_BETA_API_SUPPORT
 /**
  * @ingroup Evas_Object_VG
  *
@@ -377,9 +292,17 @@ typedef void (Evas_Canvas3D_Surface_Func)(Evas_Real *out_x,
  * @}
  */
 
-#include "canvas/efl_vg_base.eo.h"
+#include "canvas/efl_vg.eo.h"
 #include "canvas/efl_vg_container.eo.h"
 #include "canvas/efl_vg_shape.eo.h"
 #include "canvas/efl_vg_gradient.eo.h"
 #include "canvas/efl_vg_gradient_linear.eo.h"
 #include "canvas/efl_vg_gradient_radial.eo.h"
+#endif /* EFL_BETA_API_SUPPORT */
+
+#ifdef EFL_EO_API_SUPPORT
+#include "canvas/efl_event_input.eo.h"
+#include "canvas/efl_event_pointer.eo.h"
+#include "canvas/efl_event_key.eo.h"
+#include "canvas/efl_event_hold.eo.h"
+#endif /* EFL_EO_API_SUPPORT */

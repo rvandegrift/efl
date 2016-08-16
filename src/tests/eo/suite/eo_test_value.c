@@ -4,7 +4,8 @@
 
 #include <stdio.h>
 
-#include "Eo.h"
+#include <Eo.h>
+
 #include "eo_suite.h"
 #include "eo_test_class_simple.h"
 
@@ -19,7 +20,7 @@ START_TEST(eo_value)
    Eo *obj = eo_add(SIMPLE_CLASS, NULL);
 
    eo_dbg_info = EO_DBG_INFO_LIST_APPEND(NULL, "Root");
-   eo_do(obj, eo_dbg_info_get(eo_dbg_info));
+   eo_dbg_info_get(obj, eo_dbg_info);
    fail_if(!eo_dbg_info);
    ck_assert_str_eq(eo_dbg_info->name, "Root");
    str = eina_value_to_string(&eo_dbg_info->value);

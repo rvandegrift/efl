@@ -231,29 +231,6 @@ eng_image_alpha_set(void *data, void *image, int has_alpha)
    return evas_gl_common_image_alpha_set(im, has_alpha ? 1 : 0);
 }
 
-static void *
-eng_image_border_set(void *data EINA_UNUSED, void *image, int l EINA_UNUSED, int r EINA_UNUSED, int t EINA_UNUSED, int b EINA_UNUSED)
-{
-   return image;
-}
-
-static void
-eng_image_border_get(void *data EINA_UNUSED, void *image EINA_UNUSED, int *l EINA_UNUSED, int *r EINA_UNUSED, int *t EINA_UNUSED, int *b EINA_UNUSED)
-{
-}
-
-
-static char *
-eng_image_comment_get(void *data EINA_UNUSED, void *image, char *key EINA_UNUSED)
-{
-   Evas_GL_Image *im;
-
-   if (!image) return NULL;
-   im = image;
-   if (!im->im) return NULL;
-   return im->im->info.comment;
-}
-
 static Evas_Colorspace
 eng_image_file_colorspace_get(void *data EINA_UNUSED, void *image)
 {
@@ -265,18 +242,14 @@ eng_image_file_colorspace_get(void *data EINA_UNUSED, void *image)
    return im->im->cache_entry.space;
 }
 
-static Eina_Bool
-eng_image_data_has(void *data EINA_UNUSED, void *image, Evas_Colorspace *cspace)
+static void *
+eng_image_data_direct(void *data EINA_UNUSED, void *image, Evas_Colorspace *cspace)
 {
    Evas_GL_Image *im = image;
 
-   if (!im || !im->im) return EINA_FALSE;
-   if (im->im->image.data)
-     {
-        if (cspace) *cspace = im->im->cache_entry.space;
-        return EINA_TRUE;
-     }
-   return EINA_FALSE;
+   if (!im || !im->im) return NULL;
+   if (cspace) *cspace = im->im->cache_entry.space;
+   return im->im->image.data;
 }
 
 static void
@@ -330,7 +303,7 @@ eng_image_colorspace_set(void *data, void *image, Evas_Colorspace cspace)
 }
 
 static void
-_native_bind_cb(void *data EINA_UNUSED, void *image)
+_native_bind_cb(void *image)
 {
    Evas_GL_Image *im = image;
    Evas_Native_Surface *n = im->native.data;
@@ -340,7 +313,7 @@ _native_bind_cb(void *data EINA_UNUSED, void *image)
 }
 
 static void
-_native_unbind_cb(void *data EINA_UNUSED, void *image)
+_native_unbind_cb(void *image)
 {
   Evas_GL_Image *im = image;
   Evas_Native_Surface *n = im->native.data;
@@ -350,27 +323,48 @@ _native_unbind_cb(void *data EINA_UNUSED, void *image)
 }
 
 static void
-_native_free_cb(void *data, void *image)
+_native_free_cb(void *image)
 {
-  Evas_Engine_GL_Context *gl_context;
-  Render_Engine_GL_Generic *re = data;
   Evas_GL_Image *im = image;
   Evas_Native_Surface *n = im->native.data;
   uint32_t texid;
 
   if (n->type == EVAS_NATIVE_SURFACE_OPENGL)
     {
-       gl_context = re->window_gl_context_get(re->software.ob);
-
        texid = n->data.opengl.texture_id;
-       eina_hash_del(gl_context->shared->native_tex_hash, &texid, im);
+       eina_hash_del(im->native.shared->native_tex_hash, &texid, im);
     }
   im->native.data        = NULL;
-  im->native.func.data   = NULL;
   im->native.func.bind   = NULL;
   im->native.func.unbind = NULL;
   im->native.func.free   = NULL;
   free(n);
+}
+
+static int
+eng_image_native_init(void *data EINA_UNUSED, Evas_Native_Surface_Type type)
+{
+   switch (type)
+     {
+      case EVAS_NATIVE_SURFACE_OPENGL:
+        return 1;
+      default:
+        ERR("Native surface type %d not supported!", type);
+        return 0;
+     }
+}
+
+static void
+eng_image_native_shutdown(void *data EINA_UNUSED, Evas_Native_Surface_Type type)
+{
+   switch (type)
+     {
+      case EVAS_NATIVE_SURFACE_OPENGL:
+        return;
+      default:
+        ERR("Native surface type %d not supported!", type);
+        return;
+     }
 }
 
 static void *
@@ -423,7 +417,7 @@ eng_image_native_set(void *data, void *image, void *native)
   if (im->native.data)
     {
       if (im->native.func.free)
-        im->native.func.free(im->native.func.data, im);
+        im->native.func.free(im);
       evas_gl_common_image_native_disable(im);
     }
 
@@ -465,8 +459,8 @@ eng_image_native_set(void *data, void *image, void *native)
 
               im->native.yinvert     = 0;
               im->native.loose       = 0;
+              im->native.shared      = gl_context->shared;
               im->native.data        = n;
-              im->native.func.data   = re;
               im->native.func.bind   = _native_bind_cb;
               im->native.func.unbind = _native_unbind_cb;
               im->native.func.free   = _native_free_cb;
@@ -600,6 +594,7 @@ eng_image_size_set(void *data, void *image, int w, int h)
      {
         im->w = w;
         im->h = h;
+        evas_gl_common_image_native_enable(im);
         return image;
      }
    re->window_use(re->software.ob);
@@ -1403,6 +1398,37 @@ static int
 eng_image_cache_get(void *data EINA_UNUSED)
 {
    return evas_common_image_get_cache();
+}
+
+static void
+eng_font_cache_flush(void *data)
+{
+   Render_Engine_GL_Generic *re = data;
+   int tmp_size;
+
+   re->window_use(re->software.ob);
+   tmp_size = evas_common_font_cache_get();
+   evas_common_font_cache_set(0);
+   evas_common_font_flush();
+   evas_common_font_cache_set(tmp_size);
+}
+
+static void
+eng_font_cache_set(void *data, int bytes)
+{
+   Render_Engine_GL_Generic *re = data;
+
+   re->window_use(re->software.ob);
+   evas_common_font_cache_set(bytes);
+}
+
+static int
+eng_font_cache_get(void *data)
+{
+   Render_Engine_GL_Generic *re = data;
+
+   re->window_use(re->software.ob);
+   return evas_common_font_cache_get();
 }
 
 static void
@@ -2343,6 +2369,12 @@ eng_drawable_scene_render(void *data, void *drawable, void *scene_data)
 }
 
 static int
+eng_drawable_texture_target_id_get(void *drawable)
+{
+   return e3d_drawable_texture_id_get((E3D_Drawable *)drawable);
+}
+
+static int
 eng_drawable_texture_color_pick_id_get(void *drawable)
 {
    return e3d_drawable_texture_color_pick_id_get((E3D_Drawable *)drawable);
@@ -2372,6 +2404,12 @@ eng_drawable_scene_render_to_texture(void *data, void *drawable, void *scene_dat
    return e3d_drawable_scene_render_to_texture((E3D_Drawable *)drawable, renderer, scene_data);
 }
 
+static void
+eng_drawable_texture_rendered_pixels_get(GLuint tex EINA_UNUSED, int x, int y,
+                                         int w, int h, void *drawable EINA_UNUSED, void *data)
+{
+   e3d_drawable_texture_rendered_pixels_get(tex, x, y, w, h, drawable, data);
+}
 static void *
 eng_texture_new(void *data EINA_UNUSED, Eina_Bool use_atlas)
 {
@@ -2477,15 +2515,13 @@ eng_ector_buffer_wrap(void *data EINA_UNUSED, Evas *evas, void *engine_image, Ei
      {
         RGBA_Image *im = engine_image;
 
-        buf = eo_add(EVAS_ECTOR_GL_RGBAIMAGE_BUFFER_CLASS, evas,
-                     evas_ector_buffer_engine_image_set(evas, im));
+        buf = eo_add(EVAS_ECTOR_GL_RGBAIMAGE_BUFFER_CLASS, evas, evas_ector_buffer_engine_image_set(eo_self, evas, im));
      }
    else
      {
         Evas_GL_Image *im = engine_image;
 
-        buf = eo_add(EVAS_ECTOR_GL_IMAGE_BUFFER_CLASS, evas,
-                     evas_ector_buffer_engine_image_set(evas, im));
+        buf = eo_add(EVAS_ECTOR_GL_IMAGE_BUFFER_CLASS, evas, evas_ector_buffer_engine_image_set(eo_self, evas, im));
      }
    return buf;
 }
@@ -2546,8 +2582,7 @@ eng_ector_buffer_new(void *data, Evas *evas, void *pixels,
 
         gc = re->window_gl_context_get(re->software.ob);
         im = evas_gl_common_image_surface_new(gc, iw, ih, EINA_TRUE);
-        buf = eo_add(EVAS_ECTOR_GL_IMAGE_BUFFER_CLASS, evas,
-                     evas_ector_buffer_engine_image_set(evas, im));
+        buf = eo_add(EVAS_ECTOR_GL_IMAGE_BUFFER_CLASS, evas, evas_ector_buffer_engine_image_set(eo_self, evas, im));
         im->references--;
      }
    return buf;
@@ -2623,11 +2658,8 @@ eng_ector_renderer_draw(void *data, void *context, void *surface, void *engine_d
    if (eina_array_count(c) == 0)
      eina_array_push(c, eina_rectangle_new(clip.x, clip.y, clip.w, clip.h));
 
-   eo_do(renderer,
-         ector_renderer_draw(_evas_render_op_to_ector_rop(gc->dc->render_op),
-                             c,
-                             // mul_col will be applied by GL during ector_end
-                             0xffffffff));
+   ector_renderer_draw(renderer, _evas_render_op_to_ector_rop(gc->dc->render_op), c, // mul_col will be applied by GL during ector_end
+                             0xffffffff);
 
    while ((r = eina_array_pop(c)))
      eina_rectangle_free(r);
@@ -2704,16 +2736,14 @@ eng_ector_begin(void *data, void *context EINA_UNUSED, Ector_Surface *ector,
                }
           }
         memset(buffer->software, 0, sizeof (unsigned int) * w * h);
-        eo_do(ector,
-              ector_buffer_pixels_set(buffer->software, w, h, 0, EFL_GFX_COLORSPACE_ARGB8888,
-                                      EINA_TRUE, 0, 0, 0, 0),
-              ector_surface_reference_point_set(x, y));
+        ector_buffer_pixels_set(ector, buffer->software, w, h, 0, EFL_GFX_COLORSPACE_ARGB8888, EINA_TRUE, 0, 0, 0, 0);
+        ector_surface_reference_point_set(ector, x, y);
      }
    else
      {
         evas_gl_common_context_flush(gl_context);
 
-        eo_do(ector, ector_surface_reference_point_set(x, y));
+        ector_surface_reference_point_set(ector, x, y);
      }
 }
 
@@ -2734,8 +2764,8 @@ eng_ector_end(void *data, void *context EINA_UNUSED, Ector_Surface *ector,
         w = gl_context->w; h = gl_context->h;
         mul_use = gl_context->dc->mul.use;
 
-        eo_do(ector, ector_buffer_pixels_set(NULL, 0, 0, 0, 0, 0, 0, 0, 0, 0));
-        eng_image_data_put(data, buffer->gl, buffer->software);
+        ector_buffer_pixels_set(ector, NULL, 0, 0, 0, 0, 0, 0, 0, 0, 0);
+        buffer->gl = eng_image_data_put(data, buffer->gl, buffer->software);
 
         if (!mul_use)
           {
@@ -2779,6 +2809,11 @@ module_open(Evas_Module *em)
         return 0;
      }
 
+   /* disable map/unmap for now as it's not implemented */
+   pfunc.image_data_map = NULL;
+   pfunc.image_data_unmap = NULL;
+   pfunc.image_data_maps_get = NULL;
+
    ector_init();
    ector_glsym_set(dlsym, RTLD_DEFAULT);
 
@@ -2809,21 +2844,20 @@ module_open(Evas_Module *em)
    ORD(image_dirty_region);
    ORD(image_data_get);
    ORD(image_data_put);
-   ORD(image_data_has);
+   ORD(image_data_direct);
    ORD(image_data_preload_request);
    ORD(image_data_preload_cancel);
    ORD(image_alpha_set);
    ORD(image_alpha_get);
    ORD(image_orient_set);
    ORD(image_orient_get);
-   ORD(image_border_set);
-   ORD(image_border_get);
    ORD(image_draw);
-   ORD(image_comment_get);
    ORD(image_colorspace_set);
    ORD(image_colorspace_get);
    ORD(image_file_colorspace_get);
    ORD(image_can_region_get);
+   ORD(image_native_init);
+   ORD(image_native_shutdown);
    ORD(image_native_set);
    ORD(image_native_get);
 
@@ -2844,6 +2878,10 @@ module_open(Evas_Module *em)
    ORD(image_cache_flush);
    ORD(image_cache_set);
    ORD(image_cache_get);
+
+   ORD(font_cache_flush);
+   ORD(font_cache_set);
+   ORD(font_cache_get);
 
    ORD(gl_surface_create);
    ORD(gl_pbuffer_surface_create);
@@ -2896,9 +2934,10 @@ module_open(Evas_Module *em)
    ORD(drawable_scene_render);
 
    ORD(drawable_texture_color_pick_id_get);
+   ORD(drawable_texture_target_id_get);
    ORD(drawable_texture_pixel_color_get);
    ORD(drawable_scene_render_to_texture);
-
+   ORD(drawable_texture_rendered_pixels_get);
    ORD(texture_new);
    ORD(texture_free);
    ORD(texture_size_get);

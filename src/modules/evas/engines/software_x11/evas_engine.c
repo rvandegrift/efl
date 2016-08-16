@@ -32,7 +32,8 @@
 # include <dlfcn.h>
 #endif
 
-Evas_Native_Tbm_Surface_Image_Set_Call  glsym_evas_native_tbm_surface_image_set = NULL;
+Evas_Native_Tbm_Surface_Image_Set_Call  glsym__evas_native_tbm_surface_image_set = NULL;
+Evas_Native_Tbm_Surface_Stride_Get_Call  glsym__evas_native_tbm_surface_stride_get = NULL;
 int _evas_engine_soft_x11_log_dom = -1;
 
 /* function tables - filled in later (func and parent func) */
@@ -432,7 +433,8 @@ _symbols(void)
    glsym_##sym = dlsym(RTLD_DEFAULT, #sym);
 
    // Get function pointer to native_common that is now provided through the link of SW_Generic.
-   LINK2GENERIC(evas_native_tbm_surface_image_set);
+   LINK2GENERIC(_evas_native_tbm_surface_image_set);
+   LINK2GENERIC(_evas_native_tbm_surface_stride_get);
 
    done = 1;
 }
@@ -657,18 +659,54 @@ eng_canvas_alpha_get(void *data, void *context EINA_UNUSED)
 }
 
 static void
-_native_evasgl_free(void *data EINA_UNUSED, void *image)
+_native_evasgl_free(void *image)
 {
    RGBA_Image *im = image;
    Native *n = im->native.data;
 
    im->native.data        = NULL;
-   im->native.func.data   = NULL;
    im->native.func.bind   = NULL;
    im->native.func.unbind = NULL;
    im->native.func.free   = NULL;
    //im->image.data         = NULL;
    free(n);
+}
+
+static int
+eng_image_native_init(void *data EINA_UNUSED, Evas_Native_Surface_Type type)
+{
+   switch (type)
+     {
+#ifdef GL_GLES
+      case EVAS_NATIVE_SURFACE_TBM:
+        return _evas_native_tbm_init();
+#endif
+      case EVAS_NATIVE_SURFACE_X11:
+      case EVAS_NATIVE_SURFACE_EVASGL:
+        return 1;
+      default:
+        ERR("Native surface type %d not supported!", type);
+        return 0;
+     }
+}
+
+static void
+eng_image_native_shutdown(void *data EINA_UNUSED, Evas_Native_Surface_Type type)
+{
+   switch (type)
+     {
+#ifdef GL_GLES
+      case EVAS_NATIVE_SURFACE_TBM:
+        _evas_native_tbm_shutdown();
+        return;
+#endif
+      case EVAS_NATIVE_SURFACE_X11:
+      case EVAS_NATIVE_SURFACE_OPENGL:
+        return;
+      default:
+        ERR("Native surface type %d not supported!", type);
+        return;
+     }
 }
 
 static void *
@@ -678,12 +716,13 @@ eng_image_native_set(void *data EINA_UNUSED, void *image, void *native)
    Evas_Native_Surface *ns = native;
    Image_Entry *ie = image, *ie2 = NULL;
    RGBA_Image *im = image;
+   int stride;
 
    if (!im) return NULL;
    if (!ns)
      {
         if (im->native.data && im->native.func.free)
-          im->native.func.free(im->native.func.data, im);
+          im->native.func.free(im);
         return NULL;
      }
 
@@ -719,6 +758,13 @@ eng_image_native_set(void *data EINA_UNUSED, void *image, void *native)
      ie2 = evas_cache_image_data(evas_common_image_cache_get(),
                                  ie->w, ie->h, ns->data.evasgl.surface, 1,
                                  EVAS_COLORSPACE_ARGB8888);
+   else if (ns->type == EVAS_NATIVE_SURFACE_TBM)
+     {
+        stride = glsym__evas_native_tbm_surface_stride_get(re->generic.ob, ns);
+        ie2 = evas_cache_image_copied_data(evas_common_image_cache_get(),
+                                   stride, ie->h, NULL, ie->flags.alpha,
+                                   EVAS_COLORSPACE_ARGB8888);
+     }
    else
      ie2 = evas_cache_image_data(evas_common_image_cache_get(),
                                  ie->w, ie->h, NULL, ie->flags.alpha,
@@ -727,7 +773,7 @@ eng_image_native_set(void *data EINA_UNUSED, void *image, void *native)
    if (im->native.data)
      {
         if (im->native.func.free)
-          im->native.func.free(im->native.func.data, im);
+          im->native.func.free(im);
      }
 
 #ifdef EVAS_CSERVE2
@@ -753,7 +799,7 @@ eng_image_native_set(void *data EINA_UNUSED, void *image, void *native)
      }
    else if (ns->type == EVAS_NATIVE_SURFACE_TBM)
      {
-        return glsym_evas_native_tbm_surface_image_set(re->generic.ob, ie, ns);
+        return glsym__evas_native_tbm_surface_image_set(re->generic.ob, ie, ns);
      }
    else if (ns->type == EVAS_NATIVE_SURFACE_EVASGL)
      {
@@ -768,7 +814,6 @@ eng_image_native_set(void *data EINA_UNUSED, void *image, void *native)
              n->ns.data.evasgl.surface = ns->data.evasgl.surface;
              im->native.data = n;
              im->native.func.free = _native_evasgl_free;
-             im->native.func.data = NULL;
              im->native.func.bind = NULL;
              im->native.func.unbind = NULL;
           }
@@ -817,6 +862,8 @@ module_open(Evas_Module *em)
    ORD(setup);
    ORD(canvas_alpha_get);
    ORD(output_free);
+   ORD(image_native_init);
+   ORD(image_native_shutdown);
    ORD(image_native_set);
    ORD(image_native_get);
 

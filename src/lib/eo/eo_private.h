@@ -1,8 +1,6 @@
 #ifndef _EO_PRIVATE_H
 #define _EO_PRIVATE_H
 
-#define EO_BASE_BETA
-
 #include <Eo.h>
 #include <Eina.h>
 
@@ -61,7 +59,6 @@ extern int _eo_log_dom;
 
 typedef uintptr_t Eo_Id;
 typedef struct _Eo_Class _Eo_Class;
-typedef struct _Eo_Object _Eo_Object;
 typedef struct _Eo_Header Eo_Header;
 
 /* Retrieves the pointer to the object from the id */
@@ -78,6 +75,17 @@ static inline void _eo_free_ids_tables(void);
 
 void _eo_condtor_done(Eo *obj);
 
+typedef struct _Dich_Chain1 Dich_Chain1;
+
+typedef struct _Eo_Vtable
+{
+   Dich_Chain1 *chain;
+   unsigned int size;
+} Eo_Vtable;
+
+/* Clean the vtable. */
+void _vtable_func_clean_all(Eo_Vtable *vtable);
+
 struct _Eo_Header
 {
 #ifndef HAVE_EO_ID
@@ -89,21 +97,27 @@ struct _Eo_Header
 struct _Eo_Object
 {
      Eo_Header header;
+     EINA_INLIST;
      const _Eo_Class *klass;
 #ifdef EO_DEBUG
      Eina_Inlist *xrefs;
      Eina_Inlist *data_xrefs;
 #endif
 
-     Eina_List *composite_objects;
+     Eo_Vtable *vtable;
 
-     int refcount;
-     int datarefcount;
+     Eina_List *composite_objects;
+     Eo_Del_Intercept del_intercept;
+
+     short refcount;
+     short user_refcount;
+#ifdef EO_DEBUG
+     short datarefcount;
+#endif
 
      Eina_Bool condtor_done:1;
      Eina_Bool finalized:1;
 
-     Eina_Bool composite:1;
      Eina_Bool del_triggered:1;
      Eina_Bool destructed:1;
      Eina_Bool manual_free:1;
@@ -111,8 +125,6 @@ struct _Eo_Object
 
 /* FIXME: Change the type to something generic that makes sense for eo */
 typedef void (*eo_op_func_type)(Eo *, void *class_data, va_list *list);
-
-typedef struct _Dich_Chain1 Dich_Chain1;
 
 typedef struct
 {
@@ -137,7 +149,7 @@ struct _Eo_Class
 
    const _Eo_Class *parent;
    const Eo_Class_Description *desc;
-   Dich_Chain1 *chain; /**< The size is chain size */
+   Eo_Vtable vtable;
 
    const _Eo_Class **extensions;
 
@@ -160,7 +172,6 @@ struct _Eo_Class
    } iterators;
 
    unsigned int obj_size; /**< size of an object of this class */
-   unsigned int chain_size;
    unsigned int base_id;
    unsigned int data_offset; /* < Offset of the data within object data. */
 
@@ -195,7 +206,7 @@ Eo_Class *_eo_class_id_get(const _Eo_Class *klass)
 }
 
 static inline
-Eo *_eo_id_get(const _Eo_Object *obj)
+Eo *_eo_obj_id_get(const _Eo_Object *obj)
 {
    return _eo_header_id_get((Eo_Header *) obj);
 }
@@ -214,11 +225,11 @@ _eo_del_internal(const char *file, int line, _Eo_Object *obj)
 
    const _Eo_Class *klass = obj->klass;
 
-   eo_do(_eo_id_get(obj), eo_event_callback_call(EO_BASE_EVENT_DEL, NULL));
+   eo_event_callback_call(_eo_obj_id_get(obj), EO_EVENT_DEL, NULL);
 
    _eo_condtor_reset(obj);
 
-   eo_do(_eo_id_get(obj), eo_destructor());
+   eo_destructor(_eo_obj_id_get(obj));
 
    if (!obj->condtor_done)
      {
@@ -232,12 +243,18 @@ _eo_del_internal(const char *file, int line, _Eo_Object *obj)
         Eo *emb_obj;
         EINA_LIST_FOREACH_SAFE(obj->composite_objects, itr, itr_n, emb_obj)
           {
-             eo_do(_eo_id_get(obj), eo_composite_detach(emb_obj));
+             eo_composite_detach(_eo_obj_id_get(obj), emb_obj);
           }
      }
 
    obj->destructed = EINA_TRUE;
    obj->refcount--;
+}
+
+static inline Eina_Bool
+_obj_is_override(_Eo_Object *obj)
+{
+   return (obj->vtable != &obj->klass->vtable);
 }
 
 static inline void
@@ -251,7 +268,14 @@ _eo_free(_Eo_Object *obj)
         ERR("Object %p data still referenced %d time(s).", obj, obj->datarefcount);
      }
 #endif
-   _eo_id_release((Eo_Id) _eo_id_get(obj));
+   if (_obj_is_override(obj))
+     {
+        _vtable_func_clean_all(obj->vtable);
+        free(obj->vtable);
+        obj->vtable = &klass->vtable;
+     }
+
+   _eo_id_release((Eo_Id) _eo_obj_id_get(obj));
 
    eina_spinlock_take(&klass->objects.trash_lock);
    if (klass->objects.trash_count <= 8)
@@ -287,20 +311,27 @@ _eo_unref(_Eo_Object *obj)
 
         if (obj->destructed)
           {
-             ERR("Object %p already destructed.", _eo_id_get(obj));
+             ERR("Object %p already destructed.", _eo_obj_id_get(obj));
              return;
           }
 
         if (obj->del_triggered)
           {
-             ERR("Object %p deletion already triggered. You wrongly call eo_unref() within a destructor.", _eo_id_get(obj));
+             ERR("Object %p deletion already triggered. You wrongly call eo_unref() within a destructor.", _eo_obj_id_get(obj));
              return;
           }
+
+        if (obj->del_intercept)
+          {
+             Eo *obj_id = _eo_obj_id_get(obj);
+             eo_ref(obj_id);
+             obj->del_intercept(obj_id);
+             return;
+          }
+
         obj->del_triggered = EINA_TRUE;
 
         _eo_del_internal(__FILE__, __LINE__, obj);
-
-        obj->del_triggered = EINA_FALSE;
 #ifdef EO_DEBUG
         /* If for some reason it's not empty, clear it. */
         while (obj->xrefs)
@@ -314,7 +345,7 @@ _eo_unref(_Eo_Object *obj)
           {
              Eina_Inlist *nitr = obj->data_xrefs->next;
              Eo_Xref_Node *xref = EINA_INLIST_CONTAINER_GET(obj->data_xrefs, Eo_Xref_Node);
-             ERR("Data of object 0x%lx is still referenced by object %p", (unsigned long) _eo_id_get(obj), xref->ref_obj);
+             ERR("Data of object 0x%lx is still referenced by object %p", (unsigned long) _eo_obj_id_get(obj), xref->ref_obj);
 
              free(xref);
              obj->data_xrefs = nitr;

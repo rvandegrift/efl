@@ -1424,7 +1424,7 @@ _edje_lua_object_get_size_hint_min(lua_State *L)
 {
    Edje_Lua_Evas_Object *obj = _edje_lua_checkudata(L, 1, &mObject);
    int w, h;
-   evas_object_size_hint_min_get(obj->eo, &w, &h);
+   efl_gfx_size_hint_combined_min_get(obj->eo, &w, &h);
    lua_createtable(L, 2, 0);
    lua_pushnumber(L, w);
    lua_rawseti(L, -2, 1);
@@ -4982,6 +4982,7 @@ _edje_lua_open(lua_State *L)
    _edje_lua_new_const(L, "PART_TYPE_GRADIENT", EDJE_PART_TYPE_GRADIENT);
    _edje_lua_new_const(L, "PART_TYPE_GROUP", EDJE_PART_TYPE_GROUP);
    _edje_lua_new_const(L, "PART_TYPE_BOX", EDJE_PART_TYPE_BOX);
+   _edje_lua_new_const(L, "PART_TYPE_VECTOR", EDJE_PART_TYPE_VECTOR);
 
    _edje_lua_new_const(L, "TEXT_EFFECT_NONE", EDJE_TEXT_EFFECT_NONE);
    _edje_lua_new_const(L, "TEXT_EFFECT_PLAIN", EDJE_TEXT_EFFECT_PLAIN);

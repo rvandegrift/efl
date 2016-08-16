@@ -1,5 +1,6 @@
 class Ecore.Con.Eet.Server.Obj (Ecore.Con.Eet.Base) {
-   legacy_prefix: null;
+   [[Ecore Connection Eet Server class.]]
+
    eo_prefix: ecore_con_eet_server_obj;
    implements {
         Eo.Base.constructor;

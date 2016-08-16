@@ -40,26 +40,23 @@ _shader_free(void *s)
 }
 
 static Ector_Renderer *
-_ector_gl_surface_ector_generic_surface_renderer_factory_new(Eo *obj,
+_ector_gl_surface_ector_surface_renderer_factory_new(Eo *obj,
                                                              Ector_GL_Surface_Data *pd EINA_UNUSED,
                                                              const Eo_Class *type)
 {
-   if (type == ECTOR_RENDERER_GENERIC_SHAPE_MIXIN)
-     return eo_add(ECTOR_RENDERER_GL_SHAPE_CLASS, NULL,
-                   ector_renderer_surface_set(obj));
-   else if (type == ECTOR_RENDERER_GENERIC_GRADIENT_LINEAR_MIXIN)
-     return eo_add(ECTOR_RENDERER_GL_GRADIENT_LINEAR_CLASS, NULL,
-                   ector_renderer_surface_set(obj));
-   else if (type == ECTOR_RENDERER_GENERIC_GRADIENT_RADIAL_MIXIN)
-     return eo_add(ECTOR_RENDERER_GL_GRADIENT_RADIAL_CLASS, NULL,
-                   ector_renderer_surface_set(obj));
+   if (type == ECTOR_RENDERER_SHAPE_MIXIN)
+     return eo_add(ECTOR_RENDERER_GL_SHAPE_CLASS, NULL, ector_renderer_surface_set(eo_self, obj));
+   else if (type == ECTOR_RENDERER_GRADIENT_LINEAR_MIXIN)
+     return eo_add(ECTOR_RENDERER_GL_GRADIENT_LINEAR_CLASS, NULL, ector_renderer_surface_set(eo_self, obj));
+   else if (type == ECTOR_RENDERER_GRADIENT_RADIAL_MIXIN)
+     return eo_add(ECTOR_RENDERER_GL_GRADIENT_RADIAL_CLASS, NULL, ector_renderer_surface_set(eo_self, obj));
 
    ERR("Couldn't find class for type: %s\n", eo_class_name_get(type));
    return NULL;
 }
 
 static void
-_ector_gl_surface_ector_generic_surface_reference_point_set(Eo *obj EINA_UNUSED,
+_ector_gl_surface_ector_surface_reference_point_set(Eo *obj EINA_UNUSED,
                                                             Ector_GL_Surface_Data *pd,
                                                             int x, int y)
 {
@@ -77,7 +74,7 @@ _ector_gl_surface_push(Eo *obj,
 {
    unsigned int prog;
 
-   eo_do(obj, prog = ector_gl_surface_shader_get(flags));
+   prog = ector_gl_surface_shader_get(obj, flags);
 
    // FIXME: Not using mapp/unmap buffer yet, nor any pipe
    // FIXME: Move some of the state change to surface drawing start ?
@@ -180,7 +177,7 @@ _ector_gl_shader_textures_bind(Ector_Shader *p)
              loc = GL.glGetUniformLocation(p->prg, textures[i].name);
              if (loc < 0)
                {
-                  ERR("Couldn't find uniform '%s' (shader: %16lx)",
+                  ERR("Couldn't find uniform '%s' (shader: %16" PRIx64 ")",
                       textures[i].name, p->flags);
                }
              GL.glUniform1i(loc, tex_count++);
@@ -203,7 +200,7 @@ _ector_gl_shader_load(uint64_t flags)
    buf = eina_strbuf_new();
    if (!buf) return NULL;
 
-   eina_strbuf_append_printf(buf, "ector/shader/%16lx", flags);
+   eina_strbuf_append_printf(buf, "ector/shader/%16" PRIx64, flags);
 
    data = (void*) eet_read_direct(shader_file, eina_strbuf_string_get(buf), &length);
    if (!data)
@@ -282,7 +279,11 @@ _ector_gl_surface_shader_get(Eo *obj EINA_UNUSED, Ector_GL_Surface_Data *pd EINA
    if (shd) return shd->prg;
 
    shd = _ector_gl_shader_load(flags);
-   if (shd) return shd->prg;
+   if (shd)
+     {
+        eina_hash_direct_add(shader_cache, &shd->flags, shd);
+        return shd->prg;
+     }
 
    prg = ector_gl_shader_compile(flags);
    if (prg <= 0) return -1;
@@ -312,7 +313,7 @@ _ector_gl_surface_shader_get(Eo *obj EINA_UNUSED, Ector_GL_Surface_Data *pd EINA
    if (GL.glGetProgramBinary)
      {
         buf = eina_strbuf_new();
-        eina_strbuf_append_printf(buf, "ector/shader/%16lx", flags);
+        eina_strbuf_append_printf(buf, "ector/shader/%16" PRIx64, flags);
 
         eet_write(shader_file, eina_strbuf_string_get(buf), data, length, 1);
 
@@ -328,7 +329,7 @@ _ector_gl_surface_shader_get(Eo *obj EINA_UNUSED, Ector_GL_Surface_Data *pd EINA
 static void
 _ector_gl_surface_eo_base_destructor(Eo *obj, Ector_GL_Surface_Data *pd EINA_UNUSED)
 {
-   eo_do_super(obj, ECTOR_GL_SURFACE_CLASS, eo_destructor());
+   eo_destructor(eo_super(obj, ECTOR_GL_SURFACE_CLASS));
 
    eina_hash_free(shader_cache);
    shader_cache = NULL;
@@ -341,7 +342,7 @@ _ector_gl_surface_eo_base_constructor(Eo *obj, Ector_GL_Surface_Data *pd EINA_UN
 {
    Eina_Strbuf *file_path = NULL;
 
-   eo_do_super(obj, ECTOR_GL_SURFACE_CLASS, obj = eo_constructor());
+   obj = eo_constructor(eo_super(obj, ECTOR_GL_SURFACE_CLASS));
    if (!obj) return NULL;
 
    if (shader_cache) return obj;

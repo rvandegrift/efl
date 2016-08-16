@@ -43,9 +43,9 @@ database_init()
    if (_database_init_count > 0) return ++_database_init_count;
    eina_init();
    _classes    = eina_hash_stringshared_new(EINA_FREE_CB(database_class_del));
-   _aliases    = eina_hash_stringshared_new(EINA_FREE_CB(database_typedef_del));
-   _structs    = eina_hash_stringshared_new(EINA_FREE_CB(database_type_del));
-   _enums      = eina_hash_stringshared_new(EINA_FREE_CB(database_type_del));
+   _aliases    = eina_hash_stringshared_new(EINA_FREE_CB(database_typedecl_del));
+   _structs    = eina_hash_stringshared_new(EINA_FREE_CB(database_typedecl_del));
+   _enums      = eina_hash_stringshared_new(EINA_FREE_CB(database_typedecl_del));
    _globals    = eina_hash_stringshared_new(EINA_FREE_CB(database_var_del));
    _constants  = eina_hash_stringshared_new(EINA_FREE_CB(database_var_del));
    _classesf   = eina_hash_stringshared_new(NULL);
@@ -134,6 +134,12 @@ eolian_declarations_get_by_file(const char *fname)
    return eina_list_iterator_new(l);
 }
 
+EAPI Eina_Iterator *
+eolian_all_declarations_get(void)
+{
+   return (_decls ? eina_hash_iterator_data_new(_decls) : NULL);
+}
+
 EAPI Eolian_Declaration_Type
 eolian_declaration_type_get(const Eolian_Declaration *decl)
 {
@@ -156,14 +162,14 @@ eolian_declaration_class_get(const Eolian_Declaration *decl)
    return (const Eolian_Class *)decl->data;
 }
 
-EAPI const Eolian_Type *
+EAPI const Eolian_Typedecl *
 eolian_declaration_data_type_get(const Eolian_Declaration *decl)
 {
    EINA_SAFETY_ON_NULL_RETURN_VAL(decl, NULL);
    EINA_SAFETY_ON_FALSE_RETURN_VAL(decl->type == EOLIAN_DECL_ALIAS ||
                                    decl->type == EOLIAN_DECL_STRUCT ||
                                    decl->type == EOLIAN_DECL_ENUM, NULL);
-   return (const Eolian_Type *)decl->data;
+   return (const Eolian_Typedecl *)decl->data;
 }
 
 
@@ -269,46 +275,21 @@ database_class_to_filename(const char *cname)
    return ret;
 }
 
-/*
- * ret false -> clash, class = NULL
- * ret true && class -> only one class corresponding
- * ret true && !class -> no class corresponding
- */
-Eina_Bool
-database_class_name_validate(const char *class_name, const Eolian_Class **cl)
+const Eolian_Class *
+database_object_class_fill(const char *class_name, const Eolian_Class **cl)
 {
+   if (*cl) return *cl;
    char *name = strdup(class_name);
-   char *colon = name + 1;
-   const Eolian_Class *found_class = NULL;
-   const Eolian_Class *candidate;
-   if (cl) *cl = NULL;
-   do
-     {
-        colon = strchr(colon, '.');
-        if (colon) *colon = '\0';
-        candidate = eolian_class_get_by_name(name);
-        if (candidate)
-          {
-             if (found_class)
-               {
-                  fprintf(stderr, "eolian: name clash between classes '%s' and '%s'\n",
-                        candidate->full_name,
-                        found_class->full_name);
-                  free(name);
-                  return EINA_FALSE; // Names clash
-               }
-             found_class = candidate;
-          }
-        if (colon) *colon++ = '.';
-     }
-   while(colon);
-   if (cl) *cl = found_class;
+   char *ldot = strrchr(name + 1, '.');
+   if (ldot) *ldot = '\0';
+   const Eolian_Class *found = eolian_class_get_by_name(name);
+   *cl = found;
    free(name);
-   return EINA_TRUE;
+   return found;
 }
 
-EAPI Eina_Bool
-eolian_file_parse(const char *filepath)
+static Eina_Bool
+_eolian_file_parse_nodep(const char *filepath)
 {
    Eina_Bool is_eo;
    const char *eopath;
@@ -328,6 +309,28 @@ eolian_file_parse(const char *filepath)
         return ret;
      }
    return eo_parser_database_fill(eopath, !is_eo);
+}
+
+EAPI Eina_Bool
+eolian_file_parse(const char *filepath)
+{
+   const char *dep;
+   if (!_eolian_file_parse_nodep(filepath))
+     return EINA_FALSE;
+   /* parse doc dependencies (deferred eo files) */
+   Eina_Iterator *itr = eina_hash_iterator_data_new(_defereos);
+   EINA_ITERATOR_FOREACH(itr, dep)
+     {
+        if (!_eolian_file_parse_nodep(dep))
+          {
+             eina_iterator_free(itr);
+             eina_hash_free_buckets(_defereos);
+             return EINA_FALSE;
+          }
+     }
+   eina_iterator_free(itr);
+   eina_hash_free_buckets(_defereos);
+   return EINA_TRUE;
 }
 
 static Eina_Bool _tfile_parse(const Eina_Hash *hash EINA_UNUSED, const void *key EINA_UNUSED, void *data, void *fdata)
@@ -369,12 +372,12 @@ eolian_all_eo_files_parse()
 }
 
 EAPI Eina_Bool
-eolian_database_validate(void)
+eolian_database_validate(Eina_Bool silent_types)
 {
    if (_database_init_count <= 0)
      return EINA_FALSE;
 
-   return database_validate();
+   return database_validate(silent_types);
 }
 
 EAPI Eina_Iterator *

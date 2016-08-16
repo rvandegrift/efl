@@ -66,14 +66,15 @@ typedef struct _tbm_surface_info
 /* returns 0 on success */
 static int (*sym_tbm_surface_map) (tbm_surface_h surface, int opt, tbm_surface_info_s *info) = NULL;
 static int (*sym_tbm_surface_unmap) (tbm_surface_h surface) = NULL;
+static int (*sym_tbm_surface_get_info) (tbm_surface_h surface, tbm_surface_info_s *info) = NULL;
 
-static Eina_Bool
-tbm_init(void)
+EAPI int
+_evas_native_tbm_init(void)
 {
    if (tbm_lib)
      {
         tbm_ref++;
-        return EINA_TRUE;
+        return tbm_ref;
      }
 
    const char *tbm_libs[] =
@@ -100,6 +101,7 @@ tbm_init(void)
              fail = 0;
              SYM(tbm_lib, tbm_surface_map);
              SYM(tbm_lib, tbm_surface_unmap);
+             SYM(tbm_lib, tbm_surface_get_info);
              if (fail)
                {
                   dlclose(tbm_lib);
@@ -108,14 +110,14 @@ tbm_init(void)
              else break;
           }
      }
-   if (!tbm_lib) return EINA_FALSE;
+   if (!tbm_lib) return 0;
 
    tbm_ref++;
-   return EINA_TRUE;
+   return tbm_ref;
 }
 
-static void
-tbm_shutdown(void)
+EAPI void
+_evas_native_tbm_shutdown(void)
 {
    if (tbm_ref > 0)
      {
@@ -171,18 +173,18 @@ _evas_video_i420(unsigned char *evas_data, const unsigned char *source_data, uns
 
    rows = (const unsigned char **)evas_data;
 
-   stride_y = EVAS_ROUND_UP_4(w);
-   stride_uv = EVAS_ROUND_UP_8(w) / 2;
+   stride_y = w;
+   stride_uv = w / 2;
 
    for (i = 0; i < rh; i++)
      rows[i] = &source_data[i * stride_y];
 
-   for (j = 0; j < (rh / 2); j++, i++)
+   for (j = 0; j < ((rh + 1) / 2); j++, i++)
      rows[i] = &source_data[h * stride_y + j * stride_uv];
 
    for (j = 0; j < (rh / 2); j++, i++)
      rows[i] = &source_data[h * stride_y +
-                            (rh / 2) * stride_uv +
+                            ((rh + 1) / 2) * stride_uv +
                             j * stride_uv];
 }
 
@@ -205,7 +207,7 @@ _evas_video_nv12(unsigned char *evas_data, const unsigned char *source_data, uns
 }
 
 static void
-_native_bind_cb(void *data EINA_UNUSED, void *image, int x EINA_UNUSED, int y EINA_UNUSED, int w EINA_UNUSED, int h EINA_UNUSED)
+_native_bind_cb(void *image, int x EINA_UNUSED, int y EINA_UNUSED, int w EINA_UNUSED, int h EINA_UNUSED)
 {
    RGBA_Image *im = image;
    Native *n = im->native.data;
@@ -224,7 +226,7 @@ _native_bind_cb(void *data EINA_UNUSED, void *image, int x EINA_UNUSED, int y EI
 }
 
 static void
-_native_unbind_cb(void *data EINA_UNUSED, void *image)
+_native_unbind_cb(void *image)
 {
    RGBA_Image *im = image;
    Native *n = im->native.data;
@@ -239,26 +241,48 @@ _native_unbind_cb(void *data EINA_UNUSED, void *image)
 }
 
 static void
-_native_free_cb(void *data EINA_UNUSED, void *image)
+_native_free_cb(void *image)
 {
    RGBA_Image *im = image;
    Native *n = im->native.data;
 
    if (!im) return;
+
    im->native.data        = NULL;
    im->native.func.bind   = NULL;
    im->native.func.unbind = NULL;
    im->native.func.free   = NULL;
-   im->native.func.data   = NULL;
-   im->image.data         = NULL;
 
    free(n);
 
-   tbm_shutdown();
+   _evas_native_tbm_shutdown();
 }
 
+EAPI int
+_evas_native_tbm_surface_stride_get(void *data EINA_UNUSED, void *native)
+{
+   Evas_Native_Surface *ns = native;
+   tbm_surface_info_s info;
+   int stride;
+
+   if (!ns)
+     return -1;
+
+   if (!_evas_native_tbm_init())
+     {
+        ERR("Could not initialize TBM!");
+        return -1;
+     }
+
+   if (sym_tbm_surface_get_info(ns->data.tbm.buffer, &info))
+     return -1;
+
+   stride = info.planes[0].stride;
+   return stride;
+ }
+
 EAPI void *
-evas_native_tbm_surface_image_set(void *data EINA_UNUSED, void *image, void *native)
+_evas_native_tbm_surface_image_set(void *data EINA_UNUSED, void *image, void *native)
 {
    Evas_Native_Surface *ns = native;
    RGBA_Image *im = image;
@@ -269,7 +293,7 @@ evas_native_tbm_surface_image_set(void *data EINA_UNUSED, void *image, void *nat
    if (ns)
      {
         void *pixels_data;
-        int w, h, stride;
+        int h, stride;
         tbm_format format;
         tbm_surface_info_s info;
         Native *n;
@@ -278,13 +302,13 @@ evas_native_tbm_surface_image_set(void *data EINA_UNUSED, void *image, void *nat
           return NULL;
 
         tbm_surf = ns->data.tbm.buffer;
-
-        if (!tbm_init())
+/*
+        if (!_evas_native_tbm_init())
           {
              ERR("Could not initialize TBM!");
              return NULL;
           }
-
+*/
         n = calloc(1, sizeof(Native));
         if (!n) return NULL;
 
@@ -294,7 +318,6 @@ evas_native_tbm_surface_image_set(void *data EINA_UNUSED, void *image, void *nat
              return im;
           }
 
-        w = info.width;
         h = info.height;
         stride = info.planes[0].stride;
         format = info.format;
@@ -319,17 +342,17 @@ evas_native_tbm_surface_image_set(void *data EINA_UNUSED, void *image, void *nat
               /* borrowing code from emotion here */
            case TBM_FORMAT_YVU420: /* EVAS_COLORSPACE_YCBCR422P601_PL */
               evas_cache_image_colorspace(&im->cache_entry, EVAS_COLORSPACE_YCBCR422P601_PL);
-              _evas_video_yv12(im->cs.data, pixels_data, w, h, h);
+              _evas_video_yv12(im->cs.data, pixels_data, stride, h, h);
               evas_common_image_colorspace_dirty(im);
               break;
            case TBM_FORMAT_YUV420: /* EVAS_COLORSPACE_YCBCR422P601_PL */
               evas_cache_image_colorspace(&im->cache_entry, EVAS_COLORSPACE_YCBCR422P601_PL);
-              _evas_video_i420(im->cs.data, pixels_data, w, h, h);
+              _evas_video_i420(im->cs.data, pixels_data, stride, h, h);
               evas_common_image_colorspace_dirty(im);
               break;
            case TBM_FORMAT_NV12: /* EVAS_COLORSPACE_YCBCR420NV12601_PL */
               evas_cache_image_colorspace(&im->cache_entry, EVAS_COLORSPACE_YCBCR420NV12601_PL);
-              _evas_video_nv12(im->cs.data, pixels_data, w, h, h);
+              _evas_video_nv12(im->cs.data, pixels_data, stride, h, h);
               evas_common_image_colorspace_dirty(im);
               break;
               /* Not planning to handle those in software */

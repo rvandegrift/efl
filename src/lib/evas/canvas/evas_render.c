@@ -256,7 +256,7 @@ _evas_render_had_map(Evas_Object_Protected_Data *obj)
 static Eina_Bool
 _evas_render_is_relevant(Evas_Object *eo_obj)
 {
-   Evas_Object_Protected_Data *obj = eo_data_scope_get(eo_obj, EVAS_OBJECT_CLASS);
+   Evas_Object_Protected_Data *obj = eo_data_scope_get(eo_obj, EFL_CANVAS_OBJECT_CLASS);
    return ((evas_object_is_visible(eo_obj, obj) && (!obj->cur->have_clipees)) ||
            (evas_object_was_visible(eo_obj, obj) && (!obj->prev->have_clipees)));
 }
@@ -316,7 +316,7 @@ _evas_proxy_redraw_set(Evas_Public_Data *e, Evas_Object_Protected_Data *obj,
 
    EINA_LIST_FOREACH(obj->proxy->proxies, l, eo_proxy)
      {
-        proxy = eo_data_scope_get(eo_proxy, EVAS_OBJECT_CLASS);
+        proxy = eo_data_scope_get(eo_proxy, EFL_CANVAS_OBJECT_CLASS);
 
         /* Flag need redraw on proxy too */
         EINA_COW_WRITE_BEGIN(evas_object_proxy_cow, proxy->proxy,
@@ -508,7 +508,7 @@ _evas_render_phase1_object_process(Evas_Public_Data *e, Evas_Object *eo_obj,
    Eina_Bool map, hmap, can_map;
    int is_active;
 
-   Evas_Object_Protected_Data *obj = eo_data_scope_get(eo_obj, EVAS_OBJECT_CLASS);
+   Evas_Object_Protected_Data *obj = eo_data_scope_get(eo_obj, EFL_CANVAS_OBJECT_CLASS);
    //Need pre render for the children of mapped object.
    //But only when they have changed.
    if (mapped_parent && (!obj->changed)) return EINA_FALSE;
@@ -534,12 +534,12 @@ _evas_render_phase1_object_process(Evas_Public_Data *e, Evas_Object *eo_obj,
    obj->is_active = is_active;
 
 #ifdef REND_DBG
-   RD(level, "[--- PROCESS [%p (eo: %p)", obj, obj->object);
+   RD(level, "[--- PROCESS [%p", obj->object);
    IFRD(obj->name, 0, " '%s'", obj->name);
    RD(0, "] '%s' active = %i, del = %i | %i %i %ix%i\n", obj->type, is_active, obj->delete_me, obj->cur->geometry.x, obj->cur->geometry.y, obj->cur->geometry.w, obj->cur->geometry.h);
 #endif
 
-   if ((!mapped_parent) && ((is_active) || (obj->delete_me != 0)))
+   if ((!mapped_parent) && ((is_active) || (obj->delete_me != 0)) && !obj->no_render)
       OBJ_ARRAY_PUSH(active_objects, obj);
    if (is_active && obj->cur->snapshot && !obj->delete_me &&
        evas_object_is_visible(eo_obj, obj))
@@ -578,7 +578,7 @@ _evas_render_phase1_object_process(Evas_Public_Data *e, Evas_Object *eo_obj,
              evas_object_change(obj->cur->clipper->object, obj->cur->clipper);
              evas_object_clip_dirty(obj->cur->clipper->object, obj->cur->clipper);
              evas_object_clip_recalc(obj->cur->clipper);
-             evas_object_update_bounding_box(eo_obj, obj);
+             evas_object_update_bounding_box(eo_obj, obj, NULL);
           }
         if (obj->changed)
           {
@@ -638,7 +638,7 @@ _evas_render_phase1_object_process(Evas_Public_Data *e, Evas_Object *eo_obj,
              evas_object_change(obj->cur->clipper->object, obj->cur->clipper);
              evas_object_clip_dirty(obj->cur->clipper->object, obj->cur->clipper);
              evas_object_clip_recalc(obj->cur->clipper);
-             evas_object_update_bounding_box(eo_obj, obj);
+             evas_object_update_bounding_box(eo_obj, obj, NULL);
           }
      }
 
@@ -950,7 +950,7 @@ _evas_render_can_use_overlay(Evas_Public_Data *e, Evas_Object *eo_obj)
    Evas_Coord xc1, yc1, xc2, yc2;
    int i;
    Eina_Bool nooverlay;
-   Evas_Object_Protected_Data *obj = eo_data_scope_get(eo_obj, EVAS_OBJECT_CLASS);
+   Evas_Object_Protected_Data *obj = eo_data_scope_get(eo_obj, EFL_CANVAS_OBJECT_CLASS);
    Evas_Object_Protected_Data *tmp = NULL;
    Evas_Coord imgw, imgh;
    unsigned int caps;
@@ -961,11 +961,11 @@ _evas_render_can_use_overlay(Evas_Public_Data *e, Evas_Object *eo_obj)
 
    /* Check if any one is the stack make this object mapped */
    eo_tmp = eo_obj;
-   tmp = eo_data_scope_get(eo_tmp, EVAS_OBJECT_CLASS);
+   tmp = eo_data_scope_get(eo_tmp, EFL_CANVAS_OBJECT_CLASS);
    while (tmp && !(_evas_render_has_map(tmp) && !_evas_render_can_map(tmp)))
      {
         eo_tmp = tmp->smart.parent;
-        tmp = eo_data_scope_get(eo_tmp, EVAS_OBJECT_CLASS);
+        tmp = eo_data_scope_get(eo_tmp, EFL_CANVAS_OBJECT_CLASS);
      }
 
    if (tmp && _evas_render_has_map(tmp) && !_evas_render_can_map(tmp))
@@ -1079,7 +1079,7 @@ _evas_render_can_use_overlay(Evas_Public_Data *e, Evas_Object *eo_obj)
             (current->cur->visible) &&
             (!current->delete_me) &&
             (current->cur->cache.clip.visible) &&
-            (!eo_isa(eo_current, EVAS_OBJECT_SMART_CLASS)))
+            (!eo_isa(eo_current, EFL_CANVAS_GROUP_CLASS)))
           {
              Eina_Bool included = EINA_FALSE;
 
@@ -1227,7 +1227,7 @@ _proxy_context_clip(Evas_Public_Data *evas, void *ctx, Evas_Proxy_Render_Data *p
                                 obj->cur->cache.clip.y + off_y,
                                 obj->cur->cache.clip.w, obj->cur->cache.clip.h);
         ENFN->context_clip_get(ENDT, ctx, NULL, NULL, &cw, &ch);
-        return (cw && ch);
+        return ((cw > 0) && (ch > 0));
      }
 
    if (!obj || !obj->cur->clipper) return EINA_TRUE;
@@ -1237,13 +1237,16 @@ _proxy_context_clip(Evas_Public_Data *evas, void *ctx, Evas_Proxy_Render_Data *p
    clip = &clipper->cur->geometry;
    ENFN->context_clip_clip(ENDT, ctx, clip->x + off_x, clip->y + off_y, clip->w, clip->h);
    ENFN->context_clip_get(ENDT, ctx, NULL, NULL, &cw, &ch);
-   if (!cw || !ch) return EINA_FALSE;
+   if ((cw <= 0) || (ch <= 0)) return EINA_FALSE;
 
    /* stop if we found the source object's clipper */
    if (clipper == proxy_render_data->src_obj->cur->clipper) return EINA_TRUE;
 
-   /* recurse to the clipper itself */
-   return _proxy_context_clip(evas, ctx, proxy_render_data, clipper, off_x, off_y);
+   /* recurse to the clipper itself.
+    * origin of clipper's clipper won't be transformed to derivative space. */
+   return _proxy_context_clip(evas, ctx, proxy_render_data, clipper,
+                              -proxy_render_data->src_obj->cur->geometry.x,
+                              -proxy_render_data->src_obj->cur->geometry.y);
 }
 
 static void
@@ -1382,6 +1385,13 @@ evas_render_mapped(Evas_Public_Data *evas, Evas_Object *eo_obj,
                        IFRD(obj->clip.clipees || obj->cur->have_clipees, level, "  proxy_src_clip + has clippees\n");
                        IFRD(!obj->cur->visible, level, "  proxy_src_clip + not visible\n");
                        IFRD(!obj->cur->color.a && (obj->cur->render_op == EVAS_RENDER_BLEND), level, "  proxy_src_clip + 0 alpha\n");
+                       RD(level, "}\n");
+                       return clean_them;
+                    }
+                  else if (proxy_render_data && (surface != obj->proxy->surface) &&
+                           obj->proxy->src_invisible)
+                    {
+                       RD(level, "  src_invisible + not proxy surface (recursive proxies)\n");
                        RD(level, "}\n");
                        return clean_them;
                     }
@@ -1833,12 +1843,12 @@ evas_render_proxy_subrender(Evas *eo_e, Evas_Object *eo_source, Evas_Object *eo_
 #endif
 
    if (!eo_source) return;
-   source = eo_data_scope_get(eo_source, EVAS_OBJECT_CLASS);
+   source = eo_data_scope_get(eo_source, EFL_CANVAS_OBJECT_CLASS);
 
    w = source->cur->geometry.w;
    h = source->cur->geometry.h;
 
-   RD(level, "  proxy_subrender(source: %p, proxy: %p)\n", source, proxy_obj);
+   RD(level, "  proxy_subrender(source: %p, proxy: %p, %dx%d)\n", source, proxy_obj, w, h);
 
    EINA_COW_WRITE_BEGIN(evas_object_proxy_cow, source->proxy,
                         Evas_Object_Proxy_Data, proxy_write)
@@ -1858,6 +1868,7 @@ evas_render_proxy_subrender(Evas *eo_e, Evas_Object *eo_source, Evas_Object *eo_
         /* FIXME (cont): Should see if the object has alpha */
         if (!proxy_write->surface)
           {
+             if ((w < 1) || (h < 1)) goto end;
              proxy_write->surface = ENFN->image_map_surface_new(ENDT, w, h, 1);
              RD(level, "  created surface: %p %dx%d\n", proxy_write->surface, w, h);
              if (!proxy_write->surface) goto end;
@@ -1871,8 +1882,8 @@ evas_render_proxy_subrender(Evas *eo_e, Evas_Object *eo_source, Evas_Object *eo_
         ENFN->rectangle_draw(ENDT, ctx, proxy_write->surface, 0, 0, w, h, do_async);
         ENFN->context_free(ENDT, ctx);
 
-        if (eo_isa(eo_proxy, EVAS_IMAGE_CLASS))
-          eo_do(eo_proxy, source_clip = evas_obj_image_source_clip_get());
+        if (eo_isa(eo_proxy, EFL_CANVAS_IMAGE_INTERNAL_CLASS))
+          source_clip = _evas_image_proxy_source_clip_get(eo_proxy);
 
         Evas_Proxy_Render_Data proxy_render_data = {
              .eo_proxy = eo_proxy,
@@ -1927,7 +1938,7 @@ evas_render_mask_subrender(Evas_Public_Data *evas,
 
    RD(level, "evas_render_mask_subrender(%p, prev: %p)\n", mask, prev_mask);
 
-   is_image = eo_isa(mask->object, EVAS_IMAGE_CLASS);
+   is_image = eo_isa(mask->object, EFL_CANVAS_IMAGE_INTERNAL_CLASS);
 
    x = mask->cur->geometry.x;
    y = mask->cur->geometry.y;
@@ -2123,7 +2134,7 @@ _evas_render_cutout_add(Evas_Public_Data *e, void *context, Evas_Object_Protecte
              Evas_Object_Protected_Data *oo;
 
              eo_oo = obj->object;
-             oo = eo_data_scope_get(eo_oo, EVAS_OBJECT_CLASS);
+             oo = eo_data_scope_get(eo_oo, EFL_CANVAS_OBJECT_CLASS);
              while (oo->cur->clipper)
                {
                   if ((oo->cur->clipper->map->cur.map_parent
@@ -2214,10 +2225,30 @@ _cb_always_call(Evas *eo_e, Evas_Callback_Type type, void *event_info)
 {
    int freeze_num = 0, i;
 
-   eo_do(eo_e, freeze_num = eo_event_freeze_count_get());
-   for (i = 0; i < freeze_num; i++) eo_do(eo_e, eo_event_thaw());
+   freeze_num = eo_event_freeze_count_get(eo_e);
+   for (i = 0; i < freeze_num; i++) eo_event_thaw(eo_e);
    evas_event_callback_call(eo_e, type, event_info);
-   for (i = 0; i < freeze_num; i++) eo_do(eo_e, eo_event_freeze());
+   for (i = 0; i < freeze_num; i++) eo_event_freeze(eo_e);
+}
+
+static inline Eina_Bool
+_is_obj_in_rect(Evas_Object *eo_obj, Evas_Object_Protected_Data *obj,
+                int x, int y, int w, int h)
+{
+   if (obj->is_smart)
+     {
+        Evas_Coord_Rectangle rect;
+
+        evas_object_smart_bounding_box_get(eo_obj, &rect, NULL);
+        if (RECTS_INTERSECT(x, y, w, h, rect.x, rect.y, rect.w, rect.h))
+          return EINA_TRUE;
+     }
+   else
+     {
+        if (evas_object_is_in_output_rect(eo_obj, obj, x, y, w, h))
+          return EINA_TRUE;
+     }
+   return EINA_FALSE;
 }
 
 static Eina_Bool
@@ -2292,11 +2323,10 @@ evas_render_updates_internal_loop(Evas *eo_e, Evas_Public_Data *e,
         if (obj == top) break;
 
         /* if it's in our outpout rect and it doesn't clip anything */
-        RD(level, "    OBJ: [%p", obj);
+        RD(level, "    OBJ: [%p", eo_obj);
         IFRD(obj->name, 0, " '%s'", obj->name);
         RD(level, "] '%s' %i %i %ix%i\n", obj->type, obj->cur->geometry.x, obj->cur->geometry.y, obj->cur->geometry.w, obj->cur->geometry.h);
-        if ((evas_object_is_in_output_rect(eo_obj, obj, ux - fx, uy - fy, uw, uh) ||
-             (obj->is_smart)) &&
+        if ((_is_obj_in_rect(eo_obj, obj, ux - fx, uy - fy, uw, uh)) &&
             (!obj->clip.clipees) &&
             (obj->cur->visible) &&
             (!obj->delete_me) &&
@@ -2745,25 +2775,14 @@ evas_render_updates_internal(Evas *eo_e,
                }
 
              /* phase 6.2 render all the object on the target surface */
-             if (do_async)
+             if ((do_async) || (make_updates))
                {
                   ru = malloc(sizeof(*ru));
                   ru->surface = surface;
+                  //XXX: need a way of reffing output surfaces
                   NEW_RECT(ru->area, ux, uy, uw, uh);
                   eina_spinlock_take(&(e->render.lock));
                   e->render.updates = eina_list_append(e->render.updates, ru);
-                  evas_cache_image_ref(surface);
-                  eina_spinlock_release(&(e->render.lock));
-               }
-             else if (make_updates)
-               {
-                  Eina_Rectangle *rect;
-
-                  NEW_RECT(rect, ux, uy, uw, uh);
-                  eina_spinlock_take(&(e->render.lock));
-                  if (rect)
-                    e->render.updates = eina_list_append(e->render.updates,
-                                                         rect);
                   eina_spinlock_release(&(e->render.lock));
                }
 
@@ -2867,7 +2886,7 @@ evas_render_updates_internal(Evas *eo_e,
              Evas_Object_Protected_Data *smart_parent;
 
              smart_parent = eo_data_scope_get(obj->smart.parent,
-                                              EVAS_OBJECT_CLASS);
+                                              EFL_CANVAS_OBJECT_CLASS);
              evas_object_change(obj->smart.parent, smart_parent);
           }
      }
@@ -2934,11 +2953,20 @@ evas_render_updates_internal(Evas *eo_e,
    if (!do_async)
      {
         Evas_Event_Render_Post post;
+        Eina_List *l;
+        Render_Updates *ru;
 
+        post.updated_area = NULL;
+        EINA_LIST_FOREACH(e->render.updates, l, ru)
+          {
+             post.updated_area = eina_list_append(post.updated_area, ru->area);
+             //XXX: need a way of unreffing output surfaces
+             ru->surface = NULL;
+          }
         eina_spinlock_take(&(e->render.lock));
-        post.updated_area = e->render.updates;
-        _cb_always_call(eo_e, EVAS_CALLBACK_RENDER_POST, e->render.updates ? &post : NULL);
+        _cb_always_call(eo_e, EVAS_CALLBACK_RENDER_POST, post.updated_area ? &post : NULL);
         eina_spinlock_release(&(e->render.lock));
+        if (post.updated_area) eina_list_free(post.updated_area);
      }
 
    RD(0, "---]\n");
@@ -3053,7 +3081,7 @@ evas_render_pipe_wakeup(void *data)
            ru->area->x, ru->area->y, ru->area->w, ru->area->h,
            EVAS_RENDER_MODE_ASYNC_END);
         eina_evlog("-render_push", e->evas, 0.0, NULL);
-        evas_cache_image_drop(ru->surface);
+        //XXX: need a way to unref render output surfaces
         ru->surface = NULL;
      }
    eina_evlog("+render_output_flush", e->evas, 0.0, NULL);
@@ -3135,7 +3163,8 @@ evas_render_updates_internal_wait(Evas *eo_e,
 EOLIAN Eina_List*
 _evas_canvas_render_updates(Eo *eo_e, Evas_Public_Data *e)
 {
-   Eina_List *ret;
+   Eina_List *ret, *updates = NULL;
+   Render_Updates *ru;
    if (!e->changed) return NULL;
    eina_evlog("+render_block", eo_e, 0.0, NULL);
    evas_canvas_async_block(e);
@@ -3143,19 +3172,31 @@ _evas_canvas_render_updates(Eo *eo_e, Evas_Public_Data *e)
    eina_evlog("+render", eo_e, 0.0, NULL);
    ret = evas_render_updates_internal_wait(eo_e, 1, 1);
    eina_evlog("-render", eo_e, 0.0, NULL);
-   return ret;
+   EINA_LIST_FREE(ret, ru)
+     {
+        updates = eina_list_append(updates, ru->area);
+        free(ru);
+     }
+   return updates;
 }
 
 EOLIAN void
 _evas_canvas_render(Eo *eo_e, Evas_Public_Data *e)
 {
+   Eina_List *ret;
+   Render_Updates *ru;
    if (!e->changed) return;
    eina_evlog("+render_block", eo_e, 0.0, NULL);
    evas_canvas_async_block(e);
    eina_evlog("-render_block", eo_e, 0.0, NULL);
    eina_evlog("+render", eo_e, 0.0, NULL);
-   evas_render_updates_internal_wait(eo_e, 0, 1);
+   ret = evas_render_updates_internal_wait(eo_e, 0, 1);
    eina_evlog("-render", eo_e, 0.0, NULL);
+   EINA_LIST_FREE(ret, ru)
+     {
+        eina_rectangle_free(ru->area);
+        free(ru);
+     }
 }
 
 EOLIAN void
@@ -3164,9 +3205,17 @@ _evas_canvas_norender(Eo *eo_e, Evas_Public_Data *e)
    if (e->render2) _evas_norender2(eo_e, e);
    else
      {
+        Eina_List *ret;
+        Render_Updates *ru;
+
         evas_canvas_async_block(e);
         //   if (!e->changed) return;
-        evas_render_updates_internal_wait(eo_e, 0, 0);
+        ret = evas_render_updates_internal_wait(eo_e, 0, 1);
+        EINA_LIST_FREE(ret, ru)
+          {
+             eina_rectangle_free(ru->area);
+             free(ru);
+          }
      }
 }
 
@@ -3215,7 +3264,7 @@ _evas_canvas_sync(Eo *eo_e, Evas_Public_Data *e)
 void
 _evas_render_dump_map_surfaces(Evas_Object *eo_obj)
 {
-   Evas_Object_Protected_Data *obj = eo_data_scope_get(eo_obj, EVAS_OBJECT_CLASS);
+   Evas_Object_Protected_Data *obj = eo_data_scope_get(eo_obj, EFL_CANVAS_OBJECT_CLASS);
    if ((obj->map->cur.map) && obj->map->surface)
      {
         obj->layer->evas->engine.func->image_free
@@ -3251,6 +3300,7 @@ _evas_canvas_render_dump(Eo *eo_e, Evas_Public_Data *e)
           {
              Evas_Object_Protected_Data *obj;
 
+             lay->walking_objects++;
              EINA_INLIST_FOREACH(lay->objects, obj)
                {
                   if (obj->proxy->surface)
@@ -3275,6 +3325,8 @@ _evas_canvas_render_dump(Eo *eo_e, Evas_Public_Data *e)
                     evas_object_inform_call_image_unloaded(obj->object);
                   _evas_render_dump_map_surfaces(obj->object);
                }
+             lay->walking_objects--;
+             _evas_layer_flush_removes(lay);
           }
         if ((e->engine.func) && (e->engine.func->output_dump) &&
             (e->engine.data.output))
@@ -3339,7 +3391,7 @@ evas_render_object_recalc(Evas_Object *eo_obj)
    return;
    MAGIC_CHECK_END();
 
-   obj = eo_data_scope_get(eo_obj, EVAS_OBJECT_CLASS);
+   obj = eo_data_scope_get(eo_obj, EFL_CANVAS_OBJECT_CLASS);
    if ((!obj->changed) && (obj->delete_me < 2))
      {
        Evas_Public_Data *e;

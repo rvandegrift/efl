@@ -1,6 +1,30 @@
-#ifdef HAVE_CONFIG_H
-# include "config.h"
-#endif
+/* Portions of this code have been derived from Weston
+ *
+ * Copyright © 2008-2012 Kristian Høgsberg
+ * Copyright © 2010-2012 Intel Corporation
+ * Copyright © 2010-2011 Benjamin Franzke
+ * Copyright © 2011-2012 Collabora, Ltd.
+ * Copyright © 2010 Red Hat <mjg@redhat.com>
+ *
+ * Permission is hereby granted, free of charge, to any person obtaining a
+ * copy of this software and associated documentation files (the "Software"),
+ * to deal in the Software without restriction, including without limitation
+ * the rights to use, copy, modify, merge, publish, distribute, sublicense,
+ * and/or sell copies of the Software, and to permit persons to whom the
+ * Software is furnished to do so, subject to the following conditions:
+ *
+ * The above copyright notice and this permission notice (including the next
+ * paragraph) shall be included in all copies or substantial portions of the
+ * Software.
+ *
+ * THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
+ * IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
+ * FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT.  IN NO EVENT SHALL
+ * THE AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
+ * LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING
+ * FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER
+ * DEALINGS IN THE SOFTWARE.
+ */
 
 #include "ecore_drm_private.h"
 #include <dlfcn.h>
@@ -10,93 +34,101 @@
        ((x) >= (xx)) && ((y) >= (yy)))
 
 static Eina_List *drm_devices;
-static int flip_count = 0;
+static int ticking = 0;
 
-static void 
+static void _ecore_drm_tick_source_set(Ecore_Drm_Device *dev);
+
+static void
+_ecore_drm_tick_schedule(Ecore_Drm_Device *dev)
+{
+   drmVBlank vbl;
+
+   if (!ticking) return;
+
+   vbl.request.type = (DRM_VBLANK_RELATIVE | DRM_VBLANK_EVENT);
+   vbl.request.sequence = 1;
+   vbl.request.signal = (unsigned long)dev;
+   if (drmWaitVBlank(dev->drm.fd, &vbl) < 0)
+     {
+        WRN("Vblank failed, disabling custom ticks");
+        _ecore_drm_tick_source_set(NULL);
+     }
+}
+
+static void
+_ecore_drm_tick_begin(void *data)
+{
+   ticking = 1;
+   _ecore_drm_tick_schedule(data);
+}
+
+static void
+_ecore_drm_tick_end(void *data EINA_UNUSED)
+{
+   ticking = 0;
+}
+
+static void
+_ecore_drm_tick_source_set(Ecore_Drm_Device *dev)
+{
+   if (!dev)
+     {
+        ecore_animator_custom_source_tick_begin_callback_set(NULL, NULL);
+        ecore_animator_custom_source_tick_end_callback_set(NULL, NULL);
+        ecore_animator_source_set(ECORE_ANIMATOR_SOURCE_TIMER);
+        return;
+     }
+   ecore_animator_custom_source_tick_begin_callback_set
+     (_ecore_drm_tick_begin, dev);
+   ecore_animator_custom_source_tick_end_callback_set
+     (_ecore_drm_tick_end, dev);
+   ecore_animator_source_set(ECORE_ANIMATOR_SOURCE_CUSTOM);
+}
+
+static void
 _ecore_drm_device_cb_page_flip(int fd EINA_UNUSED, unsigned int frame EINA_UNUSED, unsigned int sec EINA_UNUSED, unsigned int usec EINA_UNUSED, void *data)
 {
-   Ecore_Drm_Pageflip_Callback *cb;
+   Ecore_Drm_Output *output = data;
+   Ecore_Drm_Fb *next;
 
-   /* DBG("Drm Page Flip Event"); */
-
-   if (!(cb = data)) return;
-
-   flip_count++;
-   if (flip_count < cb->count) return;
-
-   cb->dev->current = cb->dev->next;
-   cb->dev->next = NULL;
-
-   flip_count = 0;
-   if (cb->func) cb->func(cb->data);
-   /* free(cb); */
-
-   /* Ecore_Drm_Output *output; */
-
-   /* DBG("Drm Page Flip Event"); */
-
-   /* if (!(output = data)) return; */
-
-   /* if (output->pending_flip) */
-   /*   { */
-   /*      if (output->dev->current) */
-   /*        ecore_drm_output_fb_release(output, output->dev->current); */
-   /*      output->dev->current = output->dev->next; */
-   /*      output->dev->next = NULL; */
-   /*   } */
-
-   /* output->pending_flip = EINA_FALSE; */
-   /* if (output->pending_destroy) */
-   /*   { */
-   /*      output->pending_destroy = EINA_FALSE; */
-   /*      ecore_drm_output_free(output); */
-   /*   } */
-   /* else if (!output->pending_vblank) */
-   /*   ecore_drm_output_repaint(output); */
-}
-
-static void 
-_ecore_drm_device_cb_vblank(int fd EINA_UNUSED, unsigned int frame EINA_UNUSED, unsigned int sec EINA_UNUSED, unsigned int usec EINA_UNUSED, void *data)
-{
-   Ecore_Drm_Sprite *sprite;
-   Ecore_Drm_Output *output;
-
-   /* DBG("Drm VBlank Event"); */
-
-   if (!(sprite = data)) return;
-
-   output = sprite->output;
-   output->pending_vblank = EINA_FALSE;
-
-   ecore_drm_output_fb_release(output, sprite->current_fb);
-   sprite->current_fb = sprite->next_fb;
-   sprite->next_fb = NULL;
-
-   if (!output->pending_flip) _ecore_drm_output_frame_finish(output);
-}
-
-#if 0
-static Eina_Bool 
-_ecore_drm_device_cb_idle(void *data)
-{
-   Ecore_Drm_Device *dev;
-   Ecore_Drm_Output *output;
-   Eina_List *l;
-
-   if (!(dev = data)) return ECORE_CALLBACK_CANCEL;
-
-   if (!dev->active) return ECORE_CALLBACK_RENEW;
-
-   EINA_LIST_FOREACH(dev->outputs, l, output)
+   if (output->pending_destroy)
      {
-        if ((!output->enabled) || (!output->need_repaint)) continue;
-        if (output->repaint_scheduled) continue;
-        _ecore_drm_output_repaint_start(output);
+        ecore_drm_output_free(output);
+        return;
      }
 
-   return ECORE_CALLBACK_RENEW;
+   output->dev->current = output->current;
+   /* We were unable to queue a page on the last flip attempt, so we'll
+    * try again now. */
+   next = output->next;
+   if (next)
+     {
+        output->next = NULL;
+        _ecore_drm_output_fb_send(output->dev, next, output);
+     }
 }
-#endif
+
+static void
+_ecore_drm_device_cb_vblank(int fd EINA_UNUSED, unsigned int frame EINA_UNUSED, unsigned int sec EINA_UNUSED, unsigned int usec EINA_UNUSED, void *data)
+{
+   ecore_animator_custom_tick();
+   if (ticking) _ecore_drm_tick_schedule(data);
+}
+
+static Eina_Bool
+_cb_drm_event_handle(void *data, Ecore_Fd_Handler *hdlr EINA_UNUSED)
+{
+   Ecore_Drm_Device *dev = data;
+   int err;
+
+   err = drmHandleEvent(dev->drm.fd, &dev->drm_ctx);
+   if (err)
+     {
+        ERR("drmHandleEvent failed to read an event");
+        return EINA_FALSE;
+     }
+   return EINA_TRUE;
+}
 
 static void
 _ecore_drm_device_cb_output_event(const char *device EINA_UNUSED, Eeze_Udev_Event event EINA_UNUSED, void *data, Eeze_Udev_Watch *watch EINA_UNUSED)
@@ -122,9 +154,8 @@ _ecore_drm_device_cached_keymap_get(struct xkb_context *ctx, const struct xkb_ru
    EINA_SAFETY_ON_NULL_RETURN_VAL(ctx, NULL);
 
    if (!cached_keymap)
-     return xkb_map_new_from_names(ctx, names, flags);
-   else
-     return xkb_map_ref(cached_keymap);
+     cached_keymap = xkb_map_new_from_names(ctx, names, flags);
+   return xkb_map_ref(cached_keymap);
 }
 
 void
@@ -379,6 +410,10 @@ ecore_drm_device_open(Ecore_Drm_Device *dev)
      eeze_udev_watch_add(EEZE_UDEV_TYPE_DRM, events,
                          _ecore_drm_device_cb_output_event, dev);
 
+   dev->drm.hdlr =
+     ecore_main_fd_handler_add(dev->drm.fd, ECORE_FD_READ,
+                               _cb_drm_event_handle, dev, NULL, NULL);
+
    /* dev->drm.idler =  */
    /*   ecore_idle_enterer_add(_ecore_drm_device_cb_idle, dev); */
 
@@ -512,6 +547,30 @@ ecore_drm_device_pointer_xy_get(Ecore_Drm_Device *dev, int *x, int *y)
      }
 }
 
+EAPI void
+ecore_drm_device_pointer_warp(Ecore_Drm_Device *dev, int x, int y)
+{
+   Ecore_Drm_Seat *seat;
+   Ecore_Drm_Evdev *edev;
+   Eina_List *l, *ll;
+
+   /* check for valid device */
+   EINA_SAFETY_ON_TRUE_RETURN((!dev) || (dev->drm.fd < 0));
+   EINA_LIST_FOREACH(dev->seats, l, seat)
+     {
+        EINA_LIST_FOREACH(seat->devices, ll, edev)
+          {
+             if (!libinput_device_has_capability(edev->device,
+                                                 LIBINPUT_DEVICE_CAP_POINTER))
+               continue;
+
+             seat->ptr.dx = seat->ptr.ix = x;
+             seat->ptr.dy = seat->ptr.iy = y;
+             _ecore_drm_pointer_motion_post(edev);
+          }
+     }
+}
+
 EAPI Eina_Bool
 ecore_drm_device_software_setup(Ecore_Drm_Device *dev)
 {
@@ -546,6 +605,7 @@ ecore_drm_device_software_setup(Ecore_Drm_Device *dev)
         DBG("\tSize: %d", dev->dumb[i]->size);
         DBG("\tW: %d\tH: %d", dev->dumb[i]->w, dev->dumb[i]->h);
      }
+   _ecore_drm_tick_source_set(dev);
 
    return EINA_TRUE;
 

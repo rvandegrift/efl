@@ -1,0 +1,129 @@
+import eina_types;
+
+abstract Efl.VG (Eo.Base, Efl.Gfx, Efl.Gfx.Stack)
+{
+   eo_prefix: efl_vg;
+   legacy_prefix: evas_vg_node;
+   methods {
+      @property name {
+         set {
+            [[Set an unique name from the parent point of view. $null means
+              no name.
+
+              @since 1.16
+            ]]
+         }
+         get {
+            [[Get an unique name from the parent point of view.
+
+              $null means no name. When set a parent after the name what
+              defined, it might be forced back to $null if the parent
+              already has a node of that name.
+
+              @since 1.16
+            ]]
+         }
+         values {
+            name: string;
+         }
+      }
+      @property transformation {
+         set {
+            [[Sets the transformation matrix to be used for this node object.
+
+              Note: Pass $null to cancel the applied transformation.
+
+              @since 1.14]]
+         }
+         get {
+            [[Gets the transformation matrix used for this node object.
+
+              @since 1.14]]
+         }
+         values {
+            m: const(Eina.Matrix3) *; [[transformation matrix.]]
+         }
+      }
+      @property origin {
+         set {
+            [[Sets the origin position of this node object.
+
+              This origin position affects to node transformation.
+
+              @since 1.14]]
+         }
+         get {
+            [[Gets the origin position of this node object.
+
+              @since 1.14]]
+         }
+         values {
+            x: double; [[$origin x position.]]
+            y: double; [[$origin y position.]]
+         }
+      }
+      @property mask {
+         set {
+         }
+         get {
+         }
+         values {
+            m: Efl.VG;
+         }
+      }
+/*      quality {
+         set {
+         }
+         get {
+         }
+         values {
+            Evas_VG_Quality q;
+         }
+      } */
+      bounds_get @virtual_pure {
+         [[Give the bounding box in screen coordinate as being drawn.
+
+           It will start as the control box until it is refined once the shape
+           is computed.
+
+           @since 1.14]]
+         params {
+            @out r: Eina.Rectangle; [[bounding box to be returned.]]
+         }
+      }
+      interpolate {
+        return: bool;
+        params {
+          @in from: const(Efl.VG);
+          @in to: const(Efl.VG);
+          @in pos_map: double;
+        }
+      }
+      dup {
+        params {
+          @in from: const(Efl.VG);
+        }
+      }
+   }
+   implements {
+      Eo.Base.parent.set;
+      Eo.Base.constructor;
+      Eo.Base.destructor;
+      Efl.Gfx.visible.set;
+      Efl.Gfx.visible.get;
+      Efl.Gfx.color.set;
+      Efl.Gfx.color.get;
+      Efl.Gfx.color_part.set;
+      Efl.Gfx.color_part.get;
+      Efl.Gfx.size.get;
+      Efl.Gfx.position.set;
+      Efl.Gfx.position.get;
+      Efl.Gfx.geometry.get;
+      Efl.Gfx.Stack.below.get;
+      Efl.Gfx.Stack.above.get;
+      Efl.Gfx.Stack.stack_below;
+      Efl.Gfx.Stack.stack_above;
+      Efl.Gfx.Stack.raise;
+      Efl.Gfx.Stack.lower;
+   }
+}

@@ -76,6 +76,7 @@ struct _Outbuf
       unsigned char msaa;
 #ifndef GL_GLES
       Eina_Bool     loose_binding : 1;
+      Eina_Bool     noext_glXCreatePixmap : 1;
 #endif
    } detected;
 
@@ -156,7 +157,7 @@ extern unsigned int   (*glsym_eglSetDamageRegionKHR)  (EGLDisplay a, EGLSurface 
 # define GLX_BACK_BUFFER_AGE_EXT 0x20f4
 #endif
 
-extern void     (*glsym_glXQueryDrawable)   (Display *a, XID b, int c, unsigned int *d);
+extern int      (*glsym_glXQueryDrawable)   (Display *a, XID b, int c, unsigned int *d);
 extern void     (*glsym_glXSwapIntervalEXT) (Display *s, GLXDrawable b, int c);
 extern int      (*glsym_glXSwapIntervalSGI) (int a);
 extern int      (*glsym_glXGetVideoSync)    (unsigned int *a);
@@ -199,7 +200,7 @@ Evas_Engine_GL_Context *eng_outbuf_gl_context_get(Outbuf *ob);
 void *eng_outbuf_egl_display_get(Outbuf *ob);
 
 Eina_Bool eng_preload_make_current(void *data, void *doit);
-void eng_gl_symbols(void);
+void eng_gl_symbols(Eina_Bool noext_glXCreatePixmap);
 
 static inline int
 _re_wincheck(Outbuf *ob)

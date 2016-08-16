@@ -542,6 +542,9 @@ try_gles2:
              // ALSO as of some nvidia driver version loose binding is
              // probably not needed
              if (v1 < 195) gw->detected.loose_binding = 1;
+#ifndef GL_GLES
+             if (v1 >= 360) gw->detected.noext_glXCreatePixmap = 1;
+#endif
           }
      }
    else
@@ -557,7 +560,12 @@ try_gles2:
    gw->detected.msaa = val;
 #endif
 
-   eng_gl_symbols();
+#ifndef GL_GLES
+   eng_gl_symbols(gw->detected.noext_glXCreatePixmap);
+#else
+   eng_gl_symbols(EINA_FALSE); // EINA_FALSE is ignored anyway for gl_gles
+#endif
+
    gw->gl_context = glsym_evas_gl_common_context_new();
    if (!gw->gl_context)
      {
@@ -586,6 +594,8 @@ eng_window_free(Outbuf *gw)
    int ref = 0;
    win_count--;
    eng_window_use(gw);
+
+   if (win_count == 0) evas_common_font_ext_clear();
 
    context = _tls_context_get();
    xwin = _tls_outbuf_get();
@@ -674,6 +684,8 @@ eng_window_use(Outbuf *gw)
    xwin = _tls_outbuf_get();
 
    glsym_evas_gl_preload_render_lock(eng_window_make_current, gw);
+   if ((gw) && (!gw->gl_context)) return;
+
 #ifdef GL_GLES
    if (xwin)
      {
@@ -864,6 +876,7 @@ eng_best_visual_get(Evas_Engine_Info_GL_X11 *einfo)
    /* detect GLES 3.x support */
    if (gles3_supported == -1)
      {
+        gles3_supported = EINA_FALSE;
         eglexts = eglQueryString(egl_disp, EGL_EXTENSIONS);
         if (eglexts && strstr(eglexts, "EGL_KHR_create_context"))
           {
@@ -1385,8 +1398,11 @@ eng_outbuf_swap_mode(Outbuf *ob)
         unsigned int age = 0;
 
         if (glsym_glXQueryDrawable)
-          glsym_glXQueryDrawable(ob->disp, ob->glxwin,
-                                 GLX_BACK_BUFFER_AGE_EXT, &age);
+          {
+             if (glsym_glXQueryDrawable(ob->disp, ob->glxwin,
+                                        GLX_BACK_BUFFER_AGE_EXT, &age) < 1)
+               age = 0;
+          }
 #endif
         if (age == 1) swap_mode = MODE_COPY;
         else if (age == 2) swap_mode = MODE_DOUBLE;

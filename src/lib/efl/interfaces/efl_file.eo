@@ -1,7 +1,6 @@
 import eina_types;
 
 interface Efl.File {
-   legacy_prefix: null;
    methods {
       @property mmap {
          set {
@@ -14,7 +13,7 @@ interface Efl.File {
 
               @since 1.8]]
 
-            return: bool;
+            return: bool; [[$true = success, $false = error]]
          }
          get {
             [[Get the source mmaped file from where an image object must fetch the real
@@ -27,9 +26,11 @@ interface Efl.File {
               @since 1.10]]
          }
          values {
-            f: const(Eina.File)*; [[The mmaped file]]
-            key: const(char)*; [[The image key in $file (if its an Eet one), or
-                                 $null, otherwise.]]
+            f: const(Eina.File)*; [[The handler to an Eina_File that will be used as image source]]
+            key: string @optional; [[The group that the image belongs to, in case 
+                                           it's an EET(including Edje case) file. This can be used
+                                           as a key inside evas image cache if this is a normal image
+                                           file not eet file.]]
          }
       }
       @property file {
@@ -73,8 +74,8 @@ interface Efl.File {
               interested in: they'll be ignored by the function.]]
          }
          values {
-            file: const(char)*; [[The image file path.]]
-            key: const(char)*; [[The image key in $file (if its an Eet one), or
+            file: string; [[The image file path.]]
+            key: string; [[The image key in $file (if its an Eet one), or
                                  $null, otherwise.]]
          }
       }
@@ -110,11 +111,11 @@ interface Efl.File {
 
          return: bool;
          params {
-            @in file: const(char)* @nonull; [[The filename to be used to save the image (extension
+            @in file: string @nonull; [[The filename to be used to save the image (extension
                                               obligatory).]]
-            @in key: const(char)*; [[The image key in the file (if an Eet one), or $null,
+            @in key: string; [[The image key in the file (if an Eet one), or $null,
                                      otherwise.]]
-            @in flags: const(char)*; [[String containing the flags to be used ($null for
+            @in flags: string; [[String containing the flags to be used ($null for
                                        none).]]
          }
       }

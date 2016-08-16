@@ -3,11 +3,39 @@
 
 #include "eldbus_private.h"
 
+#include <Ecore.h>
+#include <Eina.h>
 #include <Eo.h>
 #include <Efl.h>
 
+typedef struct _Eldbus_Children_Slice_Promise _Eldbus_Children_Slice_Promise;
+struct _Eldbus_Children_Slice_Promise
+{
+  unsigned start;
+  unsigned count;
+  Eina_Promise_Owner* promise;
+};
+
+typedef struct _Eldbus_Property_Promise _Eldbus_Property_Promise;
+struct _Eldbus_Property_Promise
+{
+  char *property;
+  Eina_Promise_Owner* promise;
+};
+
 /* logging support */
 extern int eldbus_model_log_dom;
+
+#define ELDBUS_MODEL_ON_ERROR_EXIT_PROMISE_SET(exp, promise, err, v)    \
+  do                                                                    \
+    {                                                                   \
+      if (EINA_UNLIKELY(!(exp)))                                        \
+        {                                                               \
+            eina_promise_owner_error_set(promise, err);                 \
+            return v;                                                   \
+        }                                                               \
+    }                                                                   \
+  while(0)
 
 #ifdef CRI
 # undef CRI

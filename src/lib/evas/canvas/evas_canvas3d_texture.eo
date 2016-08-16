@@ -1,6 +1,7 @@
-class Evas.Canvas3D.Texture (Evas.Canvas3D.Object, Evas.Common_Interface)
+type @extern Evas_Colorspace: int; /* FIXME: Need to get emile migrated. */
+
+class Evas.Canvas3D.Texture (Evas.Canvas3D.Object)
 {
-   legacy_prefix: null;
    data : Evas_Canvas3D_Texture_Data;
    methods {
       @property source_visible {
@@ -51,7 +52,7 @@ class Evas.Canvas3D.Texture (Evas.Canvas3D.Object, Evas.Common_Interface)
             @in color_format: Evas_Colorspace; [[Color format of the texture.]]
             @in w: int; [[Width of the data.]]
             @in h: int; [[Height of the data.]]
-            @in data: const(void)*; [[Pointer to the data.]]
+            @in data: const(void_ptr); [[Pointer to the data.]]
          }
       }
 
@@ -59,8 +60,8 @@ class Evas.Canvas3D.Texture (Evas.Canvas3D.Object, Evas.Common_Interface)
          [[Set the data of the given texture from file.]]
 
          params {
-            @in file: const(char)*; [[Path to the image file.]]
-            @in key: const(char)*; [[Key in the image file.]]
+            @in file: string; [[Path to the image file.]]
+            @in key: string; [[Key in the image file.]]
          }
       }
 
@@ -75,7 +76,7 @@ class Evas.Canvas3D.Texture (Evas.Canvas3D.Object, Evas.Common_Interface)
          ]]
 
          params {
-            @in source: Evas.Object *; [[Source evas object to be used as
+            @in source: Efl.Canvas.Object; [[Source evas object to be used as
                                          the texture data.]]
          }
       }

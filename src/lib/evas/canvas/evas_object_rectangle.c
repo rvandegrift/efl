@@ -3,7 +3,7 @@
 
 #include "evas_render2.h"
 
-#define MY_CLASS EVAS_RECTANGLE_CLASS
+#define MY_CLASS EFL_CANVAS_RECTANGLE_CLASS
 
 /* private magic number for rectangle objects */
 static const char o_type[] = "rectangle";
@@ -11,9 +11,9 @@ static const char o_type[] = "rectangle";
 const char *o_rect_type = o_type;
 
 /* private struct for rectangle object internal data */
-typedef struct _Evas_Rectangle_Data      Evas_Rectangle_Data;
+typedef struct _Efl_Canvas_Rectangle_Data Efl_Canvas_Rectangle_Data;
 
-struct _Evas_Rectangle_Data
+struct _Efl_Canvas_Rectangle_Data
 {
    void             *engine_data;
 };
@@ -95,14 +95,14 @@ evas_object_rectangle_add(Evas *e)
    MAGIC_CHECK(e, Evas, MAGIC_EVAS);
    return NULL;
    MAGIC_CHECK_END();
-   Evas_Object *eo_obj = eo_add(EVAS_RECTANGLE_CLASS, e);
+   Evas_Object *eo_obj = eo_add(EFL_CANVAS_RECTANGLE_CLASS, e);
    return eo_obj;
 }
 
 EOLIAN static Eo *
-_evas_rectangle_eo_base_constructor(Eo *eo_obj, Evas_Rectangle_Data *class_data EINA_UNUSED)
+_efl_canvas_rectangle_eo_base_constructor(Eo *eo_obj, Efl_Canvas_Rectangle_Data *class_data EINA_UNUSED)
 {
-   eo_obj = eo_do_super_ret(eo_obj, MY_CLASS, eo_obj, eo_constructor());
+   eo_obj = eo_constructor(eo_super(eo_obj, MY_CLASS));
 
    evas_object_rectangle_init(eo_obj);
 
@@ -113,7 +113,7 @@ _evas_rectangle_eo_base_constructor(Eo *eo_obj, Evas_Rectangle_Data *class_data 
 static void
 evas_object_rectangle_init(Evas_Object *eo_obj)
 {
-   Evas_Object_Protected_Data *obj = eo_data_scope_get(eo_obj, EVAS_OBJECT_CLASS);
+   Evas_Object_Protected_Data *obj = eo_data_scope_get(eo_obj, EFL_CANVAS_OBJECT_CLASS);
    /* set up methods (compulsory) */
    obj->func = &object_func;
    obj->private_data = eo_data_ref(eo_obj, MY_CLASS);
@@ -362,7 +362,7 @@ evas_object_rectangle_is_opaque(Evas_Object *eo_obj EINA_UNUSED,
 	return 1;
    if (obj->cur->render_op != EVAS_RENDER_BLEND)
 	return 0;
-   return 1;
+   return (obj->cur->cache.clip.a == 255) ? 1 : 0;
 }
 
 static int
@@ -376,26 +376,26 @@ evas_object_rectangle_was_opaque(Evas_Object *eo_obj EINA_UNUSED,
 	return 1;
    if (obj->prev->render_op != EVAS_RENDER_BLEND)
 	return 0;
-   return 1;
+   return (obj->prev->cache.clip.a == 255) ? 1 : 0;
 }
 
 static unsigned int evas_object_rectangle_id_get(Evas_Object *eo_obj)
 {
-   Evas_Rectangle_Data *o = eo_data_scope_get(eo_obj, MY_CLASS);
+   Efl_Canvas_Rectangle_Data *o = eo_data_scope_get(eo_obj, MY_CLASS);
    if (!o) return 0;
    return MAGIC_OBJ_RECTANGLE;
 }
 
 static unsigned int evas_object_rectangle_visual_id_get(Evas_Object *eo_obj)
 {
-   Evas_Rectangle_Data *o = eo_data_scope_get(eo_obj, MY_CLASS);
+   Efl_Canvas_Rectangle_Data *o = eo_data_scope_get(eo_obj, MY_CLASS);
    if (!o) return 0;
    return MAGIC_OBJ_SHAPE;
 }
 
 static void *evas_object_rectangle_engine_data_get(Evas_Object *eo_obj)
 {
-   Evas_Rectangle_Data *o = eo_data_scope_get(eo_obj, MY_CLASS);
+   Efl_Canvas_Rectangle_Data *o = eo_data_scope_get(eo_obj, MY_CLASS);
    return o->engine_data;
 }
 
@@ -450,4 +450,4 @@ evas_object_rectangle_was_inside(Evas_Object *eo_obj, double x, double y)
 }
 #endif
 
-#include "canvas/evas_rectangle.eo.c"
+#include "canvas/efl_canvas_rectangle.eo.c"

@@ -150,6 +150,33 @@ case "m4_defn([DOWNOTHER])" in
    ethumb_client)
       depname="ethumb_client"
       ;;
+   efreet_mime)
+      libdirname="efreet"
+      ;;
+   efreet_trash)
+      libdirname="efreet"
+      ;;
+   ecore_x)
+      depname="ecore-x"
+      ;;
+   ecore_wl2)
+      depname="ecore-wl2"
+      ;;
+   ecore_fb)
+      depname="ecore-fb"
+      ;;
+   ecore_drm)
+      depname="ecore-drm"
+      ;;
+   ecore_cocoa)
+      depname="ecore-cocoa"
+      ;;
+   ecore_win32)
+      depname="ecore-win32"
+      ;;
+   ecore_drm2)
+      depname="ecore-drm2"
+      ;;
 esac
 requirements_pc_[]m4_defn([DOWNEFL])="${depname} >= ${PACKAGE_VERSION} ${requirements_pc_[][]m4_defn([DOWNEFL])}"
 requirements_cflags_[]m4_defn([DOWNEFL])="-I\$(top_srcdir)/src/lib/${libdirname} -I\$(top_builddir)/src/lib/${libdirname} ${requirements_cflags_[][]m4_defn([DOWNEFL])}"
@@ -353,6 +380,29 @@ m4_popdef([UP])dnl
 m4_popdef([DOWN])dnl
 ])
 
+dnl EFL_LIBS_SUBBUILD(TARGET, DEPENDENCIES)
+dnl Make TARGET contain all DEPENDENCIES relative to SUBDIR build
+AC_DEFUN([EFL_LIBS_SUBBUILD],
+[dnl
+$1=""
+_SUBDIR="../../"
+
+for dep in $2; do
+   case $dep in
+      lib*.la)
+         _DEPENDENCY=$_SUBDIR$dep
+      ;;
+      *)
+         _DEPENDENCY=$dep
+      ;;
+   esac
+
+   $1=${$1}" ${_DEPENDENCY}"
+done
+
+AC_SUBST([$1])
+])
+
 dnl EFL_LIB_END(PKG)
 dnl finishes the setup of an EFL library
 AC_DEFUN([EFL_LIB_END],
@@ -368,9 +418,13 @@ m4_defn([UP])_LIBS=" ${m4_defn([UP])_LDFLAGS} ${EFLALL_COV_LIBS} ${EFLALL_LIBS} 
 m4_defn([UP])_INTERNAL_LIBS="${m4_defn([UP])_INTERNAL_LIBS} ${requirements_internal_libs_[]m4_defn([DOWN])}"
 USE_[]m4_defn([UP])_LIBS="${m4_defn([UP])_LIBS} lib/${libdirname}/lib${libname}.la"
 USE_[]m4_defn([UP])_INTERNAL_LIBS="${m4_defn([UP])_INTERNAL_LIBS} lib/${libdirname}/lib${libname}.la"
-m4_defn([UP])_CFLAGS="${EFLALL_COV_CFLAGS} ${EFLALL_CFLAGS} ${m4_defn([UP])_CFLAGS} -I\$(top_srcdir)/src/lib/${libdirname} -I\$(top_builddir)/src/lib/${libdirname} -I\$(top_srcdir)/src/bindings/${libdirname} -I\$(top_builddir)/src/bindings/${libdirname} ${requirements_cflags_[]m4_defn([DOWN])} ${requirements_cflags_eflall} -DEFL_[]m4_defn([UP])_BUILD=1"
+m4_defn([UP])_CFLAGS="${EFLALL_COV_CFLAGS} ${EFLALL_CFLAGS} ${m4_defn([UP])_CFLAGS} -I\$(top_srcdir)/src/lib/${libdirname} -I\$(top_builddir)/src/lib/${libdirname} -I\$(top_srcdir)/src/bindings/cxx/${libdirname} -I\$(top_builddir)/src/bindings/${libdirname} ${requirements_cflags_[]m4_defn([DOWN])} ${requirements_cflags_eflall} -DEFL_[]m4_defn([UP])_BUILD=1"
 requirements_pc_[]m4_defn([DOWN])="${requirements_pc_[]m4_defn([DOWN])} ${requirements_pc_eflall}"
 requirements_pc_deps_[]m4_defn([DOWN])="${requirements_pc_deps_[]m4_defn([DOWN])} ${requirements_pc_deps_eflall}"
+
+EFL_LIBS_SUBBUILD(m4_defn([UP])_SUBBUILD_LIBS, ${m4_defn([UP])_LIBS})
+EFL_LIBS_SUBBUILD(m4_defn([UP])_SUBBUILD_INTERNAL_LIBS, ${m4_defn([UP])_INTERNAL_LIBS})
+EFL_LIBS_SUBBUILD(USE_[]m4_defn([UP])_SUBBUILD_LIBS, "USE_[]m4_defn([UP])_LIBS")
 
 AC_MSG_NOTICE([Finished $1 checks])dnl
 m4_popdef([UP])dnl

@@ -11,13 +11,9 @@
 # endif
 #endif
 
-#ifdef __SUNPRO_C
-# include <ieeefp.h>
-# include <string.h>
-#endif
-
 #include <stdlib.h>
 #include <stdio.h>
+#include <string.h>
 #include <unistd.h>
 #include <math.h>
 #include <sys/types.h>
@@ -27,6 +23,10 @@
 
 #ifdef HAVE_SYSTEMD
 # include <systemd/sd-daemon.h>
+#endif
+
+#ifdef HAVE_IEEEFP_H
+# include <ieeefp.h> /* for Solaris */
 #endif
 
 #ifdef _MSC_VER
@@ -273,7 +273,9 @@ static int _ecore_main_win32_select(int             nfds,
 static void _ecore_main_win32_handlers_cleanup(void);
 #endif
 
-static int in_main_loop = 0;
+int in_main_loop = 0;
+
+static unsigned char _ecore_exit_code = 0;
 static int do_quit = 0;
 static Ecore_Fd_Handler *fd_handlers = NULL;
 static Ecore_Fd_Handler *fd_handler_current = NULL;
@@ -441,7 +443,7 @@ _ecore_main_uv_poll_cb(uv_poll_t* handle, int status, int events)
      {
        DBG("not IDLE anymore");
        _ecore_main_uv_idling = EINA_FALSE;
-       _ecore_idle_exiter_call();
+       _ecore_idle_exiter_call(_mainloop_singleton);
        _ecore_animator_run_reset();
      }
   
@@ -460,8 +462,7 @@ _ecore_main_uv_poll_cb(uv_poll_t* handle, int status, int events)
   _ecore_signal_received_process();
   _ecore_event_call();
   _ecore_main_fd_handlers_cleanup();
-  _ecore_timer_expired_timers_call(_ecore_time_loop_time);
-  _ecore_timer_cleanup();
+  _efl_loop_timer_expired_timers_call(_ecore_time_loop_time);
 }
 
 static int
@@ -700,16 +701,14 @@ _ecore_main_gsource_prepare(GSource *source EINA_UNUSED,
 {
    gboolean ready = FALSE;
 
-   _ecore_lock();
    in_main_loop++;
 
    if (!ecore_idling && !_ecore_glib_idle_enterer_called)
      {
         _ecore_time_loop_time = ecore_time_get();
-        _ecore_timer_expired_timers_call(_ecore_time_loop_time);
-        _ecore_timer_cleanup();
+        _efl_loop_timer_expired_timers_call(_ecore_time_loop_time);
 
-        _ecore_idle_enterer_call();
+        _ecore_idle_enterer_call(_mainloop_singleton);
         _ecore_throttle();
         _ecore_glib_idle_enterer_called = FALSE;
 
@@ -723,12 +722,12 @@ _ecore_main_gsource_prepare(GSource *source EINA_UNUSED,
    if (g_main_loop_is_running(ecore_main_loop))
      {
         /* only set idling state in dispatch */
-         if (ecore_idling && !_ecore_idler_exist() && !_ecore_event_exist())
+         if (ecore_idling && !_ecore_idler_exist(_mainloop_singleton) && !_ecore_event_exist())
            {
-              if (_ecore_timers_exists())
+              if (_efl_loop_timers_exists())
                 {
                    int r = -1;
-                   double t = _ecore_timer_next_get();
+                   double t = _efl_loop_timer_next_get();
                    if (timer_fd >= 0 && t > 0.0)
                      {
                         struct itimerspec ts;
@@ -779,7 +778,6 @@ _ecore_main_gsource_prepare(GSource *source EINA_UNUSED,
 
    in_main_loop--;
    DBG("leave, timeout = %d", *next_time);
-   _ecore_unlock();
 
    /* ready if we're not running (about to quit) */
    return ready;
@@ -790,11 +788,10 @@ _ecore_main_gsource_check(GSource *source EINA_UNUSED)
 {
    gboolean ret = FALSE;
 
-   _ecore_lock();
    in_main_loop++;
 
    /* check if old timers expired */
-   if (ecore_idling && !_ecore_idler_exist() && !_ecore_event_exist())
+   if (ecore_idling && !_ecore_idler_exist(_mainloop_singleton) && !_ecore_event_exist())
      {
         if (timer_fd >= 0)
           {
@@ -826,11 +823,10 @@ _ecore_main_gsource_check(GSource *source EINA_UNUSED)
      ret = TRUE;
 
    /* check timers after updating loop time */
-   if (!ret && _ecore_timers_exists())
-     ret = (0.0 == _ecore_timer_next_get());
+   if (!ret && _efl_loop_timers_exists())
+     ret = (0.0 == _efl_loop_timer_next_get());
 
    in_main_loop--;
-   _ecore_unlock();
 
    return ret;
 }
@@ -844,14 +840,13 @@ _ecore_main_gsource_dispatch(GSource    *source EINA_UNUSED,
    gboolean events_ready, timers_ready, idlers_ready;
    double next_time;
 
-   _ecore_lock();
    _ecore_time_loop_time = ecore_time_get();
-   _ecore_timer_enable_new();
-   next_time = _ecore_timer_next_get();
+   _efl_loop_timer_enable_new();
+   next_time = _efl_loop_timer_next_get();
 
    events_ready = _ecore_event_exist();
-   timers_ready = _ecore_timers_exists() && (0.0 == next_time);
-   idlers_ready = _ecore_idler_exist();
+   timers_ready = _efl_loop_timers_exists() && (0.0 == next_time);
+   idlers_ready = _ecore_idler_exist(_mainloop_singleton);
 
    in_main_loop++;
    DBG("enter idling=%d fds=%d events=%d timers=%d (next=%.2f) idlers=%d",
@@ -861,7 +856,7 @@ _ecore_main_gsource_dispatch(GSource    *source EINA_UNUSED,
    if (ecore_idling && events_ready)
      {
         _ecore_animator_run_reset();
-        _ecore_idle_exiter_call();
+        _ecore_idle_exiter_call(_mainloop_singleton);
         ecore_idling = 0;
      }
    else if (!ecore_idling && !events_ready)
@@ -871,14 +866,14 @@ _ecore_main_gsource_dispatch(GSource    *source EINA_UNUSED,
 
    if (ecore_idling)
      {
-        _ecore_idler_all_call();
+        _ecore_idler_all_call(_mainloop_singleton);
 
         events_ready = _ecore_event_exist();
 
         if (ecore_fds_ready || events_ready || timers_ready)
           {
              _ecore_animator_run_reset();
-             _ecore_idle_exiter_call();
+             _ecore_idle_exiter_call(_mainloop_singleton);
              ecore_idling = 0;
           }
      }
@@ -893,10 +888,9 @@ _ecore_main_gsource_dispatch(GSource    *source EINA_UNUSED,
         _ecore_event_call();
         _ecore_main_fd_handlers_cleanup();
 
-        _ecore_timer_expired_timers_call(_ecore_time_loop_time);
-        _ecore_timer_cleanup();
+        _efl_loop_timer_expired_timers_call(_ecore_time_loop_time);
 
-        _ecore_idle_enterer_call();
+        _ecore_idle_enterer_call(_mainloop_singleton);
         _ecore_throttle();
         _ecore_glib_idle_enterer_called = TRUE;
 
@@ -905,7 +899,6 @@ _ecore_main_gsource_dispatch(GSource    *source EINA_UNUSED,
      }
 
    in_main_loop--;
-   _ecore_unlock();
 
    return TRUE; /* what should be returned here? */
 }
@@ -1000,7 +993,7 @@ void _ecore_main_loop_timer_run(uv_timer_t* timer EINA_UNUSED)
   if(_ecore_main_uv_idling)
     {
       _ecore_main_uv_idling = EINA_FALSE;
-      _ecore_idle_exiter_call();
+      _ecore_idle_exiter_call(_mainloop_singleton);
       _ecore_animator_run_reset();
     }
   _ecore_time_loop_time = ecore_time_get();
@@ -1016,11 +1009,10 @@ _ecore_main_loop_uv_check(uv_check_t* handle EINA_UNUSED)
 {
    DBG("_ecore_main_loop_uv_check idling? %d", (int)_ecore_main_uv_idling);
    in_main_loop++;
-   _ecore_lock();
 
    if(do_quit)
      goto quit;
-   
+
    do
      {
        _ecore_main_fd_handlers_call();
@@ -1029,19 +1021,19 @@ _ecore_main_loop_uv_check(uv_check_t* handle EINA_UNUSED)
        _ecore_signal_received_process();
        _ecore_event_call();
        _ecore_main_fd_handlers_cleanup();
-       _ecore_timer_expired_timers_call(_ecore_time_loop_time);
-       _ecore_timer_cleanup();
+       _efl_loop_timer_expired_timers_call(_ecore_time_loop_time);
      }
    while(fd_handlers_to_call);
-quit:   
+quit:
    in_main_loop--;
-   _ecore_unlock();
 }
 #endif
 
 void
 _ecore_main_loop_init(void)
 {
+   // Please note that this function is being also called in case of a bad fd to reset the main loop.
+
    DBG("_ecore_main_loop_init");
    epoll_fd = epoll_create(1);
    if ((epoll_fd < 0) && HAVE_EPOLL)
@@ -1129,7 +1121,7 @@ _ecore_main_loop_init(void)
      DBG("loaded dlsyms uv");
    }
 #endif
-   
+
    /* setup for the g_main_loop only integration */
 #ifdef USE_G_MAIN_LOOP
    ecore_glib_source = g_source_new(&ecore_gsource_funcs, sizeof (GSource));
@@ -1172,6 +1164,8 @@ _ecore_main_loop_init(void)
 void
 _ecore_main_loop_shutdown(void)
 {
+   // Please note that _ecore_main_loop_shutdown is called in cycle to restart the main loop in case of a bad fd
+
 #ifdef USE_G_MAIN_LOOP
    if (ecore_glib_source)
      {
@@ -1233,10 +1227,8 @@ ecore_main_loop_iterate(void)
    if(!_dl_uv_run) {
 #endif
 #ifndef USE_G_MAIN_LOOP
-   _ecore_lock();
    _ecore_time_loop_time = ecore_time_get();
    _ecore_main_loop_iterate_internal(1);
-   _ecore_unlock();
 #else
    g_main_context_iteration(NULL, 0);
 #endif
@@ -1255,12 +1247,10 @@ ecore_main_loop_iterate_may_block(int may_block)
    if(!_dl_uv_run) {
 #endif
 #ifndef USE_G_MAIN_LOOP
-   _ecore_lock();
    _ecore_time_loop_time = ecore_time_get();
 in_main_loop++;
    _ecore_main_loop_iterate_internal(!may_block);
 in_main_loop--;
-   _ecore_unlock();
    return _ecore_event_exist();
 #else
    return g_main_context_iteration(NULL, may_block);
@@ -1291,13 +1281,11 @@ ecore_main_loop_begin(void)
    if(!_dl_uv_run) {
 #endif
 #ifndef USE_G_MAIN_LOOP
-   _ecore_lock();
    in_main_loop++;
    _ecore_time_loop_time = ecore_time_get();
    while (do_quit == 0) _ecore_main_loop_iterate_internal(0);
    do_quit = 0;
    in_main_loop--;
-   _ecore_unlock();
 #else
    if (!do_quit)
      {
@@ -1403,6 +1391,8 @@ _ecore_main_fd_handler_add(int                    fd,
    if (buf_func)
      fd_handlers_with_buffer = eina_list_append(fd_handlers_with_buffer, fdh);
    fdh->buf_data = (void *)buf_data;
+   if (is_file)
+     file_fd_handlers = eina_list_append(file_fd_handlers, fdh);
    fd_handlers = (Ecore_Fd_Handler *)
      eina_inlist_append(EINA_INLIST_GET(fd_handlers),
                         EINA_INLIST_GET(fdh));
@@ -1420,9 +1410,7 @@ ecore_main_fd_handler_add(int                    fd,
 {
    Ecore_Fd_Handler *fdh = NULL;
    EINA_MAIN_LOOP_CHECK_RETURN_VAL(NULL);
-   _ecore_lock();
    fdh = _ecore_main_fd_handler_add(fd, flags, func, data, buf_func, buf_data, EINA_FALSE);
-   _ecore_unlock();
    return fdh;
 }
 
@@ -1434,13 +1422,8 @@ ecore_main_fd_handler_file_add(int                    fd,
                                Ecore_Fd_Cb            buf_func,
                                const void            *buf_data)
 {
-   Ecore_Fd_Handler *fdh = NULL;
    EINA_MAIN_LOOP_CHECK_RETURN_VAL(NULL);
-   _ecore_lock();
-   fdh = _ecore_main_fd_handler_add(fd, flags, func, data, buf_func, buf_data, EINA_TRUE);
-   _ecore_unlock();
-
-   return fdh;
+   return _ecore_main_fd_handler_add(fd, flags, func, data, buf_func, buf_data, EINA_TRUE);
 }
 
 #ifdef _WIN32
@@ -1481,22 +1464,16 @@ ecore_main_win32_handler_add(void                 *h EINA_UNUSED,
 EAPI void *
 ecore_main_fd_handler_del(Ecore_Fd_Handler *fd_handler)
 {
-   void *ret = NULL;
-
    if (!fd_handler) return NULL;
    EINA_MAIN_LOOP_CHECK_RETURN_VAL(NULL);
-   _ecore_lock();
 
    if (!ECORE_MAGIC_CHECK(fd_handler, ECORE_MAGIC_FD_HANDLER))
      {
         ECORE_MAGIC_FAIL(fd_handler, ECORE_MAGIC_FD_HANDLER,
                          "ecore_main_fd_handler_del");
-        goto unlock;
+        return NULL;
      }
-   ret = _ecore_main_fd_handler_del(fd_handler);
-unlock:
-   _ecore_unlock();
-   return ret;
+   return _ecore_main_fd_handler_del(fd_handler);
 }
 
 #ifdef _WIN32
@@ -1546,13 +1523,12 @@ ecore_main_fd_handler_prepare_callback_set(Ecore_Fd_Handler *fd_handler,
                                            const void       *data)
 {
    EINA_MAIN_LOOP_CHECK_RETURN;
-   _ecore_lock();
 
    if (!ECORE_MAGIC_CHECK(fd_handler, ECORE_MAGIC_FD_HANDLER))
      {
         ECORE_MAGIC_FAIL(fd_handler, ECORE_MAGIC_FD_HANDLER,
                          "ecore_main_fd_handler_prepare_callback_set");
-        goto unlock;
+        return ;
      }
    fd_handler->prep_func = func;
    fd_handler->prep_data = (void *)data;
@@ -1560,28 +1536,20 @@ ecore_main_fd_handler_prepare_callback_set(Ecore_Fd_Handler *fd_handler,
        (fd_handlers_with_prep && (!eina_list_data_find(fd_handlers_with_prep, fd_handler))))
      /* FIXME: THIS WILL NOT SCALE WITH LOTS OF PREP FUNCTIONS!!! */
      fd_handlers_with_prep = eina_list_append(fd_handlers_with_prep, fd_handler);
-unlock:
-   _ecore_unlock();
 }
 
 EAPI int
 ecore_main_fd_handler_fd_get(Ecore_Fd_Handler *fd_handler)
 {
-   int fd = -1;
-
    EINA_MAIN_LOOP_CHECK_RETURN_VAL(-1);
-   _ecore_lock();
 
    if (!ECORE_MAGIC_CHECK(fd_handler, ECORE_MAGIC_FD_HANDLER))
      {
         ECORE_MAGIC_FAIL(fd_handler, ECORE_MAGIC_FD_HANDLER,
                          "ecore_main_fd_handler_fd_get");
-        goto unlock;
+        return -1;
      }
-   fd = fd_handler->fd;
-unlock:
-   _ecore_unlock();
-   return fd;
+   return fd_handler->fd;
 }
 
 EAPI Eina_Bool
@@ -1591,19 +1559,16 @@ ecore_main_fd_handler_active_get(Ecore_Fd_Handler      *fd_handler,
    int ret = EINA_FALSE;
 
    EINA_MAIN_LOOP_CHECK_RETURN_VAL(EINA_FALSE);
-   _ecore_lock();
 
    if (!ECORE_MAGIC_CHECK(fd_handler, ECORE_MAGIC_FD_HANDLER))
      {
         ECORE_MAGIC_FAIL(fd_handler, ECORE_MAGIC_FD_HANDLER,
                          "ecore_main_fd_handler_active_get");
-        goto unlock;
+        return EINA_FALSE;
      }
    if ((flags & ECORE_FD_READ) && (fd_handler->read_active)) ret = EINA_TRUE;
    if ((flags & ECORE_FD_WRITE) && (fd_handler->write_active)) ret = EINA_TRUE;
    if ((flags & ECORE_FD_ERROR) && (fd_handler->error_active)) ret = EINA_TRUE;
-unlock:
-   _ecore_unlock();
    return ret;
 }
 
@@ -1614,13 +1579,12 @@ ecore_main_fd_handler_active_set(Ecore_Fd_Handler      *fd_handler,
    int ret;
 
    EINA_MAIN_LOOP_CHECK_RETURN;
-   _ecore_lock();
 
    if (!ECORE_MAGIC_CHECK(fd_handler, ECORE_MAGIC_FD_HANDLER))
      {
         ECORE_MAGIC_FAIL(fd_handler, ECORE_MAGIC_FD_HANDLER,
                          "ecore_main_fd_handler_active_set");
-        goto unlock;
+        return ;
      }
    fd_handler->flags = flags;
    ret = _ecore_main_fdh_poll_modify(fd_handler);
@@ -1628,8 +1592,6 @@ ecore_main_fd_handler_active_set(Ecore_Fd_Handler      *fd_handler,
      {
         ERR("Failed to mod epoll fd %d: %s!", fd_handler->fd, strerror(ret));
      }
-unlock:
-   _ecore_unlock();
 }
 
 void
@@ -1717,8 +1679,7 @@ _ecore_main_select(double timeout)
    fd_set rfds, wfds, exfds;
    Ecore_Fd_Handler *fdh;
    Eina_List *l;
-   int max_fd;
-   int ret;
+   int max_fd, ret, err_no;
 
    t = NULL;
    if ((!ECORE_FINITE(timeout)) || (timeout == 0.0)) /* finite() tests for NaN, too big, too small, and infinity.  */
@@ -1804,18 +1765,17 @@ _ecore_main_select(double timeout)
        }
    if (_ecore_signal_count_get()) return -1;
 
-   _ecore_unlock();
    eina_evlog("!SLEEP", NULL, 0.0, t ? "timeout" : "forever");
    ret = main_loop_select(max_fd + 1, &rfds, &wfds, &exfds, t);
+   err_no = errno;
    eina_evlog("!WAKE", NULL, 0.0, NULL);
-   _ecore_lock();
 
    _ecore_time_loop_time = ecore_time_get();
    if (ret < 0)
      {
 #ifndef _WIN32
-        if (errno == EINTR) return -1;
-        else if (errno == EBADF)
+        if (err_no == EINTR) return -1;
+        else if (err_no == EBADF)
           _ecore_main_fd_handlers_bads_rem();
 #endif
      }
@@ -2082,7 +2042,6 @@ _ecore_main_fd_handlers_buf_call(void)
 static void
 _ecore_main_loop_uv_prepare(uv_prepare_t* handle EINA_UNUSED)
 {
-   _ecore_lock();
    _dl_uv_timer_stop(&_ecore_main_uv_handle_timers);
    if(in_main_loop == 0 && do_quit)
      {
@@ -2112,30 +2071,29 @@ _ecore_main_loop_uv_prepare(uv_prepare_t* handle EINA_UNUSED)
        fd_handlers_to_call_current = NULL;
        fd_handlers_to_delete = NULL;
        fd_handler_current = NULL;
-       
+
        _dl_uv_prepare_stop(&_ecore_main_uv_prepare);
        _dl_uv_check_stop(&_ecore_main_uv_check);
        _dl_uv_stop(_dl_uv_default_loop());
 
-       _ecore_unlock();
        return;
      }
-   
+
    in_main_loop++;
-  
+
    if(!_ecore_main_uv_idling)
      {
         _ecore_main_uv_idling = EINA_TRUE;
-        _ecore_idle_enterer_call();
+        _ecore_idle_enterer_call(_mainloop_singleton);
         _ecore_throttle();
      }
 
    double t = -1;
    if(_ecore_main_uv_idling)
      {
-       _ecore_idler_all_call();
+       _ecore_idler_all_call(_mainloop_singleton);
        DBG("called idles");
-       if(_ecore_idler_exist() || _ecore_event_exist())
+       if(_ecore_idler_exist(_mainloop_singleton) || _ecore_event_exist())
          t = 0.0;
      }
 
@@ -2145,16 +2103,16 @@ _ecore_main_loop_uv_prepare(uv_prepare_t* handle EINA_UNUSED)
 
        if(_ecore_main_uv_idling)
          {
-            _ecore_idle_exiter_call();
+            _ecore_idle_exiter_call(_mainloop_singleton);
             _ecore_animator_run_reset();
-       
+
             _ecore_main_uv_idling = EINA_FALSE;
          }
 
        t = -1;
 
        _ecore_time_loop_time = ecore_time_get();
-       _ecore_timer_enable_new();
+       _efl_loop_timer_enable_new();
 
        goto done;
      }
@@ -2162,10 +2120,10 @@ _ecore_main_loop_uv_prepare(uv_prepare_t* handle EINA_UNUSED)
    assert(!fd_handlers_to_call);
 
    _ecore_time_loop_time = ecore_time_get();
-   _ecore_timer_enable_new();
-   if (_ecore_timers_exists() || t >= 0)
+   _efl_loop_timer_enable_new();
+   if (_efl_loop_timers_exists() || t >= 0)
      {
-       double t1 = _ecore_timer_next_get();
+       double t1 = _efl_loop_timer_next_get();
        if(t < 0 || (t1 >= 0 && t1 < t)) t = t1;
        DBG("Should awake after %f", t);
        
@@ -2185,7 +2143,6 @@ _ecore_main_loop_uv_prepare(uv_prepare_t* handle EINA_UNUSED)
    if (fd_handlers_with_prep)
      _ecore_main_prepare_handlers();
 
-   _ecore_unlock();
    in_main_loop--;
 }
 #endif
@@ -2202,8 +2159,10 @@ _ecore_main_loop_spin_core(void)
 {
    /* as we are spinning we need to update loop time per spin */
     _ecore_time_loop_time = ecore_time_get();
-    /* call all idlers, which returns false if no more idelrs exist */
-    if (!_ecore_idler_all_call()) return SPIN_RESTART;
+    /* call all idlers */
+    _ecore_idler_all_call(_mainloop_singleton);
+    /* which returns false if no more idelrs exist */
+    if (!_ecore_idler_exist(_mainloop_singleton)) return SPIN_RESTART;
     /* sneaky - drop through or if checks - the first one to succeed
      * drops through and returns "continue" so further ones dont run */
     if ((_ecore_main_select(0.0) > 0) || (_ecore_event_exist()) ||
@@ -2224,7 +2183,7 @@ _ecore_main_loop_spin_no_timers(void)
           if (action != SPIN_MORE) return action;
           /* if an idler has added a timer then we need to go through
            * the start of the spin cycle again to handle cases properly */
-          if (_ecore_timers_exists()) return SPIN_RESTART;
+          if (_efl_loop_timers_exists()) return SPIN_RESTART;
        }
      /* just contiune handling events etc. */
      return LOOP_CONTINUE;
@@ -2242,7 +2201,7 @@ _ecore_main_loop_spin_timers(void)
           /* if next timer expires now or in the past - stop spinning and
            * continue the mainloop walk as our "select" timeout has
            * expired now */
-          if (_ecore_timer_next_get() <= 0.0) return LOOP_CONTINUE;
+          if (_efl_loop_timer_next_get() <= 0.0) return LOOP_CONTINUE;
        }
      /* just contiune handling events etc. */
      return LOOP_CONTINUE;
@@ -2270,8 +2229,7 @@ _ecore_main_loop_iterate_internal(int once_only)
 
    in_main_loop++;
    /* expire any timers */
-   _ecore_timer_expired_timers_call(_ecore_time_loop_time);
-   _ecore_timer_cleanup();
+   _efl_loop_timer_expired_timers_call(_ecore_time_loop_time);
 
    /* process signals into events .... */
    _ecore_signal_received_process();
@@ -2280,12 +2238,12 @@ _ecore_main_loop_iterate_internal(int once_only)
    if (_ecore_event_exist())
      {
         /* but first conceptually enter an idle state */
-        _ecore_idle_enterer_call();
+        _ecore_idle_enterer_call(_mainloop_singleton);
         _ecore_throttle();
         /* now quickly poll to see which input fd's are active */
         _ecore_main_select(0.0);
         /* allow newly queued timers to expire from now on */
-        _ecore_timer_enable_new();
+        _efl_loop_timer_enable_new();
         /* go straight to processing the events we had queued */
         goto process_all;
      }
@@ -2298,14 +2256,14 @@ _ecore_main_loop_iterate_internal(int once_only)
          * merged together */
         if (_ecore_main_select(0.0) | _ecore_signal_count_get())
           {
-             _ecore_timer_enable_new();
+             _efl_loop_timer_enable_new();
              goto process_all;
           }
      }
    else
      {
         /* call idle enterers ... */
-        _ecore_idle_enterer_call();
+        _ecore_idle_enterer_call(_mainloop_singleton);
         _ecore_throttle();
      }
 
@@ -2318,16 +2276,16 @@ _ecore_main_loop_iterate_internal(int once_only)
    if (_ecore_event_exist())
      {
         _ecore_main_select(0.0);
-        _ecore_timer_enable_new();
+        _efl_loop_timer_enable_new();
         goto process_all;
      }
 
    if (once_only)
      {
         /* in once_only mode enter idle here instead and then return */
-        _ecore_idle_enterer_call();
+        _ecore_idle_enterer_call(_mainloop_singleton);
         _ecore_throttle();
-        _ecore_timer_enable_new();
+        _efl_loop_timer_enable_new();
         goto done;
      }
 
@@ -2336,19 +2294,19 @@ _ecore_main_loop_iterate_internal(int once_only)
    /* start of the sleeping or looping section */
 start_loop: /*-*************************************************************/
    /* any timers re-added as a result of these are allowed to go */
-   _ecore_timer_enable_new();
+   _efl_loop_timer_enable_new();
    /* if we have been asked to quit the mainloop then exit at this point */
    if (do_quit)
      {
-        _ecore_timer_enable_new();
+        _efl_loop_timer_enable_new();
         goto done;
      }
    if (!_ecore_event_exist())
      {
         /* init flags */
-        next_time = _ecore_timer_next_get();
+        next_time = _efl_loop_timer_next_get();
         /* no idlers */
-        if (!_ecore_idler_exist())
+        if (!_ecore_idler_exist(_mainloop_singleton))
           {
              /* sleep until timeout or forever (-1.0) waiting for on fds */
              _ecore_main_select(next_time);
@@ -2373,7 +2331,7 @@ process_all: /*-*********************************************************/
    if (!once_only)
      {
         _ecore_animator_run_reset();
-        _ecore_idle_exiter_call();
+        _ecore_idle_exiter_call(_mainloop_singleton);
      }
    /* call the fd handler per fd that became alive... */
    /* this should read or write any data to the monitored fd and then */
@@ -2389,11 +2347,13 @@ process_all: /*-*********************************************************/
    if (once_only)
      {
         /* if in once_only mode handle idle exiting */
-        _ecore_idle_enterer_call();
+        _ecore_idle_enterer_call(_mainloop_singleton);
         _ecore_throttle();
      }
 
 done: /*-*****************************************************************/
+   /* Agressively flush animator */
+   _ecore_animator_flush();
    in_main_loop--;
 }
 
@@ -2646,9 +2606,8 @@ _ecore_main_win32_select(int             nfds EINA_UNUSED,
 
    if (timeout == 0)
      {
-        free(objects);
-        free(sockets);
-        return 0;
+        res = 0;
+        goto err;
      }
 
    result = _ecore_main_win32_objects_wait(objects_nbr,
@@ -2744,6 +2703,7 @@ _ecore_main_win32_select(int             nfds EINA_UNUSED,
         res = -1;
      }
 
+err :
    /* Remove event objects again */
    for (i = 0; i < events_nbr; i++) WSACloseEvent(objects[i]);
 
@@ -2754,57 +2714,369 @@ _ecore_main_win32_select(int             nfds EINA_UNUSED,
 
 #endif
 
-static Eo *_mainloop_singleton = NULL;
+Eo *_mainloop_singleton = NULL;
 
-EAPI Eo *ecore_main_loop_get(void)
+EOLIAN static Efl_Loop *
+_efl_loop_main_get(Eo_Class *klass EINA_UNUSED, void *_pd EINA_UNUSED)
 {
    if (!_mainloop_singleton)
      {
-        _mainloop_singleton = eo_add(ECORE_MAINLOOP_CLASS, NULL);
+        _mainloop_singleton = eo_add(EFL_LOOP_CLASS, NULL);
      }
 
    return _mainloop_singleton;
 }
 
-EOLIAN static void
-_ecore_mainloop_select_func_set(Eo *obj EINA_UNUSED, void *pd EINA_UNUSED, Ecore_Select_Function select_func)
+EAPI Eo *
+ecore_main_loop_get(void)
 {
-   ecore_main_loop_select_func_set(select_func);
-}
-
-EOLIAN static Ecore_Select_Function
-_ecore_mainloop_select_func_get(Eo *obj EINA_UNUSED, void *pd EINA_UNUSED)
-{
-   return ecore_main_loop_select_func_get();
+   return efl_loop_main_get(EFL_LOOP_CLASS);
 }
 
 EOLIAN static void
-_ecore_mainloop_iterate(Eo *obj EINA_UNUSED, void *pd EINA_UNUSED)
+_efl_loop_iterate(Eo *obj EINA_UNUSED, Efl_Loop_Data *pd EINA_UNUSED)
 {
    ecore_main_loop_iterate();
 }
 
-EOLIAN static int _ecore_mainloop_iterate_may_block(Eo *obj EINA_UNUSED, void *pd EINA_UNUSED, int may_block)
+EOLIAN static int _efl_loop_iterate_may_block(Eo *obj EINA_UNUSED, Efl_Loop_Data *pd EINA_UNUSED, int may_block)
 {
    return ecore_main_loop_iterate_may_block(may_block);
 }
 
-EOLIAN static void
-_ecore_mainloop_begin(Eo *obj EINA_UNUSED, void *pd EINA_UNUSED)
+EOLIAN static unsigned char
+_efl_loop_begin(Eo *obj EINA_UNUSED, Efl_Loop_Data *pd EINA_UNUSED)
 {
    ecore_main_loop_begin();
+   return _ecore_exit_code;
 }
 
 EOLIAN static void
-_ecore_mainloop_quit(Eo *obj EINA_UNUSED, void *pd EINA_UNUSED)
+_efl_loop_quit(Eo *obj EINA_UNUSED, Efl_Loop_Data *pd EINA_UNUSED, unsigned char exit_code)
 {
    ecore_main_loop_quit();
+   _ecore_exit_code = exit_code;
 }
 
-EOLIAN static Eina_Bool
-_ecore_mainloop_animator_ticked(Eo *obj EINA_UNUSED, void *pd EINA_UNUSED)
+EOLIAN static Eo_Base *
+_efl_loop_eo_base_provider_find(Eo *obj, Efl_Loop_Data *pd, const Eo_Base *klass)
 {
-   return ecore_main_loop_animator_ticked_get();
+   Eo_Base *r;
+
+   if (klass == EFL_LOOP_CLASS) return obj;
+
+   r = eina_hash_find(pd->providers, &klass);
+   if (r) return r;
+
+   return eo_provider_find(eo_super(obj, EFL_LOOP_CLASS), klass);
 }
 
-#include "ecore_mainloop.eo.c"
+static void
+_check_event_catcher_add(void *data, const Eo_Event *event)
+{
+   const Eo_Callback_Array_Item *array = event->info;
+   Efl_Loop_Data *pd = data;
+   int i;
+
+   for (i = 0; array[i].desc != NULL; i++)
+     {
+        if (array[i].desc == EFL_LOOP_EVENT_IDLE)
+          {
+             ++pd->idlers;
+          }
+     }
+}
+
+static void
+_check_event_catcher_del(void *data, const Eo_Event *event)
+{
+   const Eo_Callback_Array_Item *array = event->info;
+   Efl_Loop_Data *pd = data;
+   int i;
+
+   for (i = 0; array[i].desc != NULL; i++)
+     {
+        if (array[i].desc == EFL_LOOP_EVENT_IDLE)
+          {
+             --pd->idlers;
+          }
+     }
+}
+
+EO_CALLBACKS_ARRAY_DEFINE(event_catcher_watch,
+                          { EO_EVENT_CALLBACK_ADD, _check_event_catcher_add },
+                          { EO_EVENT_CALLBACK_DEL, _check_event_catcher_del });
+
+EOLIAN static Eo_Base *
+_efl_loop_eo_base_constructor(Eo *obj, Efl_Loop_Data *pd)
+{
+   obj = eo_constructor(eo_super(obj, EFL_LOOP_CLASS));
+   if (!obj) return NULL;
+
+   eo_event_callback_array_add(obj, event_catcher_watch(), pd);
+
+   pd->providers = eina_hash_pointer_new((void*) eo_unref);
+
+   return obj;
+}
+
+EOLIAN static void
+_efl_loop_eo_base_destructor(Eo *obj, Efl_Loop_Data *pd)
+{
+   eo_destructor(eo_super(obj, EFL_LOOP_CLASS));
+
+   eina_hash_free(pd->providers);
+}
+
+typedef struct _Efl_Internal_Promise Efl_Internal_Promise;
+struct _Efl_Internal_Promise
+{
+   union {
+      Ecore_Job *job;
+      Efl_Loop_Timer *timer;
+   } u;
+   Eina_Promise_Owner *promise;
+
+   const void *data;
+
+   Eina_Bool job_is : 1;
+};
+
+static void
+_efl_loop_job_cb(void *data)
+{
+   Efl_Internal_Promise *j = data;
+
+   eina_promise_owner_value_set(j->promise, j->data, NULL);
+
+   free(j);
+}
+
+static void
+_efl_loop_arguments_cleanup(Eina_Array *arga)
+{
+   Eina_Stringshare *s;
+
+   while ((s = eina_array_pop(arga)))
+     eina_stringshare_del(s);
+   eina_array_free(arga);
+}
+
+static void
+_efl_loop_arguments_send(void *data, void *value EINA_UNUSED)
+{
+   static Eina_Bool initialization = EINA_TRUE;
+   Efl_Loop_Arguments arge;
+   Eina_Array *arga = data;
+
+   arge.argv = arga;
+   arge.initialization = initialization;
+   initialization = EINA_FALSE;
+
+   eo_event_callback_call(ecore_main_loop_get(), EFL_LOOP_EVENT_ARGUMENTS, &arge);
+
+   _efl_loop_arguments_cleanup(arga);
+}
+
+static void
+_efl_loop_arguments_cancel(void *data, Eina_Error err EINA_UNUSED)
+{
+   _efl_loop_arguments_cleanup(data);
+}
+
+// It doesn't make sense to send those argument to any other mainloop
+// As it also doesn't make sense to allow anyone to override this, so
+// should be internal for sure, not even protected.
+EAPI void
+ecore_loop_arguments_send(int argc, const char **argv)
+{
+   Eina_Promise *job;
+   Eina_Array *arga;
+   int i = 0;
+
+   arga = eina_array_new(argc);
+   for (i = 0; i < argc; i++)
+     eina_array_push(arga, eina_stringshare_add(argv[i]));
+
+   job = efl_loop_job(ecore_main_loop_get(), NULL);
+   eina_promise_then(job, _efl_loop_arguments_send, _efl_loop_arguments_cancel, arga);
+}
+
+static void _efl_loop_timeout_force_cancel_cb(void *data, const Eo_Event *event EINA_UNUSED);
+static void _efl_loop_timeout_cb(void *data, const Eo_Event *event EINA_UNUSED);
+
+EO_CALLBACKS_ARRAY_DEFINE(timeout,
+                          { EFL_LOOP_TIMER_EVENT_TICK, _efl_loop_timeout_cb },
+                          { EO_EVENT_DEL, _efl_loop_timeout_force_cancel_cb });
+
+/* This event will be triggered when the main loop is destroyed and destroy its timers along */
+static void _efl_loop_internal_cancel(Efl_Internal_Promise *p);
+
+static void
+_efl_loop_timeout_force_cancel_cb(void *data, const Eo_Event *event EINA_UNUSED)
+{
+   _efl_loop_internal_cancel(data);
+}
+
+static void
+_efl_loop_timeout_cb(void *data, const Eo_Event *event EINA_UNUSED)
+{
+   Efl_Internal_Promise *t = data;
+
+   eina_promise_owner_value_set(t->promise, t->data, NULL);
+
+   eo_event_callback_array_del(t->u.timer, timeout(), t);
+   eo_del(t->u.timer);
+}
+
+static void
+_efl_loop_internal_cancel(Efl_Internal_Promise *p)
+{
+   eina_promise_owner_error_set(p->promise, EINA_ERROR_PROMISE_CANCEL);
+   free(p);
+}
+
+static void
+_efl_loop_job_cancel(void* data, Eina_Promise_Owner* promise EINA_UNUSED)
+{
+   Efl_Internal_Promise *j = data;
+
+   if (j->job_is)
+     {
+        ecore_job_del(j->u.job);
+     }
+   else
+     {
+        eo_event_callback_array_del(j->u.timer, timeout(), j);
+        eo_del(j->u.timer);
+     }
+
+   _efl_loop_internal_cancel(j);
+}
+
+static Efl_Internal_Promise *
+_efl_internal_promise_new(Eina_Promise_Owner* promise, const void *data)
+{
+   Efl_Internal_Promise *p;
+
+   p = calloc(1, sizeof (Efl_Internal_Promise));
+   if (!p) return NULL;
+
+   eina_promise_owner_default_cancel_cb_add(promise, &_efl_loop_job_cancel, p, NULL);
+   p->promise = promise;
+   p->data = data;
+
+   return p;
+}
+
+static Eina_Promise *
+_efl_loop_job(Eo *obj EINA_UNUSED, Efl_Loop_Data *pd EINA_UNUSED, const void *data)
+{
+   Efl_Internal_Promise *j;
+   Eina_Promise_Owner *promise;
+
+   promise = eina_promise_add();
+   if (!promise) return NULL;
+
+   j = _efl_internal_promise_new(promise, data);
+   if (!j) goto on_error;
+
+   j->job_is = EINA_TRUE;
+   j->u.job = ecore_job_add(_efl_loop_job_cb, j);
+   if (!j->u.job) goto on_error;
+
+   return eina_promise_owner_promise_get(promise);
+
+ on_error:
+   eina_promise_unref(eina_promise_owner_promise_get(promise));
+   free(j);
+
+   return NULL;
+}
+
+static Eina_Promise *
+_efl_loop_timeout(Eo *obj, Efl_Loop_Data *pd EINA_UNUSED, double time, const void *data)
+{
+   Efl_Internal_Promise *t;
+   Eina_Promise_Owner *promise;
+
+   promise = eina_promise_add();
+   if (!promise) return NULL;
+
+   t = _efl_internal_promise_new(promise, data);
+   if (!t) goto on_error;
+
+   t->job_is = EINA_FALSE;
+   t->u.timer = eo_add(EFL_LOOP_TIMER_CLASS, obj,
+                       efl_loop_timer_interval_set(eo_self, time),
+                       eo_event_callback_array_add(eo_self, timeout(), t));
+
+   if (!t->u.timer) goto on_error;
+
+   return eina_promise_owner_promise_get(promise);
+
+ on_error:
+   eina_promise_unref(eina_promise_owner_promise_get(promise));
+   free(t);
+
+   return NULL;
+}
+
+static Eina_Bool
+_efl_loop_register(Eo *obj EINA_UNUSED, Efl_Loop_Data *pd, const Eo_Class *klass, const Eo_Base *provider)
+{
+   // The passed object does not provide that said class.
+   if (!eo_isa(provider, klass)) return EINA_FALSE;
+
+   // Note: I would prefer to use eo_xref here, but I can't figure a nice way to
+   // call eo_xunref on hash destruction.
+   return eina_hash_add(pd->providers, &klass, eo_ref(provider));
+}
+
+static Eina_Bool
+_efl_loop_unregister(Eo *obj EINA_UNUSED, Efl_Loop_Data *pd, const Eo_Class *klass, const Eo_Base *provider)
+{
+   return eina_hash_del(pd->providers, &klass, provider);
+}
+
+Efl_Version _app_efl_version = { 0, 0, 0, 0, NULL, NULL };
+
+EWAPI void
+efl_build_version_set(int vmaj, int vmin, int vmic, int revision,
+                      const char *flavor, const char *build_id)
+{
+   // note: EFL has not been initialized yet at this point (ie. no eina call)
+   _app_efl_version.major = vmaj;
+   _app_efl_version.minor = vmin;
+   _app_efl_version.micro = vmic;
+   _app_efl_version.revision = revision;
+   free((char *) _app_efl_version.flavor);
+   free((char *) _app_efl_version.build_id);
+   _app_efl_version.flavor = flavor ? strdup(flavor) : NULL;
+   _app_efl_version.build_id = build_id ? strdup(build_id) : NULL;
+}
+
+EOLIAN static const Efl_Version *
+_efl_loop_app_efl_version_get(Eo *obj EINA_UNUSED, Efl_Loop_Data *pd EINA_UNUSED)
+{
+   return &_app_efl_version;
+}
+
+EOLIAN static const Efl_Version *
+_efl_loop_efl_version_get(Eo *obj EINA_UNUSED, Efl_Loop_Data *pd EINA_UNUSED)
+{
+   /* vanilla EFL: flavor = NULL */
+   static const Efl_Version version = {
+      .major = VMAJ,
+      .minor = VMIN,
+      .micro = VMIC,
+      .revision = VREV,
+      .build_id = EFL_BUILD_ID,
+      .flavor = NULL
+   };
+
+   return &version;
+}
+
+
+#include "efl_loop.eo.c"

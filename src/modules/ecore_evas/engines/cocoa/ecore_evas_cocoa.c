@@ -162,7 +162,7 @@ _ecore_evas_cocoa_render(Ecore_Evas *ee)
 
 
 static Ecore_Evas *
-_ecore_evas_cocoa_match(Ecore_Cocoa_Window_Id wid)
+_ecore_evas_cocoa_match(Ecore_Cocoa_Object *cocoa_win)
 {
    Eina_List *it;
    Ecore_Evas *ee;
@@ -170,7 +170,7 @@ _ecore_evas_cocoa_match(Ecore_Cocoa_Window_Id wid)
    DBG("");
    EINA_LIST_FOREACH(ecore_evases, it, ee)
      {
-        if (ecore_cocoa_window_get_window_id((Ecore_Cocoa_Window *)ee->prop.window) == wid)
+        if (ecore_cocoa_window_get((Ecore_Cocoa_Window *)ee->prop.window) == cocoa_win)
           return ee;
      }
    return NULL;
@@ -180,10 +180,10 @@ _ecore_evas_cocoa_match(Ecore_Cocoa_Window_Id wid)
 static Eina_Bool
 _ecore_evas_cocoa_event_got_focus(void *data EINA_UNUSED, int type EINA_UNUSED, void *event)
 {
-   Ecore_Cocoa_Event_Window     *e = event;
-   Ecore_Evas                   *ee;
+   Ecore_Cocoa_Event_Window_Focused *e = event;
+   Ecore_Evas                       *ee;
 
-   ee = _ecore_evas_cocoa_match(e->wid);
+   ee = _ecore_evas_cocoa_match(e->cocoa_window);
    if ((!ee) || (ee->ignore_events)) return ECORE_CALLBACK_PASS_ON;
 
    ee->prop.focused = EINA_TRUE;
@@ -196,10 +196,10 @@ _ecore_evas_cocoa_event_got_focus(void *data EINA_UNUSED, int type EINA_UNUSED, 
 static Eina_Bool
 _ecore_evas_cocoa_event_lost_focus(void *data EINA_UNUSED, int type EINA_UNUSED, void *event)
 {
-   Ecore_Cocoa_Event_Window     *e = event;
-   Ecore_Evas                   *ee;
+   Ecore_Cocoa_Event_Window_Unfocused *e = event;
+   Ecore_Evas                         *ee;
 
-   ee = _ecore_evas_cocoa_match(e->wid);
+   ee = _ecore_evas_cocoa_match(e->cocoa_window);
    if ((!ee) || (ee->ignore_events)) return ECORE_CALLBACK_PASS_ON;
 
    evas_focus_out(ee->evas);
@@ -215,36 +215,46 @@ _ecore_evas_resize_common(Ecore_Evas *ee,
                           int         h,
                           Eina_Bool   resize_cocoa)
 {
-   if ((w == ee->w) && (h == ee->h)) return;
+   DBG("Ecore_Evas Resize %i %i, was %i %i (resize_cocoa: %s)",
+       w, h, ee->w, ee->h, resize_cocoa ? "yes" : "no");
+
    ee->req.w = w;
    ee->req.h = h;
-   ee->w = w;
-   ee->h = h;
 
-   DBG("Ecore_Evas Resize %d %d", w, h);
+   if ((ee->w != w) || (ee->h != h))
+     {
+        ee->w = w;
+        ee->h = h;
+        if (ee->prop.window && resize_cocoa)
+          ecore_cocoa_window_resize((Ecore_Cocoa_Window *)ee->prop.window, w, h);
 
-   if (resize_cocoa)
-     ecore_cocoa_window_resize((Ecore_Cocoa_Window *)ee->prop.window, w, h);
+        if (ECORE_EVAS_PORTRAIT(ee))
+          {
+             evas_output_size_set(ee->evas, ee->w, ee->h);
+             evas_output_viewport_set(ee->evas, 0, 0, ee->w, ee->h);
+          }
+        else
+          {
+             evas_output_size_set(ee->evas, ee->h, ee->w);
+             evas_output_viewport_set(ee->evas, 0, 0, ee->h, ee->w);
+          }
 
-   evas_output_size_set(ee->evas, ee->w, ee->h);
-   evas_output_viewport_set(ee->evas, 0, 0, ee->w, ee->h);
-   evas_damage_rectangle_add(ee->evas, 0, 0, ee->w, ee->h);
-
-   if (ee->func.fn_resize) ee->func.fn_resize(ee);
+        if (ee->func.fn_resize) ee->func.fn_resize(ee);
+     }
 }
 
 static Eina_Bool
-_ecore_evas_cocoa_event_video_resize(void *data EINA_UNUSED, int type EINA_UNUSED, void *event)
+_ecore_evas_cocoa_event_window_resize(void *data EINA_UNUSED, int type EINA_UNUSED, void *event)
 {
-   Ecore_Cocoa_Event_Video_Resize *e = event;
+   Ecore_Cocoa_Event_Window_Resize_Request *e = event;
    Ecore_Evas                   *ee;
 
    DBG("");
 
-   ee = _ecore_evas_cocoa_match(e->wid);
+   ee = _ecore_evas_cocoa_match(e->cocoa_window);
    if (EINA_UNLIKELY(!ee))
      {
-        ERR("Unregistered Ecore_Evas for window Id %p", e->wid);
+        ERR("Unregistered Ecore_Evas for Cocoa window %p", e->cocoa_window);
         return ECORE_CALLBACK_PASS_ON;
      }
 
@@ -257,18 +267,18 @@ _ecore_evas_cocoa_event_video_resize(void *data EINA_UNUSED, int type EINA_UNUSE
 static Eina_Bool
 _ecore_evas_cocoa_event_window_destroy(void *data EINA_UNUSED, int type EINA_UNUSED, void *event)
 {
-   Ecore_Cocoa_Event_Window     *e = event;
-   Ecore_Evas                   *ee;
+   Ecore_Cocoa_Event_Window_Destroy *e = event;
+   Ecore_Evas                       *ee;
 
    DBG("");
 
-   if (!e->wid)
+   if (!e->cocoa_window)
      return ECORE_CALLBACK_PASS_ON;
 
-   ee = _ecore_evas_cocoa_match(e->wid);
+   ee = _ecore_evas_cocoa_match(e->cocoa_window);
    if (!ee)
      {
-        ERR("Unregistered Ecore_Evas for window Id %p", e->wid);
+        ERR("Unregistered Ecore_Evas for Cocoa window %p", e->cocoa_window);
         return ECORE_CALLBACK_PASS_ON;
      }
 
@@ -287,10 +297,18 @@ _ecore_evas_cocoa_init(void)
 
    ecore_event_evas_init();
 
-   ecore_evas_event_handlers[0] = ecore_event_handler_add(ECORE_COCOA_EVENT_GOT_FOCUS, _ecore_evas_cocoa_event_got_focus, NULL);
-   ecore_evas_event_handlers[1] = ecore_event_handler_add(ECORE_COCOA_EVENT_LOST_FOCUS, _ecore_evas_cocoa_event_lost_focus, NULL);
-   ecore_evas_event_handlers[2] = ecore_event_handler_add(ECORE_COCOA_EVENT_RESIZE, _ecore_evas_cocoa_event_video_resize, NULL);
-   ecore_evas_event_handlers[3] = ecore_event_handler_add(ECORE_COCOA_EVENT_WINDOW_DESTROY, _ecore_evas_cocoa_event_window_destroy, NULL);
+   ecore_evas_event_handlers[0] =
+      ecore_event_handler_add(ECORE_COCOA_EVENT_WINDOW_UNFOCUSED,
+                              _ecore_evas_cocoa_event_lost_focus, NULL);
+   ecore_evas_event_handlers[1] =
+      ecore_event_handler_add(ECORE_COCOA_EVENT_WINDOW_FOCUSED,
+                              _ecore_evas_cocoa_event_got_focus, NULL);
+   ecore_evas_event_handlers[2] =
+      ecore_event_handler_add(ECORE_COCOA_EVENT_WINDOW_RESIZE_REQUEST,
+                              _ecore_evas_cocoa_event_window_resize, NULL);
+   ecore_evas_event_handlers[3] =
+      ecore_event_handler_add(ECORE_COCOA_EVENT_WINDOW_DESTROY,
+                              _ecore_evas_cocoa_event_window_destroy, NULL);
 
    return _ecore_evas_init_count;
 }
@@ -643,7 +661,19 @@ static Ecore_Evas_Engine_Func _ecore_cocoa_engine_func =
     _ecore_evas_screen_geometry_get,
     NULL, // screen_dpi_get
     NULL,
-    NULL  // msg_send
+    NULL,  // msg_send
+
+    NULL, // fn_pointer_xy_get
+    NULL, // fn_pointer_warp
+
+    NULL, // fn_wm_rot_preferred_rotation_set
+    NULL, // fn_wm_rot_available_rotations_set
+    NULL, // fn_wm_rot_manual_rotation_done_set
+    NULL, // fn_wm_rot_manual_rotation_done
+
+    NULL, // fn_aux_hints_set
+    NULL, // fn_animator_register
+    NULL  // fn_animator_unregister
   };
 
 static Ecore_Cocoa_Window *
@@ -742,6 +772,7 @@ ecore_evas_cocoa_new_internal(Ecore_Cocoa_Window *parent EINA_UNUSED, int x, int
                                (Ecore_Event_Multi_Move_Cb)_ecore_evas_mouse_multi_move_process,
                                (Ecore_Event_Multi_Down_Cb)_ecore_evas_mouse_multi_down_process,
                                (Ecore_Event_Multi_Up_Cb)_ecore_evas_mouse_multi_up_process);
+   _ecore_event_window_direct_cb_set(ee->prop.window, _ecore_evas_input_direct_cb);
 
    evas_event_feed_mouse_in(ee->evas, (unsigned int)((unsigned long long)(ecore_time_get() * 1000.0) & 0xffffffff), NULL);
    ecore_evases = eina_list_append(ecore_evases, ee);

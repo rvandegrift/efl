@@ -116,3 +116,162 @@ EXTRA_DIST += $(ethumb_clientfiles_DATA)
 eluafilesdir = $(datadir)/elua
 eluafiles_DATA = elua/checkme
 EXTRA_DIST += $(eluafiles_DATA)
+
+#######################################################################
+# Elementary
+
+# themes
+
+elementaryfilesdir = $(datadir)/elementary/themes
+elementaryfiles_DATA = elementary/themes/default.edj
+CLEANFILES += elementary/themes/default.edj
+
+include elementary/themes/Makefile.am
+
+elementary/themes/default.edj: elementary/themes/default.edc $(elementary_themes_files) $(elementary_fdo_files) $(top_builddir)/src/bin/edje/edje_cc${EXEEXT}
+	$(AM_V_EDJ) \
+	$(MKDIR_P) elementary/themes/; \
+	$(EDJE_CC) $(EDJE_CC_FLAGS) $(EDJE_CC_ELM_FLAGS) $< $@
+
+# desktop files
+
+elementarydesktopdir = $(datadir)/applications
+elementarydesktop_DATA = elementary/desktop/elementary_test.desktop elementary/desktop/elementary_config.desktop
+
+elementaryicondir = $(datadir)/icons
+elementaryicon_DATA = elementary/desktop/elementary.png
+
+EXTRA_DIST += $(elementarydesktop_DATA) $(elementaryicon_DATA)
+
+# fdo icon theme
+
+elementaryfdodir = $(datadir)/icons/Enlightenment-X/
+elementaryfdo_DATA = elementary/themes/fdo/index.theme elementary/themes/fdo/README
+
+EXTRA_DIST += $(elementaryfdo_DATA)
+
+elementaryfdo_actions_128dir = $(datadir)/icons/Enlightenment-X/actions/128
+elementaryfdo_actions_128_DATA = $(elementary_fdo_actions_128_files)
+
+elementaryfdo_categories_16dir = $(datadir)/icons/Enlightenment-X/categories/16
+elementaryfdo_categories_16_DATA = $(elementary_fdo_categories_16_files)
+
+elementaryfdo_categories_128dir = $(datadir)/icons/Enlightenment-X/categories/128
+elementaryfdo_categories_128_DATA = $(elementary_fdo_categories_128_files)
+
+elementaryfdo_emblems_96dir = $(datadir)/icons/Enlightenment-X/emblems/96
+elementaryfdo_emblems_96_DATA = $(elementary_fdo_emblems_96_files)
+
+elementaryfdo_places_16dir = $(datadir)/icons/Enlightenment-X/places/16
+elementaryfdo_places_16_DATA = $(elementary_fdo_places_16_files)
+
+elementaryfdo_places_128dir = $(datadir)/icons/Enlightenment-X/places/128
+elementaryfdo_places_128_DATA = $(elementary_fdo_places_128_files)
+
+elementaryfdo_status_128dir = $(datadir)/icons/Enlightenment-X/status/128
+elementaryfdo_status_128_DATA = $(elementary_fdo_status_128_files)
+
+elementaryfdo_devices_128dir = $(datadir)/icons/Enlightenment-X/devices/128
+elementaryfdo_devices_128_DATA = $(elementary_fdo_devices_128_files)
+
+elementaryfdo_apps_64dir = $(datadir)/icons/Enlightenment-X/apps/64
+elementaryfdo_apps_64_DATA = $(elementary_fdo_apps_64_files)
+
+elementaryfdo_intl_128dir = $(datadir)/icons/Enlightenment-X/intl/128
+elementaryfdo_intl_128_DATA = $(elementary_fdo_intl_128_files)
+
+# edje_externals
+
+elementaryedje_externalsdir = $(datadir)/elementary/edje_externals
+elementaryedje_externals_DATA = elementary/edje_externals/icons.edj
+CLEANFILES += $(elementaryedje_externals_DATA)
+
+include elementary/edje_externals/Makefile.am
+
+elementary/edje_externals/icons.edj: elementary/edje_externals/icons.edc
+	$(AM_V_EDJ) \
+	$(MKDIR_P) elementary/edje_externals/; \
+	$(EDJE_CC) $(EDJE_CC_FLAGS) $< $@
+
+# images
+
+include elementary/images/Makefile.am
+
+elementaryimagesdir = $(datadir)/elementary/images
+elementaryimages_DATA = $(elementary_images_files)
+
+elementaryimages_glayerdir = $(datadir)/elementary/images
+elementaryimages_glayer_DATA = $(elementary_images_glayer_files)
+
+EXTRA_DIST += $(elementary_images_files) $(elementary_images_glayer_files)
+
+# objects
+
+include ../Makefile_Elm_Helpers.am
+
+elementaryobjectsdir = $(datadir)/elementary/objects
+elementaryobjects_DATA = \
+elementary/objects/test.edj \
+elementary/objects/test_external.edj \
+elementary/objects/multip.edj \
+elementary/objects/cursors.edj \
+elementary/objects/font_preview.edj \
+elementary/objects/postit_ent.edj \
+elementary/objects/multibuttonentry.edj \
+elementary/objects/test_prefs.edj \
+elementary/objects/test_prefs.epb \
+elementary/objects/test_focus_style.edj
+CLEANFILES += $(elementaryobjects_DATA)
+
+include elementary/objects/Makefile.am
+
+elementary/objects/test.edj: elementary/objects/test.edc
+	$(AM_V_EDJ) \
+	$(MKDIR_P) elementary/objects/; \
+	$(EDJE_CC) $(EDJE_CC_FLAGS) $< $@
+
+elementary/objects/test_external.edj: elementary/objects/test_external.edc
+	$(AM_V_EDJ) \
+	$(MKDIR_P) elementary/objects/; \
+	$(EDJE_CC) $(EDJE_CC_FLAGS) $< $@
+
+elementary/objects/multip.edj: elementary/objects/test_external.edc
+	$(AM_V_EDJ) \
+	$(MKDIR_P) elementary/objects/; \
+	$(EDJE_CC) $(EDJE_CC_FLAGS) $< $@
+
+elementary/objects/cursors.edj: elementary/objects/cursors.edc
+	$(AM_V_EDJ) \
+	$(MKDIR_P) elementary/objects/; \
+	$(EDJE_CC) $(EDJE_CC_FLAGS) $< $@
+
+elementary/objects/font_preview.edj: elementary/objects/font_preview.edc
+	$(AM_V_EDJ) \
+	$(MKDIR_P) elementary/objects/; \
+	$(EDJE_CC) $(EDJE_CC_FLAGS) $< $@
+
+elementary/objects/postit_ent.edj: elementary/objects/postit_ent.edc
+	$(AM_V_EDJ) \
+	$(MKDIR_P) elementary/objects/; \
+	$(EDJE_CC) $(EDJE_CC_FLAGS) $< $@
+
+elementary/objects/multibuttonentry.edj: elementary/objects/multibuttonentry.edc
+	$(AM_V_EDJ) \
+	$(MKDIR_P) elementary/objects/; \
+	$(EDJE_CC) $(EDJE_CC_FLAGS) $< $@
+
+elementary/objects/test_prefs.edj: elementary/objects/test_prefs.edc
+	$(AM_V_EDJ) \
+	$(MKDIR_P) elementary/objects/; \
+	$(EDJE_CC) $(EDJE_CC_FLAGS) $< $@
+
+elementary/objects/test_focus_style.edj: elementary/objects/test_focus_style.edc
+	$(AM_V_EDJ) \
+	$(MKDIR_P) elementary/objects/; \
+	$(EDJE_CC) $(EDJE_CC_FLAGS) -id $(top_srcdir)/data/elementary/themes/img $< $@
+
+elementary/objects/test_prefs.epb: elementary/objects/test_prefs.epc
+	$(AM_V_EPB) \
+	$(MKDIR_P) elementary/objects/; \
+	$(ELM_PREFS_CC) $(ELM_PREFS_FLAGS) $< $@
+

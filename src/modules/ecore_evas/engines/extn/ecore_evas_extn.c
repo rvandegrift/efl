@@ -910,7 +910,10 @@ static const Ecore_Evas_Engine_Func _ecore_extn_plug_engine_func =
    NULL, // wm_rot_manual_rotation_done_set
    NULL, // wm_rot_manual_rotation_done
 
-   NULL  // aux_hints_set
+   NULL, // aux_hints_set
+
+   NULL, // fn_animator_register
+   NULL  // fn_animator_unregister
 };
 
 static Eina_Bool
@@ -982,6 +985,8 @@ _ipc_server_data(void *data, int type EINA_UNUSED, void *event)
    extn = bdata->data;
    if (!extn) return ECORE_CALLBACK_PASS_ON;
    if (e->major != MAJOR)
+     return ECORE_CALLBACK_PASS_ON;
+   if (ee != ecore_ipc_server_data_get(extn->ipc.server))
      return ECORE_CALLBACK_PASS_ON;
    switch (e->minor)
      {
@@ -2069,7 +2074,10 @@ static const Ecore_Evas_Engine_Func _ecore_extn_socket_engine_func =
    NULL, // wm_rot_manual_rotation_done_set
    NULL, // wm_rot_manual_rotation_done
 
-   NULL  // aux_hints_set
+   NULL, // aux_hints_set
+
+   NULL, // fn_animator_register
+   NULL, // fn_animator_unregister
 };
 
 EAPI Ecore_Evas *

@@ -4,7 +4,8 @@
 
 #include <stdio.h>
 
-#include "Eo.h"
+#include <Eo.h>
+
 #include "eo_suite.h"
 
 static Eina_Barrier barrier;
@@ -93,9 +94,10 @@ _thread_job(void *data, Eina_Thread t EINA_UNUSED)
      fail_if(EINA_LOCK_SUCCEED != eina_spinlock_take(&locks[0]));
    }
 
-   obj = eo_add(THREAD_TEST_CLASS, NULL, thread_test_constructor(v));
+   obj = eo_add(THREAD_TEST_CLASS, NULL, thread_test_constructor(eo_self, v));
 
-   eo_do(obj, thread_test_try_swap_stack(), v = thread_test_v_get());
+   thread_test_try_swap_stack(obj);
+   v = thread_test_v_get(obj);
 
    fail_if(EINA_LOCK_SUCCEED != eina_spinlock_release(&locks[1]));
 

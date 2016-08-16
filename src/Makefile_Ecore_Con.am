@@ -2,9 +2,9 @@
 ### Library
 
 ecore_con_eolian_files = \
-	lib/ecore_con/ecore_con_base.eo \
-	lib/ecore_con/ecore_con_client.eo \
-	lib/ecore_con/ecore_con_server.eo \
+	lib/ecore_con/efl_network.eo \
+	lib/ecore_con/efl_network_client.eo \
+	lib/ecore_con/efl_network_server.eo \
 	lib/ecore_con/efl_network_connector.eo \
 	lib/ecore_con/ecore_con_eet_base.eo \
 	lib/ecore_con/ecore_con_eet_server_obj.eo \
@@ -19,15 +19,11 @@ BUILT_SOURCES += \
                  $(ecore_con_eolian_c) \
                  $(ecore_con_eolian_h)
 
-CLEANFILES += \
-              $(ecore_con_eolian_c) \
-              $(ecore_con_eolian_h)
-
 ecoreconeolianfilesdir = $(datadir)/eolian/include/ecore-@VMAJ@
 ecoreconeolianfiles_DATA = \
                            $(ecore_con_eolian_files)
 
-EXTRA_DIST += \
+EXTRA_DIST2 += \
               ${ecoreconeolianfiles_DATA}
 
 lib_LTLIBRARIES += lib/ecore_con/libecore_con.la
@@ -55,27 +51,15 @@ lib/ecore_con/ecore_con_url_curl.c \
 lib/ecore_con/ecore_con_url_curl.h \
 static_libs/http-parser/http_parser.c \
 static_libs/http-parser/http_parser.h \
-lib/ecore_con/ecore_con_private.h
+lib/ecore_con/ecore_con_private.h \
+lib/ecore_con/ecore_con_info.c
 
-EXTRA_DIST += lib/ecore_con/ecore_con_legacy.c
+EXTRA_DIST2 += lib/ecore_con/ecore_con_legacy.c
 
 if HAVE_WINDOWS
 lib_ecore_con_libecore_con_la_SOURCES += lib/ecore_con/ecore_con_local_win32.c
 else
 lib_ecore_con_libecore_con_la_SOURCES += lib/ecore_con/ecore_con_local.c
-endif
-
-if HAVE_CARES
-lib_ecore_con_libecore_con_la_SOURCES += lib/ecore_con/ecore_con_ares.c
-else
-if HAVE_IPV6
-lib_ecore_con_libecore_con_la_SOURCES += \
-lib/ecore_con/ecore_con_dns.c \
-static_libs/dns/dns.c \
-static_libs/dns/dns.h
-else
-lib_ecore_con_libecore_con_la_SOURCES += lib/ecore_con/ecore_con_info.c
-endif
 endif
 
 lib_ecore_con_libecore_con_la_CPPFLAGS = -I$(top_builddir)/src/lib/efl @ECORE_CON_CFLAGS@
@@ -85,11 +69,7 @@ lib_ecore_con_libecore_con_la_LDFLAGS = @EFL_LTLIBRARY_FLAGS@
 
 lib_ecore_con_libecore_con_la_CPPFLAGS += -I$(top_srcdir)/src/static_libs/http-parser
 
-if HAVE_IPV6
-lib_ecore_con_libecore_con_la_CPPFLAGS += -I$(top_srcdir)/src/static_libs/dns/
-endif
-
-EXTRA_DIST += \
+EXTRA_DIST2 += \
 tests/ecore_con/server.key \
 tests/ecore_con/server.pem \
 static_libs/http-parser/AUTHORS \
@@ -137,7 +117,7 @@ ecore_con_eolian_lua = $(ecore_con_eolian_files:%.eo=%.eo.lua)
 
 generated_ecore_con_lua_all = $(ecore_con_eolian_lua)
 
-CLEANFILES += $(generated_ecore_con_lua_all)
+GENERATED_LUA_BINDINGS += $(generated_ecore_con_lua_all)
 
 installed_ecoreconluadir = $(datadir)/elua/modules/ecore_con
 nodist_installed_ecoreconlua_DATA = $(generated_ecore_con_lua_all)
@@ -147,8 +127,6 @@ endif
 if HAVE_JS
 
 generated_ecore_con_js_bindings = $(ecore_con_eolian_files:%.eo=%.eo.js.cc)
-
-CLEANFILES += $(generated_ecore_con_js_bindings)
 
 GENERATED_JS_BINDINGS += $(generated_ecore_con_js_bindings)
 

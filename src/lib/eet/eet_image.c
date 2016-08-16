@@ -54,12 +54,6 @@
 #define OFFSET_HEIGHT 12
 #define OFFSET_BLOCKS 16
 
-#undef MIN
-#define MIN(x, y) (((x) < (y)) ? (x) : (y))
-
-#undef MAX
-#define MAX(x, y) (((x) > (y)) ? (x) : (y))
-
 /*---*/
 
 typedef struct _JPEG_error_mgr *emptr;
@@ -2169,7 +2163,7 @@ eet_data_image_decode_to_cspace_surface_cipher(const void   *data,
                                                int          *quality,
                                                Eet_Image_Encoding *lossy)
 {
-   unsigned int iw, ih;
+   unsigned int iw = 0, ih = 0;
    int ialpha, icompress, iquality;
    Eet_Image_Encoding ilossy;
    const Eet_Colorspace *cspaces = NULL;

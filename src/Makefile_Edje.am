@@ -8,26 +8,35 @@ edje_eolian_files = \
 edje_eolian_type_files = \
     lib/edje/edje_types.eot
 
+edje_eolian_priv_files = \
+	lib/edje/efl_canvas_layout_internal.eo \
+	lib/edje/efl_canvas_layout_internal_box.eo \
+	lib/edje/efl_canvas_layout_internal_table.eo \
+	lib/edje/efl_canvas_layout_internal_swallow.eo
+
 edje_eolian_c = $(edje_eolian_files:%.eo=%.eo.c)
 edje_eolian_h = $(edje_eolian_files:%.eo=%.eo.h) \
                 $(edje_eolian_files:%.eo=%.eo.legacy.h) \
                 $(edje_eolian_type_files:%.eot=%.eot.h)
 
+edje_eolian_priv_c = $(edje_eolian_priv_files:%.eo=%.eo.c)
+edje_eolian_priv_h = $(edje_eolian_priv_files:%.eo=%.eo.h)
+
 BUILT_SOURCES += \
                  $(edje_eolian_c) \
-                 $(edje_eolian_h)
-
-CLEANFILES += \
-              $(edje_eolian_c) \
-              $(edje_eolian_h)
+                 $(edje_eolian_h) \
+                 $(edje_eolian_priv_c) \
+                 $(edje_eolian_priv_h)
 
 edjeeolianfilesdir = $(datadir)/eolian/include/edje-@VMAJ@
 edjeeolianfiles_DATA = \
                        $(edje_eolian_files) \
                        $(edje_eolian_type_files)
 
-EXTRA_DIST += \
-              ${edjeeolianfiles_DATA}
+noinst_DATA += $(edje_eolian_priv_c) $(edje_eolian_priv_h)
+
+EXTRA_DIST2 += ${edjeeolianfiles_DATA} \
+              $(edje_eolian_priv_files)
 
 lib_LTLIBRARIES += lib/edje/libedje.la
 
@@ -40,6 +49,7 @@ EDJE_COMMON_CPPFLAGS = -I$(top_builddir)/src/lib/efl \
 -DPACKAGE_DATA_DIR=\"$(datadir)/edje\" \
 -DPACKAGE_BUILD_DIR=\"$(abs_top_builddir)\" \
 -DPACKAGE_SRC_DIR=\"$(abs_top_srcdir)\" \
+@EDJE_LUA_CFLAGS@ \
 @EDJE_CFLAGS@
 
 installed_edjemainheadersdir = $(includedir)/edje-@VMAJ@
@@ -81,10 +91,12 @@ lib/edje/edje_text.c \
 lib/edje/edje_textblock_styles.c \
 lib/edje/edje_util.c \
 lib/edje/edje_var.c \
-lib/edje/edje_signal.c
+lib/edje/edje_signal.c \
+lib/edje/edje_containers.c
+
 
 lib_edje_libedje_la_CPPFLAGS = -I$(top_builddir)/src/lib/efl $(EDJE_COMMON_CPPFLAGS)
-lib_edje_libedje_la_LIBADD = @EDJE_LIBS@
+lib_edje_libedje_la_LIBADD = @EDJE_LIBS@ @EDJE_LUA_LIBS@
 lib_edje_libedje_la_DEPENDENCIES = @EDJE_INTERNAL_LIBS@
 lib_edje_libedje_la_LDFLAGS = @EFL_LTLIBRARY_FLAGS@
 
@@ -151,9 +163,10 @@ bin/edje/edje_cc_parse.c \
 bin/edje/edje_cc_mem.c \
 bin/edje/edje_cc_handlers.c \
 bin/edje/edje_cc_sources.c \
-bin/edje/edje_multisense_convert.c
-bin_edje_edje_cc_CPPFLAGS = -I$(top_builddir)/src/lib/efl $(EDJE_COMMON_CPPFLAGS)
-bin_edje_edje_cc_LDADD =  $(USE_EDJE_BIN_LIBS)
+bin/edje/edje_multisense_convert.c \
+bin/edje/edje_svg_loader.c
+bin_edje_edje_cc_CPPFLAGS = -I$(top_builddir)/src/lib/efl $(EDJE_COMMON_CPPFLAGS) @EDJE_LUA_CFLAGS@
+bin_edje_edje_cc_LDADD =  $(USE_EDJE_BIN_LIBS) @EDJE_LUA_LIBS@
 bin_edje_edje_cc_DEPENDENCIES = \
 @USE_EDJE_INTERNAL_LIBS@ \
 bin/edje/epp/epp$(EXEEXT) # epp is an artificial dependency because edje_cc will use it at runtime, so we be sure if we depend on edje_cc we get epp.
@@ -242,7 +255,7 @@ bin_edje_epp_epp_LDADD = lib/evil/libevil.la
 endif
 
 # TODO: why keep these?
-EXTRA_DIST += \
+EXTRA_DIST2 += \
 bin/edje/edje_convert.h \
 bin/edje/edje_convert.c \
 bin/edje/edje_data_convert.c \
@@ -256,6 +269,10 @@ tests/edje/data/test_masking.edc \
 tests/edje/data/test_filters.edc \
 tests/edje/data/test_snapshot.edc \
 tests/edje/data/test_size_class.edc \
+tests/edje/data/test_color_class.edc \
+tests/edje/data/test_swallows.edc \
+tests/edje/data/test_box.edc \
+tests/edje/data/test_table.edc \
 tests/edje/data/filter.lua
 
 
@@ -276,14 +293,6 @@ tests/edje/edje_suite.c \
 tests/edje/edje_test_edje.c \
 tests/edje/edje_suite.h
 
-tests_edje_edje_suite_CPPFLAGS = -I$(top_builddir)/src/lib/efl \
-$(EDJE_COMMON_CPPFLAGS) \
--DTESTS_SRC_DIR=\"$(top_srcdir)/src/tests/edje\" \
--DTESTS_BUILD_DIR=\"$(top_builddir)/src/tests/edje\" \
-@CHECK_CFLAGS@
-tests_edje_edje_suite_LDADD = @CHECK_LIBS@  $(USE_EDJE_BIN_LIBS)
-tests_edje_edje_suite_DEPENDENCIES = @USE_EDJE_INTERNAL_LIBS@
-
 tests/edje/data/%.edj: tests/edje/data/%.edc bin/edje/edje_cc${EXEEXT}
 	$(AM_V_EDJ) \
 	$(MKDIR_P) tests/edje/data; \
@@ -292,35 +301,30 @@ tests/edje/data/%.edj: tests/edje/data/%.edc bin/edje/edje_cc${EXEEXT}
 	-dd $(srcdir)/tests/edje/data \
 	$< $@
 
-EDJE_DATA_FILES = tests/edje/data/test_layout.edc \
-                  tests/edje/data/complex_layout.edc \
-                  tests/edje/data/test_parens.edc \
-                  tests/edje/data/test_masking.edc \
-                  tests/edje/data/test_filters.edc \
-                  tests/edje/data/test_snapshot.edc \
-                  tests/edje/data/test_size_class.edc \
-                  tests/edje/data/filter.lua
-
-edjedatafilesdir = $(datadir)/edje/data
-edjedatafiles_DATA = tests/edje/data/test_layout.edj \
+EDJE_TEST_FILES = tests/edje/data/test_layout.edj \
                      tests/edje/data/complex_layout.edj \
                      tests/edje/data/test_parens.edj \
                      tests/edje/data/test_masking.edj \
                      tests/edje/data/test_filters.edj \
                      tests/edje/data/test_snapshot.edj \
-                     tests/edje/data/test_size_class.edj
+                     tests/edje/data/test_size_class.edj \
+                     tests/edje/data/test_swallows.edj \
+                     tests/edje/data/test_color_class.edj \
+		     tests/edje/data/test_box.edj \
+                     tests/edje/data/test_table.edj \
+                     $(NULL)
 
-CLEANFILES += tests/edje/data/test_layout.edj \
-              tests/edje/data/complex_layout.edj \
-              tests/edje/data/test_parens.edj \
-              tests/edje/data/test_masking.edj \
-              tests/edje/data/test_filters.edj \
-              tests/edje/data/test_snapshot.edj \
-              tests/edje/data/test_size_class.edj
+CLEANFILES += $(EDJE_TEST_FILES)
+
+tests_edje_edje_suite_CPPFLAGS = -I$(top_builddir)/src/lib/efl \
+$(EDJE_COMMON_CPPFLAGS) \
+-DTESTS_SRC_DIR=\"$(top_srcdir)/src/tests/edje\" \
+-DTESTS_BUILD_DIR=\"$(abs_top_builddir)/src/tests/edje\" \
+@CHECK_CFLAGS@
+tests_edje_edje_suite_LDADD = @CHECK_LIBS@  $(USE_EDJE_BIN_LIBS)
+tests_edje_edje_suite_DEPENDENCIES = @USE_EDJE_INTERNAL_LIBS@ $(EDJE_TEST_FILES)
 
 endif
-
-EXTRA_DIST += $(EDJE_DATA_FILES)
 
 if HAVE_ELUA
 
@@ -328,7 +332,7 @@ edje_eolian_lua = $(edje_eolian_files:%.eo=%.eo.lua)
 
 generated_edje_lua_all = $(edje_eolian_lua)
 
-CLEANFILES += $(generated_edje_lua_all)
+GENERATED_LUA_BINDINGS += $(generated_edje_lua_all)
 
 installed_edjeluadir = $(datadir)/elua/modules/edje
 nodist_installed_edjelua_DATA = $(generated_edje_lua_all)
@@ -339,8 +343,11 @@ if HAVE_JS
 
 generated_edje_js_bindings = $(edje_eolian_files:%.eo=%.eo.js.cc)
 
-CLEANFILES += $(generated_edje_js_bindings)
-
 GENERATED_JS_BINDINGS += $(generated_edje_js_bindings)
 
+endif
+
+if HAVE_CXX11
+edje_eolian_cxx_hh = $(edje_eolian_files:%.eo=%.eo.hh)
+edje_eolian_cxx_impl = $(edje_eolian_files:%.eo=%.eo.impl.hh)
 endif

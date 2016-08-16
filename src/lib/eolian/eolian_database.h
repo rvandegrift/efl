@@ -88,6 +88,7 @@ struct _Eolian_Class
    Eolian_Documentation *doc;
    Eina_Stringshare *legacy_prefix;
    Eina_Stringshare *eo_prefix;
+   Eina_Stringshare *ev_prefix;
    Eina_Stringshare *data_type;
    Eina_List *inherits; /* List Eina_Stringshare * */
    Eina_List *properties; /* List prop_name -> Eolian_Function */
@@ -116,7 +117,8 @@ struct _Eolian_Function
        };
    };
    Eolian_Function_Type type;
-   Eolian_Object_Scope scope;
+   Eolian_Object_Scope get_scope;
+   Eolian_Object_Scope set_scope;
    Eolian_Type *get_ret_type;
    Eolian_Type *set_ret_type;
    Eolian_Expression *get_ret_val;
@@ -165,8 +167,23 @@ struct _Eolian_Type
 {
    Eolian_Object base;
    Eolian_Type_Type type;
-   Eina_List   *subtypes;
    Eolian_Type *base_type;
+   Eolian_Type *next_type;
+   Eina_Stringshare *name;
+   Eina_Stringshare *full_name;
+   Eina_List        *namespaces;
+   Eina_Stringshare *freefunc;
+   size_t static_size;
+   Eina_Bool is_const  :1;
+   Eina_Bool is_own    :1;
+   Eina_Bool is_ref    :1;
+};
+
+struct _Eolian_Typedecl
+{
+   Eolian_Object base;
+   Eolian_Typedecl_Type type;
+   Eolian_Type      *base_type;
    Eina_Stringshare *name;
    Eina_Stringshare *full_name;
    Eina_List        *namespaces;
@@ -175,8 +192,6 @@ struct _Eolian_Type
    Eolian_Documentation *doc;
    Eina_Stringshare *legacy;
    Eina_Stringshare *freefunc;
-   Eina_Bool is_const  :1;
-   Eina_Bool is_own    :1;
    Eina_Bool is_extern :1;
 };
 
@@ -210,6 +225,8 @@ struct _Eolian_Event
    Eolian_Class *klass;
    int scope;
    Eina_Bool is_beta :1;
+   Eina_Bool is_hot  :1;
+   Eina_Bool is_restart :1;
 };
 
 struct _Eolian_Struct_Type_Field
@@ -222,7 +239,7 @@ struct _Eolian_Struct_Type_Field
 
 struct _Eolian_Enum_Type_Field
 {
-   Eolian_Type       *base_enum;
+   Eolian_Typedecl   *base_enum;
    Eina_Stringshare  *name;
    Eolian_Object      base;
    Eolian_Expression *value;
@@ -270,8 +287,8 @@ int database_init(void);
 int database_shutdown(void);
 
 char *database_class_to_filename(const char *cname);
-Eina_Bool database_validate(void);
-Eina_Bool database_class_name_validate(const char *class_name, const Eolian_Class **cl);
+Eina_Bool database_validate(Eina_Bool silent_types);
+const Eolian_Class *database_object_class_fill(const char *class_name, const Eolian_Class **cl);
 
 void database_decl_add(Eina_Stringshare *name, Eolian_Declaration_Type type,
                        Eina_Stringshare *file, void *ptr);
@@ -280,14 +297,14 @@ void database_doc_del(Eolian_Documentation *doc);
 
 /* types */
 
-void database_type_add(Eolian_Type *def);
-void database_struct_add(Eolian_Type *tp);
-void database_enum_add(Eolian_Type *tp);
+void database_type_add(Eolian_Typedecl *def);
+void database_struct_add(Eolian_Typedecl *tp);
+void database_enum_add(Eolian_Typedecl *tp);
 void database_type_del(Eolian_Type *tp);
-void database_typedef_del(Eolian_Type *tp);
+void database_typedecl_del(Eolian_Typedecl *tp);
 
-void database_type_print(Eolian_Type *type);
 void database_type_to_str(const Eolian_Type *tp, Eina_Strbuf *buf, const char *name);
+void database_typedecl_to_str(const Eolian_Typedecl *tp, Eina_Strbuf *buf);
 
 /* expressions */
 

@@ -4,6 +4,8 @@
 
 #include <Ecore.h>
 
+#include <math.h>
+
 #include "ecore_suite.h"
 
 #define TIMEOUT_1 0.01 // interval for timer1
@@ -173,7 +175,133 @@ START_TEST(ecore_test_timers)
 }
 END_TEST
 
+static void
+_ecore_promise_quit(void *data, void *value)
+{
+   Eina_Bool *bob = data;
+   double *start = value;
+   double delta = ecore_loop_time_get() - *start;
+
+   fail_if(delta - 0.2 > 0.01);
+
+   *bob = EINA_TRUE;
+   ecore_main_loop_quit();
+}
+
+START_TEST(ecore_test_timeout)
+{
+   Eina_Promise *timeout = NULL;
+   Eina_Bool bob = EINA_FALSE;
+   double start;
+
+   ecore_init();
+
+   start = ecore_time_get();
+   timeout = efl_loop_timeout(ecore_main_loop_get(), 0.2, &start);
+   eina_promise_then(timeout, &_ecore_promise_quit, NULL, &bob);
+
+   ecore_main_loop_begin();
+
+   fail_if(bob != EINA_TRUE);
+
+   ecore_shutdown();
+}
+END_TEST
+
+static void
+_ecore_promise_then(void *data EINA_UNUSED, void *value EINA_UNUSED)
+{
+   abort();
+}
+
+static void
+_ecore_promise_cancel(void *data, Eina_Error error)
+{
+   Eina_Bool *bob = data;
+
+   fail_if(error != EINA_ERROR_PROMISE_CANCEL);
+   *bob = EINA_TRUE;
+}
+
+START_TEST(ecore_test_timeout_cancel)
+{
+   Eina_Promise *timeout = NULL;
+   Eina_Bool bob = EINA_FALSE;
+   double start;
+
+   ecore_init();
+
+   start = ecore_time_get();
+   timeout = efl_loop_timeout(ecore_main_loop_get(), 0.2, &start);
+   eina_promise_then(timeout, &_ecore_promise_then, &_ecore_promise_cancel, &bob);
+   eina_promise_cancel(timeout);
+
+   fail_if(bob != EINA_TRUE);
+
+   ecore_shutdown();
+}
+END_TEST
+
+static Eina_Bool
+_test_time_cb(void *data)
+{
+   Eina_Bool *run = data;
+
+   *run = EINA_TRUE;
+
+   return EINA_TRUE;
+}
+
+static void
+_test_death_cb(void *data, const Eo_Event *ev EINA_UNUSED)
+{
+   Eina_Bool *die = data;
+
+   *die = EINA_TRUE;
+}
+
+static void
+_test_run_cb(void *data, const Eo_Event *ev EINA_UNUSED)
+{
+   _test_time_cb(data);
+}
+
+START_TEST(ecore_test_timer_lifecycle)
+{
+   Eina_Bool rl = EINA_FALSE, re = EINA_FALSE;
+   Eina_Bool dl = EINA_FALSE, de = EINA_FALSE;
+   Ecore_Timer *t;
+   Eo *et;
+
+   eo_init();
+   ecore_init();
+
+   t = ecore_timer_add(1.0, _test_time_cb, &rl);
+   eo_event_callback_add((Eo*) t, EO_EVENT_DEL, _test_death_cb, &dl);
+
+   et = eo_add(EFL_LOOP_TIMER_CLASS, ecore_main_loop_get(),
+               eo_event_callback_add(eo_self, EFL_LOOP_TIMER_EVENT_TICK, _test_run_cb, &re),
+               eo_event_callback_add(eo_self, EO_EVENT_DEL, _test_death_cb, &de),
+               efl_loop_timer_interval_set(eo_self, 1.0));
+   eo_ref(et);
+
+   ecore_shutdown();
+
+   fail_if(re == EINA_TRUE && rl == EINA_TRUE);
+   fail_if(dl == EINA_FALSE);
+   fail_if(de == EINA_TRUE);
+
+   eo_del(et);
+   fail_if(de == EINA_FALSE);
+
+   eo_shutdown();
+}
+END_TEST
+
 void ecore_test_timer(TCase *tc)
 {
   tcase_add_test(tc, ecore_test_timers);
+  tcase_add_test(tc, ecore_test_timeout);
+  tcase_add_test(tc, ecore_test_timeout_cancel);
+  tcase_add_test(tc, ecore_test_timer_lifecycle);
 }

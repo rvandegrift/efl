@@ -31,6 +31,7 @@ _ector_cairo_surface_symbol_get(Eo *obj EINA_UNUSED,
                }                                \
           }
 #if defined(_WIN32) || defined(__CYGWIN__)
+        LOAD("libcairo-2.dll");
         LOAD("libcairo.dll");
 #elif defined(__APPLE__) && defined(__MACH__)
         LOAD("libcairo.dylib");
@@ -57,19 +58,16 @@ _ector_cairo_surface_symbol_get(Eo *obj EINA_UNUSED,
   if (!Sym) return Error;
 
 static Ector_Renderer *
-_ector_cairo_surface_ector_generic_surface_renderer_factory_new(Eo *obj,
+_ector_cairo_surface_ector_surface_renderer_factory_new(Eo *obj,
                                                                 Ector_Cairo_Surface_Data *pd EINA_UNUSED,
                                                                 const Eo_Class *type)
 {
-   if (type == ECTOR_RENDERER_GENERIC_SHAPE_MIXIN)
-     return eo_add(ECTOR_RENDERER_CAIRO_SHAPE_CLASS, NULL,
-                   ector_renderer_surface_set(obj));
-   else if (type == ECTOR_RENDERER_GENERIC_GRADIENT_LINEAR_MIXIN)
-     return eo_add(ECTOR_RENDERER_CAIRO_GRADIENT_LINEAR_CLASS, NULL,
-                   ector_renderer_surface_set(obj));
-   else if (type == ECTOR_RENDERER_GENERIC_GRADIENT_RADIAL_MIXIN)
-     return eo_add(ECTOR_RENDERER_CAIRO_GRADIENT_RADIAL_CLASS, NULL,
-                   ector_renderer_surface_set(obj));
+   if (type == ECTOR_RENDERER_SHAPE_MIXIN)
+     return eo_add(ECTOR_RENDERER_CAIRO_SHAPE_CLASS, NULL, ector_renderer_surface_set(eo_self, obj));
+   else if (type == ECTOR_RENDERER_GRADIENT_LINEAR_MIXIN)
+     return eo_add(ECTOR_RENDERER_CAIRO_GRADIENT_LINEAR_CLASS, NULL, ector_renderer_surface_set(eo_self, obj));
+   else if (type == ECTOR_RENDERER_GRADIENT_RADIAL_MIXIN)
+     return eo_add(ECTOR_RENDERER_CAIRO_GRADIENT_RADIAL_CLASS, NULL, ector_renderer_surface_set(eo_self, obj));
 
    ERR("Couldn't find class for type: %s\n", eo_class_name_get(type));
    return NULL;
@@ -108,7 +106,7 @@ _ector_cairo_surface_context_get(Eo *obj EINA_UNUSED,
 }
 
 static void
-_ector_cairo_surface_ector_generic_surface_reference_point_set(Eo *obj EINA_UNUSED,
+_ector_cairo_surface_ector_surface_reference_point_set(Eo *obj EINA_UNUSED,
                                                                Ector_Cairo_Surface_Data *pd,
                                                                int x, int y)
 {
@@ -124,7 +122,7 @@ _ector_cairo_surface_eo_base_constructor(Eo *obj,
    USE(obj, cairo_image_surface_create, NULL);
    USE(obj, cairo_create, NULL);
 
-   eo_do_super(obj, ECTOR_CAIRO_SURFACE_CLASS, obj = eo_constructor());
+   obj = eo_constructor(eo_super(obj, ECTOR_CAIRO_SURFACE_CLASS));
    if (!obj) return NULL;
 
    _cairo_count++;
@@ -138,7 +136,7 @@ static void
 _ector_cairo_surface_eo_base_destructor(Eo *obj EINA_UNUSED,
                                         Ector_Cairo_Surface_Data *pd EINA_UNUSED)
 {
-   eo_do_super(obj, ECTOR_CAIRO_SURFACE_CLASS, eo_destructor());
+   eo_destructor(eo_super(obj, ECTOR_CAIRO_SURFACE_CLASS));
 
    if (--_cairo_count) return ;
    if (_cairo_so) eina_module_free(_cairo_so);

@@ -12,11 +12,11 @@
 extern "C"
 {
 #include "colourablesquare_stub.h"
-#include "colourable.eo.h"
-#include "colourablesquare.eo.h"
+#include "ns_colourable.eo.h"
+#include "ns_colourablesquare.eo.h"
 }
 
-#define MY_CLASS COLOURABLESQUARE_CLASS
+#define MY_CLASS NS_COLOURABLESQUARE_CLASS
 
 static efl::eina::log_domain domain("colourablesquare");
 
@@ -25,7 +25,6 @@ _colourablesquare_size_constructor(Eo *obj, ColourableSquare_Data *self, int siz
 {
    self->size = size;
    EINA_CXX_DOM_LOG_DBG(domain) << __func__ << " [ size = " << size << " ]" << std::endl;
-   eo_do_super(obj, MY_CLASS, eo_constructor());
 }
 
 int

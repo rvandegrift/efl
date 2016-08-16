@@ -21,7 +21,10 @@ static const char *built_modules[] = {
   "ibus",
 #endif
 #ifdef BUILD_ECORE_IMF_SCIM
-  "scim",
+/* The scim module needs some configuration on the host or it might just block
+ * the whole test suite when it tries to load the module. Disabling it as we
+ * do not have control over the host.
+  "scim", */
 #endif
   NULL
 };
@@ -44,6 +47,7 @@ START_TEST(ecore_test_ecore_imf_modules)
    Eina_List *modules;
    const char **itr;
 
+   putenv("ECORE_IMF_MODULE=");
    ecore_imf_init();
    modules = ecore_imf_context_available_ids_get();
 
@@ -63,8 +67,8 @@ START_TEST(ecore_test_ecore_imf_modules_load)
 {
    const char **itr;
 
+   putenv("ECORE_IMF_MODULE=");
    ecore_imf_init();
-
    for (itr = built_modules; *itr != NULL; itr++)
      {
         Ecore_IMF_Context *ctx = ecore_imf_context_add(*itr);

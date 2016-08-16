@@ -1,6 +1,16 @@
 #ifndef EFL_MODEL_COMMON_H__
 # define EFL_MODEL_COMMON_H__
 
+#include <Eina.h>
+
+EAPI extern Eina_Error EFL_MODEL_ERROR_UNKNOWN;
+EAPI extern Eina_Error EFL_MODEL_ERROR_NOT_SUPPORTED;
+EAPI extern Eina_Error EFL_MODEL_ERROR_NOT_FOUND;
+EAPI extern Eina_Error EFL_MODEL_ERROR_READ_ONLY;
+EAPI extern Eina_Error EFL_MODEL_ERROR_INIT_FAILED;
+EAPI extern Eina_Error EFL_MODEL_ERROR_INCORRECT_VALUE;
+EAPI extern Eina_Error EFL_MODEL_ERROR_PERMISSION_DENIED;
+
 /**
  * @struct _Efl_Model_Children_Event
  * Every time a child id added the event
@@ -27,18 +37,9 @@ struct _Efl_Model_Children_Event
  */
 typedef struct _Efl_Model_Children_Event Efl_Model_Children_Event;
 
-#include "interfaces/efl_model_base.eo.h"
+#include "interfaces/efl_model.eo.h"
 
- /**
-  * @brief Sets the new load status signaling an event if changed
-  *
-  * @param model The model to call the event @c EFL_MODEL_EVENT_LOAD_STATUS
-  * @param load The load status to be changed
-  * @param status The new status
-  *
-  * @since 1.17
-  */
-EAPI void efl_model_load_set(Efl_Model_Base *model, Efl_Model_Load *load, Efl_Model_Load_Status status) EINA_ARG_NONNULL(1, 2);
+EAPI int efl_model_init(void);
 
 /**
  * @brief Slices a list
@@ -54,14 +55,6 @@ EAPI void efl_model_load_set(Efl_Model_Base *model, Efl_Model_Load *load, Efl_Mo
  */
 EAPI Eina_Accessor *efl_model_list_slice(Eina_List *list, unsigned start, unsigned count) EINA_ARG_NONNULL(1);
 
-/**
- * @brief Notifies an error with an @c EFL_MODEL_EVENT_LOAD_STATUS
- *
- * @param model The model to be notified
- *
- * @since 1.17
- */
-EAPI void efl_model_error_notify(Efl_Model_Base *model) EINA_ARG_NONNULL(1);
 
 /**
  * @brief Notifies a property changed event with an @c EFL_MODEL_EVENT_PROPERTIES_CHANGED
@@ -71,7 +64,7 @@ EAPI void efl_model_error_notify(Efl_Model_Base *model) EINA_ARG_NONNULL(1);
  *
  * @since 1.17
  */
-EAPI void efl_model_property_changed_notify(Efl_Model_Base *model, const char *property);
+EAPI void efl_model_property_changed_notify(Efl_Model *model, const char *property);
 
 /**
  * @brief Notifies a property invalidated event with an @c EFL_MODEL_EVENT_PROPERTIES_CHANGED
@@ -81,7 +74,7 @@ EAPI void efl_model_property_changed_notify(Efl_Model_Base *model, const char *p
  *
  * @since 1.17
  */
-EAPI void efl_model_property_invalidated_notify(Efl_Model_Base *model, const char *property);
+EAPI void efl_model_property_invalidated_notify(Efl_Model *model, const char *property);
 
 /**
  * @brief Callback to setup a member of @c Eina_Value_Struct

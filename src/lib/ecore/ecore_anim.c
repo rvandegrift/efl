@@ -30,23 +30,12 @@
 
 #endif /* ! _WIN32 */
 
-#include <Eo.h>
-
 #include "Ecore.h"
 #include "ecore_private.h"
 
-#define MY_CLASS ECORE_ANIMATOR_CLASS
-
-#define MY_CLASS_NAME "Ecore_Animator"
-
-#define ECORE_ANIMATOR_CHECK(obj)                       \
-  if (!eo_isa((obj), ECORE_ANIMATOR_CLASS)) \
-    return
-
-struct _Ecore_Animator_Data
+struct _Ecore_Animator
 {
    EINA_INLIST;
-   Ecore_Animator   *obj;
 
    Ecore_Task_Cb     func;
    void             *data;
@@ -60,13 +49,11 @@ struct _Ecore_Animator_Data
    Eina_Bool         just_added : 1;
 };
 
-typedef struct _Ecore_Animator_Data Ecore_Animator_Data;
-
 static Eina_Bool _do_tick(void);
 static Eina_Bool _ecore_animator_run(void *data);
 
 static int animators_delete_me = 0;
-static Ecore_Animator_Data *animators = NULL;
+static Ecore_Animator *animators = NULL;
 static double animators_frametime = 1.0 / 30.0;
 static unsigned int animators_suspended = 0;
 
@@ -84,7 +71,7 @@ static Ecore_Thread *timer_thread = NULL;
 static volatile int timer_event_is_busy = 0;
 
 static void
-_tick_send(char val)
+_tick_send(signed char val)
 {
    DBG("_tick_send(%i)", val);
    if (pipe_write(timer_fd_write, &val, 1) != 1)
@@ -111,7 +98,7 @@ _timer_tick_core(void *data EINA_UNUSED, Ecore_Thread *thread)
    fd_set rfds, wfds, exfds;
    struct timeval tv;
    unsigned int t;
-   char tick = 0;
+   signed char tick = 0;
    double t0, d;
    int ret;
 
@@ -281,7 +268,7 @@ _end_tick(void)
 static Eina_Bool
 _do_tick(void)
 {
-   Ecore_Animator_Data *animator;
+   Ecore_Animator *animator;
 
    EINA_INLIST_FOREACH(animators, animator)
      {
@@ -290,8 +277,8 @@ _do_tick(void)
    if (animators) eina_evlog("!FRAME", NULL, ecore_loop_time_get(), NULL);
    EINA_INLIST_FOREACH(animators, animator)
      {
-        if ((!animator->delete_me) && 
-            (!animator->suspended) && 
+        if ((!animator->delete_me) &&
+            (!animator->suspended) &&
             (!animator->just_added))
           {
              animator_ran = EINA_TRUE;
@@ -305,84 +292,45 @@ _do_tick(void)
           }
         else animator->just_added = EINA_FALSE;
      }
-   if (animators_delete_me)
-     {
-        Ecore_Animator_Data *l;
-        for (l = animators; l; )
-          {
-             animator = l;
-             l = (Ecore_Animator_Data *)EINA_INLIST_GET(l)->next;
-             if (animator->delete_me)
-               {
-                  if (animator->suspended) animators_suspended--;
-                  animators = (Ecore_Animator_Data *)
-                    eina_inlist_remove(EINA_INLIST_GET(animators),
-                                       EINA_INLIST_GET(animator));
-
-                  eo_do(animator->obj, eo_parent_set(NULL));
-                  if (eo_destructed_is(animator->obj))
-                     eo_manual_free(animator->obj);
-                  else
-                     eo_manual_free_set(animator->obj, EINA_FALSE);
-
-                  animators_delete_me--;
-                  if (animators_delete_me == 0) break;
-               }
-          }
-     }
-   if (!_have_animators())
-     {
-        _end_tick();
-        return ECORE_CALLBACK_CANCEL;
-     }
+   if (!_ecore_animator_flush())
+     return ECORE_CALLBACK_CANCEL;
    return ECORE_CALLBACK_RENEW;
 }
 
-static Eina_Bool
-_ecore_animator_add(Ecore_Animator *obj,
-                    Ecore_Animator_Data *animator,
-                    Ecore_Task_Cb func,
+static Ecore_Animator *
+_ecore_animator_add(Ecore_Task_Cb func,
                     const void   *data)
 {
-    if (EINA_UNLIKELY(!eina_main_loop_is()))
-      {
-         EINA_MAIN_LOOP_CHECK_RETURN_VAL(EINA_FALSE);
-      }
+   Ecore_Animator *animator;
 
-   animator->obj = obj;
-   eo_manual_free_set(obj, EINA_TRUE);
+   if (EINA_UNLIKELY(!eina_main_loop_is()))
+     {
+        EINA_MAIN_LOOP_CHECK_RETURN_VAL(NULL);
+     }
 
    if (!func)
      {
-        ERR("callback function must be set up for an object of class: '%s'", MY_CLASS_NAME);
-        return EINA_FALSE;
+        ERR("callback function must be set up for an Ecore_Animator object.");
+        return NULL;
      }
+
+   animator = calloc(1, sizeof (Ecore_Animator));
+   if (!animator) return NULL;
 
    animator->func = func;
    animator->data = (void *)data;
    animator->just_added = EINA_TRUE;
-   animators = (Ecore_Animator_Data *)eina_inlist_append(EINA_INLIST_GET(animators), EINA_INLIST_GET(animator));
+   animators = (Ecore_Animator *)eina_inlist_append(EINA_INLIST_GET(animators), EINA_INLIST_GET(animator));
    _begin_tick();
-   return EINA_TRUE;
+
+   return animator;
 }
 
 EAPI Ecore_Animator *
 ecore_animator_add(Ecore_Task_Cb func,
                    const void   *data)
 {
-   Ecore_Animator *animator = NULL;
-
-   animator = eo_add(MY_CLASS, _ecore_parent,
-                            ecore_animator_constructor(func, data));
-   return animator;
-}
-
-EOLIAN static void
-_ecore_animator_constructor(Eo *obj, Ecore_Animator_Data *animator, Ecore_Task_Cb func, const void *data)
-{
-   _ecore_lock();
-   _ecore_animator_add(obj, animator, func, data);
-   _ecore_unlock();
+   return _ecore_animator_add(func, data);
 }
 
 EAPI Ecore_Animator *
@@ -391,27 +339,20 @@ ecore_animator_timeline_add(double            runtime,
                             const void       *data)
 {
    Ecore_Animator *animator;
-   animator = eo_add(MY_CLASS, _ecore_parent,
-                            ecore_animator_timeline_constructor(runtime, func, data));
-   return animator;
-}
 
-EOLIAN static void
-_ecore_animator_timeline_constructor(Eo *obj, Ecore_Animator_Data *animator, double runtime, Ecore_Timeline_Cb func, const void *data)
-{
-   _ecore_lock();
    if (runtime <= 0.0) runtime = 0.0;
 
-   if (!_ecore_animator_add(obj, animator, _ecore_animator_run, NULL)) goto unlock;
+   animator = _ecore_animator_add(_ecore_animator_run, NULL);
+   if (!animator)
+     return NULL;
 
-   animator->data = obj;
+   animator->data = animator;
    animator->run_func = func;
    animator->run_data = (void *)data;
    animator->start = ecore_loop_time_get();
    animator->run = runtime;
 
-unlock:
-   _ecore_unlock();
+   return animator;
 }
 
 static double
@@ -658,64 +599,40 @@ ecore_animator_pos_map(double        pos,
 }
 
 EAPI void *
-ecore_animator_del(Ecore_Animator *obj)
+ecore_animator_del(Ecore_Animator *animator)
 {
    void *data = NULL;
 
-   if (!obj) return NULL;
+   if (!animator) return NULL;
    EINA_MAIN_LOOP_CHECK_RETURN_VAL(NULL);
-   Ecore_Animator_Data *animator = eo_data_scope_get(obj, MY_CLASS);
-   _ecore_lock();
 
-   if (!animator) goto unlock;
    if (animator->delete_me)
      {
         data = animator->data;
-        goto unlock;
+        goto end;
      }
+
    animator->delete_me = EINA_TRUE;
    animators_delete_me++;
    if (animator->run_func)
      data = animator->run_data;
    else
      data = animator->data;
-unlock:
-   _ecore_unlock();
+
+ end:
+   if (!in_main_loop) _ecore_animator_flush();
    return data;
-}
-
-EOLIAN static void
-_ecore_animator_eo_base_destructor(Eo *obj, Ecore_Animator_Data *pd)
-{
-   pd->delete_me = EINA_TRUE;
-   animators_delete_me++;
-
-   eo_do_super(obj, MY_CLASS, eo_destructor());
-}
-
-EOLIAN static Eo *
-_ecore_animator_eo_base_finalize(Eo *obj, Ecore_Animator_Data *pd)
-{
-   if (!pd->func)
-     {
-        return NULL;
-     }
-
-   return eo_do_super_ret(obj, MY_CLASS, obj, eo_finalize());
 }
 
 EAPI void
 ecore_animator_frametime_set(double frametime)
 {
    EINA_MAIN_LOOP_CHECK_RETURN;
-   _ecore_lock();
    if (frametime < 0.0) frametime = 0.0;
-   if (animators_frametime == frametime) goto unlock;
+   if (animators_frametime == frametime) return ;
    animators_frametime = frametime;
    _end_tick();
    if (_have_animators()) _begin_tick();
-unlock:
-   _ecore_unlock();
 }
 
 EAPI double
@@ -728,59 +645,37 @@ ecore_animator_frametime_get(void)
 EAPI void
 ecore_animator_freeze(Ecore_Animator *animator)
 {
-   ECORE_ANIMATOR_CHECK(animator);
-   eo_do(animator, eo_event_freeze());
-}
-
-EOLIAN static void
-_ecore_animator_eo_base_event_freeze(Eo *obj EINA_UNUSED, Ecore_Animator_Data *animator)
-{
    EINA_MAIN_LOOP_CHECK_RETURN;
-   _ecore_lock();
-   if (animator->delete_me) goto unlock;
+   if (!animator) return ;
+   if (animator->delete_me) return ;
    if (!animator->suspended)
      {
         animator->suspended = EINA_TRUE;
         animators_suspended++;
         if (!_have_animators()) _end_tick();
      }
-unlock:
-   _ecore_unlock();
 }
 
 EAPI void
 ecore_animator_thaw(Ecore_Animator *animator)
 {
-   ECORE_ANIMATOR_CHECK(animator);
-   eo_do(animator, eo_event_thaw());
-}
-
-EOLIAN static void
-_ecore_animator_eo_base_event_thaw(Eo *obj EINA_UNUSED, Ecore_Animator_Data *animator)
-{
    EINA_MAIN_LOOP_CHECK_RETURN;
-
-   _ecore_lock();
-   if (animator->delete_me) goto unlock;
+   if (animator->delete_me) return;
    if (animator->suspended)
      {
         animator->suspended = EINA_FALSE;
         animators_suspended--;
         if (_have_animators()) _begin_tick();
      }
-unlock:
-   _ecore_unlock();
 }
 
 EAPI void
 ecore_animator_source_set(Ecore_Animator_Source source)
 {
    EINA_MAIN_LOOP_CHECK_RETURN;
-   _ecore_lock();
    _end_tick();
    src = source;
    if (_have_animators()) _begin_tick();
-   _ecore_unlock();
 }
 
 EAPI Ecore_Animator_Source
@@ -795,12 +690,10 @@ ecore_animator_custom_source_tick_begin_callback_set(Ecore_Cb    func,
                                                      const void *data)
 {
    EINA_MAIN_LOOP_CHECK_RETURN;
-   _ecore_lock();
    _end_tick();
    begin_tick_cb = func;
    begin_tick_data = data;
    if (_have_animators()) _begin_tick();
-   _ecore_unlock();
 }
 
 EAPI void
@@ -808,41 +701,35 @@ ecore_animator_custom_source_tick_end_callback_set(Ecore_Cb    func,
                                                    const void *data)
 {
    EINA_MAIN_LOOP_CHECK_RETURN;
-   _ecore_lock();
    _end_tick();
    end_tick_cb = func;
    end_tick_data = data;
    if (_have_animators()) _begin_tick();
-   _ecore_unlock();
 }
 
 EAPI void
 ecore_animator_custom_tick(void)
 {
    EINA_MAIN_LOOP_CHECK_RETURN;
-   _ecore_lock();
    if (src == ECORE_ANIMATOR_SOURCE_CUSTOM) _do_tick();
-   _ecore_unlock();
 }
 
 void
 _ecore_animator_shutdown(void)
 {
+   Ecore_Animator *animator;
+
    _timer_tick_quit();
    _end_tick();
-   while (animators)
+
+   EINA_INLIST_FREE(animators, animator)
      {
-        Ecore_Animator_Data *animator;
-
-        animator = animators;
         if (animator->suspended) animators_suspended--;
-        animators = (Ecore_Animator_Data *)eina_inlist_remove(EINA_INLIST_GET(animators), EINA_INLIST_GET(animators));
+        if (animator->delete_me) animators_delete_me--;
 
-        eo_do(animator->obj, eo_parent_set(NULL));
-        if (eo_destructed_is(animator->obj))
-           eo_manual_free(animator->obj);
-        else
-           eo_manual_free_set(animator->obj, EINA_FALSE);
+        animators = (Ecore_Animator *) eina_inlist_remove
+              (EINA_INLIST_GET(animators), EINA_INLIST_GET(animator));
+        free(animator);
      }
 }
 
@@ -861,9 +748,7 @@ _ecore_animator_run_get(void)
 static Eina_Bool
 _ecore_animator_run(void *data)
 {
-   Ecore_Animator *obj = data;
-   Ecore_Animator_Data *animator = eo_data_scope_get(obj, MY_CLASS);
-
+   Ecore_Animator *animator = data;
    double pos = 0.0, t;
    Eina_Bool run_ret;
 
@@ -880,4 +765,36 @@ _ecore_animator_run(void *data)
    return run_ret;
 }
 
-#include "ecore_animator.eo.c"
+Eina_Bool
+_ecore_animator_flush(void)
+{
+   Ecore_Animator *animator;
+
+   if (animators_delete_me)
+     {
+        Ecore_Animator *l;
+        for (l = animators; l; )
+          {
+             animator = l;
+             l = (Ecore_Animator  *)EINA_INLIST_GET(l)->next;
+             if (animator->delete_me)
+               {
+                  if (animator->suspended) animators_suspended--;
+                  animators = (Ecore_Animator *)
+                    eina_inlist_remove(EINA_INLIST_GET(animators),
+                                       EINA_INLIST_GET(animator));
+
+                  free(animator);
+
+                  animators_delete_me--;
+                  if (animators_delete_me == 0) break;
+               }
+          }
+     }
+   if (!_have_animators())
+     {
+        _end_tick();
+        return EINA_FALSE;
+     }
+   return EINA_TRUE;
+}

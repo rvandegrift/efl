@@ -21,18 +21,6 @@ typedef struct _Evas_Object_Textgrid_Row   Evas_Object_Textgrid_Row;
 typedef struct _Evas_Object_Textgrid_Rect  Evas_Object_Textgrid_Rect;
 typedef struct _Evas_Object_Textgrid_Text  Evas_Object_Textgrid_Text;
 typedef struct _Evas_Object_Textgrid_Line  Evas_Object_Textgrid_Line;
-typedef struct _Evas_Textgrid_Hash_Master  Evas_Textgrid_Hash_Master;
-typedef struct _Evas_Textgrid_Hash_Glyphs  Evas_Textgrid_Hash_Glyphs;
-
-struct _Evas_Textgrid_Hash_Master
-{
-   int next[16];
-};
-
-struct _Evas_Textgrid_Hash_Glyphs
-{
-   Evas_Text_Props props[256];
-};
 
 struct _Evas_Textgrid_Data
 {
@@ -48,7 +36,7 @@ struct _Evas_Textgrid_Data
       const char                 *font_source;
       const char                 *font_name;
       Evas_Font_Size              font_size;
-      Evas_Font_Description      *font_description;
+      Evas_Font_Description      *font_description_normal;
 
       Eina_Array                  palette_standard;
       Eina_Array                  palette_extended;
@@ -56,19 +44,10 @@ struct _Evas_Textgrid_Data
 
    int                            ascent;
 
-   Evas_Font_Set                 *font;
-
-   Evas_Textgrid_Hash_Master     *master;
-   Evas_Textgrid_Hash_Glyphs     *glyphs;
-   unsigned char                 *master_used;
-   unsigned char                 *glyphs_used;
-   unsigned int                   master_length;
-   unsigned int                   glyphs_length;
-
-   unsigned int                   last_mask;
-   Evas_Textgrid_Hash_Glyphs     *last_glyphs;
-
-   Eina_Array                     glyphs_cleanup;
+   Evas_Font_Set                 *font_normal;
+   Evas_Font_Set                 *font_bold;
+   Evas_Font_Set                 *font_italic;
+   Evas_Font_Set                 *font_bolditalic;
 
    unsigned int                   changed : 1;
    unsigned int                   core_change : 1;
@@ -99,9 +78,11 @@ struct _Evas_Object_Textgrid_Rect
 
 struct _Evas_Object_Textgrid_Text
 {
+   Evas_Text_Props text_props;
    unsigned char r, g, b, a;
-   int x;
-   unsigned int text_props_index;
+   int           x      : 30;
+   unsigned char bold   :  1;
+   unsigned char italic :  1;
 };
 
 struct _Evas_Object_Textgrid_Line
@@ -166,201 +147,11 @@ static const Evas_Object_Func object_func =
    NULL
 };
 
-/* almost generic private array data type */
-static int
-evas_object_textgrid_textprop_get(Evas_Object *eo_obj, Evas_Textgrid_Data *o, Eina_Unicode codepoint,
-                                  unsigned int glyphs_index, unsigned char *used)
-{
-   Evas_Textgrid_Hash_Glyphs *glyph;
-   unsigned char idx = codepoint & 0xFF;
-
-   glyph = &(o->glyphs[glyphs_index]);
-
-   if (!glyph->props[idx].info)
-     {
-        Evas_Font_Instance *script_fi = NULL;
-        Evas_Font_Instance *cur_fi = NULL;
-        Evas_Script_Type script;
-
-        script = evas_common_language_script_type_get(&codepoint, 1);
-        Evas_Object_Protected_Data *obj = eo_data_scope_get(eo_obj, EVAS_OBJECT_CLASS);
-        ENFN->font_run_end_get(ENDT, o->font, &script_fi, &cur_fi, script, &codepoint, 1);
-        memset(&(glyph->props[idx]), 0, sizeof(Evas_Text_Props));
-        evas_common_text_props_script_set(&(glyph->props[idx]), script);
-        ENFN->font_text_props_info_create(ENDT, script_fi, &codepoint,
-                                          &(glyph->props[idx]), NULL, 0, 1,
-                                          EVAS_TEXT_PROPS_MODE_NONE);
-        (*used)++;
-     }
-   else
-     {
-        evas_common_text_props_content_ref(&(glyph->props[idx]));
-     }
-   
-   return glyphs_index << 8 | (unsigned int) idx;
-}
-
-static int
-evas_object_textgrid_textprop_ref(Evas_Object *eo_obj, Evas_Textgrid_Data *o, Eina_Unicode codepoint)
-{
-   unsigned int mask = 0xF0000000;
-   unsigned int shift = 28;
-   unsigned int offset = 0;
-   unsigned int glyphs_index;
-
-   if (o->last_glyphs)
-     {
-        if ((o->last_mask) && ((o->last_mask & codepoint) == o->last_mask))
-          goto end;
-     }
-
-   if (!o->master)
-     {
-        o->master = calloc(6, sizeof (Evas_Textgrid_Hash_Master));
-        o->master_used = calloc(6, sizeof (unsigned char));
-        o->glyphs = calloc(1, sizeof (Evas_Textgrid_Hash_Glyphs));
-        o->glyphs_used = calloc(1, sizeof (unsigned char));
-        if (!o->master || !o->master_used || !o->glyphs || !o->glyphs_used)
-          {
-             free(o->master);
-             o->master = NULL;
-             free(o->master_used);
-             o->master_used = NULL;
-             free(o->glyphs);
-             o->glyphs = NULL;
-             free(o->glyphs_used);
-             o->glyphs_used = NULL;
-             return 0xFFFFFFFF;
-          }
-
-        while (shift > 8)
-          {
-             o->master[offset].next[(mask & codepoint) >> shift] = offset + 1;
-             o->master_used[offset] = 1;
-             offset++;
-             shift -= 4;
-             mask >>= 4;
-          }
-
-        o->glyphs_length = 1;
-        o->master_length = 6;
-        o->master[5].next[(codepoint & 0xF00) >> 8] = 0xFF000000;
-        o->last_glyphs = o->glyphs;
-        o->last_mask = codepoint & 0xFFFFFF00;
-
-        goto end;
-     }
-
-   while ((shift > 8)
-          && (o->master[offset].next[(codepoint & mask) >> shift] != 0))
-     {
-        offset = o->master[offset].next[(codepoint & mask) >> shift];
-        mask >>= 4;
-        shift -= 4;
-     }
-
-   if (shift > 8)
-     {
-        Evas_Textgrid_Hash_Master *tmp;
-        unsigned char *tmp_used;
-        int master_count;
-        int count;
-        int end;
-
-        count = (shift - 8) / 4;
-        master_count = o->master_length + count;
-
-        /* FIXME: find empty entry */
-        tmp = realloc(o->master, master_count * sizeof (Evas_Textgrid_Hash_Master));
-        if (!tmp) return 0xFFFFFFFF;
-        o->master = tmp;
-        tmp_used = realloc(o->master_used, master_count);
-        if (!tmp_used) return 0xFFFFFFFF;
-        o->master_used = tmp_used;
-
-        memset(o->master + o->master_length, 0, count * sizeof (Evas_Textgrid_Hash_Master));
-        memset(o->master_used + o->master_length, 1, count);
-        end = o->master_length;
-        o->master_length = master_count;
-
-        while (shift > 8)
-          {
-             o->master[offset].next[(mask & codepoint) >> shift] = end;
-             o->master_used[offset] = 1;
-             end++;
-             offset = end;
-             shift -= 4;
-             mask >>= 4;
-          }
-        offset--;
-     }
-   if ((o->master[offset].next[(codepoint & mask) >> shift] == 0)
-       || ((o->master[offset].next[(codepoint & mask) >> shift] & 0xFFFFFF) >= o->glyphs_length))
-     {
-        Evas_Textgrid_Hash_Glyphs *tmp;
-        unsigned char *tmp_used;
-        int count;
-
-        /* FIXME: find empty entry */
-        if (o->master[offset].next[(codepoint & mask) >> shift] == 0)
-          count = o->glyphs_length + 1;
-        else
-          count = (o->master[offset].next[(codepoint & mask) >> shift] & 0xFFFFFF) + 1;
-        tmp = realloc(o->glyphs, count * sizeof (Evas_Textgrid_Hash_Glyphs));
-        if (!tmp) return 0xFFFFFFFF;
-        o->glyphs = tmp;
-        tmp_used = realloc(o->glyphs_used, count * sizeof (unsigned char));
-        if (!tmp_used) return 0xFFFFFFFF;
-        o->glyphs_used = tmp_used;
-
-        // FIXME: What should we write when allocating more than one new entry?
-        o->master[offset].next[(codepoint & mask) >> shift] = o->glyphs_length + 0xFF000000;
-
-        memset(o->glyphs + o->glyphs_length, 0, (count - o->glyphs_length) * sizeof (Evas_Textgrid_Hash_Glyphs));
-        memset(o->glyphs_used, 0, (count - o->glyphs_length) * sizeof(o->glyphs_used[0]));
-        o->glyphs_length = count;
-     }
-
-   o->last_glyphs = o->glyphs + (o->master[offset].next[(codepoint & mask) >> shift] & 0xFFFFFF);
-   o->last_mask = codepoint & 0xFFFFFF00;
-
- end:
-   glyphs_index = o->last_glyphs - o->glyphs;
-   return evas_object_textgrid_textprop_get(eo_obj, o, codepoint, glyphs_index,
-                                            &(o->glyphs_used[glyphs_index]));
-}
-
-static Evas_Text_Props *
-_textprop_from_idx(Evas_Textgrid_Data *o, unsigned int props_index)
-{
-   return &(o->glyphs[props_index >> 8].props[props_index & 0xFF]);
-}
-
-
-static void
-evas_object_textgrid_textprop_unref(Evas_Textgrid_Data *o, unsigned int props_index)
-{
-   Evas_Text_Props *props;
-
-   props = _textprop_from_idx(o, props_index);
-
-   if (props->info)
-     {
-        if (props->info->refcount == 1)
-          eina_array_push(&o->glyphs_cleanup,
-                          (void *)((uintptr_t)props_index));
-        else
-          {
-             evas_common_text_props_content_nofree_unref(props);
-          }
-     }
-}
-
 /* all nice and private */
 static void
 evas_object_textgrid_init(Evas_Object *eo_obj)
 {
-   Evas_Object_Protected_Data *obj = eo_data_scope_get(eo_obj, EVAS_OBJECT_CLASS);
+   Evas_Object_Protected_Data *obj = eo_data_scope_get(eo_obj, EFL_CANVAS_OBJECT_CLASS);
    /* set up methods (compulsory) */
    obj->func = &object_func;
    obj->private_data = eo_data_ref(eo_obj, MY_CLASS);
@@ -371,11 +162,11 @@ evas_object_textgrid_init(Evas_Object *eo_obj)
    o->prev = o->cur;
    eina_array_step_set(&o->cur.palette_standard, sizeof (Eina_Array), 16);
    eina_array_step_set(&o->cur.palette_extended, sizeof (Eina_Array), 16);
-   eina_array_step_set(&o->glyphs_cleanup, sizeof (Eina_Array), 16);
 }
 
 static void
-evas_object_textgrid_row_clear(Evas_Textgrid_Data *o, Evas_Object_Textgrid_Row *r)
+evas_object_textgrid_row_clear(Evas_Textgrid_Data *o EINA_UNUSED,
+                               Evas_Object_Textgrid_Row *r)
 {
    int i;
 
@@ -389,11 +180,7 @@ evas_object_textgrid_row_clear(Evas_Textgrid_Data *o, Evas_Object_Textgrid_Row *
    if (r->texts)
      {
         for (i = 0; i < r->texts_num; i++)
-          if (r->texts[i].text_props_index != 0xFFFFFFFF)
-            {
-               evas_object_textgrid_textprop_unref(o, r->texts[i].text_props_index);
-               r->texts[i].text_props_index = 0xFFFFFFFF;
-            }
+          evas_common_text_props_content_unref(&(r->texts[i].text_props));
         free(r->texts);
         r->texts = NULL;
         r->texts_num = 0;
@@ -434,8 +221,14 @@ evas_object_textgrid_free(Evas_Object *eo_obj, Evas_Object_Protected_Data *obj)
    if (o->cur.rows) free(o->cur.rows);
    if (o->cur.font_name) eina_stringshare_del(o->cur.font_name);
    if (o->cur.font_source) eina_stringshare_del(o->cur.font_source);
-   if (o->cur.font_description) evas_font_desc_unref(o->cur.font_description);
-   if (o->font) evas_font_free(obj->layer->evas->evas, o->font);
+
+   if (o->cur.font_description_normal)
+     evas_font_desc_unref(o->cur.font_description_normal);
+   if (o->font_normal) evas_font_free(obj->layer->evas->evas, o->font_normal);
+   if (o->font_bold) evas_font_free(obj->layer->evas->evas, o->font_bold);
+   if (o->font_italic) evas_font_free(obj->layer->evas->evas, o->font_italic);
+   if (o->font_bolditalic) evas_font_free(obj->layer->evas->evas, o->font_bolditalic);
+
    if (o->cur.cells) free(o->cur.cells);
    while ((c = eina_array_pop(&o->cur.palette_standard)))
      free(c);
@@ -444,46 +237,22 @@ evas_object_textgrid_free(Evas_Object *eo_obj, Evas_Object_Protected_Data *obj)
      free(c);
    eina_array_flush(&o->cur.palette_extended);
 
-   while (eina_array_count(&o->glyphs_cleanup) > 0)
-     {
-        Evas_Text_Props *prop;
-        unsigned int props_index;
-
-        props_index = (unsigned int) (intptr_t) eina_array_pop(&o->glyphs_cleanup);
-        prop = &(o->glyphs[props_index >> 8].props[props_index & 0xFF]);
-
-        evas_common_text_props_content_nofree_unref(prop);
-        if (!prop->info)
-          {
-             o->glyphs_used[props_index >> 8]--;
-
-             if (!o->glyphs_used[props_index >> 8])
-               {
-                  /* FIXME: cleanup the master tree */
-               }
-          }
-     }
-   eina_array_flush(&o->glyphs_cleanup);
-
-   free(o->master);
-   free(o->glyphs);
-   free(o->master_used);
-   free(o->glyphs_used);
-
    o->magic = 0;
 }
 
 EOLIAN static void
 _evas_textgrid_eo_base_destructor(Eo *eo_obj, Evas_Textgrid_Data *o EINA_UNUSED)
 {
-   Evas_Object_Protected_Data *obj = eo_data_scope_get(eo_obj, EVAS_OBJECT_CLASS);
+   Evas_Object_Protected_Data *obj = eo_data_scope_get(eo_obj, EFL_CANVAS_OBJECT_CLASS);
    evas_object_textgrid_free(eo_obj, obj);
    eo_data_unref(eo_obj, obj->private_data);
-   eo_do_super(eo_obj, MY_CLASS, eo_destructor());
+   eo_destructor(eo_super(eo_obj, MY_CLASS));
 }
 
 static void
-evas_object_textgrid_row_rect_append(Evas_Object_Textgrid_Row *row, int x, int w, int r, int g, int b, int a)
+evas_object_textgrid_row_rect_append(Evas_Object_Textgrid_Row *row,
+                                     int x, int w,
+                                     int r, int g, int b, int a)
 {
    row->rects_num++;
    if (row->rects_num > row->rects_alloc)
@@ -507,10 +276,58 @@ evas_object_textgrid_row_rect_append(Evas_Object_Textgrid_Row *row, int x, int w
    row->rects[row->rects_num - 1].a = a;
 }
 
-static void
-evas_object_textgrid_row_text_append(Evas_Object_Textgrid_Row *row, Evas_Object *eo_obj, Evas_Textgrid_Data *o, int x, Eina_Unicode codepoint, int r, int g, int b, int a)
+static Evas_Font_Set *
+_textgrid_font_get(Evas_Textgrid_Data *o,
+                   Eina_Bool is_bold,
+                   Eina_Bool is_italic)
 {
-   unsigned int text_props_index;
+   if ((!is_bold) && (!is_italic))
+     return o->font_normal;
+   /* bold */
+   else if ((is_bold) && (!is_italic))
+     {
+        if (o->font_bold)
+          return o->font_bold;
+        else
+          return o->font_normal;
+     }
+   /* italic */
+   else if ((!is_bold) && (is_italic))
+     {
+        if (o->font_italic)
+          return o->font_italic;
+        else
+          return o->font_normal;
+     }
+   /* bolditalic */
+   else
+     {
+        if (o->font_bolditalic)
+          return o->font_bolditalic;
+        else if (o->font_italic)
+          return o->font_italic;
+        else if (o->font_bold)
+          return o->font_bold;
+        else
+          return o->font_normal;
+     }
+}
+
+static void
+evas_object_textgrid_row_text_append(Evas_Object_Textgrid_Row *row,
+                                     Evas_Object_Protected_Data *obj,
+                                     Evas_Textgrid_Data *o,
+                                     int x,
+                                     Eina_Unicode codepoint,
+                                     int r, int g, int b, int a,
+                                     Eina_Bool is_bold,
+                                     Eina_Bool is_italic)
+{
+   Evas_Script_Type script;
+   Evas_Font_Instance *script_fi = NULL;
+   Evas_Font_Instance *cur_fi = NULL;
+   Evas_Object_Textgrid_Text *text;
+   Evas_Font_Set *font;
 
    row->texts_num++;
    if (row->texts_num > row->texts_alloc)
@@ -527,14 +344,25 @@ evas_object_textgrid_row_text_append(Evas_Object_Textgrid_Row *row, Evas_Object 
         row->texts = t;
      }
 
-   text_props_index = evas_object_textgrid_textprop_ref(eo_obj, o, codepoint);
+   script = evas_common_language_script_type_get(&codepoint, 1);
+   text = &row->texts[row->texts_num - 1];
+   text->bold = is_bold;
+   text->italic = is_italic;
+   font = _textgrid_font_get(o, is_bold, is_italic);
+   ENFN->font_run_end_get(ENDT, font, &script_fi, &cur_fi,
+                          script, &codepoint, 1);
+   memset(&(text->text_props), 0, sizeof(Evas_Text_Props));
+   evas_common_text_props_script_set(&(text->text_props), script);
+   ENFN->font_text_props_info_create(ENDT, script_fi, &codepoint,
+                                     &(text->text_props), NULL, 0, 1,
+                                     EVAS_TEXT_PROPS_MODE_NONE,
+                                     o->cur.font_description_normal->lang);
 
-   row->texts[row->texts_num - 1].text_props_index = text_props_index;
-   row->texts[row->texts_num - 1].x = x;
-   row->texts[row->texts_num - 1].r = r;
-   row->texts[row->texts_num - 1].g = g;
-   row->texts[row->texts_num - 1].b = b;
-   row->texts[row->texts_num - 1].a = a;
+   text->x = x;
+   text->r = r;
+   text->g = g;
+   text->b = b;
+   text->a = a;
 }
 
 static void
@@ -576,10 +404,11 @@ _drop_glyphs_ref(const void *container EINA_UNUSED, void *data, void *fdata)
 }
 
 static void
-evas_object_textgrid_render(Evas_Object *eo_obj,
-			    Evas_Object_Protected_Data *obj,
-			    void *type_private_data,
-			    void *output, void *context, void *surface, int x, int y, Eina_Bool do_async)
+evas_object_textgrid_render(Evas_Object *eo_obj EINA_UNUSED,
+                            Evas_Object_Protected_Data *obj,
+                            void *type_private_data,
+                            void *output, void *context, void *surface,
+                            int x, int y, Eina_Bool do_async)
 {
    Evas_Textgrid_Cell *cells;
    Evas_Object_Textgrid_Color *c;
@@ -592,7 +421,7 @@ evas_object_textgrid_render(Evas_Object *eo_obj,
    ENFN->context_multiplier_unset(output, context);
    ENFN->context_render_op_set(output, context, obj->cur->render_op);
 
-   if (!(o->font) || (!o->cur.cells)) return;
+   if (!(o->font_normal) || (!o->cur.cells)) return;
 
    w = o->cur.char_width;
    h = o->cur.char_height;
@@ -661,9 +490,12 @@ evas_object_textgrid_render(Evas_Object *eo_obj,
                   if ((c) && (c->a > 0))
                     {
                        if (cells->codepoint > 0)
-                         evas_object_textgrid_row_text_append(row, eo_obj, o, xp,
+                         evas_object_textgrid_row_text_append(row, obj,
+                                                              o, xp,
                                                               cells->codepoint,
-                                                              c->r, c->g, c->b, c->a);
+                                                              c->r, c->g, c->b, c->a,
+                                                              cells->bold,
+                                                              cells->italic);
                        // XXX: underlines and strikethroughs dont get
                        // merged into horizontal runs like bg rects above
                        if (cells->underline)
@@ -708,57 +540,82 @@ evas_object_textgrid_render(Evas_Object *eo_obj,
           {
              if ((do_async) && (ENFN->multi_font_draw))
                {
+                  Evas_Font_Set *font, *current_font;
                   Eina_Bool async_unref;
-		  Evas_Font_Array_Data *fad;
+                  Evas_Object_Textgrid_Text *text;
 
-                  texts = malloc(sizeof(*texts));
-                  texts->array = eina_inarray_new(sizeof(Evas_Font_Array_Data), 1); /* FIXME: Wasting 1 int here */
-                  texts->refcount = 1;
-
-		  fad = eina_inarray_grow(texts->array, row->texts_num);
-		  if (!fad)
-		    {
-                       ERR("Failed to allocate Evas_Font_Array_Data.");
-                       eina_inarray_free(texts->array);
-                       free(texts);
-                       return;
-		    }
-
-                  for (xx = 0; xx < row->texts_num; xx++)
+                  xx = 0;
+                  do
                     {
-                       Evas_Text_Props *props;
+                       texts = malloc(sizeof(*texts));
+                       if (!texts)
+                         {
+                            ERR("Failed to allocate Evas_Font_Array.");
+                            return;
+                         }
+                       texts->array = eina_inarray_new(sizeof(Evas_Font_Array_Data), 1);
+                       texts->refcount = 1;
 
-                       props = _textprop_from_idx(o, row->texts[xx].text_props_index);
+                       text = &row->texts[xx];
+                       font = _textgrid_font_get(o, text->bold, text->italic);
 
-                       evas_common_font_draw_prepare(props);
+                       do
+                         {
+                            Evas_Font_Array_Data *fad;
+                            Evas_Text_Props *props;
 
-                       evas_common_font_glyphs_ref(props->glyphs);
-                       evas_unref_queue_glyph_put(obj->layer->evas,
-                                                  props->glyphs);
+                            current_font = font;
 
-                       fad->color.r = row->texts[xx].r;
-                       fad->color.g = row->texts[xx].g;
-                       fad->color.b = row->texts[xx].b;
-                       fad->color.a = row->texts[xx].a;
-                       fad->x = row->texts[xx].x;
-                       fad->glyphs = props->glyphs;
+                            props = &text->text_props;
+                            evas_common_font_draw_prepare(props);
 
-		       fad++;
+                            evas_common_font_glyphs_ref(props->glyphs);
+                            evas_unref_queue_glyph_put(obj->layer->evas,
+                                                       props->glyphs);
+
+                            fad = eina_inarray_grow(texts->array, 1);
+                            if (!fad)
+                              {
+                                 ERR("Failed to allocate Evas_Font_Array_Data.");
+                                 eina_inarray_free(texts->array);
+                                 free(texts);
+                                 return;
+                              }
+                            fad->color.r = text->r;
+                            fad->color.g = text->g;
+                            fad->color.b = text->b;
+                            fad->color.a = text->a;
+                            fad->x = text->x;
+                            fad->glyphs = props->glyphs;
+
+                            fad++;
+
+                            xx++;
+                            if (xx >= row->texts_num)
+                              break;
+                            text = &row->texts[xx];
+                            font = _textgrid_font_get(o, text->bold,
+                                                      text->italic);
+                         }
+                       while (font == current_font);
+
+                       async_unref =
+                          ENFN->multi_font_draw(output, context, surface,
+                                                current_font,
+                                                xp,
+                                                yp + o->ascent,
+                                                ww, hh, ww, hh, texts, do_async);
+                       if (async_unref)
+                         evas_unref_queue_texts_put(obj->layer->evas, texts);
+                       else
+                         {
+                            eina_inarray_foreach(texts->array, _drop_glyphs_ref,
+                                                 obj->layer->evas);
+                            eina_inarray_free(texts->array);
+                            free(texts);
+                         }
                     }
-
-                  async_unref =
-                    ENFN->multi_font_draw(output, context, surface,
-                                          o->font, xp, yp + o->ascent,
-                                          ww, hh, ww, hh, texts, do_async);
-                  if (async_unref)
-                    evas_unref_queue_texts_put(obj->layer->evas, texts);
-                  else
-                    {
-                       eina_inarray_foreach(texts->array, _drop_glyphs_ref,
-                                            obj->layer->evas);
-                       eina_inarray_free(texts->array);
-                       free(texts);
-                    }
+                  while (xx < row->texts_num);
                }
              else
                {
@@ -766,20 +623,23 @@ evas_object_textgrid_render(Evas_Object *eo_obj,
                     {
                        Evas_Text_Props *props;
                        unsigned int     r, g, b, a;
-                       int              tx = xp + row->texts[xx].x;
+                       Evas_Object_Textgrid_Text *text = &row->texts[xx];
+                       int              tx = xp + text->x;
                        int              ty = yp + o->ascent;
+                       Evas_Font_Set *font;
 
-                       props = _textprop_from_idx(o, row->texts[xx].text_props_index);
+                       props = &text->text_props;
 
-                       r = row->texts[xx].r;
-                       g = row->texts[xx].g;
-                       b = row->texts[xx].b;
-                       a = row->texts[xx].a;
+                       r = text->r;
+                       g = text->g;
+                       b = text->b;
+                       a = text->a;
 
                        ENFN->context_color_set(output, context,
                                                r, g, b, a);
+                       font = _textgrid_font_get(o, text->bold, text->italic);
                        evas_font_draw_async_check(obj, output, context, surface,
-                                                  o->font, tx, ty, ww, hh,
+                                                  font, tx, ty, ww, hh,
                                                   ww, hh, props, do_async);
                     }
                }
@@ -959,26 +819,6 @@ evas_object_textgrid_render_post(Evas_Object *eo_obj,
    /* move cur to prev safely for object data */
    evas_object_cur_prev(eo_obj);
    o->prev = o->cur;
-
-   while (eina_array_count(&o->glyphs_cleanup) > 0)
-     {
-        Evas_Text_Props *prop;
-        unsigned int props_index;
-
-        props_index = (unsigned int) (intptr_t) eina_array_pop(&o->glyphs_cleanup);
-        prop = _textprop_from_idx(o, props_index);
-
-        evas_common_text_props_content_nofree_unref(prop);
-        if (!prop->info)
-          {
-             o->glyphs_used[props_index >> 8]--;
-
-             if (!o->glyphs_used[props_index >> 8])
-               {
-                  /* FIXME: cleanup the master tree */
-               }
-          }
-     }
 }
 
 static unsigned int
@@ -1002,7 +842,7 @@ evas_object_textgrid_engine_data_get(Evas_Object *eo_obj)
 {
    Evas_Textgrid_Data *o = eo_data_scope_get(eo_obj, MY_CLASS);
    if (!o) return NULL;
-   return o->font;
+   return o->font_normal; /* TODO: why ? */
 }
 
 static int
@@ -1062,7 +902,7 @@ evas_object_textgrid_add(Evas *e)
 EOLIAN static Eo *
 _evas_textgrid_eo_base_constructor(Eo *eo_obj, Evas_Textgrid_Data *class_data EINA_UNUSED)
 {
-   eo_obj = eo_do_super_ret(eo_obj, MY_CLASS, eo_obj, eo_constructor());
+   eo_obj = eo_constructor(eo_super(eo_obj, MY_CLASS));
 
    evas_object_textgrid_init(eo_obj);
 
@@ -1073,7 +913,7 @@ EOLIAN static void
 _evas_textgrid_size_set(Eo *eo_obj, Evas_Textgrid_Data *o, int w, int h)
 {
    int i;
-   Evas_Object_Protected_Data *obj = eo_data_scope_get(eo_obj, EVAS_OBJECT_CLASS);
+   Evas_Object_Protected_Data *obj = eo_data_scope_get(eo_obj, EFL_CANVAS_OBJECT_CLASS);
 
    if ((h <= 0) || (w <= 0)) return;
 
@@ -1122,7 +962,7 @@ _evas_textgrid_size_get(Eo *eo_obj EINA_UNUSED, Evas_Textgrid_Data *o, int *w, i
 EOLIAN static void
 _evas_textgrid_efl_text_properties_font_source_set(Eo *eo_obj, Evas_Textgrid_Data *o, const char *font_source)
 {
-   Evas_Object_Protected_Data *obj = eo_data_scope_get(eo_obj, EVAS_OBJECT_CLASS);
+   Evas_Object_Protected_Data *obj = eo_data_scope_get(eo_obj, EFL_CANVAS_OBJECT_CLASS);
 
    if ((!font_source) || (!*font_source))
      return;
@@ -1143,31 +983,101 @@ _evas_textgrid_efl_text_properties_font_source_get(Eo *eo_obj EINA_UNUSED, Evas_
    return o->cur.font_source;
 }
 
-EOLIAN static void
-_evas_textgrid_efl_text_properties_font_set(Eo *eo_obj, Evas_Textgrid_Data *o, const char *font_name, Evas_Font_Size font_size)
+static int
+_alternate_font_weight_slant(Evas_Object_Protected_Data *obj,
+                             Evas_Textgrid_Data *o,
+                             Evas_Font_Set **fontp,
+                             Evas_Font_Description *fdesc,
+                             const char *kind)
 {
-   Evas_Object_Protected_Data *obj = eo_data_scope_get(eo_obj, EVAS_OBJECT_CLASS);
+   int ret = -1;
+   Evas_Font_Set *font;
+
+   font = evas_font_load(obj->layer->evas->evas,
+                         fdesc,
+                         o->cur.font_source,
+                         (int)(((double) o->cur.font_size) *
+                               obj->cur->scale));
+   if (font)
+     {
+        Eina_Unicode W[2] = { 'O', 0 };
+        Evas_Font_Instance *script_fi = NULL;
+        Evas_Font_Instance *cur_fi = NULL;
+        Evas_Text_Props text_props;
+        Evas_Script_Type script;
+        int advance, vadvance, ascent;
+
+        script = evas_common_language_script_type_get(W, 1);
+        ENFN->font_run_end_get(ENDT, font, &script_fi, &cur_fi,
+                               script, W, 1);
+        memset(&text_props, 0, sizeof(Evas_Text_Props));
+        evas_common_text_props_script_set(&text_props, script);
+        ENFN->font_text_props_info_create(ENDT, script_fi, W, &text_props,
+                                          NULL, 0, 1,
+                                          EVAS_TEXT_PROPS_MODE_NONE,
+                                          fdesc->lang);
+        advance = ENFN->font_h_advance_get(ENDT, font, &text_props);
+        vadvance = ENFN->font_v_advance_get(ENDT, font, &text_props);
+        ascent = ENFN->font_ascent_get(ENDT, font);
+        DBG("on font '%s', with alternate weight/slant %s, "
+            "width: %d vs %d, height: %d vs %d, ascent: %d vs %d",
+             fdesc->name, kind,
+             o->cur.char_width, advance,
+             o->cur.char_height, vadvance,
+             o->ascent, ascent);
+        if ((o->cur.char_width != advance) ||
+            (o->cur.char_height != vadvance) ||
+            (o->ascent != ascent))
+          {
+             evas_font_free(obj->layer->evas->evas, font);
+          }
+        else
+          {
+             *fontp = font;
+             ret = 0;
+          }
+        evas_common_text_props_content_unref(&text_props);
+     }
+   else
+     {
+         DBG("can not load font '%s' with alternate weight/slant %s",
+             fdesc->name, kind);
+     }
+   return ret;
+}
+
+EOLIAN static void
+_evas_textgrid_efl_text_properties_font_set(Eo *eo_obj,
+                                            Evas_Textgrid_Data *o,
+                                            const char *font_name,
+                                            Evas_Font_Size font_size)
+{
+   Evas_Object_Protected_Data *obj = eo_data_scope_get(eo_obj, EFL_CANVAS_OBJECT_CLASS);
    Eina_Bool is, was = EINA_FALSE;
    Eina_Bool pass = EINA_FALSE, freeze = EINA_FALSE;
    Eina_Bool source_invisible = EINA_FALSE;
-   Evas_Font_Description *font_description;
-   
+   Evas_Font_Description *fdesc;
+
    if ((!font_name) || (!*font_name) || (font_size <= 0))
      return;
 
    evas_object_async_block(obj);
-   font_description = evas_font_desc_new();
-   evas_font_name_parse(font_description, font_name);
-   if (o->cur.font_description &&
-       !evas_font_desc_cmp(font_description, o->cur.font_description) &&
+   fdesc = evas_font_desc_new();
+   /* Set default language according to locale. */
+   eina_stringshare_replace(&(fdesc->lang),
+                            evas_font_lang_normalize("auto"));
+   evas_font_name_parse(fdesc, font_name);
+   if (o->cur.font_description_normal &&
+       !evas_font_desc_cmp(fdesc, o->cur.font_description_normal) &&
        (font_size == o->cur.font_size))
      {
-        evas_font_desc_unref(font_description);
+        evas_font_desc_unref(fdesc);
         return;
      }
 
-   if (o->cur.font_description) evas_font_desc_unref(o->cur.font_description);
-   o->cur.font_description = font_description;
+   if (o->cur.font_description_normal)
+     evas_font_desc_unref(o->cur.font_description_normal);
+   o->cur.font_description_normal = fdesc;
 
    o->cur.font_size = font_size;
    eina_stringshare_replace(&o->cur.font_name, font_name);
@@ -1184,19 +1094,19 @@ _evas_textgrid_efl_text_properties_font_set(Eo *eo_obj, Evas_Textgrid_Data *o, c
                                               obj->layer->evas->pointer.y,
                                               1, 1);
      }
-   
-   /* DO IT */
-   if (o->font)
+
+   if (o->font_normal)
      {
-        evas_font_free(obj->layer->evas->evas, o->font);
-        o->font = NULL;
+        evas_font_free(obj->layer->evas->evas, o->font_normal);
+        o->font_normal = NULL;
      }
-   
-   o->font = evas_font_load(obj->layer->evas->evas, o->cur.font_description,
+
+   o->font_normal = evas_font_load(obj->layer->evas->evas,
+                            o->cur.font_description_normal,
                             o->cur.font_source,
-                            (int)(((double) o->cur.font_size) * 
+                            (int)(((double) o->cur.font_size) *
                                   obj->cur->scale));
-   if (o->font)
+   if (o->font_normal)
      {
         Eina_Unicode W[2] = { 'O', 0 };
         Evas_Font_Instance *script_fi = NULL;
@@ -1204,20 +1114,21 @@ _evas_textgrid_efl_text_properties_font_set(Eo *eo_obj, Evas_Textgrid_Data *o, c
         Evas_Text_Props text_props;
         Evas_Script_Type script;
         int advance, vadvance;
-        
+
         script = evas_common_language_script_type_get(W, 1);
-        ENFN->font_run_end_get(ENDT, o->font, &script_fi, &cur_fi,
+        ENFN->font_run_end_get(ENDT, o->font_normal, &script_fi, &cur_fi,
                                script, W, 1);
         memset(&text_props, 0, sizeof(Evas_Text_Props));
         evas_common_text_props_script_set(&text_props, script);
         ENFN->font_text_props_info_create(ENDT, script_fi, W, &text_props,
                                           NULL, 0, 1,
-                                          EVAS_TEXT_PROPS_MODE_NONE);
-        advance = ENFN->font_h_advance_get(ENDT, o->font, &text_props);
-        vadvance = ENFN->font_v_advance_get(ENDT, o->font, &text_props);
+                                          EVAS_TEXT_PROPS_MODE_NONE,
+                                          fdesc->lang);
+        advance = ENFN->font_h_advance_get(ENDT, o->font_normal, &text_props);
+        vadvance = ENFN->font_v_advance_get(ENDT, o->font_normal, &text_props);
         o->cur.char_width = advance;
         o->cur.char_height = vadvance;
-        o->ascent = ENFN->font_ascent_get(ENDT, o->font);;
+        o->ascent = ENFN->font_ascent_get(ENDT, o->font_normal);
         evas_common_text_props_content_unref(&text_props);
      }
    else
@@ -1230,6 +1141,87 @@ _evas_textgrid_efl_text_properties_font_set(Eo *eo_obj, Evas_Textgrid_Data *o, c
         EINA_COW_STATE_WRITE_END(obj, state_write, cur);
 
         o->ascent = 0;
+     }
+
+   DBG("font: '%s' weigth: %d, slant: %d",
+       fdesc->name, fdesc->weight, fdesc->slant);
+
+   /* Bold */
+   if (o->font_bold)
+     {
+        evas_font_free(obj->layer->evas->evas, o->font_bold);
+        o->font_bold = NULL;
+     }
+   if ((fdesc->weight == EVAS_FONT_WEIGHT_NORMAL) ||
+       (fdesc->weight == EVAS_FONT_WEIGHT_BOOK))
+     {
+        Evas_Font_Description *bold_desc = evas_font_desc_dup(fdesc);
+
+        eina_stringshare_del(bold_desc->style);
+        bold_desc->style = NULL;
+
+        bold_desc->weight = EVAS_FONT_WEIGHT_BOLD;
+        _alternate_font_weight_slant(obj, o, &o->font_bold, bold_desc,
+                                     "bold");
+        evas_font_desc_unref(bold_desc);
+     }
+
+   /* Italic */
+   if (o->font_italic)
+     {
+        evas_font_free(obj->layer->evas->evas, o->font_italic);
+        o->font_italic = NULL;
+     }
+   if (fdesc->slant == EVAS_FONT_SLANT_NORMAL)
+     {
+        Evas_Font_Description *italic_desc = evas_font_desc_dup(fdesc);
+        int ret;
+
+        eina_stringshare_del(italic_desc->style);
+        italic_desc->style = NULL;
+
+        italic_desc->slant = EVAS_FONT_SLANT_ITALIC;
+        ret = _alternate_font_weight_slant(obj, o, &o->font_italic,
+                                           italic_desc, "italic");
+        if (ret != 0)
+          {
+             italic_desc->slant = EVAS_FONT_SLANT_OBLIQUE;
+             _alternate_font_weight_slant(obj, o, &o->font_italic,
+                                          italic_desc,
+                                          "oblique");
+          }
+        evas_font_desc_unref(italic_desc);
+     }
+
+   /* BoldItalic */
+   if (o->font_bolditalic)
+     {
+        evas_font_free(obj->layer->evas->evas, o->font_bolditalic);
+        o->font_bolditalic = NULL;
+     }
+   if (fdesc->slant == EVAS_FONT_SLANT_NORMAL &&
+       ((fdesc->weight == EVAS_FONT_WEIGHT_NORMAL) ||
+        (fdesc->weight == EVAS_FONT_WEIGHT_BOOK)))
+     {
+        Evas_Font_Description *bolditalic_desc = evas_font_desc_dup(fdesc);
+        int ret;
+
+        eina_stringshare_del(bolditalic_desc->style);
+        bolditalic_desc->style = NULL;
+
+        bolditalic_desc->slant = EVAS_FONT_SLANT_ITALIC;
+        bolditalic_desc->weight = EVAS_FONT_WEIGHT_BOLD;
+        ret = _alternate_font_weight_slant(obj, o, &o->font_bolditalic,
+                                           bolditalic_desc,
+                                           "bolditalic");
+        if (ret != 0)
+          {
+             bolditalic_desc->slant = EVAS_FONT_SLANT_OBLIQUE;
+             _alternate_font_weight_slant(obj, o, &o->font_bolditalic,
+                                          bolditalic_desc,
+                                          "boldoblique");
+          }
+        evas_font_desc_unref(bolditalic_desc);
      }
 
    o->changed = 1;
@@ -1257,27 +1249,6 @@ _evas_textgrid_efl_text_properties_font_set(Eo *eo_obj, Evas_Textgrid_Data *o, c
    o->core_change = 1;
    evas_object_textgrid_rows_clear(eo_obj);
    evas_object_change(eo_obj, obj);
-
-   /* Force destroy of all cached Evas_Text_Props */
-   while (eina_array_count(&o->glyphs_cleanup) > 0)
-     {
-        Evas_Text_Props *prop;
-        unsigned int props_index;
-
-        props_index = (unsigned int) (intptr_t) eina_array_pop(&o->glyphs_cleanup);
-        prop = _textprop_from_idx(o, props_index);
-
-        evas_common_text_props_content_nofree_unref(prop);
-        if (!prop->info)
-          {
-             o->glyphs_used[props_index >> 8]--;
-
-             if (!o->glyphs_used[props_index >> 8])
-               {
-                  /* FIXME: cleanup the master tree */
-               }
-          }
-     }
 }
 
 EOLIAN static void
@@ -1300,15 +1271,19 @@ _evas_textgrid_palette_set(Eo *eo_obj, Evas_Textgrid_Data *o, Evas_Textgrid_Pale
 
    Eina_Array *palette;
    Evas_Object_Textgrid_Color *color, *c;
-   Evas_Object_Protected_Data *obj = eo_data_scope_get(eo_obj, EVAS_OBJECT_CLASS);
+   Evas_Object_Protected_Data *obj = eo_data_scope_get(eo_obj, EFL_CANVAS_OBJECT_CLASS);
    int count, i;
 
    if ((idx < 0) || (idx > 255)) return;
 
-   if (a > 255) a = 255; if (a < 0) a = 0;
-   if (r > 255) r = 255; if (r < 0) r = 0;
-   if (g > 255) g = 255; if (g < 0) g = 0;
-   if (b > 255) b = 255; if (b < 0) b = 0;
+   if (a > 255) a = 255;
+   if (a < 0) a = 0;
+   if (r > 255) r = 255;
+   if (r < 0) r = 0;
+   if (g > 255) g = 255;
+   if (g < 0) g = 0;
+   if (b > 255) b = 255;
+   if (b < 0) b = 0;
    if (r > a)
      {
         r = a;
@@ -1418,7 +1393,7 @@ _evas_textgrid_supported_font_styles_set(Eo *eo_obj, Evas_Textgrid_Data *o, Evas
    /* FIXME: to do */
    if (styles)
      {
-        Evas_Object_Protected_Data *obj = eo_data_scope_get(eo_obj, EVAS_OBJECT_CLASS);
+        Evas_Object_Protected_Data *obj = eo_data_scope_get(eo_obj, EFL_CANVAS_OBJECT_CLASS);
         o->changed = 1;
         evas_object_change(eo_obj, obj);
      }
@@ -1443,7 +1418,7 @@ EOLIAN static Evas_Textgrid_Cell*
 _evas_textgrid_cellrow_get(const Eo *eo_obj EINA_UNUSED, Evas_Textgrid_Data *o, int y)
 {
    Evas_Textgrid_Cell *ret;
-   Evas_Object_Protected_Data *obj = eo_data_scope_get(eo_obj, EVAS_OBJECT_CLASS);
+   Evas_Object_Protected_Data *obj = eo_data_scope_get(eo_obj, EFL_CANVAS_OBJECT_CLASS);
    evas_object_async_block(obj);
    if ((y < 0) || (y >= o->cur.h)) ret = NULL;
 
@@ -1455,7 +1430,7 @@ _evas_textgrid_cellrow_get(const Eo *eo_obj EINA_UNUSED, Evas_Textgrid_Data *o, 
 EOLIAN static void
 _evas_textgrid_update_add(Eo *eo_obj, Evas_Textgrid_Data *o, int x, int y, int w, int h)
 {
-   Evas_Object_Protected_Data *obj = eo_data_scope_get(eo_obj, EVAS_OBJECT_CLASS);
+   Evas_Object_Protected_Data *obj = eo_data_scope_get(eo_obj, EFL_CANVAS_OBJECT_CLASS);
    int i, x2;
    
    RECTS_CLIP_TO_RECT(x, y, w, h, 0, 0, o->cur.w, o->cur.h);
@@ -1487,22 +1462,22 @@ _evas_textgrid_update_add(Eo *eo_obj, Evas_Textgrid_Data *o, int x, int y, int w
 EOLIAN static void
 _evas_textgrid_eo_base_dbg_info_get(Eo *eo_obj, Evas_Textgrid_Data *o EINA_UNUSED, Eo_Dbg_Info *root)
 {
-   eo_do_super(eo_obj, MY_CLASS, eo_dbg_info_get(root));
+   eo_dbg_info_get(eo_super(eo_obj, MY_CLASS), root);
    Eo_Dbg_Info *group = EO_DBG_INFO_LIST_APPEND(root, MY_CLASS_NAME);
    Eo_Dbg_Info *node;
 
    const char *text;
    int size;
-   eo_do(eo_obj, efl_text_properties_font_get(&text, &size));
+   efl_text_properties_font_get(eo_obj, &text, &size);
    EO_DBG_INFO_APPEND(group, "Font", EINA_VALUE_TYPE_STRING, text);
    EO_DBG_INFO_APPEND(group, "Text size", EINA_VALUE_TYPE_INT, size);
 
-   eo_do(eo_obj, text = efl_text_properties_font_source_get());
+   text = efl_text_properties_font_source_get(eo_obj);
    EO_DBG_INFO_APPEND(group, "Font source", EINA_VALUE_TYPE_STRING, text);
 
      {
         int w, h;
-        eo_do(eo_obj, evas_obj_textgrid_size_get(&w, &h));
+        evas_obj_textgrid_size_get(eo_obj, &w, &h);
         node = EO_DBG_INFO_LIST_APPEND(group, "Grid size");
         EO_DBG_INFO_APPEND(node, "w", EINA_VALUE_TYPE_INT, w);
         EO_DBG_INFO_APPEND(node, "h", EINA_VALUE_TYPE_INT, h);
@@ -1512,27 +1487,27 @@ _evas_textgrid_eo_base_dbg_info_get(Eo *eo_obj, Evas_Textgrid_Data *o EINA_UNUSE
 EAPI void
 evas_object_textgrid_font_source_set(Eo *obj, const char *font_source)
 {
-   eo_do((Eo *) obj, efl_text_properties_font_source_set(font_source));
+   efl_text_properties_font_source_set((Eo *) obj, font_source);
 }
 
 EAPI const char *
 evas_object_textgrid_font_source_get(const Eo *obj)
 {
    const char *font_source = NULL;
-   eo_do((Eo *) obj, font_source = efl_text_properties_font_source_get());
+   font_source = efl_text_properties_font_source_get((Eo *) obj);
    return font_source;
 }
 
 EAPI void
 evas_object_textgrid_font_set(Eo *obj, const char *font_name, Evas_Font_Size font_size)
 {
-   eo_do((Eo *) obj, efl_text_properties_font_set(font_name, font_size));
+   efl_text_properties_font_set((Eo *) obj, font_name, font_size);
 }
 
 EAPI void
 evas_object_textgrid_font_get(const Eo *obj, const char **font_name, Evas_Font_Size *font_size)
 {
-   eo_do((Eo *) obj, efl_text_properties_font_get(font_name, font_size));
+   efl_text_properties_font_get((Eo *) obj, font_name, font_size);
 }
 
 #include "canvas/evas_textgrid.eo.c"

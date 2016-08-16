@@ -25,7 +25,7 @@ _evas_object_event_new(void)
 static inline int
 evas_object_was_visible(Evas_Object *eo_obj, Evas_Object_Protected_Data *obj)
 {
-   if ((obj->prev->visible) &&
+   if ((obj->prev->visible) && (!obj->no_render) &&
        ((obj->prev->cache.clip.visible) || obj->is_smart) &&
        ((obj->prev->cache.clip.a > 0 && obj->prev->render_op == EVAS_RENDER_BLEND)
        || obj->prev->render_op != EVAS_RENDER_BLEND))
@@ -79,9 +79,6 @@ evas_object_is_opaque(Evas_Object *eo_obj, Evas_Object_Protected_Data *obj)
         if ((obj->cur->clipper && obj->cur->clipper->mask->is_mask) ||
             (obj->clip.mask))
           return 0;
-        /* Non masked snapshot are supposed to be opaque */
-        if (obj->cur->snapshot)
-          return 1;
         if (obj->func->is_opaque)
           return obj->func->is_opaque(eo_obj, obj, obj->private_data);
         return 1;
@@ -98,7 +95,7 @@ evas_event_freezes_through(Evas_Object *eo_obj EINA_UNUSED, Evas_Object_Protecte
    if (obj->parent_cache.freeze_events_valid)
      return obj->parent_cache.freeze_events;
    if (!obj->smart.parent) return 0;
-   Evas_Object_Protected_Data *smart_parent_pd = eo_data_scope_get(obj->smart.parent, EVAS_OBJECT_CLASS);
+   Evas_Object_Protected_Data *smart_parent_pd = eo_data_scope_get(obj->smart.parent, EFL_CANVAS_OBJECT_CLASS);
    obj->parent_cache.freeze_events =
       evas_event_freezes_through(obj->smart.parent, smart_parent_pd);
    obj->parent_cache.freeze_events_valid = EINA_TRUE;
@@ -108,11 +105,11 @@ evas_event_freezes_through(Evas_Object *eo_obj EINA_UNUSED, Evas_Object_Protecte
 static inline int
 evas_event_passes_through(Evas_Object *eo_obj EINA_UNUSED, Evas_Object_Protected_Data *obj)
 {
-   if (obj->pass_events) return 1;
+   if (obj->pass_events || obj->no_render) return 1;
    if (obj->parent_cache.pass_events_valid)
      return obj->parent_cache.pass_events;
    if (!obj->smart.parent) return 0;
-   Evas_Object_Protected_Data *smart_parent_pd = eo_data_scope_get(obj->smart.parent, EVAS_OBJECT_CLASS);
+   Evas_Object_Protected_Data *smart_parent_pd = eo_data_scope_get(obj->smart.parent, EFL_CANVAS_OBJECT_CLASS);
    obj->parent_cache.pass_events =
       evas_event_passes_through(obj->smart.parent, smart_parent_pd);
    obj->parent_cache.pass_events_valid = EINA_TRUE;
@@ -124,11 +121,13 @@ evas_object_is_source_invisible(Evas_Object *eo_obj EINA_UNUSED, Evas_Object_Pro
 {
    if (obj->parent_cache.src_invisible_valid)
      return obj->parent_cache.src_invisible;
+   if (obj->no_render)
+     return EINA_TRUE;
    if ((obj->proxy->proxies || obj->proxy->proxy_textures) && obj->proxy->src_invisible) return 1;
    if (!obj->smart.parent) return 0;
    if (obj->mask->is_mask) return 0;
    Evas_Object_Protected_Data *smart_parent_pd =
-      eo_data_scope_get(obj->smart.parent, EVAS_OBJECT_CLASS);
+      eo_data_scope_get(obj->smart.parent, EFL_CANVAS_OBJECT_CLASS);
    obj->parent_cache.src_invisible =
       evas_object_is_source_invisible(obj->smart.parent, smart_parent_pd);
    obj->parent_cache.src_invisible_valid = EINA_TRUE;
@@ -137,8 +136,8 @@ evas_object_is_source_invisible(Evas_Object *eo_obj EINA_UNUSED, Evas_Object_Pro
 
 static inline int
 evas_object_is_visible(Evas_Object *eo_obj, Evas_Object_Protected_Data *obj)
-{                        /* post 1.0 -> enable? */
-   if ((obj->cur->visible)/* && (obj->cur->color.a > 0)*/ &&
+{
+   if ((obj->cur->visible) && (!obj->no_render) &&
        ((obj->cur->cache.clip.visible) || (obj->is_smart)) &&
        ((obj->cur->cache.clip.a > 0 && obj->cur->render_op == EVAS_RENDER_BLEND)
        || obj->cur->render_op != EVAS_RENDER_BLEND))
@@ -277,10 +276,24 @@ evas_object_clip_recalc(Evas_Object_Protected_Data *obj)
      }
    else
      {
-        cx = obj->cur->geometry.x;
-        cy = obj->cur->geometry.y;
-        cw = obj->cur->geometry.w;
-        ch = obj->cur->geometry.h;
+        if (obj->is_smart)
+          {
+             Evas_Coord_Rectangle bounding_box = { 0, 0, 0, 0 };
+
+             evas_object_smart_bounding_box_update(eo_obj, obj);
+             evas_object_smart_bounding_box_get(eo_obj, &bounding_box, NULL);
+             cx = bounding_box.x;
+             cy = bounding_box.y;
+             cw = bounding_box.w;
+             ch = bounding_box.h;
+          }
+        else
+          {
+             cx = obj->cur->geometry.x;
+             cy = obj->cur->geometry.y;
+             cw = obj->cur->geometry.w;
+             ch = obj->cur->geometry.h;
+          }
      }
 
    if (obj->cur->color.a == 0 && obj->cur->render_op == EVAS_RENDER_BLEND)
@@ -293,8 +306,7 @@ evas_object_clip_recalc(Evas_Object_Protected_Data *obj)
    if (clipper)
      {
         // this causes problems... hmmm ?????
-        if (clipper->cur->cache.clip.dirty)
-          evas_object_clip_recalc(clipper);
+        evas_object_clip_recalc(clipper);
 
         // I don't know why this test was here in the first place. As I have
         // no issue showing up due to this, I keep it and move color out of it.
@@ -318,7 +330,7 @@ evas_object_clip_recalc(Evas_Object_Protected_Data *obj)
              if (EINA_LIKELY(obj->smart.parent != NULL))
                {
                   Evas_Object_Protected_Data *parent =
-                        eo_data_scope_get(obj->smart.parent, EVAS_OBJECT_CLASS);
+                        eo_data_scope_get(obj->smart.parent, EFL_CANVAS_OBJECT_CLASS);
                   if (parent->clip.mask)
                     {
                        if (parent->clip.mask != obj->clip.mask)

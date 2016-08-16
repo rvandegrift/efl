@@ -10,7 +10,7 @@
 #include "embryo_private.h"
 
 static Embryo_Version _version = { VMAJ, VMIN, VMIC, VREV };
-EAPI Embryo_Version *embryo_version = &_version;
+EAPI Embryo_Version * embryo_version = &_version;
 
 static int _embryo_init_count = 0;
 int _embryo_default_log_dom = -1;
@@ -64,6 +64,8 @@ embryo_shutdown(void)
 
    eina_log_domain_unregister(_embryo_default_log_dom);
    _embryo_default_log_dom = -1;
+   eina_shutdown();
 
    return _embryo_init_count;
 }
+

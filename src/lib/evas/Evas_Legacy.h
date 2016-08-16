@@ -336,6 +336,217 @@ EAPI int              evas_event_freeze_get(const Evas *e) EINA_WARN_UNUSED_RESU
  * out on new objects if the state change demands it.
  */
 EAPI void             evas_event_thaw_eval(Evas *e) EINA_ARG_NONNULL(1);
+
+/**
+ * @brief Mouse move event feed.
+ *
+ * This function will set some evas properties that is necessary when the mouse
+ * is moved from its last position. It prepares information to be treated by
+ * the callback function.
+ *
+ * @param[in] y The vertical position of the mouse pointer.
+ * @param[in] timestamp The timestamp of the mouse up event.
+ * @param[in] data The data for canvas.
+ */
+EAPI void             evas_event_feed_mouse_move(Evas *obj, int x, int y, unsigned int timestamp, const void *data);
+
+/**
+ * @brief Mouse move event feed from input.
+ *
+ * Similar to the @ref evas_event_feed_mouse_move, this function will inform
+ * Evas about mouse move events which were received by the input system,
+ * relative to the 0,0 of the window, not to the canvas 0,0. It will take care
+ * of doing any special transformation like adding the framespace offset to the
+ * mouse event.
+ *
+ * @param[in] y The vertical position of the mouse pointer relative to the 0,0
+ * of the window/surface.
+ * @param[in] timestamp The timestamp of the mouse move event.
+ * @param[in] data The data for canvas.
+ *
+ * @since 1.8
+ */
+EAPI void             evas_event_input_mouse_move(Evas *obj, int x, int y, unsigned int timestamp, const void *data);
+
+/**
+ * @brief Mouse up event feed.
+ *
+ * This function will set some evas properties that is necessary when the mouse
+ * button is released. It prepares information to be treated by the callback
+ * function.
+ *
+ * @param[in] flags Evas button flags.
+ * @param[in] timestamp The timestamp of the mouse up event.
+ * @param[in] data The data for canvas.
+ */
+EAPI void             evas_event_feed_mouse_up(Evas *obj, int b, Evas_Button_Flags flags, unsigned int timestamp, const void *data);
+
+/**
+ * @brief Mouse down event feed.
+ *
+ * This function will set some evas properties that is necessary when the mouse
+ * button is pressed. It prepares information to be treated by the callback
+ * function.
+ *
+ * @param[in] flags Evas button flags.
+ * @param[in] timestamp The timestamp of the mouse up event.
+ * @param[in] data The data for canvas.
+ */
+EAPI void             evas_event_feed_mouse_down(Evas *obj, int b, Evas_Button_Flags flags, unsigned int timestamp, const void *data);
+
+/**
+ * @brief Mouse wheel event feed.
+ *
+ * This function will set some evas properties that is necessary when the mouse
+ * wheel is scrolled up or down. It prepares information to  be treated by the
+ * callback function.
+ *
+ * @param[in] z How much mouse wheel was scrolled up or down.
+ * @param[in] timestamp The timestamp of the mouse up event.
+ * @param[in] data The data for canvas.
+ */
+EAPI void             evas_event_feed_mouse_wheel(Evas *obj, int direction, int z, unsigned int timestamp, const void *data);
+
+/**
+ * @brief Mouse in event feed.
+ *
+ * This function will set some evas properties that is necessary when the mouse
+ * in event happens. It prepares information to be treated by the callback
+ * function.
+ *
+ * @param[in] data The data for canvas.
+ */
+EAPI void             evas_event_feed_mouse_in(Evas *obj, unsigned int timestamp, const void *data);
+
+/**
+ * @brief Mouse out event feed.
+ *
+ * This function will set some evas properties that is necessar when the mouse
+ * out event happens. It prepares information to be treated by the callback
+ * function.
+ *
+ * @param[in] data The data for canvas.
+ */
+EAPI void             evas_event_feed_mouse_out(Evas *obj, unsigned int timestamp, const void *data);
+
+/**
+ * @brief Mouse cancel event feed.
+ *
+ * This function will call generate a mouse up event.
+ *
+ * @param[in] data The data for canvas.
+ */
+EAPI void             evas_event_feed_mouse_cancel(Evas *obj, unsigned int timestamp, const void *data);
+
+/* multi touch events - no doc */
+EAPI void             evas_event_input_multi_down(Evas *obj, int d, int x, int y, double rad, double radx, double rady, double pres, double ang, double fx, double fy, Evas_Button_Flags flags, unsigned int timestamp, const void *data);
+EAPI void             evas_event_input_multi_move(Evas *obj, int d, int x, int y, double rad, double radx, double rady, double pres, double ang, double fx, double fy, unsigned int timestamp, const void *data);
+EAPI void             evas_event_input_multi_up(Evas *obj, int d, int x, int y, double rad, double radx, double rady, double pres, double ang, double fx, double fy, Evas_Button_Flags flags, unsigned int timestamp, const void *data);
+EAPI void             evas_event_feed_multi_down(Evas *obj, int d, int x, int y, double rad, double radx, double rady, double pres, double ang, double fx, double fy, Evas_Button_Flags flags, unsigned int timestamp, const void *data);
+EAPI void             evas_event_feed_multi_move(Evas *obj, int d, int x, int y, double rad, double radx, double rady, double pres, double ang, double fx, double fy, unsigned int timestamp, const void *data);
+EAPI void             evas_event_feed_multi_up(Evas *obj, int d, int x, int y, double rad, double radx, double rady, double pres, double ang, double fx, double fy, Evas_Button_Flags flags, unsigned int timestamp, const void *data);
+
+/**
+ * @brief Key down event feed.
+ *
+ * This function will set some evas properties that is necessary when a key is
+ * pressed. It prepares information to be treated by the callback function.
+ *
+ * @param[in] key The key pressed.
+ * @param[in] string A string.
+ * @param[in] compose The compose string.
+ * @param[in] timestamp Timestamp of the mouse up event.
+ * @param[in] data Data for canvas.
+ */
+EAPI void             evas_event_feed_key_down(Evas *obj, const char *keyname, const char *key, const char *string, const char *compose, unsigned int timestamp, const void *data);
+
+/**
+ * @brief Key up event feed.
+ *
+ * This function will set some evas properties that is necessary when a key is
+ * released. It prepares information to be treated by the callback function.
+ *
+ * @param[in] key The key released.
+ * @param[in] string A string.
+ * @param[in] compose Compose.
+ * @param[in] timestamp Timestamp of the mouse up event.
+ * @param[in] data Data for canvas.
+ */
+EAPI void             evas_event_feed_key_up(Evas *obj, const char *keyname, const char *key, const char *string, const char *compose, unsigned int timestamp, const void *data);
+
+/**
+ * @brief Key down event feed with keycode.
+ *
+ * This function will set some evas properties that is necessary when a key is
+ * pressed. It prepares information to be treated by the callback function.
+ *
+ * @param[in] key The key released.
+ * @param[in] string A string.
+ * @param[in] compose Compose.
+ * @param[in] timestamp Timestamp of the mouse up event.
+ * @param[in] data Data for canvas.
+ * @param[in] keycode Key scan code numeric value for canvas.
+ *
+ * @since 1.10
+ */
+EAPI void             evas_event_feed_key_down_with_keycode(Evas *obj, const char *keyname, const char *key, const char *string, const char *compose, unsigned int timestamp, const void *data, unsigned int keycode);
+
+/**
+ * @brief Key up event feed with keycode.
+ *
+ * This function will set some evas properties that is necessary when a key is
+ * released. It prepares information to be treated by the callback function.
+ *
+ * @param[in] key The key released.
+ * @param[in] string A string.
+ * @param[in] compose Compose.
+ * @param[in] timestamp Timestamp of the mouse up event.
+ * @param[in] data Data for canvas.
+ * @param[in] keycode Key scan code numeric value for canvas.
+ *
+ * @since 1.10
+ */
+EAPI void             evas_event_feed_key_up_with_keycode(Evas *obj, const char *keyname, const char *key, const char *string, const char *compose, unsigned int timestamp, const void *data, unsigned int keycode);
+
+/**
+ * @brief Input device axis update event feed.
+ *
+ * This function will set some evas properties that is necessary when an e.g.
+ * stylus axis is updated. It prepares information to be treated by the
+ * callback function.
+ *
+ * @param[in] device System-provided device identifier.
+ * @param[in] toolid Type of tool currently being used.
+ * @param[in] naxes Number of elements in the \p axis array.
+ * @param[in] axis Array containing the current value of all updated axes.
+ * @param[in] data Data for canvas.
+ *
+ * @since 1.13
+ */
+EAPI void             evas_event_feed_axis_update(Evas *obj, unsigned int timestamp, int device, int toolid, int naxes, const Evas_Axis *axis, const void *data);
+
+/**
+ * @brief Hold event feed.
+ *
+ * This function makes the object to stop sending events.
+ *
+ * @param[in] timestamp The timestamp of the mouse up event.
+ * @param[in] data The data for canvas.
+ */
+EAPI void             evas_event_feed_hold(Evas *obj, int hold, unsigned int timestamp, const void *data);
+
+/**
+ * @brief Re feed event.
+ *
+ * This function re-feeds the event pointed by event_copy.
+ *
+ * This function call evas_event_feed_* functions, so it can cause havoc if not
+ * used wisely. Please use it responsibly.
+ *
+ * @param[in] event_type Event type.
+ */
+EAPI void             evas_event_refeed_event(Evas *obj, void *event_copy, Evas_Callback_Type event_type);
+
 /**
  * @}
  */
@@ -460,6 +671,71 @@ EAPI int              evas_object_ref_get(const Evas_Object *obj);
  * @ingroup Evas_Object_Group_Basic
  */
 EAPI void             evas_object_del(Evas_Object *obj) EINA_ARG_NONNULL(1);
+
+/**
+ * @brief Retrieves the type of the given Evas object.
+ *
+ * For Evas' builtin types, the return strings will be one of "rectangle",
+ * "line", "polygon", "text", "textblock" or "image".
+ *
+ * For Evas smart objects (see @ref Evas_Smart_Group), the name of the smart
+ * class itself is returned on this call. For the built-in smart objects, these
+ * names are "EvasObjectSmartClipped" for the clipped smart object,
+ * "Evas_Object_Box" for the box object and "Evas_Object_Table for the table
+ * object.
+ *
+ * @return The type of the object.
+ *
+ * @ingroup Evas_Object_Group_Basic
+ * @since 1.18
+ */
+EAPI const char      *evas_object_type_get(const Evas_Object *obj);
+
+/**
+ * @brief Sets the name of the given Evas object to the given name.
+ *
+ * There might be occasions where one would like to name his/her objects.
+ *
+ * @param[in] name The given name.
+ *
+ * @ingroup Evas_Object_Group_Basic
+ */
+EAPI void evas_object_name_set(Evas_Object *obj, const char *name);
+
+/**
+ * @brief Retrieves the name of the given Evas object.
+ *
+ * Return: The name of the object or @c null, if no name has been given to it.
+ *
+ * @return The given name.
+ *
+ * @ingroup Evas_Object_Group_Basic
+ */
+EAPI const char *evas_object_name_get(const Evas_Object *obj);
+
+/**
+ * @brief Retrieves the object from children of the given object with the given
+ * name.
+ *
+ * This looks for the evas object given a name by @ref evas_object_name_set,
+ * but it ONLY looks at the children of the object *p obj, and will only
+ * recurse into those children if @c recurse is greater than 0. If the name is
+ * not unique within immediate children (or the whole child tree) then it is
+ * not defined which child object will be returned. If @c recurse is set to -1
+ * then it will recurse without limit.
+ *
+ * @param[in] name The given name.
+ * @param[in] recurse Set to the number of child levels to recurse (0 == don't
+ * recurse, 1 == only look at the children of @c obj or their immediate
+ * children, but no further etc.).
+ *
+ * @return The Evas object with the given name on success, Otherwise @c null.
+ *
+ * @since 1.2
+ *
+ * @ingroup Evas_Object_Group_Basic
+ */
+EAPI Evas_Object *evas_object_name_child_find(const Evas_Object *obj, const char *name, int recurse) EINA_WARN_UNUSED_RESULT;
 
 /**
  * Retrieves the position and (rectangular) size of the given Evas
@@ -647,6 +923,319 @@ EAPI void evas_object_resize(Evas_Object *obj, Evas_Coord w, Evas_Coord h);
 EAPI Eina_Bool evas_object_visible_get(const Evas_Object *obj);
 
 /**
+ * @brief Sets the hints for an object's maximum size.
+ *
+ * This is not a size enforcement in any way, it's just a hint that should be
+ * used whenever appropriate.
+ *
+ * Values -1 will be treated as unset hint components, when queried by
+ * managers.
+ *
+ * @note Smart objects (such as elementary) can have their own size hint
+ * policy. So calling this API may or may not affect the size of smart objects.
+ *
+ * @param[in] w Integer to use as the maximum width hint.
+ * @param[in] h Integer to use as the maximum height hint.
+ *
+ * @ingroup Evas_Object
+ */
+EAPI void evas_object_size_hint_max_set(Evas_Object *obj, Evas_Coord w, Evas_Coord h);
+
+/**
+ * @brief Retrieves the hints for an object's maximum size.
+ *
+ * These are hints on the maximum sizes @c obj should have. This is not a size
+ * enforcement in any way, it's just a hint that should be used whenever
+ * appropriate.
+ *
+ * @note Use @c null pointers on the hint components you're not interested in:
+ * they'll be ignored by the function.
+ *
+ * @param[out] w Integer to use as the maximum width hint.
+ * @param[out] h Integer to use as the maximum height hint.
+ *
+ * @ingroup Evas_Object
+ */
+EAPI void evas_object_size_hint_max_get(const Evas_Object *obj, Evas_Coord *w, Evas_Coord *h);
+
+/**
+ * @brief Sets the hints for an object's optimum size.
+ *
+ * This is not a size enforcement in any way, it's just a hint that hould be
+ * used whenever appropriate.
+ *
+ * Values 0 will be treated as unset hint components, when queried by managers.
+ *
+ * @note Smart objects(such as elementary) can have their own size hint policy.
+ * So calling this API may or may not affect the size of smart objects.
+ *
+ * @param[in] w Integer to use as the preferred width hint.
+ * @param[in] h Integer to use as the preferred height hint.
+ *
+ * @ingroup Evas_Object
+ */
+EAPI void evas_object_size_hint_request_set(Evas_Object *obj, Evas_Coord w, Evas_Coord h);
+
+/**
+ * @brief Retrieves the hints for an object's optimum size.
+ *
+ * These are hints on the optimum sizes @c obj should have. This is not a size
+ * enforcement in any way, it's just a hint that should be used whenever
+ * appropriate.
+ *
+ * @note Use @c null pointers on the hint components you're not interested in:
+ * they'll be ignored by the function.
+ *
+ * @param[out] w Integer to use as the preferred width hint.
+ * @param[out] h Integer to use as the preferred height hint.
+ *
+ * @ingroup Evas_Object
+ */
+EAPI void evas_object_size_hint_request_get(const Evas_Object *obj, Evas_Coord *w, Evas_Coord *h);
+
+/**
+ * @brief Sets the hints for an object's minimum size.
+ *
+ * This is not a size enforcement in any way, it's just a hint that should be
+ * used whenever appropriate.
+ *
+ * Values 0 will be treated as unset hint components, when queried by managers.
+ *
+ * @note Smart objects(such as elementary) can have their own size hint policy.
+ * So calling this API may or may not affect the size of smart objects.
+ *
+ * @param[in] w Integer to use as the minimum width hint.
+ * @param[in] h Integer to use as the minimum height hint.
+ *
+ * @ingroup Evas_Object
+ */
+EAPI void evas_object_size_hint_min_set(Evas_Object *obj, Evas_Coord w, Evas_Coord h);
+
+/**
+ * @brief Retrieves the hints for an object's minimum size.
+ *
+ * These are hints on the minimum sizes @c obj should have. This is not a size
+ * enforcement in any way, it's just a hint that should be used whenever
+ * appropriate.
+ *
+ * @note Use @c null pointers on the hint components you're not interested in:
+ * they'll be ignored by the function.
+ *
+ * @param[out] w Integer to use as the minimum width hint.
+ * @param[out] h Integer to use as the minimum height hint.
+ *
+ * @ingroup Evas_Object
+ */
+EAPI void evas_object_size_hint_min_get(const Evas_Object *obj, Evas_Coord *w, Evas_Coord *h);
+
+/**
+ * @brief Sets the hints for an object's padding space.
+ *
+ * This is not a size enforcement in any way, it's just a hint that should be
+ * used whenever appropriate.
+ *
+ * @note Smart objects(such as elementary) can have their own size hint policy.
+ * So calling this API may or may not affect the size of smart objects.
+ *
+ * @param[in] l Integer to specify left padding.
+ * @param[in] r Integer to specify right padding.
+ * @param[in] t Integer to specify top padding.
+ * @param[in] b Integer to specify bottom padding.
+ *
+ * @ingroup Evas_Object
+ */
+EAPI void evas_object_size_hint_padding_set(Evas_Object *obj, Evas_Coord l, Evas_Coord r, Evas_Coord t, Evas_Coord b);
+
+/**
+ * @brief Retrieves the hints for an object's padding space.
+ *
+ * Padding is extra space an object takes on each of its delimiting rectangle
+ * sides, in canvas units.
+ *
+ * This is not a size enforcement in any way, it's just a hint that should be
+ * used whenever appropriate.
+ *
+ * @note Use @c null pointers on the hint components you're not interested in:
+ * they'll be ignored by the function.
+ *
+ * @param[out] l Integer to specify left padding.
+ * @param[out] r Integer to specify right padding.
+ * @param[out] t Integer to specify top padding.
+ * @param[out] b Integer to specify bottom padding.
+ *
+ * @ingroup Evas_Object
+ */
+EAPI void evas_object_size_hint_padding_get(const Evas_Object *obj, Evas_Coord *l, Evas_Coord *r, Evas_Coord *t, Evas_Coord *b);
+
+/**
+ * @brief Sets the hints for an object's weight.
+ *
+ * This is not a size enforcement in any way, it's just a hint that should be
+ * used whenever appropriate.
+ *
+ * This is a hint on how a container object should resize a given child within
+ * its area. Containers may adhere to the simpler logic of just expanding the
+ * child object's dimensions to fit its own (see the #EVAS_HINT_EXPAND helper
+ * weight macro) or the complete one of taking each child's weight hint as real
+ * weights to how much of its size to allocate for them in each axis. A
+ * container is supposed to, after normalizing the weights of its children
+ * (with weight  hints), distribut the space it has to layout them by those
+ * factors -- most weighted children get larger in this process than the least
+ * ones.
+ *
+ * @note Default weight hint values are 0.0, for both axis.
+ *
+ * @param[in] x Non-negative double value to use as horizontal weight hint.
+ * @param[in] y Non-negative double value to use as vertical weight hint.
+ *
+ * @ingroup Evas_Object
+ */
+EAPI void evas_object_size_hint_weight_set(Evas_Object *obj, double x, double y);
+
+/**
+ * @brief Retrieves the hints for an object's weight.
+ *
+ * Accepted values are zero or positive values. Some users might use this hint
+ * as a boolean, but some might consider it as a proportion, see documentation
+ * of possible users, which in Evas are the @ref Evas_Object_Box "box" and @ref
+ * Evas_Object_Table "table" smart objects.
+ *
+ * This is not a size enforcement in any way, it's just a hint that should be
+ * used whenever appropriate.
+ *
+ * @note Use @c null pointers on the hint components you're not interested in:
+ * they'll be ignored by the function.
+ *
+ * @note If @c obj is invalid, then the hint components will be set with 0.0.
+ *
+ * @param[out] x Non-negative double value to use as horizontal weight hint.
+ * @param[out] y Non-negative double value to use as vertical weight hint.
+ *
+ * @ingroup Evas_Object
+ */
+EAPI void evas_object_size_hint_weight_get(const Evas_Object *obj, double *x, double *y);
+
+/**
+ * @brief Sets the hints for an object's alignment.
+ *
+ * These are hints on how to align an object inside the boundaries of a
+ * container/manager. Accepted values are in the 0.0 to 1.0 range, with the
+ * special value #EVAS_HINT_FILL used to specify "justify" or "fill" by some
+ * users. In this case, maximum size hints should be enforced with higher
+ * priority, if they are set. Also, any padding hint set on objects should add
+ * up to the alignment space on the final scene composition.
+ *
+ * See documentation of possible users: in Evas, they are the @ref
+ * Evas_Object_Box "box" and @ref Evas_Object_Table "table" smart objects.
+ *
+ * For the horizontal component, 0.0 means to the left, 1.0 means to the right.
+ * Analogously, for the vertical component, 0.0 to the top, 1.0 means to the
+ * bottom.
+ *
+ * This is not a size enforcement in any way, it's just a hint that should be
+ * used whenever appropriate.
+ *
+ * @note Default alignment hint values are 0.5, for both axis.
+ *
+ * @param[in] x Double, ranging from 0.0 to 1.0 or with the special value
+ * #EVAS_HINT_FILL, to use as horizontal alignment hint.
+ * @param[in] y Double, ranging from 0.0 to 1.0 or with the special value
+ * #EVAS_HINT_FILL, to use as vertical alignment hint.
+ *
+ * @ingroup Evas_Object
+ */
+EAPI void evas_object_size_hint_align_set(Evas_Object *obj, double x, double y);
+
+/**
+ * @brief Retrieves the hints for on object's alignment.
+ *
+ * This is not a size enforcement in any way, it's just a hint that should be
+ * used whenever appropriate.
+ *
+ * @note Use @c null pointers on the hint components you're not interested in:
+ * they'll be ignored by the function.
+ *
+ * @note If @c obj is invalid, then the hint components will be set with 0.5
+ *
+ * @param[out] x Double, ranging from 0.0 to 1.0 or with the special value
+ * #EVAS_HINT_FILL, to use as horizontal alignment hint.
+ * @param[out] y Double, ranging from 0.0 to 1.0 or with the special value
+ * #EVAS_HINT_FILL, to use as vertical alignment hint.
+ *
+ * @ingroup Evas_Object
+ */
+EAPI void evas_object_size_hint_align_get(const Evas_Object *obj, double *x, double *y);
+
+/**
+ * @brief Sets the hints for an object's aspect ratio.
+ *
+ * This is not a size enforcement in any way, it's just a hint that should be
+ * used whenever appropriate.
+ *
+ * If any of the given aspect ratio terms are 0, the object's container will
+ * ignore the aspect and scale @c obj to occupy the whole available area, for
+ * any given policy.
+ *
+ * @note Smart objects(such as elementary) can have their own size hint policy.
+ * So calling this API may or may not affect the size of smart objects.
+ *
+ * @param[in] aspect The policy/type of aspect ratio to apply to @c obj.
+ * @param[in] w Integer to use as aspect width ratio term.
+ * @param[in] h Integer to use as aspect height ratio term.
+ *
+ * @ingroup Evas_Object
+ */
+EAPI void evas_object_size_hint_aspect_set(Evas_Object *obj, Evas_Aspect_Control aspect, Evas_Coord w, Evas_Coord h);
+
+/**
+ * @brief Retrieves the hints for an object's aspect ratio.
+ *
+ * The different aspect ratio policies are documented in the
+ * #Evas_Aspect_Control type. A container respecting these size hints would
+ * resize its children accordingly to those policies.
+ *
+ * For any policy, if any of the given aspect ratio terms are 0, the object's
+ * container should ignore the aspect and scale @c obj to occupy the whole
+ * available area. If they are both positive integers, that proportion will be
+ * respected, under each scaling policy.
+ *
+ * @note Use @c null pointers on the hint components you're not interested in:
+ * they'll be ignored by the function.
+ *
+ * @param[out] aspect The policy/type of aspect ratio to apply to @c obj.
+ * @param[out] w Integer to use as aspect width ratio term.
+ * @param[out] h Integer to use as aspect height ratio term.
+ *
+ * @ingroup Evas_Object
+ */
+EAPI void evas_object_size_hint_aspect_get(const Evas_Object *obj, Evas_Aspect_Control *aspect, Evas_Coord *w, Evas_Coord *h);
+
+/**
+ * @brief Sets the hints for an object's disply mode,
+ *
+ * This is not a size enforcement in any way, it's just a hint that can be used
+ * whenever appropriate.
+ *
+ * @param[in] dispmode Display mode hint.
+ *
+ * @ingroup Evas_Object
+ */
+EAPI void evas_object_size_hint_display_mode_set(Evas_Object *obj, Evas_Display_Mode dispmode);
+
+/**
+ * @brief Retrieves the hints for an object's display mode
+ *
+ * These are hints on the display mode @c obj. This is not a size enforcement
+ * in any way, it's just a hint that can be used whenever appropriate. This
+ * mode can be used object's display mode like commpress or expand.
+ *
+ * @return Display mode hint.
+ *
+ * @ingroup Evas_Objects
+ */
+EAPI Evas_Display_Mode evas_object_size_hint_display_mode_get(const Evas_Object *obj);
+
+/**
  *
  * Sets the layer of its canvas that the given object will be part of.
  *
@@ -803,8 +1392,120 @@ EAPI void evas_object_stack_above(Evas_Object *obj, Evas_Object *above) EINA_ARG
  */
 EAPI void evas_object_lower(Evas_Object *obj);
 
-#include "canvas/evas_common_interface.eo.legacy.h"
-#include "canvas/evas_object.eo.legacy.h"
+/**
+ * @brief Set a hint flag on the given Evas object that it's used as a "static
+ * clipper".
+ *
+ * This is a hint to Evas that this object is used as a big static clipper and
+ * shouldn't be moved with children and otherwise considered specially. The
+ * default value for new objects is @c false.
+ *
+ * @param[in] is_static_clip @c true if it's to be used as a static clipper,
+ * @c false otherwise.
+ *
+ * @ingroup Evas_Object
+ */
+EAPI void evas_object_static_clip_set(Evas_Object *obj, Eina_Bool is_static_clip);
+
+/**
+ * @brief Return a list of objects currently clipped by @c obj.
+ *
+ * This returns the internal list handle that contains all objects clipped by
+ * the object @c obj. If none are clipped by it, the call returns @c null. This
+ * list is only valid until the clip list is changed and should be fetched
+ * again with another call to this function if any objects being clipped by
+ * this object are unclipped, clipped by a new object, deleted or get the
+ * clipper deleted. These operations will invalidate the list returned, so it
+ * should not be used anymore after that point. Any use of the list after this
+ * may have undefined results, possibly leading to crashes. The object @c obj
+ * must be a valid Evas_Object.
+ *
+ * See also @ref evas_object_clip_set, @ref evas_object_clip_unset and
+ * @ref evas_object_clip_get.
+ *
+ * @return A list of objects being clipped by @c obj.
+ *
+ * @ingroup Evas_Object
+ */
+EAPI const Eina_List *evas_object_clipees_get(const Evas_Object *obj) EINA_WARN_UNUSED_RESULT;
+
+/** How the object should be rendered to output.
+ *
+ * @ingroup Evas
+ */
+typedef enum
+{
+  EVAS_RENDER_BLEND = 0, /** Default render operation: d = d*(1-sa) + s. The
+                          * object will be merged onto the bottom objects using
+                          * simple alpha compositing (a over b). */
+  EVAS_RENDER_BLEND_REL = 1, /** DEPRECATED. d = d*(1 - sa) + s*da */
+  EVAS_RENDER_COPY = 2, /** Copy mode, d = s. The object's pixels will replace
+                         * everything that was below, effectively hiding them.
+                         */
+  EVAS_RENDER_COPY_REL = 3, /** DEPRECATED. d = s*da */
+  EVAS_RENDER_ADD = 4, /** DEPRECATED. d = d + s */
+  EVAS_RENDER_ADD_REL = 5, /** DEPRECATED. d = d + s*da */
+  EVAS_RENDER_SUB = 6, /** DEPRECATED. d = d - s */
+  EVAS_RENDER_SUB_REL = 7, /** DEPRECATED. d = d - s*da */
+  EVAS_RENDER_TINT = 8, /** DEPRECATED. d = d*s + d*(1 - sa) + s*(1 - da) */
+  EVAS_RENDER_TINT_REL = 9, /** DEPRECATED. d = d*(1 - sa + s) */
+  EVAS_RENDER_MASK = 10, /** DEPRECATED. d = d*sa. For masking support, please
+                          * use Efl.Canvas.Object.clip_set or EDC "clip_to" instead.
+                          */
+  EVAS_RENDER_MUL = 11 /** DEPRECATED. d = d*s */
+} Evas_Render_Op;
+
+/**
+ * @brief Sets the render mode to be used for compositing the Evas object.
+ *
+ * Note that only copy and blend modes are actually supported: -
+ * @ref Evas_Render_Op.EVAS_RENDER_BLEND means the object will be merged on top
+ * of objects below it using simple alpha compositing. -
+ * @ref Evas_Render_Op.EVAS_RENDER_COPY means this object's pixels will replace
+ * everything that is below, making this object opaque.
+ *
+ * Please do not assume that @ref Evas_Render_Op.EVAS_RENDER_COPY mode can be
+ * used to "poke" holes in a window (to see through it), as only the compositor
+ * can ensure that. Copy mode should only be used with otherwise opaque
+ * widgets, or inside non-window surfaces (eg. a transparent background inside
+ * an Ecore.Evas.Buffer).
+ *
+ * @param[in] render_op One of the Evas_Render_Op values. Only blend (default)
+ * and copy modes are supported.
+ *
+ * @ingroup Evas_Object
+ */
+EAPI void evas_object_render_op_set(Evas_Object *obj, Evas_Render_Op render_op);
+
+/**
+ * @brief Retrieves the current value of the operation used for rendering the
+ * Evas object.
+ *
+ * @return One of the Evas_Render_Op values. Only blend (default) and copy
+ * modes are supported.
+ *
+ * @ingroup Evas_Object
+ */
+EAPI Evas_Render_Op evas_object_render_op_get(const Evas_Object *obj);
+
+/**
+ * @brief Get the "static clipper" hint flag for a given Evas object.
+ *
+ * @return @c true if it's to be used as a static clipper, @c false otherwise.
+ *
+ * @ingroup Evas_Object
+ */
+EAPI Eina_Bool evas_object_static_clip_get(const Evas_Object *obj);
+
+#include "canvas/efl_canvas_object.eo.legacy.h"
+
+/**
+ * @brief Get the Evas to which this object belongs to
+ *
+ * The object may be an evas object, an elementary object or window, or an
+ * evas 3D / VG object.
+ */
+EAPI Evas *evas_object_evas_get(const Eo *obj);
 
 /**
  * @}
@@ -1620,7 +2321,7 @@ EAPI void *evas_object_intercept_focus_set_callback_del(Evas_Object *obj, Evas_O
  */
 EAPI Evas_Object *evas_object_rectangle_add(Evas *e) EINA_WARN_UNUSED_RESULT EINA_ARG_NONNULL(1) EINA_MALLOC;
 
-#include "canvas/evas_rectangle.eo.legacy.h"
+#include "canvas/efl_canvas_rectangle.eo.legacy.h"
 
 /**
  * @}
@@ -1685,11 +2386,10 @@ EAPI Evas_Object *evas_object_rectangle_add(Evas *e) EINA_WARN_UNUSED_RESULT EIN
  * Efl_Gfx_Path_Command *path_cmd = NULL;
  * double *points = NULL;
  * efl_gfx_path_append_circle(&path_cmd, &points);
- * eo_do(shape,
- *       evas_vg_node_origin_set(10, 10),
- *       efl_gfx_shape_stroke_width_set(1.0),
- *       evas_vg_node_color_set(128, 128, 128, 80),
- *       efl_gfx_shape_path_set(path_cmd, points)); 
+ * *       evas_vg_node_origin_set(shape, 10, 10);
+ * *       efl_gfx_shape_stroke_width_set(shape, 1.0);
+ * *       evas_vg_node_color_set(shape, 128, 128, 128, 80);
+ * *       efl_gfx_shape_path_set(shape, path_cmd, points); 
  * @endcode
  *
  * @since 1.14
@@ -1906,7 +2606,7 @@ EAPI void evas_vg_node_raise(Eo *obj);
  */
 EAPI void evas_vg_node_lower(Eo *obj);
 
-#include "canvas/efl_vg_base.eo.legacy.h"
+#include "canvas/efl_vg.eo.legacy.h"
 
 /**
  *
@@ -2240,6 +2940,22 @@ EAPI void evas_vg_shape_shape_append_scubic_to(Eo *obj, double x, double y, doub
 EAPI void evas_vg_shape_shape_append_arc_to(Eo *obj, double x, double y, double rx, double ry, double angle, Eina_Bool large_arc, Eina_Bool sweep);
 
 /**
+ * @brief Append an arc that enclosed in the given rectangle (x, y, w, h). The
+ * angle is defined in counter clock wise , use -ve angle for clockwise arc.
+ *
+ * @param[in] y Y co-ordinate of the rect.
+ * @param[in] w width of the rect.
+ * @param[in] h height of the rect.
+ * @param[in] start_angle Angle at which the arc will start
+ * @param[in] sweep_length @ Length of the arc.
+ *
+ * @since 1.18
+ *
+ * @ingroup Efl_Gfx_Shape
+ */
+EAPI void evas_vg_shape_shape_append_arc(Eo *obj, double x, double y, double w, double h, double start_angle, double sweep_length);
+
+/**
  *
  * Closes the current subpath by drawing a line to the beginning of the subpath,
  * automatically starting a new path. The current point of the new path is
@@ -2525,6 +3241,96 @@ EAPI Evas_Object                  *evas_object_image_filled_add(Evas *e) EINA_WA
 EAPI void                          evas_object_image_memfile_set(Evas_Object *obj, void *data, int size, char *format, char *key) EINA_ARG_NONNULL(1, 2);
 
 /**
+ * @def EVAS_NATIVE_SURFACE_VERSION
+ * Magic version number to know what the native surface struct looks like
+ */
+
+#define EVAS_NATIVE_SURFACE_VERSION 3
+
+/**
+ * Native surface types that image object supports
+ *
+ * @see Evas_Native_Surface
+ * @see evas_object_image_native_surface_set()
+ */
+typedef enum _Evas_Native_Surface_Type
+{
+   EVAS_NATIVE_SURFACE_NONE, /**< No surface type */
+   EVAS_NATIVE_SURFACE_X11,  /**< X Window system based type. pixmap id or visual of the pixmap */
+   EVAS_NATIVE_SURFACE_OPENGL, /**< OpenGL system based type. texture or framebuffer id*/
+   EVAS_NATIVE_SURFACE_WL, /**< Wayland system based type. buffer of surface */
+   EVAS_NATIVE_SURFACE_TBM, /**< Tizen system based type. tbm surface @since 1.14  */
+   EVAS_NATIVE_SURFACE_EVASGL, /**< Evas GL based type. evas gl surface @since 1.14 */
+   EVAS_NATIVE_SURFACE_WL_DMABUF, /**< Wayland system based type. using dmabuf @since 1.18 */
+} Evas_Native_Surface_Type;
+
+/**
+ * @brief A generic datatype for engine specific native surface information.
+ *
+ * Please fill up Evas_Native_Surface fields that regarded with current surface
+ * type. If you want to set the native surface type to
+ * EVAS_NATIVE_SURFACE_X11, you need to set union data with x11.visual or
+ * x11.pixmap. If you need to set the native surface as
+ * EVAS_NATIVE_SURFACE_OPENGL, on the other hand, you need to set union data
+ * with opengl.texture_id or opengl.framebuffer_id and so on.
+ * If you need to set the native surface as EVAS_NATIVE_SURFACE_WL,
+ * you need to set union data with wl.legacy_buffer.
+ * If you need to set the native surface as EVAS_NATIVE_SURFACE_TBM,
+ * you need to set union data with tbm surface. The version field
+ * should be set with EVAS_NATIVE_SURFACE_VERSION in order to check abi
+ * break in your application on the different efl library versions.
+ *
+ * @warning Native surface types totally depend on the system. Please
+ *          be aware that the types are supported on your system before using
+ *          them.
+ *
+ * @note The information stored in an @c Evas_Native_Surface returned by
+ *       @ref evas_gl_native_surface_get() is not meant to be used by
+ *       applications except for passing it to
+ *       @ref evas_object_image_native_surface_set().
+ *
+ * @see evas_object_image_native_surface_set()
+ */
+typedef struct _Evas_Native_Surface
+{
+   int                      version; /**< Current Native Surface Version. Use EVAS_NATIVE_SURFACE_VERSION */
+   Evas_Native_Surface_Type type; /**< Surface type. @see Evas_Native_Surface_Type */
+   union {
+      struct
+      {
+         void         *visual; /**< visual of the pixmap to use (Visual) */
+         unsigned long pixmap; /**< pixmap id to use (Pixmap) */
+      } x11; /**< Set this struct fields if surface data is X11 based. */
+
+      struct
+      {
+         unsigned int texture_id; /**< opengl texture id to use from glGenTextures() */
+         unsigned int framebuffer_id; /**< 0 if not a FBO, FBO id otherwise from glGenFramebuffers() */
+         unsigned int internal_format; /**< same as 'internalFormat' for glTexImage2D() */
+         unsigned int format; /**< same as 'format' for glTexImage2D() */
+         unsigned int x, y, w, h; /**< region inside the texture to use (image size is assumed as texture size, with 0, 0 being the top-left and co-ordinates working down to the right and bottom being positive) */
+      } opengl; /**< Set this struct fields if surface data is OpenGL based. */
+      struct
+      {
+         void *legacy_buffer; /**< wayland client buffer to use */
+      } wl; /**< Set this struct fields if surface data is Wayland based. */
+      struct
+      {
+         void *attr; /**< Pointer to dmabuf attributes - contents copied */
+         void *resource; /**< Wayland resource pointer, kept as is */
+      } wl_dmabuf; /**< Set this struct fields if surface data is Wayland dmabuf based. @since 1.18 */
+      struct
+      {
+         void *buffer; /**< tbm surface buffer to use @since 1.14 */
+      } tbm; /**< Set this struct fields if surface data is Tizen based. @since 1.14 */
+      struct
+      {
+         void *surface; /**< evas gl surface to use @since 1.14 */
+      } evasgl; /**< Set this struct fields if surface data is Evas GL based. @since 1.14 */
+   } data; /**< Choose one union data according to your surface. */
+} Evas_Native_Surface;
+
+/**
  * Set the native surface of a given image of the canvas
  *
  * @param obj The given canvas pointer.
@@ -2534,6 +3340,15 @@ EAPI void                          evas_object_image_memfile_set(Evas_Object *ob
  *
  */
 EAPI void                          evas_object_image_native_surface_set(Evas_Object *obj, Evas_Native_Surface *surf) EINA_ARG_NONNULL(1, 2);
+
+/**
+ * @brief Get the native surface of a given image of the canvas
+ *
+ * This function returns the native surface of a given canvas image.
+ *
+ * @return The native surface.
+ */
+EAPI Evas_Native_Surface          *evas_object_image_native_surface_get(const Evas_Object *obj);
 
 /**
  * Preload an image object's image data in the background
@@ -2572,20 +3387,6 @@ EAPI void                          evas_object_image_preload(Evas_Object *obj, E
  * @c NULL source.
  */
 EAPI Eina_Bool                     evas_object_image_source_unset(Evas_Object *obj) EINA_ARG_NONNULL(1);
-
-/**
- * Enable an image to be used as an alpha mask.
- *
- * This will set any flags, and discard any excess image data not used as an
- * alpha mask.
- *
- * Note there is little point in using a image as alpha mask unless it has an
- * alpha channel.
- *
- * @param obj Object to use as an alpha mask.
- * @param ismask Use image as alphamask, must be true.
- */
-EAPI void                          evas_object_image_alpha_mask_set(Evas_Object *obj, Eina_Bool ismask) EINA_ARG_NONNULL(1);
 
 /**
  *
@@ -2754,6 +3555,125 @@ EAPI Eina_Bool evas_object_image_save(const Eo *obj, const char *file, const cha
 EAPI Eina_Bool evas_object_image_animated_get(const Eo *obj);
 
 /**
+ * @brief Set the frame to current frame of an image object.
+ *
+ * This set image object's current frame to frame_num with 1 being the first
+ * frame.
+ *
+ * See also @ref evas_object_image_animated_get,
+ * @ref evas_object_image_animated_frame_count_get,
+ * @ref evas_object_image_animated_loop_type_get,
+ * @ref evas_object_image_animated_loop_count_get,
+ * @ref evas_object_image_animated_frame_duration_get.
+ *
+ * @param[in] frame_index The index of current frame.
+ *
+ * @since 1.1
+ */
+EAPI void evas_object_image_animated_frame_set(Evas_Object *obj, int frame_index);
+
+/**
+ * @brief Get the total number of frames of the image object.
+ *
+ * This returns total number of frames the image object supports (if animated).
+ *
+ * See also @ref evas_object_image_animated_get,
+ * @ref evas_object_image_animated_loop_type_get,
+ * @ref evas_object_image_animated_loop_count_get,
+ * @ref evas_object_image_animated_frame_duration_get.
+ *
+ * @return The number of frames.
+ *
+ * @since 1.1
+ */
+EAPI int evas_object_image_animated_frame_count_get(const Evas_Object *obj);
+
+/**
+ * @brief Get the kind of looping the image object does.
+ *
+ * This returns the kind of looping the image object wants to do.
+ *
+ * If it returns EVAS_IMAGE_ANIMATED_HINT_LOOP, you should display frames in a
+ * sequence like: 1->2->3->1->2->3->1...
+ *
+ * If it returns EVAS_IMAGE_ANIMATED_HINT_PINGPONG, it is better to display
+ * frames in a sequence like: 1->2->3->2->1->2->3->1...
+ *
+ * The default type is EVAS_IMAGE_ANIMATED_HINT_LOOP.
+ *
+ * See also @ref evas_object_image_animated_get,
+ * @ref evas_object_image_animated_frame_count_get,
+ * @ref evas_object_image_animated_loop_count_get,
+ * @ref evas_object_image_animated_frame_duration_get.
+ *
+ * @return Loop type of the image object.
+ *
+ * @since 1.1
+ */
+EAPI Evas_Image_Animated_Loop_Hint evas_object_image_animated_loop_type_get(const Evas_Object *obj);
+
+/**
+ * @brief Get the number times the animation of the object loops.
+ *
+ * This returns loop count of image. The loop count is the number of times the
+ * animation will play fully from first to last frame until the animation
+ * should stop (at the final frame).
+ *
+ * If 0 is returned, then looping should happen indefinitely (no limit to the
+ * number of times it loops).
+ *
+ * See also @ref evas_object_image_animated_get,
+ * @ref evas_object_image_animated_frame_count_get,
+ * @ref evas_object_image_animated_loop_type_get,
+ * @ref evas_object_image_animated_frame_duration_get.
+ *
+ * @return The number of loop of an animated image object.
+ *
+ * @since 1.1
+ */
+EAPI int evas_object_image_animated_loop_count_get(const Evas_Object *obj);
+
+/**
+ * @brief Get the duration of a sequence of frames.
+ *
+ * This returns total duration that the specified sequence of frames should
+ * take in seconds.
+ *
+ * If you set start_frame to 1 and frame_num 0, you get frame 1's duration. If
+ * you set start_frame to 1 and frame_num 1, you get frame 1's duration +
+ * frame2's duration.
+ *
+ * See also @ref evas_object_image_animated_get,
+ * @ref evas_object_image_animated_frame_count_get,
+ * @ref evas_object_image_animated_loop_type_get,
+ * @ref evas_object_image_animated_loop_count_get,
+ *
+ * @param[in] frame_num Number of frames in the sequence.
+ *
+ * @since 1.1
+ */
+EAPI double evas_object_image_animated_frame_duration_get(const Evas_Object *obj, int start_frame, int frame_num);
+
+/**
+ * @brief Set the DPI resolution of an image object's source image.
+ *
+ * This function sets the DPI resolution of a given loaded canvas image. Most
+ * useful for the SVG image loader.
+ *
+ * @param[in] dpi The DPI resolution.
+ */
+EAPI void evas_object_image_load_dpi_set(Evas_Object *obj, double dpi);
+
+/**
+ * @brief Get the DPI resolution of a loaded image object in the canvas.
+ *
+ * This function returns the DPI resolution of the given canvas image.
+ *
+ * @return The DPI resolution.
+ */
+EAPI double evas_object_image_load_dpi_get(const Evas_Object *obj);
+
+/**
  *
  * Set the load size of a given image object's source image.
  *
@@ -2789,6 +3709,98 @@ EAPI void evas_object_image_load_size_set(Eo *obj, int w, int h);
  * @param[out] h The new height of the image's load size.
  */
 EAPI void evas_object_image_load_size_get(const Eo *obj, int *w, int *h);
+
+/**
+ * @brief Inform a given image object to load a selective region of its source
+ * image.
+ *
+ * This function is useful when one is not showing all of an image's area on
+ * its image object.
+ *
+ * @note The image loader for the image format in question has to support
+ * selective region loading in order to this function to take effect.
+ *
+ * @param[in] x X-offset of the region to be loaded.
+ * @param[in] y Y-offset of the region to be loaded.
+ * @param[in] w Width of the region to be loaded.
+ * @param[in] h Height of the region to be loaded.
+ */
+EAPI void evas_object_image_load_region_set(Evas_Object *obj, int x, int y, int w, int h);
+
+/**
+ * @brief Retrieve the coordinates of a given image object's selective (source
+ * image) load region.
+ *
+ * @note Use @c null pointers on the coordinates you're not interested in:
+ * they'll be ignored by the function.
+ *
+ * @param[out] x X-offset of the region to be loaded.
+ * @param[out] y Y-offset of the region to be loaded.
+ * @param[out] w Width of the region to be loaded.
+ * @param[out] h Height of the region to be loaded.
+ */
+EAPI void evas_object_image_load_region_get(const Evas_Object *obj, int *x, int *y, int *w, int *h);
+
+/**
+ * @brief Get the support state of a given image.
+ *
+ * @return The region support state.
+ *
+ * @since 1.2
+ *
+ * @ingroup Evas_Image
+ */
+EAPI Eina_Bool evas_object_image_region_support_get(const Evas_Object *obj) EINA_WARN_UNUSED_RESULT;
+
+/**
+ * @brief Define if the orientation information in the image file should be
+ * honored.
+ *
+ * @param[in] enable @c true means that it should honor the orientation
+ * information.
+ *
+ * @since 1.1
+ */
+EAPI void evas_object_image_load_orientation_set(Evas_Object *obj, Eina_Bool enable);
+
+/**
+ * @brief Get if the orientation information in the image file should be
+ * honored.
+ *
+ * @return @c true means that it should honor the orientation information.
+ *
+ * @since 1.1
+ */
+EAPI Eina_Bool evas_object_image_load_orientation_get(const Evas_Object *obj);
+
+/**
+ * @brief Set the scale down factor of a given image object's source image,
+ * when loading it.
+ *
+ * This function sets the scale down factor of a given canvas image. Most
+ * useful for the SVG image loader.
+ *
+ * @param[in] scale_down The scale down factor.
+ */
+EAPI void evas_object_image_load_scale_down_set(Evas_Object *obj, int scale_down);
+
+/**
+ * @brief Get the scale down factor of a given image object's source image,
+ * when loading it.
+ *
+ * @return The scale down factor.
+ */
+EAPI int evas_object_image_load_scale_down_get(const Evas_Object *obj);
+
+/**
+ * @brief Retrieves a number representing any error that occurred during the
+ * last loading of the given image object's source image.
+ *
+ * @return A value giving the last error that occurred. It should be one of the
+ * @ref Evas_Load_Error values. #EVAS_LOAD_ERROR_NONE is returned if there was
+ * no error.
+ */
+EAPI Evas_Load_Error evas_object_image_load_error_get(const Evas_Object *obj) EINA_WARN_UNUSED_RESULT;
 
 /**
  *
@@ -2828,7 +3840,7 @@ EAPI Eina_Bool evas_object_image_smooth_scale_get(const Eo *obj);
  *
  * @param[in] spread One of EVAS_TEXTURE_REFLECT, EVAS_TEXTURE_REPEAT,
  */
-EAPI void evas_object_image_fill_spread_set(Evas_Object *obj, Evas_Fill_Spread spread);
+EAPI void evas_object_image_fill_spread_set(Evas_Object *obj, Evas_Fill_Spread spread) EINA_DEPRECATED;
 
 /**
  *
@@ -2838,7 +3850,7 @@ EAPI void evas_object_image_fill_spread_set(Evas_Object *obj, Evas_Fill_Spread s
  * @return  The current spread mode of the image object.
  *
  */
-EAPI Evas_Fill_Spread evas_object_image_fill_spread_get(const Evas_Object *obj);
+EAPI Evas_Fill_Spread evas_object_image_fill_spread_get(const Evas_Object *obj) EINA_DEPRECATED;
 
 /**
  *
@@ -2899,6 +3911,246 @@ image) to start drawing from.
 EAPI void evas_object_image_fill_get(const Evas_Object *obj, Evas_Coord *x, Evas_Coord *y, Evas_Coord *w, Evas_Coord *h);
 
 /**
+ * @brief Set whether the image object's fill property should track the
+ * object's size.
+ *
+ * If @c setting is @c true, then every @ref evas_object_resize will
+ * automatically trigger a call to @ref evas_object_image_fill_set with the
+ * that new size (and 0, 0 as source image's origin), so the bound image will
+ * fill the whole object's area.
+ *
+ * @param[in] filled @c true to make the fill property follow object size or
+ * @c false otherwise.
+ */
+EAPI void evas_object_image_filled_set(Evas_Object *obj, Eina_Bool filled);
+
+/**
+ * @brief Retrieve whether the image object's fill property should track the
+ * object's size.
+ *
+ * Returns @c true if it is tracking, @c false if not (and @ref
+ * evas_object_fill_set must be called manually).
+ *
+ * @return @c true to make the fill property follow object size or @c false
+ * otherwise.
+ */
+EAPI Eina_Bool evas_object_image_filled_get(const Evas_Object *obj);
+
+/**
+ * @brief Retrieve whether alpha channel data is being used on the given image
+ * object.
+ *
+ * This function returns @c true if the image object's alpha channel is being
+ * used, or @c false otherwise.
+ *
+ * @return Whether to use alpha channel ($true) data or not ($false).
+ *
+ * @ingroup Evas_Image
+ */
+EAPI Eina_Bool evas_object_image_alpha_get(const Evas_Object *obj);
+
+/**
+ * @brief Enable or disable alpha channel usage on the given image object.
+ *
+ * This function sets a flag on an image object indicating whether or not to
+ * use alpha channel data. A value of @c true makes it use alpha channel data,
+ * and @c false makes it ignore that data. Note that this has nothing to do
+ * with an object's color as  manipulated by @ref evas_object_color_set.
+ *
+ * @param[in] alpha Whether to use alpha channel ($true) data or not ($false).
+ */
+EAPI void evas_object_image_alpha_set(Evas_Object *obj, Eina_Bool alpha);
+
+/**
+ * @brief Dimensions of this image's border, a region that does not scale with
+ * the center area.
+ *
+ * When EFL renders an image, its source may be scaled to fit the size of the
+ * object. This function sets an area from the borders of the image inwards
+ * which is not to be scaled. This function is useful for making frames and for
+ * widget theming, where, for example, buttons may be of varying sizes, but
+ * their border size must remain constant.
+ *
+ * The units used for @c l, @c r, @c t and @c b are canvas units (pixels).
+ *
+ * @note The border region itself may be scaled by the
+ * @ref evas_object_image_border_scale_set function.
+ *
+ * @note By default, image objects have no borders set, i.e. @c l, @c r, @c t
+ * and @c b start as 0.
+ *
+ * @note Similar to the concepts of 9-patch images or cap insets.
+ *
+ * @param[in] l The border's left width.
+ * @param[in] r The border's right width.
+ * @param[in] t The border's top height.
+ * @param[in] b The border's bottom height.
+ */
+EAPI void evas_object_image_border_set(Evas_Object *obj, int l, int r, int t, int b);
+
+/**
+ * @brief Dimensions of this image's border, a region that does not scale with
+ * the center area.
+ *
+ * When EFL renders an image, its source may be scaled to fit the size of the
+ * object. This function sets an area from the borders of the image inwards
+ * which is not to be scaled. This function is useful for making frames and for
+ * widget theming, where, for example, buttons may be of varying sizes, but
+ * their border size must remain constant.
+ *
+ * The units used for @c l, @c r, @c t and @c b are canvas units (pixels).
+ *
+ * @note The border region itself may be scaled by the
+ * @ref evas_object_image_border_scale_set function.
+ *
+ * @note By default, image objects have no borders set, i.e. @c l, @c r, @c t
+ * and @c b start as 0.
+ *
+ * @note Similar to the concepts of 9-patch images or cap insets.
+ *
+ * @param[out] l The border's left width.
+ * @param[out] r The border's right width.
+ * @param[out] t The border's top height.
+ * @param[out] b The border's bottom height.
+ */
+EAPI void evas_object_image_border_get(const Evas_Object *obj, int *l, int *r, int *t, int *b);
+
+/**
+ * @brief Scaling factor applied to the image borders.
+ *
+ * This value multiplies the size of the @ref evas_object_image_border_get when
+ * scaling an object.
+ *
+ * Default value is 1.0 (no scaling).
+ *
+ * @param[in] scale The scale factor.
+ */
+EAPI void evas_object_image_border_scale_set(Evas_Object *obj, double scale);
+
+/**
+ * @brief Scaling factor applied to the image borders.
+ *
+ * This value multiplies the size of the @ref evas_object_image_border_get when
+ * scaling an object.
+ *
+ * Default value is 1.0 (no scaling).
+ *
+ * @return The scale factor.
+ */
+EAPI double evas_object_image_border_scale_get(const Evas_Object *obj);
+
+/**
+ * @brief Specifies how the center part of the object (not the borders) should
+ * be drawn when EFL is rendering it.
+ *
+ * This function sets how the center part of the image object's source image is
+ * to be drawn, which must be one of the values in @ref Evas_Border_Fill_Mode.
+ * By center we mean the complementary part of that defined by
+ * @ref evas_object_image_border_set. This one is very useful for making frames
+ * and decorations. You would most probably also be using a filled image (as in
+ * @ref Efl.Gfx.Fill.fill_auto) to use as a frame.
+ *
+ * The default value is
+ *
+ * @param[in] fill Fill mode of the center region of @c obj (a value in
+ *  #Evas_Border_Fill_Mode).
+ */
+EAPI void evas_object_image_border_center_fill_set(Evas_Object *obj, Evas_Border_Fill_Mode fill);
+
+/**
+ * @brief Specifies how the center part of the object (not the borders) should
+ * be drawn when EFL is rendering it.
+ *
+ * This function sets how the center part of the image object's source image is
+ * to be drawn, which must be one of the values in @ref Evas_Border_Fill_Mode.
+ * By center we mean the complementary part of that defined by
+ * @ref evas_object_image_border_set. This one is very useful for making frames
+ * and decorations. You would most probably also be using a filled image (as in
+ * @ref Efl.Gfx.Fill.fill_auto) to use as a frame.
+ *
+ * The default value is
+ *
+ * @return Fill mode of the center region of @c obj (a value in
+ *  #Evas_Border_Fill_Mode).
+ */
+EAPI Evas_Border_Fill_Mode evas_object_image_border_center_fill_get(const Evas_Object *obj);
+
+/**
+ * @brief Set the image orientation.
+ *
+ * This function allows to rotate or flip the image.
+ *
+ * @param[in] orient The image orientation @ref Evas_Image_Orient. Default is
+ * #EVAS_IMAGE_ORIENT_NONE.
+ *
+ * @since 1.14
+ *
+ * @ingroup Evas_Image
+ */
+EAPI void evas_object_image_orient_set(Evas_Object *obj, Evas_Image_Orient orient);
+
+/**
+ * @brief Get the image orientation.
+ *
+ * @return The image orientation @ref Evas_Image_Orient. Default is
+ * #EVAS_IMAGE_ORIENT_NONE.
+ *
+ * @since 1.14
+ *
+ * @ingroup Evas_Image
+ */
+EAPI Evas_Image_Orient evas_object_image_orient_get(const Evas_Object *obj);
+
+/**
+ * @brief Set the content hint setting of a given image object of the canvas.
+ *
+ * This function sets the content hint value of the given image of the canvas.
+ * For example, if you're on the GL engine and your driver implementation
+ * supports it, setting this hint to #EVAS_IMAGE_CONTENT_HINT_DYNAMIC will make
+ * it need zero copies at texture upload time, which is an "expensive"
+ * operation.
+ *
+ * @param[in] hint The content hint value, one of the
+ * @ref Evas_Image_Content_Hint ones.
+ */
+EAPI void evas_object_image_content_hint_set(Evas_Object *obj, Evas_Image_Content_Hint hint);
+
+/**
+ * @brief Get the content hint setting of a given image object of the canvas.
+ *
+ * This returns #EVAS_IMAGE_CONTENT_HINT_NONE on error.
+ *
+ * @return The content hint value, one of the @ref Evas_Image_Content_Hint
+ * ones.
+ */
+EAPI Evas_Image_Content_Hint evas_object_image_content_hint_get(const Evas_Object *obj);
+
+/**
+ * @brief Set the scale hint of a given image of the canvas.
+ *
+ * This function sets the scale hint value of the given image object in the
+ * canvas, which will affect how Evas is to cache scaled versions of its
+ * original source image.
+ *
+ * @param[in] hint The scale hint, a value in @ref Evas_Image_Scale_Hint.
+ *
+ * @ingroup Evas_Image
+ */
+EAPI void evas_object_image_scale_hint_set(Evas_Object *obj, Evas_Image_Scale_Hint hint);
+
+/**
+ * @brief Get the scale hint of a given image of the canvas.
+ *
+ * This function returns the scale hint value of the given image object of the
+ * canvas.
+ *
+ * @return The scale hint, a value in @ref Evas_Image_Scale_Hint.
+ *
+ * @ingroup Evas_Image
+ */
+EAPI Evas_Image_Scale_Hint evas_object_image_scale_hint_get(const Evas_Object *obj);
+
+/**
  *
  * Sets the size of the given image object.
  *
@@ -2923,6 +4175,365 @@ EAPI void evas_object_image_size_set(Evas_Object *obj, int w, int h);
  * @param[out] h The new height of the image.
  */
 EAPI void evas_object_image_size_get(const Evas_Object *obj, int *w, int *h);
+
+/**
+ * @brief Set the colorspace of a given image of the canvas.
+ *
+ * This function sets the colorspace of given canvas image.
+ *
+ * @param[in] cspace The new color space.
+ *
+ * @ingroup Evas_Image
+ */
+EAPI void evas_object_image_colorspace_set(Evas_Object *obj, Evas_Colorspace cspace);
+
+/**
+ * @brief Get the colorspace of a given image of the canvas.
+ *
+ * This function returns the colorspace of given canvas image.
+ *
+ * @return The new color space.
+ *
+ * @ingroup Evas_Image
+ */
+EAPI Evas_Colorspace evas_object_image_colorspace_get(const Evas_Object *obj);
+
+/**
+ * @brief Retrieves the row stride of the given image object.
+ *
+ * The row stride is the number of bytes between the start of a row and the
+ * start of the next row for image data.
+ *
+ * @return The stride of the image (in bytes).
+ *
+ * @ingroup Evas_Image
+ */
+EAPI int evas_object_image_stride_get(const Evas_Object *obj) EINA_WARN_UNUSED_RESULT;
+
+/**
+ * @brief Replaces the raw image data of the given image object.
+ *
+ * This function lets the application replace an image object's internal pixel
+ * buffer with an user-allocated one. For best results, you should generally
+ * first call @ref evas_object_image_size_set with the width and height for the
+ * new buffer.
+ *
+ * This call is best suited for when you will be using image data with
+ * different dimensions than the existing image data, if any. If you only need
+ * to modify the existing image in some fashion, then using
+ * @ref evas_object_image_data_get is probably what you are after.
+ *
+ * Note that the caller is responsible for freeing the buffer when finished
+ * with it, as user-set image data will not be automatically freed when the
+ * image object is deleted.
+ *
+ * @param[in] data The raw data to replace.
+ *
+ * @ingroup Evas_Image
+ */
+EAPI void evas_object_image_data_copy_set(Evas_Object *obj, void *data);
+
+/**
+ * @brief Sets the raw image data of the given image object.
+ *
+ * Note that the raw data must be of the same size (see @ref
+ * evas_object_image_size_set, which has to be called before this one) and
+ * colorspace (see @Evas.Image.colorspace.set) of the image. If data is
+ * @c null, the current image data will be freed. Naturally, if one does not
+ * set an image object's data manually, it will still have one, allocated by
+ * Evas.
+ *
+ * @param[in] data The raw data, or @c null.
+ *
+ * @ingroup Evas_Image
+ */
+EAPI void evas_object_image_data_set(Evas_Object *obj, void *data);
+
+/**
+ * @brief Get a pointer to the raw image data of the given image object.
+ *
+ * This function returns a pointer to an image object's internal pixel buffer,
+ * for reading only or read/write. If you request it for writing, the image
+ * will be marked dirty so that it gets redrawn at the next update.
+ *
+ * Each time you call this function on an image object, its data buffer will
+ * have an internal reference counter incremented. Decrement it back by using
+ * @ref evas_object_image_data_set.
+ *
+ * This is best suited for when you want to modify an existing image, without
+ * changing its dimensions.
+ *
+ * @note The contents' format returned by it depend on the color space of the
+ * given image object.
+ *
+ * @note You may want to use @Evas.Image.data_update_add to inform data
+ * changes, if you did any.
+ *
+ * @param[in] for_writing Whether the data being retrieved will be modified
+ * ($true) or not ($false).
+ *
+ * @return The raw image data.
+ *
+ * @ingroup Evas_Image
+ */
+EAPI void *evas_object_image_data_get(const Evas_Object *obj, Eina_Bool for_writing) EINA_WARN_UNUSED_RESULT;
+
+/**
+ * @brief Mark a sub-region of the given image object to be redrawn.
+ *
+ * This function schedules a particular rectangular region of an image object
+ * to be updated (redrawn) at the next rendering cycle.
+ *
+ * @param[in] y Y-offset of the region to be updated.
+ * @param[in] w Width of the region to be updated.
+ * @param[in] h Height of the region to be updated.
+ */
+EAPI void evas_object_image_data_update_add(Evas_Object *obj, int x, int y, int w, int h);
+
+/**
+ * @brief The content below the Evas_Object_Image will be rendered inside it
+ * and you can reuse it as a source for any kind of effect.
+ *
+ * @param[in] s Wether to put the content of the canvas below inside the
+ * Evas_Object_Image.
+ *
+ * @since 1.15
+ */
+EAPI void evas_object_image_snapshot_set(Evas_Object *obj, Eina_Bool s);
+
+/**
+ * @brief Determine wether the Evas_Object_Image replicate the content of the
+ * canvas below.
+ *
+ * @return Wether to put the content of the canvas below inside the
+ * Evas_Object_Image.
+ *
+ * @since 1.15
+ */
+EAPI Eina_Bool evas_object_image_snapshot_get(const Evas_Object *obj);
+
+/**
+ * @brief Set the source object on an image object to used as a proxy.
+ *
+ * If an image object is set to behave as a proxy, it will mirror the rendering
+ * contents of a given source object in its drawing region, without affecting
+ * that source in any way. The source must be another valid Evas object. Other
+ * effects may be applied to the proxy, such as a map (see @ref
+ * evas_object_map_set) to create a reflection of the original object (for
+ * example).
+ *
+ * Any existing source object on @c obj will be removed after this call.
+ * Setting @c src to @c null clears the proxy object (not in "proxy state"
+ * anymore).
+ *
+ * @warning You cannot set a proxy as another proxy's source.
+ *
+ * @param[in] src Source object to use for the proxy.
+ */
+EAPI Eina_Bool evas_object_image_source_set(Evas_Object *obj, Evas_Object *src);
+
+/**
+ * @brief Get the current source object of an image object.
+ *
+ * @return Source object to use for the proxy.
+ */
+EAPI Evas_Object *evas_object_image_source_get(const Evas_Object *obj);
+
+/**
+ * @brief Clip the proxy object with the source object's clipper.
+ *
+ * @param[in] source_clip Whether @c obj is clipped by the source clipper
+ * ($true) or not ($false).
+ *
+ * @since 1.8
+ */
+EAPI void evas_object_image_source_clip_set(Evas_Object *obj, Eina_Bool source_clip);
+
+/**
+ * @brief Determine whether an object is clipped by source object's clipper.
+ *
+ * @return Whether @c obj is clipped by the source clipper ($true) or not
+ * ($false).
+ *
+ * @since 1.8
+ */
+EAPI Eina_Bool evas_object_image_source_clip_get(const Evas_Object *obj);
+
+/**
+ * @brief Set whether an Evas object is to source events.
+ *
+ * Set whether an Evas object is to repeat events to source.
+ *
+ * If @c repeat is @c true, it will make events on @c obj to also be repeated
+ * for the source object (see @ref evas_object_image_source_set). Even the
+ * @c obj and source geometries are different, the event position will be
+ * transformed to the source object's space.
+ *
+ * If @c repeat is @c false, events occurring on @c obj will be processed only
+ * on it.
+ *
+ * @param[in] source Whether @c obj is to pass events ($true) or not ($false).
+ *
+ * @since 1.8
+ */
+EAPI void evas_object_image_source_events_set(Evas_Object *obj, Eina_Bool repeat);
+
+/**
+ * @brief Determine whether an object is set to source events.
+ *
+ * @return Whether @c obj is to pass events ($true) or not ($false).
+ *
+ * @since 1.8
+ */
+EAPI Eina_Bool evas_object_image_source_events_get(const Evas_Object *obj);
+
+/**
+ * @brief Set the source object to be visible or not.
+ *
+ * If @c visible is set to @c false, the source object of the proxy ($obj) will
+ * be invisible.
+ *
+ * This API works differently to @ref evas_object_show and @ref
+ * evas_object_hide. Once source object is hidden, the proxy object will be
+ * hidden as well. Actually in this case both objects are excluded from the
+ * Evas internal update circle.
+ *
+ * By this API, instead, one can toggle the visibility of a proxy's source
+ *  object remaining the proxy visibility untouched.
+ *
+ * @warning If the all of proxies are deleted, then the source visibility of
+ * the source object will be cancelled.
+ *
+ * @param[in] visible @c true is source object to be shown, @c false otherwise.
+ *
+ * @deprecated Please use evas_object_norender_get() on the source instead.
+ *
+ * @since 1.8
+ */
+EAPI void evas_object_image_source_visible_set(Evas_Object *obj, Eina_Bool visible);
+
+/**
+ * @brief Get the state of the source object visibility.
+ *
+ * @return @c true is source object to be shown, @c false otherwise.
+ *
+ * @deprecated Please use evas_object_norender_get() on the source instead.
+ *
+ * @since 1.8
+ */
+EAPI Eina_Bool evas_object_image_source_visible_get(const Evas_Object *obj);
+
+/**
+ * @brief Mark whether the given image object is dirty and needs to request its
+ * pixels.
+ *
+ * This function will only properly work if a pixels get callback has been set.
+ *
+ * @warning Use this function if you really know what you are doing.
+ *
+ * @param[in] dirty Whether the image is dirty.
+ */
+EAPI void evas_object_image_pixels_dirty_set(Evas_Object *obj, Eina_Bool dirty);
+
+/**
+ * @brief Retrieves whether the given image object is dirty (needs to be
+ * redrawn).
+ *
+ * @return Whether the image is dirty.
+ */
+EAPI Eina_Bool evas_object_image_pixels_dirty_get(const Evas_Object *obj);
+
+/**
+ * @brief Set the callback function to get pixels from a canvas' image.
+ *
+ * This functions sets a function to be the callback function that get pixels
+ * from a image of the canvas.
+ *
+ * @param[in] func The callback function.
+ * @param[in] data The data pointer to be passed to @c func.
+ */
+EAPI void evas_object_image_pixels_get_callback_set(Evas_Object *obj, Evas_Object_Image_Pixels_Get_Cb func, void *data) EINA_ARG_NONNULL(2);
+
+
+/**
+ * @typedef Evas_Video_Surface
+ *
+ * A generic datatype for video specific surface information
+ * @see evas_object_image_video_surface_set
+ * @see evas_object_image_video_surface_get
+ * @since 1.1
+ */
+typedef struct _Evas_Video_Surface Evas_Video_Surface;
+
+/**
+ * @def EVAS_VIDEO_SURFACE_VERSION
+ * Magic version number to know what the video surf struct looks like
+ * @since 1.1
+ */
+#define EVAS_VIDEO_SURFACE_VERSION 1
+
+typedef void (*Evas_Video_Cb)(void *data, Evas_Object *obj, const Evas_Video_Surface *surface);  /**< Evas video callback function signature */
+typedef void (*Evas_Video_Coord_Cb)(void *data, Evas_Object *obj, const Evas_Video_Surface *surface, Evas_Coord a, Evas_Coord b);  /**< Evas video coordinates callback function signature */
+
+struct _Evas_Video_Surface
+{
+   int                 version; /**< The Evas Video surface version in use @see EVAS_VIDEO_SURFACE_VERSION*/
+
+   Evas_Video_Coord_Cb move; /**< Move the video surface to this position */
+   Evas_Video_Coord_Cb resize; /**< Resize the video surface to that size */
+   Evas_Video_Cb       show; /**< Show the video overlay surface */
+   Evas_Video_Cb       hide; /**< Hide the video overlay surface */
+   Evas_Video_Cb       update_pixels; /**< Please update the Evas_Object_Image pixels when called */
+
+   Evas_Object        *parent; /**< The parent object */
+   void               *data;
+};
+
+/**
+ * Enum values for the Video surface capabilities
+ * @see evas_object_image_video_surface_caps_get()
+ * @see evas_object_image_video_surface_caps_set()
+ */
+
+typedef enum _Evas_Video_Surface_Caps
+{
+   EVAS_VIDEO_SURFACE_MOVE = 1,   /**< Move capability */
+   EVAS_VIDEO_SURFACE_RESIZE = 2,   /**< Resize capability */
+   EVAS_VIDEO_SURFACE_CLIP = 4,   /**< Clip capability */
+   EVAS_VIDEO_SURFACE_BELOW = 8,   /**< Below capability */
+   EVAS_VIDEO_SURFACE_STACKING_CHECK = 16,   /**< Stacking capability */
+   EVAS_VIDEO_SURFACE_IGNORE_WINDOW = 32,   /**< Ignore window capability */
+} Evas_Video_Surface_Caps;
+
+/**
+ * @brief Set the video surface linked to a given image of the canvas.
+ *
+ * @param[in] surf The new video surface.
+ *
+ * @since 1.1
+ */
+EAPI void evas_object_image_video_surface_set(Evas_Object *obj, Evas_Video_Surface *surf);
+
+/**
+ * @brief Get the video surface linekd to a given image of the canvas.
+ *
+ * @return The new video surface.
+ *
+ * @since 1.1
+ */
+EAPI const Evas_Video_Surface *evas_object_image_video_surface_get(const Evas_Object *obj);
+
+/**
+ * @brief Set the video surface capabilities to a given image of the canvas.
+ *
+ * @param[in] caps
+ */
+EAPI void evas_object_image_video_surface_caps_set(Evas_Object *obj, unsigned int caps);
+
+/** Get the video surface capabilities to a given image of the canvas.
+ */
+EAPI unsigned int evas_object_image_video_surface_caps_get(const Evas_Object *obj);
+
 
 /*
  * Converts the raw image data of the given image object to the
@@ -2960,6 +4571,13 @@ EAPI Eina_Bool evas_object_image_pixels_import(Evas_Object *obj, Evas_Pixel_Impo
  */
 /** @deprecated evas_object_image_reload */
 EAPI void evas_object_image_reload(Evas_Object *obj) EINA_DEPRECATED;
+
+/**
+ * @deprecated This function has never been implemented. Please use
+ *             evas_object_clip_set() with an alpha or RGBA image instead
+ *             of setting this flag.
+ */
+EAPI void evas_object_image_alpha_mask_set(Evas_Object *obj, Eina_Bool ismask) EINA_ARG_NONNULL(1) EINA_DEPRECATED;
 
 #include "canvas/evas_image.eo.legacy.h"
 
@@ -3080,62 +4698,7 @@ EAPI void evas_object_text_font_get(const Eo *obj, const char **font, Evas_Font_
  * @}
  */
 
-/**
- * @ingroup Evas_Object_Textblock
- *
- * @{
- */
-
-/**
- * Adds a textblock to the given evas.
- * @param   e The given evas.
- * @return  The new textblock object.
- */
-EAPI Evas_Object                             *evas_object_textblock_add(Evas *e) EINA_WARN_UNUSED_RESULT EINA_ARG_NONNULL(1) EINA_MALLOC;
-
-/**
- * Return the plain version of the markup.
- *
- * Works as if you set the markup to a textblock and then retrieve the plain
- * version of the text. i.e: <br> and <\n> will be replaced with \n, &...; with
- * the actual char and etc.
- *
- * @param obj The textblock object to work with. (if @c NULL, tries the
- * default).
- * @param text The markup text (if @c NULL, return @c NULL).
- * @return An allocated plain text version of the markup.
- * @since 1.2
- */
-EAPI char                                    *evas_textblock_text_markup_to_utf8(const Evas_Object *obj, const char *text) EINA_WARN_UNUSED_RESULT EINA_MALLOC;
-
-/**
- * Return the markup version of the plain text.
- *
- * Replaces \\n -\> \<br/\> \\t -\> \<tab/\> and etc. Generally needed before you pass
- * plain text to be set in a textblock.
- *
- * @param obj the textblock object to work with (if @c NULL, it just does the
- * default behaviour, i.e with no extra object information).
- * @param text The plain text (if @c NULL, return @c NULL).
- * @return An allocated markup version of the plain text.
- * @since 1.2
- */
-EAPI char                                    *evas_textblock_text_utf8_to_markup(const Evas_Object *obj, const char *text) EINA_WARN_UNUSED_RESULT EINA_MALLOC;
-
-/**
- * Clear the textblock object.
- * @note Does *NOT* free the Evas object itself.
- *
- * @param obj the object to clear.
- * @return nothing.
- */
-EAPI void                                     evas_object_textblock_clear(Evas_Object *obj) EINA_ARG_NONNULL(1);
-
-#include "canvas/evas_textblock.eo.legacy.h"
-
-/**
- * @}
- */
+#include "canvas/evas_textblock_legacy.h"
 
 /**
  * @ingroup Evas_Object_Grid
@@ -3276,7 +4839,21 @@ EAPI Evas_Object *evas_object_line_add(Evas *e) EINA_WARN_UNUSED_RESULT EINA_ARG
  */
 EAPI Evas_Object *evas_object_polygon_add(Evas *e) EINA_WARN_UNUSED_RESULT EINA_ARG_NONNULL(1) EINA_MALLOC;
 
-#include "canvas/evas_polygon.eo.legacy.h"
+/**
+ * @brief Adds the given point to the given evas polygon object.
+ *
+ * @param[in] y The Y coordinate of the given point.
+ *
+ * @ingroup Evas_Polygon
+ */
+EAPI void evas_object_polygon_point_add(Evas_Object *obj, Evas_Coord x, Evas_Coord y);
+
+/** Removes all of the points from the given evas polygon object.
+ *
+ * @ingroup Evas_Polygon
+ */
+EAPI void evas_object_polygon_points_clear(Evas_Object *obj);
+
 /**
  * @}
  */
@@ -3506,24 +5083,270 @@ EAPI const void       *evas_object_smart_interface_get(const Evas_Object *obj, c
 EAPI void             *evas_object_smart_interface_data_get(const Evas_Object *obj, const Evas_Smart_Interface *iface);
 
 /**
- * This gets the internal counter that counts the number of smart calculations
+ * @brief Checks whether a given smart object or any of its smart object
+ * parents is of a given smart class.
  *
- * @param e The canvas to get the calculate counter from
+ * If @c obj is not a smart object, this call will fail immediately.
  *
- * Whenever evas performs smart object calculations on the whole canvas
- * it increments a counter by 1. This is the smart object calculate counter
- * that this function returns the value of. It starts at the value of 0 and
- * will increase (and eventually wrap around to negative values and so on) by
- * 1 every time objects are calculated. You can use this counter to ensure
- * you don't re-do calculations withint the same calculation generation/run
- * if the calculations maybe cause self-feeding effects.
+ * This function supports Eo and legacy inheritance mechanisms. However, it is
+ * recommended to use @ref eo_isa instead if your object is using Eo from top
+ * to bottom.
  *
- * @ingroup Evas_Smart_Object_Group
- * @since 1.1
+ * The checks use smart classes names and string comparison. There is a version
+ * of this same check using pointer comparison, since a smart class' name is a
+ * single string in Evas.
+ *
+ * See also @ref evas_object_smart_type_check_ptr.
+ *
+ * @param[in] type The name (type) of the smart class to check for.
+ *
+ * @ingroup Evas_Object
  */
-EAPI int          evas_smart_objects_calculate_count_get(const Evas *e);
+EAPI Eina_Bool evas_object_smart_type_check(const Evas_Object *obj, const char *type) EINA_WARN_UNUSED_RESULT EINA_ARG_NONNULL(2);
 
-#include "canvas/evas_object_smart.eo.legacy.h"
+/**
+ * @brief Checks whether a given smart object or any of its smart object
+ * parents is of a given smart class, using pointer comparison.
+ *
+ * @param[in] type The type (name string) to check for. Must be the name.
+ *
+ * @return @c true if @c obj or any of its parents is of type @c type, @c false
+ * otherwise.
+ *
+ * @ingroup Evas_Object
+ */
+EAPI Eina_Bool evas_object_smart_type_check_ptr(const Evas_Object *obj, const char *type) EINA_WARN_UNUSED_RESULT EINA_ARG_NONNULL(2);
+
+/**
+ * @brief Set an smart object instance's smart callbacks descriptions.
+ *
+ * These descriptions are hints to be used by introspection and are not
+ * enforced in any way.
+ *
+ * It will not be checked if instance callbacks descriptions have the same name
+ * as respective possibly registered in the smart object class. Both are kept
+ * in different arrays and users of
+ * evas_object_smart_callbacks_descriptions_get() should handle this case as
+ * they wish.
+ *
+ * @note Because @c descriptions must be @c null terminated, and because a
+ * @c null name makes little sense, too, Evas_Smart_Cb_Description.name must
+ * not be @c null.
+ *
+ * @note While instance callbacks descriptions are possible, they are not
+ * recommended. Use class callbacks descriptions instead as they make you smart
+ * object user's life simpler and will use less memory, as descriptions and
+ * arrays will be shared among all instances.
+ *
+ * @param[in] descriptions @c null terminated array with
+ * @ref Evas_Smart_Cb_Description descriptions. Array elements won't be
+ * modified at run time, but references to them and their contents will be
+ * made, so this array should be kept alive during the whole object's lifetime.
+ *
+ * @return @c true on success, @c false on failure.
+ *
+ * @ingroup Evas_Object_Smart
+ */
+EAPI Eina_Bool evas_object_smart_callbacks_descriptions_set(Evas_Object *obj, const Evas_Smart_Cb_Description *descriptions);
+
+/**
+ * @brief Retrieve an smart object's know smart callback descriptions (both
+ * instance and class ones).
+ *
+ * This call searches for registered callback descriptions for both instance
+ * and class of the given smart object. These arrays will be sorted by
+ * Evas_Smart_Cb_Description.name and also @c null terminated, so both
+ * class_count and instance_count can be ignored, if the caller wishes so. The
+ * terminator @c null is not counted in these values.
+ *
+ * @note If just class descriptions are of interest, try
+ * evas_smart_callbacks_descriptions_get() instead.
+ *
+ * @note Use @c null pointers on the descriptions/counters you're not
+ * interested in: they'll be ignored by the function.
+ *
+ * @ref evas_smart_callbacks_descriptions_get().
+ *
+ * @param[out] class_descriptions Where to store class callbacks descriptions
+ * array, if any is known. If no descriptions are known, @c null is returned.
+ * @param[out] class_count Returns how many class callbacks descriptions are
+ * known.
+ * @param[out] instance_descriptions Where to store instance callbacks
+ * descriptions array, if any is known. If no descriptions are known, @c null
+ * is returned.
+ * @param[out] instance_count Returns how many instance callbacks descriptions
+ * are known.
+ *
+ * @ingroup Evas_Object_Smart
+ */
+EAPI void evas_object_smart_callbacks_descriptions_get(const Evas_Object *obj, const Evas_Smart_Cb_Description ***class_descriptions, unsigned int *class_count, const Evas_Smart_Cb_Description ***instance_descriptions, unsigned int *instance_count);
+
+/**
+ * @brief Find callback description for callback called name or @c null if not
+ * found.
+ *
+ * If parameter is @c null, no search will be done on instance descriptions.
+ *
+ * @param[in] name name of desired callback, must not be @c null.  The search
+ * have a special case for name being the same pointer as registered with
+ * Evas_Smart_Cb_Description, one can use it to avoid excessive use of
+ * strcmp().
+ * @param[out] class_description pointer to return class description or @c null
+ * if not found. If parameter is @c null, no search will be done on class
+ * descriptions.
+ * @param[out] instance_description pointer to return instance description.
+ *
+ * @ingroup Evas_Object_Smart
+ */
+EAPI void evas_object_smart_callback_description_find(const Evas_Object *obj, const char *name, const Evas_Smart_Cb_Description **class_description, const Evas_Smart_Cb_Description **instance_description) EINA_ARG_NONNULL(2);
+
+/**
+ * @brief Get the @ref Evas_Smart from which @c obj smart object was created.
+ *
+ * @return the @ref Evas_Smart handle or @c null, on errors.
+ */
+EAPI Evas_Smart *evas_object_smart_smart_get(const Evas_Object *obj) EINA_WARN_UNUSED_RESULT;
+
+/**
+ * @brief Store a pointer to user data for a given smart object.
+ *
+ * This data is stored independently of the one set by evas_object_data_set(),
+ * naturally.
+ *
+ * See also @ref evas_object_smart_data_get.
+ *
+ * @param[in] data A pointer to user data.
+ *
+ * @ingroup Evas_Object_Smart
+ */
+EAPI void evas_object_smart_data_set(Evas_Object *obj, void *data);
+EAPI void *evas_object_smart_data_get(const Evas_Object *obj);
+
+/**
+ * @brief Retrieves the list of the member objects of a given Evas smart
+ * object.
+ *
+ * The returned list should be freed with @c eina_list_free() when you no
+ * longer need it.
+ *
+ * This function will return @c null when a non-smart object is passed.
+ *
+ * See also @ref Efl.Canvas.Group.group_member_add,
+ * @ref Efl.Canvas.Group.group_member_del and @ref evas_object_smart_iterator_new.
+ *
+ * @return Returns the list of the member objects of @c obj.
+ *
+ * @since 1.7
+ *
+ * @ingroup Evas_Object_Smart
+ */
+EAPI Eina_List *evas_object_smart_members_get(const Evas_Object *obj) EINA_WARN_UNUSED_RESULT;
+
+/**
+ * @brief Set or unset the flag signalling that a given smart object needs to
+ * get recalculated.
+ *
+ * If this flag is set, then the @c calculate() smart function of @c obj will
+ * be called, if one is provided, during rendering phase of Evas (see
+ * evas_render()), after which this flag will be automatically unset.
+ *
+ * If that smart function is not provided for the given object, this flag will
+ * be left unchanged.
+ *
+ * @note just setting this flag will not make the canvas' whole scene dirty, by
+ * itself, and evas_render() will have no effect. To force that, use
+ * evas_object_smart_changed(), that will also call this function
+ * automatically, with @c true as parameter.
+ *
+ * See also @ref evas_object_smart_need_recalculate_get,
+ * @ref evas_object_smart_calculate and @ref evas_smart_objects_calculate().
+ *
+ * @param[in] value whether one wants to set ($true) or to unset ($false) the
+ * flag.
+ *
+ * @ingroup Evas_Object_Smart
+ */
+EAPI void evas_object_smart_need_recalculate_set(Evas_Object *obj, Eina_Bool value);
+
+/**
+ * @brief Get the value of the flag signalling that a given smart object needs
+ * to get recalculated.
+ *
+ * @note this flag will be unset during the rendering phase, when the
+ * @c calculate() smart function is called, if one is provided. If it's not
+ * provided, then the flag will be left unchanged after the rendering phase.
+ *
+ * See also @ref evas_object_smart_need_recalculate_set, for more details.
+ *
+ * @return whether one wants to set ($true) or to unset ($false) the flag.
+ *
+ * @ingroup Evas_Object_Smart
+ */
+EAPI Eina_Bool evas_object_smart_need_recalculate_get(const Evas_Object *obj);
+
+/**
+ * @brief Retrieves an iterator of the member objects of a given Evas smart
+ * object.
+ *
+ * See also @ref Efl.Canvas.Group.group_member_add and
+ * @ref Efl.Canvas.Group.group_member_del
+ *
+ * @return Returns the iterator of the member objects of @c obj.
+ *
+ * @since 1.8
+ *
+ * @ingroup Evas_Object_Smart
+ */
+EAPI Eina_Iterator *evas_object_smart_iterator_new(const Evas_Object *obj) EINA_WARN_UNUSED_RESULT;
+
+/**
+ * @brief Call the calculate() smart function immediately on a given smart
+ * object.
+ *
+ * This will force immediate calculations (see #Evas_Smart_Class) needed for
+ * renderization of this object and, besides, unset the flag on it telling it
+ * needs recalculation for the next rendering phase.
+ *
+ * See also @ref evas_object_smart_need_recalculate_set
+ *
+ * @ingroup Evas_Object_Smart
+ */
+EAPI void evas_object_smart_calculate(Evas_Object *obj);
+
+/**
+ * @brief Mark smart object as changed, dirty.
+ *
+ * This will flag the given object as needing recalculation, forcefully. As an
+ * effect, on the next rendering cycle its calculate() (see #Evas_Smart_Class)
+ * smart function will be called.
+ *
+ * See also @ref evas_object_smart_need_recalculate_set and
+ * @ref evas_object_smart_calculate.
+ *
+ * @ingroup Evas_Object_Smart
+ */
+EAPI void evas_object_smart_changed(Evas_Object *obj);
+
+/**
+ * @brief Moves all children objects of a given smart object relative to a
+ * given offset.
+ *
+ * This will make each of @c obj object's children to move, from where they
+ * before, with those delta values (offsets) on both directions.
+ *
+ * @note This is most useful on custom smart @c move functions.
+ *
+ * @note Clipped smart objects already make use of this function on their
+ * @c move smart function definition.
+ *
+ * @param[in] dx Horizontal offset (delta).
+ * @param[in] dy Vertical offset (delta).
+ *
+ * @ingroup Evas_Object_Smart
+ */
+EAPI void evas_object_smart_move_children_relative(Evas_Object *obj, Evas_Coord dx, Evas_Coord dy);
+
+#include "canvas/efl_canvas_group.eo.legacy.h"
 
 /**
  * @}
@@ -3534,21 +5357,7 @@ EAPI int          evas_smart_objects_calculate_count_get(const Evas *e);
  *
  * @{
  */
-/**
- * Get the clipper object for the given clipped smart object.
- *
- * @param obj the clipped smart object to retrieve associated clipper
- * from.
- * @return the clipper object.
- *
- * Use this function if you want to change any of this clipper's
- * properties, like colors.
- *
- * @see evas_object_smart_clipped_smart_add()
- */
-EAPI Evas_Object            *evas_object_smart_clipped_clipper_get(const Evas_Object *obj) EINA_WARN_UNUSED_RESULT EINA_ARG_NONNULL(1);
-
-#include "canvas/evas_smart_clipped.eo.legacy.h"
+#include "canvas/efl_canvas_group_clipped.eo.legacy.h"
 
 /**
  * @}
@@ -3702,13 +5511,6 @@ EAPI Eina_List                 *evas_object_box_children_get(const Evas_Object *
  */
 EAPI Evas_Object                       *evas_object_table_add(Evas *evas) EINA_WARN_UNUSED_RESULT EINA_ARG_NONNULL(1) EINA_MALLOC;
 
-/**
- * Get the child of the table at the given coordinates
- *
- * @note This does not take into account col/row spanning
- */
-EAPI Evas_Object                       *evas_object_table_child_get(const Evas_Object *o, unsigned short col, unsigned short row) EINA_ARG_NONNULL(1);
-
 #include "canvas/evas_table.eo.legacy.h"
 
 /**
@@ -3763,4 +5565,1042 @@ EAPI Evas_Out *evas_out_add(Evas *e);
  */
 EAPI void evas_output_del(Evas_Out *evo);
 
+/**
+ * @brief Sets the output framespace size of the render engine of the given
+ * evas.
+ *
+ * The framespace size is used in the Wayland engines to denote space in the
+ * viewport which is occupied by the window frame. This is mainly used in
+ * ecore_evas to draw borders.
+ *
+ * The units used for @c w and @c h depend on the engine used by the evas.
+ *
+ * @param[in] x The left coordinate in output units, usually pixels.
+ * @param[in] y The top coordinate in output units, usually pixels.
+ * @param[in] w The width in output units, usually pixels.
+ * @param[in] h The height in output units, usually pixels.
+ *
+ * @since 1.1
+ *
+ * @ingroup Evas_Canvas
+ */
+EAPI void evas_output_framespace_set(Evas *e, Evas_Coord x, Evas_Coord y, Evas_Coord w, Evas_Coord h);
+
+/**
+ * @brief Get the render engine's output framespace coordinates in canvas
+ * units.
+ *
+ * @param[out] x The left coordinate in output units, usually pixels.
+ * @param[out] y The top coordinate in output units, usually pixels.
+ * @param[out] w The width in output units, usually pixels.
+ * @param[out] h The height in output units, usually pixels.
+ *
+ * @since 1.1
+ *
+ * @ingroup Evas_Canvas
+ */
+EAPI void evas_output_framespace_get(const Evas *e, Evas_Coord *x, Evas_Coord *y, Evas_Coord *w, Evas_Coord *h);
+
+/**
+ * @brief Sets the output viewport of the given evas in evas units.
+ *
+ * The output viewport is the area of the evas that will be visible to the
+ * viewer.	The viewport will be stretched to fit the output target of the evas
+ * when rendering is performed.
+ *
+ * @note The coordinate values do not have to map 1-to-1 with the output
+ * target. However, it is generally advised that it is done for ease of use.
+ *
+ * @param[in] x The top-left corner x value of the viewport.
+ * @param[in] y The top-left corner y value of the viewport.
+ * @param[in] w The width of the viewport.	Must be greater than 0.
+ * @param[in] h The height of the viewport.  Must be greater than 0.
+ *
+ * @ingroup Evas_Canvas
+ */
+EAPI void evas_output_viewport_set(Evas *e, Evas_Coord x, Evas_Coord y, Evas_Coord w, Evas_Coord h);
+
+/**
+ * @brief Get the render engine's output viewport coordinates in canvas units.
+ *
+ * Calling this function writes the current canvas output viewport size and
+ * location values into the variables pointed to by @c x, @c y, @c w and @c h.
+ *	On success the variables have the output location and size values written
+ * to them in canvas units. Any of @c x, @c y, @c w or @c h that are @c null
+ * will not be written to. If @c e is invalid, the results are undefined.
+ *
+ * @param[out] x The top-left corner x value of the viewport.
+ * @param[out] y The top-left corner y value of the viewport.
+ * @param[out] w The width of the viewport.  Must be greater than 0.
+ * @param[out] h The height of the viewport.  Must be greater than 0.
+ *
+ * @ingroup Evas_Canvas
+ */
+EAPI void evas_output_viewport_get(const Evas *e, Evas_Coord *x, Evas_Coord *y, Evas_Coord *w, Evas_Coord *h);
+
+/**
+ * @brief Sets the output engine for the given evas.
+ *
+ * Once the output engine for an evas is set, any attempt to change it	will be
+ * ignored. The value for @c render_method can be found using @ref
+ * evas_render_method_lookup.
+ *
+ * @note it is mandatory that one calls @ref evas_init before setting the
+ * output method.
+ *
+ * @param[in] render_method The numeric engine value to use.
+ *
+ * @ingroup Evas_Canvas
+ */
+EAPI void evas_output_method_set(Evas *e, int render_method);
+
+/**
+ * @brief Retrieves the number of the output engine used for the given evas.
+ *
+ * @return The numeric engine value to use.
+ *
+ * @ingroup Evas_Canvas
+ */
+EAPI int evas_output_method_get(const Evas *e);
+
+/**
+ * @brief Sets the output size of the render engine of the given evas.
+ *
+ * The evas will render to a rectangle of the given size once this function is
+ * called.	The output size is independent of the viewport size. The viewport
+ * will be stretched to fill the given rectangle.
+ *
+ * The units used for @c w and @c h depend on the engine used by the evas.
+ *
+ * @param[in] w The width in output units, usually pixels.
+ * @param[in] h The height in output units, usually pixels.
+ *
+ * @ingroup Evas_Canvas
+ */
+EAPI void evas_output_size_set(Evas *e, int w, int h);
+
+/**
+ * @brief Retrieve the output size of the render engine of the given evas.
+ *
+ * The output size is given in whatever the output units are for the engine.
+ *
+ * If either @c w or @c h is @c null, then it is ignored.  If @c e is invalid,
+ * the returned results are undefined.
+ *
+ * @param[out] w The width in output units, usually pixels.
+ * @param[out] h The height in output units, usually pixels.
+ *
+ * @ingroup Evas_Canvas
+ */
+EAPI void evas_output_size_get(const Evas *e, int *w, int *h);
+
 #include "canvas/evas_out.eo.legacy.h"
+
+typedef struct _Evas_Map Evas_Map;
+
+/**
+ * @defgroup Evas_Object_Group_Map UV Mapping (Rotation, Perspective, 3D...)
+ *
+ * Evas allows different transformations to be applied to all kinds of
+ * objects. These are applied by means of UV mapping.
+ *
+ * With UV mapping, one maps points in the source object to a 3D space
+ * positioning at target. This allows rotation, perspective, scale and
+ * lots of other effects, depending on the map that is used.
+ *
+ * Each map point may carry a multiplier color. If properly
+ * calculated, these can do shading effects on the object, producing
+ * 3D effects.
+ *
+ * As usual, Evas provides both the raw and easy to use methods. The
+ * raw methods allow developers to create their maps somewhere else,
+ * possibly loading them from some file format. The easy to use methods
+ * calculate the points given some high-level parameters such as
+ * rotation angle, ambient light, and so on.
+ *
+ * @note applying mapping will reduce performance, so use with
+ *       care. The impact on performance depends on engine in
+ *       use. Software is quite optimized, but not as fast as OpenGL.
+ *
+ * @section sec-map-points Map points
+ * @subsection subsec-rotation Rotation
+ *
+ * A map consists of a set of points, currently only four are supported. Each
+ * of these points contains a set of canvas coordinates @c x and @c y that
+ * can be used to alter the geometry of the mapped object, and a @c z
+ * coordinate that indicates the depth of that point. This last coordinate
+ * does not normally affect the map, but it's used by several of the utility
+ * functions to calculate the right position of the point given other
+ * parameters.
+ *
+ * The coordinates for each point are set with evas_map_point_coord_set().
+ * The following image shows a map set to match the geometry of an existing
+ * object.
+ *
+ * @image html map-set-map-points-1.png
+ * @image rtf map-set-map-points-1.png
+ * @image latex map-set-map-points-1.eps
+ *
+ * This is a common practice, so there are a few functions that help make it
+ * easier.
+ *
+ * evas_map_util_points_populate_from_geometry() sets the coordinates of each
+ * point in the given map to match the rectangle defined by the function
+ * parameters.
+ *
+ * evas_map_util_points_populate_from_object() and
+ * evas_map_util_points_populate_from_object_full() both take an object and
+ * set the map points to match its geometry. The difference between the two
+ * is that the first function sets the @c z value of all points to 0, while
+ * the latter receives the value to set in said coordinate as a parameter.
+ *
+ * The following lines of code all produce the same result as in the image
+ * above.
+ * @code
+ * evas_map_util_points_populate_from_geometry(m, 100, 100, 200, 200, 0);
+ * // Assuming o is our original object
+ * evas_object_move(o, 100, 100);
+ * evas_object_resize(o, 200, 200);
+ * evas_map_util_points_populate_from_object(m, o);
+ * evas_map_util_points_populate_from_object_full(m, o, 0);
+ * @endcode
+ *
+ * Several effects can be applied to an object by simply setting each point
+ * of the map to the right coordinates. For example, a simulated perspective
+ * could be achieve as follows.
+ *
+ * @image html map-set-map-points-2.png
+ * @image rtf map-set-map-points-2.png
+ * @image latex map-set-map-points-2.eps
+ *
+ * As said before, the @c z coordinate is unused here so when setting points
+ * by hand, its value is of no importance.
+ *
+ * @image html map-set-map-points-3.png
+ * @image rtf map-set-map-points-3.png
+ * @image latex map-set-map-points-3.eps
+ *
+ * In all three cases above, setting the map to be used by the object is the
+ * same.
+ * @code
+ * evas_object_map_set(o, m);
+ * evas_object_map_enable_set(o, EINA_TRUE);
+ * @endcode
+ *
+ * Doing things this way, however, is a lot of work that can be avoided by
+ * using the provided utility functions, as described in the next section.
+ *
+ * @section map-utils Utility functions
+ *
+ * Utility functions take an already set up map and alter it to produce a
+ * specific effect. For example, to rotate an object around its own center
+ * you would need to take the rotation angle, the coordinates of each corner
+ * of the object and do all the math to get the new set of coordinates that
+ * need to be set in the map.
+ *
+ * Or you can use this code:
+ * @code
+ * evas_object_geometry_get(o, &x, &y, &w, &h);
+ * m = evas_map_new(4);
+ * evas_map_util_points_populate_from_object(m, o);
+ * evas_map_util_rotate(m, 45, x + (w / 2), y + (h / 2));
+ * evas_object_map_set(o, m);
+ * evas_object_map_enable_set(o, EINA_TRUE);
+ * evas_map_free(m);
+ * @endcode
+ *
+ * Which will rotate the object around its center point in a 45 degree angle
+ * in the clockwise direction, taking it from this
+ *
+ * @image html map-rotation-2d-1.png
+ * @image rtf map-rotation-2d-1.png
+ * @image latex map-rotation-2d-1.eps
+ *
+ * to this
+ *
+ * @image html map-rotation-2d-2.png
+ * @image rtf map-rotation-2d-2.png
+ * @image latex map-rotation-2d-2.eps
+ *
+ * Objects may be rotated around any other point just by setting the last two
+ * paramaters of the evas_map_util_rotate() function to the right values. A
+ * circle of roughly the diameter of the object overlaid on each image shows
+ * where the center of rotation is set for each example.
+ *
+ * For example, this code
+ * @code
+ * evas_object_geometry_get(o, &x, &y, &w, &h);
+ * m = evas_map_new(4);
+ * evas_map_util_points_populate_from_object(m, o);
+ * evas_map_util_rotate(m, 45, x + w - 20, y + h - 20);
+ * evas_object_map_set(o, m);
+ * evas_object_map_enable_set(o, EINA_TRUE);
+ * evas_map_free(m);
+ * @endcode
+ *
+ * produces something like
+ *
+ * @image html map-rotation-2d-3.png
+ * @image rtf map-rotation-2d-3.png
+ * @image latex map-rotation-2d-3.eps
+ *
+ * And the following
+ * @code
+ * evas_output_size_get(evas, &w, &h);
+ * m = evas_map_new(4);
+ * evas_map_util_points_populate_from_object(m, o);
+ * evas_map_util_rotate(m, 45, w, h);
+ * evas_object_map_set(o, m);
+ * evas_object_map_enable_set(o, EINA_TRUE);
+ * evas_map_free(m);
+ * @endcode
+ *
+ * rotates the object around the center of the window
+ *
+ * @image html map-rotation-2d-4.png
+ * @image rtf map-rotation-2d-4.png
+ * @image latex map-rotation-2d-4.eps
+ *
+ * @subsection subsec-3d 3D Maps
+ *
+ * Maps can also be used to achieve the effect of 3-dimensionality. When doing
+ * this, the @c z coordinate of each point counts, with higher values meaning
+ * the point is further into the screen, and smaller values (negative, usually)
+ * meaning the point is closer towards the user.
+ *
+ * Thinking in 3D also introduces the concept of back-face of an object. An
+ * object is said to be facing the user when all its points are placed in a
+ * clockwise fashion. The next image shows this, with each point showing the
+ * with which is identified within the map.
+ *
+ * @image html map-point-order-face.png
+ * @image rtf map-point-order-face.png
+ * @image latex map-point-order-face.eps
+ *
+ * Rotating this map around the @c Y axis would leave the order of the points
+ * in a counter-clockwise fashion, as seen in the following image.
+ *
+ * @image html map-point-order-back.png
+ * @image rtf map-point-order-back.png
+ * @image latex map-point-order-back.eps
+ *
+ * This way we can say that we are looking at the back face of the object.
+ * This will have stronger implications later when we talk about lighting.
+ *
+ * To know if a map is facing towards the user or not it's enough to use
+ * the evas_map_util_clockwise_get() function, but this is normally done
+ * after all the other operations are applied on the map.
+ *
+ * @subsection subsec-3d-rot 3D rotation and perspective
+ *
+ * Much like evas_map_util_rotate(), there's the function
+ * evas_map_util_3d_rotate() that transforms the map to apply a 3D rotation
+ * to an object. As in its 2D counterpart, the rotation can be applied around
+ * any point in the canvas, this time with a @c z coordinate too. The rotation
+ * can also be around any of the 3 axis.
+ *
+ * Starting from this simple setup
+ *
+ * @image html map-3d-basic-1.png
+ * @image rtf map-3d-basic-1.png
+ * @image latex map-3d-basic-1.eps
+ *
+ * and setting maps so that the blue square to rotate on all axis around a
+ * sphere that uses the object as its center, and the red square to rotate
+ * around the @c Y axis, we get the following. A simple overlay over the image
+ * shows the original geometry of each object and the axis around which they
+ * are being rotated, with the @c Z one not appearing due to being orthogonal
+ * to the screen.
+ *
+ * @image html map-3d-basic-2.png
+ * @image rtf map-3d-basic-2.png
+ * @image latex map-3d-basic-2.eps
+ *
+ * which doesn't look very real. This can be helped by adding perspective
+ * to the transformation, which can be simply done by calling
+ * evas_map_util_3d_perspective() on the map after its position has been set.
+ * The result in this case, making the vanishing point the center of each
+ * object:
+ *
+ * @image html map-3d-basic-3.png
+ * @image rtf map-3d-basic-3.png
+ * @image latex map-3d-basic-3.eps
+ *
+ * @section sec-color Color and lighting
+ *
+ * Each point in a map can be set to a color, which will be multiplied with
+ * the objects own color and linearly interpolated in between adjacent points.
+ * This is done with evas_map_point_color_set() for each point of the map,
+ * or evas_map_util_points_color_set() to set every point to the same color.
+ *
+ * When using 3D effects, colors can be used to improve the looks of them by
+ * simulating a light source. The evas_map_util_3d_lighting() function makes
+ * this task easier by taking the coordinates of the light source and its
+ * color, along with the color of the ambient light. Evas then sets the color
+ * of each point based on the distance to the light source, the angle with
+ * which the object is facing the light and the ambient light. Here, the
+ * orientation of each point as explained before, becomes more important.
+ * If the map is defined counter-clockwise, the object will be facing away
+ * from the user and thus become obscured, since no light would be reflecting
+ * from it.
+ *
+ * @image html map-light.png
+ * @image rtf map-light.png
+ * @image latex map-light.eps
+ * @note Object facing the light source
+ *
+ * @image html map-light2.png
+ * @image rtf map-light2.png
+ * @image latex map-light2.eps
+ * @note Same object facing away from the user
+ *
+ * @section Image mapping
+ *
+ * @image html map-uv-mapping-1.png
+ * @image rtf map-uv-mapping-1.png
+ * @image latex map-uv-mapping-1.eps
+ *
+ * Images need some special handling when mapped. Evas can easily take care
+ * of objects and do almost anything with them, but it's completely oblivious
+ * to the content of images, so each point in the map needs to be told to what
+ * pixel in the source image it belongs. Failing to do may sometimes result
+ * in the expected behavior, or it may look like a partial work.
+ *
+ * The next image illustrates one possibility of a map being set to an image
+ * object, without setting the right UV mapping for each point. The objects
+ * themselves are mapped properly to their new geometry, but the image content
+ * may not be displayed correctly within the mapped object.
+ *
+ * @image html map-uv-mapping-2.png
+ * @image rtf map-uv-mapping-2.png
+ * @image latex map-uv-mapping-2.eps
+ *
+ * Once Evas knows how to handle the source image within the map, it will
+ * transform it as needed. This is done with evas_map_point_image_uv_set(),
+ * which tells the map to which pixel in image it maps.
+ *
+ * To match our example images to the maps above all we need is the size of
+ * each image, which can always be found with evas_object_image_size_get().
+ *
+ * @code
+ * evas_map_point_image_uv_set(m, 0, 0, 0);
+ * evas_map_point_image_uv_set(m, 1, 150, 0);
+ * evas_map_point_image_uv_set(m, 2, 150, 200);
+ * evas_map_point_image_uv_set(m, 3, 0, 200);
+ * evas_object_map_set(o, m);
+ * evas_object_map_enable_set(o, EINA_TRUE);
+ *
+ * evas_map_point_image_uv_set(m, 0, 0, 0);
+ * evas_map_point_image_uv_set(m, 1, 120, 0);
+ * evas_map_point_image_uv_set(m, 2, 120, 160);
+ * evas_map_point_image_uv_set(m, 3, 0, 160);
+ * evas_object_map_set(o2, m);
+ * evas_object_map_enable_set(o2, EINA_TRUE);
+ * @endcode
+ *
+ * To get
+ *
+ * @image html map-uv-mapping-3.png
+ * @image rtf map-uv-mapping-3.png
+ * @image latex map-uv-mapping-3.eps
+ *
+ * Maps can also be set to use part of an image only, or even map them inverted,
+ * and combined with evas_object_image_source_set() it can be used to achieve
+ * more interesting results.
+ *
+ * @code
+ * evas_object_image_size_get(evas_object_image_source_get(o), &w, &h);
+ * evas_map_point_image_uv_set(m, 0, 0, h);
+ * evas_map_point_image_uv_set(m, 1, w, h);
+ * evas_map_point_image_uv_set(m, 2, w, h / 3);
+ * evas_map_point_image_uv_set(m, 3, 0, h / 3);
+ * evas_object_map_set(o, m);
+ * evas_object_map_enable_set(o, EINA_TRUE);
+ * @endcode
+ *
+ * @image html map-uv-mapping-4.png
+ * @image rtf map-uv-mapping-4.png
+ * @image latex map-uv-mapping-4.eps
+ *
+ * Examples:
+ * @li @ref Example_Evas_Map_Overview
+ *
+ * @ingroup Evas_Object_Group
+ *
+ * @{
+ */
+
+/**
+ * Populate source and destination map points to match exactly object.
+ *
+ * Usually one initialize map of an object to match it's original
+ * position and size, then transform these with evas_map_util_*
+ * functions, such as evas_map_util_rotate() or
+ * evas_map_util_3d_rotate(). The original set is done by this
+ * function, avoiding code duplication all around.
+ *
+ * @param m map to change all 4 points (must be of size 4).
+ * @param obj object to use unmapped geometry to populate map coordinates.
+ * @param z Point Z Coordinate hint (pre-perspective transform). This value
+ *        will be used for all four points.
+ *
+ * @see evas_map_util_points_populate_from_object()
+ * @see evas_map_point_coord_set()
+ * @see evas_map_point_image_uv_set()
+ */
+EAPI void            evas_map_util_points_populate_from_object_full(Evas_Map *m, const Evas_Object *obj, Evas_Coord z);
+
+/**
+ * Populate source and destination map points to match exactly object.
+ *
+ * Usually one initialize map of an object to match it's original
+ * position and size, then transform these with evas_map_util_*
+ * functions, such as evas_map_util_rotate() or
+ * evas_map_util_3d_rotate(). The original set is done by this
+ * function, avoiding code duplication all around.
+ *
+ * Z Point coordinate is assumed as 0 (zero).
+ *
+ * @param m map to change all 4 points (must be of size 4).
+ * @param obj object to use unmapped geometry to populate map coordinates.
+ *
+ * @see evas_map_util_points_populate_from_object_full()
+ * @see evas_map_util_points_populate_from_geometry()
+ * @see evas_map_point_coord_set()
+ * @see evas_map_point_image_uv_set()
+ */
+EAPI void            evas_map_util_points_populate_from_object(Evas_Map *m, const Evas_Object *obj);
+
+/**
+ * Populate source and destination map points to match given geometry.
+ *
+ * Similar to evas_map_util_points_populate_from_object_full(), this
+ * call takes raw values instead of querying object's unmapped
+ * geometry. The given width will be used to calculate destination
+ * points (evas_map_point_coord_set()) and set the image uv
+ * (evas_map_point_image_uv_set()).
+ *
+ * @param m map to change all 4 points (must be of size 4).
+ * @param x Point X Coordinate
+ * @param y Point Y Coordinate
+ * @param w width to use to calculate second and third points.
+ * @param h height to use to calculate third and fourth points.
+ * @param z Point Z Coordinate hint (pre-perspective transform). This value
+ *        will be used for all four points.
+ *
+ * @see evas_map_util_points_populate_from_object()
+ * @see evas_map_point_coord_set()
+ * @see evas_map_point_image_uv_set()
+ */
+EAPI void            evas_map_util_points_populate_from_geometry(Evas_Map *m, Evas_Coord x, Evas_Coord y, Evas_Coord w, Evas_Coord h, Evas_Coord z);
+
+/**
+ * Set color of all points to given color.
+ *
+ * This call is useful to reuse maps after they had 3d lightning or
+ * any other colorization applied before.
+ *
+ * @param m map to change the color of.
+ * @param r red (0 - 255)
+ * @param g green (0 - 255)
+ * @param b blue (0 - 255)
+ * @param a alpha (0 - 255)
+ *
+ * @see evas_map_point_color_set()
+ */
+EAPI void            evas_map_util_points_color_set(Evas_Map *m, int r, int g, int b, int a);
+
+/**
+ * Change the map to apply the given rotation.
+ *
+ * This rotates the indicated map's coordinates around the center coordinate
+ * given by @p cx and @p cy as the rotation center. The points will have their
+ * X and Y coordinates rotated clockwise by @p degrees degrees (360.0 is a
+ * full rotation). Negative values for degrees will rotate counter-clockwise
+ * by that amount. All coordinates are canvas global coordinates.
+ *
+ * @param m map to change.
+ * @param degrees amount of degrees from 0.0 to 360.0 to rotate.
+ * @param cx rotation's center horizontal position.
+ * @param cy rotation's center vertical position.
+ *
+ * @see evas_map_point_coord_set()
+ * @see evas_map_util_zoom()
+ */
+EAPI void            evas_map_util_rotate(Evas_Map *m, double degrees, Evas_Coord cx, Evas_Coord cy);
+
+/**
+ * Change the map to apply the given zooming.
+ *
+ * Like evas_map_util_rotate(), this zooms the points of the map from a center
+ * point. That center is defined by @p cx and @p cy. The @p zoomx and @p zoomy
+ * parameters specify how much to zoom in the X and Y direction respectively.
+ * A value of 1.0 means "don't zoom". 2.0 means "double the size". 0.5 is
+ * "half the size" etc. All coordinates are canvas global coordinates.
+ *
+ * @param m map to change.
+ * @param zoomx horizontal zoom to use.
+ * @param zoomy vertical zoom to use.
+ * @param cx zooming center horizontal position.
+ * @param cy zooming center vertical position.
+ *
+ * @see evas_map_point_coord_set()
+ * @see evas_map_util_rotate()
+ */
+EAPI void            evas_map_util_zoom(Evas_Map *m, double zoomx, double zoomy, Evas_Coord cx, Evas_Coord cy);
+
+/**
+ * Rotate the map around 3 axes in 3D
+ *
+ * This will rotate not just around the "Z" axis as in evas_map_util_rotate()
+ * (which is a convenience call for those only wanting 2D). This will rotate
+ * around the X, Y and Z axes. The Z axis points "into" the screen with low
+ * values at the screen and higher values further away. The X axis runs from
+ * left to right on the screen and the Y axis from top to bottom. Like with
+ * evas_map_util_rotate() you provide a center point to rotate around (in 3D).
+ *
+ * @param m map to change.
+ * @param dx amount of degrees from 0.0 to 360.0 to rotate around X axis.
+ * @param dy amount of degrees from 0.0 to 360.0 to rotate around Y axis.
+ * @param dz amount of degrees from 0.0 to 360.0 to rotate around Z axis.
+ * @param cx rotation's center horizontal position.
+ * @param cy rotation's center vertical position.
+ * @param cz rotation's center vertical position.
+ */
+EAPI void            evas_map_util_3d_rotate(Evas_Map *m, double dx, double dy, double dz, Evas_Coord cx, Evas_Coord cy, Evas_Coord cz);
+
+/**
+ * Rotate the map in 3D using a unit quaternion.
+ *
+ * This will rotate in 3D using a unit quaternion. Like with
+ * evas_map_util_3d_rotate() you provide a center point
+ * to rotate around (in 3D).
+ *
+ * @param m map to change.
+ * @param qx the x component of the imaginary part of the quaternion.
+ * @param qy the y component of the imaginary part of the quaternion.
+ * @param qz the z component of the imaginary part of the quaternion.
+ * @param qw the w component of the real part of the quaternion.
+ * @param cx rotation's center x.
+ * @param cy rotation's center y.
+ * @param cz rotation's center z.
+ *
+ * @warning Rotations can be done using a unit quaternion. Thus, this
+ * function expects a unit quaternion (i.e. qx² + qy² + qz² + qw² == 1).
+ * If this is not the case the behavior is undefined.
+ *
+ * @since 1.8
+ */
+EAPI void            evas_map_util_quat_rotate(Evas_Map *m, double qx, double qy, double qz, double qw, double cx, double cy, double cz);
+
+/**
+ * Perform lighting calculations on the given Map
+ *
+ * This is used to apply lighting calculations (from a single light source)
+ * to a given map. The R, G and B values of each vertex will be modified to
+ * reflect the lighting based on the light point coordinates, the light
+ * color and the ambient color, and at what angle the map is facing the
+ * light source. A surface should have its points be declared in a
+ * clockwise fashion if the face is "facing" towards you (as opposed to
+ * away from you) as faces have a "logical" side for lighting.
+ *
+ * @image html map-light3.png
+ * @image rtf map-light3.png
+ * @image latex map-light3.eps
+ * @note Grey object, no lighting used
+ *
+ * @image html map-light4.png
+ * @image rtf map-light4.png
+ * @image latex map-light4.eps
+ * @note Lights out! Every color set to 0
+ *
+ * @image html map-light5.png
+ * @image rtf map-light5.png
+ * @image latex map-light5.eps
+ * @note Ambient light to full black, red light coming from close at the
+ * bottom-left vertex
+ *
+ * @image html map-light6.png
+ * @image rtf map-light6.png
+ * @image latex map-light6.eps
+ * @note Same light as before, but not the light is set to 0 and ambient light
+ * is cyan
+ *
+ * @image html map-light7.png
+ * @image rtf map-light7.png
+ * @image latex map-light7.eps
+ * @note Both lights are on
+ *
+ * @image html map-light8.png
+ * @image rtf map-light8.png
+ * @image latex map-light8.eps
+ * @note Both lights again, but this time both are the same color.
+ *
+ * @param m map to change.
+ * @param lx X coordinate in space of light point
+ * @param ly Y coordinate in space of light point
+ * @param lz Z coordinate in space of light point
+ * @param lr light red value (0 - 255)
+ * @param lg light green value (0 - 255)
+ * @param lb light blue value (0 - 255)
+ * @param ar ambient color red value (0 - 255)
+ * @param ag ambient color green value (0 - 255)
+ * @param ab ambient color blue value (0 - 255)
+ */
+EAPI void            evas_map_util_3d_lighting(Evas_Map *m, Evas_Coord lx, Evas_Coord ly, Evas_Coord lz, int lr, int lg, int lb, int ar, int ag, int ab);
+
+/**
+ * Apply a perspective transform to the map
+ *
+ * This applies a given perspective (3D) to the map coordinates. X, Y and Z
+ * values are used. The px and py points specify the "infinite distance" point
+ * in the 3D conversion (where all lines converge to like when artists draw
+ * 3D by hand). The @p z0 value specifies the z value at which there is a 1:1
+ * mapping between spatial coordinates and screen coordinates. Any points
+ * on this z value will not have their X and Y values modified in the transform.
+ * Those further away (Z value higher) will shrink into the distance, and
+ * those less than this value will expand and become bigger. The @p foc value
+ * determines the "focal length" of the camera. This is in reality the distance
+ * between the camera lens plane itself (at or closer than this rendering
+ * results are undefined) and the "z0" z value. This allows for some "depth"
+ * control and @p foc must be greater than 0.
+ *
+ * @param m map to change.
+ * @param px The perspective distance X coordinate
+ * @param py The perspective distance Y coordinate
+ * @param z0 The "0" z plane value
+ * @param foc The focal distance
+ */
+EAPI void            evas_map_util_3d_perspective(Evas_Map *m, Evas_Coord px, Evas_Coord py, Evas_Coord z0, Evas_Coord foc);
+
+/**
+ * Get the clockwise state of a map
+ *
+ * This determines if the output points (X and Y. Z is not used) are
+ * clockwise or counter-clockwise. This can be used for "back-face culling". This
+ * is where you hide objects that "face away" from you. In this case objects
+ * that are not clockwise.
+ *
+ * @param m map to query.
+ * @return 1 if clockwise, 0 otherwise
+ */
+EAPI Eina_Bool       evas_map_util_clockwise_get(Evas_Map *m);
+
+/**
+ * Create map of transformation points to be later used with an Evas object.
+ *
+ * This creates a set of points (currently only 4 is supported. no other
+ * number for @p count will work). That is empty and ready to be modified
+ * with evas_map calls.
+ *
+ * @param count number of points in the map.
+ * @return a newly allocated map or @c NULL on errors.
+ *
+ * @see evas_map_free()
+ * @see evas_map_dup()
+ * @see evas_map_point_coord_set()
+ * @see evas_map_point_image_uv_set()
+ * @see evas_map_util_points_populate_from_object_full()
+ * @see evas_map_util_points_populate_from_object()
+ *
+ * @see evas_object_map_set()
+ */
+EAPI Evas_Map       *evas_map_new(int count);
+
+/**
+ * Set the smoothing for map rendering
+ *
+ * This sets smoothing for map rendering. If the object is a type that has
+ * its own smoothing settings, then both the smooth settings for this object
+ * and the map must be turned off. By default smooth maps are enabled.
+ *
+ * @param m map to modify. Must not be NULL.
+ * @param enabled enable or disable smooth map rendering
+ */
+EAPI void            evas_map_smooth_set(Evas_Map *m, Eina_Bool enabled);
+
+/**
+ * Get the smoothing for map rendering
+ *
+ * This gets smoothing for map rendering.
+ *
+ * @param m map to get the smooth from. Must not be NULL.
+ * @return @c EINA_TRUE if the smooth is enabled, @c EINA_FALSE otherwise.
+ */
+EAPI Eina_Bool       evas_map_smooth_get(const Evas_Map *m);
+
+/**
+ * Set the alpha flag for map rendering
+ *
+ * This sets alpha flag for map rendering. If the object is a type that has
+ * its own alpha settings, then this will take precedence. Only image objects
+ * have this currently.
+ * Setting this off stops alpha blending of the map area, and is
+ * useful if you know the object and/or all sub-objects is 100% solid.
+ *
+ * @param m map to modify. Must not be NULL.
+ * @param enabled enable or disable alpha map rendering
+ */
+EAPI void            evas_map_alpha_set(Evas_Map *m, Eina_Bool enabled);
+
+/**
+ * Get the alpha flag for map rendering
+ *
+ * This gets the alpha flag for map rendering.
+ *
+ * @param m map to get the alpha from. Must not be NULL.
+ * @return EINA_FALSE if map is NULL EINA_TRUE otherwise.
+ */
+EAPI Eina_Bool       evas_map_alpha_get(const Evas_Map *m);
+
+/**
+ * Set the flag of the object move synchronization for map rendering
+ *
+ * This sets the flag of the object move synchronization for map rendering.
+ * If the flag is set as enabled, the map will be moved as the object of the map
+ * is moved. By default, the flag of the object move synchronization is not
+ * enabled.
+ *
+ * @param m map to modify. Must not be NULL.
+ * @param enabled enable or disable the object move synchronization for map
+ *        rendering.
+ * @since 1.13
+ */
+EAPI void            evas_map_util_object_move_sync_set(Evas_Map *m, Eina_Bool enabled);
+
+/**
+ * Get the flag of the object move synchronization for map rendering
+ *
+ * This gets the flag of the object move synchronization for map rendering.
+ *
+ * @param m map to get the flag of the object move synchronization from. Must
+ * not be NULL.
+ * @return EINA_FALSE if map is NULL EINA_TRUE otherwise.
+ * @since 1.13
+ */
+EAPI Eina_Bool       evas_map_util_object_move_sync_get(const Evas_Map *m);
+
+/**
+ * Copy a previously allocated map.
+ *
+ * This makes a duplicate of the @p m object and returns it.
+ *
+ * @param m map to copy. Must not be NULL.
+ * @return newly allocated map with the same count and contents as @p m.
+ */
+EAPI Evas_Map       *evas_map_dup(const Evas_Map *m);
+
+/**
+ * Free a previously allocated map.
+ *
+ * This frees a given map @p m and all memory associated with it. You must NOT
+ * free a map returned by evas_object_map_get() as this is internal.
+ *
+ * @param m map to free.
+ */
+EAPI void            evas_map_free(Evas_Map *m);
+
+/**
+ * Get a maps size.
+ *
+ * Returns the number of points in a map.  Should be at least 4.
+ *
+ * @param m map to get size.
+ * @return -1 on error, points otherwise.
+ */
+EAPI int             evas_map_count_get(const Evas_Map *m) EINA_CONST;
+
+/**
+ * Change the map point's coordinate.
+ *
+ * This sets the fixed point's coordinate in the map. Note that points
+ * describe the outline of a quadrangle and are ordered either clockwise
+ * or counter-clockwise. It is suggested to keep your quadrangles concave and
+ * non-complex, though these polygon modes may work, they may not render
+ * a desired set of output. The quadrangle will use points 0 and 1 , 1 and 2,
+ * 2 and 3, and 3 and 0 to describe the edges of the quadrangle.
+ *
+ * The X and Y and Z coordinates are in canvas units. Z is optional and may
+ * or may not be honored in drawing. Z is a hint and does not affect the
+ * X and Y rendered coordinates. It may be used for calculating fills with
+ * perspective correct rendering.
+ *
+ * Remember all coordinates are canvas global ones like with move and resize
+ * in evas.
+ *
+ * @param m map to change point. Must not be @c NULL.
+ * @param idx index of point to change. Must be smaller than map size.
+ * @param x Point X Coordinate
+ * @param y Point Y Coordinate
+ * @param z Point Z Coordinate hint (pre-perspective transform)
+ *
+ * @see evas_map_util_rotate()
+ * @see evas_map_util_zoom()
+ * @see evas_map_util_points_populate_from_object_full()
+ * @see evas_map_util_points_populate_from_object()
+ */
+EAPI void            evas_map_point_coord_set(Evas_Map *m, int idx, Evas_Coord x, Evas_Coord y, Evas_Coord z);
+
+/**
+ * Get the map point's coordinate.
+ *
+ * This returns the coordinates of the given point in the map.
+ *
+ * @param m map to query point.
+ * @param idx index of point to query. Must be smaller than map size.
+ * @param x where to return the X coordinate.
+ * @param y where to return the Y coordinate.
+ * @param z where to return the Z coordinate.
+ */
+EAPI void            evas_map_point_coord_get(const Evas_Map *m, int idx, Evas_Coord *x, Evas_Coord *y, Evas_Coord *z);
+
+/**
+ * Change the map point's U and V texture source point
+ *
+ * This sets the U and V coordinates for the point. This determines which
+ * coordinate in the source image is mapped to the given point, much like
+ * OpenGL and textures. Notes that these points do select the pixel, but
+ * are double floating point values to allow for accuracy and sub-pixel
+ * selection.
+ *
+ * @param m map to change the point of.
+ * @param idx index of point to change. Must be smaller than map size.
+ * @param u the X coordinate within the image/texture source
+ * @param v the Y coordinate within the image/texture source
+ *
+ * @see evas_map_point_coord_set()
+ * @see evas_object_map_set()
+ * @see evas_map_util_points_populate_from_object_full()
+ * @see evas_map_util_points_populate_from_object()
+ */
+EAPI void            evas_map_point_image_uv_set(Evas_Map *m, int idx, double u, double v);
+
+/**
+ * Get the map point's U and V texture source points
+ *
+ * This returns the texture points set by evas_map_point_image_uv_set().
+ *
+ * @param m map to query point.
+ * @param idx index of point to query. Must be smaller than map size.
+ * @param u where to write the X coordinate within the image/texture source
+ * @param v where to write the Y coordinate within the image/texture source
+ */
+EAPI void            evas_map_point_image_uv_get(const Evas_Map *m, int idx, double *u, double *v);
+
+/**
+ * Set the color of a vertex in the map
+ *
+ * This sets the color of the vertex in the map. Colors will be linearly
+ * interpolated between vertex points through the map. Color will multiply
+ * the "texture" pixels (like GL_MODULATE in OpenGL). The default color of
+ * a vertex in a map is white solid (255, 255, 255, 255) which means it will
+ * have no affect on modifying the texture pixels.
+ *
+ * @param m map to change the color of.
+ * @param idx index of point to change. Must be smaller than map size.
+ * @param r red (0 - 255)
+ * @param g green (0 - 255)
+ * @param b blue (0 - 255)
+ * @param a alpha (0 - 255)
+ *
+ * @see evas_map_util_points_color_set()
+ * @see evas_map_point_coord_set()
+ * @see evas_object_map_set()
+ */
+EAPI void            evas_map_point_color_set(Evas_Map *m, int idx, int r, int g, int b, int a);
+
+/**
+ * Get the color set on a vertex in the map
+ *
+ * This gets the color set by evas_map_point_color_set() on the given vertex
+ * of the map.
+ *
+ * @param m map to get the color of the vertex from.
+ * @param idx index of point get. Must be smaller than map size.
+ * @param r pointer to red return
+ * @param g pointer to green return
+ * @param b pointer to blue return
+ * @param a pointer to alpha return
+ *
+ * @see evas_map_point_coord_set()
+ * @see evas_object_map_set()
+ */
+EAPI void            evas_map_point_color_get(const Evas_Map *m, int idx, int *r, int *g, int *b, int *a);
+/**
+ * @}
+ */
+
+/**
+ * @brief Set current object transformation map.
+ *
+ * This sets the map on a given object. It is copied from the @c map pointer,
+ * so there is no need to keep the @c map object if you don't need it anymore.
+ *
+ * A map is a set of 4 points which have canvas x, y coordinates per point,
+ * with an optional z point value as a hint for perspective correction, if it
+ * is available. As well each point has u and v coordinates. These are like
+ * "texture coordinates" in OpenGL in that they define a point in the source
+ * image that is mapped to that map vertex/point. The u corresponds to the x
+ * coordinate of this mapped point and v, the y coordinate. Note that these
+ * coordinates describe a bounding region to sample.
+ *
+ * @note The map points a uv coordinates match the image geometry. If the
+ * @c map parameter is @c null, the stored map will be freed and geometry prior
+ * to enabling/setting a map will be restored.
+ *
+ * @param[in] map The map.
+ *
+ * @ingroup Efl_Canvas_Object
+ */
+EAPI void evas_object_map_set(Evas_Object *obj, const Evas_Map *map);
+
+/**
+ * @brief Get current object transformation map.
+ *
+ * This returns the current internal map set on the indicated object. It is
+ * intended for read-only access and is only valid as long as the object is not
+ * deleted or the map on the object is not changed.
+ *
+ * @return The map.
+ *
+ * @ingroup Efl_Canvas_Object
+ */
+EAPI const Evas_Map *evas_object_map_get(const Evas_Object *obj);
+
+/**
+ * @brief Enable or disable the map that is set.
+ *
+ * Enable or disable the use of map for the object @c obj. On enable, the
+ * object geometry will be saved, and the new geometry will change (position
+ * and size) to reflect the map geometry set.
+ *
+ * If the object doesn't have a map set (with @ref evas_object_map_set), the
+ * initial geometry will be undefined. It is advised to always set a map to the
+ * object first, and then call this function to enable its use.
+ *
+ * @param[in] enabled Enabled state.
+ *
+ * @ingroup Evas_Object
+ */
+EAPI void evas_object_map_enable_set(Evas_Object *obj, Eina_Bool enabled);
+
+#include "canvas/efl_gfx_map.eo.legacy.h"
+
+/**
+ * @brief Apply an evas filter program on this text object.
+ *
+ * Note: the preferred method for filters is to edit EDC styles, rather than
+ * calling this API directly.
+ * 
+ * @since 1.18
+ */
+EAPI void evas_object_text_filter_program_set(Evas_Object *obj, const char *code) EINA_DEPRECATED;
+
+/**
+ * @brief Set a named source object for an evas filter program.
+ *
+ * Note: the preferred method for filters is to edit EDC styles, rather than
+ * calling this API directly.
+ * @since 1.18
+ */
+EAPI void evas_object_text_filter_source_set(Evas_Object *obj, const char *name, Evas_Object *source) EINA_DEPRECATED;

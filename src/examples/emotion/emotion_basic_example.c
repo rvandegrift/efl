@@ -14,13 +14,10 @@
 #define WIDTH  (320)
 #define HEIGHT (240)
 
-static Eina_Bool
-_playback_started_cb(void *data EINA_UNUSED,
-      Eo *obj EINA_UNUSED, const Eo_Event_Description *desc EINA_UNUSED, void *event_info EINA_UNUSED)
+static void
+_playback_started_cb(void *data EINA_UNUSED, const Eo_Event *ev EINA_UNUSED)
 {
     printf("Emotion object started playback.\n");
-
-    return EINA_TRUE;
 }
 
 int
@@ -65,8 +62,8 @@ main(int argc, const char *argv[])
    em = emotion_object_add(e);
    emotion_object_init(em, NULL);
 
-   eo_do(em, eo_event_callback_add
-     (EMOTION_OBJECT_EVENT_PLAYBACK_STARTED, _playback_started_cb, NULL));
+   eo_event_callback_add
+     (em, EMOTION_OBJECT_EVENT_PLAYBACK_STARTED, _playback_started_cb, NULL);
 
    emotion_object_file_set(em, filename);
 

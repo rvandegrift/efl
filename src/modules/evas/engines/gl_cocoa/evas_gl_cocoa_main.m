@@ -111,6 +111,7 @@ eng_window_free(Evas_GL_Cocoa_Window *gw)
    if (gw == _evas_gl_cocoa_window)
      _evas_gl_cocoa_window = NULL;
 
+   evas_common_font_ext_clear();
    evas_gl_common_context_free(gw->gl_context);
    [(EvasGLView*)gw->view release];
    free(gw);
@@ -119,6 +120,7 @@ eng_window_free(Evas_GL_Cocoa_Window *gw)
 void
 eng_window_use(Evas_GL_Cocoa_Window *gw)
 {
+   if ((gw) && (!gw->gl_context)) return;
    if (_evas_gl_cocoa_window != gw)
      {
         [[(NSOpenGLView*)gw->view openGLContext] makeCurrentContext];

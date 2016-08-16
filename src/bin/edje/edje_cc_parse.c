@@ -2,6 +2,7 @@
 # include <config.h>
 #endif
 
+
 #include <string.h>
 #include <ctype.h>
 #include <limits.h>
@@ -21,6 +22,11 @@
 #else
 # define EPP_EXT
 #endif
+
+#define EDJE_1_18_SUPPORTED " -DEFL_VERSION_1_18=1 "
+
+#define EDJE_CC_EFL_VERSION_SUPPORTED \
+  EDJE_1_18_SUPPORTED
 
 static void  new_object(void);
 static void  new_statement(void);
@@ -59,6 +65,7 @@ int        line = 0;
 Eina_List *stack = NULL;
 Eina_Array params;
 int had_quote = 0;
+int params_quote = 0;
 
 static char  file_buf[4096];
 static int   did_wildcard = 0;
@@ -179,14 +186,17 @@ static void
 new_object(void)
 {
    const char *id;
-   New_Object_Handler *oh;
+   New_Object_Handler *oh = NULL;
    New_Statement_Handler *sh;
 
    fill_object_statement_hashes();
    id = stack_id();
-   oh = eina_hash_find(_new_object_hash, id);
-   if (!oh)
-     oh = eina_hash_find(_new_object_short_hash, id);
+   if (!had_quote)
+     {
+        oh = eina_hash_find(_new_object_hash, id);
+        if (!oh)
+          oh = eina_hash_find(_new_object_short_hash, id);
+     }
    if (oh)
      {
         if (oh->func) oh->func();
@@ -201,6 +211,20 @@ new_object(void)
                sh = eina_hash_find(_new_statement_short_hash, id);
              if (!sh)
                sh = eina_hash_find(_new_statement_short_single_hash, id);
+             if (!sh)
+               {
+                  char buf[512] = { 0, };
+                  char *end;
+
+                  strncpy(buf, id, sizeof(buf) - 1);
+                  buf[sizeof(buf) - 1] = 0;
+                  end = strrchr(buf, '.');
+                  if (end) end++;
+                  else end = buf;
+
+                  strcpy(end, "*");
+                  sh = eina_hash_find(_new_statement_hash, buf);
+               }
              if ((!sh) && (!did_wildcard) && (!had_quote))
                {
                   ERR("%s:%i unhandled keyword %s",
@@ -230,11 +254,30 @@ new_statement(void)
      }
    else
      {
-        ERR("%s:%i unhandled keyword %s",
-            file_in, line - 1,
-            (char *)eina_list_data_get(eina_list_last(stack)));
-        err_show();
-        exit(-1);
+        char buf[512] = { 0, };
+        char *end;
+
+        strncpy(buf, id, sizeof(buf) - 1);
+        buf[sizeof(buf) - 1] = 0;
+        end = strrchr(buf, '.');
+        if (end) end++;
+        else end = buf;
+
+        strcpy(end, "*");
+        sh = eina_hash_find(_new_statement_hash, buf);
+
+        if (sh)
+          {
+             if (sh->func) sh->func();
+          }
+        else
+          {
+             ERR("%s:%i unhandled keyword %s",
+                 file_in, line - 1,
+                 (char *)eina_list_data_get(eina_list_last(stack)));
+             err_show();
+             exit(-1);
+          }
      }
 }
 
@@ -720,6 +763,7 @@ parse(char *data, off_t size)
                        /* clear out params */
                        while ((param = eina_array_pop(&params)))
                          free(param);
+                       params_quote = 0;
                        /* remove top from stack */
                        stack_pop();
                     }
@@ -766,10 +810,14 @@ parse(char *data, off_t size)
           {
              if (do_params)
                {
+                  if (had_quote)
+                    params_quote |= (1 << eina_array_count(&params));
                   eina_array_push(&params, token);
                }
              else if (do_indexes)
                {
+                  if (had_quote)
+                    params_quote |= (1 << eina_array_count(&params));
                   do_indexes++;
                   eina_array_push(&params, token);
                }
@@ -981,19 +1029,22 @@ compile(void)
              inc = ecore_file_dir_get(file_in);
              if (depfile)
                snprintf(buf, sizeof(buf), "%s -MMD %s -MT %s %s -I%s %s -o %s"
-                        " -DEFL_VERSION_MAJOR=%d -DEFL_VERSION_MINOR=%d",
+                        " -DEFL_VERSION_MAJOR=%d -DEFL_VERSION_MINOR=%d"
+                        EDJE_CC_EFL_VERSION_SUPPORTED,
                         buf2, depfile, file_out, file_in,
                         inc ? inc : "./", def, clean_file,
                         EINA_VERSION_MAJOR, EINA_VERSION_MINOR);
              else if (annotate)
                snprintf(buf, sizeof(buf), "%s -annotate -a %s %s -I%s %s -o %s"
-                        " -DEFL_VERSION_MAJOR=%d -DEFL_VERSION_MINOR=%d",
+                        " -DEFL_VERSION_MAJOR=%d -DEFL_VERSION_MINOR=%d"
+                        EDJE_CC_EFL_VERSION_SUPPORTED,
                         buf2, watchfile ? watchfile : "/dev/null", file_in,
                         inc ? inc : "./", def, clean_file,
                         EINA_VERSION_MAJOR, EINA_VERSION_MINOR);
              else
                snprintf(buf, sizeof(buf), "%s -a %s %s -I%s %s -o %s"
-                        " -DEFL_VERSION_MAJOR=%d -DEFL_VERSION_MINOR=%d",
+                        " -DEFL_VERSION_MAJOR=%d -DEFL_VERSION_MINOR=%d"
+                        EDJE_CC_EFL_VERSION_SUPPORTED,
                         buf2, watchfile ? watchfile : "/dev/null", file_in,
                         inc ? inc : "./", def, clean_file,
                         EINA_VERSION_MAJOR, EINA_VERSION_MINOR);
@@ -1045,6 +1096,7 @@ compile(void)
         eina_array_flush(&params);
         eina_strbuf_free(stack_buf);
         stack_buf = NULL;
+        color_tree_root_free();
      }
    else
      {
@@ -1854,4 +1906,10 @@ get_param_index(char *str)
      }
 
    return -1;
+}
+
+int
+param_had_quote(int n)
+{
+   return (params_quote & (1 << n));
 }

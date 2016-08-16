@@ -2,11 +2,12 @@
 # include <config.h>
 #endif
 
-#include "ecore_con_suite.h"
-
 #include <stdio.h>
+
 #include <Ecore.h>
 #include <Ecore_Con.h>
+
+#include "ecore_con_suite.h"
 
 char sdata[] = "Server_info";
 char cdata[] = "Client_info";
@@ -223,8 +224,6 @@ void _ecore_con_server_client_tests(Ecore_Con_Type compl_type, const char *name,
    handlers[5] = ecore_event_handler_add(ECORE_CON_EVENT_SERVER_DATA,
                                          _data, (void *) 2);
    fail_if(handlers[5] == NULL);
-
-   fail_if (ecore_con_server_connected_get(server));
 
    server = ecore_con_server_add(compl_type, name, server_port,
                                  server_data);

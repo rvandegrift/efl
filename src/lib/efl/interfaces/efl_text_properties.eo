@@ -1,7 +1,6 @@
 type Efl_Font_Size: int;
 
-interface Efl.Text_Properties {
-   legacy_prefix: null;
+interface Efl.Text.Properties {
    methods {
       @property font {
          set {
@@ -29,7 +28,7 @@ interface Efl.Text_Properties {
             ]]
          }
          values {
-            font: const(char) *; [[The font family name or filename.]]
+            font: string; [[The font family name or filename.]]
             size: Efl_Font_Size; [[The font size, in points.]]
          }
       }
@@ -52,7 +51,7 @@ interface Efl.Text_Properties {
             ]]
          }
          values {
-            font_source: const(char)*; [[The font file's path.]]
+            font_source: string; [[The font file's path.]]
          }
       }
    }

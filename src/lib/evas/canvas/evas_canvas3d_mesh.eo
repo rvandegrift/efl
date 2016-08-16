@@ -1,8 +1,8 @@
+import eina_types;
 import evas_types;
 
-class Evas.Canvas3D.Mesh (Evas.Canvas3D.Object, Evas.Common_Interface, Efl.File)
+class Evas.Canvas3D.Mesh (Evas.Canvas3D.Object, Efl.File)
 {
-   legacy_prefix: null;
    data: Evas_Canvas3D_Mesh_Data;
 
    methods {
@@ -22,7 +22,7 @@ class Evas.Canvas3D.Mesh (Evas.Canvas3D.Object, Evas.Common_Interface, Efl.File)
             @in frame: int; [[The number of the key frame.]]
             @in attrib: Evas.Canvas3D.Vertex_Attrib; [[Vertex attribute ID.]]
             @in stride: int; [[Stride to go to the next vertex (in bytes).]]
-            @in data: const(void)*; [[Pointer to the vertex data buffer.]]
+            @in data: const(void_ptr); [[Pointer to the vertex data buffer.]]
          }
       }
 
@@ -39,7 +39,7 @@ class Evas.Canvas3D.Mesh (Evas.Canvas3D.Object, Evas.Common_Interface, Efl.File)
             @in frame: int; [[The number of the key frame.]]
             @in attrib: Evas.Canvas3D.Vertex_Attrib; [[Vertex attribute ID.]]
             @in stride: int; [[Stride to go to the next vertex (in bytes).]]
-            @in data: const(void)*; [[Pointer to the vertex data buffer.]]
+            @in data: const(void_ptr); [[Pointer to the vertex data buffer.]]
          }
       }
 
@@ -52,7 +52,7 @@ class Evas.Canvas3D.Mesh (Evas.Canvas3D.Object, Evas.Common_Interface, Efl.File)
            original buffer will be returned. Otherwise, the returned pointer
            can differ every time calling this function.
          ]]
-         return: void *; [[Starting address of the mapped vertex buffer.]]
+         return: void_ptr; [[Starting address of the mapped vertex buffer.]]
          params {
             @in frame: int; [[The number of the key frame.]]
             @in attrib: Evas.Canvas3D.Vertex_Attrib; [[Vertex attribute ID.]]
@@ -95,7 +95,7 @@ class Evas.Canvas3D.Mesh (Evas.Canvas3D.Object, Evas.Common_Interface, Efl.File)
          params {
             @in format: Evas.Canvas3D.Index_Format; [[Vertex index data format.]]
             @in count: int; [[Vertex index count.]]
-            @in indices: const(void)*; [[Pointer to the index data.]]
+            @in indices: const(void_ptr); [[Pointer to the index data.]]
          }
       }
 
@@ -104,8 +104,8 @@ class Evas.Canvas3D.Mesh (Evas.Canvas3D.Object, Evas.Common_Interface, Efl.File)
          ]]
          params {
             @in frame: int; [[ The number of the key frame.]]
-            @in vertex: Eina_Inarray*;
-            @in index: Eina_Inarray*;
+            @in vertex: Eina.Inarray*;
+            @in index: Eina.Inarray*;
          }
       }
 
@@ -122,7 +122,7 @@ class Evas.Canvas3D.Mesh (Evas.Canvas3D.Object, Evas.Common_Interface, Efl.File)
          params {
             @in format: Evas.Canvas3D.Index_Format; [[Vertex index data format.]]
             @in count: int; [[Vertex index count.]]
-            @in indices: const(void)*; [[Pointer to the index data.]]
+            @in indices: const(void_ptr); [[Pointer to the index data.]]
          }
       }
 
@@ -155,7 +155,7 @@ class Evas.Canvas3D.Mesh (Evas.Canvas3D.Object, Evas.Common_Interface, Efl.File)
            be returned, otherwise, the returned pointer may differ every
            time you call this function.
          ]]
-         return: void *; [[Pointer to the mapped buffer.]]
+         return: void_ptr; [[Pointer to the mapped buffer.]]
       }
 
       index_data_unmap {
@@ -170,7 +170,7 @@ class Evas.Canvas3D.Mesh (Evas.Canvas3D.Object, Evas.Common_Interface, Efl.File)
          params {
             @in frame: int; [[Frame number.]]
          }
-         return: Eina_Bool;
+         return: bool;
       }
 
       frame_add {
@@ -232,21 +232,21 @@ class Evas.Canvas3D.Mesh (Evas.Canvas3D.Object, Evas.Common_Interface, Efl.File)
          [[Set the data of given mesh frame from the given primitive.]]
          params {
             @in frame: int; [[Specifies data of which frame of given mesh will be set.]]
-            @in primitive: Evas.Canvas3D.Primitive *; [[Specifies which data will be set.]]
+            @in primitive: Evas.Canvas3D.Primitive; [[Specifies which data will be set.]]
          }
       }
-      @property shade_mode {
+      @property shader_mode {
          set {
-            [[Set the shade mode of the given mesh.
+            [[Set the shader mode of the given mesh.
 
-              Default shade mode is EVAS_CANVAS3D_SHADE_MODE_VERTEX_COLOR.
+              Default shader mode is EVAS_CANVAS3D_SHADER_MODE_VERTEX_COLOR.
             ]]
          }
          get {
-            [[Get the shade mode of the given mesh.]]
+            [[Get the shader mode of the given mesh.]]
          }
          values {
-            mode: Evas.Canvas3D.Shade_Mode; [[The shade mode.]]
+            mode: Evas.Canvas3D.Shader_Mode; [[The shader mode.]]
          }
       }
       @property color_pick_enable {
@@ -356,7 +356,7 @@ class Evas.Canvas3D.Mesh (Evas.Canvas3D.Object, Evas.Common_Interface, Efl.File)
             frame: int; [[The number of the key frame.]]
          }
          values {
-            material: Evas.Canvas3D.Material *; [[The material to be set to the key frame.]]
+            material: Evas.Canvas3D.Material; [[The material to be set to the key frame.]]
          }
       }
 
@@ -403,6 +403,20 @@ class Evas.Canvas3D.Mesh (Evas.Canvas3D.Object, Evas.Common_Interface, Efl.File)
         values {
            bias: Evas.Real; [[Offset.]]
         }
+      }
+      @property lod_boundary {
+         set {
+            [[Set LOD boundary distances.]]
+         }
+         get {
+            [[Get LOD boundary distances.
+
+              See also @Evas.Canvas3D.Mesh.lod_boundary.set.]]
+         }
+         values {
+            near_lod: Evas.Real; [[up boundary]]
+            far_lod: Evas.Real; [[down boundary]]
+         }
       }
    }
    implements {

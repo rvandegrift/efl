@@ -120,6 +120,9 @@ ecore_x_event_mask_set(Ecore_X_Window w,
    XSetWindowAttributes s_attr;
 
    LOGFN(__FILE__, __LINE__, __FUNCTION__);
+
+   EINA_SAFETY_ON_NULL_RETURN(_ecore_x_disp);
+
    if (!w)
      w = DefaultRootWindow(_ecore_x_disp);
 
@@ -139,6 +142,9 @@ ecore_x_event_mask_unset(Ecore_X_Window w,
    XSetWindowAttributes s_attr;
 
    LOGFN(__FILE__, __LINE__, __FUNCTION__);
+
+   EINA_SAFETY_ON_NULL_RETURN(_ecore_x_disp);
+
    if (!w)
      w = DefaultRootWindow(_ecore_x_disp);
 
@@ -239,7 +245,7 @@ _ecore_mouse_move(unsigned int timestamp,
    Ecore_Event_Mouse_Move *e;
    Ecore_Event *event;
 
-   e = malloc(sizeof(Ecore_Event_Mouse_Move));
+   e = calloc(1, sizeof(Ecore_Event_Mouse_Move));
    if (!e)
      return;
 
@@ -300,7 +306,7 @@ _ecore_x_axis_update(Ecore_Window window,
    Ecore_Event_Axis_Update *e;
    int i;
 
-   e = malloc(sizeof(Ecore_Event_Axis_Update));
+   e = calloc(1, sizeof(Ecore_Event_Axis_Update));
    if (!e)
      {
         if (axis) free(axis);
@@ -341,14 +347,15 @@ _ecore_key_press(int event,
    char *key;
    char keyname_buffer[256];
    char compose_buffer[256];
-   KeySym sym;
+   KeySym sym, sym2 = 0;
    XComposeStatus status;
    int val;
    int key_len, keyname_len, compose_len;
 
    _ecore_x_last_event_mouse_move = 0;
-   keyname = XKeysymToString(_ecore_x_XKeycodeToKeysym(xevent->display,
-                                                       xevent->keycode, 0));
+   sym = _ecore_x_XKeycodeToKeysym(xevent->display, xevent->keycode, 0);
+   keyname = XKeysymToString(sym);
+
    if (!keyname)
      {
         snprintf(keyname_buffer,
@@ -358,13 +365,12 @@ _ecore_key_press(int event,
         keyname = keyname_buffer;
      }
 
-   sym = 0;
    key = NULL;
    compose = NULL;
    val = XLookupString(xevent,
                        compose_buffer,
                        sizeof(compose_buffer),
-                       &sym,
+                       &sym2,
                        &status);
    if (val > 0)
      {
@@ -375,6 +381,7 @@ _ecore_key_press(int event,
           ERR("Ecore_X cannot convert input key string '%s' to UTF-8. "
               "Is Eina built with iconv support?", compose_buffer);
         tmp = compose;
+        sym = sym2;
      }
 
    key = XKeysymToString(sym);
@@ -443,7 +450,7 @@ _ecore_mouse_button(int event,
 {
    Ecore_Event_Mouse_Button *e;
 
-   e = malloc(sizeof(Ecore_Event_Mouse_Button));
+   e = calloc(1, sizeof(Ecore_Event_Mouse_Button));
    if (!e)
      return NULL;
 
@@ -611,7 +618,7 @@ _ecore_x_event_handle_button_press(XEvent *xevent)
      {
         Ecore_Event_Mouse_Wheel *e;
 
-        e = malloc(sizeof(Ecore_Event_Mouse_Wheel));
+        e = calloc(1, sizeof(Ecore_Event_Mouse_Wheel));
         if (!e)
           return;
 

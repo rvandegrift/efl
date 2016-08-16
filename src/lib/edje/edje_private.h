@@ -39,6 +39,8 @@
 # include <Evil.h>
 #endif
 
+#define EFL_CANVAS_OBJECT_PROTECTED
+
 #include <Eina.h>
 #include <Eet.h>
 #include <Eo.h>
@@ -128,10 +130,6 @@ EAPI extern int _edje_default_log_dom ;
 
 #ifndef CLAMP
 #define CLAMP(x, min, max) (((x) > (max)) ? (max) : (((x) < (min)) ? (min) : (x)))
-#endif
-
-#ifndef MIN
-#define MIN(a, b) (((a) < (b)) ? (a) : (b))
 #endif
 
 
@@ -328,6 +326,9 @@ typedef struct _Edje_Mo                              Edje_Mo;
 typedef struct _Edje_Mo_Directory                    Edje_Mo_Directory;
 typedef struct _Edje_Gfx_Filter                      Edje_Gfx_Filter;
 typedef struct _Edje_Gfx_Filter_Directory            Edje_Gfx_Filter_Directory;
+typedef struct _Edje_Color_Tree_Node                 Edje_Color_Tree_Node;
+typedef struct _Edje_Vector_Directory_Entry          Edje_Vector_Directory_Entry;
+
 
 typedef struct _Edje_Vibration_Sample                Edje_Vibration_Sample;
 typedef struct _Edje_Vibration_Directory             Edje_Vibration_Directory;
@@ -368,6 +369,10 @@ typedef struct _Edje_Physics_Face                    Edje_Physics_Face;
 typedef struct _Edje_Patterns                        Edje_Patterns;
 typedef struct _Edje_Part_Box_Animation              Edje_Part_Box_Animation;
 typedef struct _Edje_Part_Limit                      Edje_Part_Limit;
+typedef struct _Edje_Part_Description_Vector         Edje_Part_Description_Vector;
+typedef struct _Edje_Part_Description_Spec_Svg       Edje_Part_Description_Spec_Svg;
+typedef struct _Edje_Real_Part_Vector                Edje_Real_Part_Vector;
+typedef struct _Edje_Vector_Data                     Edje_Vector_Data;
 
 typedef struct _Edje Edje;
 typedef struct _Edje_Real_Part_Text Edje_Real_Part_Text;
@@ -489,7 +494,12 @@ typedef struct _Edje_Signal_Callback_Custom Edje_Signal_Callback_Custom;
 #define EDJE_STATE_PARAM_PHYSICS_DEPTH  57
 #define EDJE_STATE_PARAM_PROXY_SRC_VISIBLE 58
 #define EDJE_STATE_PARAM_PROXY_SRC_CLIP 59
-#define EDJE_STATE_PARAM_LAST           60
+#define EDJE_STATE_PARAM_BOX_LAYOUT     60
+#define EDJE_STATE_PARAM_BOX_FALLBACK_LAYOUT 61
+#define EDJE_STATE_PARAM_BOX_ALIGN      62
+#define EDJE_STATE_PARAM_BOX_PADDING    63
+#define EDJE_STATE_PARAM_BOX_MIN        64
+#define EDJE_STATE_PARAM_LAST           65
 
 #define EDJE_ENTRY_EDIT_MODE_NONE 0
 #define EDJE_ENTRY_EDIT_MODE_SELECTABLE 1
@@ -527,7 +537,6 @@ struct _AABB {
 struct _Edje_File
 {
    const char                     *path;
-   time_t                          mtime;
 
    Edje_External_Directory        *external_dir;
    Edje_Image_Directory           *image_dir;
@@ -539,6 +548,9 @@ struct _Edje_File
 
    Eina_List                      *styles;
 
+   Eina_List                      *color_tree;
+   Eina_Hash                      *color_tree_hash;
+
    Eina_List                      *color_classes;
    Eina_Hash                      *color_hash;
 
@@ -548,12 +560,7 @@ struct _Edje_File
    Eina_List                      *size_classes;
    Eina_Hash                      *size_hash;
 
-   int                             references;
    const char                     *compiler;
-   int                             version;
-   int				   minor;
-   int                             feature_ver;
-   FLOAT_T                         base_scale;
 
    Eina_Hash                      *data;
    Eina_Hash			  *fonts;
@@ -565,11 +572,21 @@ struct _Edje_File
 
    Eet_File                       *ef;
    Eina_File                      *f;
+
+   time_t                          mtime;
+
+   int                             references;
+   int                             version;
+   int                             minor;
+   int                             feature_ver;
+   FLOAT_T                         base_scale;
+
    char                            fid[8+8+8+2];
 
    unsigned char                   free_strings : 1;
+   unsigned char                   allocated_strings : 1;
    unsigned char                   dangling : 1;
-   unsigned char		   warning : 1;
+   unsigned char                   warning : 1;
 };
 
 struct _Edje_Style
@@ -585,9 +602,9 @@ struct _Edje_Style_Tag
 {
    const char                     *key;
    const char                     *value;
-   const char			  *font;
-   double			   font_size;
-   const char			  *text_class;
+   const char                     *font;
+   const char                     *text_class;
+   double                          font_size;
 };
 
 /*----------*/
@@ -622,10 +639,18 @@ struct _Edje_External_Directory_Entry
 struct _Edje_Image_Directory
 {
    Edje_Image_Directory_Entry *entries; /* an array of Edje_Image_Directory_Entry */
-   unsigned int entries_count;
-
    Edje_Image_Directory_Set *sets; /* an array of Edje_Image_Directory_Set */
+   Edje_Vector_Directory_Entry *vectors; /* an array of Edje_Image_Directory_Entry */
+
+   unsigned int entries_count;
    unsigned int sets_count;
+   unsigned int vectors_count;
+};
+
+struct _Edje_Vector_Directory_Entry
+{
+   const char *entry; /* the nominal name of the vector image - if any */
+   int   id; /* the id no. of the image */
 };
 
 struct _Edje_Image_Directory_Entry
@@ -697,9 +722,9 @@ struct _Edje_Sound_Directory
 {
 
    Edje_Sound_Sample *samples;  /* an array of Edje_Sound_Sample entries */
-   unsigned int samples_count;
-
    Edje_Sound_Tone *tones;  /* an array of Edje_Sound_Tone entries */
+
+   unsigned int samples_count;
    unsigned int tones_count;
 };
 
@@ -741,22 +766,28 @@ struct _Edje_Gfx_Filter_Directory
    int              filters_count;
 };
 
+struct _Edje_Color_Tree_Node
+{
+   const char *name;
+   Eina_List  *color_classes;
+};
+
 /*----------*/
 
 struct _Edje_Program /* a conditional program to be run */
 {
    int         id; /* id of program */
+   int         source_3d_id; /* id of real 3D part */
+
    const char *name; /* name of the action */
 
    const char *signal; /* if signal emission name matches the glob here... */
    const char *source; /* if part that emitted this (name) matches this glob */
-   int source_3d_id; /* id of real 3D part */
    const char *sample_name;
    const char *tone_name;
-   double duration;
-   double speed;
    const char *vibration_name;
-   int vibration_repeat;
+   double      duration;
+   double      speed;
 
    struct {
       const char *part;
@@ -768,11 +799,27 @@ struct _Edje_Program /* a conditional program to be run */
       double   range;
    } in;
 
-   int         action; /* type - set state, stop action, set drag pos etc. */
    const char *state; /* what state of alternates to apply, NULL = default */
    const char *state2; /* what other state to use - for signal emit action */
    double      value; /* value of state to apply (if multiple names match) */
    double      value2; /* other value for drag actions */
+
+   Eina_List  *targets; /* list of target parts to apply the state to */
+   Eina_List  *after; /* list of actions to run at the end of this, for looping */
+
+   struct {
+      const char *name;
+      const char *description;
+   } api;
+
+   int         vibration_repeat;
+   int         action; /* type - set state, stop action, set drag pos etc. */
+
+   /* used for PARAM_COPY (param names in state and state2 above!) */
+   struct {
+      int src; /* part where parameter is being retrieved */
+      int dst; /* part where parameter is being stored */
+   } param;
 
    struct {
       int      mode; /* how to tween - linear, sinusoidal etc. */
@@ -783,21 +830,6 @@ struct _Edje_Program /* a conditional program to be run */
       FLOAT_T  v4; /* other value for drag actions */
       Eina_Bool use_duration_factor; /* use duration factor or not */
    } tween;
-
-   Eina_List  *targets; /* list of target parts to apply the state to */
-
-   Eina_List  *after; /* list of actions to run at the end of this, for looping */
-
-   struct {
-      const char *name;
-      const char *description;
-   } api;
-
-   /* used for PARAM_COPY (param names in state and state2 above!) */
-   struct {
-      int src; /* part where parameter is being retrieved */
-      int dst; /* part where parameter is being stored */
-   } param;
 
 #ifdef HAVE_EPHYSICS
    /* used for actions related to physics, as physics impulses and forces */
@@ -845,18 +877,21 @@ struct _Edje_Limit
       TYPE      MESH_NODE;        \
       TYPE      LIGHT;            \
       TYPE      CAMERA;           \
-      TYPE      SNAPSHOT;
+      TYPE      SNAPSHOT;         \
+      TYPE      VECTOR;
 
 struct _Edje_Part_Collection_Directory_Entry
 {
    const char *entry; /* the nominal name of the part collection */
-   int         id; /* the id of this named part collection */
+   Edje_Part_Collection *ref;
 
    struct
    {
       PART_TYPE_FIELDS(int)
       int      part;
    } count;
+
+   int         id; /* the id of this named part collection */
 
    struct
    {
@@ -869,7 +904,6 @@ struct _Edje_Part_Collection_Directory_Entry
       PART_TYPE_FIELDS(Eina_Mempool *)
    } mp_rtl; /* For Right To Left interface */
 
-   Edje_Part_Collection *ref;
    Eina_Bool group_alias;
 };
 
@@ -879,10 +913,10 @@ struct _Edje_Part_Collection_Directory_Entry
 
 struct _Edje_Pack_Element
 {
-   unsigned char    type; /* only GROUP supported for now */
    Edje_Real_Part  *parent; /* pointer to the table/box that hold it, set at runtime */
    const char      *name; /* if != NULL, will be set with evas_object_name_set */
    const char      *source; /* group name to use as source for this element */
+   const char      *options; /* extra options for custom objects */
    Edje_Size        min, prefer, max;
    struct {
       int l, r, t, b;
@@ -893,16 +927,16 @@ struct _Edje_Pack_Element
    Edje_Alignment   align;
    Edje_Alignment   weight;
    Edje_Aspect      aspect;
-   const char      *options; /* extra options for custom objects */
    /* table specific follows */
    int              col, row;
    unsigned short   colspan, rowspan;
+   unsigned char    type; /* only GROUP supported for now */
 };
 
 struct _Edje_Physics_Face
 {
-   unsigned char    type; /* BOX_FRONT BOX_BACK BOX_RIGHT CYLINDER_BACK ... */
    const char      *source; /* group name to use as source for this element */
+   unsigned char    type; /* BOX_FRONT BOX_BACK BOX_RIGHT CYLINDER_BACK ... */
 };
 
 typedef enum {
@@ -1005,50 +1039,14 @@ struct _Edje_Signal_Callback_Group
 
 struct _Edje_Part_Collection
 {
-   struct { /* list of Edje_Program */
-      Edje_Program **fnmatch; /* complex match with "*?[\" */
-      unsigned int fnmatch_count;
-
-      Edje_Program **strcmp; /* No special caractere, plain strcmp does the work */
-      unsigned int strcmp_count;
-
-      Edje_Program **strncmp; /* Finish by * or ?, plain strncmp does the work */
-      unsigned int strncmp_count;
-
-      Edje_Program **strrncmp; /* Start with * or ?, reverse strncmp will do the job */
-      unsigned int strrncmp_count;
-
-      Edje_Program **nocmp; /* Empty signal/source that will never match */
-      unsigned int nocmp_count;
-   } programs;
-
-   struct { /* list of limit that need to be monitored */
-      Edje_Limit **vertical;
-      unsigned int vertical_count;
-
-      Edje_Limit **horizontal;
-      unsigned int horizontal_count;
-
-      Edje_Part_Limit *parts;
-      unsigned int parts_count;
-   } limits;
-
    Edje_Part **parts; /* an array of Edje_Part */
-   unsigned int parts_count;
-
    Eina_Hash *data;
-
-   int        id; /* the collection id */
 
    Eina_Hash *alias; /* aliasing part */
    Eina_Hash *aliased; /* invert match of alias */
 
-   struct {
-      Edje_Size min, max;
-      unsigned char orientation;
-   } prop;
-
-   int        references;
+   Embryo_Program   *script; /* all the embryo script code for this group */
+   const char       *part;
 
 #ifdef EDJE_PROGRAM_CACHE
    struct {
@@ -1056,6 +1054,40 @@ struct _Edje_Part_Collection
       Eina_Hash                   *matches;
    } prog_cache;
 #endif
+
+   struct { /* list of Edje_Program */
+      Edje_Program **fnmatch; /* complex match with "*?[\" */
+      Edje_Program **strcmp; /* No special caractere, plain strcmp does the work */
+      Edje_Program **strncmp; /* Finish by * or ?, plain strncmp does the work */
+      Edje_Program **strrncmp; /* Start with * or ?, reverse strncmp will do the job */
+      Edje_Program **nocmp; /* Empty signal/source that will never match */
+
+      unsigned int fnmatch_count;
+      unsigned int strcmp_count;
+      unsigned int strncmp_count;
+      unsigned int strrncmp_count;
+      unsigned int nocmp_count;
+   } programs;
+
+   struct { /* list of limit that need to be monitored */
+      Edje_Limit **vertical;
+      Edje_Limit **horizontal;
+      Edje_Part_Limit *parts;
+
+      unsigned int vertical_count;
+      unsigned int horizontal_count;
+      unsigned int parts_count;
+   } limits;
+
+   unsigned int parts_count;
+   int          id; /* the collection id */
+   int          references;
+
+   struct {
+      Edje_Size min, max;
+      unsigned char orientation;
+   } prop;
+
 
 #ifdef HAVE_EPHYSICS
    struct {
@@ -1072,9 +1104,6 @@ struct _Edje_Part_Collection
    } physics;
 #endif
 
-   Embryo_Program   *script; /* all the embryo script code for this group */
-   const char       *part;
-
    /* *** generated at runtime *** */
    struct {
       Edje_Signals_Sources_Patterns programs;
@@ -1084,20 +1113,16 @@ struct _Edje_Part_Collection
    } patterns;
    /* *** *** */
 
-   unsigned char    lua_script_only;
-
-   unsigned char    broadcast_signal;
-
-   unsigned char    physics_enabled; /* will be 1 if a body is declared */
-
-   unsigned char    script_recursion; /* permits unsafe Embryo->EDC->Embryo scripting */
-
-   unsigned char    checked : 1;
-
    struct {
       Evas_Real        height;
       Evas_Real        width;
    } scene_size;
+
+   unsigned char    lua_script_only;
+   unsigned char    broadcast_signal;
+   unsigned char    physics_enabled; /* will be 1 if a body is declared */
+   unsigned char    script_recursion; /* permits unsafe Embryo->EDC->Embryo scripting */
+   unsigned char    checked : 1;
 };
 
 struct _Edje_Part_Dragable
@@ -1112,7 +1137,7 @@ struct _Edje_Part_Dragable
    int                 threshold_id; /* dragging outside this bit, -1 = no */
 
    /* davinchi */
-   int		  event_id; /* If it is used as scrollbar */
+   int                 event_id; /* If it is used as scrollbar */
 
    signed char         x; /* can u click & drag this bit in x dir */
    signed char         y; /* can u click & drag this bit in y dir */
@@ -1140,12 +1165,16 @@ struct _Edje_Part
 
    Edje_Part_Description_List    other; /* other possible descriptors */
 
-   const char           *source, *source2, *source3, *source4, *source5, *source6;
+   const char            *source, *source2, *source3, *source4, *source5, *source6;
    int                    id; /* its id number */
    int                    clip_to_id; /* the part id to clip this one to */
    Edje_Part_Dragable     dragable;
    Edje_Pack_Element    **items; /* packed items for box and table */
+   Evas_Event_Flags       ignore_flags;
+   Evas_Event_Flags       mask_flags;
    unsigned int           items_count;
+   Edje_3D_Vec            scale_3d;
+   Edje_Part_Api          api;
    unsigned char          type; /* what type (image, rect, text) */
 #ifdef HAVE_EPHYSICS
    unsigned char          physics_body; /* body (none, rigid box, soft circle, ...) */
@@ -1154,10 +1183,7 @@ struct _Edje_Part
    unsigned char          mouse_events; /* it will affect/respond to mouse events */
    unsigned char          repeat_events; /* it will repeat events to objects below */
    unsigned char          anti_alias;
-   Evas_Event_Flags       ignore_flags;
-   Evas_Event_Flags       mask_flags;
    unsigned char          scale; /* should certain properties scale with edje scale factor? */
-   Edje_3D_Vec            scale_3d;
    unsigned char          precise_is_inside;
    unsigned char          use_alternate_font_metrics;
    unsigned char          pointer_mode;
@@ -1166,9 +1192,9 @@ struct _Edje_Part
    unsigned char          cursor_mode;
    unsigned char          multiline;
    unsigned char          access; /* it will be used accessibility feature */
-   Edje_Part_Api          api;
    unsigned char          nested_children_count;
    unsigned char          no_render; /* for proxy sources and masks, since 1.15 */
+   unsigned char          required; /* required part, since 1.18 */
 };
 
 struct _Edje_Part_Image_Id
@@ -1200,12 +1226,12 @@ struct _Edje_Part_Description_Common
    Edje_Aspect_Prefer aspect;
 
    const char      *color_class; /* how to modify the color */
+   const char       *size_class;
+
    Edje_Color color;
    Edje_Color color2;
 
    int        clip_to_id; /* state clip override @since 1.15 */
-
-   const char       *size_class;
 
    struct {
       FLOAT_T        relative_x;
@@ -1241,6 +1267,9 @@ struct _Edje_Part_Description_Common
    } persp;
 
 #ifdef HAVE_EPHYSICS
+   // XXX: the eblow struct SHOULD be optional -ie a pointer to a sub struct
+   // XXX: but due to eet encoding we can't do that, but just note this for
+   // XXX: the future to come up with a way to do this
    struct {
       double mass;
       double restitution;
@@ -1277,9 +1306,9 @@ struct _Edje_Part_Description_Common
    } physics;
 #endif
 
+   Edje_3D_Vec       align_3d;
    unsigned char     visible; /* is it shown */
    unsigned char     limit; /* 0 == no, 1 = width, 2 = height, 3 = both */
-   Edje_3D_Vec       align_3d;
 };
 
 struct _Edje_Part_Description_Spec_Fill
@@ -1352,9 +1381,9 @@ struct _Edje_Part_Description_Spec_Proxy
 
 struct _Edje_Part_Description_Spec_Text
 {
-   Edje_String    text; /* if "" or NULL, then leave text unchanged */
    char          *domain;
    char          *text_class; /* how to apply/modify the font */
+   Edje_String    text; /* if "" or NULL, then leave text unchanged */
    Edje_String    style; /* the text style if a textblock */
    Edje_String    font; /* if a specific font is asked for */
    Edje_String    repch; /* replacement char for password mode entry */
@@ -1363,11 +1392,13 @@ struct _Edje_Part_Description_Spec_Text
    Edje_Color     color3;
 
    double         ellipsis; /* 0.0 - 1.0 defining where the ellipsis align */
+   char          *id_source_part;
+   char          *id_text_source_part;
    int            size; /* 0 = use user set size */
    int            id_source; /* -1 if none */
-   char          *id_source_part;
    int            id_text_source; /* -1 if none */
-   char          *id_text_source_part;
+   int            size_range_min;
+   int            size_range_max; /* -1 means, no bound. */
 
    unsigned char  fit_x; /* resize font size down to fit in x dir */
    unsigned char  fit_y; /* resize font size down to fit in y dir */
@@ -1375,8 +1406,6 @@ struct _Edje_Part_Description_Spec_Text
    unsigned char  min_y; /* if text size should be part min size */
    unsigned char  max_x; /* if text size should be part max size */
    unsigned char  max_y; /* if text size should be part max size */
-   int            size_range_min;
-   int            size_range_max; /* -1 means, no bound. */
 };
 
 struct _Edje_Part_Description_Spec_Box
@@ -1406,30 +1435,26 @@ struct _Edje_Part_Description_Spec_Table
 struct _Edje_Part_Description_Spec_Mesh_Node
 {
    struct {
-      Edje_Part_Image_Id            **tweens;
+      Edje_Part_Image_Id          **tweens;
       unsigned int                  tweens_count;
       int                           id;
-
-      Eina_Bool                     set;
-
       Evas_Canvas3D_Mesh_Primitive  primitive;
       Evas_Canvas3D_Vertex_Assembly assembly;
       int                           frame;
+      Eina_Bool                     set;
    } mesh;
 
    struct {
-      Edje_Part_Image_Id     **tweens;
+      Edje_Part_Image_Id   **tweens;
       unsigned int           tweens_count;
       int                    id;
-
-      Eina_Bool              need_texture;
-      Eina_Bool              textured;
-      Eina_Bool              set;
-
       Evas_Canvas3D_Wrap_Mode wrap1;
       Evas_Canvas3D_Wrap_Mode wrap2;
       Evas_Canvas3D_Texture_Filter filter1;
       Evas_Canvas3D_Texture_Filter filter2;
+      Eina_Bool              need_texture;
+      Eina_Bool              textured;
+      Eina_Bool              set;
    } texture;
 
    struct {
@@ -1438,8 +1463,7 @@ struct _Edje_Part_Description_Spec_Mesh_Node
       Edje_Color            specular;
       Eina_Bool             normal;
       FLOAT_T               shininess;
-      Evas_Canvas3D_Shade_Mode    shade;
-
+      Evas_Canvas3D_Shader_Mode    shade;
       Evas_Canvas3D_Material_Attrib material_attrib;
    } properties;
 
@@ -1480,6 +1504,13 @@ struct _Edje_Part_Description_Spec_Light
       FLOAT_T                            data[6];
       int                                look_to; /* -1 = whole part collection, or part ID */
    } orientation;
+
+   struct {
+      Evas_Real       fovy;
+      Evas_Real       aspect;
+      Evas_Real       frustum_near;
+      Evas_Real       frustum_far;
+   } light;
 };
 
 struct _Edje_Part_Description_Spec_Camera
@@ -1501,6 +1532,12 @@ struct _Edje_Part_Description_Spec_Camera
       FLOAT_T                            data[6];
       int                                look_to; /* -1 = whole part collection, or part ID */
    } orientation;
+};
+
+struct _Edje_Part_Description_Spec_Svg
+{
+   int            id; /* the svg id to use */
+   Eina_Bool      set; /* if vg condition it's content */
 };
 
 struct _Edje_Part_Description_Image
@@ -1566,6 +1603,12 @@ struct _Edje_Part_Description_Camera
    Edje_Part_Description_Spec_Camera camera;
 };
 
+struct _Edje_Part_Description_Vector
+{
+   Edje_Part_Description_Common common;
+   Edje_Part_Description_Spec_Svg vg;
+};
+
 /*----------*/
 
 struct _Edje_Signal_Source_Char
@@ -1606,10 +1649,13 @@ struct _Edje
    Eina_List            *subobjs;
    Eina_List            *text_insert_filter_callbacks;
    Eina_List            *markup_filter_callbacks;
+   Eina_List            *vector_cache; /* list of Edje_Vector_Data */
 
    Eina_List            *groups;
 
    Edje_Perspective     *persp;
+
+   Ecore_Animator       *animator;
 
    const Edje_Signal_Callback_Group *callbacks;
 
@@ -1632,32 +1678,32 @@ struct _Edje
 #ifdef HAVE_EPHYSICS
    EPhysics_World       *world;
 #endif
-
    double                duration_scale;
-
+   double                paused_at;
+   Efl_Vpath_File       *file_obj;
    Eina_List            *user_defined;
-
    lua_State            *L;
    Eina_Inlist          *lua_objs;
+
    int                   lua_ref;
-
    int                   processing_messages;
-   int                   state;
-   int			 preload_count;
-
-   unsigned int          table_parts_size;
-
-   int                   walking_callbacks;
-
    int                   references;
-   int                   block;
-   int                   load_error;
-   int                   freeze;
+
+   FLOAT_T               scale;
 
    Evas_Coord            x, y, w, h;
    Edje_Size             min;
-   double                paused_at;
-   FLOAT_T		 scale;
+
+   unsigned short        table_parts_size;
+   unsigned short        preload_count;
+
+   unsigned short        walking_callbacks;
+   unsigned short        freeze;
+
+   unsigned short        block;
+   unsigned short        state;
+
+   unsigned char         load_error;
 
    Eina_Bool          is_rtl : 1;
    Eina_Bool          dirty : 1;
@@ -1667,6 +1713,7 @@ struct _Edje
    Eina_Bool          have_objects : 1;
    Eina_Bool          paused : 1;
    Eina_Bool          no_anim : 1;
+
    Eina_Bool          calc_only : 1;
    Eina_Bool          walking_actions : 1;
    Eina_Bool          block_break : 1;
@@ -1675,6 +1722,7 @@ struct _Edje
    Eina_Bool          freeze_calc : 1;
    Eina_Bool          has_entries : 1;
    Eina_Bool          entries_inited : 1;
+
 #ifdef EDJE_CALC_CACHE
    Eina_Bool          text_part_change : 1;
    Eina_Bool          all_part_change : 1;
@@ -1684,6 +1732,7 @@ struct _Edje
    Eina_Bool          update_hints : 1;
    Eina_Bool          recalc_hints : 1;
    Eina_Bool          need_map_update : 1;
+   Eina_Bool          canvas_animator : 1;
 };
 
 struct _Edje_Calc_Params_Map
@@ -1807,17 +1856,19 @@ struct _Edje_Real_Part_State
 {
    Edje_Part_Description_Common *description; // 4
    Edje_Part_Description_Common *description_rtl; // 4
+   void                  *external_params; // 4
+   Edje_Real_Part_Set    *set; // 4
 #ifdef EDJE_CALC_CACHE
    int                    state; // 4
    Edje_Calc_Params       p; // 271
 #endif
-   void                  *external_params; // 4
-   Edje_Real_Part_Set    *set; // 4
 }; // 32
 // WITH EDJE_CALC_CACHE 307
 
 struct _Edje_Real_Part_Drag
 {
+   Edje_Real_Part       *confine_to; // 4
+   Edje_Real_Part       *threshold; // 4
    FLOAT_T		 x, y; // 16
    Edje_Position_Scale	 val, size, step, page; // 64
    struct {
@@ -1827,8 +1878,6 @@ struct _Edje_Real_Part_Drag
    struct {
       int		 x, y; // 8
    } tmp;
-   Edje_Real_Part       *confine_to; // 4
-   Edje_Real_Part       *threshold; // 4
    Eina_Bool             need_reset : 1; // 4
    Eina_Bool             threshold_started_x : 1;
    Eina_Bool             threshold_started_y : 1;
@@ -1884,6 +1933,19 @@ struct _Edje_Real_Part_Swallow
    } swallow_params; // 28 // FIXME: only if type SWALLOW
 };
 
+struct _Edje_Vector_Data
+{
+   int svg_id;
+   double x, y, w, h;
+   Eina_Bool preserve_aspect;
+   Efl_VG *vg;
+};
+
+struct _Edje_Real_Part_Vector
+{
+   Edje_Vector_Data cur;
+};
+
 struct _Edje_Real_Part
 {
    Edje_Real_Part_State      param1; // 32
@@ -1906,14 +1968,15 @@ struct _Edje_Real_Part
       Edje_Real_Part_Text      *text;
       Edje_Real_Part_Container *container;
       Edje_Real_Part_Swallow   *swallow;
+      Edje_Real_Part_Vector    *vector;
    } typedata; // 4
    FLOAT_T                   description_pos; // 8
    Edje_Rectangle            req; // 16
    int                       x, y, w, h; // 16
-   int                       clicked_button; // 4
 #ifdef EDJE_CALC_CACHE
-   int                       state; // 4
+   unsigned short            state; // 2
 #endif
+   char                      clicked_button; // 1
    unsigned char             type; // 1
    unsigned char             calculated : 2; // 1
    unsigned char             calculating : 2; // 0
@@ -2220,8 +2283,6 @@ EAPI void _edje_edd_shutdown(void);
 EAPI extern Eet_Data_Descriptor *_edje_edd_edje_file;
 EAPI extern Eet_Data_Descriptor *_edje_edd_edje_part_collection;
 
-extern int              _edje_anim_count;
-extern Ecore_Animator  *_edje_timer;
 extern Eina_List       *_edje_animators;
 extern Eina_List       *_edje_edjes;
 
@@ -2261,6 +2322,7 @@ EAPI extern Eina_Mempool *_emp_LIGHT;
 EAPI extern Eina_Mempool *_emp_CAMERA;
 EAPI extern Eina_Mempool *_emp_SNAPSHOT;
 EAPI extern Eina_Mempool *_emp_part;
+EAPI extern Eina_Mempool *_emp_VECTOR;
 
 void  _edje_part_pos_set(Edje *ed, Edje_Real_Part *ep, int mode, FLOAT_T pos, FLOAT_T v1, FLOAT_T v2, FLOAT_T v3, FLOAT_T v4);
 
@@ -2279,7 +2341,7 @@ void  _edje_recalc_do(Edje *ed);
 int   _edje_part_dragable_calc(Edje *ed, Edje_Real_Part *ep, FLOAT_T *x, FLOAT_T *y);
 void  _edje_dragable_pos_set(Edje *ed, Edje_Real_Part *ep, FLOAT_T x, FLOAT_T y);
 
-Eina_Bool _edje_timer_cb(void *data);
+void _edje_timer_cb(void *data, const Eo_Event *event);
 Eina_Bool _edje_pending_timer_cb(void *data);
 void  _edje_callbacks_add(Evas_Object *obj, Edje *ed, Edje_Real_Part *rp);
 void  _edje_callbacks_focus_add(Evas_Object *obj, Edje *ed, Edje_Real_Part *rp);
@@ -2322,6 +2384,7 @@ void  _edje_clean_objects(Edje *ed);
 void  _edje_ref(Edje *ed);
 void  _edje_unref(Edje *ed);
 
+void _edje_program_run_cleanup(Edje *ed, Edje_Running_Program *runp);
 Eina_Bool _edje_program_run_iterate(Edje_Running_Program *runp, double tim);
 void  _edje_program_end(Edje *ed, Edje_Running_Program *runp);
 void  _edje_program_run(Edje *ed, Edje_Program *pr, Eina_Bool force, const char *ssig, const char *ssrc);
@@ -2358,6 +2421,7 @@ const char *   _edje_text_font_get(const char *base, const char *new,
 Edje_Real_Part   *_edje_real_part_get(const Edje *ed, const char *part);
 Edje_Real_Part   *_edje_real_part_recursive_get(Edje **ed, const char *part);
 Edje_Color_Class *_edje_color_class_find(const Edje *ed, const char *color_class);
+Edje_Color_Class *_edje_color_class_recursive_find(const Edje *ed, const char *color_class);
 void              _edje_color_class_member_add(Edje *ed, const char *color_class);
 void              _edje_color_class_member_del(Edje *ed, const char *color_class);
 void              _edje_color_class_member_clean(Edje *ed);
@@ -2403,7 +2467,9 @@ Edje_Part_Description_Text *_edje_real_part_text_text_source_description_get(Edj
 Eina_Bool         _edje_real_part_box_append(Edje *ed, Edje_Real_Part *rp, Evas_Object *child_obj);
 Eina_Bool         _edje_real_part_box_prepend(Edje *ed, Edje_Real_Part *rp, Evas_Object *child_obj);
 Eina_Bool         _edje_real_part_box_insert_before(Edje *ed, Edje_Real_Part *rp, Evas_Object *child_obj, const Evas_Object *ref);
+Eina_Bool         _edje_real_part_box_insert_after(Edje *ed, Edje_Real_Part *rp, Evas_Object *child_obj, const Evas_Object *ref);
 Eina_Bool         _edje_real_part_box_insert_at(Edje *ed, Edje_Real_Part *rp, Evas_Object *child_obj, unsigned int pos);
+Evas_Object      *_edje_real_part_box_content_at(Edje *ed, Edje_Real_Part *rp, unsigned int pos);
 Evas_Object      *_edje_real_part_box_remove(Edje *ed, Edje_Real_Part *rp, Evas_Object *child_obj);
 Evas_Object      *_edje_real_part_box_remove_at(Edje *ed, Edje_Real_Part *rp, unsigned int pos);
 Eina_Bool         _edje_real_part_box_remove_all(Edje *ed, Edje_Real_Part *rp, Eina_Bool clear);
@@ -2663,6 +2729,7 @@ void _edje_entry_input_panel_return_key_disabled_set(Edje_Real_Part *rp, Eina_Bo
 Eina_Bool _edje_entry_input_panel_return_key_disabled_get(Edje_Real_Part *rp);
 void _edje_entry_input_panel_show_on_demand_set(Edje_Real_Part *rp, Eina_Bool ondemand);
 Eina_Bool _edje_entry_input_panel_show_on_demand_get(Edje_Real_Part *rp);
+Eina_Bool _edje_entry_hide_visible_password(Edje *edje, Edje_Real_Part *rp);
 
 void _edje_external_init(void);
 void _edje_external_shutdown(void);
@@ -2912,6 +2979,384 @@ Evas_Event_Flags _edje_part_ignore_flags_get(Edje *ed, Edje_Real_Part *rp);
 void _edje_part_ignore_flags_set(Edje *ed, Edje_Real_Part *rp, Evas_Event_Flags ignore_flags);
 Evas_Event_Flags _edje_part_mask_flags_get(Edje *ed, Edje_Real_Part *rp);
 void _edje_part_mask_flags_set(Edje *ed, Edje_Real_Part *rp, Evas_Event_Flags mask_flags);
+
+/* part containers: box */
+Eo *_edje_box_internal_proxy_get(Edje_Object *obj, Edje *ed, Edje_Real_Part *rp);
+Eina_Bool _edje_part_box_append(Edje *ed, const char *part, Evas_Object *child);
+Eina_Bool _edje_part_box_prepend(Edje *ed, const char *part, Evas_Object *child);
+Eina_Bool _edje_part_box_insert_before(Edje *ed, const char *part, Evas_Object *child, const Evas_Object *reference);
+Eina_Bool _edje_part_box_insert_after(Edje *ed, const char *part, Evas_Object *child, const Evas_Object *reference);
+Eina_Bool _edje_part_box_insert_at(Edje *ed, const char *part, Evas_Object *child, unsigned int pos);
+Evas_Object *_edje_part_box_content_at(Edje *ed, const char *part, unsigned int pos);
+Evas_Object *_edje_part_box_remove(Edje *ed, const char *part, Evas_Object *child);
+Evas_Object *_edje_part_box_remove_at(Edje *ed, const char *part, unsigned int pos);
+Eina_Bool _edje_part_box_remove_all(Edje *ed, const char *part, Eina_Bool clear);
+
+/* part containers: table */
+Eo *_edje_table_internal_proxy_get(Edje_Object *obj, Edje *ed, Edje_Real_Part *rp);
+Evas_Object *_edje_part_table_child_get(Edje *ed, const char *part, unsigned int col, unsigned int row);
+Eina_Bool _edje_part_table_pack(Edje *ed, const char *part, Evas_Object *child_obj, unsigned short col, unsigned short row, unsigned short colspan, unsigned short rowspan);
+Eina_Bool _edje_part_table_unpack(Edje *ed, const char *part, Evas_Object *child_obj);
+Eina_Bool _edje_part_table_col_row_size_get(Edje *ed, const char *part, int *cols, int *rows);
+Eina_Bool _edje_part_table_clear(Edje *ed, const char *part, Eina_Bool clear);
+
+/* part containers: swallow */
+Eo *_edje_swallow_internal_proxy_get(Edje_Object *obj, Edje *ed, Edje_Real_Part *rp);
+Efl_Gfx *_edje_efl_container_content_get(Edje *ed, const char *part);
+Eina_Bool _edje_efl_container_content_set(Edje *ed, const char *part, Efl_Gfx *obj_swallow);
+
+void _edje_internal_proxy_shutdown(void);
+
+// Svg loader
+typedef enum _Svg_Node_Type Svg_Node_Type;
+typedef enum _Svg_Length_Type Svg_Length_Type;
+
+typedef struct _Svg_Node Svg_Node;
+typedef struct _Svg_Doc_Node Svg_Doc_Node;
+typedef struct _Svg_G_Node Svg_G_Node;
+typedef struct _Svg_Defs_Node Svg_Defs_Node;
+typedef struct _Svg_Arc_Node Svg_Arc_Node;
+typedef struct _Svg_Circle_Node Svg_Circle_Node;
+typedef struct _Svg_Ellipse_Node Svg_Ellipse_Node;
+typedef struct _Svg_Polygon_Node Svg_Polygon_Node;
+typedef struct _Svg_Rect_Node Svg_Rect_Node;
+typedef struct _Svg_Path_Node Svg_Path_Node;
+typedef struct _Svg_Style_Property Svg_Style_Property;
+
+typedef struct  _Svg_Style_Stroke   Svg_Style_Stroke;
+typedef struct  _Svg_Style_Fill     Svg_Style_Fill;
+typedef enum    _Svg_Fill_Flags     Svg_Fill_Flags;
+typedef enum    _Svg_Stroke_Flags   Svg_Stroke_Flags;
+
+
+typedef enum   _Svg_Gradient_Type   Svg_Gradient_Type;
+typedef struct _Svg_Style_Gradient  Svg_Style_Gradient;
+typedef struct _Svg_Linear_Gradient Svg_Linear_Gradient;
+typedef struct _Svg_Radial_Gradient Svg_Radial_Gradient;
+typedef struct _Svg_Paint           Svg_Paint;
+
+enum _Svg_Node_Type
+{
+   SVG_NODE_DOC,
+   SVG_NODE_G,
+   SVG_NODE_DEFS,
+   SVG_NODE_SWITCH,
+   SVG_NODE_ANIMATION,
+   SVG_NODE_ARC,
+   SVG_NODE_CIRCLE,
+   SVG_NODE_ELLIPSE,
+   SVG_NODE_IMAGE,
+   SVG_NODE_LINE,
+   SVG_NODE_PATH,
+   SVG_NODE_POLYGON,
+   SVG_NODE_POLYLINE,
+   SVG_NODE_RECT,
+   SVG_NODE_TEXT,
+   SVG_NODE_TEXTAREA,
+   SVG_NODE_TSPAN,
+   SVG_NODE_USE,
+   SVG_NODE_VIDEO,
+   SVG_NODE_UNKNOWN
+};
+
+enum _Svg_Length_Type
+{
+   SVG_LT_PERCENT,
+   SVG_LT_PX,
+   SVG_LT_PC,
+   SVG_LT_PT,
+   SVG_LT_MM,
+   SVG_LT_CM,
+   SVG_LT_IN,
+};
+
+struct _Svg_Doc_Node
+{
+   double width;
+   double height;
+   double vx;
+   double vy;
+   double vw;
+   double vh;
+   Svg_Node *defs;
+};
+
+struct _Svg_G_Node
+{
+
+};
+
+struct _Svg_Defs_Node
+{
+   Eina_List   *gradients;
+};
+
+struct _Svg_Arc_Node
+{
+
+};
+
+struct _Svg_Ellipse_Node
+{
+   double cx;
+   double cy;
+   double rx;
+   double ry;
+};
+
+struct _Svg_Circle_Node
+{
+   double cx;
+   double cy;
+   double r;
+};
+
+struct _Svg_Rect_Node
+{
+   double x;
+   double y;
+   double w;
+   double h;
+   double rx;
+   double ry;
+};
+
+struct _Svg_Path_Node
+{
+   Eina_Stringshare *path;
+};
+
+struct _Svg_Polygon_Node
+{
+   int points_count;
+   double *points;
+};
+
+
+enum _Svg_Gradient_Type
+{
+   SVG_LINEAR_GRADIENT,
+   SVG_RADIAL_GRADIENT
+};
+struct _Svg_Linear_Gradient
+{
+   double x1;
+   double y1;
+   double x2;
+   double y2;
+};
+
+struct _Svg_Radial_Gradient
+{
+   double cx;
+   double cy;
+   double fx;
+   double fy;
+   double r;
+};
+
+struct _Svg_Style_Gradient
+{
+   Svg_Gradient_Type type;
+   Eina_Stringshare  *id;
+   Eina_Stringshare  *ref;
+   Efl_Gfx_Gradient_Spread spread;
+   Eina_List   *stops; // Efl_Gfx_Gradient_Stop
+   Svg_Radial_Gradient *radial;
+   Svg_Linear_Gradient *linear;
+};
+
+struct _Svg_Paint
+{
+   int        r;
+   int        g;
+   int        b;
+   Eina_Bool  none;
+   Eina_Bool  cur_color;
+   Svg_Style_Gradient  *gradient;
+   Eina_Stringshare    *url;
+};
+
+enum _Svg_Fill_Flags
+{
+   SVG_FILL_FLAGS_PAINT     = 0x1,
+   SVG_FILL_FLAGS_OPACITY   = 0x2,
+   SVG_FILL_FLAGS_GRADIENT  = 0x4,
+   SVG_FILL_FLAGS_FILL_RULE = 0x8
+};
+
+enum _Svg_Stroke_Flags
+{
+   SVG_STROKE_FLAGS_PAINT    = 0x1,
+   SVG_STROKE_FLAGS_OPACITY  = 0x2,
+   SVG_STROKE_FLAGS_GRADIENT = 0x4,
+   SVG_STROKE_FLAGS_SCALE    = 0x8,
+   SVG_STROKE_FLAGS_WIDTH    = 0x10,
+   SVG_STROKE_FLAGS_CAP      = 0x20,
+   SVG_STROKE_FLAGS_JOIN     = 0x40,
+   SVG_STROKE_FLAGS_DASH     = 0x80,
+};
+
+struct _Svg_Style_Fill
+{
+   Svg_Fill_Flags       flags;
+   Svg_Paint            paint;
+   int                  opacity;
+   Efl_Gfx_Fill_Rule    fill_rule;
+};
+
+struct _Svg_Style_Stroke
+{
+   Svg_Stroke_Flags     flags;
+   Svg_Paint            paint;
+   int                  opacity;
+   double               scale;
+   double               width;
+   double               centered;
+   Efl_Gfx_Cap          cap;
+   Efl_Gfx_Join         join;
+   Efl_Gfx_Dash        *dash;
+   int                  dash_count;
+};
+
+struct _Svg_Style_Property
+{
+   Svg_Style_Fill     fill;
+   Svg_Style_Stroke   stroke;
+   // the color property indirectly 
+   // used by fill and stroke
+   int                r;
+   int                g;
+   int                b;
+};
+
+struct _Svg_Node
+{
+   Svg_Node_Type        type;
+   Svg_Node            *parent;
+   Eina_List           *child;
+   Eina_Stringshare    *id;
+   Svg_Style_Property  *style;
+   Eina_Matrix3        *transform;
+   union
+     {
+        Svg_G_Node   g;
+        Svg_Doc_Node doc;
+        Svg_Defs_Node defs;
+        Svg_Arc_Node arc;
+        Svg_Circle_Node circle;
+        Svg_Ellipse_Node ellipse;
+        Svg_Polygon_Node polygon;
+        Svg_Polygon_Node polyline;
+        Svg_Rect_Node rect;
+        Svg_Path_Node path;
+     }node;
+};
+
+enum _Svg_Style_Type
+{
+   SVG_STYLE_QUALITY,
+   SVG_STYLE_FILL,
+   SVG_STYLE_VIEWPORT_FILL,
+   SVG_STYLE_FONT,
+   SVG_STYLE_STROKE,
+   SVG_STYLE_SOLID_COLOR,
+   SVG_STYLE_GRADIENT,
+   SVG_STYLE_TRANSFORM,
+   SVG_STYLE_OPACITY,
+   SVG_STYLE_COMP_OP
+};
+
+EAPI Eet_Data_Descriptor * _edje_svg_node_eet(void);
+void _edje_svg_node_destroy_eet(void);
+
+void _edje_dupe_vector_data(Edje *ed, int svg_id, double width, double height,
+                            Edje_Vector_Data *data);
+void _apply_transformation(Efl_VG *root, double w, double h,
+                           Edje_Vector_Data *vg_data);
+
+Edje_Vector_Data * _edje_ref_vector_data(Edje *ed, int svg_id);
+
+EAPI void _edje_svg_node_free(Svg_Node *node);
+
+#ifdef HAVE_EPHYSICS
+Eina_Bool _edje_ephysics_load(void);
+
+typedef struct _Edje_Ephysics Edje_Ephysics;
+
+struct _Edje_Ephysics
+{
+   Eina_Module *mod;
+
+   int (*ephysics_init) (void);
+   int (*ephysics_shutdown) (void);
+   EPhysics_World *(*ephysics_world_new) (void);
+   void (*ephysics_world_del) (EPhysics_World *world);
+   void (*ephysics_world_event_callback_add) (EPhysics_World *world, EPhysics_Callback_World_Type type, EPhysics_World_Event_Cb func, const void *data);
+   void (*ephysics_world_rate_set) (EPhysics_World *world, double rate);
+   void (*ephysics_world_gravity_set) (EPhysics_World *world, double gx, double gy, double gz);
+   void (*ephysics_world_render_geometry_set) (EPhysics_World *world, Evas_Coord x, Evas_Coord y, Evas_Coord z, Evas_Coord w, Evas_Coord h, Evas_Coord d);
+   void (*ephysics_world_render_geometry_get) (const EPhysics_World *world, Evas_Coord *x, Evas_Coord *y, Evas_Coord *z, Evas_Coord *w, Evas_Coord *h, Evas_Coord *d);
+   void (*ephysics_quaternion_set) (EPhysics_Quaternion *quat, double x, double y, double z, double w);
+   void (*ephysics_quaternion_get) (const EPhysics_Quaternion *quat, double *x, double *y, double *z, double *w);
+   void (*ephysics_quaternion_normalize) (EPhysics_Quaternion *quat);
+   EPhysics_Body *(*ephysics_body_box_add) (EPhysics_World *world);
+   EPhysics_Body *(*ephysics_body_sphere_add) (EPhysics_World *world);
+   EPhysics_Body *(*ephysics_body_cylinder_add) (EPhysics_World *world);
+   EPhysics_Body *(*ephysics_body_soft_box_add) (EPhysics_World *world);
+   EPhysics_Body *(*ephysics_body_soft_sphere_add) (EPhysics_World *world, int granularity);
+   EPhysics_Body *(*ephysics_body_soft_cylinder_add) (EPhysics_World *world);
+   EPhysics_Body *(*ephysics_body_cloth_add) (EPhysics_World *world, unsigned short rows, unsigned short columns);
+   EPhysics_Body *(*ephysics_body_top_boundary_add) (EPhysics_World *world);
+   EPhysics_Body *(*ephysics_body_bottom_boundary_add) (EPhysics_World *world);
+   EPhysics_Body *(*ephysics_body_right_boundary_add) (EPhysics_World *world);
+   EPhysics_Body *(*ephysics_body_left_boundary_add) (EPhysics_World *world);
+   EPhysics_Body *(*ephysics_body_front_boundary_add) (EPhysics_World *world);
+   EPhysics_Body *(*ephysics_body_back_boundary_add) (EPhysics_World *world);
+   void (*ephysics_body_central_impulse_apply) (EPhysics_Body *body, double x, double y, double z);
+   void (*ephysics_body_torque_impulse_apply) (EPhysics_Body *body, double pitch, double yaw, double roll);
+   void (*ephysics_body_central_force_apply) (EPhysics_Body *body, double x, double y, double z);
+   void (*ephysics_body_torque_apply) (EPhysics_Body *body, double torque_x, double torque_y, double torque_z);
+   void (*ephysics_body_forces_clear) (EPhysics_Body *body);
+   void (*ephysics_body_linear_velocity_set) (EPhysics_Body *body, double x, double y, double z);
+   void (*ephysics_body_angular_velocity_set) (EPhysics_Body *body, double x, double y, double z);
+   void (*ephysics_body_stop) (EPhysics_Body *body);
+   void (*ephysics_body_rotation_set) (EPhysics_Body *body, EPhysics_Quaternion *quat);
+   void (*ephysics_body_forces_get) (const EPhysics_Body *body, double *x, double *y, double *z);
+   void (*ephysics_body_torques_get) (const EPhysics_Body *body, double *x, double *y, double *z);
+   void (*ephysics_body_linear_velocity_get) (const EPhysics_Body *body, double *x, double *y, double *z);
+   void (*ephysics_body_angular_velocity_get) (const EPhysics_Body *body, double *x, double *y, double *z);
+   void (*ephysics_body_linear_movement_enable_set) (EPhysics_Body *body, Eina_Bool enable_x, Eina_Bool enable_y, Eina_Bool enable_z);
+   void (*ephysics_body_angular_movement_enable_set) (EPhysics_Body *body, Eina_Bool enable_x, Eina_Bool enable_y, Eina_Bool enable_z);
+   void (*ephysics_body_move) (EPhysics_Body *body, Evas_Coord x, Evas_Coord y, Evas_Coord z);
+   void (*ephysics_body_geometry_get) (const EPhysics_Body *body, Evas_Coord *x, Evas_Coord *y, Evas_Coord *z, Evas_Coord *w, Evas_Coord *h, Evas_Coord *d);
+   void (*ephysics_body_resize) (EPhysics_Body *body, Evas_Coord w, Evas_Coord h, Evas_Coord d);
+   void (*ephysics_body_material_set) (EPhysics_Body *body, EPhysics_Body_Material material);
+   void (*ephysics_body_density_set) (EPhysics_Body *body, double density);
+   void (*ephysics_body_mass_set) (EPhysics_Body *body, double mass);
+   void (*ephysics_body_soft_body_hardness_set) (EPhysics_Body *body, double hardness);
+   void (*ephysics_body_restitution_set) (EPhysics_Body *body, double restitution);
+   void (*ephysics_body_friction_set) (EPhysics_Body *body, double friction);
+   void (*ephysics_body_damping_set) (EPhysics_Body *body, double linear_damping, double angular_damping);
+   void (*ephysics_body_sleeping_threshold_set) (EPhysics_Body *body, double linear_threshold, double angular_threshold);
+   void (*ephysics_body_light_set) (EPhysics_Body *body, Eina_Bool enable);
+   void (*ephysics_body_back_face_culling_set) (EPhysics_Body *body, Eina_Bool enable);
+   void (*ephysics_body_evas_object_update) (EPhysics_Body *body);
+   void (*ephysics_body_face_evas_object_set) (EPhysics_Body *body, EPhysics_Body_Face face, Evas_Object *evas_obj, Eina_Bool use_obj_pos);
+   void (*ephysics_body_evas_object_set) (EPhysics_Body *body, Evas_Object *evas_obj, Eina_Bool use_obj_pos);
+   void (*ephysics_body_event_callback_add) (EPhysics_Body *body, EPhysics_Callback_Body_Type type, EPhysics_Body_Event_Cb func, const void *data);
+   void (*ephysics_body_data_set) (EPhysics_Body *body, void *data);
+   void *(*ephysics_body_data_get) (const EPhysics_Body *body);
+   EPhysics_Quaternion *(*ephysics_body_rotation_get) (const EPhysics_Body *body, EPhysics_Quaternion *rotation);
+};
+
+extern Edje_Ephysics *_edje_ephysics;
+#define EPH_LOAD() _edje_ephysics_load()
+#define EPH_CALL(x) _edje_ephysics->x
+
+#endif
+
+
 
 #ifdef HAVE_LIBREMIX
 #include <remix/remix.h>

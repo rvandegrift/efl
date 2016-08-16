@@ -27,6 +27,7 @@
 # include <Evil.h>
 #endif
 #include <Eina.h>
+#include <Efl.h>
 
 #include "Ecore.h"
 #include "ecore_private.h"
@@ -115,6 +116,8 @@ static Ecore_Memory_State _ecore_memory_state = ECORE_MEMORY_STATE_NORMAL;
 #ifdef HAVE_SYSTEMD
 static Ecore_Timer *_systemd_watchdog = NULL;
 #endif
+
+static Efl_Vpath *vpath = NULL;
 
 Eina_Lock _ecore_main_loop_lock;
 int _ecore_main_lock_count;
@@ -207,6 +210,9 @@ ecore_init(void)
    if (++_ecore_init_count != 1)
      return _ecore_init_count;
 
+   /* make sure libecore is linked to libefl - workaround gcc bug */
+   __efl_internal_init();
+
    setlocale(LC_CTYPE, "");
    /*
       if (strcmp(nl_langinfo(CODESET), "UTF-8"))
@@ -243,12 +249,17 @@ ecore_init(void)
    if (_ecore_fps_debug) _ecore_fps_debug_init();
    if (!ecore_mempool_init()) goto shutdown_mempool;
    _ecore_main_loop_init();
+
+   vpath = eo_add(EFL_VPATH_CORE_CLASS, NULL);
+   if (vpath) efl_vpath_manager_register(EFL_VPATH_MANAGER_CLASS, 0, vpath);
+
+   _mainloop_singleton = eo_add(EFL_LOOP_CLASS, NULL);
+
    _ecore_signal_init();
 #ifndef HAVE_EXOTIC
    _ecore_exe_init();
 #endif
    _ecore_thread_init();
-   _ecore_glib_init();
    _ecore_job_init();
    _ecore_time_init();
 
@@ -330,15 +341,13 @@ ecore_shutdown(void)
    /*
     * take a lock here because _ecore_event_shutdown() does callbacks
     */
-     _ecore_lock();
      if (_ecore_init_count <= 0)
        {
           ERR("Init count not greater than 0 in shutdown.");
-          _ecore_unlock();
           return 0;
        }
      if (_ecore_init_count-- != _ecore_init_count_threshold)
-       goto unlock;
+       goto end;
 
      ecore_system_modules_unload();
 
@@ -353,6 +362,9 @@ ecore_shutdown(void)
           _systemd_watchdog = NULL;
        }
 #endif
+
+     eo_del(_mainloop_singleton);
+     _mainloop_singleton = NULL;
 
      if (_ecore_fps_debug) _ecore_fps_debug_shutdown();
      _ecore_poller_shutdown();
@@ -390,13 +402,17 @@ ecore_shutdown(void)
 #ifndef HAVE_EXOTIC
      _ecore_exe_shutdown();
 #endif
-     _ecore_idle_enterer_shutdown();
-     _ecore_idle_exiter_shutdown();
-     _ecore_idler_shutdown();
-     _ecore_timer_shutdown();
+     _efl_loop_timer_shutdown();
      _ecore_event_shutdown();
      _ecore_main_shutdown();
      _ecore_signal_shutdown();
+
+   if (vpath)
+     {
+        eo_del(vpath);
+        vpath = NULL;
+     }
+
      _ecore_main_loop_shutdown();
 
 #if defined(HAVE_MALLINFO) || defined(HAVE_MALLOC_INFO)
@@ -423,16 +439,15 @@ ecore_shutdown(void)
      eina_prefix_free(_ecore_pfx);
      _ecore_pfx = NULL;
 
+     eo_unref(_ecore_parent);
+     eo_shutdown();
+
      eina_shutdown();
 #ifdef HAVE_EVIL
      evil_shutdown();
 #endif
 
-     eo_unref(_ecore_parent);
-     eo_shutdown();
-unlock:
-     _ecore_unlock();
-
+ end:
      return _ecore_init_count;
 }
 

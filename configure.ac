@@ -1,4 +1,4 @@
-EFL_VERSION([1], [17], [2], [release])
+EFL_VERSION([1], [18], [0], [release])
 AC_INIT([efl], [efl_version], [enlightenment-devel@lists.sourceforge.net])
 
 AC_PREREQ([2.60])
@@ -30,7 +30,7 @@ EFL_API_LEGACY_DEF="#define EFL_NOLEGACY_API_SUPPORT"
 EFL_API_EO_DEF="#define EFL_EO_API_SUPPORT"
 efl_api="both"
 
-#### For the moment the Eo EFL API is not ready you need to explicitely optin.
+#### For the moment the Eo EFL API is not ready you need to explicitly optin.
 EFL_ENABLE_EO_API_SUPPORT
 EFL_ENABLE_BETA_API_SUPPORT
 
@@ -154,10 +154,15 @@ AC_ARG_WITH([dbus-services],
 AC_SUBST(dbusservicedir)
 
 efl_deprecated_option="no"
+EFL_WITH_BIN([eet], [eet-eet])
 EFL_WITH_BIN([edje], [edje-cc])
 EFL_WITH_BIN([eolian], [eolian-gen])
 EFL_WITH_BIN([eolian_cxx], [eolian-cxx])
+EFL_WITH_BIN([eolian-js], [eolian-js])
 EFL_WITH_BIN_SUFFIX([elua], [elua], [_bin])
+EFL_WITH_BIN([eldbus], [eldbus_codegen])
+EFL_WITH_BIN([elementary], [elementary-codegen])
+EFL_WITH_BIN([elementary], [elm-prefs-cc])
 
 #### Default values
 
@@ -199,6 +204,9 @@ EFL_VERSION_MINOR="v_min"
 AC_SUBST(EFL_VERSION_MAJOR)
 AC_SUBST(EFL_VERSION_MINOR)
 
+ELM_UNIX_DEF="#undef"
+ELM_WIN32_DEF="#undef"
+
 have_systemd_pkg="no"
 have_win32="no"
 have_windows="no"
@@ -211,18 +219,25 @@ case "$host_os" in
       # TODO: check cygwin* here
       have_win32="yes"
       have_windows="yes"
+      ELM_WIN32_DEF="#define"
       EFLALL_CFLAGS="${EFLALL_CFLAGS} -D__USE_MINGW_ANSI_STDIO"
    ;;
    freebsd*)
       have_freebsd="yes"
+      ELM_UNIX_DEF="#define"
    ;;
    darwin*)
       have_darwin="yes"
+      ELM_UNIX_DEF="#define"
    ;;
    linux*)
       have_linux="yes"
       have_systemd_pkg="auto"
+      ELM_UNIX_DEF="#define"
    ;;
+   *)
+      ELM_UNIX_DEF="#define"
+      ;;
 esac
 
 case "$host_vendor" in
@@ -245,6 +260,9 @@ AM_CONDITIONAL([HAVE_FREEBSD], [test "x${have_freebsd}" = "xyes"])
 AM_CONDITIONAL([HAVE_OSX], [test "x${have_darwin}" = "xyes"])
 AM_CONDITIONAL([HAVE_X86_64], [test "x${host_cpu}" = "xx86_64"])
 
+AC_SUBST([ELM_UNIX_DEF])
+AC_SUBST([ELM_WIN32_DEF])
+
 #### Checks for programs
 
 ### libtool
@@ -255,6 +273,9 @@ fi
 m4_ifdef([AM_PROG_AR], [AM_PROG_AR])
 LT_INIT([win32-dll disable-static pic-only])
 EFL_INIT
+
+CXXFLAGS="${CXXFLAGS} -fPIC -DPIC"
+LDFLAGS="${LDFLAGS} -fPIC -DPIC"
 
 ### gettext
 
@@ -327,12 +348,14 @@ EFL_CHECK_DOXYGEN([build_doc="yes"], [build_doc="no"])
 if test "${want_coverage}" = "yes" ; then
    AC_CHECK_PROG([have_lcov], [lcov], [yes], [no])
    if test "x${have_lcov}" = "xyes" ; then
-      EFLALL_COV_CFLAGS="${EFLALL_COV_CFLAGS} -fprofile-arcs -ftest-coverage"
-      EFLALL_COV_LIBS="${EFLALL_COV_LIBS} -lgcov"
+      AC_SEARCH_LIBS([__gcov_init], [gcov])
+      EFL_CHECK_COMPILER_FLAGS([EFLALL], [-fprofile-arcs -ftest-coverage])
+      EFL_CHECK_COMPILER_FLAGS([EFLALL], [-fprofile-instr-generate -fcoverage-mapping])
+      EFL_CHECK_LINKER_FLAGS([EFLALL], [-fprofile-instr-generate -fcoverage-mapping])
       if test "x${prefer_assert}" = "xno"; then
          EFLALL_COV_CFLAGS="${EFLALL_COV_CFLAGS} -DNDEBUG"
       else
-         EFLALL_COV_CFLAGS="${EFLALL_COV_CFLAGS} -g -O0 -DDEBUG"
+         EFLALL_COV_CFLAGS="${EFLALL_COV_CFLAGS} -g -O0"
       fi
    else
       AC_MSG_ERROR([lcov is not found])
@@ -440,6 +463,8 @@ AC_CHECK_SIZEOF(int, 4)
 AC_CHECK_SIZEOF(long, 4)
 
 AC_CHECK_SIZEOF([uintptr_t])
+EINA_SIZEOF_UINTPTR_T=$ac_cv_sizeof_uintptr_t
+AC_SUBST([EINA_SIZEOF_UINTPTR_T])
 
 AC_CHECK_TYPES([siginfo_t], [], [],
    [[
@@ -568,7 +593,7 @@ case $host_cpu in
        build_cpu_neon="yes"
        AC_MSG_CHECKING([whether to use NEON instructions])
        CFLAGS_save="${CFLAGS}"
-       CFLAGS="${CFLAGS} -mfpu=neon -ftree-vectorize"
+       CFLAGS="-mfpu=neon -ftree-vectorize ${CFLAGS}"
        AC_COMPILE_IFELSE([AC_LANG_PROGRAM([[#include <arm_neon.h>]], [[asm volatile ("vqadd.u8 d0, d1, d0\n")]])],[
            AC_MSG_RESULT([yes])
            AC_DEFINE([BUILD_NEON], [1], [Build NEON Code])
@@ -626,7 +651,7 @@ pause \
 AC_FUNC_ALLOCA
 AC_FUNC_MMAP
 
-EFL_CHECK_FUNCS([EFLALL], [fnmatch gettimeofday dirfd fcntl])
+EFL_CHECK_FUNCS([EFLALL], [fnmatch gettimeofday dirfd fcntl sched_getcpu])
 
 have_atfile_source="${ac_cv_func_fstatat}"
 AC_DEFINE_IF([HAVE_ATFILE_SOURCE],
@@ -702,7 +727,10 @@ AC_SUBST([USER_SESSION_DIR])
 
 if test "x${have_systemd_pkg}" = "xauto" -o "x${have_systemd_pkg}" = "xyes"; then
    PKG_CHECK_MODULES([SYSTEMD], [libsystemd >= 209],
-   [have_systemd_pkg="yes"],
+   [
+     have_systemd_pkg="yes"
+     AC_DEFINE_UNQUOTED([HAVE_SYSTEMD_LOGIN_209],[1],[Defined if systemd >= 209])
+   ],
    [have_systemd_pkg="no"])
 fi
 
@@ -839,11 +867,7 @@ case "${build_profile}" in
      ;;
 esac
 
-PKG_CHECK_MODULES(UNWIND, [libunwind libunwind-generic],
-                  [have_unwind=yes], [have_unwind=no])
-AS_IF([test "x$have_unwind" = "xyes"],
-      [AC_DEFINE([HAVE_UNWIND], [1], [Have libunwind])])
-AM_CONDITIONAL(HAVE_UNWIND, test "x$have_unwind" = "xyes")
+EFL_CHECK_LIBUNWIND
 
 EINA_CONFIG([HAVE_ALLOCA_H], [test "x${ac_cv_working_alloca_h}" = "xyes"])
 EINA_CONFIG([SAFETY_CHECKS], [test "x${have_safety_checks}" = "xyes"])
@@ -869,6 +893,16 @@ AC_ARG_ENABLE([magic-debug],
     fi
    ],
    [have_magic_debug="yes"])
+
+AC_ARG_ENABLE([debug-threads],
+   [AS_HELP_STRING([--enable-debug-threads], [enable debugging of eina threads @<:@default=disabled@:>@])],
+   [
+    if test "x${enableval}" = "xyes" ; then
+       want_debug_threads="yes"
+    else
+       want_debug_threads="no"
+    fi
+   ])
 
 EINA_CONFIG([MAGIC_DEBUG], [test "x${have_magic_debug}" = "xyes"])
 
@@ -1183,6 +1217,7 @@ EFL_LIB_START_OPTIONAL([Ecore_Js], [test "x${have_js}" = "xyes"])
 
 EFL_INTERNAL_DEPEND_PKG([ECORE_JS], [ecore])
 EFL_INTERNAL_DEPEND_PKG([ECORE_JS], [ecore_file])
+EFL_INTERNAL_DEPEND_PKG([ECORE_JS], [efl])
 EFL_ADD_CFLAGS([ECORE_JS], [${EFL_PTHREAD_CFLAGS}])
 EFL_EVAL_PKGS([ECORE_JS])
 
@@ -1310,6 +1345,8 @@ fi
 EFL_CHECK_LIBS([EMILE], [zlib])
 
 EFL_INTERNAL_DEPEND_PKG([EMILE], [eina])
+requirements_cflags_emile="${requirements_cflags_emile} -I\${top_srcdir}/src/lib/efl -I\${top_builddir}/src/lib/efl"
+requirements_pc_emile="efl >= ${PACKAGE_VERSION} ${requirements_pc_emile}"
 
 EFL_EVAL_PKGS([EMILE])
 
@@ -1361,6 +1398,8 @@ fi
 
 EFL_INTERNAL_DEPEND_PKG([EET], [eina])
 EFL_INTERNAL_DEPEND_PKG([EET], [emile])
+requirements_pc_eet="${requirements_pc_eet} ${requirements_pc_emile}"
+requirements_cflags_eet="${requirements_cflags_eet} ${requirements_cflags_emile}"
 
 EFL_EVAL_PKGS([EET])
 
@@ -1518,6 +1557,330 @@ EFL_LIB_END([ECTOR])
 
 #### End of Ector
 
+
+#### Ecore
+
+EFL_LIB_START([Ecore])
+
+### Additional options to configure
+
+# glib
+
+AC_ARG_WITH([glib],
+   [AS_HELP_STRING([--with-glib=yes|no|always],[add glib support. @<:@default=enabled@:>@])],
+   [
+    if test "x${withval}" = "xyes" ; then
+       with_glib="yes"
+    else
+       if test "x${withval}" = "xalways" ; then
+          with_glib="always"
+       else
+          with_glib="no"
+       fi
+    fi
+   ],
+   [with_glib="yes"])
+
+AC_ARG_ENABLE([g-main-loop],
+   [AS_HELP_STRING([--enable-g-main-loop],[enable ecore_main_loop based on g_main_loop. @<:@default=disabled@:>@])],
+   [
+    if test "x${enableval}" = "xyes" ; then
+       want_g_main_loop="yes"
+       CFOPT_WARNING="xyes"
+    else
+       want_g_main_loop="no"
+    fi
+   ],
+   [want_g_main_loop="no"])
+AC_ARG_ENABLE([libuv],
+   [AS_HELP_STRING([--enable-libuv],[enable ecore_main_loop based on libuv. @<:@default=disabled@:>@])],
+   [
+    if test "x${enableval}" = "xyes" ; then
+       want_libuv="yes"
+       CFOPT_WARNING="xyes"
+    else
+       want_libuv="no"
+    fi
+   ],
+   [want_libuv="no"])
+
+AC_ARG_ENABLE([gstreamer],
+   [AS_HELP_STRING([--enable-gstreamer],[enable gstreamer 0.10 support. @<:@default=disabled@:>@])],
+   [
+    if test "x${enableval}" = "xyes" ; then
+       want_gstreamer="yes"
+       CFOPT_WARNING="xyes"
+    else
+       want_gstreamer="no"
+    fi
+   ],
+   [want_gstreamer="no"])
+
+AC_ARG_ENABLE([gstreamer1],
+   [AS_HELP_STRING([--disable-gstreamer1],[disable gstreamer 1.0 support. @<:@default=enabled@:>@])],
+   [
+    if test "x${enableval}" = "xyes" ; then
+       want_gstreamer1="yes"
+    else
+       want_gstreamer1="no"
+       CFOPT_WARNING="xyes"
+    fi
+   ],
+   [want_gstreamer1="yes"])
+
+AC_ARG_ENABLE([tizen],
+   [AS_HELP_STRING([--enable-tizen],[enable tizen support. @<:@default=disabled@:>@])],
+   [
+    if test "x${enableval}" = "xyes" ; then
+       want_tizen="yes"
+    else
+       want_tizen="no"
+    fi
+   ],
+   [want_tizen="no"])
+
+if test "${want_tizen}" = "yes"; then
+     PKG_CHECK_MODULES([TIZEN_CONFIGURATION_MANAGER],
+      [vconf],
+      [have_tizen_vconf="yes"],
+      [have_tizen_vconf="no"])
+  PKG_CHECK_MODULES([TIZEN_CONFIGURATION_MANAGER], [vconf])
+fi
+
+AM_CONDITIONAL([HAVE_TIZEN_CONFIGURATION_MANAGER], [test "${have_tizen_vconf}" = "yes"])
+if test "${have_tizen_vconf}"  = "yes"; then
+  AC_DEFINE(HAVE_TIZEN_CONFIGURATION_MANAGER, 1, [Define to 1 if you have Tizen configuration manager(vconf).])
+fi
+
+AC_ARG_ENABLE([ecore_wayland],
+   [AS_HELP_STRING([--enable-ecore-wayland],[enable legacy Ecore_Wayland support. @<:@default=disabled@:>@])],
+   [
+    if test "x${enableval}" = "xyes" ; then
+       want_ecore_wayland="yes"
+    else
+       want_ecore_wayland="no"
+    fi
+   ],
+   [want_ecore_wayland="no"])
+
+AC_ARG_ENABLE([ecore_drm],
+   [AS_HELP_STRING([--enable-ecore-drm],[enable legacy Ecore_Drm support. @<:@default=disabled@:>@])],
+   [
+    if test "x${enableval}" = "xyes" ; then
+       want_ecore_drm="yes"
+    else
+       want_ecore_drm="no"
+    fi
+   ],
+   [want_ecore_drm="no"])
+
+### Default values
+
+if test "${have_windows}" = "yes"; then
+   with_glib="no"
+fi
+
+want_glib="no"
+if test "x${with_glib}" = "xyes" || test "x${with_glib}" = "xalways" ; then
+   want_glib="yes"
+fi
+
+want_ecore_timer_dump="no"
+if test "x${build_profile}" = "xdebug" && test "x${ac_cv_func_backtrace}" = "xyes"; then
+   want_ecore_timer_dump="yes"
+   AC_DEFINE([WANT_ECORE_TIMER_DUMP], [1], [Want Ecore_Timer dump infrastructure])
+fi
+
+### Checks for programs
+
+### Checks for libraries
+EFL_PLATFORM_DEPEND([ECORE], [all])
+EFL_INTERNAL_DEPEND_PKG([ECORE], [eo])
+EFL_INTERNAL_DEPEND_PKG([ECORE], [eina])
+EFL_INTERNAL_DEPEND_PKG([ECORE], [efl])
+
+EFL_ADD_LIBS([ECORE], [-lm])
+
+# glib
+
+EFL_OPTIONAL_DEPEND_PKG([ECORE], [${want_glib}], [GLIB], [glib-2.0 gthread-2.0])
+if test "x${have_glib}" = "xno"; then
+   want_g_main_loop="no"
+fi
+
+EFL_OPTIONAL_DEPEND_PKG([ECORE], [${want_systemd}], [SYSTEMD], [libsystemd])
+
+EFL_ADD_FEATURE([ECORE], [systemd-daemon], [${want_systemd}])
+EFL_ADD_FEATURE([ECORE], [glib])
+EFL_ADD_FEATURE([ECORE], [g-main-loop])
+EFL_ADD_FEATURE([ECORE], [libuv])
+
+want_glib_integration_always=no
+if test "x${with_glib}" = "xalways" ; then
+  want_glib_integration_always="yes"
+  AC_DEFINE([GLIB_INTEGRATION_ALWAYS], [1], [Always integrate glib if support compiled])
+fi
+
+if test "x${want_g_main_loop}" = "xyes" ; then
+  AC_DEFINE([USE_G_MAIN_LOOP], [1], [Use g_main_loop in ecore])
+  if test "x${want_js}" = "xnodejs" -o "x${want_js}" = "xlibuv" ; then
+    AC_MSG_ERROR([Can't define glib and libuv integration together])
+  fi
+fi
+
+# not EFL_OPTIONAL_DEPEND_PKG() because it's only used for ecore examples
+if test "${want_gstreamer1}" = "yes" -a "${want_gstreamer}" = "yes"; then
+   AC_MSG_ERROR([You can only enable either GStreamer 1.0 or GStreamer 0.10 support])
+fi
+
+if test "${want_gstreamer1}" = "yes"; then
+  PKG_CHECK_MODULES([GSTREAMER], [gstreamer-1.0])
+fi
+if test "${want_gstreamer}" = "yes"; then
+  PKG_CHECK_MODULES([GSTREAMER], [gstreamer-0.10])
+fi
+
+AM_CONDITIONAL([HAVE_GSTREAMER], [test "x${want_gstreamer}" = "xyes" -o "x${want_gstreamer1}" = "xyes"])
+AM_CONDITIONAL([HAVE_GSTREAMER0], [test "x${want_gstreamer}" = "xyes"])
+AM_CONDITIONAL([HAVE_GSTREAMER1], [test "x${want_gstreamer1}" = "xyes"])
+
+EFL_EVAL_PKGS([ECORE])
+
+### Checks for header files
+
+AC_HEADER_SYS_WAIT
+
+AC_CHECK_HEADERS([sys/socket.h])
+
+AC_CHECK_HEADERS([ \
+arpa/inet.h \
+arpa/nameser.h \
+langinfo.h \
+features.h \
+netinet/in.h \
+netinet/tcp.h \
+sys/prctl.h \
+sys/resource.h \
+sys/timerfd.h \
+sys/un.h \
+ieeefp.h \
+],[],[],
+[
+ #ifdef HAVE_SYS_SOCKET_H
+ # include <sys/socket.h>
+ #endif
+])
+
+AC_CHECK_HEADERS([net/if.h], [], [],
+[#include <stdio.h>
+#if STDC_HEADERS
+# include <stdlib.h>
+# include <stddef.h>
+#else
+# if HAVE_STDLIB_H
+#  include <stdlib.h>
+# endif
+#endif
+#if HAVE_SYS_SOCKET_H
+# include <sys/socket.h>
+#endif
+])
+
+### Checks for types
+
+### Checks for structures
+
+### Checks for compiler characteristics
+
+### Checks for linker characteristics
+
+### Checks for library functions
+
+## ecore
+
+# isfinite
+
+AC_COMPILE_IFELSE(
+   [AC_LANG_PROGRAM(
+       [[
+#include <math.h>
+       ]],
+       [[
+int i = isfinite(0);
+       ]])],
+   [
+    AC_DEFINE(HAVE_ISFINITE, 1, [Define to 1 if you have 'isfinite', as a function or macro.])
+    have_isfinite="yes"
+   ],
+   [have_isfinite="no"])
+
+AC_MSG_CHECKING([for isfinite])
+AC_MSG_RESULT([${have_isfinite}])
+
+# mallinfo, timerfd_create, clock_gettime
+
+AC_CHECK_FUNCS_ONCE([mallinfo timerfd_create clock_gettime malloc_info])
+
+if ! test "x${ac_cv_func_clock_gettime}" = "xyes" ; then
+   AC_CHECK_LIB([rt], [clock_gettime],
+      [
+        EFL_ADD_LIBS([ECORE], [-lrt])
+        AC_DEFINE([HAVE_CLOCK_GETTIME], [1], [Have clock_gettime()])
+       ])
+fi
+
+EFL_ADD_LIBS([ECORE], [${LTLIBINTL}])
+
+# coroutine function specific
+
+AC_COMPILE_IFELSE(
+   [AC_LANG_PROGRAM(
+       [[
+#include <ucontext.h>
+       ]],
+       [[
+ucontext_t test;
+getcontext(&test);
+       ]])],
+   [have_ucontext="yes"],
+   [have_ucontext="no"])
+
+AC_MSG_CHECKING([for ucontext])
+AC_MSG_RESULT([${have_ucontext}])
+
+AC_COMPILE_IFELSE(
+   [AC_LANG_PROGRAM(
+       [[
+#include <setjmp.h>
+       ]],
+       [[
+jmp_buf context;
+setjmp(&context);
+       ]])],
+   [have_setjmp="yes"],
+   [have_setjmp="no"])
+
+AC_MSG_CHECKING([for setjmp])
+AC_MSG_RESULT([${have_setjmp}])
+
+if test "X${have_windows}" = "xyes"; then
+   AC_DEFINE(USE_FIBER, 1, [Define to 1 if you have Windows Fiber support.])
+   EFL_ADD_FEATURE([system], [coroutine], [fiber])
+elif test "x${have_ucontext}" = "xyes"; then
+   AC_DEFINE(USE_UCONTEXT, 1, [Define to 1 if you have posix ucontext functions.])
+   EFL_ADD_FEATURE([system], [coroutine], [ucontext])
+elif test "x${have_setjmp}" = "xyes"; then
+   AC_DEFINE(USE_SETJMP, 1, [Define to 1 if you have setjmp/longjmp functions.])
+   EFL_ADD_FEATURE([system], [coroutine], [setjmp])
+else
+   AC_MSG_ERROR([You do not have a working way to implement coroutine. Exiting...])
+fi
+
+### Check availability
+
+EFL_LIB_END([Ecore])
+#### End of Ecore
+
 #### Evas
 
 EFL_LIB_START([Evas])
@@ -1528,7 +1891,7 @@ EFL_LIB_START([Evas])
 AC_ARG_WITH([x11],
    [AS_HELP_STRING([--with-x11=xlib|xcb|none],[X11 method to use: xlib, xcb or none])])
 
-if test "x${have_windows}" = "xyes" || test "x${have_ps3}" = "xyes"; then
+if test "x${have_windows}" = "xyes" || test "x${have_ps3}" = "xyes" || test "x${have_darwin}" = "xyes"; then
    with_x11="none"
 elif test "x${with_x11}" = "x"; then
    with_x11="xlib"
@@ -1595,7 +1958,7 @@ AC_ARG_ENABLE([wayland],
    [want_wayland="no"])
 
 if test "${want_wayland}" = "yes"; then
-   EFL_PKG_CHECK_STRICT([wayland-client >= 1.8.0])
+   EFL_PKG_CHECK_STRICT([wayland-client >= 1.11.0])
 fi
 
 # Wayland IVI-Shell
@@ -1621,6 +1984,19 @@ AC_ARG_ENABLE([fb],
     fi
    ],
    [want_fb="no"])
+
+# Eglfs
+AC_ARG_ENABLE([eglfs],
+   [AS_HELP_STRING([--enable-eglfs],[enable hardware accelerated framebuffer access. @<:@default=disabled@:>@])],
+   [
+    if test "x${enableval}" = "xyes" ; then
+       want_eglfs="yes"
+       want_fb="yes"
+    else
+       want_eglfs="no"
+    fi
+   ],
+   [want_eglfs="no"])
 
 # SDL
 AC_ARG_ENABLE([sdl],
@@ -1651,7 +2027,7 @@ fi
 
 # Cocoa
 AC_ARG_ENABLE([cocoa],
-    [AS_HELP_STRING([--enable-cocoa],[enable MacOS X Cocoa . @<:@default=disabled@:>@])],
+    [AS_HELP_STRING([--enable-cocoa],[enable Cocoa backend on Mac OS X. @<:@default=enabled@:>@])],
     [
      if test "x${enableval}" = "xyes" ; then
         want_cocoa="yes"
@@ -1659,7 +2035,7 @@ AC_ARG_ENABLE([cocoa],
         want_cocoa="no"
      fi
     ],
-    [want_cocoa="no"])
+    [want_cocoa="yes"])
 
 if test "${want_cocoa}" = "yes"; then
    #test cocoa requirements (objc and Cocoa/Cocoa.h)
@@ -1667,7 +2043,6 @@ if test "${want_cocoa}" = "yes"; then
     have_cocoa="no"
     m4_ifdef([AC_PROG_OBJC],
       [
-       if test "x${have_gnu_objc}" = "xyes" ; then
           AC_LANG_PUSH([Objective C])
           LIBS_save="$LIBS"
           LIBS="$LIBS -framework Cocoa"
@@ -1695,18 +2070,16 @@ window = [[NSWindow alloc]
           AC_MSG_CHECKING([whether Cocoa framework is supported])
           AC_MSG_RESULT([${have_cocoa}])
           AC_LANG_POP([Objective C])
-       fi
    ])
 fi
 AC_SUBST(cocoa_ldflags)
 
-if test "x${want_cocoa}" = "xyes"; then
+if test "x${have_cocoa}" = "xyes"; then
     #test cocoa requirements (objc and Cocoa/Cocoa.h)
     cocoa_coreservices_ldflags=""
     have_cocoa_coreservices="no"
     m4_ifdef([AC_PROG_OBJC],
       [
-       if test "x${have_gnu_objc}" = "xyes" ; then
           AC_LANG_PUSH([Objective C])
           LIBS_save="$LIBS"
           LIBS="$LIBS -framework CoreServices"
@@ -1727,23 +2100,35 @@ if test "x${want_cocoa}" = "xyes"; then
           AC_MSG_CHECKING([whether Cocoa CoreServices framework is supported])
           AC_MSG_RESULT([${have_cocoa_coreservices}])
           AC_LANG_POP([Objective C])
-       fi
    ])
 fi
 AC_SUBST(cocoa_coreservices_ldflags)
+
+AC_ARG_ENABLE([elput],
+   [AS_HELP_STRING([--enable-elput],[enable elput library. @<:@default=disabled@:>@])],
+   [
+    if test "x${enableval}" = "xyes" ; then
+       want_elput="yes"
+    else
+       want_elput="no"
+    fi
+   ],
+   [want_elput="no"])
 
 # Drm
 AC_ARG_ENABLE([drm],
    [AS_HELP_STRING([--enable-drm],[enable drm engine. @<:@default=disabled@:>@])],
    [
     if test "x${enableval}" = "xyes" ; then
-       want_drm="yes"
+      if test "x${want_elput}" != "xyes" ; then
+        AC_MSG_ERROR([elput is required to build drm support])
+      fi
+      want_drm="yes"
     else
-       want_drm="no"
+      want_drm="no"
     fi
    ],
    [want_drm="no"])
-
 
 AC_ARG_ENABLE([gl-drm],
    [AC_HELP_STRING([--enable-gl-drm],
@@ -1944,10 +2329,39 @@ AC_ARG_ENABLE([ecore-buffer],
    [want_ecore_buffer="no"])
 
 # Image Loaders
+case "$host_os" in
+   cegcc*|mingw32ce*)
+      AC_MSG_ERROR([ceGCC compiler is not supported anymore. Exiting...])
+   ;;
+   mingw*)
+      want_generic="no"
+      want_poppler="no"
+      want_spectre="no"
+      want_libraw="no"
+      want_rsvg="no"
+      want_xcf="no"
+   ;;
+   cygwin*)
+      want_generic="no"
+      want_poppler="no"
+      want_spectre="no"
+      want_libraw="no"
+      want_rsvg="no"
+      want_xcf="no"
+   ;;
+   *)
+      want_generic="static"
+      want_poppler="yes"
+      want_spectre="yes"
+      want_libraw="yes"
+      want_rsvg="yes"
+      want_xcf="yes"
+   ;;
+esac
 
 ARG_ENABLE_EVAS_IMAGE_LOADER(BMP, static)
 ARG_ENABLE_EVAS_IMAGE_LOADER(Eet, static)
-ARG_ENABLE_EVAS_IMAGE_LOADER(Generic, static)
+ARG_ENABLE_EVAS_IMAGE_LOADER(Generic, [${want_generic}])
 ARG_ENABLE_EVAS_IMAGE_LOADER(Gif, yes)
 ARG_ENABLE_EVAS_IMAGE_LOADER(ICO, static)
 ARG_ENABLE_EVAS_IMAGE_LOADER(JPEG, static)
@@ -1967,7 +2381,7 @@ ARG_ENABLE_EVAS_IMAGE_LOADER(DDS, static)
 
 want_evas_engine_software_gdi="${have_win32}"
 want_evas_engine_software_ddraw="${have_win32}"
-want_evas_engine_gl_cocoa="${want_cocoa}"
+want_evas_engine_gl_cocoa="${have_cocoa}"
 want_evas_engine_wayland_egl="no"
 if test "${want_wayland}" = "yes" && test "${want_egl}" = "yes" && test "${with_opengl}" = "es"; then
    want_evas_engine_wayland_egl="yes"
@@ -1999,6 +2413,7 @@ EFL_INTERNAL_DEPEND_PKG([EVAS], [eina])
 EFL_INTERNAL_DEPEND_PKG([EVAS], [efl])
 EFL_INTERNAL_DEPEND_PKG([EVAS], [emile])
 EFL_INTERNAL_DEPEND_PKG([EVAS], [ector])
+EFL_INTERNAL_DEPEND_PKG([EVAS], [ecore])
 
 EFL_ADD_LIBS([EVAS], [-lm])
 
@@ -2078,6 +2493,7 @@ EVAS_CHECK_ENGINE([wayland-egl], [${want_evas_engine_wayland_egl}], [no], [Wayla
 EVAS_CHECK_ENGINE([wayland-shm], [${want_wayland}], [no], [Wayland Shm])
 EVAS_CHECK_ENGINE([drm], [${want_drm}], [no], [Drm])
 EVAS_CHECK_ENGINE([gl-drm], [${want_gl_drm}], [no], [OpenGL Drm])
+EVAS_CHECK_ENGINE([eglfs], [${want_eglfs}], [no], [OpenGL Fb])
 
 
 # Software XCB
@@ -2234,6 +2650,7 @@ if test "x$have_evas_engine_gl_xlib" = "xyes" || \
    test "x$have_evas_engine_gl_sdl" = "xyes" || \
    test "x$have_evas_engine_gl_cocoa" = "xyes" || \
    test "x$have_evas_engine_gl_drm" = "xyes" || \
+   test "x$have_evas_engine_eglfs" = "xyes" || \
    test "x$have_evas_engine_wayland_egl" = "xyes"; then
    have_evas_engine_gl_common="yes"
 fi
@@ -2242,6 +2659,7 @@ if test "x$have_evas_engine_gl_xlib" = "xstatic" || \
    test "x$have_evas_engine_gl_sdl" = "xstatic" || \
    test "x$have_evas_engine_gl_cocoa" = "xstatic" || \
    test "x$have_evas_engine_gl_drm" = "xstatic" || \
+   test "x$have_evas_engine_eglfs" = "xstatic" || \
    test "x$have_evas_engine_wayland_egl" = "xstatic"; then
    have_evas_engine_gl_common="yes"
    have_static_evas_engine_gl_common="yes"
@@ -2434,6 +2852,100 @@ EFL_ADD_FEATURE([EVAS], [tile-rotate])
 EFL_ADD_FEATURE([EVAS], [dither-mask], [${build_evas_dither_mask}])
 EFL_ADD_FEATURE([EVAS], [hyphen])
 
+#### Generic backend
+
+### Options to turn off generic loaders for evas
+AC_ARG_ENABLE([poppler],
+   [AS_HELP_STRING([--disable-poppler],[disable pdf support. @<:@default=enabled@:>@])],
+   [
+    if test "x${enableval}" = "xyes" ; then
+       want_poppler="yes"
+    else
+       want_poppler="no"
+    fi
+   ])
+
+AC_ARG_ENABLE([spectre],
+   [AS_HELP_STRING([--disable-spectre],[disable postscript support. @<:@default=enabled@:>@])],
+   [
+    if test "x${enableval}" = "xyes" ; then
+       want_spectre="yes"
+    else
+       want_spectre="no"
+    fi
+   ])
+
+AC_ARG_ENABLE([libraw],
+   [AS_HELP_STRING([--disable-libraw],[disable libraw support. @<:@default=enabled@:>@])],
+   [
+    if test "x${enableval}" = "xyes" ; then
+       want_libraw="yes"
+    else
+       want_libraw="no"
+    fi
+   ])
+
+AC_ARG_ENABLE([librsvg],
+   [AS_HELP_STRING([--disable-librsvg],[disable svg support. @<:@default=enabled@:>@])],
+   [
+    if test "x${enableval}" = "xyes" ; then
+       want_rsvg="yes"
+    else
+       want_rsvg="no"
+    fi
+   ])
+
+AC_ARG_ENABLE([xcf],
+   [AS_HELP_STRING([--disable-xcf],[disable xcf support. @<:@default=enabled@:>@])],
+   [
+    if test "x${enableval}" = "xyes" ; then
+       want_xcf="yes"
+    else
+       want_xcf="no"
+    fi
+   ])
+
+have_poppler="no"
+have_spectre="no"
+have_raw="no"
+have_rsvg="no"
+
+### Check needed dependency for each generic loader
+if test "x${want_poppler}" = "xyes"; then
+   PKG_CHECK_MODULES([POPPLER], [poppler-cpp >= 0.12], [have_poppler="yes"])
+fi
+
+if test "x${want_spectre}" = "xyes"; then
+   PKG_CHECK_MODULES([SPECTRE], [libspectre], [have_spectre="yes"])
+fi
+
+if test "x${want_libraw}" = "xyes"; then
+   PKG_CHECK_MODULES([LIBRAW], [libraw], [have_raw="yes"])
+fi
+
+if test "x${want_rsvg}" = "xyes"; then
+   PKG_CHECK_MODULES([RSVG],  [librsvg-2.0 >= 2.14.0 cairo >= 1.0.0], [have_rsvg="yes"])
+   PKG_CHECK_MODULES(
+      [SVG_2_36], [librsvg-2.0 >= 2.36.0 cairo >= 1.0.0],
+      [
+       have_rsvg_2_36="yes"
+       AC_DEFINE(HAVE_SVG_2_36, 1, [Have librsvg >= 2.36])
+      ],
+      [have_rsvg_2_36="no"])
+fi
+
+AM_CONDITIONAL([HAVE_POPPLER], [test "x${have_poppler}" = "xyes"])
+AM_CONDITIONAL([HAVE_SPECTRE], [test "x${have_spectre}" = "xyes"])
+AM_CONDITIONAL([HAVE_LIBRAW], [test "x${have_raw}" = "xyes"])
+AM_CONDITIONAL([HAVE_RSVG], [test "x${have_rsvg}" = "xyes"])
+AM_CONDITIONAL([HAVE_XCF], [test "x${want_xcf}" = "xyes"])
+
+EFL_ADD_FEATURE([EVAS_LOADER], [poppler], [${have_poppler}])
+EFL_ADD_FEATURE([EVAS_LOADER], [spectre], [${have_spectre}])
+EFL_ADD_FEATURE([EVAS_LOADER], [raw], [${have_raw}])
+EFL_ADD_FEATURE([EVAS_LOADER], [rsvg], [${have_rsvg}])
+EFL_ADD_FEATURE([EVAS_LOADER], [xcf], [${want_xcf}])
+
 EFL_LIB_END([Evas])
 #### End of Evas
 
@@ -2487,302 +2999,6 @@ EFL_LIB_END([Embryo])
 #### End of Embryo
 
 
-#### Ecore
-
-EFL_LIB_START([Ecore])
-
-### Additional options to configure
-
-# glib
-
-AC_ARG_WITH([glib],
-   [AS_HELP_STRING([--with-glib=yes|no|always],[add glib support. @<:@default=enabled@:>@])],
-   [
-    if test "x${withval}" = "xyes" ; then
-       with_glib="yes"
-    else
-       if test "x${withval}" = "xalways" ; then
-          with_glib="always"
-       else
-          with_glib="no"
-       fi
-    fi
-   ],
-   [with_glib="yes"])
-
-AC_ARG_ENABLE([g-main-loop],
-   [AS_HELP_STRING([--enable-g-main-loop],[enable ecore_main_loop based on g_main_loop. @<:@default=disabled@:>@])],
-   [
-    if test "x${enableval}" = "xyes" ; then
-       want_g_main_loop="yes"
-       CFOPT_WARNING="xyes"
-    else
-       want_g_main_loop="no"
-    fi
-   ],
-   [want_g_main_loop="no"])
-AC_ARG_ENABLE([libuv],
-   [AS_HELP_STRING([--enable-libuv],[enable ecore_main_loop based on libuv. @<:@default=disabled@:>@])],
-   [
-    if test "x${enableval}" = "xyes" ; then
-       want_libuv="yes"
-       CFOPT_WARNING="xyes"
-    else
-       want_libuv="no"
-    fi
-   ],
-   [want_libuv="no"])
-
-AC_ARG_ENABLE([gstreamer],
-   [AS_HELP_STRING([--enable-gstreamer],[enable gstreamer 0.10 support. @<:@default=disabled@:>@])],
-   [
-    if test "x${enableval}" = "xyes" ; then
-       want_gstreamer="yes"
-       CFOPT_WARNING="xyes"
-    else
-       want_gstreamer="no"
-    fi
-   ],
-   [want_gstreamer="no"])
-
-AC_ARG_ENABLE([gstreamer1],
-   [AS_HELP_STRING([--disable-gstreamer1],[disable gstreamer 1.0 support. @<:@default=enabled@:>@])],
-   [
-    if test "x${enableval}" = "xyes" ; then
-       want_gstreamer1="yes"
-    else
-       want_gstreamer1="no"
-       CFOPT_WARNING="xyes"
-    fi
-   ],
-   [want_gstreamer1="yes"])
-
-AC_ARG_ENABLE([tizen],
-   [AS_HELP_STRING([--enable-tizen],[enable tizen support. @<:@default=disabled@:>@])],
-   [
-    if test "x${enableval}" = "xyes" ; then
-       want_tizen="yes"
-    else
-       want_tizen="no"
-    fi
-   ],
-   [want_tizen="no"])
-
-if test "${want_tizen}" = "yes"; then
-     PKG_CHECK_MODULES([TIZEN_CONFIGURATION_MANAGER],
-      [vconf],
-      [have_tizen_vconf="yes"],
-      [have_tizen_vconf="no"])
-  PKG_CHECK_MODULES([TIZEN_CONFIGURATION_MANAGER], [vconf])
-fi
-
-AM_CONDITIONAL([HAVE_TIZEN_CONFIGURATION_MANAGER], [test "${have_tizen_vconf}" = "yes"])
-if test "${have_tizen_vconf}"  = "yes"; then
-  AC_DEFINE(HAVE_TIZEN_CONFIGURATION_MANAGER, 1, [Define to 1 if you have Tizen configuration manager(vconf).])
-fi
-
-### Default values
-
-if test "${have_windows}" = "yes"; then
-   with_glib="no"
-fi
-
-want_glib="no"
-if test "x${with_glib}" = "xyes" || test "x${with_glib}" = "xalways" ; then
-   want_glib="yes"
-fi
-
-want_ecore_timer_dump="no"
-if test "x${build_profile}" = "xdebug" && test "x${ac_cv_func_backtrace}" = "xyes"; then
-   want_ecore_timer_dump="yes"
-   AC_DEFINE([WANT_ECORE_TIMER_DUMP], [1], [Want Ecore_Timer dump infrastructure])
-fi
-
-### Checks for programs
-
-### Checks for libraries
-EFL_PLATFORM_DEPEND([ECORE], [all])
-EFL_INTERNAL_DEPEND_PKG([ECORE], [eo])
-EFL_INTERNAL_DEPEND_PKG([ECORE], [eina])
-EFL_INTERNAL_DEPEND_PKG([ECORE], [efl])
-
-EFL_ADD_LIBS([ECORE], [-lm])
-
-# glib
-
-EFL_OPTIONAL_DEPEND_PKG([ECORE], [${want_glib}], [GLIB], [glib-2.0 gthread-2.0])
-if test "x${have_glib}" = "xno"; then
-   want_g_main_loop="no"
-fi
-
-EFL_OPTIONAL_DEPEND_PKG([ECORE], [${want_systemd}], [SYSTEMD], [libsystemd])
-
-EFL_ADD_FEATURE([ECORE], [systemd-daemon], [${want_systemd}])
-EFL_ADD_FEATURE([ECORE], [glib])
-EFL_ADD_FEATURE([ECORE], [g-main-loop])
-EFL_ADD_FEATURE([ECORE], [libuv])
-
-want_glib_integration_always=no
-if test "x${with_glib}" = "xalways" ; then
-  want_glib_integration_always="yes"
-  AC_DEFINE([GLIB_INTEGRATION_ALWAYS], [1], [Always integrate glib if support compiled])
-fi
-
-if test "x${want_g_main_loop}" = "xyes" ; then
-  AC_DEFINE([USE_G_MAIN_LOOP], [1], [Use g_main_loop in ecore])
-  if test "x${want_js}" = "xnodejs" -o "x${want_js}" = "xlibuv" ; then
-    AC_MSG_ERROR([Can't define glib and libuv integration together])
-  fi
-fi
-
-# not EFL_OPTIONAL_DEPEND_PKG() because it's only used for ecore examples
-if test "${want_gstreamer1}" = "yes" -a "${want_gstreamer}" = "yes"; then
-   AC_MSG_ERROR([You can only enable either GStreamer 1.0 or GStreamer 0.10 support])
-fi
-
-if test "${want_gstreamer1}" = "yes"; then
-  PKG_CHECK_MODULES([GSTREAMER], [gstreamer-1.0])
-fi
-if test "${want_gstreamer}" = "yes"; then
-  PKG_CHECK_MODULES([GSTREAMER], [gstreamer-0.10])
-fi
-AM_CONDITIONAL([HAVE_GSTREAMER], [test "${want_gstreamer}" = "yes" -o "${want_gstreamer1}" = "yes"])
-
-EFL_EVAL_PKGS([ECORE])
-
-### Checks for header files
-
-AC_HEADER_SYS_WAIT
-
-AC_CHECK_HEADERS([sys/socket.h])
-
-AC_CHECK_HEADERS([ \
-arpa/inet.h \
-langinfo.h \
-features.h \
-netinet/in.h \
-netinet/tcp.h \
-sys/prctl.h \
-sys/resource.h \
-sys/timerfd.h \
-sys/un.h \
-],[],[],
-[
- #ifdef HAVE_SYS_SOCKET_H
- # include <sys/socket.h>
- #endif
-])
-
-AC_CHECK_HEADERS([net/if.h], [], [],
-[#include <stdio.h>
-#if STDC_HEADERS
-# include <stdlib.h>
-# include <stddef.h>
-#else
-# if HAVE_STDLIB_H
-#  include <stdlib.h>
-# endif
-#endif
-#if HAVE_SYS_SOCKET_H
-# include <sys/socket.h>
-#endif
-])
-
-### Checks for types
-
-### Checks for structures
-
-### Checks for compiler characteristics
-
-### Checks for linker characteristics
-
-### Checks for library functions
-
-## ecore
-
-# isfinite
-
-AC_COMPILE_IFELSE(
-   [AC_LANG_PROGRAM(
-       [[
-#include <math.h>
-       ]],
-       [[
-int i = isfinite(0);
-       ]])],
-   [
-    AC_DEFINE(HAVE_ISFINITE, 1, [Define to 1 if you have `isfinite', as a function or macro.])
-    have_isfinite="yes"
-   ],
-   [have_isfinite="no"])
-
-AC_MSG_CHECKING([for isfinite])
-AC_MSG_RESULT([${have_isfinite}])
-
-# mallinfo, timerfd_create, clock_gettime
-
-AC_CHECK_FUNCS_ONCE([mallinfo timerfd_create clock_gettime malloc_info])
-
-if ! test "x${ac_cv_func_clock_gettime}" = "xyes" ; then
-   AC_CHECK_LIB([rt], [clock_gettime],
-      [
-        EFL_ADD_LIBS([ECORE], [-lrt])
-        AC_DEFINE([HAVE_CLOCK_GETTIME], [1], [Have clock_gettime()])
-       ])
-fi
-
-EFL_ADD_LIBS([ECORE], [${LTLIBINTL}])
-
-# coroutine function specific
-
-AC_COMPILE_IFELSE(
-   [AC_LANG_PROGRAM(
-       [[
-#include <ucontext.h>
-       ]],
-       [[
-ucontext_t test;
-getcontext(&test);
-       ]])],
-   [have_ucontext="yes"],
-   [have_ucontext="no"])
-
-AC_MSG_CHECKING([for ucontext])
-AC_MSG_RESULT([${have_ucontext}])
-
-AC_COMPILE_IFELSE(
-   [AC_LANG_PROGRAM(
-       [[
-#include <setjmp.h>
-       ]],
-       [[
-jmp_buf context;
-setjmp(&context);
-       ]])],
-   [have_setjmp="yes"],
-   [have_setjmp="no"])
-
-AC_MSG_CHECKING([for setjmp])
-AC_MSG_RESULT([${have_setjmp}])
-
-if test "X${have_windows}" = "xyes"; then
-   AC_DEFINE(USE_FIBER, 1, [Define to 1 if you have Windows Fiber support.])
-   EFL_ADD_FEATURE([system], [coroutine], [fiber])
-elif test "x${have_ucontext}" = "xyes"; then
-   AC_DEFINE(USE_UCONTEXT, 1, [Define to 1 if you have posix ucontext functions.])
-   EFL_ADD_FEATURE([system], [coroutine], [ucontext])
-elif test "x${have_setjmp}" = "xyes"; then
-   AC_DEFINE(USE_SETJMP, 1, [Define to 1 if you have setjmp/longjmp functions.])
-   EFL_ADD_FEATURE([system], [coroutine], [setjmp])
-else
-   AC_MSG_ERROR([You don't have a working way to implement coroutine. Exiting...])
-fi
-
-### Check availability
-
-EFL_LIB_END([Ecore])
-#### End of Ecore
-
 #### Ecore CXX
 EFL_LIB_START([Ecore_Cxx])
 
@@ -2790,6 +3006,7 @@ EFL_INTERNAL_DEPEND_PKG([ECORE_CXX], [Eina_Cxx])
 EFL_INTERNAL_DEPEND_PKG([ECORE_CXX], [Ecore])
 EFL_INTERNAL_DEPEND_PKG([ECORE_CXX], [Eina])
 EFL_INTERNAL_DEPEND_PKG([ECORE_CXX], [Eo])
+EFL_INTERNAL_DEPEND_PKG([ECORE_CXX], [Efl])
 
 EFL_EVAL_PKGS([ECORE_CXX])
 
@@ -2806,17 +3023,12 @@ want_ecore_con_local_sockets="yes"
 want_ecore_con_abstract_sockets="yes"
 
 if test "${have_win32}" = "yes"; then
-   want_cares="yes"
    want_ecore_con_abstract_sockets="no"
 elif test "${have_darwin}" = "yes"; then
-   want_cares="no"
    want_ecore_con_abstract_sockets="yes"
 elif test "${have_ps3}" = "yes"; then
-   want_cares="no"
    want_ecore_con_local_sockets="no"
    want_ecore_con_abstract_sockets="no"
-else
-   want_cares="no"
 fi
 
 AC_DEFINE_IF([HAVE_LOCAL_SOCKETS],
@@ -2834,6 +3046,7 @@ if test "$build_crypto" != "none" ; then
    EFL_CRYPTO_DEPEND([ECORE_CON])
 fi
 EFL_INTERNAL_DEPEND_PKG([ECORE_CON], [eo])
+EFL_INTERNAL_DEPEND_PKG([ECORE_CON], [efl])
 EFL_INTERNAL_DEPEND_PKG([ECORE_CON], [eet])
 EFL_INTERNAL_DEPEND_PKG([ECORE_CON], [eina])
 EFL_INTERNAL_DEPEND_PKG([ECORE_CON], [ecore])
@@ -2841,24 +3054,10 @@ EFL_INTERNAL_DEPEND_PKG([ECORE_CON], [emile])
 
 EFL_ADD_LIBS([ECORE_CON], [-lm])
 
-EFL_OPTIONAL_DEPEND_PKG([ECORE_CON], [${want_cares}],
-   [CARES], [libcares >= 1.6.1])
-AM_CONDITIONAL([HAVE_CARES], [test "x${have_cares}" = "xyes"])
-
-if test "x$have_cares" = "xyes" ; then
-   ecore_con_resolver="cares"
-elif test "x$ac_cv_prog_cc_c99" != "xno" ; then
-   ecore_con_resolver="dns.c"
-else
-   ecore_con_resolver="fork"
-fi
-
 EFL_OPTIONAL_DEPEND_PKG([ECORE_CON], [${want_systemd}], [SYSTEMD], [libsystemd])
 
-EFL_ADD_FEATURE([ECORE_CON], [cares])
 EFL_ADD_FEATURE([ECORE_CON], [local-sockets], [${want_ecore_con_local_sockets}])
 EFL_ADD_FEATURE([ECORE_CON], [abstract-sockets], [${want_ecore_con_abstract_sockets}])
-EFL_ADD_FEATURE([ECORE_CON], [resolver], [${ecore_con_resolver}])
 EFL_ADD_FEATURE([ECORE_CON], [systemd-daemon], [${want_systemd}])
 
 EFL_EVAL_PKGS([ECORE_CON])
@@ -2920,6 +3119,7 @@ EFL_PLATFORM_DEPEND([ECORE_IPC], [evil])
 EFL_INTERNAL_DEPEND_PKG([ECORE_IPC], [ecore-con])
 EFL_INTERNAL_DEPEND_PKG([ECORE_IPC], [ecore])
 EFL_INTERNAL_DEPEND_PKG([ECORE_IPC], [eo])
+EFL_INTERNAL_DEPEND_PKG([ECORE_IPC], [efl])
 EFL_INTERNAL_DEPEND_PKG([ECORE_IPC], [eina])
 
 EFL_ADD_LIBS([ECORE_IPC], [-lm])
@@ -2960,6 +3160,7 @@ EFL_PLATFORM_DEPEND([ECORE_FILE], [escape])
 EFL_INTERNAL_DEPEND_PKG([ECORE_FILE], [ecore-con])
 EFL_INTERNAL_DEPEND_PKG([ECORE_FILE], [ecore])
 EFL_INTERNAL_DEPEND_PKG([ECORE_FILE], [eo])
+EFL_INTERNAL_DEPEND_PKG([ECORE_FILE], [efl])
 EFL_INTERNAL_DEPEND_PKG([ECORE_FILE], [eina])
 
 ### Checks for header files
@@ -2976,350 +3177,6 @@ EFL_INTERNAL_DEPEND_PKG([ECORE_FILE], [eina])
 
 EFL_LIB_END([Ecore_File])
 #### End of Ecore_File
-
-
-#### Ecore_Input
-EFL_LIB_START([Ecore_Input])
-
-### Additional options to configure
-
-### Default values
-
-### Checks for programs
-
-## Compatibility layers
-EFL_PLATFORM_DEPEND([ECORE_INPUT], [evil])
-
-### Checks for libraries
-EFL_INTERNAL_DEPEND_PKG([ECORE_INPUT], [ecore])
-EFL_INTERNAL_DEPEND_PKG([ECORE_INPUT], [eo])
-EFL_INTERNAL_DEPEND_PKG([ECORE_INPUT], [eina])
-
-### Checks for header files
-
-### Checks for types
-
-### Checks for structures
-
-### Checks for compiler characteristics
-
-### Checks for linker characteristics
-
-### Checks for library functions
-
-EFL_LIB_END([Ecore_Input])
-#### End of Ecore_Input
-
-
-#### Ecore_Input_Evas
-EFL_LIB_START([Ecore_Input_Evas])
-
-### Additional options to configure
-
-### Default values
-
-### Checks for programs
-
-## Compatibility layers
-EFL_PLATFORM_DEPEND([ECORE_INPUT_EVAS], [evil])
-
-### Checks for libraries
-EFL_INTERNAL_DEPEND_PKG([ECORE_INPUT_EVAS], [ecore-input])
-EFL_INTERNAL_DEPEND_PKG([ECORE_INPUT_EVAS], [ecore])
-EFL_INTERNAL_DEPEND_PKG([ECORE_INPUT_EVAS], [evas])
-EFL_INTERNAL_DEPEND_PKG([ECORE_INPUT_EVAS], [efl])
-EFL_INTERNAL_DEPEND_PKG([ECORE_INPUT_EVAS], [eo])
-EFL_INTERNAL_DEPEND_PKG([ECORE_INPUT_EVAS], [eina])
-EFL_INTERNAL_DEPEND_PKG([ECORE_INPUT_EVAS], [emile])
-
-### Checks for header files
-
-### Checks for types
-
-### Checks for structures
-
-### Checks for compiler characteristics
-
-### Checks for linker characteristics
-
-### Checks for library functions
-
-EFL_LIB_END([Ecore_Input_Evas])
-#### End of Ecore_Input_Evas
-
-
-#### Ecore_Cocoa
-EFL_LIB_START_OPTIONAL([Ecore_Cocoa], [test "${want_cocoa}" = "yes"])
-
-### Additional options to configure
-
-### Default values
-
-### Checks for programs
-
-### Checks for libraries
-EFL_INTERNAL_DEPEND_PKG([ECORE_COCOA], [ecore-input])
-EFL_INTERNAL_DEPEND_PKG([ECORE_COCOA], [ecore])
-EFL_INTERNAL_DEPEND_PKG([ECORE_COCOA], [eo])
-EFL_INTERNAL_DEPEND_PKG([ECORE_COCOA], [eina])
-EFL_INTERNAL_DEPEND_PKG([ECORE_COCOA], [evas])
-EFL_INTERNAL_DEPEND_PKG([ECORE_COCOA], [emile])
-
-### Checks for header files
-
-EFL_ADD_LIBS([ECORE_COCOA], [-framework Cocoa])
-
-### Checks for types
-
-### Checks for structures
-
-### Checks for compiler characteristics
-
-### Checks for linker characteristics
-
-### Checks for library functions
-
-EFL_LIB_END_OPTIONAL([Ecore_Cocoa])
-#### End of Ecore_Cocoa
-
-
-#### Ecore_FB
-EFL_LIB_START_OPTIONAL([Ecore_FB], [test "${want_fb}" = "yes"])
-
-### Additional options to configure
-AC_ARG_ENABLE([tslib],
-   [AS_HELP_STRING([--disable-tslib],[disable tslib for touchscreen events.])],
-   [
-    if test "x${enableval}" = "xyes" ; then
-       want_tslib="yes"
-    else
-       want_tslib="no"
-    fi
-   ], [want_tslib="yes"])
-
-### Default values
-
-### Checks for programs
-
-### Checks for libraries
-EFL_INTERNAL_DEPEND_PKG([ECORE_FB], [ecore])
-EFL_INTERNAL_DEPEND_PKG([ECORE_FB], [ecore-input])
-EFL_INTERNAL_DEPEND_PKG([ECORE_FB], [eo])
-EFL_INTERNAL_DEPEND_PKG([ECORE_FB], [eina])
-
-EFL_OPTIONAL_DEPEND_PKG([ECORE_FB], [${want_tslib}], [TSLIB], [tslib])
-EFL_ADD_FEATURE([ECORE_FB], [tslib])
-
-EFL_EVAL_PKGS([ECORE_FB])
-
-### Checks for header files
-
-have_ecore_fb="no"
-AC_CHECK_HEADER([linux/fb.h],
-   [AC_CHECK_HEADER([linux/input.h], [have_ecore_fb="yes"])])
-if test "${have_ecore_fb}" = "no"; then
-   AC_MSG_ERROR([Missing linux/input.h or linux/fb.h])
-fi
-
-### Checks for types
-
-### Checks for structures
-
-### Checks for compiler characteristics
-
-### Checks for linker characteristics
-
-### Checks for library functions
-
-EFL_LIB_END_OPTIONAL([Ecore_FB])
-#### End of Ecore_FB
-
-
-#### Ecore_Psl1ght
-EFL_LIB_START_OPTIONAL([Ecore_Psl1ght], [test "${have_ps3}" = "yes"])
-
-### Additional options to configure
-
-### Default values
-
-### Checks for programs
-
-### Checks for libraries
-EFL_PLATFORM_DEPEND([ECORE_PSL1GHT], [escape])
-
-EFL_INTERNAL_DEPEND_PKG([ECORE_PSL1GHT], [ecore-input])
-EFL_INTERNAL_DEPEND_PKG([ECORE_PSL1GHT], [ecore])
-EFL_INTERNAL_DEPEND_PKG([ECORE_PSL1GHT], [eo])
-EFL_INTERNAL_DEPEND_PKG([ECORE_PSL1GHT], [eina])
-
-EFL_ADD_LIBS([ECORE_PSL1GHT], [-lio -lsysutil -lgem -lcamera -lspurs])
-
-### Checks for header files
-
-### Checks for types
-
-### Checks for structures
-
-### Checks for compiler characteristics
-
-### Checks for linker characteristics
-
-### Checks for library functions
-
-EFL_LIB_END_OPTIONAL([Ecore_Psl1ght])
-#### End of Ecore_Psl1ght
-
-
-#### Ecore_SDL
-EFL_LIB_START_OPTIONAL([Ecore_SDL], [test "${want_sdl}" = "yes"])
-
-### Additional options to configure
-
-### Default values
-
-### Checks for programs
-
-### Checks for libraries
-EFL_PLATFORM_DEPEND([ECORE_SDL], [all])
-EFL_INTERNAL_DEPEND_PKG([ECORE_SDL], [ecore-input])
-EFL_INTERNAL_DEPEND_PKG([ECORE_SDL], [ecore])
-EFL_INTERNAL_DEPEND_PKG([ECORE_SDL], [eo])
-EFL_INTERNAL_DEPEND_PKG([ECORE_SDL], [eina])
-
-EFL_DEPEND_PKG([ECORE_SDL], [SDL], [sdl2 >= 2.0.0])
-
-EFL_EVAL_PKGS([ECORE_SDL])
-
-### Checks for header files
-
-### Checks for types
-
-### Checks for structures
-
-### Checks for compiler characteristics
-
-### Checks for linker characteristics
-
-### Checks for library functions
-
-EFL_LIB_END_OPTIONAL([Ecore_SDL])
-#### End of Ecore_SDL
-
-
-#### Ecore_Wayland
-EFL_LIB_START_OPTIONAL([Ecore_Wayland], [test "${want_wayland}" = "yes"])
-
-if test "x${want_wayland_ivi_shell}" = "xyes" ; then
-   AC_DEFINE(USE_IVI_SHELL, 1, [Ecore_Wayland IVI-Shell Support])
-fi
-
-### Additional options to configure
-
-### Default values
-
-### Checks for programs
-
-### Checks for libraries
-EFL_INTERNAL_DEPEND_PKG([ECORE_WAYLAND], [ecore-input])
-EFL_INTERNAL_DEPEND_PKG([ECORE_WAYLAND], [ecore])
-EFL_INTERNAL_DEPEND_PKG([ECORE_WAYLAND], [eo])
-EFL_INTERNAL_DEPEND_PKG([ECORE_WAYLAND], [eina])
-
-EFL_DEPEND_PKG([ECORE_WAYLAND], [WAYLAND],
-   [wayland-client >= 1.8.0 wayland-cursor >= 1.8.0 xkbcommon >= 0.5.0 uuid])
-
-EFL_EVAL_PKGS([ECORE_WAYLAND])
-
-### Checks for header files
-
-### Checks for types
-
-### Checks for structures
-
-### Checks for compiler characteristics
-
-### Checks for linker characteristics
-
-### Checks for library functions
-
-EFL_LIB_END_OPTIONAL([Ecore_Wayland])
-#### End of Ecore_Wayland
-
-#### Ecore_Wl2
-EFL_LIB_START_OPTIONAL([Ecore_Wl2], [test "${want_wayland}" = "yes"])
-
-if test "x${want_wayland_ivi_shell}" = "xyes" ; then
-   AC_DEFINE(USE_IVI_SHELL, 1, [Ecore_Wl2 IVI-Shell Support])
-fi
-
-### Additional options to configure
-
-### Default values
-
-### Checks for programs
-
-### Checks for libraries
-EFL_INTERNAL_DEPEND_PKG([ECORE_WL2], [ecore-input])
-EFL_INTERNAL_DEPEND_PKG([ECORE_WL2], [ecore])
-EFL_INTERNAL_DEPEND_PKG([ECORE_WL2], [eo])
-EFL_INTERNAL_DEPEND_PKG([ECORE_WL2], [eina])
-
-EFL_DEPEND_PKG([ECORE_WL2], [WAYLAND],
-   [wayland-server >= 1.8.0 wayland-client >= 1.8.0 wayland-cursor >= 1.8.0 xkbcommon >= 0.5.0])
-
-EFL_EVAL_PKGS([ECORE_WL2])
-
-### Checks for header files
-
-### Checks for types
-
-### Checks for structures
-
-### Checks for compiler characteristics
-
-### Checks for linker characteristics
-
-### Checks for library functions
-
-EFL_LIB_END_OPTIONAL([Ecore_Wl2])
-#### End of Ecore_Wl2
-
-#### Eldbus
-EFL_LIB_START([Eldbus])
-
-### Additional options to configure
-
-### Default values
-
-### Checks for programs
-
-## Compatibility layers
-EFL_PLATFORM_DEPEND([ELDBUS], [evil])
-
-### Checks for libraries
-EFL_INTERNAL_DEPEND_PKG([ELDBUS], [ecore])
-EFL_INTERNAL_DEPEND_PKG([ELDBUS], [efl])
-EFL_INTERNAL_DEPEND_PKG([ELDBUS], [eo])
-EFL_INTERNAL_DEPEND_PKG([ELDBUS], [eina])
-
-EFL_DEPEND_PKG([ELDBUS], [DBUS], [dbus-1])
-
-EFL_EVAL_PKGS([ELDBUS])
-
-### Checks for header files
-
-### Checks for types
-
-### Checks for structures
-
-### Checks for compiler characteristics
-
-### Checks for linker characteristics
-
-### Checks for library functions
-
-EFL_LIB_END([Eldbus])
-#### End of Eldbus
 
 
 #### Eeze
@@ -3348,6 +3205,7 @@ AC_ARG_WITH([eject],
 EFL_INTERNAL_DEPEND_PKG([EEZE], [eina])
 EFL_INTERNAL_DEPEND_PKG([EEZE], [ecore])
 EFL_INTERNAL_DEPEND_PKG([EEZE], [eo])
+EFL_INTERNAL_DEPEND_PKG([EEZE], [efl])
 EFL_INTERNAL_DEPEND_PKG([EEZE], [ecore-file])
 EFL_INTERNAL_DEPEND_PKG([EEZE], [ecore-con])
 EFL_INTERNAL_DEPEND_PKG([EEZE], [eet])
@@ -3450,9 +3308,363 @@ AM_CONDITIONAL([HAVE_EEZE_TIZEN], [test "x${want_tizen}" = "xyes"])
 #### End of Eeze
 
 
+#### Ecore_Input
+EFL_LIB_START([Ecore_Input])
+
+### Additional options to configure
+
+### Default values
+
+### Checks for programs
+
+## Compatibility layers
+EFL_PLATFORM_DEPEND([ECORE_INPUT], [evil])
+
+### Checks for libraries
+EFL_INTERNAL_DEPEND_PKG([ECORE_INPUT], [ecore])
+EFL_INTERNAL_DEPEND_PKG([ECORE_INPUT], [eo])
+EFL_INTERNAL_DEPEND_PKG([ECORE_INPUT], [efl])
+EFL_INTERNAL_DEPEND_PKG([ECORE_INPUT], [eina])
+
+EFL_OPTIONAL_INTERNAL_DEPEND_PKG([ECORE_INPUT], [${efl_lib_optional_eeze}], [eeze])
+
+### Checks for header files
+
+### Checks for types
+
+### Checks for structures
+
+### Checks for compiler characteristics
+
+### Checks for linker characteristics
+
+### Checks for library functions
+
+EFL_LIB_END([Ecore_Input])
+#### End of Ecore_Input
+
+
+#### Ecore_Input_Evas
+EFL_LIB_START([Ecore_Input_Evas])
+
+### Additional options to configure
+
+### Default values
+
+### Checks for programs
+
+## Compatibility layers
+EFL_PLATFORM_DEPEND([ECORE_INPUT_EVAS], [evil])
+
+### Checks for libraries
+EFL_INTERNAL_DEPEND_PKG([ECORE_INPUT_EVAS], [ecore-input])
+EFL_INTERNAL_DEPEND_PKG([ECORE_INPUT_EVAS], [ecore])
+EFL_INTERNAL_DEPEND_PKG([ECORE_INPUT_EVAS], [evas])
+EFL_INTERNAL_DEPEND_PKG([ECORE_INPUT_EVAS], [efl])
+EFL_INTERNAL_DEPEND_PKG([ECORE_INPUT_EVAS], [eo])
+EFL_INTERNAL_DEPEND_PKG([ECORE_INPUT_EVAS], [eina])
+EFL_INTERNAL_DEPEND_PKG([ECORE_INPUT_EVAS], [emile])
+
+### Checks for header files
+
+### Checks for types
+
+### Checks for structures
+
+### Checks for compiler characteristics
+
+### Checks for linker characteristics
+
+### Checks for library functions
+
+EFL_LIB_END([Ecore_Input_Evas])
+#### End of Ecore_Input_Evas
+
+
+#### Ecore_Cocoa
+EFL_LIB_START_OPTIONAL([Ecore_Cocoa], [test "${have_cocoa}" = "yes"])
+
+### Additional options to configure
+
+### Default values
+
+### Checks for programs
+
+### Checks for libraries
+EFL_INTERNAL_DEPEND_PKG([ECORE_COCOA], [ecore-input])
+EFL_INTERNAL_DEPEND_PKG([ECORE_COCOA], [ecore])
+EFL_INTERNAL_DEPEND_PKG([ECORE_COCOA], [eo])
+EFL_INTERNAL_DEPEND_PKG([ECORE_COCOA], [efl])
+EFL_INTERNAL_DEPEND_PKG([ECORE_COCOA], [eina])
+EFL_INTERNAL_DEPEND_PKG([ECORE_COCOA], [evas])
+EFL_INTERNAL_DEPEND_PKG([ECORE_COCOA], [emile])
+
+### Checks for header files
+
+EFL_ADD_LIBS([ECORE_COCOA], [-framework Cocoa])
+
+### Checks for types
+
+### Checks for structures
+
+### Checks for compiler characteristics
+
+### Checks for linker characteristics
+
+### Checks for library functions
+
+EFL_LIB_END_OPTIONAL([Ecore_Cocoa])
+#### End of Ecore_Cocoa
+
+
+#### Ecore_FB
+EFL_LIB_START_OPTIONAL([Ecore_FB], [test "${want_fb}" = "yes"])
+
+### Additional options to configure
+AC_ARG_ENABLE([tslib],
+   [AS_HELP_STRING([--disable-tslib],[disable tslib for touchscreen events.])],
+   [
+    if test "x${enableval}" = "xyes" ; then
+       want_tslib="yes"
+    else
+       want_tslib="no"
+    fi
+   ], [want_tslib="yes"])
+
+### Default values
+
+### Checks for programs
+
+### Checks for libraries
+EFL_INTERNAL_DEPEND_PKG([ECORE_FB], [ecore])
+EFL_INTERNAL_DEPEND_PKG([ECORE_FB], [ecore-input])
+EFL_INTERNAL_DEPEND_PKG([ECORE_FB], [eo])
+EFL_INTERNAL_DEPEND_PKG([ECORE_FB], [efl])
+EFL_INTERNAL_DEPEND_PKG([ECORE_FB], [eina])
+
+EFL_OPTIONAL_DEPEND_PKG([ECORE_FB], [${want_tslib}], [TSLIB], [tslib])
+EFL_ADD_FEATURE([ECORE_FB], [tslib])
+
+EFL_EVAL_PKGS([ECORE_FB])
+
+### Checks for header files
+
+have_ecore_fb="no"
+AC_CHECK_HEADER([linux/fb.h],
+   [AC_CHECK_HEADER([linux/input.h], [have_ecore_fb="yes"])])
+if test "${have_ecore_fb}" = "no"; then
+   AC_MSG_ERROR([Missing linux/input.h or linux/fb.h])
+fi
+
+### Checks for types
+
+### Checks for structures
+
+### Checks for compiler characteristics
+
+### Checks for linker characteristics
+
+### Checks for library functions
+
+EFL_LIB_END_OPTIONAL([Ecore_FB])
+#### End of Ecore_FB
+
+
+#### Ecore_Psl1ght
+EFL_LIB_START_OPTIONAL([Ecore_Psl1ght], [test "${have_ps3}" = "yes"])
+
+### Additional options to configure
+
+### Default values
+
+### Checks for programs
+
+### Checks for libraries
+EFL_PLATFORM_DEPEND([ECORE_PSL1GHT], [escape])
+
+EFL_INTERNAL_DEPEND_PKG([ECORE_PSL1GHT], [ecore-input])
+EFL_INTERNAL_DEPEND_PKG([ECORE_PSL1GHT], [ecore])
+EFL_INTERNAL_DEPEND_PKG([ECORE_PSL1GHT], [eo])
+EFL_INTERNAL_DEPEND_PKG([ECORE_PSL1GHT], [efl])
+EFL_INTERNAL_DEPEND_PKG([ECORE_PSL1GHT], [eina])
+
+EFL_ADD_LIBS([ECORE_PSL1GHT], [-lio -lsysutil -lgem -lcamera -lspurs])
+
+### Checks for header files
+
+### Checks for types
+
+### Checks for structures
+
+### Checks for compiler characteristics
+
+### Checks for linker characteristics
+
+### Checks for library functions
+
+EFL_LIB_END_OPTIONAL([Ecore_Psl1ght])
+#### End of Ecore_Psl1ght
+
+
+#### Ecore_SDL
+EFL_LIB_START_OPTIONAL([Ecore_SDL], [test "${want_sdl}" = "yes"])
+
+### Additional options to configure
+
+### Default values
+
+### Checks for programs
+
+### Checks for libraries
+EFL_PLATFORM_DEPEND([ECORE_SDL], [all])
+EFL_INTERNAL_DEPEND_PKG([ECORE_SDL], [ecore-input])
+EFL_INTERNAL_DEPEND_PKG([ECORE_SDL], [ecore])
+EFL_INTERNAL_DEPEND_PKG([ECORE_SDL], [eo])
+EFL_INTERNAL_DEPEND_PKG([ECORE_SDL], [efl])
+EFL_INTERNAL_DEPEND_PKG([ECORE_SDL], [eina])
+
+EFL_DEPEND_PKG([ECORE_SDL], [SDL], [sdl2 >= 2.0.0])
+
+EFL_EVAL_PKGS([ECORE_SDL])
+
+### Checks for header files
+
+### Checks for types
+
+### Checks for structures
+
+### Checks for compiler characteristics
+
+### Checks for linker characteristics
+
+### Checks for library functions
+
+EFL_LIB_END_OPTIONAL([Ecore_SDL])
+#### End of Ecore_SDL
+
+
+#### Ecore_Wayland
+EFL_LIB_START_OPTIONAL([Ecore_Wayland], [test "${want_ecore_wayland}" = "yes"])
+
+if test "x${want_wayland_ivi_shell}" = "xyes" ; then
+   AC_DEFINE(USE_IVI_SHELL, 1, [Ecore_Wayland IVI-Shell Support])
+fi
+
+### Additional options to configure
+
+### Default values
+
+### Checks for programs
+
+### Checks for libraries
+EFL_INTERNAL_DEPEND_PKG([ECORE_WAYLAND], [ecore-input])
+EFL_INTERNAL_DEPEND_PKG([ECORE_WAYLAND], [ecore])
+EFL_INTERNAL_DEPEND_PKG([ECORE_WAYLAND], [eo])
+EFL_INTERNAL_DEPEND_PKG([ECORE_WAYLAND], [efl])
+EFL_INTERNAL_DEPEND_PKG([ECORE_WAYLAND], [eina])
+
+EFL_DEPEND_PKG([ECORE_WAYLAND], [WAYLAND],
+   [wayland-client >= 1.8.0 wayland-cursor >= 1.8.0 xkbcommon >= 0.5.0 uuid])
+
+EFL_EVAL_PKGS([ECORE_WAYLAND])
+
+### Checks for header files
+
+### Checks for types
+
+### Checks for structures
+
+### Checks for compiler characteristics
+
+### Checks for linker characteristics
+
+### Checks for library functions
+
+EFL_LIB_END_OPTIONAL([Ecore_Wayland])
+#### End of Ecore_Wayland
+
+#### Ecore_Wl2
+EFL_LIB_START_OPTIONAL([Ecore_Wl2], [test "${want_wayland}" = "yes"])
+
+if test "x${want_wayland_ivi_shell}" = "xyes" ; then
+   AC_DEFINE(USE_IVI_SHELL, 1, [Ecore_Wl2 IVI-Shell Support])
+fi
+
+### Additional options to configure
+
+### Default values
+
+### Checks for programs
+
+### Checks for libraries
+EFL_INTERNAL_DEPEND_PKG([ECORE_WL2], [ecore-input])
+EFL_INTERNAL_DEPEND_PKG([ECORE_WL2], [ecore])
+EFL_INTERNAL_DEPEND_PKG([ECORE_WL2], [eo])
+EFL_INTERNAL_DEPEND_PKG([ECORE_WL2], [efl])
+EFL_INTERNAL_DEPEND_PKG([ECORE_WL2], [eina])
+
+EFL_DEPEND_PKG([ECORE_WL2], [WAYLAND],
+   [wayland-server >= 1.11.0 wayland-client >= 1.11.0 wayland-cursor >= 1.11.0 xkbcommon >= 0.6.0])
+
+EFL_EVAL_PKGS([ECORE_WL2])
+
+### Checks for header files
+
+### Checks for types
+
+### Checks for structures
+
+### Checks for compiler characteristics
+
+### Checks for linker characteristics
+
+### Checks for library functions
+
+EFL_LIB_END_OPTIONAL([Ecore_Wl2])
+#### End of Ecore_Wl2
+
+#### Eldbus
+EFL_LIB_START([Eldbus])
+
+### Additional options to configure
+
+### Default values
+
+### Checks for programs
+
+## Compatibility layers
+EFL_PLATFORM_DEPEND([ELDBUS], [evil])
+
+### Checks for libraries
+EFL_INTERNAL_DEPEND_PKG([ELDBUS], [ecore])
+EFL_INTERNAL_DEPEND_PKG([ELDBUS], [efl])
+EFL_INTERNAL_DEPEND_PKG([ELDBUS], [eo])
+EFL_INTERNAL_DEPEND_PKG([ELDBUS], [eina])
+
+EFL_DEPEND_PKG([ELDBUS], [DBUS], [dbus-1])
+
+EFL_EVAL_PKGS([ELDBUS])
+
+### Checks for header files
+
+### Checks for types
+
+### Checks for structures
+
+### Checks for compiler characteristics
+
+### Checks for linker characteristics
+
+### Checks for library functions
+
+EFL_LIB_END([Eldbus])
+#### End of Eldbus
+
+
+
 #### Ecore_Drm
 have_libinput_new="no"
-EFL_LIB_START_OPTIONAL([Ecore_Drm], [test "${want_drm}" = "yes"])
+EFL_LIB_START_OPTIONAL([Ecore_Drm], [test "${want_ecore_drm}" = "yes"])
 
 ### Additional options to configure
 SUID_CFLAGS=-fPIE
@@ -3470,6 +3682,7 @@ EFL_INTERNAL_DEPEND_PKG([ECORE_DRM], [ecore-input])
 EFL_INTERNAL_DEPEND_PKG([ECORE_DRM], [eldbus])
 EFL_INTERNAL_DEPEND_PKG([ECORE_DRM], [eeze])
 EFL_INTERNAL_DEPEND_PKG([ECORE_DRM], [eo])
+EFL_INTERNAL_DEPEND_PKG([ECORE_DRM], [efl])
 EFL_INTERNAL_DEPEND_PKG([ECORE_DRM], [eina])
 
 EFL_DEPEND_PKG([ECORE_DRM], [DRM], [libdrm >= 2.4 xkbcommon >= 0.3.0 gbm])
@@ -3507,6 +3720,112 @@ EFL_EVAL_PKGS([ECORE_DRM])
 
 EFL_LIB_END_OPTIONAL([Ecore_Drm])
 #### End of Ecore_Drm
+
+
+#### Elput
+have_libinput_new="no"
+EFL_LIB_START_OPTIONAL([Elput], [test "${want_elput}" = "yes"])
+
+### Additional options to configure
+SUID_CFLAGS=-fPIE
+SUID_LDFLAGS=-pie
+AC_SUBST([SUID_CFLAGS])
+AC_SUBST([SUID_LDFLAGS])
+
+### Default values
+
+### Checks for programs
+
+### Checks for libraries
+EFL_INTERNAL_DEPEND_PKG([ELPUT], [ecore])
+EFL_INTERNAL_DEPEND_PKG([ELPUT], [ecore-input])
+EFL_INTERNAL_DEPEND_PKG([ELPUT], [eldbus])
+EFL_INTERNAL_DEPEND_PKG([ELPUT], [eeze])
+EFL_INTERNAL_DEPEND_PKG([ELPUT], [eo])
+EFL_INTERNAL_DEPEND_PKG([ELPUT], [eina])
+
+EFL_DEPEND_PKG([ELPUT], [LIBINPUT], [libinput >= 0.6.0 xkbcommon >= 0.3.0 libudev])
+
+EFL_OPTIONAL_DEPEND_PKG([ELPUT], [${want_systemd}], [SYSTEMD], [libsystemd])
+EFL_ADD_FEATURE([ELPUT], [systemd-logind], [${want_systemd}])
+
+EFL_ADD_LIBS([ELPUT], [-lm])
+
+# API change from 0.7 to 0.8. So we define this to support both for now.
+PKG_CHECK_EXISTS([libinput >= 0.8.0],
+                 [have_libinput_new="yes"],
+                 [have_libinput_new="no"])
+AC_MSG_CHECKING([Use new libinput API (newer than 0.8.0)])
+AC_MSG_RESULT([${have_libinput_new}])
+if test "x${have_libinput_new}" = "xyes";then
+  AC_DEFINE_UNQUOTED([LIBINPUT_HIGHER_08], [1], [libinput version >= 0.8])
+fi
+if test "x${have_libinput_new}" = "xno";then
+  AC_DEFINE_UNQUOTED([LIBINPUT_HIGHER_08], [0], [libinput version >= 0.8])
+fi
+
+
+EFL_EVAL_PKGS([ELPUT])
+
+### Checks for header files
+
+### Checks for types
+
+### Checks for structures
+
+### Checks for compiler characteristics
+
+### Checks for linker characteristics
+
+### Checks for library functions
+
+EFL_LIB_END_OPTIONAL([Elput])
+#### End of Elput
+
+#### Ecore_Drm2
+have_libinput_new="no"
+EFL_LIB_START_OPTIONAL([Ecore_Drm2], [test "${want_drm}" = "yes"])
+
+### Additional options to configure
+SUID_CFLAGS=-fPIE
+SUID_LDFLAGS=-pie
+AC_SUBST([SUID_CFLAGS])
+AC_SUBST([SUID_LDFLAGS])
+
+### Default values
+
+### Checks for programs
+
+### Checks for libraries
+EFL_INTERNAL_DEPEND_PKG([ECORE_DRM2], [eo])
+EFL_INTERNAL_DEPEND_PKG([ECORE_DRM2], [efl])
+EFL_INTERNAL_DEPEND_PKG([ECORE_DRM2], [eina])
+EFL_INTERNAL_DEPEND_PKG([ECORE_DRM2], [ecore])
+EFL_INTERNAL_DEPEND_PKG([ECORE_DRM2], [elput])
+EFL_INTERNAL_DEPEND_PKG([ECORE_DRM2], [eeze])
+
+EFL_DEPEND_PKG([ECORE_DRM2], [DRM], [libdrm >= 2.4 gbm])
+
+EFL_ADD_LIBS([ECORE_DRM2], [-lm])
+
+AC_CHECK_LIB(drm, drmModeAtomicCommit, AC_DEFINE(HAVE_ATOMIC_DRM, [], [Atomic modeset supported]))
+
+EFL_EVAL_PKGS([ECORE_DRM2])
+
+### Checks for header files
+
+### Checks for types
+
+### Checks for structures
+
+### Checks for compiler characteristics
+
+### Checks for linker characteristics
+
+### Checks for library functions
+
+EFL_LIB_END_OPTIONAL([Ecore_Drm2])
+#### End of Ecore_Drm2
 
 
 #### Ecore_Audio
@@ -3607,14 +3926,28 @@ EFL_PLATFORM_DEPEND([ECORE_AUDIO], [evil])
 EFL_INTERNAL_DEPEND_PKG([ECORE_AUDIO], [ecore])
 EFL_INTERNAL_DEPEND_PKG([ECORE_AUDIO], [eet])
 EFL_INTERNAL_DEPEND_PKG([ECORE_AUDIO], [eo])
+EFL_INTERNAL_DEPEND_PKG([ECORE_AUDIO], [efl])
 EFL_INTERNAL_DEPEND_PKG([ECORE_AUDIO], [eina])
 EFL_INTERNAL_DEPEND_PKG([ECORE_AUDIO], [emile])
 
 EFL_ADD_LIBS([ECORE_AUDIO], [-lm])
 
-EFL_OPTIONAL_DEPEND_PKG([ECORE_AUDIO], [${want_alsa}], [ALSA], [alsa])
-EFL_OPTIONAL_DEPEND_PKG([ECORE_AUDIO], [${want_pulseaudio}], [PULSE], [libpulse])
-EFL_OPTIONAL_DEPEND_PKG([ECORE_AUDIO], [${want_sndfile}], [SNDFILE], [sndfile])
+if test "x${want_alsa}" = "xyes" ; then
+  PKG_CHECK_MODULES([ECORE_AUDIO_ALSA], [alsa])
+  AC_DEFINE([HAVE_ALSA], [1], [Alsa support])
+fi
+if test "x${want_pulseaudio}" = "xyes" ; then
+  PKG_CHECK_MODULES([ECORE_AUDIO_PULSE], [libpulse])
+  AC_DEFINE([HAVE_PULSE], [1], [Pulseaudio support])
+fi
+if test "x${want_sndfile}" = "xyes" ; then
+  PKG_CHECK_MODULES([ECORE_AUDIO_SNDFILE], [sndfile])
+  AC_DEFINE([HAVE_SNDFILE], [1], [Sndfile support])
+fi
+
+dnl EFL_OPTIONAL_DEPEND_PKG([ECORE_AUDIO_ALSA], [${want_alsa}], [ALSA], [alsa])
+dnl EFL_OPTIONAL_DEPEND_PKG([ECORE_AUDIO_PULSE], [${want_pulseaudio}], [PULSE], [libpulse])
+dnl EFL_OPTIONAL_DEPEND_PKG([ECORE_AUDIO_SNDFILE], [${want_sndfile}], [SNDFILE], [sndfile])
 
 EFL_EVAL_PKGS([ECORE_AUDIO])
 
@@ -3664,6 +3997,7 @@ EFL_PLATFORM_DEPEND([ECORE_WIN32], [evil])
 EFL_INTERNAL_DEPEND_PKG([ECORE_WIN32], [ecore-input])
 EFL_INTERNAL_DEPEND_PKG([ECORE_WIN32], [ecore])
 EFL_INTERNAL_DEPEND_PKG([ECORE_WIN32], [eo])
+EFL_INTERNAL_DEPEND_PKG([ECORE_WIN32], [efl])
 EFL_INTERNAL_DEPEND_PKG([ECORE_WIN32], [eina])
 
 EFL_ADD_LIBS([ECORE_WIN32], [-lole32 -lgdi32])
@@ -3715,6 +4049,7 @@ EFL_PLATFORM_DEPEND([ECORE_AVAHI], [evil])
 EFL_INTERNAL_DEPEND_PKG([ECORE_AVAHI], [ecore])
 EFL_INTERNAL_DEPEND_PKG([ECORE_AVAHI], [eina])
 EFL_INTERNAL_DEPEND_PKG([ECORE_AVAHI], [eo])
+EFL_INTERNAL_DEPEND_PKG([ECORE_AVAHI], [efl])
 
 EFL_OPTIONAL_DEPEND_PKG([ECORE_AVAHI], [${want_avahi}], [AVAHI], [avahi-client], [have_avahi=yes], [have_avahi=no])
 
@@ -3837,6 +4172,7 @@ AC_ARG_ENABLE([ibus],
 EFL_INTERNAL_DEPEND_PKG([ECORE_X], [ecore-input])
 EFL_INTERNAL_DEPEND_PKG([ECORE_X], [ecore])
 EFL_INTERNAL_DEPEND_PKG([ECORE_X], [eo])
+EFL_INTERNAL_DEPEND_PKG([ECORE_X], [efl])
 EFL_INTERNAL_DEPEND_PKG([ECORE_X], [eina])
 
 ## Xlib
@@ -4059,6 +4395,7 @@ EFL_PLATFORM_DEPEND([ECORE_IMF], [escape])
 EFL_INTERNAL_DEPEND_PKG([ECORE_IMF], [ecore])
 EFL_INTERNAL_DEPEND_PKG([ECORE_IMF], [ecore-input])
 EFL_INTERNAL_DEPEND_PKG([ECORE_IMF], [eo])
+EFL_INTERNAL_DEPEND_PKG([ECORE_IMF], [efl])
 EFL_INTERNAL_DEPEND_PKG([ECORE_IMF], [eina])
 
 if test "x${want_ecore_imf}" = "xyes" ; then
@@ -4119,7 +4456,7 @@ EFL_ADD_FEATURE([ECORE_IMF], [xim])
 # wayland
 if test "x${want_ecore_imf_wayland}" = "xyes" ; then
    PKG_CHECK_MODULES([WAYLAND],
-      [wayland-client >= 1.8.0],
+      [wayland-client >= 1.11.0],
       [
        have_ecore_imf_wayland="yes"
        AC_DEFINE([BUILD_ECORE_IMF_WAYLAND], [1], [Ecore Imf Wayland Support])
@@ -4225,9 +4562,9 @@ ECORE_EVAS_MODULE([extn], [${want_ecore_evas_extn}])
 ECORE_EVAS_MODULE([ews], [yes])
 ECORE_EVAS_MODULE([fb], [${want_fb}])
 ECORE_EVAS_MODULE([drm], [${want_drm}],
-  [EFL_OPTIONAL_INTERNAL_DEPEND_PKG([ECORE_EVAS], [${want_drm}], [ecore-drm])])
+  [EFL_OPTIONAL_INTERNAL_DEPEND_PKG([ECORE_EVAS], [${want_drm}], [ecore-drm2])])
 ECORE_EVAS_MODULE([gl-drm], [${want_gl_drm}],
-  [EFL_OPTIONAL_INTERNAL_DEPEND_PKG([ECORE_EVAS], [${want_gl_drm}], [ecore-drm])])
+  [EFL_OPTIONAL_INTERNAL_DEPEND_PKG([ECORE_EVAS], [${want_gl_drm}], [ecore-drm2])])
 ECORE_EVAS_MODULE([psl1ght], [${have_ps3}])
 
 ECORE_EVAS_MODULE([opengl-cocoa], [${want_ecore_evas_gl_cocoa}])
@@ -4368,11 +4705,13 @@ EFL_PLATFORM_DEPEND([EIO], [evil])
 
 ### Checks for libraries
 EFL_INTERNAL_DEPEND_PKG([EIO], [ecore])
+EFL_INTERNAL_DEPEND_PKG([EIO], [ecore-file])
 EFL_INTERNAL_DEPEND_PKG([EIO], [eet])
 EFL_INTERNAL_DEPEND_PKG([EIO], [eo])
 EFL_INTERNAL_DEPEND_PKG([EIO], [eina])
 EFL_INTERNAL_DEPEND_PKG([EIO], [efl])
 EFL_INTERNAL_DEPEND_PKG([EIO], [emile])
+EFL_INTERNAL_DEPEND_PKG([EIO], [efreet-mime])
 
 EFL_ADD_LIBS([EIO], [-lm])
 
@@ -4439,6 +4778,7 @@ EFL_INTERNAL_DEPEND_PKG([EFREET], [eet])
 EFL_INTERNAL_DEPEND_PKG([EFREET], [ecore])
 EFL_INTERNAL_DEPEND_PKG([EFREET], [ecore-file])
 EFL_INTERNAL_DEPEND_PKG([EFREET], [eo])
+EFL_INTERNAL_DEPEND_PKG([EFREET], [efl])
 EFL_INTERNAL_DEPEND_PKG([EFREET], [eina])
 EFL_INTERNAL_DEPEND_PKG([EFREET], [emile])
 EFL_INTERNAL_DEPEND_PKG([EFREET], [ecore-ipc])
@@ -4557,22 +4897,27 @@ EFL_INTERNAL_DEPEND_PKG([EDJE], [ecore-input])
 EFL_INTERNAL_DEPEND_PKG([EDJE], [ecore-imf])
 EFL_INTERNAL_DEPEND_PKG([EDJE], [ecore-imf-evas])
 EFL_INTERNAL_DEPEND_PKG([EDJE], [embryo])
-EFL_INTERNAL_DEPEND_PKG([EDJE], [eio])
 EFL_INTERNAL_DEPEND_PKG([EDJE], [emile])
 EFL_INTERNAL_DEPEND_PKG([EDJE], [efreet])
+EFL_INTERNAL_DEPEND_PKG([EDJE], [eio])
 
-EFL_OPTIONAL_INTERNAL_DEPEND_PKG([EDJE], [${want_physics}], [ephysics])
+if test "x${want_physics}" = "xyes" ; then
+  AC_DEFINE([HAVE_EPHYSICS], [1], [EPhysics Support])
+  EDJE_CFLAGS="-I\$(top_srcdir)/src/lib/ephysics ${EDJE_CFLAGS}"
+fi
+dnl EFL_OPTIONAL_INTERNAL_DEPEND_PKG([EDJE], [${want_physics}], [ephysics])
+
+if test "x${want_lua_old}" = "xyes"; then
+   EFL_CHECK_LUA_OLD([EDJE_LUA])
+else
+   PKG_CHECK_MODULES([EDJE_LUA], [luajit >= 2.0.0])
+fi
+
 EFL_OPTIONAL_INTERNAL_DEPEND_PKG([EDJE], [${want_multisense}], [ecore-audio])
 
 EFL_ADD_FEATURE([EDJE], [physics])
 EFL_ADD_FEATURE([EDJE], [multisense])
 EFL_ADD_FEATURE([EDJE], [lua-old])
-
-if test "${want_lua_old}" = "yes"; then
-   EFL_CHECK_LUA_OLD([EDJE])
-else
-   EFL_DEPEND_PKG([EDJE], [LUAJIT], [luajit >= 2.0.0])
-fi
 
 EFL_ADD_LIBS([EDJE], [-lm])
 
@@ -4719,9 +5064,12 @@ fi
 
 ### Check availability
 
+## Generic player
+EMOTION_GENERIC_PLAYER([GENERIC_VLC], [no], [libvlc >= 2.0])
+EFL_ADD_FEATURE([EMOTION], [generic_vlc], [${with_generic_vlc}])
+
 EFL_LIB_END([Emotion])
 #### End of Emotion
-
 
 #### Ethumb
 EFL_LIB_START([Ethumb])
@@ -4838,7 +5186,9 @@ EFL_PLATFORM_DEPEND([ELUA], [evil])
 ### Checks for libraries
 EFL_INTERNAL_DEPEND_PKG([ELUA], [eina])
 EFL_INTERNAL_DEPEND_PKG([ELUA], [eo])
+EFL_INTERNAL_DEPEND_PKG([ELUA], [efl])
 EFL_INTERNAL_DEPEND_PKG([ELUA], [ecore])
+EFL_INTERNAL_DEPEND_PKG([ELUA], [ecore_file])
 
 EFL_DEPEND_PKG([ELUA], [LUAJIT], [luajit >= 2.0.0])
 
@@ -4875,6 +5225,7 @@ EFL_LIB_START([Elocation])
 EFL_PLATFORM_DEPEND([ELOCATION], [evil])
 EFL_INTERNAL_DEPEND_PKG([ELOCATION], [eina])
 EFL_INTERNAL_DEPEND_PKG([ELOCATION], [eo])
+EFL_INTERNAL_DEPEND_PKG([ELOCATION], [efl])
 EFL_INTERNAL_DEPEND_PKG([ELOCATION], [ecore])
 EFL_INTERNAL_DEPEND_PKG([ELOCATION], [eldbus])
 
@@ -4924,6 +5275,7 @@ EFL_INTERNAL_DEPEND_PKG([EFL_JS], [Eldbus])
 EFL_INTERNAL_DEPEND_PKG([EFL_JS], [Emile])
 EFL_INTERNAL_DEPEND_PKG([EFL_JS], [Ethumb_Client])
 EFL_INTERNAL_DEPEND_PKG([EFL_JS], [Eio])
+EFL_INTERNAL_DEPEND_PKG([EFL_JS], [Elementary])
 
 AM_COND_IF([HAVE_NODEJS], [], [ EFL_ADD_LIBS([EFL_JS], [-lv8]) ])
 
@@ -4956,7 +5308,7 @@ EFL_LIB_END_OPTIONAL([Efl_Js])
 
 ### Add Wayland server library if test is enabled
 if test "x${want_tests}" = "xyes" -a "x${want_wayland}" = "xyes"; then
-   EFL_DEPEND_PKG([ECORE_WAYLAND_SRV], [WAYLAND], [wayland-server >= 1.8.0])
+   EFL_DEPEND_PKG([ECORE_WAYLAND_SRV], [WAYLAND], [wayland-server >= 1.11.0])
    EFL_EVAL_PKGS([ECORE_WAYLAND_SRV])
 fi
 
@@ -4992,9 +5344,10 @@ EFL_LIB_START_OPTIONAL([Ecore_Buffer], [test "${want_ecore_buffer}" = "yes"])
 ### Checks for libraries
 EFL_INTERNAL_DEPEND_PKG([ECORE_BUFFER], [eina])
 EFL_INTERNAL_DEPEND_PKG([ECORE_BUFFER], [eo])
+EFL_INTERNAL_DEPEND_PKG([ECORE_BUFFER], [efl])
 EFL_INTERNAL_DEPEND_PKG([ECORE_BUFFER], [ecore])
 EFL_DEPEND_PKG([ECORE_BUFFER], [WAYLAND],
-               [wayland-server >= 1.5.0 wayland-client >= 1.5.0])
+               [wayland-server >= 1.11.0 wayland-client >= 1.11.0])
 
 PKG_CHECK_MODULES([X11_DRI_COMMON],
    [
@@ -5045,12 +5398,328 @@ AM_CONDITIONAL([BUILD_ECORE_BUFFER_X11_DRI3], [test "${build_ecore_buffer_x11_dr
 
 #### End of Ecore_Buffer
 
+
+#### Elementary
+
+EFL_LIB_START([Elementary])
+
+### Default values
+
+### Additional options to configure
+
+## Elementary base dir
+
+AC_ARG_WITH([elementary-base-dir],
+   [AS_HELP_STRING([--with-elementary-base-dir=PATH], [specify the subdirectory for all elementary data @<:@default=${elementary_base_dir}@:>@])],
+   [elementary_base_dir=${withval}],
+   [elementary_base_dir=".elementary"])
+
+AC_MSG_NOTICE([ELEMENTARY_BASE_DIR set to ${elementary_base_dir}])
+AC_DEFINE_UNQUOTED([ELEMENTARY_BASE_DIR], ["${elementary_base_dir}"], ["subdirectory for all elementary data"])
+
+## Debug mode
+
+AC_ARG_ENABLE([debug],
+   [AS_HELP_STRING([--enable-debug], [enable elementary debug support. @<:@default=disabled@:>@])],
+   [want_elementary_debug=$enableval],
+   [want_elementary_debug="no"])
+
+ELM_DEBUG_DEF="#undef"
+if test "x$want_elementary_debug" = "xyes"; then
+   AC_DEFINE([HAVE_ELEMENTARY_DEBUG], [1], [Elementary debug.])
+   ELM_DEBUG_DEF="#define"
+fi
+AC_SUBST([ELM_DEBUG_DEF])
+
+## quicklaunch support
+
+AC_ARG_ENABLE([quick-launch],
+   [AS_HELP_STRING([--disable-quick-launch], [disable quick-launch support, @<:@default=detect@:>@])],
+   [want_quicklaunch=$enableval],
+   [want_quicklaunch="auto"])
+
+### Checks for programs
+
+### Checks for libraries
+
+## Compatibility layers
+
+EFL_PLATFORM_DEPEND([ELEMENTARY], [evil])
+
+EFL_INTERNAL_DEPEND_PKG([ELEMENTARY], [eina])
+EFL_INTERNAL_DEPEND_PKG([ELEMENTARY], [emile])
+EFL_INTERNAL_DEPEND_PKG([ELEMENTARY], [eet])
+EFL_INTERNAL_DEPEND_PKG([ELEMENTARY], [eo])
+EFL_INTERNAL_DEPEND_PKG([ELEMENTARY], [efl])
+EFL_INTERNAL_DEPEND_PKG([ELEMENTARY], [evas])
+EFL_INTERNAL_DEPEND_PKG([ELEMENTARY], [ecore])
+EFL_INTERNAL_DEPEND_PKG([ELEMENTARY], [ecore-evas])
+EFL_INTERNAL_DEPEND_PKG([ELEMENTARY], [ecore-file])
+EFL_INTERNAL_DEPEND_PKG([ELEMENTARY], [ecore-input])
+EFL_INTERNAL_DEPEND_PKG([ELEMENTARY], [edje])
+EFL_INTERNAL_DEPEND_PKG([ELEMENTARY], [ethumb])
+EFL_INTERNAL_DEPEND_PKG([ELEMENTARY], [ethumb_client])
+EFL_INTERNAL_DEPEND_PKG([ELEMENTARY], [emotion])
+EFL_INTERNAL_DEPEND_PKG([ELEMENTARY], [ecore-imf])
+EFL_INTERNAL_DEPEND_PKG([ELEMENTARY], [ecore-con])
+EFL_INTERNAL_DEPEND_PKG([ELEMENTARY], [eldbus])
+EFL_INTERNAL_DEPEND_PKG([ELEMENTARY], [efreet])
+EFL_INTERNAL_DEPEND_PKG([ELEMENTARY], [efreet-mime])
+EFL_INTERNAL_DEPEND_PKG([ELEMENTARY], [efreet-trash])
+EFL_INTERNAL_DEPEND_PKG([ELEMENTARY], [eio])
+EFL_INTERNAL_DEPEND_PKG([ELEMENTARY], [elocation])
+
+EFL_OPTIONAL_INTERNAL_DEPEND_PKG([ELEMENTARY], [${want_x11_any}], [ecore_x])
+EFL_OPTIONAL_INTERNAL_DEPEND_PKG([ELEMENTARY], [${want_fb}], [ecore_fb])
+EFL_OPTIONAL_INTERNAL_DEPEND_PKG([ELEMENTARY], [${have_ps3}], [ecore_psl1ght])
+EFL_OPTIONAL_INTERNAL_DEPEND_PKG([ELEMENTARY], [${want_sdl}], [ecore_sdl])
+EFL_OPTIONAL_INTERNAL_DEPEND_PKG([ELEMENTARY], [${want_ecore_evas_gl_cocoa}], [ecore_cocoa])
+EFL_OPTIONAL_INTERNAL_DEPEND_PKG([ELEMENTARY], [${build_ecore_evas_win32}], [ecore_win32])
+EFL_OPTIONAL_INTERNAL_DEPEND_PKG([ELEMENTARY], [${want_drm}], [ecore_drm2])
+EFL_OPTIONAL_INTERNAL_DEPEND_PKG([ELEMENTARY], [${build_ecore_evas_wayland}], [ecore_wl2])
+
+EFL_OPTIONAL_DEPEND_PKG([ELEMENTARY], [${want_wayland}], [WAYLAND], [wayland-client])
+
+dnl Special case deps for ecore_drm
+if test "${want_drm}" = "yes"; then
+  EFL_DEPEND_PKG([ELEMENTARY], [DRM], [libdrm])
+  EFL_INTERNAL_DEPEND_PKG([ELEMENTARY], [eeze])
+fi
+
+EFL_ADD_LIBS([ELEMENTARY], [-lm])
+
+ELM_CHECK_BACKEND([X], [${want_x11_any}])
+ELM_CHECK_BACKEND([FB], [${want_fb}])
+ELM_CHECK_BACKEND([PSL1GHT], [${have_ps3}])
+ELM_CHECK_BACKEND([SDL], [${want_sdl}])
+ELM_CHECK_BACKEND([Cocoa], [${want_ecore_evas_gl_cocoa}])
+ELM_CHECK_BACKEND([Win32], [${build_ecore_evas_win32}])
+ELM_CHECK_BACKEND([Wl2], [${build_ecore_evas_wayland}])
+ELM_CHECK_BACKEND([DRM], [${want_drm}])
+
+EFL_EVAL_PKGS([ELEMENTARY])
+
+### Checks for header files
+
+ELM_ALLOCA_H_DEF="#undef"
+AC_CHECK_HEADER([alloca.h], [ELM_ALLOCA_H_DEF="#define"])
+AC_SUBST([ELM_ALLOCA_H_DEF])
+
+ELM_LIBINTL_H_DEF="#undef"
+AC_CHECK_HEADER([libintl.h], [ELM_LIBINTL_H_DEF="#define"])
+AC_SUBST([ELM_LIBINTL_H_DEF])
+
+ELM_DIRENT_H_DEF="#undef"
+AC_CHECK_HEADER([dirent.h], [ELM_DIRENT_H_DEF="#define"])
+AC_SUBST([ELM_DIRENT_H_DEF])
+
+AC_CHECK_HEADER([sys/mman.h], [have_mman="yes"], [have_mman="no"])
+if test "x${have_mman}" = "xyes"; then
+   AC_DEFINE([HAVE_MMAN_H], [1], [Have sys/mman.h header file])
+fi
+
+AC_CHECK_HEADERS([locale.h langinfo.h sys/times.h])
+
+case "$host_os" in
+   darwin*)
+      AC_CHECK_HEADERS([crt_externs.h])
+      ;;
+esac
+
+### Checks for types
+
+### Checks for structures
+
+### Checks for compiler characteristics
+
+### Checks for linker characteristics
+
+# sockets
+
+case "$host_os" in
+   mingw*)
+      have_socket="no"
+      ;;
+   *solaris*)
+      AC_CHECK_LIB([socket], [connect],
+         [
+          have_socket="yes"
+          requirements_libs_elm="-lsocket ${requirements_libs_elm}"
+         ],
+         [have_socket="no"])
+      ;;
+   darwin*)
+      have_socket="yes"
+      ;;
+   *)
+      have_socket="yes"
+      ;;
+esac
+
+AC_SUBST([requirements_libs_elm])
+
+AM_CONDITIONAL([BUILD_RUN], [test "x$have_socket" = "xyes"])
+
+# Check if we can build binary with quicklaunch support
+ELM_QUICKLAUNCH
+
+### Checks for library functions
+
+EFL_CHECK_FUNCS([ELEMENTARY], [dlopen])
+
+AC_FUNC_ALLOCA
+
+AC_CHECK_FUNCS([geteuid getuid getpwent])
+
+if test "x${want_quicklaunch}" != "xno"; then
+   AC_CHECK_FUNCS([fork clearenv])
+fi
+
+build_quicklaunch="no"
+if test "x${ac_cv_func_fork}" = "xyes" -a "x${efl_func_dlopen}" = "xyes"; then
+   build_quicklaunch="yes"
+fi
+
+AM_CONDITIONAL([BUILD_QUICKLAUNCH], [test "x${build_quicklaunch}" = "xyes"])
+EFL_ADD_FEATURE([ELEMENTARY], [quicklaunch], [${build_quicklaunch}])
+
+# environ variable
+
+AC_COMPILE_IFELSE(
+   [AC_LANG_PROGRAM(
+      [[
+# define _GNU_SOURCE 1
+#include <unistd.h>
+      ]],
+      [[
+extern char **environ;
+      ]])
+   ],
+   [AC_DEFINE([HAVE_ENVIRON], [1], [extern environ exists])])
+
+case "$host_os" in
+   darwin*)
+      AC_DEFINE([environ], [(*_NSGetEnviron())], ["apple doesn't follow POSIX in this case."])
+      ;;
+esac
+
+### Check availability
+
+EFL_LIB_END([Elementary])
+
+#### End of Elementary
+
+
+#### Elementary CXX
+EFL_LIB_START([Elementary_Cxx])
+
+EFL_INTERNAL_DEPEND_PKG([ELEMENTARY_CXX], [Eina_Cxx])
+EFL_INTERNAL_DEPEND_PKG([ELEMENTARY_CXX], [Eet_Cxx])
+EFL_INTERNAL_DEPEND_PKG([ELEMENTARY_CXX], [Ecore_Cxx])
+EFL_INTERNAL_DEPEND_PKG([ELEMENTARY_CXX], [Ecore])
+EFL_INTERNAL_DEPEND_PKG([ELEMENTARY_CXX], [Eina])
+EFL_INTERNAL_DEPEND_PKG([ELEMENTARY_CXX], [Eo])
+EFL_INTERNAL_DEPEND_PKG([ELEMENTARY_CXX], [Efl])
+EFL_INTERNAL_DEPEND_PKG([ELEMENTARY_CXX], [Elementary])
+
+EFL_EVAL_PKGS([ELEMENTARY_CXX])
+
+EFL_LIB_END([Elementary_Cxx])
+#### End of Ecore CXX
+
+
+#### Elementary_Js
+EFL_LIB_START_OPTIONAL([Elementary_Js], [test "x${have_js}" = "xyes"])
+
+### Default values
+
+### Additional options to configure
+
+### Checks for programs
+
+### Checks for libraries
+EFL_INTERNAL_DEPEND_PKG([ELEMENTARY_JS], [Eina])
+EFL_INTERNAL_DEPEND_PKG([ELEMENTARY_JS], [Eo])
+EFL_INTERNAL_DEPEND_PKG([ELEMENTARY_JS], [Ecore])
+EFL_INTERNAL_DEPEND_PKG([ELEMENTARY_JS], [Eet])
+EFL_INTERNAL_DEPEND_PKG([ELEMENTARY_JS], [Ecore_Evas])
+EFL_INTERNAL_DEPEND_PKG([ELEMENTARY_JS], [Ecore_Con])
+EFL_INTERNAL_DEPEND_PKG([ELEMENTARY_JS], [Ecore_Audio])
+EFL_INTERNAL_DEPEND_PKG([ELEMENTARY_JS], [Efl])
+EFL_INTERNAL_DEPEND_PKG([ELEMENTARY_JS], [Evas])
+EFL_INTERNAL_DEPEND_PKG([ELEMENTARY_JS], [Edje])
+EFL_INTERNAL_DEPEND_PKG([ELEMENTARY_JS], [Emotion])
+EFL_INTERNAL_DEPEND_PKG([ELEMENTARY_JS], [Eldbus])
+EFL_INTERNAL_DEPEND_PKG([ELEMENTARY_JS], [Emile])
+EFL_INTERNAL_DEPEND_PKG([ELEMENTARY_JS], [Ethumb_Client])
+EFL_INTERNAL_DEPEND_PKG([ELEMENTARY_JS], [Eio])
+EFL_INTERNAL_DEPEND_PKG([ELEMENTARY_JS], [Elementary])
+EFL_INTERNAL_DEPEND_PKG([ELEMENTARY_JS], [Efl_Js])
+
+AM_COND_IF([HAVE_NODEJS], [], [ EFL_ADD_LIBS([ELEMENTARY_JS], [-lv8]) ])
+
+EFL_EVAL_PKGS([ELEMENTARY_JS])
+
+AM_COND_IF([HAVE_NODEJS], [ELEMENTARYJS_CXXFLAGS="$ELEMENTARYJS_CXXFLAGS -DHAVE_NODEJS"], [])
+AM_COND_IF([HAVE_LIBUV], [ELEMENTARYJS_CXXFLAGS="$ELEMENTARYJS_CXXFLAGS -DHAVE_LIBUV"], [])
+AM_COND_IF([HAVE_JS], [ELEMENTARYJS_CXXFLAGS="$ELEMENTARYJS_CXXFLAGS -DHAVE_JS"], [])
+
+AM_COND_IF([HAVE_V8_CREATE_PARAMS], [ELEMENTARYJS_CXXFLAGS="$ELEMENTARYJS_CXXFLAGS -DHAVE_V8_CREATE_PARAMS"], [])
+AM_COND_IF([HAVE_V8_GLOBAL], [ELEMENTARYJS_CXXFLAGS="$ELEMENTARYJS_CXXFLAGS -DHAVE_V8_GLOBAL"], [])
+AC_SUBST([ELEMENTARYJS_CXXFLAGS])
+
+### Checks for header files
+
+### Checks for types
+
+### Checks for structures
+
+### Checks for compiler characteristics
+
+### Checks for linker characteristics
+
+### Checks for library functions
+
+### Check availability
+
+EFL_LIB_END_OPTIONAL([ELEMENTARY_JS])
+#### End of Efl_Js
+
+ELM_EDJE_DEFINES=""
+AC_ARG_ENABLE([cancel-ok],
+              [AS_HELP_STRING([--enable-cancel-ok],[Enable ordering of cancel and ok buttons to be cancel first, then ok instead of ok then cancel. @<:@default=disabled@:>@])],
+              [
+                if test "x${enableval}" = "xyes" ; then
+                    ELM_EDJE_DEFINES="$ELM_EDJE_DEFINES -DELM_CANCEL_OK=1"
+                fi
+              ],[])
+AC_SUBST(ELM_EDJE_DEFINES)
+
+
+## Disable warning for OS that have a specifc configuration
+case "$host_os" in
+   mingw*|cygwin*)
+      CFOPT_WARNING=""
+      ;;
+   darwin*)
+      CFOPT_WARNING=""
+      ;;
+esac
+
 AC_CONFIG_FILES([
 Makefile
 data/Makefile
+config/Makefile
+config/default/Makefile
+config/default/base.src
+config/mobile/Makefile
+config/mobile/base.src
+config/standard/Makefile
+config/standard/base.src
 doc/Makefile
 doc/Doxyfile
 doc/previews/Makefile
+doc/widgets/Makefile
 src/Makefile
 src/benchmarks/eina/Makefile
 src/benchmarks/eo/Makefile
@@ -5058,7 +5727,6 @@ src/benchmarks/evas/Makefile
 src/examples/eina/Makefile
 src/examples/eina_cxx/Makefile
 src/examples/eet/Makefile
-src/examples/eo/Makefile
 src/examples/evas/Makefile
 src/examples/ecore/Makefile
 src/examples/ecore_avahi/Makefile
@@ -5072,9 +5740,12 @@ src/examples/ethumb_client/Makefile
 src/examples/elua/Makefile
 src/examples/eolian_cxx/Makefile
 src/examples/elocation/Makefile
+src/examples/elementary/Makefile
 src/lib/eina/eina_config.h
 src/lib/ecore_x/ecore_x_version.h
 src/lib/efl/Efl_Config.h
+src/lib/elementary/Elementary.h
+elm_intro.h
 spec/efl.spec
 pc/evil.pc
 pc/escape.pc
@@ -5094,6 +5765,7 @@ pc/eo-js.pc
 pc/efl.pc
 pc/efl-cxx.pc
 pc/evas-fb.pc
+pc/evas-eglfs.pc
 pc/evas-opengl-x11.pc
 pc/evas-opengl-sdl.pc
 pc/evas-opengl-cocoa.pc
@@ -5148,6 +5820,10 @@ pc/ethumb.pc
 pc/ethumb_client.pc
 pc/elocation.pc
 pc/elua.pc
+pc/elementary.pc
+pc/elementary-cxx.pc
+pc/elput.pc
+pc/ecore-drm2.pc
 dbus-services/org.enlightenment.Ethumb.service
 systemd-services/ethumb.service
 $po_makefile_in
@@ -5198,18 +5874,11 @@ cmakeconfig/EluaConfig.cmake
 cmakeconfig/EluaConfigVersion.cmake:cmakeconfig/EFLConfigVersion.cmake.in
 cmakeconfig/EmileConfig.cmake
 cmakeconfig/EmileConfigVersion.cmake:cmakeconfig/EFLConfigVersion.cmake.in
+cmakeconfig/ElementaryConfigVersion.cmake
+cmakeconfig/ElementaryConfig.cmake
 ])
 
 AC_OUTPUT
-
-#### Work around bug in automake check macro
-## yes it is hugly, but no choice here for now.
-$SED -i "s/am__is_gnu_make = test -n '\$(MAKEFILE_LIST)' && test -n '\$(MAKELEVEL)'/ifdef MAKEFILE_LIST\nifdef MAKELEVEL\nam__is_gnu_make = true\nelse\nam__is_gnu_make = false\nendif\nelse\nam__is_gnu_make = false\nendif/" src/Makefile
-
-if test -f $srcdir/config.status; then
-   TO="$SED -i \"s/am__is_gnu_make = test -n '\\\\\$(MAKEFILE_LIST)' \&\& test -n '\\\\\$(MAKELEVEL)'/ifdef MAKEFILE_LIST\\\nifdef MAKELEVEL\\\nam__is_gnu_make = true\\\nelse\\\nam__is_gnu_make = false\\\nendif\\\nelse\\\nam__is_gnu_make = false\\\nendif/\" src/Makefile\nas_fn_exit 0"
-   $SED -i "s|as_fn_exit 0|$TO|" $srcdir/config.status
-fi
 
 #### Info
 
@@ -5298,7 +5967,9 @@ echo "Ecore_File......: yes"
 echo "Ecore_IMF.......: yes (${features_ecore_imf})"
 echo "Ecore_X.........: ${with_x11} (${features_ecore_x})"
 echo "Ecore_SDL.......: $want_sdl"
-echo "Ecore_Wayland...: $want_wayland"
+echo "Ecore_Drm.......: $want_ecore_drm"
+echo "Ecore_Drm2......: $want_drm"
+echo "Ecore_Wayland...: $want_ecore_wayland"
 echo "Ecore_Wl2.......: $want_wayland"
 echo "IVI-Shell.......: $want_wayland_ivi_shell"
 echo "Ecore_Buffer....: $want_ecore_buffer (${features_ecore_buffer})"
@@ -5314,6 +5985,7 @@ fi
 echo "Ecore_Audio.....: ${efl_lib_optional_ecore_audio} (${features_ecore_audio})"
 echo "Ecore_Avahi.....: yes (${features_ecore_avahi})"
 echo "Ecore_Evas......: yes (${features_ecore_evas})"
+echo "Elput...........: $want_elput (${features_elput})"
 echo "Ector...........: yes"
 echo "Eeze............: ${efl_lib_optional_eeze} (${features_eeze})"
 echo "EPhysics........: ${efl_lib_optional_ephysics}"
@@ -5322,6 +5994,11 @@ echo "Emotion.........: yes (${features_emotion})"
 echo "Ethumb..........: yes"
 echo "Ethumb_Client...: yes"
 echo "Elua............: $have_elua"
+echo "Elementary......: yes (${features_elementary})"
+echo 
+
+echo
+
 if test "${build_tests}" = "none"; then
 echo "Tests...........: no"
 elif test "${build_tests}" = "auto"; then
@@ -5684,6 +6361,20 @@ if test "x$prefix" != "x/usr"; then
     echo ""
     echo "#-------------------------------------------------------------------#"
   fi
+
+elif test "x${have_darwin}" = "xyes"; then
+    echo ""
+    echo "#-------------------------------------------------------------------#"
+    echo "##==--                          ALERT                          --==##"
+    echo "#-------------------------------------------------------------------#"
+    echo ""
+    echo "  If you are running Mac OS X >= 10.11 (starting from El Capitan)"
+    echo "  you will have TROUBLE with the prefix you have chosen (/usr)..."
+    echo "  Don't make it double and consider to use the default prefix"
+    echo "  (/usr/local). This is because of Apple's SIP that provides MAC"
+    echo "  and prevents ANYONE modifying the system."
+    echo ""
+    echo "#-------------------------------------------------------------------#"
 fi
 
 if test "x${efl_deprecated_option}" = "xyes"; then
@@ -5697,4 +6388,5 @@ if test "x${efl_deprecated_option}" = "xyes"; then
   echo ""
   echo "#-------------------------------------------------------------------#"
 fi
+
 

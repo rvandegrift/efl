@@ -77,7 +77,7 @@ typedef struct _Opaque Opaque;
  */
 #define DOCS_CLASS docs_class_get()
 
-EAPI const Eo_Class *docs_class_get(void) EINA_CONST;
+EWAPI const Eo_Class *docs_class_get(void);
 
 /**
  * @brief Property common documentation.
@@ -90,7 +90,7 @@ EAPI const Eo_Class *docs_class_get(void) EINA_CONST;
  *
  * @ingroup Docs
  */
-EOAPI void docs_prop_set(int val);
+EOAPI void docs_prop_set(Eo *obj, int val);
 
 /**
  * @brief Property common documentation.
@@ -103,11 +103,12 @@ EOAPI void docs_prop_set(int val);
  *
  * @ingroup Docs
  */
-EOAPI int docs_prop_get(void);
+EOAPI int docs_prop_get(const Eo *obj);
 
 /**
  * @brief Method documentation.
  *
+ * @param[in] a Param documentation.
  * @param[out] b
  * @param[out] c Another param documentation.
  *
@@ -117,7 +118,7 @@ EOAPI int docs_prop_get(void);
  *
  * @ingroup Docs
  */
-EOAPI int docs_meth(int a, float *b, long *c);
+EOAPI int docs_meth(Eo *obj, int a, float *b, long *c);
 
 EOAPI extern const Eo_Event_Description _DOCS_EVENT_CLICKED;
 
