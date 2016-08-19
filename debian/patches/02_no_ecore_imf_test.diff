@@ -1,6 +1,6 @@
 --- a/src/tests/ecore/ecore_test_ecore_imf.c
 +++ b/src/tests/ecore/ecore_test_ecore_imf.c
-@@ -79,6 +79,6 @@
+@@ -83,6 +83,6 @@
  void ecore_test_ecore_imf(TCase *tc)
  {
     tcase_add_test(tc, ecore_test_ecore_imf_init);

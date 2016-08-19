@@ -7,7 +7,7 @@ Last-Update: 2016-01-16
 This patch header follows DEP-3: http://dep.debian.net/deps/dep3/
 --- a/src/tests/evas/evas_test_filters.c
 +++ b/src/tests/evas/evas_test_filters.c
-@@ -349,6 +349,9 @@
+@@ -350,6 +350,9 @@
  {
     Evas_Filter_Program *pgm;
  

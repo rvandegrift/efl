@@ -4,17 +4,17 @@ Description: Try to dlopen curl-gnutls
 Author: Andreas Metzler <ametzler@debian.org>
 Origin: other
 Forwarded: no
-Last-Update: 2016-01-16
+Last-Update: 2016-08-19
 
 --- a/src/lib/ecore_con/ecore_con_url_curl.c
 +++ b/src/lib/ecore_con/ecore_con_url_curl.c
-@@ -56,6 +56,9 @@
-    LOAD("libcurl.so.5"); // if fail try 2
-    LOAD("libcurl.so.4"); // if fail try 2
+@@ -64,6 +64,9 @@
+    if (!_c->mod)
+      ERR("Could not find libcurl.5.dylib, libcurl.4.dylib, libcurl.so.5, libcurl.so.4");
  #else
 +# ifdef HAVE_GNUTLS
 +   LOAD("libcurl-gnutls.so.4"); // try this one first
 +# endif /* ifdef HAVE_GNUTLS */
     LOAD("libcurl.so.5"); // try only
     LOAD("libcurl.so.4"); // try only
- #endif
+    if (!_c->mod)

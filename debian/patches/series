@@ -2,10 +2,8 @@
 15_try_curl-gnutls.diff
 20-skip_dbus_tests.diff
 21-skip_net_tests.diff
-22-skip-fb-tests.diff
 24-skip_gnutls_broken.diff
 26-skip_filter_tests.diff
-40_fix_elocation_pc.diff
 45_disable_doc_pack.diff
 50-fix-edje_recc-bashism.diff
 70-gnutls3.4.diff

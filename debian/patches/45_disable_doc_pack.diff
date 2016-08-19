@@ -8,16 +8,20 @@ Last-Update: 2015-10-18
 This patch header follows DEP-3: http://dep.debian.net/deps/dep3/
 --- a/doc/Makefile.am
 +++ b/doc/Makefile.am
-@@ -21,14 +21,6 @@
- 	$(efl_doxygen)
- 	cp $(srcdir)/img/* html/
+@@ -206,18 +206,6 @@ doc: all previews-build previews-data widget-preview
+ 	cp $(srcdir)/img/*.png html/
+ 	@echo "copying $(srcdir)/img/*.eps to latex/"
  	cp $(srcdir)/img/*.eps latex/
+-	@echo "Removing older tarball $(PACKAGE_DOCNAME).tar*"
 -	rm -rf $(PACKAGE_DOCNAME).tar*
+-	@echo "Generating new tarball"
 -	$(MKDIR_P) $(PACKAGE_DOCNAME)/doc
 -	cp -R html/ latex/ man/ $(PACKAGE_DOCNAME)/doc
 -	tar cf $(PACKAGE_DOCNAME).tar $(PACKAGE_DOCNAME)/
 -	bzip2 -9 $(PACKAGE_DOCNAME).tar
+-	@echo "Removing temporary directory"
 -	rm -rf $(PACKAGE_DOCNAME)/
+-	@echo "Moving tarball $(PACKAGE_DOCNAME).tar.bz2 to $(top_builddir)"
 -	mv $(PACKAGE_DOCNAME).tar.bz2 $(top_builddir)
 -	@echo "Documentation Package: doc/$(PACKAGE_DOCNAME).tar.bz2"
  	@echo "Documentation HTML: doc/html"

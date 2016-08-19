@@ -8,7 +8,7 @@ Last-Update: 2016-03-20
 This patch header follows DEP-3: http://dep.debian.net/deps/dep3/
 --- a/src/tests/ecore_con/ecore_con_test_ecore_con.c
 +++ b/src/tests/ecore_con/ecore_con_test_ecore_con.c
-@@ -570,16 +570,16 @@
+@@ -569,16 +569,16 @@
     tcase_add_test(tc, ecore_test_ecore_con_local_system_negport);
     tcase_add_test(tc, ecore_test_ecore_con_local_system_negport_fullpath);
     tcase_add_test(tc, ecore_test_ecore_con_local_abstract);

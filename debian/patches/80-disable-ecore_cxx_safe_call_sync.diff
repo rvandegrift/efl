@@ -1,6 +1,12 @@
+Description: Disable ecore test that fails outside of X
+Author: Ross Vandegrift <ross@kallisti.us>
+Forwarded: no
+Last-Update: 2016-08-19
+---
+This patch header follows DEP-3: http://dep.debian.net/deps/dep3/
 --- a/src/tests/ecore_cxx/ecore_cxx_test_safe_call.cc
 +++ b/src/tests/ecore_cxx/ecore_cxx_test_safe_call.cc
-@@ -247,6 +247,9 @@
+@@ -246,6 +246,9 @@
  
  START_TEST(ecore_cxx_safe_call_sync)
  {
