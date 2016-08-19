@@ -20,6 +20,7 @@ usr/lib/*/cmake/EoCxx/*.cmake
 debian/tmp/usr/include/efl-1
 debian/tmp/usr/include/efl-cxx-1
 usr/lib/*/libefl.so
+usr/lib/*/libefl.a
 usr/lib/*/pkgconfig/efl*.pc
 usr/share/eolian/include/efl-1
 usr/lib/*/cmake/Efl/*.cmake

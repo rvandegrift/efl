@@ -1,6 +1,7 @@
 debian/tmp/usr/include/eet-1
 debian/tmp/usr/include/eet-cxx-1
 debian/tmp/usr/lib/*/libeet.so
+debian/tmp/usr/lib/*/libeet.a
 debian/tmp/usr/lib/*/pkgconfig/eet*.pc
 usr/lib/*/cmake/Eet/*.cmake
 usr/lib/*/cmake/EetCxx/*.cmake

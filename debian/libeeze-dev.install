@@ -1,4 +1,5 @@
 debian/tmp/usr/include/eeze-*
 debian/tmp/usr/lib/*/libeeze.so
+debian/tmp/usr/lib/*/libeeze.a
 debian/tmp/usr/lib/*/pkgconfig/eeze.pc
 usr/lib/*/cmake/Eeze/*.cmake

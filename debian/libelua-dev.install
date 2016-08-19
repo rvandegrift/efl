@@ -1,4 +1,5 @@
 debian/tmp/usr/include/elua-1
 debian/tmp/usr/lib/*/libelua.so
+debian/tmp/usr/lib/*/libelua.a
 debian/tmp/usr/lib/*/pkgconfig/elua*.pc
 debian/tmp/usr/lib/*/cmake/Elua/*.cmake
