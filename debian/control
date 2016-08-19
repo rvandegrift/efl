@@ -19,7 +19,8 @@ Build-Depends: dpkg-dev (>= 1.14.8), debhelper (>= 9), dh-autoreconf,
  libudev-dev [linux-any], libmount-dev [linux-any], libblkid-dev [linux-any],
  libgstreamer1.0-dev, libgstreamer-plugins-base1.0-dev, libgcrypt-dev,
  libbullet-dev, libpulse-dev, liblz4-dev, libwebp-dev, libharfbuzz-dev,
- libsystemd-dev, libavahi-client-dev, systemd
+ libsystemd-dev, libavahi-client-dev, systemd, libvlc-dev, libraw-dev,
+ libpoppler-cpp-dev, libspectre-dev, librsvg2-dev
 Build-Depends-Indep: doxygen
 Standards-Version: 3.9.6
 Vcs-Git: git://anonscm.debian.org/pkg-e/libs/efl.git
@@ -1060,3 +1061,89 @@ Description: Debugging symbols for the Enlightenment Foundation Libraries
  to provide a backtrace with names in a debugger, this makes it somewhat easier
  to interpret core dumps. The libraries are installed in /usr/lib/debug and
  are automatically used by gdb.
+
+Package: libelementary1
+Architecture: any
+Pre-Depends: ${misc:Pre-Depends}
+Breaks: libelementary2 (<< 1.15), libeina1 (<< 1.15.1)
+Replaces: libelementary2 (<< 1.15)
+Depends: ${shlibs:Depends}, ${misc:Depends}, libelementary-data (= ${source:Version})
+Description: EFL-based widget set library
+ Elementary is a widget set based on the Enlightenment Foundation Libraries,
+ primarily aimed at creating graphical user interfaces for mobile and embedded
+ devices.
+
+Package: libelementary-bin
+Architecture: any
+Depends: ${shlibs:Depends}, ${misc:Depends}
+Description: EFL-based widget set library - helper programs
+ Elementary is a widget set based on the Enlightenment Foundation Libraries,
+ primarily aimed at creating graphical user interfaces for mobile and embedded
+ devices.
+ .
+ This package contains the elementary_run and elementary_quicklaunch helpers
+
+Package: libelementary-data
+Architecture: all
+Depends: ${misc:Depends}
+Description: runtime data-files for libelementary
+ Elementary is a widget set based on the Enlightenment Foundation Libraries,
+ primarily aimed at creating graphical user interfaces for mobile and embedded
+ devices.
+ .
+ This package contains graphics and styles needed by applications using
+ elementary.
+
+Package: libelementary-dev
+Section: libdevel
+Architecture: any
+Depends: ${misc:Depends}, libelementary1 (= ${binary:Version}), pkg-config,
+ libefl-all-dev (>= 1.15.1)
+Description: Development files for libelementary
+ Elementary is a widget set based on the Enlightenment Foundation Libraries,
+ primarily aimed at creating graphical user interfaces for mobile and embedded
+ devices.
+ .
+ This package contains headers and static libraries for development with
+ libelementary.
+
+Package: libelementary-dbg
+Architecture: any
+Section: debug
+Depends: ${misc:Depends}, libelementary1 (= ${binary:Version})
+Priority: extra
+Description: debugging symbols for use with libelementary
+ Elementary is a widget set based on the Enlightenment Foundation Libraries,
+ primarily aimed at creating graphical user interfaces for mobile and embedded
+ devices.
+ .
+ This package contains unstripped shared libraries. It is provided primarily
+ to provide a backtrace with names in a debugger, this makes it somewhat easier
+ to interpret core dumps. The libraries are installed in /usr/lib/debug and
+ are automatically used by gdb.
+
+Package: libevas-loaders
+Architecture: any
+Multi-Arch: same
+Pre-Depends: ${misc:Pre-Depends}
+Depends: ${shlibs:Depends}, ${misc:Depends}
+Replaces: libevas1 (<< 1.7.7-5)
+Description: Additional file format loaders for libevas
+ This package contains programs that allow libevas to load various images
+ and documents formats for which it has no built-in support:
+  - XCF
+  - SVG
+  - PS
+  - RAW
+
+Package: libemotion-players
+Architecture: any
+Multi-Arch: same
+Pre-Depends: ${misc:Pre-Depends}
+Depends: ${shlibs:Depends}, ${misc:Depends}
+Description: Additional file format loaders for libemotion
+ Emotion is a library that allows playing audio and video files, using one of
+ its backends.
+ .
+ This package contains programs that allow libemotion to use libvlc to
+ access additional formats for which it has no built-in support.

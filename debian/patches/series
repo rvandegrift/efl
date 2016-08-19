@@ -9,3 +9,4 @@
 70-gnutls3.4.diff
 75-disable-evas_test_image.diff
 80-disable-ecore_cxx_safe_call_sync.diff
+85-disable-elm_tests.diff
