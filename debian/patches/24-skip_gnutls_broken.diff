@@ -22,7 +22,7 @@ This patch header follows DEP-3: http://dep.debian.net/deps/dep3/
 +   /* tcase_add_test(tc, ecore_test_ecore_con_remote_tcp_tls_load_cert); */
 +   /* tcase_add_test(tc, ecore_test_ecore_con_remote_tcp_mixed); */
 +   /* tcase_add_test(tc, ecore_test_ecore_con_remote_tcp_mixed_load_cert); */
-    tcase_add_test(tc, ecore_test_ecore_con_remote_nodelay);
+    /* tcase_add_test(tc, ecore_test_ecore_con_remote_nodelay); */
 -   tcase_add_test(tc, ecore_test_ecore_con_remote_nodelay_tls);
 -   tcase_add_test(tc, ecore_test_ecore_con_remote_nodelay_tls_load_cert);
 -   tcase_add_test(tc, ecore_test_ecore_con_remote_nodelay_mixed);

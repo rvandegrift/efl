@@ -7,7 +7,14 @@ Last-Update: 2016-08-19
 This patch header follows DEP-3: http://dep.debian.net/deps/dep3/
 --- a/src/tests/ecore_con/ecore_con_test_ecore_con.c
 +++ b/src/tests/ecore_con/ecore_con_test_ecore_con.c
-@@ -580,7 +580,7 @@
+@@ -574,13 +574,13 @@
+    tcase_add_test(tc, ecore_test_ecore_con_remote_tcp_tls_load_cert);
+    tcase_add_test(tc, ecore_test_ecore_con_remote_tcp_mixed);
+    tcase_add_test(tc, ecore_test_ecore_con_remote_tcp_mixed_load_cert);
+-   tcase_add_test(tc, ecore_test_ecore_con_remote_nodelay);
++   /* tcase_add_test(tc, ecore_test_ecore_con_remote_nodelay); */
+    tcase_add_test(tc, ecore_test_ecore_con_remote_nodelay_tls);
+    tcase_add_test(tc, ecore_test_ecore_con_remote_nodelay_tls_load_cert);
     tcase_add_test(tc, ecore_test_ecore_con_remote_nodelay_mixed);
     tcase_add_test(tc, ecore_test_ecore_con_remote_nodelay_mixed_load_cert);
     tcase_add_test(tc, ecore_test_ecore_con_ssl_available);
@@ -34,7 +41,7 @@ This patch header follows DEP-3: http://dep.debian.net/deps/dep3/
  #endif
 --- a/src/tests/eeze/eeze_test_net.c
 +++ b/src/tests/eeze/eeze_test_net.c
-@@ -12,6 +12,9 @@ START_TEST(eeze_test_net_list)
+@@ -12,6 +12,9 @@
     int ret;
     Eina_List *list = NULL;
  
@@ -44,7 +51,7 @@ This patch header follows DEP-3: http://dep.debian.net/deps/dep3/
     ret = eeze_init();
     fail_if(ret != 1);
  
-@@ -30,6 +33,9 @@ START_TEST(eeze_test_net_attr)
+@@ -30,6 +33,9 @@
     Eeze_Net *net = NULL;
     const char *tmp = NULL;
  
@@ -54,7 +61,7 @@ This patch header follows DEP-3: http://dep.debian.net/deps/dep3/
     ret = eeze_init();
     fail_if(ret != 1);
  
-@@ -79,6 +85,9 @@ START_TEST(eeze_test_net_attr_ipv6)
+@@ -79,6 +85,9 @@
     Eeze_Net *net = NULL;
     const char *tmp = NULL;
  
