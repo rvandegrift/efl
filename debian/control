@@ -132,6 +132,38 @@ Description: Enlightenment DR17 file chunk reading/writing utility
  This package contains eet, an utility that allows you to extract, insert,
  encode and decode config blobs created with libeet.
 
+Package: libelocation1
+Architecture: any
+Multi-Arch: same
+Pre-Depends: ${misc:Pre-Depends}
+Depends: ${misc:Depends}, ${shlibs:Depends}
+Breaks: libeina1 (<< ${source:Upstream-Version})
+Description: Library providing geo information management in EFL
+ Elocation is meant as a convenience library to ease application
+ developers the usage of geo information in their apps. Adding a geo
+ tag to a picture or translating an address to a GPS position and show
+ it on a map widget are just some of the use cases.In the beginning
+ elocation will rely on the GeoClue1 DBus service. Supporting the new
+ GeoClue2 DBus service is planned and worked on.
+
+Package: libelocation-dev
+Section: libdevel
+Architecture: any
+Pre-Depends: ${misc:Pre-Depends}
+Depends: ${misc:Depends}, libelocation1 (= ${binary:Version}), pkg-config,
+ libecore-dev (>= ${source:Upstream-Version}),
+ libeina-dev (>= ${source:Upstream-Version}),
+ libluajit-5.1-dev
+Description: Library providing geo information management in EFL development files
+ Elocation is meant as a convenience library to ease application
+ developers the usage of geo information in their apps. Adding a geo
+ tag to a picture or translating an address to a GPS position and show
+ it on a map widget are just some of the use cases.In the beginning
+ elocation will rely on the GeoClue1 DBus service. Supporting the new
+ GeoClue2 DBus service is planned and worked on.
+ .
+ This package contains headers and static libraries.
+
 Package: libephysics1
 Architecture: any
 Multi-Arch: same
@@ -506,6 +538,7 @@ Depends: ${shlibs:Depends}, ${misc:Depends},
  libefreet-dev (>= ${source:Upstream-Version}),
  libeina-dev (>= ${source:Upstream-Version}),
  libeio-dev (>= ${source:Upstream-Version}),
+ libelocation-dev (>= ${source:Upstream-Version}),
  libelua-dev (>= ${source:Upstream-Version}),
  libembryo-dev (>= ${source:Upstream-Version}),
  libemile-dev (>= ${source:Upstream-Version}),
