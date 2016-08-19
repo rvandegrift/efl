@@ -8,6 +8,9 @@ libeina.so.1 libeina1 #MINVER#
  EINA_ERROR_NOT_MAIN_LOOP@Base 1.17.2+eo+1
  EINA_ERROR_NOT_MEMPOOL_MODULE@Base 1.17.2+eo+1
  EINA_ERROR_OUT_OF_MEMORY@Base 1.17.2+eo+1
+ EINA_ERROR_PROMISE_CANCEL@Base 1.18.0+eo+1
+ EINA_ERROR_PROMISE_NO_NOTIFY@Base 1.18.0+eo+1
+ EINA_ERROR_PROMISE_NULL@Base 1.18.0+eo+1
  EINA_ERROR_SAFETY_FAILED@Base 1.17.2+eo+1
  EINA_ERROR_VALUE_FAILED@Base 1.17.2+eo+1
  EINA_ERROR_WRONG_MODULE@Base 1.17.2+eo+1
@@ -46,6 +49,8 @@ libeina.so.1 libeina1 #MINVER#
  _eina_log_state_shutdown@Base 1.17.2+eo+1
  _eina_main_loop@Base 1.17.2+eo+1
  _eina_safety_error@Base 1.17.2+eo+1
+ _eina_sp_ids_tables@Base 1.18.0+eo+1
+ _eina_sp_log_dom@Base 1.18.0+eo+1
  _eina_threads_activated@Base 1.17.2+eo+1
  _eina_threads_debug@Base 1.17.2+eo+1
  _eina_tracking@Base 1.17.2+eo+1
@@ -102,6 +107,7 @@ libeina.so.1 libeina1 #MINVER#
  eina_binshare_length@Base 1.17.2+eo+1
  eina_binshare_ref@Base 1.17.2+eo+1
  eina_binshare_shutdown@Base 1.17.2+eo+1
+ eina_carray_iterator_new@Base 1.18.0+eo+1
  eina_convert_atod@Base 1.17.2+eo+1
  eina_convert_atofp@Base 1.17.2+eo+1
  eina_convert_dtoa@Base 1.17.2+eo+1
@@ -437,6 +443,31 @@ libeina.so.1 libeina1 #MINVER#
  eina_prefix_locale_get@Base 1.17.2+eo+1
  eina_prefix_new@Base 1.17.2+eo+1
  eina_prime_table@Base 1.17.2+eo+1
+ eina_promise_add@Base 1.18.0+eo+1
+ eina_promise_all@Base 1.18.0+eo+1
+ eina_promise_cancel@Base 1.18.0+eo+1
+ eina_promise_error_get@Base 1.18.0+eo+1
+ eina_promise_override@Base 1.18.0+eo+1
+ eina_promise_owner_cancelled_is@Base 1.18.0+eo+1
+ eina_promise_owner_default_call_then@Base 1.18.0+eo+1
+ eina_promise_owner_default_cancel_cb_add@Base 1.18.0+eo+1
+ eina_promise_owner_default_manual_then_set@Base 1.18.0+eo+1
+ eina_promise_owner_error_set@Base 1.18.0+eo+1
+ eina_promise_owner_override@Base 1.18.0+eo+1
+ eina_promise_owner_pending_is@Base 1.18.0+eo+1
+ eina_promise_owner_progress@Base 1.18.0+eo+1
+ eina_promise_owner_progress_notify@Base 1.18.0+eo+1
+ eina_promise_owner_promise_get@Base 1.18.0+eo+1
+ eina_promise_owner_value_set@Base 1.18.0+eo+1
+ eina_promise_pending_is@Base 1.18.0+eo+1
+ eina_promise_progress_cb_add@Base 1.18.0+eo+1
+ eina_promise_progress_notification@Base 1.18.0+eo+1
+ eina_promise_race@Base 1.18.0+eo+1
+ eina_promise_ref@Base 1.18.0+eo+1
+ eina_promise_ref_get@Base 1.18.0+eo+1
+ eina_promise_then@Base 1.18.0+eo+1
+ eina_promise_unref@Base 1.18.0+eo+1
+ eina_promise_value_get@Base 1.18.0+eo+1
  eina_quad_coords_get@Base 1.17.2+eo+1
  eina_quad_coords_set@Base 1.17.2+eo+1
  eina_quad_rectangle_from@Base 1.17.2+eo+1
@@ -511,6 +542,8 @@ libeina.so.1 libeina1 #MINVER#
  eina_rectangle_pool_packing_set@Base 1.17.2+eo+1
  eina_rectangle_pool_release@Base 1.17.2+eo+1
  eina_rectangle_pool_request@Base 1.17.2+eo+1
+ eina_safepointer_register@Base 1.18.0+eo+1
+ eina_safepointer_unregister@Base 1.18.0+eo+1
  eina_sched_prio_drop@Base 1.17.2+eo+1
  eina_seed@Base 1.17.2+eo+1
  eina_shutdown@Base 1.17.2+eo+1
@@ -720,35 +753,40 @@ libeina.so.1 libeina1 #MINVER#
 libeo.so.1 libeina1 #MINVER#
 * Build-Depends-Package: libeina-dev
  EO_DBG_INFO_TYPE@Base 1.17.2+eo+1
- _EO_BASE_EVENT_CALLBACK_ADD@Base 1.17.2+eo+1
- _EO_BASE_EVENT_CALLBACK_DEL@Base 1.17.2+eo+1
- _EO_BASE_EVENT_DEL@Base 1.17.2+eo+1
+ _EO_EVENT_CALLBACK_ADD@Base 1.18.0+eo+1
+ _EO_EVENT_CALLBACK_DEL@Base 1.18.0+eo+1
+ _EO_EVENT_DEL@Base 1.18.0+eo+1
+ ___eo_ref2_get@Base 1.18.0+eo+1
+ ___eo_ref2_reset@Base 1.18.0+eo+1
  _eo_add_end@Base 1.17.2+eo+1
  _eo_add_internal_start@Base 1.17.2+eo+1
  _eo_api_op_id_get@Base 1.17.2+eo+1
+ _eo_call_end@Base 1.18.0+eo+1
  _eo_call_resolve@Base 1.17.2+eo+1
  _eo_class_creation_lock@Base 1.17.2+eo+1
- _eo_do_end@Base 1.17.2+eo+1
- _eo_do_start@Base 1.17.2+eo+1
- _eo_stack_get@Base 1.17.2+eo+1
- eo_abstract_class_class_get@Base 1.17.2+eo+1
+ _eo_init_generation@Base 1.18.0+eo+1
+ _eo_self_get@Base 1.18.0+eo+1
  eo_base_class_get@Base 1.17.2+eo+1
  eo_base_legacy_only_event_description_get@Base 1.17.2+eo+1
  eo_children_iterator_new@Base 1.17.2+eo+1
+ eo_class_class_get@Base 1.18.0+eo+1
  eo_class_get@Base 1.17.2+eo+1
  eo_class_name_get@Base 1.17.2+eo+1
  eo_class_new@Base 1.17.2+eo+1
+ eo_comment_get@Base 1.18.0+eo+1
+ eo_comment_set@Base 1.18.0+eo+1
  eo_composite_attach@Base 1.17.2+eo+1
  eo_composite_detach@Base 1.17.2+eo+1
  eo_composite_part_is@Base 1.17.2+eo+1
  eo_constructor@Base 1.17.2+eo+1
- eo_data_get@Base 1.17.2+eo+1
  eo_data_scope_get@Base 1.17.2+eo+1
  eo_data_xref_internal@Base 1.17.2+eo+1
  eo_data_xunref_internal@Base 1.17.2+eo+1
  eo_dbg_info_free@Base 1.17.2+eo+1
  eo_dbg_info_get@Base 1.17.2+eo+1
  eo_del@Base 1.17.2+eo+1
+ eo_del_intercept_get@Base 1.18.0+eo+1
+ eo_del_intercept_set@Base 1.18.0+eo+1
  eo_destructed_is@Base 1.17.2+eo+1
  eo_destructor@Base 1.17.2+eo+1
  eo_event_callback_array_del@Base 1.17.2+eo+1
@@ -758,6 +796,7 @@ libeo.so.1 libeina1 #MINVER#
  eo_event_callback_forwarder_add@Base 1.17.2+eo+1
  eo_event_callback_forwarder_del@Base 1.17.2+eo+1
  eo_event_callback_priority_add@Base 1.17.2+eo+1
+ eo_event_callback_stop@Base 1.18.0+eo+1
  eo_event_freeze@Base 1.17.2+eo+1
  eo_event_freeze_count_get@Base 1.17.2+eo+1
  eo_event_global_freeze@Base 1.17.2+eo+1
@@ -767,17 +806,30 @@ libeo.so.1 libeina1 #MINVER#
  eo_finalize@Base 1.17.2+eo+1
  eo_finalized_get@Base 1.17.2+eo+1
  eo_init@Base 1.17.2+eo+1
+ eo_interface_interface_get@Base 1.18.0+eo+1
  eo_isa@Base 1.17.2+eo+1
- eo_key_data_del@Base 1.17.2+eo+1
  eo_key_data_get@Base 1.17.2+eo+1
  eo_key_data_set@Base 1.17.2+eo+1
+ eo_key_ref_get@Base 1.18.0+eo+1
+ eo_key_ref_set@Base 1.18.0+eo+1
+ eo_key_value_get@Base 1.18.0+eo+1
+ eo_key_value_set@Base 1.18.0+eo+1
+ eo_key_wref_get@Base 1.18.0+eo+1
+ eo_key_wref_set@Base 1.18.0+eo+1
  eo_manual_free@Base 1.17.2+eo+1
  eo_manual_free_set@Base 1.17.2+eo+1
+ eo_name_find@Base 1.18.0+eo+1
+ eo_name_get@Base 1.18.0+eo+1
+ eo_name_set@Base 1.18.0+eo+1
+ eo_override@Base 1.18.0+eo+1
+ eo_override_class_get@Base 1.18.0+eo+1
  eo_parent_get@Base 1.17.2+eo+1
  eo_parent_set@Base 1.17.2+eo+1
+ eo_provider_find@Base 1.18.0+eo+1
  eo_ref@Base 1.17.2+eo+1
  eo_ref_get@Base 1.17.2+eo+1
  eo_shutdown@Base 1.17.2+eo+1
+ eo_super@Base 1.18.0+eo+1
  eo_unref@Base 1.17.2+eo+1
  eo_wref_add@Base 1.17.2+eo+1
  eo_wref_del@Base 1.17.2+eo+1
@@ -785,20 +837,90 @@ libeo.so.1 libeina1 #MINVER#
  eo_xunref@Base 1.17.2+eo+1
 libefl.so.1 libeina1 #MINVER#
 * Build-Depends-Package: libeina-dev
+ EFL_MODEL_ERROR_INCORRECT_VALUE@Base 1.18.0+eo+1
+ EFL_MODEL_ERROR_INIT_FAILED@Base 1.18.0+eo+1
+ EFL_MODEL_ERROR_NOT_FOUND@Base 1.18.0+eo+1
+ EFL_MODEL_ERROR_NOT_SUPPORTED@Base 1.18.0+eo+1
+ EFL_MODEL_ERROR_PERMISSION_DENIED@Base 1.18.0+eo+1
+ EFL_MODEL_ERROR_READ_ONLY@Base 1.18.0+eo+1
+ EFL_MODEL_ERROR_UNKNOWN@Base 1.18.0+eo+1
+ _EFL_CANVAS_EVENT_DEVICE_CHANGED@Base 1.18.0+eo+1
+ _EFL_CANVAS_EVENT_FOCUS_IN@Base 1.18.0+eo+1
+ _EFL_CANVAS_EVENT_FOCUS_OUT@Base 1.18.0+eo+1
+ _EFL_CANVAS_EVENT_OBJECT_FOCUS_IN@Base 1.18.0+eo+1
+ _EFL_CANVAS_EVENT_OBJECT_FOCUS_OUT@Base 1.18.0+eo+1
+ _EFL_CANVAS_EVENT_RENDER_POST@Base 1.18.0+eo+1
+ _EFL_CANVAS_EVENT_RENDER_PRE@Base 1.18.0+eo+1
+ _EFL_CONTAINER_EVENT_CONTENT_ADDED@Base 1.18.0+eo+1
+ _EFL_CONTAINER_EVENT_CONTENT_REMOVED@Base 1.18.0+eo+1
+ _EFL_EVENT_ANIMATOR_TICK@Base 1.18.0+eo+1
+ _EFL_EVENT_HOLD@Base 1.18.0+eo+1
+ _EFL_EVENT_KEY_DOWN@Base 1.18.0+eo+1
+ _EFL_EVENT_KEY_UP@Base 1.18.0+eo+1
+ _EFL_EVENT_POINTER_CANCEL@Base 1.18.0+eo+1
+ _EFL_EVENT_POINTER_DOWN@Base 1.18.0+eo+1
+ _EFL_EVENT_POINTER_IN@Base 1.18.0+eo+1
+ _EFL_EVENT_POINTER_MOVE@Base 1.18.0+eo+1
+ _EFL_EVENT_POINTER_OUT@Base 1.18.0+eo+1
+ _EFL_EVENT_POINTER_UP@Base 1.18.0+eo+1
+ _EFL_EVENT_POINTER_WHEEL@Base 1.18.0+eo+1
  _EFL_FILE_EVENT_ASYNC_ERROR@Base 1.17.2+eo+1
  _EFL_FILE_EVENT_ASYNC_OPENED@Base 1.17.2+eo+1
  _EFL_GFX_CHANGED@Base 1.17.2+eo+1
+ _EFL_GFX_EVENT_CHANGE_SIZE_HINTS@Base 1.18.0+eo+1
+ _EFL_GFX_EVENT_HIDE@Base 1.18.0+eo+1
+ _EFL_GFX_EVENT_MOVE@Base 1.18.0+eo+1
+ _EFL_GFX_EVENT_RESIZE@Base 1.18.0+eo+1
+ _EFL_GFX_EVENT_RESTACK@Base 1.18.0+eo+1
+ _EFL_GFX_EVENT_SHOW@Base 1.18.0+eo+1
  _EFL_GFX_PATH_CHANGED@Base 1.17.2+eo+1
- _EFL_MODEL_BASE_EVENT_CHILDREN_COUNT_CHANGED@Base 1.17.2+eo+1
- _EFL_MODEL_BASE_EVENT_CHILD_ADDED@Base 1.17.2+eo+1
- _EFL_MODEL_BASE_EVENT_CHILD_REMOVED@Base 1.17.2+eo+1
- _EFL_MODEL_BASE_EVENT_LOAD_STATUS@Base 1.17.2+eo+1
- _EFL_MODEL_BASE_EVENT_PROPERTIES_CHANGED@Base 1.17.2+eo+1
+ _EFL_IMAGE_EVENT_PRELOAD@Base 1.18.0+eo+1
+ _EFL_IMAGE_EVENT_RESIZE@Base 1.18.0+eo+1
+ _EFL_IMAGE_EVENT_UNLOAD@Base 1.18.0+eo+1
+ _EFL_IMAGE_LOAD_EVENT_LOAD_CANCELLED@Base 1.18.0+eo+1
+ _EFL_IMAGE_LOAD_EVENT_LOAD_DONE@Base 1.18.0+eo+1
+ _EFL_IMAGE_LOAD_EVENT_LOAD_ERROR@Base 1.18.0+eo+1
+ _EFL_MODEL_EVENT_CHILDREN_COUNT_CHANGED@Base 1.18.0+eo+1
+ _EFL_MODEL_EVENT_CHILD_ADDED@Base 1.18.0+eo+1
+ _EFL_MODEL_EVENT_CHILD_REMOVED@Base 1.18.0+eo+1
+ _EFL_MODEL_EVENT_PROPERTIES_CHANGED@Base 1.18.0+eo+1
+ _EFL_PACK_EVENT_LAYOUT_UPDATED@Base 1.18.0+eo+1
+ _EFL_VPATH_FILE_EVENT_FAILED@Base 1.18.0+eo+1
+ _EFL_VPATH_FILE_EVENT_FETCHED@Base 1.18.0+eo+1
+ __efl_internal_init@Base 1.18.0+eo+1
+ efl_animator_interface_get@Base 1.18.0+eo+1
+ efl_canvas_image_max_size_get@Base 1.18.0+eo+1
+ efl_canvas_interface_get@Base 1.18.0+eo+1
+ efl_canvas_object_top_at_xy_get@Base 1.18.0+eo+1
+ efl_canvas_object_top_in_rectangle_get@Base 1.18.0+eo+1
+ efl_canvas_objects_at_xy_get@Base 1.18.0+eo+1
+ efl_canvas_objects_in_rectangle_get@Base 1.18.0+eo+1
+ efl_canvas_pointer_canvas_xy_get@Base 1.18.0+eo+1
+ efl_canvas_pointer_inside_get@Base 1.18.0+eo+1
+ efl_canvas_smart_objects_calculate@Base 1.18.0+eo+1
+ efl_config_get@Base 1.18.0+eo+1
+ efl_config_interface_get@Base 1.18.0+eo+1
+ efl_config_list_get@Base 1.18.0+eo+1
+ efl_config_set@Base 1.18.0+eo+1
+ efl_container_interface_get@Base 1.18.0+eo+1
+ efl_content_count@Base 1.18.0+eo+1
+ efl_content_get@Base 1.18.0+eo+1
+ efl_content_iterate@Base 1.18.0+eo+1
+ efl_content_part_name_get@Base 1.18.0+eo+1
+ efl_content_remove@Base 1.18.0+eo+1
+ efl_content_set@Base 1.18.0+eo+1
+ efl_content_unset@Base 1.18.0+eo+1
  efl_control_interface_get@Base 1.17.2+eo+1
  efl_control_priority_get@Base 1.17.2+eo+1
  efl_control_priority_set@Base 1.17.2+eo+1
  efl_control_suspend_get@Base 1.17.2+eo+1
  efl_control_suspend_set@Base 1.17.2+eo+1
+ efl_event_dup@Base 1.18.0+eo+1
+ efl_event_instance_get@Base 1.18.0+eo+1
+ efl_event_interface_get@Base 1.18.0+eo+1
+ efl_event_reset@Base 1.18.0+eo+1
+ efl_event_timestamp_get@Base 1.18.0+eo+1
+ efl_event_timestamp_set@Base 1.18.0+eo+1
  efl_file_async_get@Base 1.17.2+eo+1
  efl_file_async_set@Base 1.17.2+eo+1
  efl_file_async_wait@Base 1.17.2+eo+1
@@ -809,16 +931,33 @@ libefl.so.1 libeina1 #MINVER#
  efl_file_mmap_set@Base 1.17.2+eo+1
  efl_file_save@Base 1.17.2+eo+1
  efl_file_set@Base 1.17.2+eo+1
- efl_gfx_base_interface_get@Base 1.17.2+eo+1
+ efl_flip_get@Base 1.18.0+eo+1
+ efl_flip_set@Base 1.18.0+eo+1
+ efl_flipable_interface_get@Base 1.18.0+eo+1
+ efl_gfx_buffer_alpha_get@Base 1.18.0+eo+1
+ efl_gfx_buffer_alpha_set@Base 1.18.0+eo+1
+ efl_gfx_buffer_borders_get@Base 1.18.0+eo+1
+ efl_gfx_buffer_colorspace_get@Base 1.18.0+eo+1
+ efl_gfx_buffer_copy_set@Base 1.18.0+eo+1
+ efl_gfx_buffer_data_get@Base 1.18.0+eo+1
+ efl_gfx_buffer_data_set@Base 1.18.0+eo+1
+ efl_gfx_buffer_interface_get@Base 1.18.0+eo+1
+ efl_gfx_buffer_map@Base 1.18.0+eo+1
+ efl_gfx_buffer_size_get@Base 1.18.0+eo+1
+ efl_gfx_buffer_size_set@Base 1.18.0+eo+1
+ efl_gfx_buffer_stride_get@Base 1.18.0+eo+1
+ efl_gfx_buffer_unmap@Base 1.18.0+eo+1
+ efl_gfx_buffer_update_add@Base 1.18.0+eo+1
  efl_gfx_color_get@Base 1.17.2+eo+1
  efl_gfx_color_part_get@Base 1.17.2+eo+1
  efl_gfx_color_part_set@Base 1.17.2+eo+1
  efl_gfx_color_set@Base 1.17.2+eo+1
+ efl_gfx_fill_auto_get@Base 1.18.0+eo+1
+ efl_gfx_fill_auto_set@Base 1.18.0+eo+1
  efl_gfx_fill_get@Base 1.17.2+eo+1
  efl_gfx_fill_interface_get@Base 1.17.2+eo+1
  efl_gfx_fill_set@Base 1.17.2+eo+1
- efl_gfx_fill_spread_get@Base 1.17.2+eo+1
- efl_gfx_fill_spread_set@Base 1.17.2+eo+1
+ efl_gfx_filter_data_get@Base 1.18.0+eo+1
  efl_gfx_filter_data_set@Base 1.17.2+eo+1
  efl_gfx_filter_interface_get@Base 1.17.2+eo+1
  efl_gfx_filter_padding_get@Base 1.17.2+eo+1
@@ -826,8 +965,11 @@ libefl.so.1 libeina1 #MINVER#
  efl_gfx_filter_program_set@Base 1.17.2+eo+1
  efl_gfx_filter_source_get@Base 1.17.2+eo+1
  efl_gfx_filter_source_set@Base 1.17.2+eo+1
+ efl_gfx_filter_state_get@Base 1.18.0+eo+1
  efl_gfx_filter_state_set@Base 1.17.2+eo+1
- efl_gfx_gradient_base_interface_get@Base 1.17.2+eo+1
+ efl_gfx_geometry_get@Base 1.18.0+eo+1
+ efl_gfx_geometry_set@Base 1.18.0+eo+1
+ efl_gfx_gradient_interface_get@Base 1.18.0+eo+1
  efl_gfx_gradient_linear_end_get@Base 1.17.2+eo+1
  efl_gfx_gradient_linear_end_set@Base 1.17.2+eo+1
  efl_gfx_gradient_linear_interface_get@Base 1.17.2+eo+1
@@ -844,8 +986,10 @@ libefl.so.1 libeina1 #MINVER#
  efl_gfx_gradient_spread_set@Base 1.17.2+eo+1
  efl_gfx_gradient_stop_get@Base 1.17.2+eo+1
  efl_gfx_gradient_stop_set@Base 1.17.2+eo+1
+ efl_gfx_interface_get@Base 1.18.0+eo+1
  efl_gfx_position_get@Base 1.17.2+eo+1
  efl_gfx_position_set@Base 1.17.2+eo+1
+ efl_gfx_shape_append_arc@Base 1.18.0+eo+1
  efl_gfx_shape_append_arc_to@Base 1.17.2+eo+1
  efl_gfx_shape_append_circle@Base 1.17.2+eo+1
  efl_gfx_shape_append_close@Base 1.17.2+eo+1
@@ -885,6 +1029,30 @@ libefl.so.1 libeina1 #MINVER#
  efl_gfx_shape_stroke_width_get@Base 1.17.2+eo+1
  efl_gfx_shape_stroke_width_set@Base 1.17.2+eo+1
  efl_gfx_size_get@Base 1.17.2+eo+1
+ efl_gfx_size_hint_align_get@Base 1.18.0+eo+1
+ efl_gfx_size_hint_align_set@Base 1.18.0+eo+1
+ efl_gfx_size_hint_aspect_get@Base 1.18.0+eo+1
+ efl_gfx_size_hint_aspect_set@Base 1.18.0+eo+1
+ efl_gfx_size_hint_base_get@Base 1.18.0+eo+1
+ efl_gfx_size_hint_base_set@Base 1.18.0+eo+1
+ efl_gfx_size_hint_combined_min_get@Base 1.18.0+eo+1
+ efl_gfx_size_hint_display_mode_get@Base 1.18.0+eo+1
+ efl_gfx_size_hint_display_mode_set@Base 1.18.0+eo+1
+ efl_gfx_size_hint_interface_get@Base 1.18.0+eo+1
+ efl_gfx_size_hint_margin_get@Base 1.18.0+eo+1
+ efl_gfx_size_hint_margin_set@Base 1.18.0+eo+1
+ efl_gfx_size_hint_max_get@Base 1.18.0+eo+1
+ efl_gfx_size_hint_max_set@Base 1.18.0+eo+1
+ efl_gfx_size_hint_min_get@Base 1.18.0+eo+1
+ efl_gfx_size_hint_min_set@Base 1.18.0+eo+1
+ efl_gfx_size_hint_request_get@Base 1.18.0+eo+1
+ efl_gfx_size_hint_request_set@Base 1.18.0+eo+1
+ efl_gfx_size_hint_restricted_min_get@Base 1.18.0+eo+1
+ efl_gfx_size_hint_restricted_min_set@Base 1.18.0+eo+1
+ efl_gfx_size_hint_step_get@Base 1.18.0+eo+1
+ efl_gfx_size_hint_step_set@Base 1.18.0+eo+1
+ efl_gfx_size_hint_weight_get@Base 1.18.0+eo+1
+ efl_gfx_size_hint_weight_set@Base 1.18.0+eo+1
  efl_gfx_size_set@Base 1.17.2+eo+1
  efl_gfx_stack_above@Base 1.17.2+eo+1
  efl_gfx_stack_above_get@Base 1.17.2+eo+1
@@ -900,33 +1068,115 @@ libefl.so.1 libeina1 #MINVER#
  efl_gfx_view_size_set@Base 1.17.2+eo+1
  efl_gfx_visible_get@Base 1.17.2+eo+1
  efl_gfx_visible_set@Base 1.17.2+eo+1
+ efl_image_animated_frame_count_get@Base 1.18.0+eo+1
+ efl_image_animated_frame_duration_get@Base 1.18.0+eo+1
+ efl_image_animated_frame_get@Base 1.18.0+eo+1
+ efl_image_animated_frame_set@Base 1.18.0+eo+1
  efl_image_animated_get@Base 1.17.2+eo+1
+ efl_image_animated_interface_get@Base 1.18.0+eo+1
+ efl_image_animated_loop_count_get@Base 1.18.0+eo+1
+ efl_image_animated_loop_type_get@Base 1.18.0+eo+1
+ efl_image_border_center_fill_get@Base 1.18.0+eo+1
+ efl_image_border_center_fill_set@Base 1.18.0+eo+1
+ efl_image_border_get@Base 1.18.0+eo+1
+ efl_image_border_scale_get@Base 1.18.0+eo+1
+ efl_image_border_scale_set@Base 1.18.0+eo+1
+ efl_image_border_set@Base 1.18.0+eo+1
+ efl_image_content_hint_get@Base 1.18.0+eo+1
+ efl_image_content_hint_set@Base 1.18.0+eo+1
  efl_image_interface_get@Base 1.17.2+eo+1
+ efl_image_load_async_cancel@Base 1.18.0+eo+1
+ efl_image_load_async_start@Base 1.18.0+eo+1
+ efl_image_load_dpi_get@Base 1.18.0+eo+1
+ efl_image_load_dpi_set@Base 1.18.0+eo+1
+ efl_image_load_error_get@Base 1.18.0+eo+1
+ efl_image_load_interface_get@Base 1.18.0+eo+1
+ efl_image_load_orientation_get@Base 1.18.0+eo+1
+ efl_image_load_orientation_set@Base 1.18.0+eo+1
+ efl_image_load_region_get@Base 1.18.0+eo+1
+ efl_image_load_region_set@Base 1.18.0+eo+1
+ efl_image_load_region_support_get@Base 1.18.0+eo+1
+ efl_image_load_scale_down_get@Base 1.18.0+eo+1
+ efl_image_load_scale_down_set@Base 1.18.0+eo+1
  efl_image_load_size_get@Base 1.17.2+eo+1
  efl_image_load_size_set@Base 1.17.2+eo+1
  efl_image_ratio_get@Base 1.17.2+eo+1
+ efl_image_scale_hint_get@Base 1.18.0+eo+1
+ efl_image_scale_hint_set@Base 1.18.0+eo+1
  efl_image_smooth_scale_get@Base 1.17.2+eo+1
  efl_image_smooth_scale_set@Base 1.17.2+eo+1
- efl_model_base_interface_get@Base 1.17.2+eo+1
+ efl_input_device_class_get@Base 1.18.0+eo+1
+ efl_input_device_description_get@Base 1.18.0+eo+1
+ efl_input_device_description_set@Base 1.18.0+eo+1
+ efl_input_device_name_get@Base 1.18.0+eo+1
+ efl_input_device_name_set@Base 1.18.0+eo+1
+ efl_input_device_parent_get@Base 1.18.0+eo+1
+ efl_input_device_source_get@Base 1.18.0+eo+1
+ efl_input_device_source_set@Base 1.18.0+eo+1
+ efl_input_device_subtype_get@Base 1.18.0+eo+1
+ efl_input_device_subtype_set@Base 1.18.0+eo+1
+ efl_input_device_type_get@Base 1.18.0+eo+1
+ efl_input_device_type_set@Base 1.18.0+eo+1
+ efl_input_interface_interface_get@Base 1.18.0+eo+1
+ efl_input_lock_enabled_get@Base 1.18.0+eo+1
+ efl_input_modifier_enabled_get@Base 1.18.0+eo+1
+ efl_input_state_interface_get@Base 1.18.0+eo+1
  efl_model_child_add@Base 1.17.2+eo+1
  efl_model_child_del@Base 1.17.2+eo+1
  efl_model_children_count_get@Base 1.17.2+eo+1
- efl_model_children_load@Base 1.17.2+eo+1
  efl_model_children_slice_get@Base 1.17.2+eo+1
- efl_model_error_notify@Base 1.17.2+eo+1
+ efl_model_init@Base 1.18.0+eo+1
+ efl_model_interface_get@Base 1.18.0+eo+1
  efl_model_list_slice@Base 1.17.2+eo+1
- efl_model_load@Base 1.17.2+eo+1
- efl_model_load_set@Base 1.17.2+eo+1
- efl_model_load_status_get@Base 1.17.2+eo+1
  efl_model_properties_get@Base 1.17.2+eo+1
- efl_model_properties_load@Base 1.17.2+eo+1
  efl_model_property_changed_notify@Base 1.17.2+eo+1
  efl_model_property_get@Base 1.17.2+eo+1
  efl_model_property_invalidated_notify@Base 1.17.2+eo+1
  efl_model_property_set@Base 1.17.2+eo+1
- efl_model_unload@Base 1.17.2+eo+1
  efl_model_value_struct_description_free@Base 1.17.2+eo+1
  efl_model_value_struct_description_new@Base 1.17.2+eo+1
+ efl_orientation_get@Base 1.18.0+eo+1
+ efl_orientation_interface_get@Base 1.18.0+eo+1
+ efl_orientation_set@Base 1.18.0+eo+1
+ efl_pack@Base 1.18.0+eo+1
+ efl_pack_after@Base 1.18.0+eo+1
+ efl_pack_align_get@Base 1.18.0+eo+1
+ efl_pack_align_set@Base 1.18.0+eo+1
+ efl_pack_at@Base 1.18.0+eo+1
+ efl_pack_before@Base 1.18.0+eo+1
+ efl_pack_begin@Base 1.18.0+eo+1
+ efl_pack_clear@Base 1.18.0+eo+1
+ efl_pack_content_get@Base 1.18.0+eo+1
+ efl_pack_end@Base 1.18.0+eo+1
+ efl_pack_grid@Base 1.18.0+eo+1
+ efl_pack_grid_columns_get@Base 1.18.0+eo+1
+ efl_pack_grid_columns_set@Base 1.18.0+eo+1
+ efl_pack_grid_content_get@Base 1.18.0+eo+1
+ efl_pack_grid_contents_get@Base 1.18.0+eo+1
+ efl_pack_grid_interface_get@Base 1.18.0+eo+1
+ efl_pack_grid_orientation_get@Base 1.18.0+eo+1
+ efl_pack_grid_orientation_set@Base 1.18.0+eo+1
+ efl_pack_grid_position_get@Base 1.18.0+eo+1
+ efl_pack_grid_rows_get@Base 1.18.0+eo+1
+ efl_pack_grid_rows_set@Base 1.18.0+eo+1
+ efl_pack_grid_size_get@Base 1.18.0+eo+1
+ efl_pack_grid_size_set@Base 1.18.0+eo+1
+ efl_pack_index_get@Base 1.18.0+eo+1
+ efl_pack_interface_get@Base 1.18.0+eo+1
+ efl_pack_layout_do@Base 1.18.0+eo+1
+ efl_pack_layout_engine_get@Base 1.18.0+eo+1
+ efl_pack_layout_engine_set@Base 1.18.0+eo+1
+ efl_pack_layout_interface_get@Base 1.18.0+eo+1
+ efl_pack_layout_request@Base 1.18.0+eo+1
+ efl_pack_layout_update@Base 1.18.0+eo+1
+ efl_pack_linear_interface_get@Base 1.18.0+eo+1
+ efl_pack_padding_get@Base 1.18.0+eo+1
+ efl_pack_padding_set@Base 1.18.0+eo+1
+ efl_pack_unpack@Base 1.18.0+eo+1
+ efl_pack_unpack_all@Base 1.18.0+eo+1
+ efl_pack_unpack_at@Base 1.18.0+eo+1
+ efl_part@Base 1.18.0+eo+1
+ efl_part_interface_get@Base 1.18.0+eo+1
  efl_player_audio_mute_get@Base 1.17.2+eo+1
  efl_player_audio_mute_set@Base 1.17.2+eo+1
  efl_player_audio_volume_get@Base 1.17.2+eo+1
@@ -942,6 +1192,10 @@ libefl.so.1 libeina1 #MINVER#
  efl_player_position_set@Base 1.17.2+eo+1
  efl_player_progress_get@Base 1.17.2+eo+1
  efl_player_seekable_get@Base 1.17.2+eo+1
+ efl_screen_dpi_get@Base 1.18.0+eo+1
+ efl_screen_interface_get@Base 1.18.0+eo+1
+ efl_screen_rotation_get@Base 1.18.0+eo+1
+ efl_screen_size_get@Base 1.18.0+eo+1
  efl_text_get@Base 1.17.2+eo+1
  efl_text_interface_get@Base 1.17.2+eo+1
  efl_text_properties_font_get@Base 1.17.2+eo+1
@@ -950,3 +1204,37 @@ libefl.so.1 libeina1 #MINVER#
  efl_text_properties_font_source_set@Base 1.17.2+eo+1
  efl_text_properties_interface_get@Base 1.17.2+eo+1
  efl_text_set@Base 1.17.2+eo+1
+ efl_ui_progress_interface_get@Base 1.18.0+eo+1
+ efl_ui_progress_span_size_get@Base 1.18.0+eo+1
+ efl_ui_progress_span_size_set@Base 1.18.0+eo+1
+ efl_ui_progress_unit_format_get@Base 1.18.0+eo+1
+ efl_ui_progress_unit_format_set@Base 1.18.0+eo+1
+ efl_ui_progress_value_get@Base 1.18.0+eo+1
+ efl_ui_progress_value_set@Base 1.18.0+eo+1
+ efl_ui_spin_interface_get@Base 1.18.0+eo+1
+ efl_ui_spin_interval_get@Base 1.18.0+eo+1
+ efl_ui_spin_interval_set@Base 1.18.0+eo+1
+ efl_ui_spin_min_max_get@Base 1.18.0+eo+1
+ efl_ui_spin_min_max_set@Base 1.18.0+eo+1
+ efl_ui_spin_step_get@Base 1.18.0+eo+1
+ efl_ui_spin_step_set@Base 1.18.0+eo+1
+ efl_ui_spin_value_get@Base 1.18.0+eo+1
+ efl_ui_spin_value_set@Base 1.18.0+eo+1
+ efl_vpath_core_class_get@Base 1.18.0+eo+1
+ efl_vpath_core_get@Base 1.18.0+eo+1
+ efl_vpath_core_meta_get@Base 1.18.0+eo+1
+ efl_vpath_core_meta_set@Base 1.18.0+eo+1
+ efl_vpath_fetch@Base 1.18.0+eo+1
+ efl_vpath_file_class_get@Base 1.18.0+eo+1
+ efl_vpath_file_core_class_get@Base 1.18.0+eo+1
+ efl_vpath_file_do@Base 1.18.0+eo+1
+ efl_vpath_file_path_get@Base 1.18.0+eo+1
+ efl_vpath_file_path_set@Base 1.18.0+eo+1
+ efl_vpath_file_result_get@Base 1.18.0+eo+1
+ efl_vpath_file_result_set@Base 1.18.0+eo+1
+ efl_vpath_file_wait@Base 1.18.0+eo+1
+ efl_vpath_interface_get@Base 1.18.0+eo+1
+ efl_vpath_manager_class_get@Base 1.18.0+eo+1
+ efl_vpath_manager_fetch@Base 1.18.0+eo+1
+ efl_vpath_manager_register@Base 1.18.0+eo+1
+ efl_vpath_manager_unregister@Base 1.18.0+eo+1

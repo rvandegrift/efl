@@ -26,6 +26,7 @@ libecore_evas.so.1 libecore-evas1 #MINVER#
  _ecore_evas_fps_debug_shutdown@Base 1.17.2+eo+1
  _ecore_evas_free@Base 1.17.2+eo+1
  _ecore_evas_idle_timeout_update@Base 1.17.2+eo+1
+ _ecore_evas_input_direct_cb@Base 1.18.0+eo+1
  _ecore_evas_interface_get@Base 1.17.2+eo+1
  _ecore_evas_log_dom@Base 1.17.2+eo+1
  _ecore_evas_mouse_move_process@Base 1.17.2+eo+1
@@ -34,12 +35,14 @@ libecore_evas.so.1 libecore-evas1 #MINVER#
  _ecore_evas_mouse_multi_up_process@Base 1.17.2+eo+1
  _ecore_evas_ref@Base 1.17.2+eo+1
  _ecore_evas_register@Base 1.17.2+eo+1
+ _ecore_evas_register_animators@Base 1.18.0+eo+1
  _ecore_evas_unref@Base 1.17.2+eo+1
  _ecore_evas_window_available_profiles_free@Base 1.17.2+eo+1
  _ecore_evas_window_profile_free@Base 1.17.2+eo+1
  ecore_evas_activate@Base 1.17.2+eo+1
  ecore_evas_alpha_get@Base 1.17.2+eo+1
  ecore_evas_alpha_set@Base 1.17.2+eo+1
+ ecore_evas_animator_tick@Base 1.18.0+eo+1
  ecore_evas_app_comp_sync_get@Base 1.17.2+eo+1
  ecore_evas_app_comp_sync_set@Base 1.17.2+eo+1
  ecore_evas_aspect_get@Base 1.17.2+eo+1

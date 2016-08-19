@@ -16,14 +16,12 @@ libecore_con.so.1 libecore-con1 #MINVER#
  ECORE_CON_EVENT_URL_COMPLETE@Base 1.17.2+eo+1
  ECORE_CON_EVENT_URL_DATA@Base 1.17.2+eo+1
  ECORE_CON_EVENT_URL_PROGRESS@Base 1.17.2+eo+1
- _ECORE_CON_BASE_EVENT_CONNECTION_ERROR@Base 1.17.2+eo+1
- _ECORE_CON_BASE_EVENT_CONNECTION_UPGRADED@Base 1.17.2+eo+1
- _ECORE_CON_BASE_EVENT_DATA_RECEIVED@Base 1.17.2+eo+1
+ _EFL_NETWORK_EVENT_CONNECTION_ERROR@Base 1.18.0+eo+1
+ _EFL_NETWORK_EVENT_CONNECTION_UPGRADED@Base 1.18.0+eo+1
+ _EFL_NETWORK_EVENT_DATA_RECEIVED@Base 1.18.0+eo+1
  _EFL_NETWORK_URL_EVENT_COMPLETE@Base 1.17.2+eo+1
  _EFL_NETWORK_URL_EVENT_DATA@Base 1.17.2+eo+1
  _EFL_NETWORK_URL_EVENT_PROGRESS@Base 1.17.2+eo+1
- ecore_con_base_class_get@Base 1.17.2+eo+1
- ecore_con_client_class_get@Base 1.17.2+eo+1
  ecore_con_client_connected_get@Base 1.17.2+eo+1
  ecore_con_client_data_get@Base 1.17.2+eo+1
  ecore_con_client_data_set@Base 1.17.2+eo+1
@@ -31,7 +29,6 @@ libecore_con.so.1 libecore-con1 #MINVER#
  ecore_con_client_fd_get@Base 1.17.2+eo+1
  ecore_con_client_flush@Base 1.17.2+eo+1
  ecore_con_client_ip_get@Base 1.17.2+eo+1
- ecore_con_client_obj_server_get@Base 1.17.2+eo+1
  ecore_con_client_port_get@Base 1.17.2+eo+1
  ecore_con_client_send@Base 1.17.2+eo+1
  ecore_con_client_server_get@Base 1.17.2+eo+1
@@ -74,19 +71,7 @@ libecore_con.so.1 libecore-con1 #MINVER#
  ecore_con_eet_server_obj_class_get@Base 1.17.2+eo+1
  ecore_con_init@Base 1.17.2+eo+1
  ecore_con_lookup@Base 1.17.2+eo+1
- ecore_con_obj_connected_get@Base 1.17.2+eo+1
- ecore_con_obj_fd_get@Base 1.17.2+eo+1
- ecore_con_obj_flush@Base 1.17.2+eo+1
- ecore_con_obj_ip_get@Base 1.17.2+eo+1
- ecore_con_obj_lookup@Base 1.17.2+eo+1
- ecore_con_obj_port_get@Base 1.17.2+eo+1
- ecore_con_obj_port_set@Base 1.17.2+eo+1
- ecore_con_obj_send@Base 1.17.2+eo+1
- ecore_con_obj_timeout_get@Base 1.17.2+eo+1
- ecore_con_obj_timeout_set@Base 1.17.2+eo+1
- ecore_con_obj_uptime_get@Base 1.17.2+eo+1
  ecore_con_server_add@Base 1.17.2+eo+1
- ecore_con_server_class_get@Base 1.17.2+eo+1
  ecore_con_server_client_limit_set@Base 1.17.2+eo+1
  ecore_con_server_clients_get@Base 1.17.2+eo+1
  ecore_con_server_connect@Base 1.17.2+eo+1
@@ -98,13 +83,6 @@ libecore_con.so.1 libecore-con1 #MINVER#
  ecore_con_server_flush@Base 1.17.2+eo+1
  ecore_con_server_ip_get@Base 1.17.2+eo+1
  ecore_con_server_name_get@Base 1.17.2+eo+1
- ecore_con_server_obj_client_limit_get@Base 1.17.2+eo+1
- ecore_con_server_obj_client_limit_set@Base 1.17.2+eo+1
- ecore_con_server_obj_clients_get@Base 1.17.2+eo+1
- ecore_con_server_obj_connection_type_get@Base 1.17.2+eo+1
- ecore_con_server_obj_connection_type_set@Base 1.17.2+eo+1
- ecore_con_server_obj_name_get@Base 1.17.2+eo+1
- ecore_con_server_obj_name_set@Base 1.17.2+eo+1
  ecore_con_server_port_get@Base 1.17.2+eo+1
  ecore_con_server_send@Base 1.17.2+eo+1
  ecore_con_server_timeout_get@Base 1.17.2+eo+1
@@ -175,7 +153,29 @@ libecore_con.so.1 libecore-con1 #MINVER#
  ecore_con_url_url_get@Base 1.17.2+eo+1
  ecore_con_url_url_set@Base 1.17.2+eo+1
  ecore_con_url_verbose_set@Base 1.17.2+eo+1
+ efl_network_class_get@Base 1.18.0+eo+1
+ efl_network_client_class_get@Base 1.18.0+eo+1
+ efl_network_client_obj_server_get@Base 1.18.0+eo+1
+ efl_network_connected_get@Base 1.18.0+eo+1
  efl_network_connector_class_get@Base 1.17.2+eo+1
+ efl_network_fd_get@Base 1.18.0+eo+1
+ efl_network_flush@Base 1.18.0+eo+1
+ efl_network_ip_get@Base 1.18.0+eo+1
+ efl_network_lookup@Base 1.18.0+eo+1
+ efl_network_port_get@Base 1.18.0+eo+1
+ efl_network_port_set@Base 1.18.0+eo+1
+ efl_network_send@Base 1.18.0+eo+1
+ efl_network_server_class_get@Base 1.18.0+eo+1
+ efl_network_server_client_limit_get@Base 1.18.0+eo+1
+ efl_network_server_client_limit_set@Base 1.18.0+eo+1
+ efl_network_server_clients_get@Base 1.18.0+eo+1
+ efl_network_server_connection_type_get@Base 1.18.0+eo+1
+ efl_network_server_connection_type_set@Base 1.18.0+eo+1
+ efl_network_server_name_get@Base 1.18.0+eo+1
+ efl_network_server_name_set@Base 1.18.0+eo+1
+ efl_network_timeout_get@Base 1.18.0+eo+1
+ efl_network_timeout_set@Base 1.18.0+eo+1
+ efl_network_uptime_get@Base 1.18.0+eo+1
  efl_network_url_class_get@Base 1.17.2+eo+1
  efl_network_url_get@Base 1.17.2+eo+1
  efl_network_url_set@Base 1.17.2+eo+1

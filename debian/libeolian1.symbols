@@ -1,6 +1,7 @@
 libeolian.so.1 libeolian1 #MINVER#
 * Build-Depends-Package: libeolian-dev
  eolian_all_classes_get@Base 1.17.2+eo+1
+ eolian_all_declarations_get@Base 1.18.0+eo+1
  eolian_all_eo_file_paths_get@Base 1.17.2+eo+1
  eolian_all_eo_files_get@Base 1.17.2+eo+1
  eolian_all_eo_files_parse@Base 1.17.2+eo+1
@@ -15,6 +16,7 @@ libeolian.so.1 libeolian1 #MINVER#
  eolian_class_dtor_enable_get@Base 1.17.2+eo+1
  eolian_class_eo_prefix_get@Base 1.17.2+eo+1
  eolian_class_event_get_by_name@Base 1.17.2+eo+1
+ eolian_class_event_prefix_get@Base 1.18.0+eo+1
  eolian_class_events_get@Base 1.17.2+eo+1
  eolian_class_file_get@Base 1.17.2+eo+1
  eolian_class_full_name_get@Base 1.17.2+eo+1
@@ -47,6 +49,8 @@ libeolian.so.1 libeolian1 #MINVER#
  eolian_event_c_name_get@Base 1.17.2+eo+1
  eolian_event_documentation_get@Base 1.17.2+eo+1
  eolian_event_is_beta@Base 1.17.2+eo+1
+ eolian_event_is_hot@Base 1.18.0+eo+1
+ eolian_event_is_restart@Base 1.18.0+eo+1
  eolian_event_name_get@Base 1.17.2+eo+1
  eolian_event_scope_get@Base 1.17.2+eo+1
  eolian_event_type_get@Base 1.17.2+eo+1
@@ -105,40 +109,56 @@ libeolian.so.1 libeolian1 #MINVER#
  eolian_property_values_get@Base 1.17.2+eo+1
  eolian_shutdown@Base 1.17.2+eo+1
  eolian_system_directory_scan@Base 1.17.2+eo+1
- eolian_type_alias_get_by_name@Base 1.17.2+eo+1
  eolian_type_aliased_base_get@Base 1.17.2+eo+1
- eolian_type_aliases_get_by_file@Base 1.17.2+eo+1
+ eolian_type_array_size_get@Base 1.18.0+eo+1
  eolian_type_base_type_get@Base 1.17.2+eo+1
  eolian_type_c_type_get@Base 1.17.2+eo+1
- eolian_type_c_type_named_get@Base 1.17.2+eo+1
  eolian_type_class_get@Base 1.17.2+eo+1
- eolian_type_documentation_get@Base 1.17.2+eo+1
- eolian_type_enum_field_c_name_get@Base 1.17.2+eo+1
- eolian_type_enum_field_documentation_get@Base 1.17.2+eo+1
- eolian_type_enum_field_get@Base 1.17.2+eo+1
- eolian_type_enum_field_name_get@Base 1.17.2+eo+1
- eolian_type_enum_field_value_get@Base 1.17.2+eo+1
- eolian_type_enum_fields_get@Base 1.17.2+eo+1
- eolian_type_enum_get_by_name@Base 1.17.2+eo+1
- eolian_type_enum_legacy_prefix_get@Base 1.17.2+eo+1
- eolian_type_enums_get_by_file@Base 1.17.2+eo+1
  eolian_type_file_get@Base 1.17.2+eo+1
  eolian_type_free_func_get@Base 1.17.2+eo+1
  eolian_type_full_name_get@Base 1.17.2+eo+1
  eolian_type_is_const@Base 1.17.2+eo+1
- eolian_type_is_extern@Base 1.17.2+eo+1
  eolian_type_is_own@Base 1.17.2+eo+1
+ eolian_type_is_ref@Base 1.18.0+eo+1
  eolian_type_name_get@Base 1.17.2+eo+1
  eolian_type_namespaces_get@Base 1.17.2+eo+1
- eolian_type_struct_field_documentation_get@Base 1.17.2+eo+1
- eolian_type_struct_field_get@Base 1.17.2+eo+1
- eolian_type_struct_field_name_get@Base 1.17.2+eo+1
- eolian_type_struct_field_type_get@Base 1.17.2+eo+1
- eolian_type_struct_fields_get@Base 1.17.2+eo+1
- eolian_type_struct_get_by_name@Base 1.17.2+eo+1
- eolian_type_structs_get_by_file@Base 1.17.2+eo+1
- eolian_type_subtypes_get@Base 1.17.2+eo+1
+ eolian_type_next_type_get@Base 1.18.0+eo+1
  eolian_type_type_get@Base 1.17.2+eo+1
+ eolian_type_typedecl_get@Base 1.18.0+eo+1
+ eolian_typedecl_alias_get_by_name@Base 1.18.0+eo+1
+ eolian_typedecl_aliased_base_get@Base 1.18.0+eo+1
+ eolian_typedecl_aliases_get_by_file@Base 1.18.0+eo+1
+ eolian_typedecl_all_aliases_get@Base 1.18.0+eo+1
+ eolian_typedecl_all_enums_get@Base 1.18.0+eo+1
+ eolian_typedecl_all_structs_get@Base 1.18.0+eo+1
+ eolian_typedecl_base_type_get@Base 1.18.0+eo+1
+ eolian_typedecl_c_type_get@Base 1.18.0+eo+1
+ eolian_typedecl_documentation_get@Base 1.18.0+eo+1
+ eolian_typedecl_enum_field_c_name_get@Base 1.18.0+eo+1
+ eolian_typedecl_enum_field_documentation_get@Base 1.18.0+eo+1
+ eolian_typedecl_enum_field_get@Base 1.18.0+eo+1
+ eolian_typedecl_enum_field_name_get@Base 1.18.0+eo+1
+ eolian_typedecl_enum_field_value_get@Base 1.18.0+eo+1
+ eolian_typedecl_enum_fields_get@Base 1.18.0+eo+1
+ eolian_typedecl_enum_get_by_name@Base 1.18.0+eo+1
+ eolian_typedecl_enum_legacy_prefix_get@Base 1.18.0+eo+1
+ eolian_typedecl_enums_get_by_file@Base 1.18.0+eo+1
+ eolian_typedecl_file_get@Base 1.18.0+eo+1
+ eolian_typedecl_free_func_get@Base 1.18.0+eo+1
+ eolian_typedecl_full_name_get@Base 1.18.0+eo+1
+ eolian_typedecl_is_extern@Base 1.18.0+eo+1
+ eolian_typedecl_name_get@Base 1.18.0+eo+1
+ eolian_typedecl_namespaces_get@Base 1.18.0+eo+1
+ eolian_typedecl_struct_field_documentation_get@Base 1.18.0+eo+1
+ eolian_typedecl_struct_field_get@Base 1.18.0+eo+1
+ eolian_typedecl_struct_field_name_get@Base 1.18.0+eo+1
+ eolian_typedecl_struct_field_type_get@Base 1.18.0+eo+1
+ eolian_typedecl_struct_fields_get@Base 1.18.0+eo+1
+ eolian_typedecl_struct_get_by_name@Base 1.18.0+eo+1
+ eolian_typedecl_structs_get_by_file@Base 1.18.0+eo+1
+ eolian_typedecl_type_get@Base 1.18.0+eo+1
+ eolian_variable_all_constants_get@Base 1.18.0+eo+1
+ eolian_variable_all_globals_get@Base 1.18.0+eo+1
  eolian_variable_base_type_get@Base 1.17.2+eo+1
  eolian_variable_constant_get_by_name@Base 1.17.2+eo+1
  eolian_variable_constants_get_by_file@Base 1.17.2+eo+1

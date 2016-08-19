@@ -6,13 +6,16 @@ libecore.so.1 libecore1 #MINVER#
  ECORE_EXE_EVENT_ERROR@Base 1.17.2+eo+1
  _ECORE_EXE_EVENT_DATA_ERROR@Base 1.17.2+eo+1
  _ECORE_EXE_EVENT_DATA_GET@Base 1.17.2+eo+1
- _ECORE_MAINLOOP_EVENT_IDLE@Base 1.17.2+eo+1
- _ECORE_MAINLOOP_EVENT_IDLE_ENTER@Base 1.17.2+eo+1
- _ECORE_MAINLOOP_EVENT_IDLE_EXIT@Base 1.17.2+eo+1
+ _EFL_LOOP_EVENT_ARGUMENTS@Base 1.18.0+eo+1
+ _EFL_LOOP_EVENT_IDLE@Base 1.18.0+eo+1
+ _EFL_LOOP_EVENT_IDLE_ENTER@Base 1.18.0+eo+1
+ _EFL_LOOP_EVENT_IDLE_EXIT@Base 1.18.0+eo+1
+ _EFL_LOOP_FD_EVENT_ERROR@Base 1.18.0+eo+1
+ _EFL_LOOP_FD_EVENT_READ@Base 1.18.0+eo+1
+ _EFL_LOOP_FD_EVENT_WRITE@Base 1.18.0+eo+1
+ _EFL_LOOP_TIMER_EVENT_TICK@Base 1.18.0+eo+1
  _ecore_magic_fail@Base 1.17.2+eo+1
  ecore_animator_add@Base 1.17.2+eo+1
- ecore_animator_class_get@Base 1.17.2+eo+1
- ecore_animator_constructor@Base 1.17.2+eo+1
  ecore_animator_custom_source_tick_begin_callback_set@Base 1.17.2+eo+1
  ecore_animator_custom_source_tick_end_callback_set@Base 1.17.2+eo+1
  ecore_animator_custom_tick@Base 1.17.2+eo+1
@@ -26,7 +29,6 @@ libecore.so.1 libecore1 #MINVER#
  ecore_animator_source_set@Base 1.17.2+eo+1
  ecore_animator_thaw@Base 1.17.2+eo+1
  ecore_animator_timeline_add@Base 1.17.2+eo+1
- ecore_animator_timeline_constructor@Base 1.17.2+eo+1
  ecore_app_args_get@Base 1.17.2+eo+1
  ecore_app_args_set@Base 1.17.2+eo+1
  ecore_app_no_system_modules@Base 1.17.2+eo+1
@@ -81,24 +83,16 @@ libecore.so.1 libecore1 #MINVER#
  ecore_getopt_parse_positional@Base 1.17.2+eo+1
  ecore_getopt_parser_has_duplicates@Base 1.17.2+eo+1
  ecore_idle_enterer_add@Base 1.17.2+eo+1
- ecore_idle_enterer_after_constructor@Base 1.17.2+eo+1
  ecore_idle_enterer_before_add@Base 1.17.2+eo+1
- ecore_idle_enterer_before_constructor@Base 1.17.2+eo+1
- ecore_idle_enterer_class_get@Base 1.17.2+eo+1
  ecore_idle_enterer_del@Base 1.17.2+eo+1
  ecore_idle_exiter_add@Base 1.17.2+eo+1
- ecore_idle_exiter_class_get@Base 1.17.2+eo+1
- ecore_idle_exiter_constructor@Base 1.17.2+eo+1
  ecore_idle_exiter_del@Base 1.17.2+eo+1
  ecore_idler_add@Base 1.17.2+eo+1
- ecore_idler_class_get@Base 1.17.2+eo+1
- ecore_idler_constructor@Base 1.17.2+eo+1
  ecore_idler_del@Base 1.17.2+eo+1
  ecore_init@Base 1.17.2+eo+1
  ecore_job_add@Base 1.17.2+eo+1
- ecore_job_class_get@Base 1.17.2+eo+1
- ecore_job_constructor@Base 1.17.2+eo+1
  ecore_job_del@Base 1.17.2+eo+1
+ ecore_loop_arguments_send@Base 1.18.0+eo+1
  ecore_loop_time_get@Base 1.17.2+eo+1
  ecore_loop_time_set@Base 1.17.2+eo+1
  ecore_main_fd_handler_active_get@Base 1.17.2+eo+1
@@ -124,25 +118,10 @@ libecore.so.1 libecore1 #MINVER#
  ecore_main_loop_thread_safe_call_wait@Base 1.17.2+eo+1
  ecore_main_win32_handler_add@Base 1.17.2+eo+1
  ecore_main_win32_handler_del@Base 1.17.2+eo+1
- ecore_mainloop_animator_ticked@Base 1.17.2+eo+1
- ecore_mainloop_begin@Base 1.17.2+eo+1
- ecore_mainloop_class_get@Base 1.17.2+eo+1
- ecore_mainloop_iterate@Base 1.17.2+eo+1
- ecore_mainloop_iterate_may_block@Base 1.17.2+eo+1
- ecore_mainloop_quit@Base 1.17.2+eo+1
- ecore_mainloop_select_func_get@Base 1.17.2+eo+1
- ecore_mainloop_select_func_set@Base 1.17.2+eo+1
  ecore_memory_state_get@Base 1.17.2+eo+1
  ecore_memory_state_set@Base 1.17.2+eo+1
  ecore_obj_exe_command_get@Base 1.17.2+eo+1
  ecore_obj_exe_command_set@Base 1.17.2+eo+1
- ecore_obj_timer_constructor@Base 1.17.2+eo+1
- ecore_obj_timer_delay@Base 1.17.2+eo+1
- ecore_obj_timer_interval_get@Base 1.17.2+eo+1
- ecore_obj_timer_interval_set@Base 1.17.2+eo+1
- ecore_obj_timer_loop_constructor@Base 1.17.2+eo+1
- ecore_obj_timer_pending_get@Base 1.17.2+eo+1
- ecore_obj_timer_reset@Base 1.17.2+eo+1
  ecore_parent_class_get@Base 1.17.2+eo+1
  ecore_pipe_add@Base 1.17.2+eo+1
  ecore_pipe_del@Base 1.17.2+eo+1
@@ -192,6 +171,7 @@ libecore.so.1 libecore1 #MINVER#
  ecore_thread_pending_feedback_get@Base 1.17.2+eo+1
  ecore_thread_pending_get@Base 1.17.2+eo+1
  ecore_thread_pending_total_get@Base 1.17.2+eo+1
+ ecore_thread_promise_run@Base 1.18.0+eo+1
  ecore_thread_reschedule@Base 1.17.2+eo+1
  ecore_thread_run@Base 1.17.2+eo+1
  ecore_thread_wait@Base 1.17.2+eo+1
@@ -200,7 +180,6 @@ libecore.so.1 libecore1 #MINVER#
  ecore_time_get@Base 1.17.2+eo+1
  ecore_time_unix_get@Base 1.17.2+eo+1
  ecore_timer_add@Base 1.17.2+eo+1
- ecore_timer_class_get@Base 1.17.2+eo+1
  ecore_timer_del@Base 1.17.2+eo+1
  ecore_timer_delay@Base 1.17.2+eo+1
  ecore_timer_dump@Base 1.17.2+eo+1
@@ -209,12 +188,40 @@ libecore.so.1 libecore1 #MINVER#
  ecore_timer_interval_get@Base 1.17.2+eo+1
  ecore_timer_interval_set@Base 1.17.2+eo+1
  ecore_timer_loop_add@Base 1.17.2+eo+1
+ ecore_timer_loop_reset@Base 1.18.0+eo+1
  ecore_timer_pending_get@Base 1.17.2+eo+1
  ecore_timer_precision_get@Base 1.17.2+eo+1
  ecore_timer_precision_set@Base 1.17.2+eo+1
  ecore_timer_reset@Base 1.17.2+eo+1
  ecore_timer_thaw@Base 1.17.2+eo+1
  ecore_version@Base 1.17.2+eo+1
+ efl_build_version_set@Base 1.18.0+eo+1
+ efl_loop_app_efl_version_get@Base 1.18.0+eo+1
+ efl_loop_begin@Base 1.18.0+eo+1
+ efl_loop_class_get@Base 1.18.0+eo+1
+ efl_loop_efl_version_get@Base 1.18.0+eo+1
+ efl_loop_fd_class_get@Base 1.18.0+eo+1
+ efl_loop_fd_file_get@Base 1.18.0+eo+1
+ efl_loop_fd_file_set@Base 1.18.0+eo+1
+ efl_loop_fd_get@Base 1.18.0+eo+1
+ efl_loop_fd_set@Base 1.18.0+eo+1
+ efl_loop_iterate@Base 1.18.0+eo+1
+ efl_loop_iterate_may_block@Base 1.18.0+eo+1
+ efl_loop_job@Base 1.18.0+eo+1
+ efl_loop_main_get@Base 1.18.0+eo+1
+ efl_loop_quit@Base 1.18.0+eo+1
+ efl_loop_register@Base 1.18.0+eo+1
+ efl_loop_timeout@Base 1.18.0+eo+1
+ efl_loop_timer_class_get@Base 1.18.0+eo+1
+ efl_loop_timer_delay@Base 1.18.0+eo+1
+ efl_loop_timer_interval_get@Base 1.18.0+eo+1
+ efl_loop_timer_interval_set@Base 1.18.0+eo+1
+ efl_loop_timer_loop_reset@Base 1.18.0+eo+1
+ efl_loop_timer_pending_get@Base 1.18.0+eo+1
+ efl_loop_timer_reset@Base 1.18.0+eo+1
+ efl_loop_unregister@Base 1.18.0+eo+1
+ efl_loop_user_class_get@Base 1.18.0+eo+1
+ efl_loop_user_loop_get@Base 1.18.0+eo+1
 libeldbus.so.1 libecore1 #MINVER#
 * Build-Depends-Package: libecore-dev
  _ELDBUS_MODEL_METHOD_EVENT_SUCCESSFUL_CALL@Base 1.17.2+eo+1

@@ -13,6 +13,8 @@ libedje.so.1 libedje1 #MINVER#
  _edje_edd_shutdown@Base 1.17.2+eo+1
  _edje_program_insert@Base 1.17.2+eo+1
  _edje_program_remove@Base 1.17.2+eo+1
+ _edje_svg_node_eet@Base 1.18.0+eo+1
+ _edje_svg_node_free@Base 1.18.0+eo+1
  _emp_BOX@Base 1.17.2+eo+1
  _emp_CAMERA@Base 1.17.2+eo+1
  _emp_EXTERNAL@Base 1.17.2+eo+1
@@ -28,7 +30,9 @@ libedje.so.1 libedje1 #MINVER#
  _emp_TABLE@Base 1.17.2+eo+1
  _emp_TEXT@Base 1.17.2+eo+1
  _emp_TEXTBLOCK@Base 1.17.2+eo+1
+ _emp_VECTOR@Base 1.18.0+eo+1
  _emp_part@Base 1.17.2+eo+1
+ edje_3d_object_add@Base 1.18.0+eo+1
  edje_audio_channel_mute_get@Base 1.17.2+eo+1
  edje_audio_channel_mute_set@Base 1.17.2+eo+1
  edje_available_modules_get@Base 1.17.2+eo+1
@@ -99,8 +103,6 @@ libedje.so.1 libedje1 #MINVER#
  edje_edit_group_min_w_get@Base 1.17.2+eo+1
  edje_edit_group_min_w_set@Base 1.17.2+eo+1
  edje_edit_group_name_set@Base 1.17.2+eo+1
- edje_edit_group_orientation_get@Base 1.17.2+eo+1
- edje_edit_group_orientation_set@Base 1.17.2+eo+1
  edje_edit_image_add@Base 1.17.2+eo+1
  edje_edit_image_compression_rate_get@Base 1.17.2+eo+1
  edje_edit_image_compression_type_get@Base 1.17.2+eo+1
@@ -110,6 +112,23 @@ libedje.so.1 libedje1 #MINVER#
  edje_edit_image_id_get@Base 1.17.2+eo+1
  edje_edit_image_rename@Base 1.17.2+eo+1
  edje_edit_image_replace@Base 1.17.2+eo+1
+ edje_edit_image_set_add@Base 1.18.0+eo+1
+ edje_edit_image_set_del@Base 1.18.0+eo+1
+ edje_edit_image_set_exists@Base 1.18.0+eo+1
+ edje_edit_image_set_id_get@Base 1.18.0+eo+1
+ edje_edit_image_set_image_add@Base 1.18.0+eo+1
+ edje_edit_image_set_image_border_get@Base 1.18.0+eo+1
+ edje_edit_image_set_image_border_scale_get@Base 1.18.0+eo+1
+ edje_edit_image_set_image_border_scale_set@Base 1.18.0+eo+1
+ edje_edit_image_set_image_border_set@Base 1.18.0+eo+1
+ edje_edit_image_set_image_del@Base 1.18.0+eo+1
+ edje_edit_image_set_image_max_get@Base 1.18.0+eo+1
+ edje_edit_image_set_image_max_set@Base 1.18.0+eo+1
+ edje_edit_image_set_image_min_get@Base 1.18.0+eo+1
+ edje_edit_image_set_image_min_set@Base 1.18.0+eo+1
+ edje_edit_image_set_images_list_get@Base 1.18.0+eo+1
+ edje_edit_image_set_list_get@Base 1.18.0+eo+1
+ edje_edit_image_set_rename@Base 1.18.0+eo+1
  edje_edit_image_usage_list_free@Base 1.17.2+eo+1
  edje_edit_image_usage_list_get@Base 1.17.2+eo+1
  edje_edit_images_list_get@Base 1.17.2+eo+1
@@ -170,6 +189,48 @@ libedje.so.1 libedje1 #MINVER#
  edje_edit_part_item_aspect_w_get@Base 1.17.2+eo+1
  edje_edit_part_item_aspect_w_set@Base 1.17.2+eo+1
  edje_edit_part_item_del@Base 1.17.2+eo+1
+ edje_edit_part_item_index_aspect_h_get@Base 1.18.0+eo+1
+ edje_edit_part_item_index_aspect_h_set@Base 1.18.0+eo+1
+ edje_edit_part_item_index_aspect_mode_get@Base 1.18.0+eo+1
+ edje_edit_part_item_index_aspect_mode_set@Base 1.18.0+eo+1
+ edje_edit_part_item_index_aspect_w_get@Base 1.18.0+eo+1
+ edje_edit_part_item_index_aspect_w_set@Base 1.18.0+eo+1
+ edje_edit_part_item_index_del@Base 1.18.0+eo+1
+ edje_edit_part_item_index_max_h_get@Base 1.18.0+eo+1
+ edje_edit_part_item_index_max_h_set@Base 1.18.0+eo+1
+ edje_edit_part_item_index_max_w_get@Base 1.18.0+eo+1
+ edje_edit_part_item_index_max_w_set@Base 1.18.0+eo+1
+ edje_edit_part_item_index_min_h_get@Base 1.18.0+eo+1
+ edje_edit_part_item_index_min_h_set@Base 1.18.0+eo+1
+ edje_edit_part_item_index_min_w_get@Base 1.18.0+eo+1
+ edje_edit_part_item_index_min_w_set@Base 1.18.0+eo+1
+ edje_edit_part_item_index_name_get@Base 1.18.0+eo+1
+ edje_edit_part_item_index_name_set@Base 1.18.0+eo+1
+ edje_edit_part_item_index_padding_get@Base 1.18.0+eo+1
+ edje_edit_part_item_index_padding_set@Base 1.18.0+eo+1
+ edje_edit_part_item_index_position_col_get@Base 1.18.0+eo+1
+ edje_edit_part_item_index_position_col_set@Base 1.18.0+eo+1
+ edje_edit_part_item_index_position_row_get@Base 1.18.0+eo+1
+ edje_edit_part_item_index_position_row_set@Base 1.18.0+eo+1
+ edje_edit_part_item_index_prefer_h_get@Base 1.18.0+eo+1
+ edje_edit_part_item_index_prefer_h_set@Base 1.18.0+eo+1
+ edje_edit_part_item_index_prefer_w_get@Base 1.18.0+eo+1
+ edje_edit_part_item_index_prefer_w_set@Base 1.18.0+eo+1
+ edje_edit_part_item_index_source_get@Base 1.18.0+eo+1
+ edje_edit_part_item_index_source_set@Base 1.18.0+eo+1
+ edje_edit_part_item_index_span_col_get@Base 1.18.0+eo+1
+ edje_edit_part_item_index_span_col_set@Base 1.18.0+eo+1
+ edje_edit_part_item_index_span_row_get@Base 1.18.0+eo+1
+ edje_edit_part_item_index_span_row_set@Base 1.18.0+eo+1
+ edje_edit_part_item_index_spread_h_get@Base 1.18.0+eo+1
+ edje_edit_part_item_index_spread_h_set@Base 1.18.0+eo+1
+ edje_edit_part_item_index_spread_w_get@Base 1.18.0+eo+1
+ edje_edit_part_item_index_spread_w_set@Base 1.18.0+eo+1
+ edje_edit_part_item_insert_after@Base 1.18.0+eo+1
+ edje_edit_part_item_insert_after_index@Base 1.18.0+eo+1
+ edje_edit_part_item_insert_at@Base 1.18.0+eo+1
+ edje_edit_part_item_insert_before@Base 1.18.0+eo+1
+ edje_edit_part_item_insert_before_index@Base 1.18.0+eo+1
  edje_edit_part_item_max_h_get@Base 1.17.2+eo+1
  edje_edit_part_item_max_h_set@Base 1.17.2+eo+1
  edje_edit_part_item_max_w_get@Base 1.17.2+eo+1
@@ -178,6 +239,10 @@ libedje.so.1 libedje1 #MINVER#
  edje_edit_part_item_min_h_set@Base 1.17.2+eo+1
  edje_edit_part_item_min_w_get@Base 1.17.2+eo+1
  edje_edit_part_item_min_w_set@Base 1.17.2+eo+1
+ edje_edit_part_item_move_above@Base 1.18.0+eo+1
+ edje_edit_part_item_move_above_index@Base 1.18.0+eo+1
+ edje_edit_part_item_move_below@Base 1.18.0+eo+1
+ edje_edit_part_item_move_below_index@Base 1.18.0+eo+1
  edje_edit_part_item_padding_get@Base 1.17.2+eo+1
  edje_edit_part_item_padding_set@Base 1.17.2+eo+1
  edje_edit_part_item_position_col_get@Base 1.17.2+eo+1
@@ -206,6 +271,7 @@ libedje.so.1 libedje1 #MINVER#
  edje_edit_part_item_weight_x_set@Base 1.17.2+eo+1
  edje_edit_part_item_weight_y_get@Base 1.17.2+eo+1
  edje_edit_part_item_weight_y_set@Base 1.17.2+eo+1
+ edje_edit_part_items_count_get@Base 1.18.0+eo+1
  edje_edit_part_items_list_get@Base 1.17.2+eo+1
  edje_edit_part_mask_flags_get@Base 1.17.2+eo+1
  edje_edit_part_mask_flags_set@Base 1.17.2+eo+1
@@ -244,6 +310,8 @@ libedje.so.1 libedje1 #MINVER#
  edje_edit_part_source_set@Base 1.17.2+eo+1
  edje_edit_part_states_list_get@Base 1.17.2+eo+1
  edje_edit_part_type_get@Base 1.17.2+eo+1
+ edje_edit_part_use_alternate_font_metrics_get@Base 1.18.0+eo+1
+ edje_edit_part_use_alternate_font_metrics_set@Base 1.18.0+eo+1
  edje_edit_parts_list_get@Base 1.17.2+eo+1
  edje_edit_print_internal_status@Base 1.17.2+eo+1
  edje_edit_program_action_get@Base 1.17.2+eo+1
@@ -251,6 +319,7 @@ libedje.so.1 libedje1 #MINVER#
  edje_edit_program_add@Base 1.17.2+eo+1
  edje_edit_program_after_add@Base 1.17.2+eo+1
  edje_edit_program_after_del@Base 1.17.2+eo+1
+ edje_edit_program_after_insert_at@Base 1.18.0+eo+1
  edje_edit_program_afters_clear@Base 1.17.2+eo+1
  edje_edit_program_afters_get@Base 1.17.2+eo+1
  edje_edit_program_api_description_get@Base 1.17.2+eo+1
@@ -286,6 +355,7 @@ libedje.so.1 libedje1 #MINVER#
  edje_edit_program_stop_all@Base 1.17.2+eo+1
  edje_edit_program_target_add@Base 1.17.2+eo+1
  edje_edit_program_target_del@Base 1.17.2+eo+1
+ edje_edit_program_target_insert_at@Base 1.18.0+eo+1
  edje_edit_program_targets_clear@Base 1.17.2+eo+1
  edje_edit_program_targets_get@Base 1.17.2+eo+1
  edje_edit_program_tone_duration_get@Base 1.17.2+eo+1
@@ -318,6 +388,19 @@ libedje.so.1 libedje1 #MINVER#
  edje_edit_script_program_get@Base 1.17.2+eo+1
  edje_edit_script_program_set@Base 1.17.2+eo+1
  edje_edit_script_set@Base 1.17.2+eo+1
+ edje_edit_set_usage_list_get@Base 1.18.0+eo+1
+ edje_edit_size_class_add@Base 1.18.0+eo+1
+ edje_edit_size_class_del@Base 1.18.0+eo+1
+ edje_edit_size_class_max_h_get@Base 1.18.0+eo+1
+ edje_edit_size_class_max_h_set@Base 1.18.0+eo+1
+ edje_edit_size_class_max_w_get@Base 1.18.0+eo+1
+ edje_edit_size_class_max_w_set@Base 1.18.0+eo+1
+ edje_edit_size_class_min_h_get@Base 1.18.0+eo+1
+ edje_edit_size_class_min_h_set@Base 1.18.0+eo+1
+ edje_edit_size_class_min_w_get@Base 1.18.0+eo+1
+ edje_edit_size_class_min_w_set@Base 1.18.0+eo+1
+ edje_edit_size_class_name_set@Base 1.18.0+eo+1
+ edje_edit_size_classes_list_get@Base 1.18.0+eo+1
  edje_edit_sound_compression_rate_get@Base 1.17.2+eo+1
  edje_edit_sound_compression_rate_set@Base 1.17.2+eo+1
  edje_edit_sound_compression_type_get@Base 1.17.2+eo+1
@@ -419,6 +502,10 @@ libedje.so.1 libedje1 #MINVER#
  edje_edit_state_image_border_fill_get@Base 1.17.2+eo+1
  edje_edit_state_image_border_fill_set@Base 1.17.2+eo+1
  edje_edit_state_image_border_get@Base 1.17.2+eo+1
+ edje_edit_state_image_border_scale_by_get@Base 1.18.0+eo+1
+ edje_edit_state_image_border_scale_by_set@Base 1.18.0+eo+1
+ edje_edit_state_image_border_scale_get@Base 1.18.0+eo+1
+ edje_edit_state_image_border_scale_set@Base 1.18.0+eo+1
  edje_edit_state_image_border_set@Base 1.17.2+eo+1
  edje_edit_state_image_get@Base 1.17.2+eo+1
  edje_edit_state_image_set@Base 1.17.2+eo+1
@@ -461,8 +548,12 @@ libedje.so.1 libedje1 #MINVER#
  edje_edit_state_minmul_w_get@Base 1.17.2+eo+1
  edje_edit_state_minmul_w_set@Base 1.17.2+eo+1
  edje_edit_state_name_set@Base 1.17.2+eo+1
+ edje_edit_state_proxy_source_clip_get@Base 1.18.0+eo+1
+ edje_edit_state_proxy_source_clip_set@Base 1.18.0+eo+1
  edje_edit_state_proxy_source_get@Base 1.17.2+eo+1
  edje_edit_state_proxy_source_set@Base 1.17.2+eo+1
+ edje_edit_state_proxy_source_visible_get@Base 1.18.0+eo+1
+ edje_edit_state_proxy_source_visible_set@Base 1.18.0+eo+1
  edje_edit_state_rel1_offset_x_get@Base 1.17.2+eo+1
  edje_edit_state_rel1_offset_x_set@Base 1.17.2+eo+1
  edje_edit_state_rel1_offset_y_get@Base 1.17.2+eo+1
@@ -527,6 +618,7 @@ libedje.so.1 libedje1 #MINVER#
  edje_edit_state_text_text_source_set@Base 1.17.2+eo+1
  edje_edit_state_tween_add@Base 1.17.2+eo+1
  edje_edit_state_tween_del@Base 1.17.2+eo+1
+ edje_edit_state_tween_insert_at@Base 1.18.0+eo+1
  edje_edit_state_tweens_list_get@Base 1.17.2+eo+1
  edje_edit_state_visible_get@Base 1.17.2+eo+1
  edje_edit_state_visible_set@Base 1.17.2+eo+1
@@ -541,6 +633,14 @@ libedje.so.1 libedje1 #MINVER#
  edje_edit_style_tag_value_set@Base 1.17.2+eo+1
  edje_edit_style_tags_list_get@Base 1.17.2+eo+1
  edje_edit_styles_list_get@Base 1.17.2+eo+1
+ edje_edit_text_class_add@Base 1.18.0+eo+1
+ edje_edit_text_class_del@Base 1.18.0+eo+1
+ edje_edit_text_class_font_get@Base 1.18.0+eo+1
+ edje_edit_text_class_font_set@Base 1.18.0+eo+1
+ edje_edit_text_class_name_set@Base 1.18.0+eo+1
+ edje_edit_text_class_size_get@Base 1.18.0+eo+1
+ edje_edit_text_class_size_set@Base 1.18.0+eo+1
+ edje_edit_text_classes_list_get@Base 1.18.0+eo+1
  edje_edit_without_source_save@Base 1.17.2+eo+1
  edje_evas_global_perspective_get@Base 1.17.2+eo+1
  edje_extern_object_aspect_set@Base 1.17.2+eo+1
@@ -578,6 +678,7 @@ libedje.so.1 libedje1 #MINVER#
  edje_language_set@Base 1.17.2+eo+1
  edje_load_error_str@Base 1.17.2+eo+1
  edje_message_signal_process@Base 1.17.2+eo+1
+ edje_mmap_3d_has@Base 1.18.0+eo+1
  edje_mmap_collection_list@Base 1.17.2+eo+1
  edje_mmap_collection_list_free@Base 1.17.2+eo+1
  edje_mmap_color_class_iterator_new@Base 1.17.2+eo+1
@@ -586,7 +687,7 @@ libedje.so.1 libedje1 #MINVER#
  edje_mmap_size_class_iterator_new@Base 1.17.2+eo+1
  edje_mmap_text_class_iterator_new@Base 1.17.2+eo+1
  edje_module_load@Base 1.17.2+eo+1
- edje_obj_access_part_list_get@Base 1.17.2+eo+1
+ edje_obj_access_part_iterate@Base 1.18.0+eo+1
  edje_obj_animation_get@Base 1.17.2+eo+1
  edje_obj_animation_set@Base 1.17.2+eo+1
  edje_obj_base_scale_get@Base 1.17.2+eo+1
@@ -598,6 +699,8 @@ libedje.so.1 libedje1 #MINVER#
  edje_obj_color_class_set@Base 1.17.2+eo+1
  edje_obj_data_get@Base 1.17.2+eo+1
  edje_obj_freeze@Base 1.17.2+eo+1
+ edje_obj_global_color_class_get@Base 1.18.0+eo+1
+ edje_obj_global_color_class_set@Base 1.18.0+eo+1
  edje_obj_item_provider_set@Base 1.17.2+eo+1
  edje_obj_language_get@Base 1.17.2+eo+1
  edje_obj_language_set@Base 1.17.2+eo+1
@@ -607,13 +710,6 @@ libedje.so.1 libedje1 #MINVER#
  edje_obj_message_signal_process@Base 1.17.2+eo+1
  edje_obj_mirrored_get@Base 1.17.2+eo+1
  edje_obj_mirrored_set@Base 1.17.2+eo+1
- edje_obj_part_box_append@Base 1.17.2+eo+1
- edje_obj_part_box_insert_at@Base 1.17.2+eo+1
- edje_obj_part_box_insert_before@Base 1.17.2+eo+1
- edje_obj_part_box_prepend@Base 1.17.2+eo+1
- edje_obj_part_box_remove@Base 1.17.2+eo+1
- edje_obj_part_box_remove_all@Base 1.17.2+eo+1
- edje_obj_part_box_remove_at@Base 1.17.2+eo+1
  edje_obj_part_drag_dir_get@Base 1.17.2+eo+1
  edje_obj_part_drag_page@Base 1.17.2+eo+1
  edje_obj_part_drag_page_get@Base 1.17.2+eo+1
@@ -634,13 +730,6 @@ libedje.so.1 libedje1 #MINVER#
  edje_obj_part_geometry_get@Base 1.17.2+eo+1
  edje_obj_part_object_get@Base 1.17.2+eo+1
  edje_obj_part_state_get@Base 1.17.2+eo+1
- edje_obj_part_swallow@Base 1.17.2+eo+1
- edje_obj_part_swallow_get@Base 1.17.2+eo+1
- edje_obj_part_table_child_get@Base 1.17.2+eo+1
- edje_obj_part_table_clear@Base 1.17.2+eo+1
- edje_obj_part_table_col_row_size_get@Base 1.17.2+eo+1
- edje_obj_part_table_pack@Base 1.17.2+eo+1
- edje_obj_part_table_unpack@Base 1.17.2+eo+1
  edje_obj_part_text_anchor_geometry_get@Base 1.17.2+eo+1
  edje_obj_part_text_anchor_list_get@Base 1.17.2+eo+1
  edje_obj_part_text_append@Base 1.17.2+eo+1
@@ -664,6 +753,7 @@ libedje.so.1 libedje1 #MINVER#
  edje_obj_part_text_cursor_up@Base 1.17.2+eo+1
  edje_obj_part_text_escaped_set@Base 1.17.2+eo+1
  edje_obj_part_text_get@Base 1.17.2+eo+1
+ edje_obj_part_text_hide_visible_password@Base 1.18.0+eo+1
  edje_obj_part_text_imf_context_get@Base 1.17.2+eo+1
  edje_obj_part_text_imf_context_reset@Base 1.17.2+eo+1
  edje_obj_part_text_input_hint_get@Base 1.17.2+eo+1
@@ -705,7 +795,6 @@ libedje.so.1 libedje1 #MINVER#
  edje_obj_part_text_unescaped_get@Base 1.17.2+eo+1
  edje_obj_part_text_unescaped_set@Base 1.17.2+eo+1
  edje_obj_part_text_user_insert@Base 1.17.2+eo+1
- edje_obj_part_unswallow@Base 1.17.2+eo+1
  edje_obj_parts_extends_calc@Base 1.17.2+eo+1
  edje_obj_perspective_get@Base 1.17.2+eo+1
  edje_obj_perspective_set@Base 1.17.2+eo+1
@@ -727,7 +816,6 @@ libedje.so.1 libedje1 #MINVER#
  edje_obj_text_change_cb_set@Base 1.17.2+eo+1
  edje_obj_text_class_del@Base 1.17.2+eo+1
  edje_obj_text_class_get@Base 1.17.2+eo+1
- edje_object_color_class_clear@Base 1.17.2+eo+1
  edje_obj_text_class_set@Base 1.17.2+eo+1
  edje_obj_text_insert_filter_callback_add@Base 1.17.2+eo+1
  edje_obj_text_insert_filter_callback_del@Base 1.17.2+eo+1
@@ -747,6 +835,7 @@ libedje.so.1 libedje1 #MINVER#
  edje_object_base_scale_get@Base 1.17.2+eo+1
  edje_object_calc_force@Base 1.17.2+eo+1
  edje_object_class_get@Base 1.17.2+eo+1
+ edje_object_color_class_clear@Base 1.17.2+eo+1
  edje_object_color_class_del@Base 1.17.2+eo+1
  edje_object_color_class_description_get@Base 1.17.2+eo+1
  edje_object_color_class_get@Base 1.17.2+eo+1
@@ -766,6 +855,7 @@ libedje.so.1 libedje1 #MINVER#
  edje_object_mirrored_set@Base 1.17.2+eo+1
  edje_object_mmap_set@Base 1.17.2+eo+1
  edje_object_part_box_append@Base 1.17.2+eo+1
+ edje_object_part_box_insert_after@Base 1.18.0+eo+1
  edje_object_part_box_insert_at@Base 1.17.2+eo+1
  edje_object_part_box_insert_before@Base 1.17.2+eo+1
  edje_object_part_box_prepend@Base 1.17.2+eo+1
@@ -823,6 +913,7 @@ libedje.so.1 libedje1 #MINVER#
  edje_object_part_text_cursor_up@Base 1.17.2+eo+1
  edje_object_part_text_escaped_set@Base 1.17.2+eo+1
  edje_object_part_text_get@Base 1.17.2+eo+1
+ edje_object_part_text_hide_visible_password@Base 1.18.0+eo+1
  edje_object_part_text_imf_context_get@Base 1.17.2+eo+1
  edje_object_part_text_imf_context_reset@Base 1.17.2+eo+1
  edje_object_part_text_input_hint_get@Base 1.17.2+eo+1
