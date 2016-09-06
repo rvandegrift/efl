@@ -1,3 +1,36 @@
+efl (1.18.0-1) UNRELEASED; urgency=medium
+
+  * Non-maintainer upload.
+  * New upstream version
+  * Distribute elocation; Elementary uses it.
+  * debian/patches:
+    - 02_no_ecore_imf_test.diff: defuzz
+    - 15_try_curl-gnutls.diff: defuzz
+    - 20-skip_dbus_tests.diff: defuzz
+      + fix skips for new test layout
+      + fix randomly failing test
+    - 21-skip_net_tests.diff: defuzz, fix eeze skips for new test layout
+    - 22-skip-fb-tests.diff: dropped, tests disabled upstream
+    - 24-skip_gnutls_broken.diff: defuzz
+    - 26-skip_filter_tests.diff: defuzz
+    - 40_fix_elocation_pc.diff: dropped, fixed upstream
+    - 45_disable_doc_pack.diff: defuzz, also suppress doc pack output
+    - 75-disable-evas_test_image.diff: defuzz
+    - 80-disable-ecore_cxx_safe_call_sync.diff: defuzz
+  * Add elementary, evas-loaders, emotion-players to efl packaging
+  * Add new package libefl-data for common data files
+  * Drop old configure options
+  * Build-Depends-Indep on imagemagick, convert used in make doc
+  * Fix missing static files from dev packages
+  * Add/remove eo symbols from 1.18
+  * Bump all eo symbol version for 1.18 release of eolian generator
+  * Ship new icon set for Elementary
+  * debian/patches/21-skip_net_tests.diff: drop randomly failing test
+  * Drop unused copyright stanza
+  * Use secure Vcs- URLs in debian/control
+
+ -- Ross Vandegrift <ross@kallisti.us>  Fri, 19 Aug 2016 15:04:12 -0400
+
 efl (1.17.2-1) UNRELEASED; urgency=medium
 
   * debian/patches: drop fixes applied upstream
