@@ -1,4 +1,4 @@
-EFL_VERSION([1], [18], [0], [release])
+EFL_VERSION([1], [18], [1], [release])
 AC_INIT([efl], [efl_version], [enlightenment-devel@lists.sourceforge.net])
 
 AC_PREREQ([2.60])
@@ -2113,7 +2113,13 @@ AC_ARG_ENABLE([elput],
        want_elput="no"
     fi
    ],
-   [want_elput="no"])
+   [
+    if test "x${want_wayland}" = "xyes" ; then
+       want_elput="yes"
+    else
+       want_elput="no"
+    fi
+   ])
 
 # Drm
 AC_ARG_ENABLE([drm],
@@ -5478,6 +5484,7 @@ EFL_OPTIONAL_INTERNAL_DEPEND_PKG([ELEMENTARY], [${build_ecore_evas_win32}], [eco
 EFL_OPTIONAL_INTERNAL_DEPEND_PKG([ELEMENTARY], [${want_drm}], [ecore_drm2])
 EFL_OPTIONAL_INTERNAL_DEPEND_PKG([ELEMENTARY], [${build_ecore_evas_wayland}], [ecore_wl2])
 
+EFL_OPTIONAL_DEPEND_PKG([ELEMENTARY], [${want_elput}], [ELPUT], [xkbcommon])
 EFL_OPTIONAL_DEPEND_PKG([ELEMENTARY], [${want_wayland}], [WAYLAND], [wayland-client])
 
 dnl Special case deps for ecore_drm

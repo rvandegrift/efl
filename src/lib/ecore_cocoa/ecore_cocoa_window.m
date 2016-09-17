@@ -54,6 +54,26 @@ static NSCursor *_cursors[__ECORE_COCOA_CURSOR_LAST];
    return YES;
 }
 
+- (BOOL) requestResize: (NSSize) size
+{
+   Ecore_Cocoa_Event_Window_Resize_Request *event;
+
+   event = malloc(sizeof(*event));
+   if (EINA_UNLIKELY(event == NULL))
+     {
+        CRI("Failed to allocate Ecore_Cocoa_Event_Window_Resize_Request");
+        return NO;
+     }
+
+   event->w = size.width;
+   event->h = size.height -
+      (([self isFullScreen] == YES) ? 0 : ecore_cocoa_titlebar_height_get());
+   event->cocoa_window = self;
+   ecore_event_add(ECORE_COCOA_EVENT_WINDOW_RESIZE_REQUEST, event, NULL, NULL);
+
+   return YES;
+}
+
 - (void)windowWillClose:(NSNotification *) notification
 {
    Ecore_Cocoa_Event_Window_Destroy *event;
@@ -68,11 +88,20 @@ static NSCursor *_cursors[__ECORE_COCOA_CURSOR_LAST];
    ecore_event_add(ECORE_COCOA_EVENT_WINDOW_DESTROY, event, NULL, NULL);
 }
 
-- (void)windowDidResize:(NSNotification *) notif
+/* IS THIS OSX <= 10.10 ONLY? */
+- (void)windowDidEnterFullScreen:(NSNotification *) notif EINA_UNUSED
 {
-   Ecore_Cocoa_Event_Window_Resize_Request *event;
-   NSSize size = self.frame.size;
+   [self requestResize: self.frame.size];
+}
 
+/* IS THIS OSX <= 10.10 ONLY? */
+- (void)windowDidExitFullScreen:(NSNotification *) notif EINA_UNUSED
+{
+   [self requestResize: self.frame.size];
+}
+
+- (void)windowDidResize:(NSNotification *) EINA_UNUSED notif
+{
    /*
     * Only throw a resize event and manipulate the main loop when
     * we are 100% sure we are in a live resize, and the main loop
@@ -80,17 +109,7 @@ static NSCursor *_cursors[__ECORE_COCOA_CURSOR_LAST];
     */
    if (_live_resize > 0)
      {
-        event = malloc(sizeof(*event));
-        if (EINA_UNLIKELY(event == NULL))
-          {
-             CRI("Failed to allocate Ecore_Cocoa_Event_Window_Resize_Request");
-             return;
-          }
-        event->w = size.width;
-        event->h = size.height -
-           (([self isFullScreen] == YES) ? 0 : ecore_cocoa_titlebar_height_get());
-        event->cocoa_window = [notif object];
-        ecore_event_add(ECORE_COCOA_EVENT_WINDOW_RESIZE_REQUEST, event, NULL, NULL);
+        [self requestResize: self.frame.size];
 
         /*
          * During live resize, NSRunLoop blocks, and prevent the ecore_main_loop
