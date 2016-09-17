@@ -1,3 +1,11 @@
+efl (1.18.1-1) UNRELEASED; urgency=medium
+
+  * Non-maintainer upload.
+  * New upstream version
+  * Bump all eo symbol versions for 1.18.1 release
+
+ -- Ross Vandegrift <ross@kallisti.us>  Sat, 17 Sep 2016 09:27:16 -0400
+
 efl (1.18.0-1) UNRELEASED; urgency=medium
 
   * Non-maintainer upload.
