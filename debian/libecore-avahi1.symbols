@@ -1,5 +1,5 @@
 libecore_avahi.so.1 libecore-avahi1 #MINVER#
 * Build-Depends-Package: libecore-dev
- ecore_avahi_add@Base 1.18.0+eo+1
- ecore_avahi_del@Base 1.18.0+eo+1
- ecore_avahi_poll_get@Base 1.18.0+eo+1
+ ecore_avahi_add@Base 1.18.1+eo+1
+ ecore_avahi_del@Base 1.18.1+eo+1
+ ecore_avahi_poll_get@Base 1.18.1+eo+1
