@@ -1015,53 +1015,6 @@ Description: Documentation for the Enlightenment Foundation Libraries
  This package contains the Doxygen-generated HTML documentation and
  examples for the API of the EFL.
 
-Package: efl-dbg
-Architecture: any
-Multi-Arch: same
-Section: debug
-Priority: extra
-Depends: ${misc:Depends},
-         libeina1       (= ${binary:Version}),
-         libeet1        (= ${binary:Version}),
-         libephysics1   (= ${binary:Version}),
-         libevas1       (= ${binary:Version}),
-         libevas1-engines-x       (= ${binary:Version}),
-         libevas1-engines-fb      (= ${binary:Version}),
-         libecore1      (= ${binary:Version}),
-         libecore-con1  (= ${binary:Version}),
-         libecore-evas1 (= ${binary:Version}),
-         libecore-fb1   (= ${binary:Version}) [linux-any],
-         libecore-file1 (= ${binary:Version}),
-         libecore-imf1  (= ${binary:Version}),
-         libecore-ipc1  (= ${binary:Version}),
-         libecore-x1    (= ${binary:Version}),
-         libembryo1     (= ${binary:Version}),
-         libedje1       (= ${binary:Version}),
-         libeio1        (= ${binary:Version}),
-         libeeze1       (= ${binary:Version}) [linux-any],
-         libemotion1    (= ${binary:Version}),
-         libethumb1        (= ${binary:Version}),
-         libethumb-client1 (= ${binary:Version})
-Breaks: libeina-dbg    (<< 1.8.3),
-        libeet-dbg     (<< 1.8.3),
-        libevas-dbg    (<< 1.8.3),
-        libecore-dbg   (<< 1.8.3),
-        libembryo-dbg  (<< 1.8.3),
-        libedje-dbg    (<< 1.8.3),
-        libeio-dbg     (<< 1.8.3)
-Replaces: libeina-dbg    (<< 1.8.3),
-          libeet-dbg     (<< 1.8.3),
-          libevas-dbg    (<< 1.8.3),
-          libecore-dbg   (<< 1.8.3),
-          libembryo-dbg  (<< 1.8.3),
-          libedje-dbg    (<< 1.8.3),
-          libeio-dbg     (<< 1.8.3)
-Description: Debugging symbols for the Enlightenment Foundation Libraries
- This package contains unstripped shared libraries. It is provided primarily
- to provide a backtrace with names in a debugger, this makes it somewhat easier
- to interpret core dumps. The libraries are installed in /usr/lib/debug and
- are automatically used by gdb.
-
 Package: libelementary1
 Architecture: any
 Pre-Depends: ${misc:Pre-Depends}
@@ -1106,21 +1059,6 @@ Description: Development files for libelementary
  .
  This package contains headers and static libraries for development with
  libelementary.
-
-Package: libelementary-dbg
-Architecture: any
-Section: debug
-Depends: ${misc:Depends}, libelementary1 (= ${binary:Version})
-Priority: extra
-Description: debugging symbols for use with libelementary
- Elementary is a widget set based on the Enlightenment Foundation Libraries,
- primarily aimed at creating graphical user interfaces for mobile and embedded
- devices.
- .
- This package contains unstripped shared libraries. It is provided primarily
- to provide a backtrace with names in a debugger, this makes it somewhat easier
- to interpret core dumps. The libraries are installed in /usr/lib/debug and
- are automatically used by gdb.
 
 Package: libevas-loaders
 Architecture: any
