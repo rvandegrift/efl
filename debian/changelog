@@ -1,3 +1,12 @@
+efl (1.18.1-2) UNRELEASED; urgency=medium
+
+  * Non-maintainer upload.
+  * Enable build hardening options
+  * Switch to automatic dbgsym packages
+  * Bump Standards-Version to 3.9.8
+
+ -- Ross Vandegrift <ross@kallisti.us>  Sun, 02 Oct 2016 14:05:57 -0400
+
 efl (1.18.1-1) UNRELEASED; urgency=medium
 
   * Non-maintainer upload.
