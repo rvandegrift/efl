@@ -1,4 +1,4 @@
-libeina.so.1 libeina1 #MINVER#
+libeina.so.1 libeina1a #MINVER#
 * Build-Depends-Package: libeina-dev
  EINA_ERROR_CONVERT_0X_NOT_FOUND@Base 1.18.1+eo+1
  EINA_ERROR_CONVERT_OUTRUN_STRING_LENGTH@Base 1.18.1+eo+1
@@ -750,7 +750,7 @@ libeina.so.1 libeina1 #MINVER#
  eina_xattr_string_set@Base 1.18.1+eo+1
  eina_xattr_value_fd_ls@Base 1.18.1+eo+1
  eina_xattr_value_ls@Base 1.18.1+eo+1
-libeo.so.1 libeina1 #MINVER#
+libeo.so.1 libeina1a #MINVER#
 * Build-Depends-Package: libeina-dev
  EO_DBG_INFO_TYPE@Base 1.18.1+eo+1
  _EO_EVENT_CALLBACK_ADD@Base 1.18.1+eo+1
@@ -835,7 +835,7 @@ libeo.so.1 libeina1 #MINVER#
  eo_wref_del@Base 1.18.1+eo+1
  eo_xref_internal@Base 1.18.1+eo+1
  eo_xunref@Base 1.18.1+eo+1
-libefl.so.1 libeina1 #MINVER#
+libefl.so.1 libeina1a #MINVER#
 * Build-Depends-Package: libeina-dev
  EFL_MODEL_ERROR_INCORRECT_VALUE@Base 1.18.1+eo+1
  EFL_MODEL_ERROR_INIT_FAILED@Base 1.18.1+eo+1
