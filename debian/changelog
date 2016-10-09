@@ -1,4 +1,14 @@
-efl (1.18.1-2) UNRELEASED; urgency=medium
+efl (1.18.1-3) experimental; urgency=medium
+
+  * Team upload.
+  * Disable two ecore_econ tests that fail under buildd/sbuild
+  * Update libelementary1's versioned Breaks to work for releases after 1.15
+  * Rename libeina1 -> libeina1a due to ABI break
+  * Lintian overrides for libeina1a, libefreet1a package/soname
+
+ -- Ross Vandegrift <ross@kallisti.us>  Sun, 09 Oct 2016 14:00:08 -0400
+
+efl (1.18.1-2) experimental; urgency=medium
 
   * Non-maintainer upload.
   * Enable build hardening options
