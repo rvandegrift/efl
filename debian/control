@@ -1018,7 +1018,7 @@ Description: Documentation for the Enlightenment Foundation Libraries
 Package: libelementary1
 Architecture: any
 Pre-Depends: ${misc:Pre-Depends}
-Breaks: libelementary2 (<< 1.15), libeina1 (<< 1.15.1)
+Breaks: libelementary2 (<< 1.15), libeina1 (<< ${source:Upstream-Version})
 Replaces: libelementary2 (<< 1.15)
 Depends: ${shlibs:Depends}, ${misc:Depends}, libelementary-data (= ${source:Version})
 Description: EFL-based widget set library
