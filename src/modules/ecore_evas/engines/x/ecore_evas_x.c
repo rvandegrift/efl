@@ -2999,15 +2999,15 @@ _ecore_evas_x_show(Ecore_Evas *ee)
      _ecore_evas_x_render(ee);
    _ecore_evas_x_sync_set(ee);
    _ecore_evas_x_window_profile_set(ee);
-   ecore_x_window_show(ee->prop.window);
-   if (ee->prop.fullscreen)
-     ecore_x_window_focus(ee->prop.window);
-   if (ee->prop.withdrawn)
+   if (!ee->prop.withdrawn) _ecore_evas_x_hints_update(ee);
+   else
      {
         ee->prop.withdrawn = EINA_FALSE;
-        if (ee->func.fn_state_change) ee->func.fn_state_change(ee);
         _ecore_evas_x_hints_update(ee);
+        ee->prop.withdrawn = EINA_TRUE;
      }
+   ecore_x_window_show(ee->prop.window);
+   if (ee->prop.fullscreen) ecore_x_window_focus(ee->prop.window);
 }
 
 static void
@@ -3211,8 +3211,7 @@ _ecore_evas_x_iconified_set(Ecore_Evas *ee, Eina_Bool on)
    Ecore_Evas_Engine_Data_X11 *edata = ee->engine.data;
 
    if (ee->prop.iconified == on) return;
-   if (((ee->should_be_visible) && (!ee->visible)) || (ee->visible))
-     ee->prop.iconified = on;
+   ee->prop.iconified = on;
    _ecore_evas_x_hints_update(ee);
    if (on)
      ecore_x_icccm_iconic_request_send(ee->prop.window, edata->win_root);
