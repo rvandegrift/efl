@@ -1,3 +1,4 @@
 debian/tmp/usr/include/elocation-1/*.h
 debian/tmp/usr/lib/*/pkgconfig/elocation.pc
 debian/tmp/usr/lib/*/libelocation.so
+debian/tmp/usr/lib/*/libelocation.a
