@@ -1,3 +1,11 @@
+efl (1.18.2-2) experimental; urgency=medium
+
+  * Team upload.
+  * debian/patches/70-gnutls3.4.diff: adopt the upstream fix
+  * Drop transitional libeina1 package
+
+ -- Ross Vandegrift <ross@kallisti.us>  Sun, 30 Oct 2016 12:56:45 -0400
+
 efl (1.18.2-1) experimental; urgency=medium
 
   * Team upload.
