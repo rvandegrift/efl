@@ -29,15 +29,6 @@ Homepage: http://www.enlightenment.org
 
 # EINA
 
-Package: libeina1
-Section: oldlibs
-Priority: extra
-Architecture: all
-Depends: ${misc:Depends}, libeina1a
-Description: transitional libeina1 package
- This is a transitional dummy package to ease the migration from
- libeina1 to libeina1a.  You can safely remove this package.
-
 Package: libeina1a
 Architecture: any
 Multi-Arch: same
