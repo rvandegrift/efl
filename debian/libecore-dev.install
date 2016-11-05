@@ -13,6 +13,8 @@ debian/tmp/usr/lib/*/libecore_input.so
 debian/tmp/usr/lib/*/libecore_input_evas.so
 debian/tmp/usr/lib/*/libecore_ipc.so
 debian/tmp/usr/lib/*/libecore_x.so
+debian/tmp/usr/lib/*/libecore_wl2.so
+debian/tmp/usr/lib/*/libecore_drm2.so
 debian/tmp/usr/lib/*/pkgconfig/ecore*.pc
 usr/share/eolian/include/ecore-1
 usr/lib/*/cmake/Ecore/*.cmake

@@ -1,0 +1,5 @@
+debian/tmp/usr/include/elput-*
+debian/tmp/usr/lib/*/libelput.so
+debian/tmp/usr/lib/*/libelput.a
+debian/tmp/usr/lib/*/pkgconfig/elput.pc
+
