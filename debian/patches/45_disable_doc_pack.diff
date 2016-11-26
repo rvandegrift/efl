@@ -8,7 +8,7 @@ Last-Update: 2015-10-18
 This patch header follows DEP-3: http://dep.debian.net/deps/dep3/
 --- a/doc/Makefile.am
 +++ b/doc/Makefile.am
-@@ -206,18 +206,6 @@ doc: all previews-build previews-data widget-preview
+@@ -206,18 +206,6 @@
  	cp $(srcdir)/img/*.png html/
  	@echo "copying $(srcdir)/img/*.eps to latex/"
  	cp $(srcdir)/img/*.eps latex/
