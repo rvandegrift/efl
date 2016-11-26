@@ -5,11 +5,9 @@ Forwarded: no
 Last-Update: 2015-12-05
 ---
 This patch header follows DEP-3: http://dep.debian.net/deps/dep3/
-diff --git a/src/bin/edje/edje_recc b/src/bin/edje/edje_recc
-index 2ae81ad..837fa62 100644
 --- a/src/bin/edje/edje_recc
 +++ b/src/bin/edje/edje_recc
-@@ -14,7 +14,7 @@ usage () {
+@@ -14,7 +14,7 @@
    echo "-no-raw                  Do NOT allow images to be zero compression"
    echo "-min-quality VAL         Do NOT allow lossy images with quality < VAL (0-100)"
    echo "-max-quality VAL         Do NOT allow lossy images with quality > VAL (0-100)"
