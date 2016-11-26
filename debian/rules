@@ -6,7 +6,7 @@ CFLAGS += -fvisibility=hidden
 LDFLAGS += -Wl,-z,defs -Wl,--as-needed
 
 ifneq (,$(filter $(DEB_HOST_ARCH), armel armhf))
-	arch_flags += --with-opengl=es
+	arch_flags += --with-opengl=es --enable-egl
 endif
 
 ifeq (linux,$(DEB_HOST_ARCH_OS))
