@@ -10,3 +10,4 @@
 80-disable-ecore_cxx_safe_call_sync.diff
 85-disable-elm_tests.diff
 90-disable-ecore_con_tests.diff
+95-parallel-previews.diff
