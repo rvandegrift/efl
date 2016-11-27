@@ -37,7 +37,23 @@ Multi-Arch: same
 Pre-Depends: ${misc:Pre-Depends}
 Depends: ${shlibs:Depends}, ${misc:Depends}
 Conflicts: libeina0
-Breaks: libeet1 (<= 1.4.0~beta+1.4.0), libeina1 (<= 1.18.1-2)
+Breaks: libeet1 (<= 1.4.0~beta+1.4.0), libeina1 (<= 1.18.1-2),
+        libeina-bin (<= ${source:Upstream-Version}),
+        libeet-bin (<= ${source:Upstream-Version}),
+        libevas-bin (<= ${source:Upstream-Version}),
+        libevas1-engines-x (<= ${source:Upstream-Version}),
+        libevas1-engines-fb (<= ${source:Upstream-Version}),
+        libecore-bin (<= ${source:Upstream-Version}),
+        libefreet-bin (<= ${source:Upstream-Version}),
+        libembryo-bin (<= ${source:Upstream-Version}),
+        libedje-bin (<= ${source:Upstream-Version}),
+        libeeze-bin (<= ${source:Upstream-Version}),
+        libelua-bin (<= ${source:Upstream-Version}),
+        libethumb-client-bin (<= ${source:Upstream-Version}),
+        libelementary-bin (<= ${source:Upstream-Version}),
+        libelementary-data (<= ${source:Upstream-Version}),
+        libevas-loaders (<= ${source:Upstream-Version}),
+        libemotion-players (<= ${source:Upstream-Version})
 Description: Enlightenment Foundation Library providing optimized data types
  Eina is a multi-platform library that provides optimized data types and a few
  tools. It supports the following data types:
