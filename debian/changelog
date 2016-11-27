@@ -1,3 +1,26 @@
+efl (1.18.3-1) experimental; urgency=medium
+
+  * Team upload.
+  * New upstream version
+
+  [ Nicolas Braud-Santoni ]
+  * Test fixup (XDG_RUNTIME_DIR & HOME)
+  * Use TLS-enabled, canonical links
+  * debian/control: Add missing dependency for the doc build
+  * debian/control: Add Uploaders
+
+  [ Ross Vandegrift ]
+  * debian/patches/45_disable_doc_pack.diff: defuzz
+  * debian/patches/50-fix-edje_recc-bashism.diff: defuzz
+  * debian/patches/70-gnutls3.4.diff: drop, fixed upstream
+  * Bump all eo symbol versions for 1.18.3 release
+  * debian/patches/95-parallel-previews.diff: make widget previews in parallel
+  * Fix EGL build options for arm
+  * Add binary packages to eina breaks to prevent mixed-version EFL installs
+  * Run tests and make doc with temporary HOME and XDG_RUNTIME_DIR
+
+ -- Ross Vandegrift <ross@kallisti.us>  Sun, 27 Nov 2016 15:51:04 -0500
+
 efl (1.18.2-2) experimental; urgency=medium
 
   * Team upload.
