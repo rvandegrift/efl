@@ -1,0 +1,22 @@
+import ector_types;
+
+abstract Ector.Renderer.GL (Ector.Renderer)
+{
+   methods {
+      fill @virtual_pure {
+         return: bool;
+	 params {
+	    @in flags: uint64;
+	    @in vertex: GLshort*;
+	    @in vertex_count: uint;
+	    @in mul_col: uint;
+	 }
+      }
+   }
+   implements {
+      Ector.Renderer.prepare;
+      Ector.Renderer.draw;
+      Eo.Base.constructor;
+      Eo.Base.destructor;
+   }
+}

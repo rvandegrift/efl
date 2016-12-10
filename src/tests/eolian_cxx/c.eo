@@ -1,0 +1,7 @@
+class C (A)
+{
+   data: C_Data;
+   implements {
+      Eo.Base.constructor;
+   }
+}

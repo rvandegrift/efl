@@ -1,0 +1,8 @@
+class Efl.Network.Connector (Efl.Network.Server) {
+   [[Efl network connector class]]
+   eo_prefix: efl_network_connector_obj;
+   data: null;
+   implements {
+      Eo.Base.finalize;
+   }
+}

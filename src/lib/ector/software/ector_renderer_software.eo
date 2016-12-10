@@ -1,0 +1,9 @@
+class Ector.Renderer.Software (Ector.Renderer)
+{
+   data: null;
+   methods {
+      fill @virtual_pure {
+         return: bool;
+      }
+   }
+}

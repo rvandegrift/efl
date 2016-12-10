@@ -1,0 +1,34 @@
+type @extern cairo_t: void_ptr;
+
+class Ector.Cairo.Surface (Eo.Base, Ector.Surface)
+{
+   [[Ector surface on a cairo backend
+
+   Used to render ector content into a cairo backend.
+   ]]
+   eo_prefix: ector_cairo_surface;
+   methods {
+      @property context {
+         [[Cairo context]]
+         set {
+	 }
+	 get {
+	 }
+	 values {
+	    ctx: cairo_t *; [[Cairo context]]
+	 }
+      }
+      symbol_get {
+         return: void_ptr @warn_unused;
+         params {
+            @in name: string;
+         }
+      }
+   }
+   implements {
+      Ector.Surface.renderer_factory_new;
+      Ector.Surface.reference_point.set;
+      Eo.Base.destructor;
+      Eo.Base.constructor;
+   }
+}

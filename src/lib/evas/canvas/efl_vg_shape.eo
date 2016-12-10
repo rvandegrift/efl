@@ -1,0 +1,42 @@
+class Efl.VG.Shape (Efl.VG, Efl.Gfx.Shape)
+{
+   legacy_prefix: evas_vg_shape;
+   methods {
+      @property fill {
+         set {
+	 }
+	 get {
+	 }
+	 values {
+	    f: Efl.VG;
+	 }
+      }
+      @property stroke_fill {
+         set {
+	 }
+	 get {
+	 }
+	 values {
+	    f: Efl.VG;
+	 }
+      }
+      @property stroke_marker {
+         set {
+	 }
+	 get {
+	 }
+	 values {
+	    m: Efl.VG;
+	 }
+      }
+   }
+   implements {
+      Efl.Gfx.color_part.set;
+      Efl.Gfx.color_part.get;
+      Efl.VG.bounds_get;
+      Efl.VG.interpolate;
+      Efl.VG.dup;
+      Eo.Base.constructor;
+      Eo.Base.destructor;
+   }
+}

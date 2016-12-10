@@ -1,0 +1,449 @@
+type @extern Evas.Load_Error: int; /* FIXME: Need to migrate emile. */
+struct @extern Evas.Video_Surface; /* FIXME: The structure is full of the unsupported func pointers. */
+
+type Evas.Modifier_Mask: ullong;  [[An Evas modifier mask type]]
+type Evas.Coord: int; [[A type for coordinates]]
+
+enum Evas.Text_Style_Type {
+   [[Types of styles to be applied on text objects. The
+     EVAS_TEXT_STYLE_SHADOW_DIRECTION_* ones are to be ORed together with
+     others imposing shadow, to change shadow's direction
+   ]]
+   legacy: Evas_Text_Style;
+
+   plain, [[plain, standard text]]
+   shadow, [[text with shadow underneath]]
+   outline, [[text with an outline]]
+   soft_outline, [[text with a soft outline]]
+   glow, [[text with a glow effect]]
+   outline_shadow, [[text with both outline and shadow effects]]
+   far_shadow, [[text with (far) shadow underneath]]
+   outline_soft_shadow, [[text with outline and soft shadow effects combined]]
+   soft_shadow, [[text with (soft) shadow underneath]]
+   far_soft_shadow, [[text with (far soft) shadow underneath]]
+
+   /* OR these to modify shadow direction (3 bits needed) */
+   shadow_direction_bottom_right = (0x0 << 4),      [[shadow growing to bottom right]]
+   shadow_direction_bottom = (0x1 << 4),            [[shadow growing to the bottom]]
+   shadow_direction_bottom_left = (0x2 << 4),       [[shadow growing to bottom left]]
+   shadow_direction_left = (0x3 << 4),              [[shadow growing to the left]]
+   shadow_direction_top_left = (0x4 << 4),          [[shadow growing to top left]]
+   shadow_direction_top = (0x5 << 4),               [[shadow growing to the top]]
+   shadow_direction_top_right = (0x6 << 4),         [[shadow growing to top right]]
+   shadow_direction_right = (0x7 << 4)             [[shadow growing to the right]]
+}
+
+type Evas.Font.Size: int; [[A type for font size]]
+
+enum Evas.Font.Hinting_Flags {
+   [[Flags for Font Hinting]]
+   legacy: Evas_Font_Hinting;
+
+   none, [[No font hinting]]
+   auto, [[Automatic font hinting]]
+   bytecode [[Bytecode font hinting]]
+}
+
+enum Evas.Touch_Point_State {
+   [[State of Evas_Coord_Touch_Point]]
+   legacy: Evas_Touch_Point;
+
+   down, [[Touch point is pressed down]]
+   up, [[Touch point is released]]
+   move, [[Touch point is moved]]
+   still, [[Touch point is not moved after pressed]]
+   cancel [[Touch point is cancelled]]
+}
+
+enum Evas.Callback_Type
+{
+   [[Identifier of callbacks to be set for Evas canvases or Evas objects.]]
+   legacy: Evas_Callback;
+
+   /** FIXME-doc
+    * The following figure illustrates some Evas callbacks:
+
+    * @image html evas-callbacks.png
+    * @image rtf evas-callbacks.png
+    * @image latex evas-callbacks.eps
+    *
+    * @see evas_object_event_callback_add()
+    * @see evas_event_callback_add()
+    */
+
+   mouse_in, [[Mouse In Event]]
+   mouse_out, [[Mouse Out Event]]
+   mouse_down, [[Mouse Button Down Event]]
+   mouse_up, [[Mouse Button Up Event]]
+   mouse_move, [[Mouse Move Event]]
+   mouse_wheel, [[Mouse Wheel Event]]
+   multi_down, [[Multi-touch Down Event]]
+   multi_up, [[Multi-touch Up Event]]
+   multi_move, [[Multi-touch Move Event]]
+   free, [[Object Being Freed (Called after Del)]]
+   key_down, [[Key Press Event]]
+   key_up, [[Key Release Event]]
+   focus_in, [[Focus In Event]]
+   focus_out, [[Focus Out Event]]
+   show, [[Show Event]]
+   hide, [[Hide Event]]
+   move, [[Move Event]]
+   resize, [[Resize Event]]
+   restack, [[Restack Event]]
+   del, [[Object Being Deleted (called before Free)]]
+   hold, [[Events go on/off hold]]
+   changed_size_hints, [[Size hints changed event]]
+   image_preloaded, [[Image has been preloaded]]
+
+   canvas_focus_in, [[Canvas got focus as a whole]]
+   canvas_focus_out, [[Canvas lost focus as a whole]]
+   render_flush_pre, [[Called after render update regions have been calculated, but only if update regions exist]]
+   render_flush_post, [[Called after render update regions have been sent to the display server, but only if update regions existed for the most recent frame]]
+   canvas_object_focus_in, [[Canvas object got focus]]
+   canvas_object_focus_ouT, [[Canvas object lost focus]]
+
+   image_unloaded, [[Image data has been unloaded (by some mechanism in Evas that throw out original image data)]]
+
+   render_pre, [[Called just before rendering starts on the canvas target
+
+                 @since 1.2]]
+   render_post, [[Called just after rendering stops on the canvas target
+
+                  @since 1.2]]
+
+   image_resize, [[Image size is changed
+
+                   @since 1.8]]
+   device_changed, [[Devices added, removed or changed on canvas
+
+                     @since 1.8]]
+
+   axis_update, [[Input device changed value on some axis
+
+                  @since 1.13]]
+
+   canvas_viewport_resize, [[Canvas viewport resized
+
+                             @since 1.15]]
+   last [[kept as last element/sentinel -- not really an event]]
+}
+
+enum Evas.Image.Orient
+{
+   [[Possible orientation options for evas_object_image_orient_set().
+     @since 1.14]]
+   legacy: evas_image;
+   orient_none = 0, [[no orientation change]]
+   orient_0 = 0, [[no orientation change]]
+   orient_90 = 1, [[orient 90 degrees clockwise]]
+   orient_180 = 2, [[orient 180 degrees clockwise]]
+   orient_270 = 3, [[rotate 90 degrees counter-clockwise (i.e. 270 degrees clockwise)]]
+   flip_horizontal = 4, [[flip image horizontally]]
+   flip_vertical = 5, [[flip image vertically]]
+   flip_transpose = 6, [[flip image along the y = (width - x) line (bottom-left to top-right)]]
+   flip_transverse = 7 [[flip image along the y = x line (top-left to bottom-right)]]
+}
+
+enum Evas.Border_Fill_Mode
+{
+   [[How an image's center region (the complement to the border region) should be rendered by Evas]]
+   legacy: evas_border_fill;
+   none = 0, [[Image's center region is $b not to be rendered]]
+   default = 1, [[Image's center region is to be $b blended with objects underneath it, if it has transparency. This is the default behavior for image objects]]
+   solid = 2 [[Image's center region is to be made solid, even if it has transparency on it]]
+}
+
+struct Evas.Modifier; [[An opaque type containing information on which modifier keys are registered in an Evas canvas]]
+struct Evas.Lock; [[An opaque type containing information on which lock keys are registered in an Evas canvas]]
+struct Evas.Engine_Info; [[A generic Evas Engine information structure]]
+struct Evas.Axis; [[Details for a single device axis state
+
+                    @since 1.13]]
+
+type Evas.Real: double; [[A type for floating value]]
+
+enum Evas.Canvas3D.Object_Type
+{
+   [[Type of 3D Object
+
+     @since 1.10]]
+   invalid = 0,
+   scene,
+   node,
+   camera,
+   light,
+   model,
+   mesh,
+   texture,
+   material,
+   primitive [[@since 1.15]]
+}
+
+enum Evas.Canvas3D.State
+{
+   [[State of the Evas 3D
+
+     @since 1.10]]
+   max = 16,
+
+   any = 0,
+
+   scene_root_node = 1,
+   scene_camera_node,
+   scene_background_color,
+   scene_size,
+   scene_shadows_enabled,
+   scene_updated, [[@since 1.14]]
+   scene_shadows_depth,
+   scene_render_to_texture,
+
+   texture_data = 1,
+   texture_wrap,
+   texture_filter,
+
+   material_id = 1,
+   material_color,
+   material_texture,
+
+   mesh_vertex_count = 1,
+   mesh_frame,
+   mesh_material,
+   mesh_transform,
+   mesh_vertex_data,
+   mesh_index_data,
+   mesh_vertex_assembly,
+   mesh_shader_mode,
+   mesh_fog,
+   mesh_blending,
+   mesh_alpha_test,
+   mesh_color_pick,
+   mesh_shadows_edges_filtering,
+   mesh_shadows_constant_bias,
+
+   camera_projection = 1,
+
+   light_ambient = 1,
+   light_diffuse,
+   light_specular,
+   light_spot_dir,
+   light_spot_exp,
+   light_spot_cutoff,
+   light_attenuation,
+   light_projection,
+
+   node_transform_position = 1,
+   node_transform_orientation,
+   node_transform_scale,
+   node_mesh_geometry,
+   node_mesh_material,
+   node_mesh_frame,
+   node_mesh_shader_mode,
+   node_mesh_material_id,
+   node_light,
+   node_camera,
+   node_parent_position,
+   node_parent_orientation,
+   node_parent_scale,
+   node_member,
+   node_parent_billboard, [[@since 1.14]]
+   node_lod [[@since 1.18]]
+}
+
+enum Evas.Canvas3D.Space
+{
+   [[Transform space
+
+     @since 1.10]]
+   local = 0, [[Local coordinate space]]
+   parent,    [[Parent coordinate space]]
+   world      [[World coordinate space]]
+}
+
+enum Evas.Canvas3D.Node_Type
+{
+   [[Types of a node
+
+     @since 1.10]]
+   node = 0, [[Node with no items]]
+   camera,   [[Node which can contain camera object]]
+   light,    [[Node which can contain light object]]
+   mesh      [[Node which can contain mesh objects]]
+}
+
+enum Evas.Canvas3D.Node_Orientation_Type
+{
+   [[Types of node orientation
+
+     @since 1.13]]
+   none = 0,   [[Node with no orientation properties]]
+   look_at,    [[Node orientation is given as a point to look at and a vector that indicates the angle at which the subject is looking at the point]]
+   look_to,    [[Node orientation is given as id of another part to look at and a vector that indicates the angle at which the subject is looking at the part]]
+   angle_axis, [[Node orientation is given as an angle and an axis to rotate around]]
+   quaternion  [[Node orientation is given as a quaternion]]
+}
+
+enum Evas.Canvas3D.Index_Format
+{
+   [[Index formats
+
+     @since 1.10]]
+   none = 0,      [[Indexing is not used]]
+   unsigned_byte, [[Index is of type unsigned byte]]
+   unsigned_short [[Index is of type unsigned short]]
+}
+
+enum Evas.Canvas3D.Frustum_Mode
+{
+  [[Frustum modes
+
+   @since 1.12]]
+   bsphere, [[Bounding sphere]]
+   aabb,    [[Axis-aligned bounding box]]
+   central_point
+}
+
+enum Evas.Canvas3D.Vertex_Assembly
+{
+   [[Vertex assembly modes. Vertex assembly represents how the vertices are organized into geometric primitives.
+
+     @since 1.10]]
+   points = 0,     [[A vertex is rendered as a point]]
+   lines,          [[Two vertices are organized as a line]]
+   line_strip,     [[Vertices are organized as a connected line path]]
+   line_loop,      [[Vertices are organized as a closed line path]]
+   triangles,      [[Three vertices are organized as a triangle]]
+   triangle_strip, [[Vertices are organized as connected triangles]]
+   triangle_fan    [[Vertices are organized as a triangle fan]]
+}
+
+enum Evas.Canvas3D.Comparison
+{
+  [[Comparsion functions for testing(alpha, depth, stencil) in fragment shader
+
+    @since 1.14]]
+   never,    [[Never passes]]
+   less,     [[Passes if the incoming value is less than the reference value]]
+   equal,    [[Passes if the incoming value is equal to the reference value]]
+   lequal,   [[Passes if the incoming value is less than or equal to the reference value]]
+   greater,  [[Passes if the incoming value is greater than the reference value]]
+   notequal, [[Passes if the incoming value is not equal to the reference value]]
+   gequal,   [[Passes if the incoming value is greater than or equal to the reference value]]
+   always    [[Always passes (initial value)]]
+}
+
+enum Evas.Canvas3D.Wrap_Mode
+{
+  [[Wrap modes for texture units
+
+    @since 1.14]]
+   clamp = 0, [[Values will be clamped to be in range (min, max)]]
+   repeat,    [[Values will be repeated]]
+   reflect    [[Values will be repeated in a reflected manner]]
+}
+
+enum Evas.Canvas3D.Texture_Filter
+{
+  [[Filters for texture units
+
+    @since 1.14]]
+   nearest = 0,            [[Samples nearest texel]]
+   linear,                 [[Lineary interpolate nearby texels]]
+   nearest_mipmap_nearest, [[Nearest sampling mipmap]]
+   linear_mipmap_nearest,  [[Nearest sampling mipmap and interpolate]]
+   nearest_mipmap_linear,  [[Linear sampling in nearest mipmap]]
+   linear_mipmap_linear    [[Linear sampling in mipmap and interpolate]]
+}
+
+enum Evas.Canvas3D.Mesh_Primitive
+{
+   [[Mesh primitive
+
+    @since 1.12]]
+   none = 0, [[An empty space]]
+   square,   [[One sided square]]
+   cube,
+   cylinder, [[Cylinder (can use precision and texture scale)]]
+   cone,     [[Cone (can use precision and texture scale)]]
+   sphere,   [[Sphere (can use precision and texture scale)]]
+   torus,    [[Torus (can use ratio, precision and texture scale)]]
+   surface,  [[Custom surface (can use pointer to users function, precision and texture scale)]]
+   terrain,  [[Terrain as surface with pointer to perlin's noise function]]
+   count
+}
+
+enum Evas.Canvas3D.Primitive_Mode
+{
+   [[Mode of mesh primitive
+
+    @since 1.15]]
+   default = 0,   [[Default mode of primitive]]
+   without_base,  [[Primitive without base (supported for cylinder and cone)]]
+   alternative_uv [[Ptimitive with alternative uv (supported for sphere)]]
+}
+
+enum Evas.Canvas3D.Shader_Mode
+{
+   [[Shader shade modes
+
+    @since 1.10]]
+   vertex_color = 0,    [[Shaded using vertex color attribute]]
+   diffuse,             [[Shaded using material diffuse term]]
+   flat,                [[Per-vertex flat lighting]]
+   phong,               [[Per-pixel phong shading]]
+   normal_map,          [[Per-pixel normal map shading]]
+   shadow_map_render,   [[Fragment color is defined by its z-coord]]
+   color_pick,          [[Rendering to additional frame bufer]]
+   parallax_occlusion,  [[Per-pixel parallax occlusion map shading]]
+   post_processing_FXAA [[Render full screen quard]]
+}
+
+enum Evas.Canvas3D.Vertex_Attrib
+{
+   [[Vertex attribute IDs
+
+    @since 1.10]]
+   position = 0,  [[vertex position]]
+   normal,        [[vertex normal]]
+   tangent,       [[vertex tangent (for normal mapping)]]
+   color,         [[vertex color]]
+   texcoord       [[vertex texture coordinate]]
+}
+
+enum Evas.Canvas3D.Blend_Func
+{
+   [[Blending function
+
+    @since 1.14]]
+
+   zero = 0,                 [[The scale factors for color components is (0, 0, 0, 0)]]
+   one,                      [[The scale factors for color components is (1, 1, 1, 1)]]
+   src_color,                [[The scale factors for color components is (rs/kr, gs/kg, bs/kb, as/ka)]]
+   one_minus_src_color,      [[The scale factors for color components is (1, 1, 1, 1) - (rs/kr, gs/kg, bs/kb, as/ka)]]
+   dst_color,                [[The scale factors for color components is (rd/kr, gd/kg, bd/kb, ad/ka)]]
+   one_minus_dst_color,      [[The scale factors for color components is (1, 1, 1, 1) - (rd/kr, gd/kg, bd/kb, ad/ka)]]
+   src_alpha,                [[The scale factors for color components is (as/ka, as/ka, as/ka, as/ka)]]
+   one_minus_src_alpha,      [[The scale factors for color components is (1, 1, 1, 1) - (as/ka, as/ka, as/ka, as/ka)]]
+   dst_alpha,                [[The scale factors for color components is (ad/ka, ad/ka, ad/ka, ad/ka)]]
+   one_minus_dst_alpha,      [[The scale factors for color components is (1, 1, 1, 1) - (ad/ka, ad/ka, ad/ka, ad/ka)]]
+   constant_color,           [[The scale factors for color components is (rc, gc, bc, ac)]]
+   one_minus_constant_color, [[The scale factors for color components is (1, 1, 1, 1) - (rc, gc, bc, ac)]]
+   constant_alpha,           [[The scale factors for color components is (ac, ac, ac, ac)]]
+   one_minus_constant_alpha, [[The scale factors for color components is (1, 1, 1, 1) - (ac, ac, ac, ac)]]
+   src_alpha_saturate        [[The scale factors for color components is (i, i, i, 1) where i = min(as, ka, ad)/ka]]
+}
+
+enum Evas.Canvas3D.Material_Attrib
+{
+  [[Material attributes
+
+    @since 1.10]]
+   ambient = 0, [[ambient term]]
+   diffuse,     [[diffuse term]]
+   specular,    [[specular term]]
+   emission,    [[emission term]]
+   normal       [[Normal map term]]
+}
+
+type Evas.Canvas3D.Surface_Func: __undefined_type;
+
+struct Efl.Canvas.Text.Annotation;

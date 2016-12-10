@@ -1,0 +1,34 @@
+class Elm.Fileselector_Entry (Elm.Layout, Elm.Interface.Fileselector,
+                              Efl.Ui.Clickable, Efl.Ui.Selectable)
+{
+   [[Not an EO API.]]
+   event_prefix: elm_fileselector_entry;
+   implements {
+      class.constructor;
+      Eo.Base.constructor;
+      Efl.Canvas.Group.group_del;
+      Efl.Canvas.Group.group_add;
+      Elm.Widget.theme_apply;
+      Elm.Widget.focus_next_manager_is;
+      Elm.Widget.focus_next;
+      Elm.Widget.disable;
+      Elm.Widget.focus_direction_manager_is;
+      Elm.Layout.text.set;
+      Elm.Layout.text.get;
+      Elm.Layout.sizing_eval;
+      Elm.Interface.Fileselector.selected_model_get;
+      Elm.Interface.Fileselector.selected_model_set;
+      Elm.Interface.Fileselector.folder_only;
+      Elm.Interface.Fileselector.is_save;
+      Elm.Interface.Fileselector.model;
+      Elm.Interface.Fileselector.expandable;
+      Efl.Part.part;
+   }
+   events {
+      changed;
+      activated;
+      file,chosen;
+      press;
+   }
+
+}

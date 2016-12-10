@@ -1,0 +1,7 @@
+class A (Eo.Base)
+{
+   data: A_Data;
+   implements {
+      Eo.Base.constructor;
+   }
+}

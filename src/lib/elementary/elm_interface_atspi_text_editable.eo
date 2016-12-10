@@ -1,0 +1,48 @@
+interface Elm.Interface.Atspi.Text.Editable ()
+{
+   eo_prefix: elm_interface_atspi_text_editable;
+   methods {
+      @property content @protected {
+         set {
+            return: bool;
+         }
+         values {
+            string: string;
+         }
+      }
+      insert @protected {
+         params {
+            @in string: string;
+            @in position: int;
+         }
+         return: bool;
+      }
+      copy @protected {
+         params {
+            @in start: int;
+            @in end: int;
+         }
+         return: bool;
+      }
+      cut @protected {
+         params {
+            @in start: int;
+            @in end: int;
+         }
+         return: bool;
+      }
+      delete @protected {
+         params {
+            @in start: int;
+            @in end: int;
+         }
+         return: bool;
+      }
+      paste @protected {
+         params {
+            @in position: int;
+         }
+         return: bool;
+      }
+   }
+}

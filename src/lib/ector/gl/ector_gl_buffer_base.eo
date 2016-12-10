@@ -1,0 +1,60 @@
+mixin Ector.GL.Buffer.Base (Ector.Buffer)
+{
+   [[Ector GL buffer base class]]
+   methods {
+      @property texture {
+         [[GL texture ID]]
+         get {}
+         values {
+            texid: int; [[GL texture ID]]
+         }
+      }
+      @property fbo {
+         [[Framebuffer object ID]]
+         get {}
+         values {
+            fboid: int; [[GL framebuffer ID, 0 if there is no FBO]]
+         }
+      }
+      @property whole {
+         [[If $true, the image is covering the entire GL texture, ie. it's not
+           part of an atlas.
+         ]]
+         get {}
+         values {
+            is_whole: bool;
+         }
+      }
+      @property vertices {
+         [[Returns the texture vertices to draw this image with no rotation
+
+           The 4 points are then defined as (x,y), (x+w,y), (x,y+h), (x+w,y+h).
+         ]]
+         get {}
+         values {
+            x: double; [[X position of this image inside the texture atlas, from 0 to 1]]
+            y: double; [[Y position of this image inside the texture atlas, from 0 to 1]]
+            w: double; [[Width of this image inside the texture atlas, from 0 to 1]]
+            h: double; [[Height of this image inside the texture atlas, from 0 to 1]]
+         }
+      }
+      attach @protected {
+         [[Attach to an existing texture (or FBO). Used from child classes.]]
+         params {
+            texid: int; [[GL texture ID]]
+            fboid: int; [[Framebuffer object ID]]
+            cspace: Efl.Gfx.Colorspace;
+            imw: int;
+            imh: int;
+            tx: int;
+            ty: int;
+            tw: int;
+            th: int;
+            l: int;
+            r: int;
+            t: int;
+            b: int;
+         }
+      }
+   }
+}

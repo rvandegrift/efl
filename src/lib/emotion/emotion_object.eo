@@ -1,0 +1,119 @@
+class Emotion.Object (Efl.Canvas.Group, Efl.File, Efl.Player, Efl.Image, Efl.Image.Load) {
+   legacy_prefix: emotion_object;
+   eo_prefix: emotion_obj;
+   event_prefix: emotion_object;
+   methods {
+        @property option {
+             set {
+                  [[Set the specified option for the current module.
+
+                    This function allows one to mute the video or audio of the
+                    emotion object.
+
+                    Please don't use this function, consider using
+                    \@ref emotion_object_audio_mute_set and
+                    \@ref emotion_object_video_mute_set instead.
+                  ]]
+                  legacy: emotion_object_module_option_set;
+             }
+             values {
+                  opt: string; [[The option that is being set. Currently
+                                        supported options: "video" and "audio".]]
+                  val: string; [[The value of the option. Currently only
+                                        supports "off" (?!?!?!)]]
+             }
+        }
+        @property engine {
+             set {
+                  [[Initializes an emotion object with the specified module.
+
+                    This function is required after creating the emotion object,
+                    in order to specify which module will be used with this
+                    object. Different objects can use different modules to
+                    play a media file. The current supported modules are
+                    gstreamer and xine.
+
+                    To use any of them, you need to make sure that support for
+                    them was compiled correctly.
+
+                    It's possible to disable the build of a module with
+                    --disable-module_name.
+
+                    See also \@ref emotion_object_add and
+                    \@ref emotion_object_file_set.
+                  ]]
+                  legacy: emotion_object_init;
+                  return: bool; [[true if the specified module was successfully
+                                  initialized for this object, false otherwise.]]
+             }
+             values {
+                  module_filename: string; [[The name of the module to be
+                                                    used (gstreamer or xine).]]
+             }
+        }
+   }
+   implements {
+        Eo.Base.constructor;
+        Efl.Canvas.Group.group_add;
+        Efl.Canvas.Group.group_del;
+        Efl.Canvas.Group.group_move;
+        Efl.Canvas.Group.group_resize;
+        Efl.Canvas.Group.group_show;
+        Efl.Canvas.Group.group_hide;
+        Efl.Canvas.Group.group_color.set;
+        Efl.Canvas.Group.group_clip.set;
+        Efl.Canvas.Group.group_clip_unset;
+        Efl.File.file.set;
+        Efl.File.file.get;
+        Efl.Player.play.set;
+        Efl.Player.play.get;
+        Efl.Player.position.set;
+        Efl.Player.position.get;
+        Efl.Player.progress.get;
+        Efl.Player.audio_volume.set;
+        Efl.Player.audio_volume.get;
+        Efl.Player.audio_mute.set;
+        Efl.Player.audio_mute.get;
+        Efl.Player.length.get;
+        Efl.Player.seekable.get;
+        Efl.Image.Load.load_size.get;
+        Efl.Image.ratio.get;
+        Efl.Image.smooth_scale.set;
+        Efl.Image.smooth_scale.get;
+   }
+   events {
+        frame_decode;
+        position_update;
+        length_change;
+        frame_resize;
+        decode_stop;
+        playback_started;
+        playback_finished;
+        audio_level_change;
+        channels_change;
+        title_change;
+        progress_change;
+        ref_change;
+        button_num_change;
+        button_change;
+        open_done;
+        position_save,succeed;
+        position_save,failed;
+        position_load,succeed;
+        position_load,failed;
+   }
+}
+
+/* FIXME: Need to be added:
+EAPI double       emotion_object_buffer_size_get       (const Evas_Object *obj);
+EAPI const char  *emotion_object_progress_info_get     (const Evas_Object *obj);
+
+Everything starting from (needs to be added):
+EAPI int          emotion_object_audio_channel_count   (const Evas_Object *obj);
+
+Should this be part of player or emotion object?
+EAPI void         emotion_object_event_simple_send     (Evas_Object *obj, Emotion_Event ev);
+
+Deliberations:
+Should this really implement the image interface?
+*/

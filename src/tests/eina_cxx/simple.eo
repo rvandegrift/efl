@@ -1,0 +1,7 @@
+class Simple (Eo.Base)
+{
+   data: null;
+   implements {
+      Eo.Base.constructor;
+   }
+}

@@ -1,0 +1,44 @@
+class Efl.Ui.Nstate(Elm.Button)
+{
+   methods {
+      activate @protected {
+      }
+      @property count {
+         set {
+            [[Set the maximum number of states.
+            ]]
+         }
+         get {
+             [[Get the max number of states.
+             ]]
+         }
+         values {
+            nstate: int; [[The number of states.]]
+         }
+      }
+      @property value {
+         set {
+            [[Set the particular state given in (0...nstate}.
+            ]]
+         }
+         get {
+            [[Get the state value.
+            ]]
+         }
+         values {
+            state: int; [[The state.]]
+         }
+      }
+   }
+   implements {
+      class.constructor;
+      Eo.Base.constructor;
+      Efl.Canvas.Group.group_add;
+      Efl.Canvas.Group.group_del;
+      Elm.Widget.theme_apply;
+      Elm.Widget.event;
+   }
+   events {
+      state,changed;
+   }
+}

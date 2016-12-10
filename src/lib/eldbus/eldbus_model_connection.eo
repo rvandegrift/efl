@@ -1,0 +1,48 @@
+class Eldbus.Model.Connection (Eo.Base, Efl.Model) {
+    [[Eldbus model connection class]]
+
+    methods {
+        constructor {
+            [[Custom Eldbus_Model_Connection constructor.
+
+              @since 1.16]]
+            params {
+                @in type: int; [[The connection type]]
+                @in address: string; [[Remote address of DBus]]
+                @in private_: bool; [[Non shared dbus connection]]
+            }
+        }
+    @property type {
+            [[Connection type]]
+            values {
+                type: int; [[Connection type]]
+            }
+        }
+    @property address {
+            [[Remote DBus address]]
+            values {
+                address: string; [[Address]]
+            }
+        }
+    @property private {
+            [[Indicate if the DBus connection is shared or private]]
+            values {
+                private_: bool; [[Private DBus connection]]
+            }
+        }
+    }
+    implements {
+        Eo.Base.constructor;
+        Eo.Base.destructor;
+        Efl.Model.properties.get;
+        Efl.Model.property_set;
+        Efl.Model.property_get;
+        Efl.Model.child_add;
+        Efl.Model.child_del;
+        Efl.Model.children_slice_get;
+        Efl.Model.children_count_get;
+    }
+    constructors {
+        .constructor;
+    }
+}

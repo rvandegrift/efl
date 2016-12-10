@@ -1,0 +1,30 @@
+struct Efl.Ui.Box.Flow_Params {
+   [[Extra parameters for Box_Flow layout. Can be omitted.]]
+   homogenous: bool;
+   max_size: bool;
+}
+
+class Efl.Ui.Box.Flow (Efl.Ui.Box, Efl.Pack.Layout)
+{
+   [[A custom layout engine for @Efl.Ui.Box.]]
+   methods {
+      @property box_flow_homogenous {
+         set {}
+         get {}
+         values {
+            val: bool;
+         }
+      }
+      @property box_flow_max_size {
+         set {}
+         get {}
+         values {
+            val: bool;
+         }
+      }
+   }
+   implements {
+      Eo.Base.constructor;
+      Efl.Pack.Layout.layout_do;
+   }
+}

@@ -1,0 +1,126 @@
+#ifdef HAVE_CONFIG_H
+# include "config.h"
+#endif
+
+#include <Eina.h>
+#include <Ector.h>
+#include <software/Ector_Software.h>
+
+#include "ector_private.h"
+#include "ector_software_private.h"
+
+static Eina_Bool
+_ector_renderer_software_gradient_radial_ector_renderer_prepare(Eo *obj, Ector_Renderer_Software_Gradient_Data *pd)
+{
+   if (!pd->surface)
+     {
+        Ector_Renderer_Data *base;
+
+        base = eo_data_scope_get(obj, ECTOR_RENDERER_CLASS);
+        pd->surface = eo_data_xref(base->surface, ECTOR_SOFTWARE_SURFACE_CLASS, obj);
+     }
+
+   update_color_table(pd);
+
+   pd->radial.cx = pd->grd->radial.x;
+   pd->radial.cy = pd->grd->radial.y;
+   pd->radial.cradius = pd->grd->radius;
+
+   if (!pd->grd->focal.x)
+     pd->radial.fx = pd->grd->radial.x;
+   else
+     pd->radial.fx = pd->grd->focal.x;
+
+   if (!pd->grd->focal.y)
+     pd->radial.fy = pd->grd->radial.y;
+   else
+     pd->radial.fy = pd->grd->focal.y;
+
+   pd->radial.fradius = 0;
+
+   pd->radial.dx = pd->radial.cx - pd->radial.fx;
+   pd->radial.dy = pd->radial.cy - pd->radial.fy;
+
+   pd->radial.dr = pd->radial.cradius - pd->radial.fradius;
+   pd->radial.sqrfr = pd->radial.fradius * pd->radial.fradius;
+
+   pd->radial.a = pd->radial.dr * pd->radial.dr -
+     pd->radial.dx * pd->radial.dx -
+     pd->radial.dy * pd->radial.dy;
+   pd->radial.inv2a = 1 / (2 * pd->radial.a);
+
+   pd->radial.extended = (pd->radial.fradius >= 0.00001f) || pd->radial.a >= 0.00001f;
+
+   return EINA_FALSE;
+}
+
+// Clearly duplicated and should be in a common place...
+static Eina_Bool
+_ector_renderer_software_gradient_radial_ector_renderer_draw(Eo *obj EINA_UNUSED,
+                                                                          Ector_Renderer_Software_Gradient_Data *pd EINA_UNUSED,
+                                                                          Efl_Gfx_Render_Op op EINA_UNUSED, Eina_Array *clips EINA_UNUSED,
+                                                                          unsigned int mul_col EINA_UNUSED)
+{
+   return EINA_TRUE;
+}
+
+// Clearly duplicated and should be in a common place...
+static Eina_Bool
+_ector_renderer_software_gradient_radial_ector_renderer_software_fill(Eo *obj EINA_UNUSED, Ector_Renderer_Software_Gradient_Data *pd)
+{
+   ector_software_rasterizer_radial_gradient_set(pd->surface->rasterizer, pd);
+   return EINA_TRUE;
+}
+
+Eo *
+_ector_renderer_software_gradient_radial_eo_base_constructor(Eo *obj,
+                                                             Ector_Renderer_Software_Gradient_Data *pd)
+{
+   obj = eo_constructor(eo_super(obj, ECTOR_RENDERER_SOFTWARE_GRADIENT_RADIAL_CLASS));
+   pd->gd  = eo_data_xref(obj, ECTOR_RENDERER_GRADIENT_MIXIN, obj);
+   pd->gld = eo_data_xref(obj, ECTOR_RENDERER_GRADIENT_RADIAL_MIXIN, obj);
+
+   return obj;
+}
+
+void
+_ector_renderer_software_gradient_radial_eo_base_destructor(Eo *obj,
+                                                            Ector_Renderer_Software_Gradient_Data *pd)
+{
+   Ector_Renderer_Data *base;
+
+   destroy_color_table(pd);
+
+   base = eo_data_scope_get(obj, ECTOR_RENDERER_CLASS);
+   eo_data_xunref(base->surface, pd->surface, obj);
+
+   eo_data_xunref(obj, pd->gd, obj);
+   eo_data_xunref(obj, pd->gld, obj);
+
+   eo_destructor(eo_super(obj, ECTOR_RENDERER_SOFTWARE_GRADIENT_RADIAL_CLASS));
+}
+
+void
+_ector_renderer_software_gradient_radial_efl_gfx_gradient_stop_set(Eo *obj, Ector_Renderer_Software_Gradient_Data *pd, const Efl_Gfx_Gradient_Stop *colors, unsigned int length)
+{
+   efl_gfx_gradient_stop_set(eo_super(obj, ECTOR_RENDERER_SOFTWARE_GRADIENT_RADIAL_CLASS), colors, length);
+
+   destroy_color_table(pd);
+}
+
+static unsigned int
+_ector_renderer_software_gradient_radial_ector_renderer_crc_get(Eo *obj, Ector_Renderer_Software_Gradient_Data *pd)
+{
+   unsigned int crc;
+
+   crc = ector_renderer_crc_get(eo_super(obj, ECTOR_RENDERER_SOFTWARE_GRADIENT_RADIAL_CLASS));
+
+   crc = eina_crc((void*) pd->gd->s, sizeof (Efl_Gfx_Gradient_Spread), crc, EINA_FALSE);
+   if (pd->gd->colors_count)
+     crc = eina_crc((void*) pd->gd->colors, sizeof (Efl_Gfx_Gradient_Stop) * pd->gd->colors_count, crc, EINA_FALSE);
+   crc = eina_crc((void*) pd->gld, sizeof (Ector_Renderer_Gradient_Radial_Data), crc, EINA_FALSE);
+
+   return crc;
+}
+
+#include "ector_renderer_software_gradient_radial.eo.c"

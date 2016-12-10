@@ -1,0 +1,66 @@
+mixin Elm.Interface.Atspi_Action ()
+{
+   [[ATSPI action mixin]]
+   eo_prefix: elm_interface_atspi_action;
+   data: null;
+   methods {
+      @property name @protected @virtual_pure {
+         [[Gets action name for given id]]
+         get {
+         }
+         values {
+            name: string; [[Action name]]
+         }
+         keys {
+            id: int;
+         }
+      }
+      @property localized_name @protected {
+         [[Gets localized action name for given id]]
+         get {
+         }
+         values {
+            name: string; [[Localized name]]
+         }
+         keys {
+            id: int;
+         }
+      }
+      @property description @protected @virtual_pure {
+         [[Action description for given id]]
+         get {
+         }
+         set {
+            return: bool;
+         }
+         values {
+            description: string;
+         }
+         keys {
+            id: int;
+         }
+      }
+      @property actions @protected {
+         [[Get list of available widget actions]]
+         get @virtual_pure {
+         }
+         values {
+            actions: list<Elm_Atspi_Action>; [[contains statically allocated strings]]
+         }
+      }
+      action_do @protected @virtual_pure {
+         [[Performs action on given widget.]]
+         params {
+            @in id: int;
+         }
+         return: bool;
+      }
+      keybinding_get @protected @virtual_pure {
+         [[Gets configured keybinding for specific action and widget.]]
+         params {
+            @in id: int;
+         }
+         return: own(char *) @warn_unused; [[Should be freed by the user.]]
+      }
+   }
+}

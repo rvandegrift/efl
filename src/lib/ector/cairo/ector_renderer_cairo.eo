@@ -1,0 +1,20 @@
+abstract Ector.Renderer.Cairo (Ector.Renderer)
+{
+   methods {
+      fill @virtual_pure {
+         return: bool;
+         params {
+            @in mul_col: uint;
+         }
+      }
+   }
+   implements {
+      Ector.Renderer.prepare;
+      Ector.Renderer.draw;
+      Ector.Renderer.color.set;
+      Ector.Renderer.color.get;
+      Eo.Base.constructor;
+      Eo.Base.finalize;
+      Eo.Base.destructor;
+   }
+}

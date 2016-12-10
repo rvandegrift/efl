@@ -1,0 +1,134 @@
+import eina_types;
+
+enum Ector.Quality
+{
+   [[Quality values]]
+   best, [[Best quality]]
+   good, [[Good quality]]
+   fast, [[Lower quality]]
+   last, [[Sentinel]]
+}
+
+abstract Ector.Renderer (Eo.Base)
+{
+   [[Ector renderer abstract interface]]
+
+   eo_prefix: ector_renderer;
+   methods {
+      @property surface {
+         [[Surface associated to this renderer]]
+         set {
+	    [[Do not use.]]
+	 }
+	 get {
+	    [[Get the surface associated to this renderer. Can not be set.]]
+	 }
+	 values {
+	    s: Ector.Surface; [[Associated surface]]
+	 }
+      }
+      @property transformation {
+         set {
+	 }
+	 get {
+	 }
+	 values {
+	    m: const(Eina.Matrix3) *;
+	 }
+      }
+      @property origin {
+         set {
+	 }
+	 get {
+	 }
+	 values {
+	    x: double;
+	    y: double;
+	 }
+      }
+      @property visibility {
+         [[The given Ector renderer visible or invisible.]]
+         set {
+	 }
+	 get {
+	 }
+	 values {
+	    v: bool; [[true if to make the object visible, false otherwise]]
+	 }
+      }
+      @property color {
+         [[Retrieves the general/main color of the given Ector renderer.
+
+           Retrieves the main color's RGB component (and alpha channel)
+           values, which range from 0 to 255. For the alpha channel,
+           which defines the object's transparency level, 0 means totally
+           transparent, while 255 means opaque. These color values are
+           premultiplied by the alpha value.
+
+           Use null pointers on the components you're not interested in,
+           they'll be ignored by the function.
+         ]]
+         set {
+         }
+         get {
+	 }
+	 values {
+            r: int; [[The red component of the given color.]]
+            g: int; [[The green component of the given color.]]
+            b: int; [[The blue component of the given color.]]
+            a: int; [[The alpha component of the given color.]]
+	 }
+      }
+      @property mask {
+         set {
+	 }
+	 get {
+	 }
+	 values {
+	    r: Ector.Renderer;
+	 }
+      }
+      @property quality {
+         [[Quality of the renderer]]
+         set {
+	 }
+	 get {
+	 }
+	 values {
+	    q: Ector.Quality; [[Quality of the renderer]]
+	 }
+      }
+      @property crc {
+         [[Cyclic redundancy check]]
+         get {
+            return: uint; [[CRC value]]
+	 }
+      }
+      bounds_get @virtual_pure {
+         [[Retrieve the bounds of the renderer]]
+	 params {
+	    @out r: Eina.Rectangle; [[Bounds as @Eina.Rectangle]]
+	 }
+      }
+      draw @virtual_pure {
+         return: bool @warn_unused;
+	 params {
+	    @in op: Efl.Gfx.Render_Op;
+	    @in clips: array<Eina.Rectangle *>; [[array of @Eina.Rectangle clip]]
+	    @in mul_col: uint;
+	 }
+      }
+      prepare {
+         return: bool @warn_unused;
+	 params {
+	 }
+      }
+      done @virtual_pure {
+         return: bool @warn_unused;
+      }
+   }
+   implements {
+      Eo.Base.destructor;
+      Eo.Base.finalize;
+   }
+}

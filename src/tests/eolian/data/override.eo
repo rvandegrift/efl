@@ -1,0 +1,53 @@
+class Override (Base) {
+   methods {
+      @property a {
+         set @virtual_pure {
+         }
+         get {
+         }
+      }
+      @property b {
+         set {
+         }
+         get {
+         }
+         keys {
+              idx: int;
+         }
+         values {
+              a: float;
+              b: char;
+              c: int;
+         }
+      }
+      @property c {
+         set {
+         }
+         get {
+         }
+         keys {
+              idx: int;
+         }
+         values {
+              c: int(50);
+         }
+      }
+      foo @virtual_pure {
+      }
+      bar {
+           params {
+                @in idx: int;
+                @out a: int (250);
+                @out str: char * (null);
+           }
+      }
+   }
+   implements {
+      Base.constructor;
+      @auto .b.set;
+      @empty .bar;
+      @auto .c.get;
+      @auto Base.z.get;
+      @empty Base.z.set;
+   }
+}

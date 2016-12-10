@@ -1,0 +1,14 @@
+interface Efl.Ui.Clickable ()
+{
+   event_prefix: efl_ui;
+   events {
+      clicked;
+      clicked,double;
+      clicked,triple;
+      clicked,right;
+      pressed;
+      unpressed;
+      longpressed;
+      repeated;
+   }
+}

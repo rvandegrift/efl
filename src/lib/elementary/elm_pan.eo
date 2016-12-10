@@ -1,0 +1,67 @@
+class Elm.Pan (Efl.Canvas.Group.Clipped)
+{
+   legacy_prefix: elm_pan;
+   eo_prefix: elm_obj_pan;
+   event_prefix: elm_pan;
+   data: Elm_Pan_Smart_Data;
+   methods {
+      @property gravity {
+         set {
+         }
+         get {
+         }
+         values {
+            x: double;
+            y: double;
+         }
+      }
+      @property pos {
+         set {
+         }
+         get {
+         }
+         values {
+            x: Evas.Coord;
+            y: Evas.Coord;
+         }
+      }
+      @property content_size {
+         get {
+         }
+         values {
+            w: Evas.Coord;
+            h: Evas.Coord;
+         }
+      }
+      @property pos_min {
+         get {
+         }
+         values {
+            x: Evas.Coord;
+            y: Evas.Coord;
+         }
+      }
+      @property pos_max {
+         get {
+         }
+         values {
+            x: Evas.Coord;
+            y: Evas.Coord;
+         }
+      }
+   }
+   implements {
+      Eo.Base.constructor;
+      class.constructor;
+      Efl.Canvas.Group.group_hide;
+      Efl.Canvas.Group.group_show;
+      Efl.Canvas.Group.group_move;
+      Efl.Canvas.Group.group_add;
+      Efl.Canvas.Group.group_del;
+      Efl.Canvas.Group.group_resize;
+   }
+   events {
+      changed;
+   }
+
+}

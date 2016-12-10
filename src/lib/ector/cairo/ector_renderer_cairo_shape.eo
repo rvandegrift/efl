@@ -1,0 +1,14 @@
+class Ector.Renderer.Cairo.Shape (Ector.Renderer.Cairo, Ector.Renderer.Shape)
+{
+   eo_prefix: ector_renderer_cairo_shape;
+   implements {
+      Ector.Renderer.prepare;
+      Ector.Renderer.draw;
+      Ector.Renderer.bounds_get;
+      Ector.Renderer.crc.get;
+      Ector.Renderer.Cairo.fill;
+      Eo.Base.constructor;
+      Eo.Base.finalize;
+      Eo.Base.destructor;
+   }
+}
