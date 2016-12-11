@@ -13,7 +13,6 @@ efl (1.18.4-1) experimental; urgency=medium
   * debian/patches/45_disable_doc_pack.diff: defuzz
   * debian/patches/50-fix-edje_recc-bashism.diff: defuzz
   * debian/patches/70-gnutls3.4.diff: drop, fixed upstream
-  * Bump all eo symbol versions for 1.18.3 release
   * debian/patches/95-parallel-previews.diff: make widget previews in parallel
   * Fix EGL build options for arm
   * Add binary packages to eina breaks to prevent mixed-version EFL installs
@@ -21,8 +20,9 @@ efl (1.18.4-1) experimental; urgency=medium
   * debian/gbp.conf: import & build upstream tarballs
   * debian/patches/100-drop-pregen-shaders.diff: always regen shader code
   * debian/control: ensure libeina1 is removed before libeina1a is unpacked
+  * Bump all eo symbol versions for 1.18.4 release
 
- -- Ross Vandegrift <ross@kallisti.us>  Sun, 11 Dec 2016 13:04:14 -0500
+ -- Ross Vandegrift <ross@kallisti.us>  Sun, 11 Dec 2016 13:14:42 -0500
 
 efl (1.18.2-2) experimental; urgency=medium
 
