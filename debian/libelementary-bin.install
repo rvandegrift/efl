@@ -1,0 +1,6 @@
+debian/tmp/usr/bin/elementary_config
+debian/tmp/usr/bin/elementary_quicklaunch
+debian/tmp/usr/bin/elementary_run
+debian/tmp/usr/bin/elm_prefs_cc
+usr/bin/elementary_codegen
+usr/share/applications/elementary_config.desktop

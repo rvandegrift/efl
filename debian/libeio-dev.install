@@ -1,0 +1,6 @@
+debian/tmp/usr/include/eio-*/*
+debian/tmp/usr/lib/*/libeio.so
+debian/tmp/usr/lib/*/libeio.a
+debian/tmp/usr/lib/*/pkgconfig/eio*.pc
+debian/tmp/usr/share/eolian/include/eio-1
+usr/lib/*/cmake/Eio/*.cmake

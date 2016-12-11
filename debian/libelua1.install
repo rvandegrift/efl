@@ -1,0 +1,6 @@
+debian/tmp/usr/lib/*/libelua.so.*
+debian/tmp/usr/share/elua/modules/lualian.lua
+debian/tmp/usr/share/elua/apps/lualian.lua
+debian/tmp/usr/share/elua/modules/benchmark.lua
+debian/tmp/usr/share/elua/modules/getopt.lua
+debian/tmp/usr/share/elua/core/*

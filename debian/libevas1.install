@@ -1,0 +1,6 @@
+debian/tmp/usr/lib/*/libevas.so.*
+debian/tmp/usr/lib/*/evas/modules/image_loaders/*/*/*.so
+debian/tmp/usr/lib/*/evas/modules/image_savers/*/*/*.so
+debian/tmp/usr/lib/*/evas/cserve2/bin/*/evas_cserve2*
+debian/tmp/usr/share/elua/modules/evas/*
+debian/tmp/usr/share/evas/filters/lua/color.lua

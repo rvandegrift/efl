@@ -1,0 +1,76 @@
+#!/usr/bin/make -f
+
+export DEB_BUILD_MAINT_OPTIONS = hardening=+all
+
+CFLAGS += -fvisibility=hidden
+LDFLAGS += -Wl,-z,defs -Wl,--as-needed
+
+ifneq (,$(filter $(DEB_HOST_ARCH), armel armhf))
+	arch_flags += --with-opengl=es --enable-egl
+endif
+
+ifeq (linux,$(DEB_HOST_ARCH_OS))
+	arch_flags += --enable-fb
+endif
+LETSBUILDINDEP := $(shell if dh_listpackages | grep -q efl-doc ; then \
+	echo yes ;\
+	else echo no ; fi)
+
+%:
+	dh $@ --with autoreconf --parallel
+
+override_dh_auto_configure:
+	dh_auto_configure --verbose -- \
+	--disable-rpath \
+	--disable-silent-rules \
+	--enable-doc \
+	--with-profile=dev \
+	--with-tests=regular \
+	--with-crypto=gnutls \
+	--disable-tslib \
+	--enable-liblz4 \
+	--enable-xinput22 \
+	--enable-image-loader-webp \
+	--enable-harfbuzz \
+	--enable-systemd \
+	--enable-static \
+	--enable-image-loader-webp \
+	--with-generic_vlc \
+	$(arch_flags)
+
+override_dh_auto_build:
+	dh_auto_build --verbose --parallel
+ifeq ($(filter yes,$(LETSBUILDINDEP)),yes)
+	$(CURDIR)/debian/fake_home.sh $(MAKE) doc
+endif
+
+override_dh_auto_build-indep:
+	$(MAKE) doc
+
+override_dh_auto_test:
+	$(CURDIR)/debian/fake_home.sh env CK_DEFAULT_TIMEOUT=300 dh_auto_test --verbose -- -j1 VERBOSE=yes
+
+# The install phase doesn't work reliably in parallel
+# Force it to run with only 1 thread to avoid issues
+override_dh_auto_install:
+	$(MAKE) -j1 DESTDIR=$(CURDIR)/debian/tmp install
+
+override_dh_install:
+	dh_install --list-missing
+ifeq ($(DEB_HOST_ARCH_OS),linux)
+	dh_install -plibecore-dev debian/tmp/usr/lib/*/libecore_fb.so
+endif
+
+override_dh_makeshlibs:
+	dh_makeshlibs -Xmodule.so
+
+override_dh_shlibdeps:
+	dh_shlibdeps -Nlibefreet1a
+	dh_shlibdeps -plibefreet1a -- -xlibefreet-bin
+
+override_dh_strip:
+	dh_strip --ddeb-migration='efl-dbg (<< 1.8.1-2~)'
+
+override_dh_clean:
+	dh_clean
+	find -name '*.luac' -exec rm {} \;

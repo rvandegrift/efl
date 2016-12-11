@@ -1,0 +1,18 @@
+Description: Fix bashism in edje_recc
+ edje_recc includes "exit -1" as reported in #772322
+Author: Ross Vandegrift <ross@kallisti.us>
+Forwarded: no
+Last-Update: 2015-12-05
+---
+This patch header follows DEP-3: http://dep.debian.net/deps/dep3/
+--- a/src/bin/edje/edje_recc
++++ b/src/bin/edje/edje_recc
+@@ -14,7 +14,7 @@
+   echo "-no-raw                  Do NOT allow images to be zero compression"
+   echo "-min-quality VAL         Do NOT allow lossy images with quality < VAL (0-100)"
+   echo "-max-quality VAL         Do NOT allow lossy images with quality > VAL (0-100)"
+-  exit -1
++  exit 255
+ }
+ 
+ if [ $# -lt 1 ]; then

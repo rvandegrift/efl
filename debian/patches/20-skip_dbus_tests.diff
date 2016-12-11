@@ -1,0 +1,32 @@
+Description: Skip tests that require running dbus
+ * eldbus_cxx
+ * eldbus
+Author: Andreas Metzler <ametzler@debian.org>
+Author: Ross Vandegrift <ross@kallisti.us>
+Origin: other
+Forwarded: no
+Last-Update: 2016-08-19
+---
+This patch header follows DEP-3: http://dep.debian.net/deps/dep3/
+--- a/src/tests/eldbus_cxx/eldbus_cxx_suite.cc
++++ b/src/tests/eldbus_cxx/eldbus_cxx_suite.cc
+@@ -20,6 +20,8 @@
+ 
+    putenv(const_cast<char*>("EFL_RUN_IN_TREE=1"));
+ 
++   fprintf(stderr, "Skipping %s\n", argv[0]);
++   return(77);
+    failed_count = _efl_suite_build_and_run(argc - 1, (const char **)argv + 1,
+                                            "Eldbus C++", etc);
+ 
+--- a/src/tests/eldbus/eldbus_suite.c
++++ b/src/tests/eldbus/eldbus_suite.c
+@@ -27,6 +27,8 @@
+ 
+    putenv("EFL_RUN_IN_TREE=1");
+ 
++   fprintf(stderr, "Skipping %s\n", argv[0]);
++   return(77);
+    failed_count = _efl_suite_build_and_run(argc - 1, (const char **)argv + 1,
+                                            "Eldbus", etc);
+ 

@@ -1,0 +1,2 @@
+debian/tmp/usr/lib/*/libecore_con.so.*
+debian/tmp/usr/share/elua/modules/ecore_con/*

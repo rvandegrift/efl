@@ -1,0 +1,36 @@
+Description: Skip tests broken by gnutls
+ The remote tls tests fail against gnutls, so disable them.
+Author: Ross Vandegrift <ross@kallisti.us
+Origin: other
+Forwarded: no
+Last-Update: 2016-03-20
+---
+This patch header follows DEP-3: http://dep.debian.net/deps/dep3/
+--- a/src/tests/ecore_con/ecore_con_test_ecore_con.c
++++ b/src/tests/ecore_con/ecore_con_test_ecore_con.c
+@@ -569,16 +569,16 @@
+    tcase_add_test(tc, ecore_test_ecore_con_local_system_negport);
+    tcase_add_test(tc, ecore_test_ecore_con_local_system_negport_fullpath);
+    tcase_add_test(tc, ecore_test_ecore_con_local_abstract);
+-   tcase_add_test(tc, ecore_test_ecore_con_remote_tcp);
+-   tcase_add_test(tc, ecore_test_ecore_con_remote_tcp_tls);
+-   tcase_add_test(tc, ecore_test_ecore_con_remote_tcp_tls_load_cert);
+-   tcase_add_test(tc, ecore_test_ecore_con_remote_tcp_mixed);
+-   tcase_add_test(tc, ecore_test_ecore_con_remote_tcp_mixed_load_cert);
++   /* tcase_add_test(tc, ecore_test_ecore_con_remote_tcp); */
++   /* tcase_add_test(tc, ecore_test_ecore_con_remote_tcp_tls); */
++   /* tcase_add_test(tc, ecore_test_ecore_con_remote_tcp_tls_load_cert); */
++   /* tcase_add_test(tc, ecore_test_ecore_con_remote_tcp_mixed); */
++   /* tcase_add_test(tc, ecore_test_ecore_con_remote_tcp_mixed_load_cert); */
+    /* tcase_add_test(tc, ecore_test_ecore_con_remote_nodelay); */
+-   tcase_add_test(tc, ecore_test_ecore_con_remote_nodelay_tls);
+-   tcase_add_test(tc, ecore_test_ecore_con_remote_nodelay_tls_load_cert);
+-   tcase_add_test(tc, ecore_test_ecore_con_remote_nodelay_mixed);
+-   tcase_add_test(tc, ecore_test_ecore_con_remote_nodelay_mixed_load_cert);
++   /* tcase_add_test(tc, ecore_test_ecore_con_remote_nodelay_tls); */
++   /* tcase_add_test(tc, ecore_test_ecore_con_remote_nodelay_tls_load_cert); */
++   /* tcase_add_test(tc, ecore_test_ecore_con_remote_nodelay_mixed); */
++   /* tcase_add_test(tc, ecore_test_ecore_con_remote_nodelay_mixed_load_cert); */
+    tcase_add_test(tc, ecore_test_ecore_con_ssl_available);
+    /* tcase_add_test(tc, ecore_test_ecore_con_dns); */
+    /* tcase_add_test(tc, ecore_test_ecore_con_dns_lookup); */

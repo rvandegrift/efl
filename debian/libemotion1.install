@@ -1,0 +1,5 @@
+debian/tmp/usr/lib/*/libemotion.so.*
+debian/tmp/usr/lib/*/emotion/modules/gstreamer1/*/module.so
+debian/tmp/usr/share/elua/modules/emotion/*
+debian/tmp/usr/lib/*/*/modules/emotion/*/module.so
+debian/tmp/usr/lib/*/ethumb/modules/emotion/*/template.edj

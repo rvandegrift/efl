@@ -1,0 +1,8 @@
+usr/include/eolian*
+usr/lib/*/libeolian.so
+usr/lib/*/libeolian.a
+usr/lib/*/pkgconfig/eolian*.pc
+usr/bin/eolian_gen
+usr/bin/eolian_cxx
+usr/lib/*/cmake/Eolian/*.cmake
+usr/lib/*/cmake/EolianCxx/*.cmake
