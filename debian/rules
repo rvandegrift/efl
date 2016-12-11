@@ -39,6 +39,9 @@ override_dh_auto_configure:
 	$(arch_flags)
 
 override_dh_auto_build:
+	src/modules/evas/engines/gl_common/shader_3d/gen_shaders_3d.sh
+	src/modules/evas/engines/gl_common/shader/gen_shaders.sh
+	src/lib/ector/gl/shader/gen_shaders.sh
 	dh_auto_build --verbose --parallel
 ifeq ($(filter yes,$(LETSBUILDINDEP)),yes)
 	$(CURDIR)/debian/fake_home.sh $(MAKE) doc
