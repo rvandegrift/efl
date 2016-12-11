@@ -1,4 +1,4 @@
-efl (1.18.3-1) experimental; urgency=medium
+efl (1.18.4-1) experimental; urgency=medium
 
   * Team upload.
   * New upstream version
@@ -18,8 +18,11 @@ efl (1.18.3-1) experimental; urgency=medium
   * Fix EGL build options for arm
   * Add binary packages to eina breaks to prevent mixed-version EFL installs
   * Run tests and make doc with temporary HOME and XDG_RUNTIME_DIR
+  * debian/gbp.conf: import & build upstream tarballs
+  * debian/patches/100-drop-pregen-shaders.diff: always regen shader code
+  * debian/control: ensure libeina1 is removed before libeina1a is unpacked
 
- -- Ross Vandegrift <ross@kallisti.us>  Sun, 27 Nov 2016 15:51:04 -0500
+ -- Ross Vandegrift <ross@kallisti.us>  Sun, 11 Dec 2016 13:04:14 -0500
 
 efl (1.18.2-2) experimental; urgency=medium
 
