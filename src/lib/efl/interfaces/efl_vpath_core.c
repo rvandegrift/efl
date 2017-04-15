@@ -24,14 +24,14 @@ struct _Efl_Vpath_Core_Data
 
 static Efl_Vpath_Core *vpath_core = NULL;
 
-EOLIAN static Eo_Base *
-_efl_vpath_core_eo_base_constructor(Eo *obj, Efl_Vpath_Core_Data *pd)
+EOLIAN static Efl_Object *
+_efl_vpath_core_efl_object_constructor(Eo *obj, Efl_Vpath_Core_Data *pd)
 {
    char buf[PATH_MAX], bufhome[PATH_MAX];
    const char *home, *s;
 
    if (vpath_core) return NULL;
-   obj = eo_constructor(eo_super(obj, MY_CLASS));
+   obj = efl_constructor(efl_super(obj, MY_CLASS));
    pd->meta = eina_hash_string_superfast_new
      ((Eina_Free_Cb)eina_stringshare_del);
    eina_spinlock_new(&(pd->lock));
@@ -43,8 +43,8 @@ _efl_vpath_core_eo_base_constructor(Eo *obj, Efl_Vpath_Core_Data *pd)
    if (!home)
      {
         /* Windows does not have getuid(), but home can't be NULL */
-#ifdef HAVE_GETUID
-        uid_t uid = getuid();
+#ifdef HAVE_GETEUID
+        uid_t uid = geteuid();
         struct stat st;
 
         snprintf(bufhome, sizeof(bufhome), "/tmp/%i", (int)uid);
@@ -71,10 +71,17 @@ _efl_vpath_core_eo_base_constructor(Eo *obj, Efl_Vpath_Core_Data *pd)
    s = eina_environment_tmp_get();
    efl_vpath_core_meta_set(obj, "tmp", s);
 
-#define ENV_HOME_SET(_env, _dir, _meta) \
+# if defined(HAVE_GETUID) && defined(HAVE_GETEUID)
+#  define ENV_HOME_SET(_env, _dir, _meta) \
+   if ((getuid() != geteuid()) || (!(s = getenv(_env)))) { \
+      snprintf(buf, sizeof(buf), "%s/"_dir, home); s = buf; \
+   } efl_vpath_core_meta_set(obj, _meta, s);
+#else
+#  define ENV_HOME_SET(_env, _dir, _meta) \
    if (!(s = getenv(_env))) { \
-        snprintf(buf, sizeof(buf), "%s/"_dir, home); s = buf; \
-     } efl_vpath_core_meta_set(obj, _meta, s);
+      snprintf(buf, sizeof(buf), "%s/"_dir, home); s = buf; \
+   } efl_vpath_core_meta_set(obj, _meta, s);
+#endif
    // $XDG_DATA_HOME defines the base directory relative to which user
    //   specific data files should be stored. If $XDG_DATA_HOME is either
    //   not set or empty, a default equal to $HOME/.local/share should be
@@ -96,33 +103,73 @@ _efl_vpath_core_eo_base_constructor(Eo *obj, Efl_Vpath_Core_Data *pd)
    //   directory MUST be owned by the user, and he MUST be the only one
    //   having read and write access to it. Its Unix access mode MUST
    //   be 0700.
+#if defined(HAVE_GETUID) && defined(HAVE_GETEUID)
+   if ((getuid() != geteuid()) || (!(s = getenv("XDG_RUNTIME_DIR"))))
+#else
    if (!(s = getenv("XDG_RUNTIME_DIR")))
+#endif
      {
-#ifdef HAVE_GETUID
         struct stat st;
+        uid_t uid;
 
+#if defined(HAVE_GETUID) && defined(HAVE_GETEUID)
+        uid = getuid();
+        setuid(geteuid());
+#endif
         // fallback - make ~/.run
         snprintf(buf, sizeof(buf), "%s/.run", home);
-        mkdir(buf,  S_IRUSR | S_IWUSR | S_IXUSR);
-        // if mkdir worked - use, otherwse use /tmp
-        if (stat(buf, &st) == 0) s = buf;
+        if (mkdir(buf,  S_IRUSR | S_IWUSR | S_IXUSR) == 0) s = buf;
         else
           {
-             uid_t uid;
-
-             // use /tmp/.run-UID if ~/ dir cant be made
-             s = (char *)efl_vpath_core_meta_get(obj, "tmp");
-             uid = getuid();
-             snprintf(buf, sizeof(buf), "%s/.run-%i", s, (int)uid);
-             mkdir(buf,  S_IRUSR | S_IWUSR | S_IXUSR);
-             // if ok - use it or fall back to /tmp
-             if (stat(buf, &st) == 0) s = buf;
-             else s = (char *)efl_vpath_core_meta_get(obj, "tmp");
+             if (errno == EEXIST)
+               {
+                  if (stat(buf, &st) == 0)
+                    {
+                       // some sanity checks - but not for security
+                       if (!(st.st_mode & S_IFDIR))
+                         {
+                            // fatal - exists but is not a dir
+                            fprintf(stderr,
+                                    "FATAL: run dir '%s' exists but not a dir\n",
+                                    buf);
+                            abort();
+                         }
+#if defined(HAVE_GETUID) && defined(HAVE_GETEUID)
+                       if (st.st_uid != geteuid())
+                         {
+                            // fatal - run dir doesn't belong to user
+                            fprintf(stderr,
+                                    "FATAL: run dir '%s' not owned by uid %i\n",
+                                    buf, (int)geteuid());
+                            abort();
+                         }
+#endif
+                       // we're ok
+                       s = buf;
+                    }
+                  else
+                    {
+                       // fatal - we cant create our run dir in ~/
+                       fprintf(stderr,
+                               "FATAL: Cannot verify run dir '%s' errno=%i\n",
+                               buf, errno);
+                       abort();
+                    }
+               }
+             else
+               {
+                  // fatal - we cant create our run dir in ~/
+                  fprintf(stderr,
+                          "FATAL: Cannot create run dir '%s' - errno=%i\n",
+                          buf, errno);
+                  abort();
+               }
           }
-#else
-	s = (char *)efl_vpath_core_meta_get(obj, "tmp");
+#if defined(HAVE_GETUID) && defined(HAVE_GETEUID)
+        setreuid(uid, geteuid());
 #endif
      }
+   if (!s) s = (char *)efl_vpath_core_meta_get(obj, "tmp");
    efl_vpath_core_meta_set(obj, "run", s);
    // https://www.freedesktop.org/wiki/Software/xdg-user-dirs/
    // https://wiki.archlinux.org/index.php/Xdg_user_directories
@@ -206,20 +253,20 @@ _efl_vpath_core_eo_base_constructor(Eo *obj, Efl_Vpath_Core_Data *pd)
 }
 
 EOLIAN static void
-_efl_vpath_core_eo_base_destructor(Eo *obj, Efl_Vpath_Core_Data *pd)
+_efl_vpath_core_efl_object_destructor(Eo *obj, Efl_Vpath_Core_Data *pd)
 {
    eina_hash_free(pd->meta);
    pd->meta = NULL;
    eina_spinlock_free(&(pd->lock));
    if (vpath_core == obj) vpath_core = NULL;
-   eo_destructor(eo_super(obj, MY_CLASS));
+   efl_destructor(efl_super(obj, MY_CLASS));
 }
 
 EOLIAN static Efl_Vpath_Core *
-_efl_vpath_core_get(Eo *obj EINA_UNUSED, void *pd EINA_UNUSED)
+_efl_vpath_core_core_get(Eo *obj EINA_UNUSED, void *pd EINA_UNUSED)
 {
    // no locks here as we expect efl to init this early in main "thread"
-   if (!vpath_core) vpath_core = eo_add(EFL_VPATH_CORE_CLASS, NULL);
+   if (!vpath_core) vpath_core = efl_add(EFL_VPATH_CORE_CLASS, NULL);
    return vpath_core;
 }
 
@@ -250,7 +297,7 @@ _efl_vpath_core_efl_vpath_fetch(Eo *obj, Efl_Vpath_Core_Data *pd EINA_UNUSED, co
 {
    Efl_Vpath_File_Core *file;
 
-   file = eo_add(EFL_VPATH_FILE_CORE_CLASS, obj);
+   file = efl_add(EFL_VPATH_FILE_CORE_CLASS, obj);
    efl_vpath_file_path_set(file, path);
    // XXX: implement parse of path then look up in hash if not just create
    // object where path and result are the same and return that with
@@ -326,7 +373,7 @@ _efl_vpath_core_efl_vpath_fetch(Eo *obj, Efl_Vpath_Core_Data *pd EINA_UNUSED, co
                 }
 #endif /* HAVE_GETPWENT */
           }
-        // (:xxx/* ... <- meta has table
+        // (:xxx:)/* ... <- meta hash table
         if ((path[0] == '(') && (path[1] == ':'))
           {
              const char *p, *meta;
@@ -357,6 +404,11 @@ _efl_vpath_core_efl_vpath_fetch(Eo *obj, Efl_Vpath_Core_Data *pd EINA_UNUSED, co
                     }
                }
           }
+        // XXX: handle file:// urls locally...
+        // XXX: if its a remote url or zip file etc. where we need to
+        // keep tmp file around then we need to set keep to true
+        // efl_vpath_file_keept_set(file, EINA_TRUE);
+
         // file:/// <- local file path uri
         // file://localhost/ <- local file path uri
         // file://hostname/ <- remove file path uri

@@ -94,7 +94,7 @@ struct _Ecore_Audio_Module
 struct _Ecore_Audio_Vio_Internal {
     Ecore_Audio_Vio *vio;
     void *data;
-    eo_key_data_free_func free_func;
+    efl_key_data_free_func free_func;
 };
 typedef struct _Ecore_Audio_Vio_Internal Ecore_Audio_Vio_Internal;
 
@@ -229,13 +229,6 @@ extern Ecore_Audio_Lib_Sndfile *ecore_audio_sndfile_lib;
 Eina_Bool ecore_audio_sndfile_lib_load(void);
 void      ecore_audio_sndfile_lib_unload(void);
 #endif /* HAVE_SNDFILE */
-
-//////////////////////////////////////////////////////////////////////////
-#ifdef HAVE_COREAUDIO
-/* ecore_audio_core_audio */
-Ecore_Audio_Module *ecore_audio_core_audio_init(void);
-void                ecore_audio_core_audio_shutdown(void);
-#endif /* HAVE_COREAUDIO */
 
 //////////////////////////////////////////////////////////////////////////
 Ecore_Audio_Module *ecore_audio_custom_init(void);

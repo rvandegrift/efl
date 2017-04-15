@@ -15,7 +15,7 @@
 #define HEIGHT (240)
 
 static void
-_playback_started_cb(void *data EINA_UNUSED, const Eo_Event *ev EINA_UNUSED)
+_playback_started_cb(void *data EINA_UNUSED, const Efl_Event *ev EINA_UNUSED)
 {
     printf("Emotion object started playback.\n");
 }
@@ -62,8 +62,8 @@ main(int argc, const char *argv[])
    em = emotion_object_add(e);
    emotion_object_init(em, NULL);
 
-   eo_event_callback_add
-     (em, EMOTION_OBJECT_EVENT_PLAYBACK_STARTED, _playback_started_cb, NULL);
+   efl_event_callback_add
+     (em, EFL_CANVAS_VIDEO_EVENT_PLAYBACK_START, _playback_started_cb, NULL);
 
    emotion_object_file_set(em, filename);
 

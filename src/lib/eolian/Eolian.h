@@ -182,7 +182,8 @@ typedef enum
 
 typedef enum
 {
-   EOLIAN_IN_PARAM = 0,
+   EOLIAN_UNKNOWN_PARAM = 0,
+   EOLIAN_IN_PARAM,
    EOLIAN_OUT_PARAM,
    EOLIAN_INOUT_PARAM
 } Eolian_Parameter_Dir;
@@ -198,7 +199,8 @@ typedef enum
 
 typedef enum
 {
-   EOLIAN_SCOPE_PUBLIC = 0,
+   EOLIAN_SCOPE_UNKNOWN = 0,
+   EOLIAN_SCOPE_PUBLIC,
    EOLIAN_SCOPE_PRIVATE,
    EOLIAN_SCOPE_PROTECTED
 } Eolian_Object_Scope;
@@ -218,7 +220,6 @@ typedef enum
    EOLIAN_TYPE_VOID,
    EOLIAN_TYPE_REGULAR,
    EOLIAN_TYPE_COMPLEX,
-   EOLIAN_TYPE_POINTER,
    EOLIAN_TYPE_CLASS,
    EOLIAN_TYPE_STATIC_ARRAY,
    EOLIAN_TYPE_TERMINATED_ARRAY,
@@ -255,6 +256,7 @@ typedef enum
    EOLIAN_MASK_STRING = 1 << 4,
    EOLIAN_MASK_CHAR   = 1 << 5,
    EOLIAN_MASK_NULL   = 1 << 6,
+   EOLIAN_MASK_SIGNED = EOLIAN_MASK_SINT   | EOLIAN_MASK_FLOAT,
    EOLIAN_MASK_NUMBER = EOLIAN_MASK_INT    | EOLIAN_MASK_FLOAT,
    EOLIAN_MASK_ALL    = EOLIAN_MASK_NUMBER | EOLIAN_MASK_BOOL
                       | EOLIAN_MASK_STRING | EOLIAN_MASK_CHAR
@@ -291,7 +293,7 @@ typedef struct _Eolian_Value
 
 typedef enum
 {
-   EOLIAN_BINOP_INVALID = -1,
+   EOLIAN_BINOP_INVALID = 0,
 
    EOLIAN_BINOP_ADD, /* + int, float */
    EOLIAN_BINOP_SUB, /* - int, float */
@@ -318,7 +320,7 @@ typedef enum
 
 typedef enum
 {
-   EOLIAN_UNOP_INVALID = -1,
+   EOLIAN_UNOP_INVALID = 0,
 
    EOLIAN_UNOP_UNM, /* - sint */
    EOLIAN_UNOP_UNP, /* + sint */
@@ -329,13 +331,45 @@ typedef enum
 
 typedef enum
 {
-   EOLIAN_DECL_UNKNOWN = -1,
+   EOLIAN_DECL_UNKNOWN = 0,
    EOLIAN_DECL_CLASS,
    EOLIAN_DECL_ALIAS,
    EOLIAN_DECL_STRUCT,
    EOLIAN_DECL_ENUM,
    EOLIAN_DECL_VAR
 } Eolian_Declaration_Type;
+
+typedef enum
+{
+   EOLIAN_DOC_TOKEN_UNKNOWN = 0,
+   EOLIAN_DOC_TOKEN_TEXT,
+   EOLIAN_DOC_TOKEN_REF,
+   EOLIAN_DOC_TOKEN_MARK_NOTE,
+   EOLIAN_DOC_TOKEN_MARK_WARNING,
+   EOLIAN_DOC_TOKEN_MARK_REMARK,
+   EOLIAN_DOC_TOKEN_MARK_TODO,
+   EOLIAN_DOC_TOKEN_MARKUP_MONOSPACE
+} Eolian_Doc_Token_Type;
+
+typedef enum
+{
+   EOLIAN_DOC_REF_INVALID = 0,
+   EOLIAN_DOC_REF_CLASS,
+   EOLIAN_DOC_REF_FUNC,
+   EOLIAN_DOC_REF_EVENT,
+   EOLIAN_DOC_REF_ALIAS,
+   EOLIAN_DOC_REF_STRUCT,
+   EOLIAN_DOC_REF_STRUCT_FIELD,
+   EOLIAN_DOC_REF_ENUM,
+   EOLIAN_DOC_REF_ENUM_FIELD,
+   EOLIAN_DOC_REF_VAR
+} Eolian_Doc_Ref_Type;
+
+typedef struct _Eolian_Doc_Token
+{
+   Eolian_Doc_Token_Type type;
+   const char *text, *text_end;
+} Eolian_Doc_Token;
 
 /*
  * @brief Parse the given .eo or .eot file and fill the database.
@@ -466,14 +500,13 @@ EAPI Eina_Bool eolian_all_eot_files_parse(void);
 /*
  * @brief Validates the database, printing errors and warnings.
  *
- * @param[in] silent_types whether to silence type errors
  * @return EINA_TRUE on success, EINA_FALSE otherwise.
  *
  * Useful to catch type errors etc. early on.
  *
  * @ingroup Eolian
  */
-EAPI Eina_Bool eolian_database_validate(Eina_Bool silent_types);
+EAPI Eina_Bool eolian_database_validate();
 
 /*
  * @brief Gets a class by its name
@@ -624,6 +657,8 @@ EAPI Eina_Iterator *eolian_class_inherits_get(const Eolian_Class *klass);
  * @param[in] func_type type of the functions to insert into the list.
  * @return the iterator
  *
+ * Acceptable inputs are EOLIAN_PROPERTY or EOLIAN_METHOD.
+ *
  * @ingroup Eolian
  */
 EAPI Eina_Iterator *eolian_class_functions_get(const Eolian_Class *klass, Eolian_Function_Type func_type);
@@ -644,6 +679,8 @@ EAPI Eolian_Function_Type eolian_function_type_get(const Eolian_Function *functi
  * @param[in] function_id Id of the function
  * @param[in] ftype The type of function to get the scope for
  * @return the function scope
+ *
+ * Acceptable input types are METHOD, PROP_GET and PROP_SET.
  *
  * @ingroup Eolian
  */
@@ -689,6 +726,10 @@ EAPI Eina_Stringshare *eolian_function_full_c_name_get(const Eolian_Function *fu
  * @param[in] f_type type of the function
  * @return the function id if found, NULL otherwise.
  *
+ * Providing EOLIAN_UNRESOLVED finds any func, EOLIAN_PROPERTY any property,
+ * EOLIAN_METHOD any method, EOLIAN_PROP_GET properties with either only a getter
+ * or full property, EOLIAN_PROP_SET either only a setter or full property.
+ *
  * @ingroup Eolian
  */
 EAPI const Eolian_Function *eolian_class_function_get_by_name(const Eolian_Class *klass, const char *func_name, Eolian_Function_Type f_type);
@@ -700,53 +741,21 @@ EAPI const Eolian_Function *eolian_class_function_get_by_name(const Eolian_Class
  * @param[in] f_type The function type, for property get/set distinction.
  * @return the legacy name or NULL.
  *
+ * Acceptable input types are METHOD, PROP_GET and PROP_SET.
+ *
  * @ingroup Eolian
  */
 EAPI Eina_Stringshare *eolian_function_legacy_get(const Eolian_Function *function_id, Eolian_Function_Type f_type);
 
 /*
- * @brief Returns a documentation for a function.
+ * @brief Returns the implement for a function.
  *
  * @param[in] function_id Id of the function
- * @param[in] f_type The function type, for property get/set distinction.
- * @return the documentation or NULL.
+ * @return the implement or NULL.
  *
  * @ingroup Eolian
  */
-EAPI const Eolian_Documentation *eolian_function_documentation_get(const Eolian_Function *function_id, Eolian_Function_Type f_type);
-
-/*
- * @brief Indicates if a function is virtual pure.
- *
- * @param[in] function_id Id of the function
- * @param[in] f_type The function type, for property get/set distinction.
- * @return EINA_TRUE if virtual pure, EINA_FALSE othrewise.
- *
- * @ingroup Eolian
- */
-EAPI Eina_Bool eolian_function_is_virtual_pure(const Eolian_Function *function_id, Eolian_Function_Type f_type);
-
-/*
- * @brief Indicates if a function is auto.
- *
- * @param[in] function_id Id of the function
- * @param[in] f_type The function type, for property get/set distinction.
- * @return EINA_TRUE if auto, EINA_FALSE othrewise.
- *
- * @ingroup Eolian
- */
-EAPI Eina_Bool eolian_function_is_auto(const Eolian_Function *function_id, Eolian_Function_Type f_type);
-
-/*
- * @brief Indicates if a function is empty.
- *
- * @param[in] function_id Id of the function
- * @param[in] f_type The function type, for property get/set distinction.
- * @return EINA_TRUE if empty, EINA_FALSE othrewise.
- *
- * @ingroup Eolian
- */
-EAPI Eina_Bool eolian_function_is_empty(const Eolian_Function *function_id, Eolian_Function_Type f_type);
+EAPI const Eolian_Implement *eolian_function_implement_get(const Eolian_Function *function_id);
 
 /*
  * @brief Indicates if a function is legacy only.
@@ -754,6 +763,8 @@ EAPI Eina_Bool eolian_function_is_empty(const Eolian_Function *function_id, Eoli
  * @param[in] function_id Id of the function
  * @param[in] f_type The function type, for property get/set distinction.
  * @return EINA_TRUE if legacy only, EINA_FALSE otherwise.
+ *
+ * Acceptable input types are METHOD, PROP_GET and PROP_SET.
  *
  * @ingroup Eolian
  */
@@ -817,6 +828,8 @@ EAPI Eina_Iterator *eolian_function_parameters_get(const Eolian_Function *functi
  * @param[in] ftype The function type, for property get/set distinction.
  * @return the iterator
  *
+ * Acceptable input types are PROP_GET and PROP_SET.
+ *
  * @ingroup Eolian
  */
 EAPI Eina_Iterator *eolian_property_keys_get(const Eolian_Function *foo_id, Eolian_Function_Type ftype);
@@ -827,6 +840,8 @@ EAPI Eina_Iterator *eolian_property_keys_get(const Eolian_Function *foo_id, Eoli
  * @param[in] function_id Id of the function
  * @param[in] ftype The function type, for property get/set distinction.
  * @return the iterator
+ *
+ * Acceptable input types are PROP_GET and PROP_SET.
  *
  * @ingroup Eolian
  */
@@ -922,6 +937,8 @@ EAPI Eina_Bool eolian_parameter_is_optional(const Eolian_Function_Parameter *par
  * The type of the function is needed because a given function can represent a
  * property, that can be set and get functions.
  *
+ * Acceptable input types are METHOD, PROP_GET and PROP_SET.
+ *
  * @ingroup Eolian
  */
 EAPI const Eolian_Type *eolian_function_return_type_get(const Eolian_Function *function_id, Eolian_Function_Type ftype);
@@ -936,6 +953,8 @@ EAPI const Eolian_Type *eolian_function_return_type_get(const Eolian_Function *f
  * The return default value is needed to return an appropriate
  * value if an error occurs (eo_do failure...).
  * The default value is not mandatory, so NULL can be returned.
+ *
+ * Acceptable input types are METHOD, PROP_GET and PROP_SET.
  *
  * @ingroup Eolian
  */
@@ -952,6 +971,8 @@ eolian_function_return_default_value_get(const Eolian_Function *foo_id, Eolian_F
  * The type of the function is needed because a given function can represent a
  * property, that can be set and get functions.
  *
+ * Acceptable input types are METHOD, PROP_GET and PROP_SET.
+ *
  * @ingroup Eolian
  */
 EAPI const Eolian_Documentation *eolian_function_return_documentation_get(const Eolian_Function *foo_id, Eolian_Function_Type ftype);
@@ -965,6 +986,8 @@ EAPI const Eolian_Documentation *eolian_function_return_documentation_get(const 
  *
  * The type of the function is needed because a given function can represent a
  * property, that can be set and get functions.
+ *
+ * Acceptable input types are METHOD, PROP_GET and PROP_SET.
  *
  * @ingroup Eolian
  */
@@ -989,19 +1012,6 @@ EAPI Eina_Bool eolian_function_object_is_const(const Eolian_Function *function_i
  * @ingroup Eolian
  */
 EAPI const Eolian_Class *eolian_function_class_get(const Eolian_Function *function_id);
-
-/*
- * @brief Determine if a function is implemented in the inheritance of the given class
- *
- * @param[in] function_id id of the function
- * @param[in] func_type type requested
- * @param[in] klass the top class to begin with
- * @return EINA_TRUE if found, EINA_FALSE otherwise
- *
- * @ingroup Eolian
- */
-EAPI Eina_Bool eolian_function_is_implemented(const Eolian_Function *function_id,
-      Eolian_Function_Type func_type, const Eolian_Class *klass);
 
 /*
  * @brief Get full string of an overriding function (implement).
@@ -1035,34 +1045,56 @@ EAPI const Eolian_Class *eolian_implement_class_get(const Eolian_Implement *impl
 EAPI const Eolian_Function *eolian_implement_function_get(const Eolian_Implement *impl, Eolian_Function_Type *func_type);
 
 /*
- * @brief Get whether an implement is tagged with @auto.
+ * @brief Returns a documentation for an implement.
  *
  * @param[in] impl the handle of the implement
- * @return EINA_TRUE when it is, EINA_FALSE when it's not.
+ * @param[in] f_type The function type, for property get/set distinction.
+ * @return the documentation or NULL.
+ *
+ * Acceptable input types are METHOD, PROP_GET and PROP_SET.
  *
  * @ingroup Eolian
  */
-EAPI Eina_Bool eolian_implement_is_auto(const Eolian_Implement *impl);
+EAPI const Eolian_Documentation *eolian_implement_documentation_get(const Eolian_Implement *impl, Eolian_Function_Type f_type);
+
+/*
+ * @brief Get whether an implement is tagged with @auto.
+ *
+ * @param[in] impl the handle of the implement
+ * @param[in] f_type The function type, for property get/set distinction.
+ * @return EINA_TRUE when it is, EINA_FALSE when it's not.
+ *
+ * Acceptable input types are METHOD, PROP_GET and PROP_SET.
+ *
+ * @ingroup Eolian
+ */
+EAPI Eina_Bool eolian_implement_is_auto(const Eolian_Implement *impl, Eolian_Function_Type f_type);
 
 /*
  * @brief Get whether an implement is tagged with @empty.
  *
  * @param[in] impl the handle of the implement
+ * @param[in] f_type The function type, for property get/set distinction.
  * @return EINA_TRUE when it is, EINA_FALSE when it's not.
+ *
+ * Acceptable input types are METHOD, PROP_GET and PROP_SET.
  *
  * @ingroup Eolian
  */
-EAPI Eina_Bool eolian_implement_is_empty(const Eolian_Implement *impl);
+EAPI Eina_Bool eolian_implement_is_empty(const Eolian_Implement *impl, Eolian_Function_Type f_type);
 
 /*
- * @brief Get whether an implement is tagged with @virtual.
+ * @brief Get whether an implement is pure virtual.
  *
  * @param[in] impl the handle of the implement
+ * @param[in] f_type The function type, for property get/set distinction.
  * @return EINA_TRUE when it is, EINA_FALSE when it's not.
+ *
+ * Acceptable input types are METHOD, PROP_GET and PROP_SET.
  *
  * @ingroup Eolian
  */
-EAPI Eina_Bool eolian_implement_is_virtual(const Eolian_Implement *impl);
+EAPI Eina_Bool eolian_implement_is_pure_virtual(const Eolian_Implement *impl, Eolian_Function_Type f_type);
 
 /*
  * @brief Get whether an implement references a property getter.
@@ -1091,7 +1123,7 @@ EAPI Eina_Bool eolian_implement_is_prop_set(const Eolian_Implement *impl);
  * @return the iterator
  *
  * Implements include fields specified in the "implements" section of your Eo
- * file (i.e. overriding and virtual/auto/empty functions) and all other
+ * file (i.e. overriding and pure virtual/auto/empty functions) and all other
  * methods/properties of your class (local only) that are not specified
  * within that section.
  *
@@ -1279,16 +1311,52 @@ EAPI Eina_Bool eolian_class_ctor_enable_get(const Eolian_Class *klass);
 EAPI Eina_Bool eolian_class_dtor_enable_get(const Eolian_Class *klass);
 
 /*
- * @brief Returns the name of the C function used to get the Eo_Class pointer.
+ * @brief Returns the name of the C function used to get the Efl_Class pointer.
  *
  * @param[in] klass the class.
  * @return a stringshare containing the func name or NULL on error.
  *
  * You have to delete the stringshare manually.
  *
+ * @see eolian_class_c_name_get
+ *
  * @ingroup Eolian
  */
 EAPI Eina_Stringshare *eolian_class_c_get_function_name_get(const Eolian_Class *klass);
+
+/*
+ * @brief Get the C name of the class.
+ *
+ * @param[in] klass the class
+ * @return the C name
+ *
+ * The C name is the name of the macro the class is accessed through, in format
+ * CLASS_NAME_SUFFIX where SUFFIX is CLASS, MIXIN or INTERFACE. You're responsible
+ * for the stringshare afterwards.
+ *
+ * @see eolian_class_c_get_function_name_get
+ *
+ * @ingroup Eolian
+ */
+EAPI Eina_Stringshare *eolian_class_c_name_get(const Eolian_Class *klass);
+
+/*
+ * @brief Get the C data type of the class.
+ *
+ * @param[in] klass the class
+ * @return the C data type
+ *
+ * This will sanitize the data type of the class for C usage; if it's "null",
+ * this returns "void"; if it's actually explicitly set, it returns the sanitized
+ * version of the string, otherwise it returns Class_Name_Data. Keep in mind that
+ * this does not add an asterisk (it doesn't return a pointer type name). You're
+ * responsible for the stringshare afterwards.
+ *
+ * @see eolian_class_c_get_function_name_get
+ *
+ * @ingroup Eolian
+ */
+EAPI Eina_Stringshare *eolian_class_c_data_type_get(const Eolian_Class *klass);
 
 /*
  * @brief Get an alias type declaration by name. Supports namespaces.
@@ -1709,7 +1777,8 @@ EAPI const Eolian_Typedecl *eolian_type_typedecl_get(const Eolian_Type *tp);
  * using eolian_type_typedecl_get and if the retrieved base is an alias, returns
  * a call of eolian_typedecl_aliased_base_get function on it. Otherwise it
  * returns the given type. This is useful in order to retrieve what an aliased
- * type actually is while still having convenience.
+ * type actually is while still having convenience. Keep in mind that this stops
+ * if the found type is actually a pointer (has a ptr() on it).
  *
  * @param[in] tp the type.
  * @return the lowest alias base or the given type.
@@ -1766,7 +1835,7 @@ EAPI Eina_Bool eolian_type_is_const(const Eolian_Type *tp);
  *
  * @ingroup Eolian
  */
-EAPI Eina_Bool eolian_type_is_ref(const Eolian_Type *tp);
+EAPI Eina_Bool eolian_type_is_ptr(const Eolian_Type *tp);
 
 /*
  * @brief Get the full C type name of the given type.
@@ -2258,6 +2327,91 @@ EAPI Eina_Stringshare *eolian_documentation_description_get(const Eolian_Documen
  * @ingroup Eolian
  */
 EAPI Eina_Stringshare *eolian_documentation_since_get(const Eolian_Documentation *doc);
+
+/*
+ * @brief Split a documentation string into individual paragraphs.
+ *
+ * The items of the resulting list are strings that are fred with free().
+ *
+ * @param[in] doc the documentation string
+ * @return a list of allocated strings containing paragraphs
+ *
+ * @ingroup Eolian
+ */
+EAPI Eina_List *eolian_documentation_string_split(const char *doc);
+
+/*
+ * @brief Tokenize a documentation paragraph.
+ *
+ * This gradually splits the string into pieces (text, references, paragraph
+ * separators etc.) so that it can be more easily turned into a representation
+ * you want. On failure, token is initialized with EOLIAN_DOC_TOKEN_UNKNOWN.
+ *
+ * The function never allocates any memory and doesn't hold any state, instead
+ * the returned continuation has to be passed as first param on next iteration
+ * and you have to make sure the input data stays valid until you're completely
+ * done.
+ *
+ * The input string is assumed to be a single paragraph with all unnecessary
+ * whitespace already trimmed.
+ *
+ * If the given token is NULL, it will still tokenize, but without saving anything.
+ *
+ * @param[in] doc the documentation string
+ * @param[out] ret the token
+ * @return a continuation of the input string
+ *
+ * @ingroup Eolian
+ */
+EAPI const char *eolian_documentation_tokenize(const char *doc, Eolian_Doc_Token *ret);
+
+/*
+ * @brief Initialize a documentation token into an empty state.
+ *
+ * @param[in] tok the token
+ * @return the token type
+ */
+EAPI void eolian_doc_token_init(Eolian_Doc_Token *tok);
+
+/*
+ * @brief Get the type of a documentation token.
+ *
+ * @param[in] tok the token
+ * @return the token type
+ */
+EAPI Eolian_Doc_Token_Type eolian_doc_token_type_get(const Eolian_Doc_Token *tok);
+
+/*
+ * @brief Get the text of a documentation token.
+ *
+ * Works on every token type, but for unknown tokens it returns NULL.
+ * You need to free the text once you're done using normal free().
+ * This makes sure all escapes in the original doc comments are properly
+ * removed so you can use the string as-is.
+ *
+ * @param[in] tok the token
+ * @return the token text
+ */
+EAPI char *eolian_doc_token_text_get(const Eolian_Doc_Token *tok);
+
+/*
+ * @brief Get the thing that a reference token references.
+ *
+ * Returns EOLIAN_DOC_REF_INVALID on failure (when not ref token or
+ * invalid ref, but invalid refs don't happen when database is validated).
+ *
+ * When the reference is a class, alias, struct, enum or var, the first data arg
+ * is filled. When it's a func, the first data is class and second data is
+ * the respective Eolian_Implement, when it's an event the first data is class
+ * and the second data is the event, when it's a struct field or enum field
+ * the first data is is the struct/enum and the second data is the field.
+ *
+ * @param[in] tok the token
+ * @param[out] data the primary data
+ * @param[out] data2 the secondary data
+ * @return the kind of reference this is
+ */
+EAPI Eolian_Doc_Ref_Type eolian_doc_token_ref_get(const Eolian_Doc_Token *tok, const void **data, const void **data2);
 
 #endif
 

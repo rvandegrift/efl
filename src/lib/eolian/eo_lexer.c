@@ -8,7 +8,6 @@
 
 #include <setjmp.h>
 #include <assert.h>
-#include <libgen.h>
 
 #include "eo_lexer.h"
 
@@ -75,12 +74,13 @@ static const char * const ctypes[] =
    NULL, NULL, /* array types */
 
    "Eina_Accessor", "Eina_Array", "Eina_Iterator", "Eina_Hash", "Eina_List",
-   "Eina_Promise",
+   "Efl_Future",
    "Eina_Value", "const char *", "Eina_Stringshare *",
 
    "void *",
 
-   "Eo_Event_Cb",
+   "Efl_Event_Cb",
+   "Eina_Free_Cb",
 };
 
 #undef KW
@@ -1004,11 +1004,11 @@ lex(Eo_Lexer *ls, Eo_Token *tok)
 static const char *
 get_filename(Eo_Lexer *ls)
 {
-   char *dup = strdup(ls->source);
-   char *s = basename(dup);
-   const char *file = eina_stringshare_add(s);
-   free(dup);
-   return file;
+   const char *fslash = strrchr(ls->source, '/');
+   const char *bslash = strrchr(ls->source, '\\');
+   if (fslash || bslash)
+     return eina_stringshare_add((fslash > bslash) ? (fslash + 1) : (bslash + 1));
+   return eina_stringshare_ref(ls->source);
 }
 
 static void
@@ -1108,13 +1108,14 @@ eo_lexer_free(Eo_Lexer *ls)
 Eo_Lexer *
 eo_lexer_new(const char *source)
 {
-   Eo_Lexer   *ls = calloc(1, sizeof(Eo_Lexer));
-   if (!setjmp(ls->err_jmp))
+   volatile Eo_Lexer *ls = calloc(1, sizeof(Eo_Lexer));
+
+   if (!setjmp(((Eo_Lexer *)(ls))->err_jmp))
      {
-        eo_lexer_set_input(ls, source);
-        return ls;
+        eo_lexer_set_input((Eo_Lexer *) ls, source);
+        return (Eo_Lexer *) ls;
      }
-   eo_lexer_free(ls);
+   eo_lexer_free((Eo_Lexer *) ls);
    return NULL;
 }
 

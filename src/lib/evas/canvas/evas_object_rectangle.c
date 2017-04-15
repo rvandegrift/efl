@@ -83,6 +83,7 @@ static const Evas_Object_Func object_func =
      NULL,
      NULL,
      NULL,
+     NULL, // render_prepare
      evas_object_rectangle_render2_walk
 };
 
@@ -95,14 +96,14 @@ evas_object_rectangle_add(Evas *e)
    MAGIC_CHECK(e, Evas, MAGIC_EVAS);
    return NULL;
    MAGIC_CHECK_END();
-   Evas_Object *eo_obj = eo_add(EFL_CANVAS_RECTANGLE_CLASS, e);
+   Evas_Object *eo_obj = efl_add(EFL_CANVAS_RECTANGLE_CLASS, e);
    return eo_obj;
 }
 
 EOLIAN static Eo *
-_efl_canvas_rectangle_eo_base_constructor(Eo *eo_obj, Efl_Canvas_Rectangle_Data *class_data EINA_UNUSED)
+_efl_canvas_rectangle_efl_object_constructor(Eo *eo_obj, Efl_Canvas_Rectangle_Data *class_data EINA_UNUSED)
 {
-   eo_obj = eo_constructor(eo_super(eo_obj, MY_CLASS));
+   eo_obj = efl_constructor(efl_super(eo_obj, MY_CLASS));
 
    evas_object_rectangle_init(eo_obj);
 
@@ -113,10 +114,10 @@ _efl_canvas_rectangle_eo_base_constructor(Eo *eo_obj, Efl_Canvas_Rectangle_Data 
 static void
 evas_object_rectangle_init(Evas_Object *eo_obj)
 {
-   Evas_Object_Protected_Data *obj = eo_data_scope_get(eo_obj, EFL_CANVAS_OBJECT_CLASS);
+   Evas_Object_Protected_Data *obj = efl_data_scope_get(eo_obj, EFL_CANVAS_OBJECT_CLASS);
    /* set up methods (compulsory) */
    obj->func = &object_func;
-   obj->private_data = eo_data_ref(eo_obj, MY_CLASS);
+   obj->private_data = efl_data_ref(eo_obj, MY_CLASS);
    obj->type = o_type;
 }
 
@@ -298,11 +299,10 @@ evas_object_rectangle_render_pre(Evas_Object *eo_obj,
                                 obj->cur->clipper->cur->cache.clip.w,
                                 obj->cur->clipper->cur->cache.clip.h);
           }
-        obj->layer->evas->engine.func->output_redraws_rect_del
-        (obj->layer->evas->engine.data.output,
-         x + obj->layer->evas->framespace.x,
-         y + obj->layer->evas->framespace.y,
-         w, h);
+        evas_render_update_del(obj->layer->evas,
+                               x + obj->layer->evas->framespace.x,
+                               y + obj->layer->evas->framespace.y,
+                               w, h);
      }
    /* if it changed geometry - and obviously not visibility or color */
    /* calculate differences since we have a constant color fill */
@@ -336,18 +336,18 @@ evas_object_rectangle_render_pre(Evas_Object *eo_obj,
 }
 
 static void
-evas_object_rectangle_render_post(Evas_Object *eo_obj,
-				  Evas_Object_Protected_Data *obj EINA_UNUSED,
-				  void *type_private_data EINA_UNUSED)
+evas_object_rectangle_render_post(Evas_Object *eo_obj EINA_UNUSED,
+                                  Evas_Object_Protected_Data *obj,
+                                  void *type_private_data EINA_UNUSED)
 {
 
    /* this moves the current data to the previous state parts of the object */
    /* in whatever way is safest for the object. also if we don't need object */
    /* data anymore we can free it if the object deems this is a good idea */
    /* remove those pesky changes */
-   evas_object_clip_changes_clean(eo_obj);
+   evas_object_clip_changes_clean(obj);
    /* move cur to prev safely for object data */
-   evas_object_cur_prev(eo_obj);
+   evas_object_cur_prev(obj);
 }
 
 static int
@@ -381,21 +381,21 @@ evas_object_rectangle_was_opaque(Evas_Object *eo_obj EINA_UNUSED,
 
 static unsigned int evas_object_rectangle_id_get(Evas_Object *eo_obj)
 {
-   Efl_Canvas_Rectangle_Data *o = eo_data_scope_get(eo_obj, MY_CLASS);
+   Efl_Canvas_Rectangle_Data *o = efl_data_scope_get(eo_obj, MY_CLASS);
    if (!o) return 0;
    return MAGIC_OBJ_RECTANGLE;
 }
 
 static unsigned int evas_object_rectangle_visual_id_get(Evas_Object *eo_obj)
 {
-   Efl_Canvas_Rectangle_Data *o = eo_data_scope_get(eo_obj, MY_CLASS);
+   Efl_Canvas_Rectangle_Data *o = efl_data_scope_get(eo_obj, MY_CLASS);
    if (!o) return 0;
    return MAGIC_OBJ_SHAPE;
 }
 
 static void *evas_object_rectangle_engine_data_get(Evas_Object *eo_obj)
 {
-   Efl_Canvas_Rectangle_Data *o = eo_data_scope_get(eo_obj, MY_CLASS);
+   Efl_Canvas_Rectangle_Data *o = efl_data_scope_get(eo_obj, MY_CLASS);
    return o->engine_data;
 }
 

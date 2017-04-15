@@ -1,5 +1,5 @@
-#ifndef ELM_WIDGET_IMAGE_H
-#define ELM_WIDGET_IMAGE_H
+#ifndef EFL_UI_WIDGET_IMAGE_H
+#define EFL_UI_WIDGET_IMAGE_H
 
 #include "Elementary.h"
 
@@ -9,7 +9,6 @@
  * IT AT RUNTIME.
  */
 
-typedef struct _Async_Open_Data Async_Open_Data;
 typedef enum
   {
      EFL_UI_IMAGE_PRELOAD_ENABLED,
@@ -43,14 +42,18 @@ typedef enum
 typedef struct _Efl_Ui_Image_Data Efl_Ui_Image_Data;
 struct _Efl_Ui_Image_Data
 {
+   Eo                   *self;
    Evas_Object          *hit_rect;
    Evas_Object          *img;
    Evas_Object          *prev_img;
    Ecore_Timer          *anim_timer;
 
-   Elm_Url              *remote;
-   const char           *key;
-   void                 *remote_data;
+
+   struct {
+      Eo                *copier;
+      Eina_Binbuf       *binbuf;
+      const char        *key;
+   } remote;
 
    double                scale;
    double                frame_duration;
@@ -68,9 +71,8 @@ struct _Efl_Ui_Image_Data
 
    struct {
       Ecore_Thread      *th;
-      Async_Open_Data   *todo, *done;
       Eina_Stringshare  *file, *key; // only for file_get()
-      Eina_Spinlock      lck;
+      void              *todo; // opaque internal
    } async;
 
    Efl_Ui_Image_Preload_Status preload_status;
@@ -78,6 +80,10 @@ struct _Efl_Ui_Image_Data
 
    const char           *stdicon;
 
+   Efl_Model            *model;
+   Efl_Future           *pfuture;
+   Eina_Stringshare     *prop_con;
+   Eina_Stringshare     *prop_key;
 
    struct {
       int       requested_size;
@@ -94,10 +100,9 @@ struct _Efl_Ui_Image_Data
    Eina_Bool             anim : 1;
    Eina_Bool             play : 1;
    Eina_Bool             async_enable : 1;
-   Eina_Bool             async_opening : 1;
-   Eina_Bool             async_failed : 1;
    Eina_Bool             scale_up : 1;
    Eina_Bool             scale_down : 1;
+   Eina_Bool             con_icon : 1;
 };
 
 /**
@@ -105,7 +110,7 @@ struct _Efl_Ui_Image_Data
  */
 
 #define EFL_UI_IMAGE_DATA_GET(o, sd) \
-  Efl_Ui_Image_Data * sd = eo_data_scope_get(o, EFL_UI_IMAGE_CLASS)
+  Efl_Ui_Image_Data * sd = efl_data_scope_get(o, EFL_UI_IMAGE_CLASS)
 
 #define EFL_UI_IMAGE_DATA_GET_OR_RETURN(o, ptr)         \
   EFL_UI_IMAGE_DATA_GET(o, ptr);                        \
@@ -126,7 +131,7 @@ struct _Efl_Ui_Image_Data
     }
 
 #define EFL_UI_IMAGE_CHECK(obj)                              \
-  if (EINA_UNLIKELY(!eo_isa((obj), EFL_UI_IMAGE_CLASS))) \
+  if (EINA_UNLIKELY(!efl_isa((obj), EFL_UI_IMAGE_CLASS))) \
     return
 
 #endif

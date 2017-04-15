@@ -92,7 +92,7 @@ EOLIAN static void
 _elm_bg_efl_canvas_group_group_add(Eo *obj, Elm_Bg_Data *priv)
 {
 
-   efl_canvas_group_add(eo_super(obj, MY_CLASS));
+   efl_canvas_group_add(efl_super(obj, MY_CLASS));
    elm_widget_sub_object_parent_add(obj);
    elm_widget_can_focus_set(obj, EINA_FALSE);
 
@@ -114,15 +114,15 @@ EAPI Evas_Object *
 elm_bg_add(Evas_Object *parent)
 {
    EINA_SAFETY_ON_NULL_RETURN_VAL(parent, NULL);
-   Evas_Object *obj = eo_add(MY_CLASS, parent);
+   Evas_Object *obj = efl_add(MY_CLASS, parent);
    return obj;
 }
 
 EOLIAN static Eo *
-_elm_bg_eo_base_constructor(Eo *obj, Elm_Bg_Data *_pd EINA_UNUSED)
+_elm_bg_efl_object_constructor(Eo *obj, Elm_Bg_Data *_pd EINA_UNUSED)
 {
    elm_interface_atspi_accessible_type_set(obj, ELM_ATSPI_TYPE_DISABLED);
-   obj = eo_constructor(eo_super(obj, MY_CLASS));
+   obj = efl_constructor(efl_super(obj, MY_CLASS));
    efl_canvas_object_type_set(obj, MY_CLASS_NAME_LEGACY);
 
    return obj;
@@ -157,6 +157,7 @@ _elm_bg_efl_file_file_set(Eo *obj, Elm_Bg_Data *sd, const char *file, const char
 
         sd->img = evas_object_image_add
             (evas_object_evas_get(wd->resize_obj));
+        evas_object_image_load_orientation_set(sd->img, EINA_TRUE);
         if ((sd->load_opts.w > 0) && (sd->load_opts.h > 0))
           evas_object_image_load_size_set
             (sd->img, sd->load_opts.w, sd->load_opts.h);
@@ -268,7 +269,7 @@ _elm_bg_load_size_set(Eo *obj EINA_UNUSED, Elm_Bg_Data *sd, Evas_Coord w, Evas_C
 }
 
 static void
-_elm_bg_class_constructor(Eo_Class *klass)
+_elm_bg_class_constructor(Efl_Class *klass)
 {
    evas_smart_legacy_type_register(MY_CLASS_NAME_LEGACY, klass);
 }

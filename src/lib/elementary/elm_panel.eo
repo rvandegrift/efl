@@ -11,8 +11,10 @@ enum Elm.Panel.Orient
 class Elm.Panel (Elm.Layout, Elm.Interface_Scrollable,
                  Elm.Interface.Atspi_Widget_Action)
 {
+   [[Elementary panel class]]
    legacy_prefix: elm_panel;
    eo_prefix: elm_obj_panel;
+   event_prefix: elm_panel;
    methods {
       @property orient {
          set {
@@ -36,7 +38,7 @@ class Elm.Panel (Elm.Layout, Elm.Interface_Scrollable,
             [[Get the state of the panel.]]
          }
          values {
-            hidden: bool; [[If true, the panel will run the animation to disappear.]]
+            hidden: bool; [[If $true, the panel will run the animation to disappear.]]
          }
       }
       @property scrollable {
@@ -57,8 +59,14 @@ class Elm.Panel (Elm.Layout, Elm.Interface_Scrollable,
          set {
             [[Set the size of the scrollable panel.]]
          }
+         get {
+            [[Get the size of the scrollable panel.
+
+              @since 1.19
+            ]]
+         }
          values {
-            ratio: double;
+            ratio: double; [[Size ratio]]
          }
       }
       toggle {
@@ -67,21 +75,24 @@ class Elm.Panel (Elm.Layout, Elm.Interface_Scrollable,
    }
    implements {
       class.constructor;
-      Eo.Base.constructor;
+      Efl.Object.constructor;
+      Efl.Gfx.position { set; }
+      Efl.Gfx.size { set; }
       Efl.Canvas.Group.group_add;
       Efl.Canvas.Group.group_member_add;
       Efl.Canvas.Group.group_del;
-      Efl.Canvas.Group.group_resize;
-      Efl.Canvas.Group.group_move;
       Elm.Widget.theme_apply;
       Elm.Widget.focus_next_manager_is;
       Elm.Widget.focus_next;
       Elm.Widget.disable;
       Elm.Widget.access;
-      Elm.Widget.event;
+      Elm.Widget.widget_event;
       Elm.Widget.on_focus_region;
       Elm.Layout.sizing_eval;
-      Elm.Interface.Atspi_Widget_Action.elm_actions.get;
+      Elm.Interface.Atspi_Widget_Action.elm_actions { get; }
       Efl.Part.part;
+   }
+   events {
+      toggled; [[Called when the hidden state was toggled]]
    }
 }

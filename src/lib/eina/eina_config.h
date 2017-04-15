@@ -122,6 +122,16 @@
 #endif
 
 
+#include <limits.h>
+
+#ifndef __WORDSIZE
+# if defined(__OPENBSD__) && (INTPTR_MAX == INT32_MAX)
+#  define __WORDSIZE 32
+# else
+#  define __WORDSIZE 64
+# endif
+#endif
+
 /* Do not turn the following #define as meaning EFL64. We are only 
    interested to know if sizeof (void*) == 64bits or not. Those means
    something else.

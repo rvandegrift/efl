@@ -218,6 +218,14 @@ EAPI void *evas_event_callback_del_full(Evas *e, Evas_Callback_Type type, Evas_E
  * callback prepares information ready for taking action, but the post callback
  * actually does the action).
  *
+ * This function should only be called from inside an evas input event
+ * callback. The event_info data may be kept up until @p func is called, in
+ * order to check the state of the "on-hold" flag for instance. Do not modify
+ * the canvas or otherwise trigger or feed a events to the canvas from inside
+ * @p func. Use jobs to safely modify the canvas.
+ *
+ * @warning Only use this function if you know exactly what you are doing!
+ *
  */
 EAPI void  evas_post_event_callback_push(Evas *e, Evas_Object_Event_Post_Cb func, const void *data);
 
@@ -1010,6 +1018,21 @@ EAPI void evas_object_size_hint_request_get(const Evas_Object *obj, Evas_Coord *
  * @ingroup Evas_Object
  */
 EAPI void evas_object_size_hint_min_set(Evas_Object *obj, Evas_Coord w, Evas_Coord h);
+
+/**
+ * @brief Disable/cease clipping on a clipped @c obj object.
+ *
+ * This function disables clipping for the object @c obj, if it was already
+ * clipped, i.e., its visibility and color get detached from the previous
+ * clipper. If it wasn't, this has no effect. The object @c obj must be a valid
+ * Evas_Object.
+ *
+ * See also @ref evas_object_clip_set, @ref evas_object_clipees_get and
+ * @ref evas_object_clip_get.
+ *
+ * @ingroup Evas_Object
+ */
+EAPI void evas_object_clip_unset(Evas_Object *obj);
 
 /**
  * @brief Retrieves the hints for an object's minimum size.
@@ -1920,10 +1943,191 @@ EAPI Evas_Object *evas_object_top_at_pointer_get(const Evas *e) EINA_WARN_UNUSED
  */
 
 /**
+ * @defgroup Evas_Object_Group_Interceptors Object Method Interceptors
+ *
+ * Evas provides a way to intercept method calls. The interceptor
+ * callback may opt to completely deny the call, or may check and
+ * change the parameters before continuing. The continuation of an
+ * intercepted call is done by calling the intercepted call again,
+ * from inside the interceptor callback.
+ *
+ * @ingroup Evas_Object_Group
+ */
+
+/**
  * @ingroup Evas_Object_Group_Interceptors
  *
  * @{
  */
+
+/**
+ * Function signature for the resize event of an evas object
+ *
+ * @param data is the pointer passed through the callback.
+ * @param obj the object being shown.
+ *
+ * @see evas_object_intercept_show_callback_add()
+ * @see evas_object_intercept_show_callback_del()
+ *
+ */
+typedef void (*Evas_Object_Intercept_Show_Cb)(void *data, Evas_Object *obj);
+
+/**
+ * Function signature for the hide event of an evas object
+ *
+ * @param data is the pointer passed through the callback.
+ * @param obj the object being hidden.
+ *
+ * @see  evas_object_intercept_hide_callback_add()
+ * @see  evas_object_intercept_hide_callback_del()
+ *
+ */
+typedef void (*Evas_Object_Intercept_Hide_Cb)(void *data, Evas_Object *obj);
+
+/**
+ * Function signature for the move event of an evas object
+ *
+ * @param data the pointer passed through the callback.
+ * @param obj the object being moved.
+ * @param x move x position
+ * @param y move y position
+ *
+ * @see  evas_object_intercept_move_callback_add()
+ * @see  evas_object_intercept_move_callback_del()
+ *
+ */
+typedef void (*Evas_Object_Intercept_Move_Cb)(void *data, Evas_Object *obj, Evas_Coord x, Evas_Coord y);
+
+/**
+ * Function signature for the resize event of an evas object
+ *
+ * @param data the pointer passed through the callback.
+ * @param obj the object being resized.
+ * @param width of the object
+ * @param height of the object
+ *
+ * @see  evas_object_intercept_resize_callback_add()
+ * @see  evas_object_intercept_resize_callback_del()
+ *
+ */
+typedef void (*Evas_Object_Intercept_Resize_Cb)(void *data, Evas_Object *obj, Evas_Coord w, Evas_Coord h);
+
+/**
+ * Function signature for the raise event of an evas object
+ *
+ * @param data the pointer passed through the callback.
+ * @param obj the object being raised.
+ *
+ * @see  evas_object_intercept_raise_callback_add()
+ * @see  evas_object_intercept_raise_callback_del()
+ *
+ */
+typedef void (*Evas_Object_Intercept_Raise_Cb)(void *data, Evas_Object *obj);
+
+/**
+ * Function signature for the lower event of an evas object
+ *
+ * @param data the pointer passed through the callback.
+ * @param obj the object being lowered.
+ *
+ * @see  evas_object_intercept_lower_callback_add()
+ * @see  evas_object_intercept_lower_callback_del()
+ *
+ */
+typedef void (*Evas_Object_Intercept_Lower_Cb)(void *data, Evas_Object *obj);
+
+/**
+ * Function signature for the stack above event of an evas object
+ *
+ * @param data the pointer passed through the callback.
+ * @param obj the object being stacked above.
+ * @param above the object above which the object is stacked
+ *
+ * @see  evas_object_intercept_stack_above_callback_add()
+ * @see  evas_object_intercept_stack_above_callback_del()
+ *
+ */
+typedef void (*Evas_Object_Intercept_Stack_Above_Cb)(void *data, Evas_Object *obj, Evas_Object *above);
+
+/**
+ * Function signature for the stack below event of an evas object
+ *
+ * @param data the pointer passed through the callback.
+ * @param obj the object being stacked below.
+ * @param above the object below which the object is stacked
+ *
+ * @see  evas_object_intercept_stack_below_callback_add()
+ * @see  evas_object_intercept_stack_below_callback_del()
+ *
+ */
+typedef void (*Evas_Object_Intercept_Stack_Below_Cb)(void *data, Evas_Object *obj, Evas_Object *above);
+
+/**
+ * Function signature for the layer event of an evas object
+ *
+ * @param data the pointer passed through the callback.
+ * @param obj the object being layered
+ * @param l the layer value
+ *
+ * @see  evas_object_intercept_layer_callback_add()
+ * @see  evas_object_intercept_layer_callback_del()
+ *
+ */
+typedef void (*Evas_Object_Intercept_Layer_Set_Cb)(void *data, Evas_Object *obj, int l);
+
+/**
+ * Function signature for the focus set event of an evas object
+ *
+ * @param data the pointer passed through the callback.
+ * @param obj the object being focused
+ * @param focus the focus value, EINA_TRUE if the object is focused, EINA_FALSE otherwise
+ *
+ * @see  evas_object_intercept_focus_set_callback_add()
+ * @see  evas_object_intercept_focus_set_callback_del()
+ *
+ */
+typedef void (*Evas_Object_Intercept_Focus_Set_Cb)(void *data, Evas_Object *obj, Eina_Bool focus);
+
+/**
+ * Function signature for the color set event of an evas object
+ *
+ * @param data the pointer passed through the callback.
+ * @param obj the object changing color
+ * @param r the red component of the color
+ * @param g the green component of the color
+ * @param b the blue component of the color
+ * @param a the alpha component of the color
+ *
+ * @see  evas_object_intercept_color_set_callback_add()
+ * @see  evas_object_intercept_color_set_callback_del()
+ *
+ */
+typedef void (*Evas_Object_Intercept_Color_Set_Cb)(void *data, Evas_Object *obj, int r, int g, int b, int a);
+
+/**
+ * Function signature for the clip set event of an evas object
+ *
+ * @param data the pointer passed through the callback.
+ * @param obj the object being clipped
+ * @param clip the evas object on which the object is clipped
+ *
+ * @see  evas_object_intercept_clip_set_callback_add()
+ * @see  evas_object_intercept_clip_set_callback_del()
+ *
+ */
+typedef void (*Evas_Object_Intercept_Clip_Set_Cb)(void *data, Evas_Object *obj, Evas_Object *clip);
+
+/**
+ * Function signature for the clip unset event of an evas object
+ *
+ * @param data the pointer passed through the callback.
+ * @param obj the object being unclipped
+ *
+ * @see  evas_object_intercept_clip_unset_callback_add()
+ * @see  evas_object_intercept_clip_unset_callback_del()
+ *
+ */
+typedef void (*Evas_Object_Intercept_Clip_Unset_Cb)(void *data, Evas_Object *obj);
 
 /**
  * Set the callback function that intercepts a show event of an object.
@@ -2302,6 +2506,30 @@ EAPI void  evas_object_intercept_focus_set_callback_add(Evas_Object *obj, Evas_O
  */
 EAPI void *evas_object_intercept_focus_set_callback_del(Evas_Object *obj, Evas_Object_Intercept_Focus_Set_Cb func) EINA_ARG_NONNULL(1, 2);
 
+/* Internal APIs for legacy compatibility */
+#ifdef EFL_CANVAS_OBJECT_PROTECTED
+
+enum _Evas_Object_Intercept_Cb_Type
+{
+   EVAS_OBJECT_INTERCEPT_CB_VISIBLE,
+   EVAS_OBJECT_INTERCEPT_CB_MOVE,
+   EVAS_OBJECT_INTERCEPT_CB_RESIZE,
+   EVAS_OBJECT_INTERCEPT_CB_RAISE,
+   EVAS_OBJECT_INTERCEPT_CB_LOWER,
+   EVAS_OBJECT_INTERCEPT_CB_STACK_ABOVE,
+   EVAS_OBJECT_INTERCEPT_CB_STACK_BELOW,
+   EVAS_OBJECT_INTERCEPT_CB_LAYER_SET,
+   EVAS_OBJECT_INTERCEPT_CB_FOCUS_SET,
+   EVAS_OBJECT_INTERCEPT_CB_COLOR_SET,
+   EVAS_OBJECT_INTERCEPT_CB_CLIP_SET,
+};
+typedef enum _Evas_Object_Intercept_Cb_Type Evas_Object_Intercept_Cb_Type;
+
+EWAPI Eina_Bool _evas_object_intercept_call(Evas_Object *obj, Evas_Object_Intercept_Cb_Type type, int internal, ...);
+
+#endif
+
+
 /**
  * @}
  */
@@ -2382,7 +2610,7 @@ EAPI Evas_Object *evas_object_rectangle_add(Evas *e) EINA_WARN_UNUSED_RESULT EIN
  * @code
  * vector = evas_object_vg_add(canvas);
  * root = evas_obj_vg_root_node_get(vector);
- * shape = eo_add(EVAS_VG_SHAPE_CLASS, root);
+ * shape = efl_add(EVAS_VG_SHAPE_CLASS, root);
  * Efl_Gfx_Path_Command *path_cmd = NULL;
  * double *points = NULL;
  * efl_gfx_path_append_circle(&path_cmd, &points);
@@ -2413,7 +2641,7 @@ EAPI Evas_Object *evas_object_rectangle_add(Evas *e) EINA_WARN_UNUSED_RESULT EIN
 EAPI Evas_Object *evas_object_vg_add(Evas *e) EINA_WARN_UNUSED_RESULT EINA_ARG_NONNULL(1) EINA_MALLOC;
 
 #include "canvas/evas_vg.eo.legacy.h"
-
+#include "canvas/efl_vg_container.eo.legacy.h"
 /**
  * Creates a new vector shape object \.
  *
@@ -2770,7 +2998,7 @@ EAPI void evas_vg_shape_stroke_join_set(Eo *obj, Efl_Gfx_Join j);
  * @param[in] points point list
  *
  */
-EAPI void evas_vg_shape_shape_path_set(Eo *obj, const Efl_Gfx_Path_Command *op, const double *points);
+EAPI void evas_vg_shape_path_set(Eo *obj, const Efl_Gfx_Path_Command *op, const double *points);
 
 /**
  *
@@ -2782,10 +3010,10 @@ EAPI void evas_vg_shape_shape_path_set(Eo *obj, const Efl_Gfx_Path_Command *op, 
  *
  */
 
-EAPI void evas_vg_shape_shape_path_get(Eo *obj, const Efl_Gfx_Path_Command **op, const double **points);
-EAPI void evas_vg_shape_shape_path_length_get(Eo *obj, unsigned int *commands, unsigned int *points);
-EAPI void evas_vg_shape_shape_current_get(Eo *obj, double *x, double *y);
-EAPI void evas_vg_shape_shape_current_ctrl_get(Eo *obj, double *x, double *y);
+EAPI void evas_vg_shape_path_get(Eo *obj, const Efl_Gfx_Path_Command **op, const double **points);
+EAPI void evas_vg_shape_path_length_get(Eo *obj, unsigned int *commands, unsigned int *points);
+EAPI void evas_vg_shape_current_get(Eo *obj, double *x, double *y);
+EAPI void evas_vg_shape_current_ctrl_get(Eo *obj, double *x, double *y);
 
 /**
  *
@@ -2797,7 +3025,7 @@ EAPI void evas_vg_shape_shape_current_ctrl_get(Eo *obj, double *x, double *y);
  * @param[in] dup_from Shape object from where data will be copied.
  *
  */
-EAPI void evas_vg_shape_shape_dup(Eo *obj, Eo *dup_from);
+EAPI void evas_vg_shape_dup(Eo *obj, Eo *dup_from);
 
 /**
  *
@@ -2808,7 +3036,7 @@ EAPI void evas_vg_shape_shape_dup(Eo *obj, Eo *dup_from);
  *
  *
  */
-EAPI void evas_vg_shape_shape_reset(Eo *obj);
+EAPI void evas_vg_shape_reset(Eo *obj);
 
 /**
  *
@@ -2823,7 +3051,7 @@ EAPI void evas_vg_shape_shape_reset(Eo *obj);
  * @param[in] y Y co-ordinate of the current point.
  *
  */
-EAPI void evas_vg_shape_shape_append_move_to(Eo *obj, double x, double y);
+EAPI void evas_vg_shape_append_move_to(Eo *obj, double x, double y);
 
 /**
  *
@@ -2842,7 +3070,7 @@ EAPI void evas_vg_shape_shape_append_move_to(Eo *obj, double x, double y);
  * @param[in] y Y co-ordinate of end point of the line.
  *
  */
-EAPI void evas_vg_shape_shape_append_line_to(Eo *obj, double x, double y);
+EAPI void evas_vg_shape_append_line_to(Eo *obj, double x, double y);
 
 /**
  *
@@ -2860,7 +3088,7 @@ EAPI void evas_vg_shape_shape_append_line_to(Eo *obj, double x, double y);
  * @param[in] ctrl_y Y co-ordinate of control point.
  *
  */
-EAPI void evas_vg_shape_shape_append_quadratic_to(Eo *obj, double x, double y, double ctrl_x, double ctrl_y);
+EAPI void evas_vg_shape_append_quadratic_to(Eo *obj, double x, double y, double ctrl_x, double ctrl_y);
 
 /**
  *
@@ -2875,7 +3103,7 @@ EAPI void evas_vg_shape_shape_append_quadratic_to(Eo *obj, double x, double y, d
  * @param[in] y Y co-ordinate of end point of the line.
  *
  */
-EAPI void evas_vg_shape_shape_append_squadratic_to(Eo *obj, double x, double y);
+EAPI void evas_vg_shape_append_squadratic_to(Eo *obj, double x, double y);
 
 /**
  *
@@ -2895,7 +3123,7 @@ EAPI void evas_vg_shape_shape_append_squadratic_to(Eo *obj, double x, double y);
  * @param[in] ctrl_y1 Y co-ordinate of 2nd control point.
  *
  */
-EAPI void evas_vg_shape_shape_append_cubic_to(Eo *obj, double x, double y, double ctrl_x0, double ctrl_y0, double ctrl_x1, double ctrl_y1);
+EAPI void evas_vg_shape_append_cubic_to(Eo *obj, double x, double y, double ctrl_x0, double ctrl_y0, double ctrl_x1, double ctrl_y1);
 
 /**
  *
@@ -2913,7 +3141,7 @@ EAPI void evas_vg_shape_shape_append_cubic_to(Eo *obj, double x, double y, doubl
  * @param[in] ctrl_y Y co-ordinate of 2nd control point.
  *
  */
-EAPI void evas_vg_shape_shape_append_scubic_to(Eo *obj, double x, double y, double ctrl_x, double ctrl_y);
+EAPI void evas_vg_shape_append_scubic_to(Eo *obj, double x, double y, double ctrl_x, double ctrl_y);
 
 /**
  *
@@ -2937,7 +3165,7 @@ EAPI void evas_vg_shape_shape_append_scubic_to(Eo *obj, double x, double y, doub
  * @param[in] sweep Defines whether the arc will be drawn counter-clockwise or clockwise from current point to the end point taking into account the large_arc property.
  *
  */
-EAPI void evas_vg_shape_shape_append_arc_to(Eo *obj, double x, double y, double rx, double ry, double angle, Eina_Bool large_arc, Eina_Bool sweep);
+EAPI void evas_vg_shape_append_arc_to(Eo *obj, double x, double y, double rx, double ry, double angle, Eina_Bool large_arc, Eina_Bool sweep);
 
 /**
  * @brief Append an arc that enclosed in the given rectangle (x, y, w, h). The
@@ -2953,7 +3181,7 @@ EAPI void evas_vg_shape_shape_append_arc_to(Eo *obj, double x, double y, double 
  *
  * @ingroup Efl_Gfx_Shape
  */
-EAPI void evas_vg_shape_shape_append_arc(Eo *obj, double x, double y, double w, double h, double start_angle, double sweep_length);
+EAPI void evas_vg_shape_append_arc(Eo *obj, double x, double y, double w, double h, double start_angle, double sweep_length);
 
 /**
  *
@@ -2968,7 +3196,7 @@ EAPI void evas_vg_shape_shape_append_arc(Eo *obj, double x, double y, double w, 
  *
  *
  */
-EAPI void evas_vg_shape_shape_append_close(Eo *obj);
+EAPI void evas_vg_shape_append_close(Eo *obj);
 
 /**
  *
@@ -2983,7 +3211,7 @@ EAPI void evas_vg_shape_shape_append_close(Eo *obj);
  * @param[in] radius radius of the circle.
  *
  */
-EAPI void evas_vg_shape_shape_append_circle(Eo *obj, double x, double y, double radius);
+EAPI void evas_vg_shape_append_circle(Eo *obj, double x, double y, double radius);
 
 /**
  *
@@ -3007,11 +3235,47 @@ EAPI void evas_vg_shape_shape_append_circle(Eo *obj, double x, double y, double 
  * @param[in] ry The y radius of the rounded corner and should be in range [ 0 to h/2 ]
  *
  */
-EAPI void evas_vg_shape_shape_append_rect(Eo *obj, double x, double y, double w, double h, double rx, double ry);
+EAPI void evas_vg_shape_append_rect(Eo *obj, double x, double y, double w, double h, double rx, double ry);
 
-EAPI void evas_vg_shape_shape_append_svg_path(Eo *obj, const char *svg_path_data);
-EAPI Eina_Bool evas_vg_shape_shape_interpolate(Eo *obj, const Eo *from, const Eo *to, double pos_map);
-EAPI Eina_Bool evas_vg_shape_shape_equal_commands(Eo *obj, const Eo *with);
+EAPI void evas_vg_shape_append_svg_path(Eo *obj, const char *svg_path_data);
+EAPI Eina_Bool evas_vg_shape_interpolate(Eo *obj, const Eo *from, const Eo *to, double pos_map);
+EAPI Eina_Bool evas_vg_shape_equal_commands(Eo *obj, const Eo *with);
+
+/**
+ * set a vg object as the fill property
+ *
+ * @param obj The object whose fill property gets modified.
+ * @param f The object content will be used for filling.
+ *
+ */
+EAPI void evas_vg_shape_fill_set(Eo *obj, Efl_VG *f);
+
+/**
+ * returns the object that is set for the fill property
+ *
+ * @param obj The object whose fill property is inspected.
+ * @return The object that is set as fill property.
+ *
+ */
+EAPI Efl_VG* evas_vg_shape_fill_get(const Eo *obj);
+
+/**
+ * set a vg object as the stroke fill property
+ *
+ * @param obj The object whose stroke fill property gets modified.
+ * @param f The object content will be used for stroke filling.
+ *
+ */
+EAPI void evas_vg_shape_stroke_fill_set(Eo *obj, Efl_VG *f);
+
+/**
+ * returns the object that is set for the stroke fill property
+ *
+ * @param obj The object whose stroke fill property is inspected.
+ * @return The object that is set as stroke fill property.
+ *
+ */
+EAPI Efl_VG* evas_vg_shape_stroke_fill_get(const Eo *obj);
 
 #include "canvas/efl_vg_shape.eo.legacy.h"
 
@@ -3060,6 +3324,15 @@ EAPI Efl_Gfx_Gradient_Spread evas_vg_gradient_spread_get(Eo *obj);
 #include "canvas/efl_vg_gradient.eo.legacy.h"
 
 /**
+ * Creates a new linear gradient object \.
+ *
+ * @param parent The given vector container object.
+ * @return The created linear gradient object handle.
+ *
+ */
+EAPI Efl_VG* evas_vg_gradient_linear_add(Efl_VG *parent);
+
+/**
  *
  * Sets the start point of this linear gradient.
  *
@@ -3100,6 +3373,15 @@ EAPI void evas_vg_gradient_linear_end_set(Eo *obj, double x, double y);
 EAPI void evas_vg_gradient_linear_end_get(Eo *obj, double *x, double *y);
 
 #include "canvas/efl_vg_gradient_linear.eo.legacy.h"
+
+/**
+ * Creates a new radial gradient object \.
+ *
+ * @param parent The given vector container object.
+ * @return The created radial gradient object handle.
+ *
+ */
+EAPI Efl_VG* evas_vg_gradient_radial_add(Efl_VG *parent);
 
 /**
  *
@@ -3245,7 +3527,7 @@ EAPI void                          evas_object_image_memfile_set(Evas_Object *ob
  * Magic version number to know what the native surface struct looks like
  */
 
-#define EVAS_NATIVE_SURFACE_VERSION 3
+#define EVAS_NATIVE_SURFACE_VERSION 4
 
 /**
  * Native surface types that image object supports
@@ -3300,6 +3582,7 @@ typedef struct _Evas_Native_Surface
       {
          void         *visual; /**< visual of the pixmap to use (Visual) */
          unsigned long pixmap; /**< pixmap id to use (Pixmap) */
+         unsigned int  multiple_buffer; /**< From version 4. 1 if pixmap is multiple buffer pixmap such as named pixmap created by enlightenment. driver dependent. @since 1.19 */
       } x11; /**< Set this struct fields if surface data is X11 based. */
 
       struct
@@ -3791,6 +4074,31 @@ EAPI void evas_object_image_load_scale_down_set(Evas_Object *obj, int scale_down
  * @return The scale down factor.
  */
 EAPI int evas_object_image_load_scale_down_get(const Evas_Object *obj);
+
+/**
+ * @brief Set a load option to skip initial header load and defer to preload
+ * 
+ * This is meant to be used in conjunction with evas_object_image_file_set()
+ * and evas_object_image_preload() by deferring any header loading until
+ * a evas_object_image_preload() is issued making the file file set simply
+ * set up the file to refer to without any validation of its type or
+ * file existence or even inspecting the image header to get size or alpha
+ * channel flags etc. All of this will then be done as part of the preload
+ * stage.
+ * 
+ * @since 1.19
+ */
+EAPI void evas_object_image_load_head_skip_set(Evas_Object *obj, Eina_Bool skip);
+
+/**
+ * @breif Get the load option to skip header loads before preload
+ * 
+ * This gets the heade skip value set by evas_object_image_load_head_skip_set()
+ * 
+ * @see evas_object_image_load_head_skip_set
+ * @since 1.19
+ */
+EAPI Eina_Bool evas_object_image_load_head_skip_get(const Evas_Object *obj);
 
 /**
  * @brief Retrieves a number representing any error that occurred during the
@@ -5089,7 +5397,7 @@ EAPI void             *evas_object_smart_interface_data_get(const Evas_Object *o
  * If @c obj is not a smart object, this call will fail immediately.
  *
  * This function supports Eo and legacy inheritance mechanisms. However, it is
- * recommended to use @ref eo_isa instead if your object is using Eo from top
+ * recommended to use @ref efl_isa instead if your object is using Eo from top
  * to bottom.
  *
  * The checks use smart classes names and string comparison. There is a version
@@ -5703,8 +6011,6 @@ EAPI void evas_output_size_set(Evas *e, int w, int h);
  * @ingroup Evas_Canvas
  */
 EAPI void evas_output_size_get(const Evas *e, int *w, int *h);
-
-#include "canvas/evas_out.eo.legacy.h"
 
 typedef struct _Evas_Map Evas_Map;
 

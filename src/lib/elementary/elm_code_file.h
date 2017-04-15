@@ -22,6 +22,7 @@ struct _Elm_Code_File
    Eina_List *lines;
    Eina_File *file;
    void *map;
+   const char *mime;
 
    Elm_Code_File_Line_Ending line_ending;
 };
@@ -46,8 +47,18 @@ EAPI void elm_code_file_free(Elm_Code_File *file);
 
 EAPI void elm_code_file_close(Elm_Code_File *file);
 
+/**
+ * Get the filename for the file specified.
+ *
+ * @return the filename or NULL if it is an in-memory file
+ */
 EAPI const char *elm_code_file_filename_get(Elm_Code_File *file);
 
+/**
+ * Get the file path for the file specified.
+ *
+ * @return the file's path or NULL if it is an in-memory file
+ */
 EAPI const char *elm_code_file_path_get(Elm_Code_File *file);
 
 EAPI Elm_Code_File_Line_Ending elm_code_file_line_ending_get(Elm_Code_File *file);

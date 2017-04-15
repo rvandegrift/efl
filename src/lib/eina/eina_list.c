@@ -74,6 +74,7 @@
 /* undefs EINA_ARG_NONULL() so NULL checks are not compiled out! */
 #include "eina_safety_checks.h"
 #include "eina_list.h"
+#include "eina_freeq.h"
 
 
 /*============================================================================*
@@ -96,6 +97,15 @@ static const char EINA_MAGIC_LIST_ACCOUNTING_STR[] = "Eina List Accounting";
           {                                                           \
              EINA_MAGIC_FAIL(d, EINA_MAGIC_LIST);                    \
              return __VA_ARGS__;                                     \
+          }                                                           \
+   } while(0)
+
+#define EINA_MAGIC_CHECK_LIST_GOTO(d, label)                           \
+   do {                                                          \
+        if (!EINA_MAGIC_CHECK(d, EINA_MAGIC_LIST))                  \
+          {                                                           \
+             EINA_MAGIC_FAIL(d, EINA_MAGIC_LIST);                    \
+             goto label;                                     \
           }                                                           \
    } while(0)
 
@@ -182,13 +192,26 @@ _eina_list_mempool_accounting_new(EINA_UNUSED Eina_List *list)
 
    return tmp;
 }
+
+static void
+_eina_list_accounting_free(void *accounting)
+{
+   eina_mempool_free(_eina_list_accounting_mp, accounting);
+}
+
+static void
+_eina_list_list_free(void *list)
+{
+   eina_mempool_free(_eina_list_mp, list);
+}
+
 static inline void
 _eina_list_mempool_accounting_free(Eina_List_Accounting *accounting)
 {
    EINA_MAGIC_CHECK_LIST_ACCOUNTING(accounting);
 
    EINA_MAGIC_SET(accounting, EINA_MAGIC_NONE);
-   eina_mempool_free(_eina_list_accounting_mp, accounting);
+   eina_freeq_ptr_main_add(accounting, _eina_list_accounting_free, sizeof(*accounting));
 }
 
 static inline Eina_List *
@@ -217,7 +240,7 @@ _eina_list_mempool_list_free(Eina_List *list)
      }
 
    EINA_MAGIC_SET(list, EINA_MAGIC_NONE);
-   eina_mempool_free(_eina_list_mp, list);
+   eina_freeq_ptr_main_add(list, _eina_list_list_free, sizeof(*list));
 }
 
 static Eina_List *
@@ -534,6 +557,7 @@ on_init_fail:
 Eina_Bool
 eina_list_shutdown(void)
 {
+   eina_freeq_clear(eina_freeq_main_get());
    eina_mempool_del(_eina_list_accounting_mp);
    eina_mempool_del(_eina_list_mp);
 
@@ -562,7 +586,7 @@ eina_list_append(Eina_List *list, const void *data)
         return _eina_list_setup_accounting(new_l);
      }
 
-   EINA_MAGIC_CHECK_LIST(list, NULL);
+   EINA_MAGIC_CHECK_LIST_GOTO(list, on_error);
 
    l = list->accounting->last;
    list->accounting->last = new_l;
@@ -572,6 +596,10 @@ eina_list_append(Eina_List *list, const void *data)
 
    _eina_list_update_accounting(list, new_l);
    return list;
+
+on_error:
+   _eina_list_mempool_list_free(new_l);
+   return NULL;
 }
 
 EAPI Eina_List *
@@ -589,13 +617,17 @@ eina_list_prepend(Eina_List *list, const void *data)
    if (!list)
      return _eina_list_setup_accounting(new_l);
 
-   EINA_MAGIC_CHECK_LIST(list, NULL);
+   EINA_MAGIC_CHECK_LIST_GOTO(list, on_error);
 
    list->prev = new_l;
 
    _eina_list_update_accounting(list, new_l);
 
    return new_l;
+
+on_error:
+   _eina_list_mempool_list_free(new_l);
+   return NULL;
 }
 
 EAPI Eina_List *
@@ -628,10 +660,11 @@ eina_list_append_relative_list(Eina_List *list,
    if ((!list) || (!relative))
      return eina_list_append(list, data);
 
+   EINA_MAGIC_CHECK_LIST(relative, NULL);
+
    new_l = _eina_list_mempool_list_new(list);
    if (!new_l) return list;
 
-   EINA_MAGIC_CHECK_LIST(relative, NULL);
    new_l->next = relative->next;
    new_l->data = (void *)data;
 
@@ -678,10 +711,10 @@ eina_list_prepend_relative_list(Eina_List *list,
    if ((!list) || (!relative))
      return eina_list_prepend(list, data);
 
+   EINA_MAGIC_CHECK_LIST(relative, NULL);
+
    new_l = _eina_list_mempool_list_new(list);
    if (!new_l) return list;
-
-   EINA_MAGIC_CHECK_LIST(relative, NULL);
 
    new_l->prev = relative->prev;
    new_l->next = relative;

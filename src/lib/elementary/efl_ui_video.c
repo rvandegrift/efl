@@ -28,17 +28,17 @@ static const Evas_Smart_Cb_Description _smart_callbacks[] = {
 
 
 static void
-_on_open_done(void *data, const Eo_Event *event);
+_on_open_done(void *data, const Efl_Event *event);
 static void
-_on_playback_started(void *data, const Eo_Event *event);
+_on_playback_started(void *data, const Efl_Event *event);
 static void
-_on_playback_finished(void *data, const Eo_Event *event);
+_on_playback_finished(void *data, const Efl_Event *event);
 static void
-_on_aspect_ratio_updated(void *data, const Eo_Event *event);
+_on_aspect_ratio_updated(void *data, const Efl_Event *event);
 static void
-_on_title_changed(void *data, const Eo_Event *event);
+_on_title_changed(void *data, const Efl_Event *event);
 static void
-_on_audio_level_changed(void *data, const Eo_Event *event);
+_on_audio_level_changed(void *data, const Efl_Event *event);
 
 static Eina_Bool _key_action_move(Evas_Object *obj, const char *params);
 static Eina_Bool _key_action_play(Evas_Object *obj, const char *params);
@@ -49,13 +49,13 @@ static const Elm_Action key_actions[] = {
    {NULL, NULL}
 };
 
-EO_CALLBACKS_ARRAY_DEFINE(_video_cb,
-   { EMOTION_OBJECT_EVENT_OPEN_DONE, _on_open_done },
-   { EMOTION_OBJECT_EVENT_PLAYBACK_STARTED, _on_playback_started },
-   { EMOTION_OBJECT_EVENT_PLAYBACK_FINISHED, _on_playback_finished },
-   { EMOTION_OBJECT_EVENT_FRAME_RESIZE, _on_aspect_ratio_updated },
-   { EMOTION_OBJECT_EVENT_TITLE_CHANGE, _on_title_changed },
-   { EMOTION_OBJECT_EVENT_AUDIO_LEVEL_CHANGE, _on_audio_level_changed }
+EFL_CALLBACKS_ARRAY_DEFINE(_video_cb,
+   { EFL_CANVAS_VIDEO_EVENT_OPEN_DONE, _on_open_done },
+   { EFL_CANVAS_VIDEO_EVENT_PLAYBACK_START, _on_playback_started },
+   { EFL_CANVAS_VIDEO_EVENT_PLAYBACK_STOP, _on_playback_finished },
+   { EFL_CANVAS_VIDEO_EVENT_FRAME_RESIZE, _on_aspect_ratio_updated },
+   { EFL_CANVAS_VIDEO_EVENT_TITLE_CHANGE, _on_title_changed },
+   { EFL_CANVAS_VIDEO_EVENT_VOLUME_CHANGE, _on_audio_level_changed }
 );
 
 static Eina_Bool
@@ -108,7 +108,7 @@ _key_action_play(Evas_Object *obj, const char *params EINA_UNUSED)
 }
 
 EOLIAN static Eina_Bool
-_efl_ui_video_elm_widget_event(Eo *obj, Efl_Ui_Video_Data *_pd EINA_UNUSED, Evas_Object *src, Evas_Callback_Type type, void *event_info)
+_efl_ui_video_elm_widget_widget_event(Eo *obj, Efl_Ui_Video_Data *_pd EINA_UNUSED, Evas_Object *src, Evas_Callback_Type type, void *event_info)
 {
    (void) src;
    Evas_Event_Key_Down *ev = event_info;
@@ -158,13 +158,13 @@ _on_size_hints_changed(void *data EINA_UNUSED,
 }
 
 static void
-_on_open_done(void *data, const Eo_Event *event EINA_UNUSED)
+_on_open_done(void *data, const Efl_Event *event EINA_UNUSED)
 {
    elm_layout_signal_emit(data, "elm,video,open", "elm");
 }
 
 static void
-_on_playback_started(void *data, const Eo_Event *event EINA_UNUSED)
+_on_playback_started(void *data, const Efl_Event *event EINA_UNUSED)
 {
    elm_layout_signal_emit(data, "elm,video,play", "elm");
 
@@ -173,7 +173,7 @@ _on_playback_started(void *data, const Eo_Event *event EINA_UNUSED)
 }
 
 static void
-_on_playback_finished(void *data, const Eo_Event *event EINA_UNUSED)
+_on_playback_finished(void *data, const Efl_Event *event EINA_UNUSED)
 {
    EFL_UI_VIDEO_DATA_GET(data, sd);
    emotion_object_play_set(sd->emotion, EINA_FALSE);
@@ -181,13 +181,13 @@ _on_playback_finished(void *data, const Eo_Event *event EINA_UNUSED)
 }
 
 static void
-_on_aspect_ratio_updated(void *data, const Eo_Event *event EINA_UNUSED)
+_on_aspect_ratio_updated(void *data, const Efl_Event *event EINA_UNUSED)
 {
    elm_layout_sizing_eval(data);
 }
 
 static void
-_on_title_changed(void *data, const Eo_Event *event EINA_UNUSED)
+_on_title_changed(void *data, const Efl_Event *event EINA_UNUSED)
 {
    const char *title;
 
@@ -199,7 +199,7 @@ _on_title_changed(void *data, const Eo_Event *event EINA_UNUSED)
 }
 
 static void
-_on_audio_level_changed(void *data, const Eo_Event *event EINA_UNUSED)
+_on_audio_level_changed(void *data, const Efl_Event *event EINA_UNUSED)
 {
    (void)data;
 }
@@ -240,7 +240,7 @@ _efl_ui_video_efl_canvas_group_group_add(Eo *obj, Efl_Ui_Video_Data *priv)
 {
    _elm_emotion_init();
 
-   efl_canvas_group_add(eo_super(obj, MY_CLASS));
+   efl_canvas_group_add(efl_super(obj, MY_CLASS));
    elm_widget_sub_object_parent_add(obj);
    elm_widget_can_focus_set(obj, EINA_TRUE);
 
@@ -253,11 +253,11 @@ _efl_ui_video_efl_canvas_group_group_add(Eo *obj, Efl_Ui_Video_Data *priv)
 
    elm_layout_content_set(obj, "elm.swallow.video", priv->emotion);
 
-   eo_event_callback_array_add(priv->emotion, _video_cb(), obj);
+   efl_event_callback_array_add(priv->emotion, _video_cb(), obj);
 
    evas_object_event_callback_add
      (obj, EVAS_CALLBACK_CHANGED_SIZE_HINTS, _on_size_hints_changed, NULL);
-   eo_composite_attach(obj, priv->emotion);
+   efl_composite_attach(obj, priv->emotion);
 
    priv->timer = ecore_timer_add(20.0, _suspend_cb, obj);
 }
@@ -268,21 +268,21 @@ _efl_ui_video_efl_canvas_group_group_del(Eo *obj, Efl_Ui_Video_Data *sd)
    ecore_timer_del(sd->timer);
    if (sd->remember) emotion_object_last_position_save(sd->emotion);
 
-   efl_canvas_group_del(eo_super(obj, MY_CLASS));
+   efl_canvas_group_del(efl_super(obj, MY_CLASS));
 }
 
 EAPI Evas_Object *
 elm_video_add(Evas_Object *parent)
 {
    EINA_SAFETY_ON_NULL_RETURN_VAL(parent, NULL);
-   Evas_Object *obj = eo_add(MY_CLASS, parent);
+   Evas_Object *obj = efl_add(MY_CLASS, parent);
    return obj;
 }
 
 EOLIAN static Eo *
-_efl_ui_video_eo_base_constructor(Eo *obj, Efl_Ui_Video_Data *_pd EINA_UNUSED)
+_efl_ui_video_efl_object_constructor(Eo *obj, Efl_Ui_Video_Data *_pd EINA_UNUSED)
 {
-   obj = eo_constructor(eo_super(obj, MY_CLASS));
+   obj = efl_constructor(efl_super(obj, MY_CLASS));
    efl_canvas_object_type_set(obj, MY_CLASS_NAME_LEGACY);
    evas_object_smart_callbacks_descriptions_set(obj, _smart_callbacks);
    elm_interface_atspi_accessible_role_set(obj, ELM_ATSPI_ROLE_ANIMATION);
@@ -394,7 +394,7 @@ _efl_ui_video_elm_widget_focus_direction_manager_is(Eo *obj EINA_UNUSED, Efl_Ui_
 }
 
 EOLIAN static void
-_efl_ui_video_class_constructor(Eo_Class *klass)
+_efl_ui_video_class_constructor(Efl_Class *klass)
 {
    evas_smart_legacy_type_register(MY_CLASS_NAME_LEGACY, klass);
 }
@@ -426,25 +426,25 @@ elm_video_file_get(Eo *obj, const char **filename)
 EAPI void
 elm_video_audio_level_set(Evas_Object *obj, double volume)
 {
-   efl_player_audio_volume_set(obj, volume);
+   efl_player_volume_set(obj, volume);
 }
 
 EAPI double
 elm_video_audio_level_get(const Evas_Object *obj)
 {
-   return efl_player_audio_volume_get(obj);
+   return efl_player_volume_get(obj);
 }
 
 EAPI void
 elm_video_audio_mute_set(Evas_Object *obj, Eina_Bool mute)
 {
-   efl_player_audio_mute_set(obj, mute);
+   efl_player_mute_set(obj, mute);
 }
 
 EAPI Eina_Bool
 elm_video_audio_mute_get(const Evas_Object *obj)
 {
-   return efl_player_audio_mute_get(obj);
+   return efl_player_mute_get(obj);
 }
 
 EAPI double

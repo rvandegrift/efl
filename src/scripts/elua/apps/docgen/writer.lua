@@ -1,7 +1,7 @@
 local util = require("util")
 
-local eomap = require("docgen.mappings")
 local dutil = require("docgen.util")
+local dtree = require("docgen.doctree")
 
 local M = {}
 
@@ -14,8 +14,41 @@ M.has_feature = function(fname)
     return not not features[fname]
 end
 
+local allowed_incflags = {
+    noheader = { "noheader", "showheader" },
+    firstseconly = { "firstseconly", "fullpage" },
+    readmore = { "readmore", "noreadmore" },
+    footer = { "footer", "nofooter" },
+    link = { "link", "nolink" },
+    permalink = { "permalink", "nopermalink" },
+    date = { "date", "nodate" },
+    mdate = { "mdate", "nomdate" },
+    user = { "user", "nouser" },
+    comments = { "comments", "nocomments" },
+    linkbacks = { "linkbacks", "nolinkbacks" },
+    tags = { "tags", "notags" },
+    editbutton = { "editbtn", "noeditbtn" },
+    redirect = { "redirect", "noredirect" },
+    indent = { "indent", "noindent" },
+    linkonly = { "linkonly", "nolinkonly" },
+    title = { "title", "notitle" },
+    pageexists = { "pageexists", "nopageexists" },
+    parlink = { "parlink", "noparlink" },
+    order = { { "id", "title", "created", "modified", "indexmenu", "custom" } },
+    rsort = { "rsort", "sort" },
+    depth = 0,
+    inline = true,
+    beforeeach = "",
+    aftereach = ""
+}
+
 M.Writer = util.Object:clone {
-    __ctor = function(self, path)
+    INCLUDE_PAGE = 0,
+    INCLUDE_SECTION = 1,
+    INCLUDE_NAMESPACE = 2,
+    INCLUDE_TAG = 3,
+
+    __ctor = function(self, path, title)
         local subs
         if type(path) == "table" then
             subs = dutil.path_join(unpack(path))
@@ -24,6 +57,14 @@ M.Writer = util.Object:clone {
         end
         dutil.mkdir_p(subs)
         self.file = assert(io.open(dutil.make_page(subs), "w"))
+        if title then
+            if M.has_feature("title") then
+                self:write_raw("<title>", title, "</title>")
+                self:write_nl()
+            else
+                self:write_h(title, 1)
+            end
+        end
     end,
 
     write_raw = function(self, ...)
@@ -43,6 +84,99 @@ M.Writer = util.Object:clone {
             self:write_nl()
         end
         return self
+    end,
+
+    write_include = function(self, tp, name, flags, nonl)
+        local it_to_tp = {
+            [self.INCLUDE_PAGE] = "page",
+            [self.INCLUDE_SECTION] = "section",
+            [self.INCLUDE_NAMESPACE] = "namespace",
+            [self.INCLUDE_TAG] = "tagtopic"
+        }
+        if type(name) == "table" then
+            if name[#name] == true then
+                name[#name] = nil
+                name = ":" .. root_nspace .. ":auto:"
+                           .. table.concat(name, ":")
+            elseif name[#name] == false then
+                name[#name] = nil
+                name = ":" .. root_nspace .. ":user:"
+                           .. table.concat(name, ":")
+            else
+                name = table.concat(name, ":")
+            end
+        end
+        self:write_raw("{{", it_to_tp[tp], ">", name);
+        if flags then
+            if tp == self.INCLUDE_SECTION and flags.section then
+                self:write_raw("#", flags.section)
+            end
+            flags.section = nil
+            local flstr = {}
+            for k, v in pairs(flags) do
+                local allow = allowed_incflags[k]
+                if allow ~= nil then
+                    if type(allow) == "boolean" then
+                        flstr[#flstr + 1] = k
+                    elseif type(allow) == "number" or type(allow) == "string" then
+                        if type(v) ~= type(allow) then
+                            error("invalid value type for flag " .. k)
+                        end
+                        flstr[#flstr + 1] = k .. "=" .. v
+                    elseif type(allow) == "table" then
+                        if type(allow[1]) == "table" then
+                            local valid = false
+                            for i, vv in ipairs(allow[1]) do
+                                if v == vv then
+                                    flstr[#flstr + 1] = k .. "=" .. v
+                                    valid = true
+                                    break
+                                end
+                            end
+                            if not valid then
+                                error("invalid value " .. v .. " for flag " .. k)
+                            end
+                        elseif type(allow[1]) == "string" and
+                               type(allow[2]) == "string" then
+                            if v then
+                                flstr[#flstr + 1] = allow[1]
+                            else
+                                flstr[#flstr + 1] = allow[2]
+                            end
+                        end
+                    end
+                else
+                    error("invalid include flag: " .. tostring(k))
+                end
+            end
+            flstr = table.concat(flstr, "&")
+            if #flstr > 0 then
+                self:write_raw("&", flstr)
+            end
+        end
+        self:write_raw("}}")
+        if not nonl then
+            self:write_nl()
+        end
+        return self
+    end,
+
+    write_editable = function(self, ns, name)
+        ns[#ns + 1] = name
+        ns[#ns + 1] = false
+        self:write_include(self.INCLUDE_PAGE, ns, {
+            date = false, user = false, link = false
+        })
+        -- restore the table for later reuse
+        -- the false gets deleted by write_include
+        ns[#ns] = nil
+    end,
+
+    write_inherited = function(self, ns)
+        ns[#ns + 1] = true
+        self:write_include(self.INCLUDE_PAGE, ns, {
+            editbutton = false, date = false, user = false, link = false
+        })
     end,
 
     write_fmt = function(self, fmt1, fmt2, ...)
@@ -110,7 +244,11 @@ M.Writer = util.Object:clone {
         if type(target) == "table" then
             if target[#target] == true then
                 target[#target] = nil
-                target = ":" .. root_nspace .. ":"
+                target = ":" .. root_nspace .. ":auto:"
+                             .. table.concat(target, ":")
+            elseif target[#target] == false then
+                target[#target] = nil
+                target = ":" .. root_nspace .. ":user:"
                              .. table.concat(target, ":")
             else
                 target = table.concat(target, ":")
@@ -202,7 +340,9 @@ M.Writer = util.Object:clone {
     end,
 
     write_table = function(self, titles, tbl)
-        self:write_raw("^ ", table.concat(titles, " ^ "), " ^\n")
+        if titles then
+            self:write_raw("^ ", table.concat(titles, " ^ "), " ^\n")
+        end
         for i, v in ipairs(tbl) do
             self:write_raw("| ", table.concat(v,  " | "), " |\n")
         end
@@ -228,93 +368,50 @@ M.Writer = util.Object:clone {
         return self
     end,
 
-    write_par_markup = function(self, str)
-        self:write_raw("%%")
-        local f = str:gmatch(".")
-        local c = f()
-        while c do
-            if c == "\\" then
-                c = f()
-                if c ~= "@" and c ~= "$" then
-                    self:write_raw("\\")
-                end
-                self:write_raw(c)
-                c = f()
-            elseif c == "$" then
-                c = f()
-                if c and c:match("[a-zA-Z_]") then
-                    local wbuf = { c }
-                    c = f()
-                    while c and c:match("[a-zA-Z0-9_]") do
-                        wbuf[#wbuf + 1] = c
-                        c = f()
-                    end
-                    self:write_raw("%%''" .. table.concat(wbuf) .. "''%%")
-                else
-                    self:write_raw("$")
-                end
-            elseif c == "@" then
-                c = f()
-                if c and c:match("[a-zA-Z_]") then
-                    local rbuf = { c }
-                    c = f()
-                    while c and c:match("[a-zA-Z0-9_.]") do
-                        rbuf[#rbuf + 1] = c
-                        c = f()
-                    end
-                    local ldot = false
-                    if rbuf[#rbuf] == "." then
-                        ldot = true
-                        rbuf[#rbuf] = nil
-                    end
-                    local title = table.concat(rbuf)
-                    self:write_raw("%%")
-                    self:write_link(eomap.gen_nsp_ref(title, true), title)
-                    self:write_raw("%%")
-                    if ldot then
-                        self:write_raw(".")
-                    end
-                else
-                    self:write_raw("@")
-                end
-            elseif c == "%" then
-                c = f()
-                if c == "%" then
-                    c = f()
-                    self:write_raw("%%<nowiki>%%</nowiki>%%")
-                else
-                    self:write_raw("%")
-                end
-            else
-                self:write_raw(c)
-                c = f()
-            end
-        end
-        self:write_raw("%%")
-        return self
-    end,
-
     write_par = function(self, str)
+        local tokp = dtree.DocTokenizer(str)
         local notetypes = M.has_feature("notes") and {
-            ["Note: "] = "<note>\n",
-            ["Warning: "] = "<note warning>\n",
-            ["Remark: "] = "<note tip>\n",
-            ["TODO: "] = "<note>\n**TODO:** "
+            [tokp.MARK_NOTE] = "<note>\n",
+            [tokp.MARK_WARNING] = "<note warning>\n",
+            [tokp.MARK_REMARK] = "<note tip>\n",
+            [tokp.MARK_TODO] = "<note>\n**TODO:** "
         } or {}
-        local tag
-        for k, v in pairs(notetypes) do
-            if str:match("^" .. k) then
-                tag = v
-                str = str:sub(#k + 1)
-                break
+        local hasraw, hasnote = false, false
+        while tokp:tokenize() do
+            local tp = tokp:type_get()
+            if notetypes[tp] then
+                self:write_raw(tag)
+                hasnote = true
+            else
+                if not hasraw then
+                    self:write_raw("%%")
+                    hasraw = true
+                end
+                if tp == tokp.REF then
+                    local reft = tokp:ref_get(true)
+                    local str = tokp:text_get()
+                    if str:sub(1, 1) == "[" then
+                        str = str:sub(2, #str - 1)
+                    end
+                    self:write_raw("%%")
+                    self:write_link(reft, str)
+                    self:write_raw("%%")
+                else
+                    local str = tokp:text_get()
+                    assert(str, "internal tokenizer error")
+                    -- replace possible %% chars
+                    str = str:gsub("%%%%", "%%%%<nowiki>%%%%</nowiki>%%%%")
+                    if tp == tokp.MARKUP_MONOSPACE then
+                        self:write_raw("%%''" .. str .. "''%%")
+                    else
+                        self:write_raw(str)
+                    end
+                end
             end
         end
-        if tag then
-            self:write_raw(tag)
-            self:write_par_markup(str)
+        self:write_raw("%%")
+        if hasnote then
             self:write_raw("\n</note>")
-        else
-            self:write_par_markup(str)
         end
         return self
     end,

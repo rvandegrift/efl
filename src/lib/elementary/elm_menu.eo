@@ -1,33 +1,11 @@
-class Elm.Menu (Elm.Widget, Efl.Ui.Clickable, Elm.Interface.Atspi.Selection)
+class Elm.Menu (Elm.Widget, Efl.Ui.Clickable, Efl.Ui.Menu,
+                Elm.Interface.Atspi.Selection)
 {
+   [[Elementary menu class]]
    legacy_prefix: elm_menu;
    eo_prefix: elm_obj_menu;
    event_prefix: elm_menu;
    methods {
-      @property selected_item {
-         get {
-            [[Get the selected item in the menu.]]
-            return: Elm.Widget.Item; [[The selected item or $null.]]
-         }
-      }
-      @property items {
-         get {
-            [[Returns a list of the item's items.]]
-            return: const(list<Elm.Widget.Item>);
-         }
-      }
-      @property first_item {
-         get {
-            [[Get the first item in the menu.]]
-            return: Elm.Widget.Item;
-         }
-      }
-      @property last_item {
-         get {
-            [[Get the last item in the menu.]]
-            return: Elm.Widget.Item;
-         }
-      }
       move {
          [[Move the menu to a new position
 
@@ -36,8 +14,8 @@ class Elm.Menu (Elm.Widget, Efl.Ui.Clickable, Elm.Interface.Atspi.Selection)
            Note: $x and $y coordinates are relative to parent.
          ]]
          params {
-            @in x: Evas.Coord; [[The new position.]]
-            @in y: Evas.Coord; [[The new position.]]
+            @in x: Evas.Coord; [[The new X coordinate]]
+            @in y: Evas.Coord; [[The new Y coordinate]]
          }
       }
       item_add {
@@ -70,22 +48,25 @@ class Elm.Menu (Elm.Widget, Efl.Ui.Clickable, Elm.Interface.Atspi.Selection)
    }
    implements {
       class.constructor;
-      Eo.Base.constructor;
-      Eo.Base.destructor;
-      Efl.Canvas.Group.group_show;
+      Efl.Object.constructor;
+      Efl.Object.destructor;
+      Efl.Gfx.visible { set; }
       Efl.Canvas.Group.group_add;
       Efl.Canvas.Group.group_del;
-      Elm.Widget.widget_parent;
+      Elm.Widget.widget_parent { get; set; }
       Elm.Widget.theme_apply;
       Elm.Widget.translate;
-      Elm.Interface.Atspi_Accessible.children.get;
-      Elm.Interface.Atspi.Selection.selected_children_count.get;
-      Elm.Interface.Atspi.Selection.selected_child.get;
+      Elm.Interface.Atspi_Accessible.children { get; }
+      Elm.Interface.Atspi.Selection.selected_children_count { get; }
+      Elm.Interface.Atspi.Selection.selected_child { get; }
+      Efl.Ui.Menu.selected_item { get; }
+      Efl.Ui.Menu.first_item { get; }
+      Efl.Ui.Menu.last_item { get; }
+      Efl.Ui.Menu.items { get; }
    }
    events {
-      dismissed;
-      elm,action,block_menu;
-      elm,action,unblock_menu;
+      dismissed; [[Called when menu widget was dismissed]]
+      elm,action,block_menu; [[Called when menu blocking have been enabled]]
+      elm,action,unblock_menu; [[Called when menu blocking has been disabled]]
    }
-
 }

@@ -1,4 +1,6 @@
 #define EFL_CANVAS_OBJECT_BETA
+#define EFL_CANVAS_GROUP_PROTECTED
+#define EFL_CANVAS_GROUP_BETA
 
 #include "evas_common_private.h"
 #include "evas_private.h"
@@ -97,7 +99,7 @@ struct _Evas_Object_Table_Accessor
 };
 
 #define EVAS_OBJECT_TABLE_DATA_GET(o, ptr)                              \
-   Evas_Table_Data *ptr = eo_data_scope_get(o, MY_CLASS)
+   Evas_Table_Data *ptr = efl_data_scope_get(o, MY_CLASS)
 
 #define EVAS_OBJECT_TABLE_DATA_GET_OR_RETURN(o, ptr)                    \
    EVAS_OBJECT_TABLE_DATA_GET(o, ptr);                                  \
@@ -249,14 +251,14 @@ _evas_object_table_option_del(Evas_Object *o)
 }
 
 static void
-_on_child_del(void *data, const Eo_Event *event)
+_on_child_del(void *data, const Efl_Event *event)
 {
    Evas_Object *table = data;
    evas_object_table_unpack(table, event->object);
 }
 
 static void
-_on_child_hints_changed(void *data, const Eo_Event *event EINA_UNUSED)
+_on_child_hints_changed(void *data, const Efl_Event *event EINA_UNUSED)
 {
    Evas_Object *table = data;
    EVAS_OBJECT_TABLE_DATA_GET_OR_RETURN(table, priv);
@@ -264,21 +266,21 @@ _on_child_hints_changed(void *data, const Eo_Event *event EINA_UNUSED)
    evas_object_smart_changed(table);
 }
 
-EO_CALLBACKS_ARRAY_DEFINE(evas_object_table_callbacks,
-  { EFL_CANVAS_OBJECT_EVENT_DEL, _on_child_del },
+EFL_CALLBACKS_ARRAY_DEFINE(evas_object_table_callbacks,
+  { EFL_EVENT_DEL, _on_child_del },
   { EFL_GFX_EVENT_CHANGE_SIZE_HINTS, _on_child_hints_changed }
 );
 
 static void
 _evas_object_table_child_connect(Evas_Object *o, Evas_Object *child)
 {
-   eo_event_callback_array_add(child, evas_object_table_callbacks(), o);
+   efl_event_callback_array_add(child, evas_object_table_callbacks(), o);
 }
 
 static void
 _evas_object_table_child_disconnect(Evas_Object *o, Evas_Object *child)
 {
-   eo_event_callback_array_del(child, evas_object_table_callbacks(), o);
+   efl_event_callback_array_del(child, evas_object_table_callbacks(), o);
 }
 
 static void
@@ -902,7 +904,7 @@ _evas_table_efl_canvas_group_group_add(Eo *obj, Evas_Table_Data *priv)
    priv->expand_h = 0;
    priv->expand_v = 0;
 
-   efl_canvas_group_add(eo_super(obj, MY_CLASS));
+   efl_canvas_group_add(efl_super(obj, MY_CLASS));
 }
 
 EOLIAN static void
@@ -926,15 +928,26 @@ _evas_table_efl_canvas_group_group_del(Eo *obj, Evas_Table_Data *priv)
         priv->cache = NULL;
      }
 
-   efl_canvas_group_del(eo_super(obj, MY_CLASS));
+   efl_canvas_group_del(efl_super(obj, MY_CLASS));
 }
 
 EOLIAN static void
-_evas_table_efl_canvas_group_group_resize(Eo *obj, Evas_Table_Data *_pd EINA_UNUSED, Evas_Coord w, Evas_Coord h)
+_evas_table_efl_gfx_size_set(Eo *obj, Evas_Table_Data *_pd EINA_UNUSED, Evas_Coord w, Evas_Coord h)
 {
-   Evas_Coord ow, oh;
-   evas_object_geometry_get(obj, NULL, NULL, &ow, &oh);
-   if ((ow == w) && (oh == h)) return;
+   if (_evas_object_intercept_call(obj, EVAS_OBJECT_INTERCEPT_CB_RESIZE, 0, w, h))
+     return;
+
+   efl_gfx_size_set(efl_super(obj, MY_CLASS), w, h);
+   evas_object_smart_changed(obj);
+}
+
+EOLIAN static void
+_evas_table_efl_gfx_position_set(Eo *obj, Evas_Table_Data *_pd EINA_UNUSED, Evas_Coord x, Evas_Coord y)
+{
+   if (_evas_object_intercept_call(obj, EVAS_OBJECT_INTERCEPT_CB_MOVE, 0, x, y))
+     return;
+
+   efl_gfx_position_set(efl_super(obj, MY_CLASS), x, y);
    evas_object_smart_changed(obj);
 }
 
@@ -967,14 +980,14 @@ evas_object_table_add(Evas *evas)
    MAGIC_CHECK(evas, Evas, MAGIC_EVAS);
    return NULL;
    MAGIC_CHECK_END();
-   Evas_Object *obj = eo_add(MY_CLASS, evas);
+   Evas_Object *obj = efl_add(MY_CLASS, evas);
    return obj;
 }
 
 EOLIAN static Eo *
-_evas_table_eo_base_constructor(Eo *obj, Evas_Table_Data *class_data EINA_UNUSED)
+_evas_table_efl_object_constructor(Eo *obj, Evas_Table_Data *class_data EINA_UNUSED)
 {
-   obj = eo_constructor(eo_super(obj, MY_CLASS));
+   obj = efl_constructor(efl_super(obj, MY_CLASS));
    efl_canvas_object_type_set(obj, MY_CLASS_NAME_LEGACY);
 
    return obj;
@@ -1012,7 +1025,8 @@ _evas_table_homogeneous_get(Eo *o EINA_UNUSED, Evas_Table_Data *priv)
 EOLIAN static void
 _evas_table_align_set(Eo *o, Evas_Table_Data *priv, double horizontal, double vertical)
 {
-   if (priv->align.h == horizontal && priv->align.v == vertical)
+   if ((EINA_DBL_EQ(priv->align.h, horizontal)) &&
+       (EINA_DBL_EQ(priv->align.v, vertical)))
      return;
    priv->align.h = horizontal;
    priv->align.v = vertical;
@@ -1119,7 +1133,15 @@ _evas_table_pack(Eo *o, Evas_Table_Data *priv, Evas_Object *child, unsigned shor
      }
    
    opt = _evas_object_table_option_get(child);
-   if (!opt)
+   if (opt)
+     {
+        if (evas_object_smart_parent_get(child) != o)
+          {
+             CRI("cannot pack child of one table into another table!");
+             return EINA_FALSE;
+          }
+     }
+   else
      {
         opt = malloc(sizeof(*opt));
         if (!opt)
@@ -1138,7 +1160,7 @@ _evas_table_pack(Eo *o, Evas_Table_Data *priv, Evas_Object *child, unsigned shor
    opt->end_col = col + colspan;
    opt->end_row = row + rowspan;
 
-   if (evas_object_smart_parent_get(child) == o)
+   if (!optalloc)
      {
         Eina_Bool need_shrink = EINA_FALSE;
 
@@ -1411,7 +1433,7 @@ _evas_table_mirrored_set(Eo *o, Evas_Table_Data *priv, Eina_Bool mirrored)
 }
 
 EOLIAN static void
-_evas_table_class_constructor(Eo_Class *klass)
+_evas_table_class_constructor(Efl_Class *klass)
 {
    evas_smart_legacy_type_register(MY_CLASS_NAME_LEGACY, klass);
 }

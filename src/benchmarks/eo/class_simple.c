@@ -7,8 +7,8 @@
 
 #define MY_CLASS SIMPLE_CLASS
 
-EOAPI const Eo_Event_Description _SIMPLE_FOO = EO_EVENT_DESCRIPTION("foo");
-EOAPI const Eo_Event_Description _SIMPLE_BAR = EO_EVENT_DESCRIPTION("bar");
+EOAPI const Efl_Event_Description _SIMPLE_FOO = EFL_EVENT_DESCRIPTION("foo");
+EOAPI const Efl_Event_Description _SIMPLE_BAR = EFL_EVENT_DESCRIPTION("bar");
 
 static void
 _other_call(Eo *obj EINA_UNUSED, void *class_data EINA_UNUSED, Eo *other, int times)
@@ -19,7 +19,7 @@ _other_call(Eo *obj EINA_UNUSED, void *class_data EINA_UNUSED, Eo *other, int ti
      }
 }
 
-EAPI EO_VOID_FUNC_BODYV(simple_other_call, EO_FUNC_CALL(other, times), Eo *other, int times);
+EAPI EFL_VOID_FUNC_BODYV(simple_other_call, EFL_FUNC_CALL(other, times), Eo *other, int times);
 
 static void
 _a_set(Eo *obj EINA_UNUSED, void *class_data, int a)
@@ -28,23 +28,28 @@ _a_set(Eo *obj EINA_UNUSED, void *class_data, int a)
    pd->a = a;
 }
 
-EAPI EO_VOID_FUNC_BODYV(simple_a_set, EO_FUNC_CALL(a), int a);
+EAPI EFL_VOID_FUNC_BODYV(simple_a_set, EFL_FUNC_CALL(a), int a);
 
-static Eo_Op_Description op_desc[] = {
-     EO_OP_FUNC(simple_a_set, _a_set),
-     EO_OP_FUNC(simple_other_call, _other_call),
-};
+static Eina_Bool
+_class_initializer(Efl_Class *klass)
+{
+   EFL_OPS_DEFINE(ops,
+         EFL_OBJECT_OP_FUNC(simple_a_set, _a_set),
+         EFL_OBJECT_OP_FUNC(simple_other_call, _other_call),
+   );
 
-static const Eo_Class_Description class_desc = {
+   return efl_class_functions_set(klass, &ops, NULL);
+}
+
+static const Efl_Class_Description class_desc = {
      EO_VERSION,
      "Simple",
-     EO_CLASS_TYPE_REGULAR,
-     EO_CLASS_DESCRIPTION_OPS(op_desc),
-     NULL,
+     EFL_CLASS_TYPE_REGULAR,
      sizeof(Simple_Public_Data),
+     _class_initializer,
      NULL,
      NULL
 };
 
-EO_DEFINE_CLASS(simple_class_get, &class_desc, EO_CLASS, NULL)
+EFL_DEFINE_CLASS(simple_class_get, &class_desc, EO_CLASS, NULL)
 

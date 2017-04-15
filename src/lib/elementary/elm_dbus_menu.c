@@ -5,6 +5,7 @@
 #include <Elementary.h>
 #include <stdint.h>
 #include "elm_priv.h"
+#include "elm_icon.eo.h"
 #include "elm_widget_menu.h"
 #include "elm_widget_icon.h"
 
@@ -332,9 +333,8 @@ _root_layout_build(Elm_DBus_Menu *dbus_menu, Eina_List *property_list,
 {
    char *property;
    Eldbus_Message_Iter *layout, *array, *pair, *variant;
-   const Eina_List *ret = NULL;
-   Eina_List *items;
    Eina_List *l;
+   Eina_Iterator *it = NULL;
    Elm_Object_Item *obj_item;
 
    layout = eldbus_message_iter_container_new(iter, 'r', NULL);
@@ -360,9 +360,8 @@ _root_layout_build(Elm_DBus_Menu *dbus_menu, Eina_List *property_list,
 
    if (recursion_depth > 0)
      {
-        ret = elm_obj_menu_items_get(dbus_menu->menu);
-        items = (Eina_List *)ret;
-        EINA_LIST_FOREACH (items, l, obj_item)
+        it = efl_ui_menu_items_get(dbus_menu->menu);
+        EINA_ITERATOR_FOREACH (it, obj_item)
           {
              variant = eldbus_message_iter_container_new(array, 'v',
                                                          "(ia{sv}av)");
@@ -371,6 +370,7 @@ _root_layout_build(Elm_DBus_Menu *dbus_menu, Eina_List *property_list,
                                      recursion_depth - 1, variant);
              eldbus_message_iter_container_close(array, variant);
           }
+        eina_iterator_free(it);
      }
 
    eldbus_message_iter_container_close(layout, array);
@@ -422,9 +422,8 @@ static Elm_DBus_Menu *
 _elm_dbus_menu_add(Eo *menu)
 {
    Elm_DBus_Menu *dbus_menu;
-   const Eina_List *ret = NULL;
-   Eina_List *items, *l;
    Elm_Object_Item *obj_item;
+   Eina_Iterator *it = NULL;
 
    ELM_MENU_CHECK(menu) NULL;
 
@@ -444,9 +443,8 @@ _elm_dbus_menu_add(Eo *menu)
 
    dbus_menu->menu = menu;
 
-   ret = elm_obj_menu_items_get(menu);
-   items = (Eina_List *)ret;
-   EINA_LIST_FOREACH (items, l, obj_item)
+   it = efl_ui_menu_items_get(menu);
+   EINA_ITERATOR_FOREACH(it, obj_item)
      {
         ELM_MENU_ITEM_DATA_GET(obj_item, item);
         if (!_menu_add_recursive(dbus_menu, item))
@@ -455,10 +453,12 @@ _elm_dbus_menu_add(Eo *menu)
              goto error_hash;
           }
      }
+   eina_iterator_free(it);
 
    return dbus_menu;
 
 error_hash:
+   eina_iterator_free(it);
    eina_hash_free(dbus_menu->elements);
 error_menu:
    free(dbus_menu);
@@ -695,6 +695,7 @@ _method_event_group(const Eldbus_Service_Interface *iface,
 
    while (eldbus_message_iter_get_and_next(array, 'r', &tuple))
      {
+        id = 0;
         if (_event_handle(dbus_menu, tuple, &id))
           return_error = EINA_FALSE;
         else

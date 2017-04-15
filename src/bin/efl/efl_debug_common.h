@@ -19,6 +19,9 @@
 #ifndef EFL_DEBUG_COMMON_H
 #define EFL_DEBUG_COMMON_H 1
 
+#define EFL_BETA_API_SUPPORT 1
+#define EFL_EO_API_SUPPORT 1
+
 #include <Eina.h>
 #include <Ecore.h>
 #include <Ecore_Con.h>
@@ -27,34 +30,26 @@
 #include <unistd.h>
 #include <string.h>
 
-void _protocol_collect(unsigned char **buf, unsigned int *buf_size,
-                       void *data, int size);
-int _proto_read(unsigned char **buf, unsigned int *buf_size,
-                char *op, unsigned char **data);
+typedef struct _Efl_Debug_Message_Header {
+   unsigned int size;
+   char op[4];
+} Efl_Debug_Message_Header;
 
-#define fetch_val(dst, buf, off) \
-   memcpy(&dst, ((unsigned char *)buf) + off, sizeof(dst))
-#define store_val(buf, off, src) \
-   memcpy(buf + off, &src, sizeof(src))
-#define send_svr(svr, op, data, size) \
-   do { \
-      unsigned char head[8]; \
-      char *op2 = op; \
-      int size2 = size + 4; \
-      memcpy(head + 0, &size2, 4); \
-      memcpy(head + 4, op2, 4); \
-      ecore_con_server_send(svr, head, 8); \
-      if (size > 0) ecore_con_server_send(svr, data, size); \
-   } while (0)
-#define send_cli(cli, op, data, size) \
-   do { \
-      unsigned char head[8]; \
-      char *op2 = op; \
-      int size2 = size + 4; \
-      memcpy(head + 0, &size2, 4); \
-      memcpy(head + 4, op2, 4); \
-      ecore_con_client_send(cli, head, 8); \
-      if (size > 0) ecore_con_client_send(cli, data, size); \
-   } while (0)
+#define IS_OP(x) memcmp(op, OP_ ## x, 4) == 0
+
+#define DECLARE_OP(x) static char OP_ ## x[4] = #x
+#ifdef DECLARE_OPS
+DECLARE_OP(LIST);
+DECLARE_OP(CLST);
+DECLARE_OP(PLON);
+DECLARE_OP(PLOF);
+DECLARE_OP(EVON);
+DECLARE_OP(EVOF);
+DECLARE_OP(EVLG);
+DECLARE_OP(HELO);
+#endif
+
+Eina_Bool send_data(Eo *sock, const char op[static 4], const void *data, unsigned int len);
+Eina_Bool received_data(Eo *sock, void (*handle)(void *data, const char op[static 4], const Eina_Slice payload), const void *data);
 
 #endif

@@ -34,7 +34,7 @@ _efl_vpath_manager_fetch(Eo *obj EINA_UNUSED, void *pd EINA_UNUSED, const char *
         file = efl_vpath_fetch(entry->vpath, path);
         if (file) return file;
      }
-   file = eo_add(EFL_VPATH_FILE_CLASS, NULL);
+   file = efl_add(EFL_VPATH_FILE_CLASS, NULL);
    if (file)
      {
         efl_vpath_file_path_set(file, path);
@@ -51,10 +51,10 @@ _register_sort_cb(Efl_Vpath_Manager_Entry *e1, Efl_Vpath_Manager_Entry *e2)
 }
 
 static void
-_cb_vpath_del(void *data, const Eo_Event *event)
+_cb_vpath_del(void *data, const Efl_Event *event)
 {
    efl_vpath_manager_unregister(EFL_VPATH_MANAGER_CLASS, event->object);
-   eo_event_callback_del(event->object, EO_EVENT_DEL, _cb_vpath_del, data);
+   efl_event_callback_del(event->object, EFL_EVENT_DEL, _cb_vpath_del, data);
 }
 
 EOLIAN static void
@@ -63,7 +63,7 @@ _efl_vpath_manager_register(Eo *obj, void *pd EINA_UNUSED, int priority, Efl_Vpa
    Efl_Vpath_Manager_Entry *entry = malloc(sizeof(Efl_Vpath_Manager_Entry));
    entry->vpath = vpath;
    entry->priority = priority;
-   eo_event_callback_add(vpath, EO_EVENT_DEL, _cb_vpath_del, obj);
+   efl_event_callback_add(vpath, EFL_EVENT_DEL, _cb_vpath_del, obj);
    vpath_manager.list = eina_list_sorted_insert
      (vpath_manager.list, EINA_COMPARE_CB(_register_sort_cb), entry);
 }

@@ -284,6 +284,9 @@ _elm_tooltip_reconfigure_orient(Elm_Tooltip *tt,
                                 Evas_Coord tw, Evas_Coord th, Evas_Coord cw, Evas_Coord ch)
 {
    Evas_Coord mx, my;
+   Evas_Coord dx, dy;
+   Evas_Coord tcw, tch;
+   Evas_Coord px, py;
 
    switch (tt->orient)
      {
@@ -345,11 +348,54 @@ _elm_tooltip_reconfigure_orient(Elm_Tooltip *tt,
          return;
      }
 
-   if (mx < 0) mx = 0;
-   else if (mx + tw > cw) mx = cw - tw;
+   evas_object_geometry_get(tt->content, NULL, NULL, &tcw, &tch);
+   if (tcw <= 0 || tcw > tw) tcw = tw;
+   if (tch <= 0 || tch > th) tch = th;
 
-   if (my < 0) my = 0;
-   else if (my + th > ch) my = ch - th;
+   px = (tw - tcw) / 2;
+   py = (th - tch) / 2;
+
+   if (mx < 0)
+     {
+        dx = -mx;
+        mx = -(px / 2);
+        if (tt->rel_pos.x == 0.5)
+          {
+             tt->rel_pos.x = 0.5 - dx / (double)tcw;
+             if (tt->rel_pos.x < 0.0) tt->rel_pos.x = 0.0;
+          }
+     }
+   else if (mx + tw > cw)
+     {
+        dx = mx + tw - cw;
+        mx = cw - tw + px / 2;
+        if (tt->rel_pos.x == 0.5)
+          {
+             tt->rel_pos.x = 0.5 + dx / (double)tcw;
+             if (tt->rel_pos.x > 1.0) tt->rel_pos.x = 1.0;
+          }
+     }
+
+   if (my < 0)
+     {
+        dy = -my;
+        my = -(py / 2);
+        if (tt->rel_pos.y == 0.5)
+          {
+             tt->rel_pos.y = 0.5 - dy / (double)tch;
+             if (tt->rel_pos.y < 0.0) tt->rel_pos.y = 0.0;
+          }
+     }
+   else if (my + th > ch)
+     {
+        dy = my + th - ch;
+        my = ch - th + py / 2;
+        if (tt->rel_pos.y == 0.5)
+          {
+             tt->rel_pos.y = 0.5 + dy / (double)tch;
+             if (tt->rel_pos.y > 1.0) tt->rel_pos.y = 1.0;
+          }
+     }
 
    evas_object_move(tt->tooltip, mx, my);
    evas_object_show(tt->tooltip);
@@ -507,7 +553,7 @@ _elm_tooltip_reconfigure(Elm_Tooltip *tt)
    /* win reports its screen position for x/y;
     * reset to 0 since we expect canvas coords here
     */
-   if (eo_isa(tt->eventarea, EFL_UI_WIN_CLASS))
+   if (efl_isa(tt->eventarea, EFL_UI_WIN_CLASS))
      ox = oy = 0;
    TTDBG("EVENTAREA:  ox=%d,oy=%d,ow=%d,oh=%d\n", ox, oy, ow, oh);
 
@@ -949,8 +995,16 @@ elm_object_tooltip_hide(Evas_Object *obj)
 EAPI void
 elm_object_tooltip_text_set(Evas_Object *obj, const char *text)
 {
+   Elm_Tooltip *tt;
    EINA_SAFETY_ON_NULL_RETURN(obj);
-   EINA_SAFETY_ON_NULL_RETURN(text);
+
+   if (!text)
+     {
+        tt = evas_object_data_get((obj), _tooltip_key);
+        if (tt)
+          elm_object_tooltip_unset(obj);
+	return;
+     }
 
    text = eina_stringshare_add(text);
    elm_object_tooltip_content_cb_set

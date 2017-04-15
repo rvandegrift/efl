@@ -10,6 +10,7 @@ enum Elm.Label.Slide_Mode
 
 class Elm.Label (Elm.Layout)
 {
+   [[Elementary label class]]
    legacy_prefix: elm_label;
    eo_prefix: elm_obj_label;
    event_prefix: elm_label;
@@ -122,17 +123,16 @@ class Elm.Label (Elm.Layout)
    }
    implements {
       class.constructor;
-      Eo.Base.constructor;
+      Efl.Object.constructor;
       Efl.Canvas.Group.group_add;
       Elm.Widget.focus_next_manager_is;
       Elm.Widget.focus_direction_manager_is;
       Elm.Widget.theme_apply;
-      Elm.Layout.text.set;
-      Elm.Layout.text_aliases.get;
+      Elm.Layout.text { set; }
+      Elm.Layout.text_aliases { get; }
       Elm.Layout.sizing_eval;
    }
    events {
-      slide,end;
+      slide,end; [[Called when slide stopped]]
    }
-
 }

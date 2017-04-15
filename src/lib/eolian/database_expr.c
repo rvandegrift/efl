@@ -191,26 +191,28 @@ eval_unary(const Eolian_Expression *expr, Eolian_Expression_Mask mask,
       case EOLIAN_UNOP_UNP:
         {
            /* no-op, but still typecheck */
-           if (!(mask & EOLIAN_MASK_SINT))
-             return expr_type_error(expr, EOLIAN_MASK_SINT, mask);
+           if (!(mask & EOLIAN_MASK_SIGNED))
+             return expr_type_error(expr, EOLIAN_MASK_SIGNED, mask);
 
-           return eval_exp(expr->expr, EOLIAN_MASK_SINT, out);
+           return eval_exp(expr->expr, EOLIAN_MASK_SIGNED, out);
         }
       case EOLIAN_UNOP_UNM:
         {
            Eolian_Expression exp;
 
-           if (!(mask & EOLIAN_MASK_SINT))
-             return expr_type_error(expr, EOLIAN_MASK_SINT, mask);
+           if (!(mask & EOLIAN_MASK_SIGNED))
+             return expr_type_error(expr, EOLIAN_MASK_SIGNED, mask);
 
-           if (!eval_exp(expr->expr, EOLIAN_MASK_SINT, &exp))
+           if (!eval_exp(expr->expr, EOLIAN_MASK_SIGNED, &exp))
              return EINA_FALSE;
 
            switch (exp.type)
              {
-              case EOLIAN_EXPR_LLONG: exp.value.ll  = -(exp.value.ll); break;
-              case EOLIAN_EXPR_LONG : exp.value.l   = -(exp.value.l ); break;
-              case EOLIAN_EXPR_INT  : exp.value.i   = -(exp.value.i ); break;
+              case EOLIAN_EXPR_LLONG : exp.value.ll = -(exp.value.ll); break;
+              case EOLIAN_EXPR_LONG  : exp.value.l  = -(exp.value.l ); break;
+              case EOLIAN_EXPR_INT   : exp.value.i  = -(exp.value.i ); break;
+              case EOLIAN_EXPR_FLOAT : exp.value.f  = -(exp.value.f ); break;
+              case EOLIAN_EXPR_DOUBLE: exp.value.d  = -(exp.value.d ); break;
               default: return EINA_FALSE;
              }
 

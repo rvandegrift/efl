@@ -26,12 +26,12 @@ START_TEST(eina_cxx_get_error)
 
   ck_assert(ec2.message() == "Message 1");
 
-  ::eina_error_set(EINA_ERROR_OUT_OF_MEMORY);
+  ::eina_error_set(ENOMEM);
 
   efl::eina::error_code ec3 = efl::eina::get_error_code();
   ck_assert(!!ec3);
 
-  ck_assert(ec3.message() == "Out of memory");
+  ck_assert(ec3.message() == strerror(ENOMEM));
 }
 END_TEST
 

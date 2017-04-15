@@ -9,7 +9,7 @@ enum Elm.Genlist.Item.Type
    none = 0, [[Simple item.]]
    tree = (1 << 0), [[This may be expanded and have child items.]]
    group = (1 << 1), [[An index item of a group of items. this item can have child items.]]
-   max = (1 << 2)
+   max = (1 << 2) [[Sentinel value to indicate last enum field during iteration]]
 }
 
 enum Elm.Genlist.Item.Field_Type
@@ -19,17 +19,17 @@ enum Elm.Genlist.Item.Field_Type
      It can be used at updating multi fields.
    ]]
    legacy: elm_genlist_item_field;
-   all = 0,
-   text = (1 << 0),
-   content = (1 << 1),
-   state = (1 << 2)
+   all = 0, [[Type all]]
+   text = (1 << 0), [[Type text]]
+   content = (1 << 1), [[Type content]]
+   state = (1 << 2) [[Type state]]
 }
 
 enum Elm.Genlist.Item.Scrollto_Type
 {
    [[Defines where to position the item in the genlist.]]
    legacy: elm_genlist_item_scrollto;
-   none = 0,   [[No scrollto.]]
+   none = 0,   [[Nothing will happen, Don't use this value.]]
    in = (1 << 0),   [[To the nearest viewport.]]
    top = (1 << 1),   [[To the top of viewport.]]
    middle = (1 << 2),   [[To the middle of viewport.]]
@@ -38,6 +38,7 @@ enum Elm.Genlist.Item.Scrollto_Type
 
 class Elm.Genlist.Item(Elm.Widget.Item)
 {
+   [[Elementary genlist item class]]
    legacy_prefix: elm_genlist_item;
       eo_prefix: elm_obj_genlist_item;
       data: Elm_Gen_Item;
@@ -49,7 +50,7 @@ class Elm.Genlist.Item(Elm.Widget.Item)
 
                        This returns the item placed before the $item, on
                        the container genlist.
-                       
+
                        If filter is set on genlist, this returns the filtered
                        item placed before $item in the list.
                      ]]
@@ -68,6 +69,11 @@ class Elm.Genlist.Item(Elm.Widget.Item)
 
                        If filter is set on genlist, this returns the filtered
                        item placed after $item in the list.
+
+                       Also the next item means item in the same tree level.
+                       If a item has subitems, and it have expand all subitems
+                       will be ignore, and will get the next item in the same
+                       level.
                      ]]
                 }
                 values {
@@ -164,7 +170,7 @@ class Elm.Genlist.Item(Elm.Widget.Item)
                      ]]
                 }
                 values {
-                     itc: const (Elm.Genlist.Item.Class) *; [[Genlist Item class for the given item.]]
+                     itc: ptr(const(Elm.Genlist.Item.Class)); [[Genlist Item class for the given item.]]
                 }
            }
            @property index {
@@ -374,7 +380,7 @@ class Elm.Genlist.Item(Elm.Widget.Item)
                   @.update is called on the item $it.
                 ]]
                 params {
-                     @in itc: const (Elm.Genlist.Item.Class) *; [[The item class for the item.]]
+                     @in itc: ptr(const(Elm.Genlist.Item.Class)); [[The item class for the item.]]
                 }
            }
            decorate_mode_set {
@@ -419,26 +425,22 @@ class Elm.Genlist.Item(Elm.Widget.Item)
            }
       }
       implements {
-           Eo.Base.constructor;
+           Efl.Object.constructor;
            Elm.Widget.Item.del_pre;
            Elm.Widget.Item.disable;
            Elm.Widget.Item.signal_emit;
-           Elm.Widget.Item.style.get;
-           Elm.Widget.Item.style.set;
-           Elm.Widget.Item.focus.set;
-           Elm.Widget.Item.focus.get;
-           Elm.Widget.Item.part_text.get;
-           Elm.Widget.Item.part_content.get;
+           Elm.Widget.Item.style { get; set; }
+           Elm.Widget.Item.focus { get; set; }
+           Elm.Widget.Item.part_text { get; }
+           Elm.Widget.Item.part_content { get; }
            Elm.Widget.Item.tooltip_text_set;
-           Elm.Widget.Item.tooltip_style.set;
-           Elm.Widget.Item.tooltip_style.get;
-           Elm.Widget.Item.tooltip_window_mode.set;
-           Elm.Widget.Item.tooltip_window_mode.get;
+           Elm.Widget.Item.tooltip_style { get; set; }
+           Elm.Widget.Item.tooltip_window_mode { get; set; }
            Elm.Widget.Item.tooltip_content_cb_set;
            Elm.Widget.Item.tooltip_unset;
-           Elm.Widget.Item.cursor.set;
+           Elm.Widget.Item.cursor { set; }
            Elm.Widget.Item.cursor_unset;
-           Elm.Interface.Atspi_Accessible.name.get;
-           Elm.Interface.Atspi_Accessible.state_set.get;
+           Elm.Interface.Atspi_Accessible.name { get; }
+           Elm.Interface.Atspi_Accessible.state_set { get; }
       }
 }

@@ -9,18 +9,22 @@ static int _edje_collection_cache_size = 16;
 
 EAPI void
 edje_cache_emp_alloc(Edje_Part_Collection_Directory_Entry *ce)
-{  /* Init Eina Mempools this is also used in edje_pick.c */
-  char *buffer;
-#define INIT_EMP(Tp, Sz, Ce)                                                        \
-  buffer = alloca(strlen(ce->entry) + strlen(#Tp) + 2);                             \
-  sprintf(buffer, "%s/%s", ce->entry, #Tp);                                         \
-  Ce->mp.Tp = eina_mempool_add("one_big", buffer, NULL, sizeof (Sz), Ce->count.Tp); \
-  _emp_##Tp = Ce->mp.Tp;
+{
+   /* Init Eina Mempools this is also used in edje_pick.c */
+   char *buffer;
+   ce->mp = calloc(1, sizeof(Edje_Part_Collection_Directory_Entry_Mp));
+   if (!ce->mp) return;
 
-#define INIT_EMP_BOTH(Tp, Sz, Ce)                           \
-  INIT_EMP(Tp, Sz, Ce)                                      \
-  Ce->mp_rtl.Tp = eina_mempool_add("one_big", buffer, NULL, \
-                                   sizeof (Sz), Ce->count.Tp);
+#define INIT_EMP(Tp, Sz, Ce) \
+  buffer = alloca(strlen(ce->entry) + strlen(#Tp) + 2); \
+  sprintf(buffer, "%s/%s", ce->entry, #Tp); \
+  Ce->mp->mp.Tp = eina_mempool_add("one_big", buffer, NULL, sizeof (Sz), Ce->count.Tp); \
+  _emp_##Tp = Ce->mp->mp.Tp;
+
+#define INIT_EMP_BOTH(Tp, Sz, Ce) \
+  INIT_EMP(Tp, Sz, Ce) \
+  Ce->mp->mp_rtl.Tp = eina_mempool_add("one_big", buffer, NULL, \
+                                       sizeof(Sz), Ce->count.Tp);
 
   INIT_EMP_BOTH(RECTANGLE, Edje_Part_Description_Common, ce);
   INIT_EMP_BOTH(TEXT, Edje_Part_Description_Text, ce);
@@ -45,43 +49,47 @@ EAPI void
 edje_cache_emp_free(Edje_Part_Collection_Directory_Entry *ce)
 {  /* Free Eina Mempools this is also used in edje_pick.c */
    /* Destroy all part and description. */
-  eina_mempool_del(ce->mp.RECTANGLE);
-  eina_mempool_del(ce->mp.TEXT);
-  eina_mempool_del(ce->mp.IMAGE);
-  eina_mempool_del(ce->mp.PROXY);
-  eina_mempool_del(ce->mp.SWALLOW);
-  eina_mempool_del(ce->mp.TEXTBLOCK);
-  eina_mempool_del(ce->mp.GROUP);
-  eina_mempool_del(ce->mp.BOX);
-  eina_mempool_del(ce->mp.TABLE);
-  eina_mempool_del(ce->mp.EXTERNAL);
-  eina_mempool_del(ce->mp.SPACER);
-  eina_mempool_del(ce->mp.SNAPSHOT);
-  eina_mempool_del(ce->mp.MESH_NODE);
-  eina_mempool_del(ce->mp.LIGHT);
-  eina_mempool_del(ce->mp.CAMERA);
-  eina_mempool_del(ce->mp.VECTOR);
-  eina_mempool_del(ce->mp.part);
-  memset(&ce->mp, 0, sizeof (ce->mp));
+   ce->ref = NULL;
 
-  eina_mempool_del(ce->mp_rtl.RECTANGLE);
-  eina_mempool_del(ce->mp_rtl.TEXT);
-  eina_mempool_del(ce->mp_rtl.IMAGE);
-  eina_mempool_del(ce->mp_rtl.PROXY);
-  eina_mempool_del(ce->mp_rtl.SWALLOW);
-  eina_mempool_del(ce->mp_rtl.TEXTBLOCK);
-  eina_mempool_del(ce->mp_rtl.GROUP);
-  eina_mempool_del(ce->mp_rtl.BOX);
-  eina_mempool_del(ce->mp_rtl.TABLE);
-  eina_mempool_del(ce->mp_rtl.EXTERNAL);
-  eina_mempool_del(ce->mp_rtl.SPACER);
-  eina_mempool_del(ce->mp_rtl.SNAPSHOT);
-  eina_mempool_del(ce->mp_rtl.MESH_NODE);
-  eina_mempool_del(ce->mp_rtl.LIGHT);
-  eina_mempool_del(ce->mp_rtl.CAMERA);
-  eina_mempool_del(ce->mp_rtl.VECTOR);
-  memset(&ce->mp_rtl, 0, sizeof (ce->mp_rtl));
-  ce->ref = NULL;
+   if (!ce->mp) return;
+   eina_mempool_del(ce->mp->mp.RECTANGLE);
+   eina_mempool_del(ce->mp->mp.TEXT);
+   eina_mempool_del(ce->mp->mp.IMAGE);
+   eina_mempool_del(ce->mp->mp.PROXY);
+   eina_mempool_del(ce->mp->mp.SWALLOW);
+   eina_mempool_del(ce->mp->mp.TEXTBLOCK);
+   eina_mempool_del(ce->mp->mp.GROUP);
+   eina_mempool_del(ce->mp->mp.BOX);
+   eina_mempool_del(ce->mp->mp.TABLE);
+   eina_mempool_del(ce->mp->mp.EXTERNAL);
+   eina_mempool_del(ce->mp->mp.SPACER);
+   eina_mempool_del(ce->mp->mp.SNAPSHOT);
+   eina_mempool_del(ce->mp->mp.MESH_NODE);
+   eina_mempool_del(ce->mp->mp.LIGHT);
+   eina_mempool_del(ce->mp->mp.CAMERA);
+   eina_mempool_del(ce->mp->mp.VECTOR);
+   eina_mempool_del(ce->mp->mp.part);
+   memset(&ce->mp->mp, 0, sizeof(ce->mp->mp));
+
+   eina_mempool_del(ce->mp->mp_rtl.RECTANGLE);
+   eina_mempool_del(ce->mp->mp_rtl.TEXT);
+   eina_mempool_del(ce->mp->mp_rtl.IMAGE);
+   eina_mempool_del(ce->mp->mp_rtl.PROXY);
+   eina_mempool_del(ce->mp->mp_rtl.SWALLOW);
+   eina_mempool_del(ce->mp->mp_rtl.TEXTBLOCK);
+   eina_mempool_del(ce->mp->mp_rtl.GROUP);
+   eina_mempool_del(ce->mp->mp_rtl.BOX);
+   eina_mempool_del(ce->mp->mp_rtl.TABLE);
+   eina_mempool_del(ce->mp->mp_rtl.EXTERNAL);
+   eina_mempool_del(ce->mp->mp_rtl.SPACER);
+   eina_mempool_del(ce->mp->mp_rtl.SNAPSHOT);
+   eina_mempool_del(ce->mp->mp_rtl.MESH_NODE);
+   eina_mempool_del(ce->mp->mp_rtl.LIGHT);
+   eina_mempool_del(ce->mp->mp_rtl.CAMERA);
+   eina_mempool_del(ce->mp->mp_rtl.VECTOR);
+   memset(&ce->mp->mp_rtl, 0, sizeof(ce->mp->mp_rtl));
+
+   free(ce->mp);
 }
 
 void
@@ -270,6 +278,12 @@ _edje_file_coll_open(Edje_File *edf, const char *coll)
    return edc;
 }
 
+// XXX: this is not pretty. some oooooold edje files do not store strings
+// in their dictionary for hashes. this works around crashes loading such
+// files
+extern size_t  _edje_data_string_mapping_size;
+extern void   *_edje_data_string_mapping;
+
 static Edje_File *
 _edje_file_open(const Eina_File *f, int *error_ret, time_t mtime, Eina_Bool coll)
 {
@@ -281,6 +295,8 @@ _edje_file_open(const Eina_File *f, int *error_ret, time_t mtime, Eina_Bool coll
    Eina_List *l, *ll;
    Eet_File *ef;
    char *name;
+   void *mapping;
+   size_t mapping_size;
 
    ef = eet_mmap(f);
    if (!ef)
@@ -288,7 +304,21 @@ _edje_file_open(const Eina_File *f, int *error_ret, time_t mtime, Eina_Bool coll
         *error_ret = EDJE_LOAD_ERROR_UNKNOWN_FORMAT;
         return NULL;
      }
+   // XXX: ancient edje file workaround
+   mapping = eina_file_map_all((Eina_File *)f, EINA_FILE_SEQUENTIAL);
+   if (mapping)
+     {
+        mapping_size = eina_file_size_get(f);
+        _edje_data_string_mapping = mapping;
+        _edje_data_string_mapping_size = mapping_size;
+     }
    edf = eet_data_read(ef, _edje_edd_edje_file, "edje/file");
+   // XXX: ancient edje file workaround
+   if (mapping)
+     {
+        eina_file_map_free((Eina_File *)f, mapping);
+        _edje_data_string_mapping = NULL;
+     }
    if (!edf)
      {
         *error_ret = EDJE_LOAD_ERROR_CORRUPT_FILE;

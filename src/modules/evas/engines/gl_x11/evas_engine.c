@@ -80,7 +80,7 @@ glsym_func_void_ptr glsym_evas_gl_common_current_context_get = NULL;
 #ifdef GL_GLES
 
 _eng_fn  (*glsym_eglGetProcAddress)            (const char *a) = NULL;
-void    *(*glsym_eglCreateImage)               (EGLDisplay a, EGLContext b, EGLenum c, EGLClientBuffer d, const int *e) = NULL;
+EGLImageKHR (*glsym_evas_gl_common_eglCreateImage)(EGLDisplay a, EGLContext b, EGLenum c, EGLClientBuffer d, const EGLAttrib *e) = NULL;
 void     (*glsym_eglDestroyImage)              (EGLDisplay a, void *b) = NULL;
 void     (*glsym_glEGLImageTargetTexture2DOES) (int a, void *b)  = NULL;
 unsigned int   (*glsym_eglSwapBuffersWithDamage) (EGLDisplay a, void *b, const EGLint *d, EGLint c) = NULL;
@@ -150,7 +150,7 @@ evgl_eng_evas_surface_get(void *data)
 
 #ifdef GL_GLES
    if (eng_get_ob(re))
-      return (void*)eng_get_ob(re)->egl_surface[0];
+      return (void*)eng_get_ob(re)->egl_surface;
 #else
    if (eng_get_ob(re))
       return (void*)eng_get_ob(re)->win;
@@ -494,6 +494,15 @@ evgl_eng_context_create(void *data, void *share_ctx, Evas_GL_Context_Version ver
    EGLContext context = EGL_NO_CONTEXT;
    int context_attrs[3];
 
+   /* Upgrade GLES 2 to GLES 3.
+    *
+    * FIXME: Maybe we don't want to do this, unless we have no choice.
+    * An alternative would be to use eglCreateImage() to share the indirect
+    * rendering FBO between two contexts of incompatible version. For now,
+    * we always upgrade the real context version to GLES 3 when it's available.
+    * But this leads to some issues, namely that the list of extensions is
+    * different, and MSAA surfaces also work differently.
+    */
    if (eng_get_ob(re)->gles3 && (version >= EVAS_GL_GLES_2_X))
      version = 3;
 
@@ -520,7 +529,7 @@ evgl_eng_context_create(void *data, void *share_ctx, Evas_GL_Context_Version ver
      {
         context = eglCreateContext(eng_get_ob(re)->egl_disp,
                                    eng_get_ob(re)->egl_config,
-                                   eng_get_ob(re)->egl_context[0], // Evas' GL Context
+                                   eng_get_ob(re)->egl_context, // Evas' GL Context
                                    context_attrs);
      }
 
@@ -1256,6 +1265,12 @@ static const EVGL_Interface evgl_funcs =
 
 //----------------------------------------------------------//
 
+static inline int
+_has_ext(const char *exts, const char *ext)
+{
+   if (!exts || !ext) return EINA_FALSE;
+   return strstr(exts, ext) != NULL;
+}
 
 static void
 gl_symbols(void)
@@ -1299,125 +1314,121 @@ gl_symbols(void)
    LINK2GENERIC(evas_gl_common_current_context_get);
    LINK2GENERIC(evas_gl_common_shaders_flush);
 
+#define FINDSYM(dst, sym, typ) if (!dst) dst = (typ)dlsym(RTLD_DEFAULT, sym);
 #ifdef GL_GLES
-#define FINDSYM(dst, sym, typ) \
-   if (glsym_eglGetProcAddress) { \
-      if (!dst) dst = (typ)glsym_eglGetProcAddress(sym); \
-   } else { \
-      if (!dst) dst = (typ)dlsym(RTLD_DEFAULT, sym); \
-   }
 
    FINDSYM(glsym_eglGetProcAddress, "eglGetProcAddressKHR", glsym_func_eng_fn);
    FINDSYM(glsym_eglGetProcAddress, "eglGetProcAddressEXT", glsym_func_eng_fn);
    FINDSYM(glsym_eglGetProcAddress, "eglGetProcAddressARB", glsym_func_eng_fn);
    FINDSYM(glsym_eglGetProcAddress, "eglGetProcAddress", glsym_func_eng_fn);
-   FINDSYM(glsym_eglQueryWaylandBufferWL, "eglQueryWaylandBufferWL",
-           glsym_func_uint)
+
 #else
-#define FINDSYM(dst, sym, typ) \
-   if (glsym_glXGetProcAddress) { \
-      if (!dst) dst = (typ)glsym_glXGetProcAddress(sym); \
-   } else { \
-      if (!dst) dst = (typ)dlsym(RTLD_DEFAULT, sym); \
-   }
 
    FINDSYM(glsym_glXGetProcAddress, "glXGetProcAddressEXT", glsym_func_eng_fn);
    FINDSYM(glsym_glXGetProcAddress, "glXGetProcAddressARB", glsym_func_eng_fn);
    FINDSYM(glsym_glXGetProcAddress, "glXGetProcAddress", glsym_func_eng_fn);
+
 #endif
+#undef FINDSYM
 
    done = 1;
 }
 
 void
-eng_gl_symbols(Eina_Bool noext_glXCreatePixmap)
+eng_gl_symbols(Outbuf *ob)
 {
    static int done = 0;
+   const char *exts;
 
    if (done) return;
 
+   /* GetProcAddress() may not return NULL, even if the extension is not
+    * supported. Nvidia drivers since version 360 never return NULL, thus
+    * we need to always match the function name with their full extension
+    * name. Other drivers tend to return NULL for glX/egl prefixed names, but
+    * this could change in the future.
+    *
+    * -- jpeg, 2016/08/04
+    */
+
 #ifdef GL_GLES
-   (void) noext_glXCreatePixmap;
+#define FINDSYM(dst, sym, ext, typ) do { \
+   if (!dst) { \
+      if (_has_ext(exts, ext) && glsym_eglGetProcAddress) \
+        dst = (typ) glsym_eglGetProcAddress(sym); \
+      if (!dst) \
+        dst = (typ) dlsym(RTLD_DEFAULT, sym); \
+   }} while (0)
 
-#define FINDSYM(dst, sym, typ) \
-   if (glsym_eglGetProcAddress) { \
-      if (!dst) dst = (typ)glsym_eglGetProcAddress(sym); \
-   } else { \
-      if (!dst) dst = (typ)dlsym(RTLD_DEFAULT, sym); \
-   }
-
+   // Find GL extensions
    glsym_evas_gl_symbols((void*)glsym_eglGetProcAddress);
 
-   FINDSYM(glsym_eglCreateImage, "eglCreateImageKHR", glsym_func_void_ptr);
-   FINDSYM(glsym_eglCreateImage, "eglCreateImageEXT", glsym_func_void_ptr);
-   FINDSYM(glsym_eglCreateImage, "eglCreateImageARB", glsym_func_void_ptr);
-   FINDSYM(glsym_eglCreateImage, "eglCreateImage", glsym_func_void_ptr);
+   // Find EGL extensions
+   exts = eglQueryString(ob->egl_disp, EGL_EXTENSIONS);
 
-   FINDSYM(glsym_eglDestroyImage, "eglDestroyImageKHR", glsym_func_void);
-   FINDSYM(glsym_eglDestroyImage, "eglDestroyImageEXT", glsym_func_void);
-   FINDSYM(glsym_eglDestroyImage, "eglDestroyImageARB", glsym_func_void);
-   FINDSYM(glsym_eglDestroyImage, "eglDestroyImage", glsym_func_void);
+   LINK2GENERIC(evas_gl_common_eglCreateImage);
 
-   FINDSYM(glsym_glEGLImageTargetTexture2DOES, "glEGLImageTargetTexture2DOES", glsym_func_void);
+   FINDSYM(glsym_eglDestroyImage, "eglDestroyImage", NULL, glsym_func_void);
+   FINDSYM(glsym_eglDestroyImage, "eglDestroyImageKHR", "EGL_KHR_image_base", glsym_func_void);
+   FINDSYM(glsym_eglDestroyImage, "eglDestroyImageKHR", "EGL_KHR_image", glsym_func_void);
 
-   FINDSYM(glsym_eglSwapBuffersWithDamage, "eglSwapBuffersWithDamageEXT", glsym_func_uint);
-   FINDSYM(glsym_eglSwapBuffersWithDamage, "eglSwapBuffersWithDamageINTEL", glsym_func_uint);
-   FINDSYM(glsym_eglSwapBuffersWithDamage, "eglSwapBuffersWithDamage", glsym_func_uint);
-   FINDSYM(glsym_eglSetDamageRegionKHR, "eglSetDamageRegionKHR", glsym_func_uint);
+   FINDSYM(glsym_eglSwapBuffersWithDamage, "eglSwapBuffersWithDamage", NULL, glsym_func_uint);
+   FINDSYM(glsym_eglSwapBuffersWithDamage, "eglSwapBuffersWithDamageEXT", "EGL_EXT_swap_buffers_with_damage", glsym_func_uint);
+   FINDSYM(glsym_eglSwapBuffersWithDamage, "eglSwapBuffersWithDamageKHR", "EGL_KHR_swap_buffers_with_damage", glsym_func_uint);
+   FINDSYM(glsym_eglSwapBuffersWithDamage, "eglSwapBuffersWithDamageINTEL", "EGL_INTEL_swap_buffers_with_damage", glsym_func_uint);
 
+   FINDSYM(glsym_eglSetDamageRegionKHR, "eglSetDamageRegionKHR", "EGL_KHR_partial_update", glsym_func_uint);
+
+   FINDSYM(glsym_eglQueryWaylandBufferWL, "eglQueryWaylandBufferWL", "EGL_WL_bind_wayland_display", glsym_func_uint);
+
+   // This is a GL extension
+   exts = (const char *) glGetString(GL_EXTENSIONS);
+   FINDSYM(glsym_glEGLImageTargetTexture2DOES, "glEGLImageTargetTexture2DOES", "GL_OES_EGL_image", glsym_func_void);
+   FINDSYM(glsym_glEGLImageTargetTexture2DOES, "glEGLImageTargetTexture2DOES", "GL_OES_EGL_image_external", glsym_func_void);
 
 #else
-#define FINDSYM(dst, sym, typ) \
-   if (glsym_glXGetProcAddress) { \
-      if (!dst) dst = (typ)glsym_glXGetProcAddress(sym); \
-   } else { \
-      if (!dst) dst = (typ)dlsym(RTLD_DEFAULT, sym); \
-   }
 
+#define FINDSYM(dst, sym, ext, typ) do { \
+   if (!dst) { \
+      if (_has_ext(exts, ext) && glsym_glXGetProcAddress) \
+        dst = (typ) glsym_glXGetProcAddress(sym); \
+      if (!dst) \
+        dst = (typ) dlsym(RTLD_DEFAULT, sym); \
+   }} while (0)
+
+   // Find GL extensions
    glsym_evas_gl_symbols((void*)glsym_glXGetProcAddress);
 
-   if (noext_glXCreatePixmap)
-     {
-        /* Note for nvidia >= 360:
-         * glXBindTexImage{EXT,ARB} should be preferred over glXBindTexImage
-         * glXCreatePixmap should be preferred over glXCreatePixmap{EXT,ARB}
-         */
-        FINDSYM(glsym_glXCreatePixmap, "glXCreatePixmap", glsym_func_xid);
-        FINDSYM(glsym_glXDestroyPixmap, "glXDestroyPixmap", glsym_func_void);
-     }
+   // Find GLX extensions
+   exts = glXQueryExtensionsString((Display *) ob->disp, ob->screen);
 
-   FINDSYM(glsym_glXBindTexImage, "glXBindTexImageEXT", glsym_func_void);
-   FINDSYM(glsym_glXBindTexImage, "glXBindTexImageARB", glsym_func_void);
-   FINDSYM(glsym_glXBindTexImage, "glXBindTexImage", glsym_func_void);
+   FINDSYM(glsym_glXBindTexImage, "glXBindTexImage", NULL, glsym_func_void);
+   FINDSYM(glsym_glXBindTexImage, "glXBindTexImageEXT", "GLX_EXT_texture_from_pixmap", glsym_func_void);
+   FINDSYM(glsym_glXBindTexImage, "glXBindTexImageARB", "GLX_ARB_render_texture", glsym_func_void);
 
-   FINDSYM(glsym_glXReleaseTexImage, "glXReleaseTexImageEXT", glsym_func_void);
-   FINDSYM(glsym_glXReleaseTexImage, "glXReleaseTexImageARB", glsym_func_void);
-   FINDSYM(glsym_glXReleaseTexImage, "glXReleaseTexImage", glsym_func_void);
+   FINDSYM(glsym_glXReleaseTexImage, "glXReleaseTexImage", NULL, glsym_func_void);
+   FINDSYM(glsym_glXReleaseTexImage, "glXReleaseTexImageEXT", "GLX_EXT_texture_from_pixmap", glsym_func_void);
+   FINDSYM(glsym_glXReleaseTexImage, "glXReleaseTexImageARB", "GLX_ARB_render_texture", glsym_func_void);
 
-   FINDSYM(glsym_glXGetVideoSync, "glXGetVideoSyncSGI", glsym_func_int);
+   FINDSYM(glsym_glXGetVideoSync, "glXGetVideoSyncSGI", "GLX_SGI_video_sync", glsym_func_int);
+   FINDSYM(glsym_glXWaitVideoSync, "glXWaitVideoSyncSGI", "GLX_SGI_video_sync", glsym_func_int);
 
-   FINDSYM(glsym_glXWaitVideoSync, "glXWaitVideoSyncSGI", glsym_func_int);
+   // GLX 1.3
+   FINDSYM(glsym_glXCreatePixmap, "glXCreatePixmap", NULL, glsym_func_xid);
+   FINDSYM(glsym_glXDestroyPixmap, "glXDestroyPixmap", NULL, glsym_func_void);
+   FINDSYM(glsym_glXQueryDrawable, "glXQueryDrawable", NULL, glsym_func_int);
 
-   FINDSYM(glsym_glXCreatePixmap, "glXCreatePixmapEXT", glsym_func_xid);
-   FINDSYM(glsym_glXCreatePixmap, "glXCreatePixmapARB", glsym_func_xid);
-   FINDSYM(glsym_glXCreatePixmap, "glXCreatePixmap", glsym_func_xid);
+   // swap interval: MESA and SGI take (interval)
+   FINDSYM(glsym_glXSwapIntervalSGI, "glXSwapIntervalMESA", "GLX_MESA_swap_control", glsym_func_int);
+   FINDSYM(glsym_glXSwapIntervalSGI, "glXSwapIntervalSGI", "GLX_SGI_swap_control", glsym_func_int);
 
-   FINDSYM(glsym_glXDestroyPixmap, "glXDestroyPixmapEXT", glsym_func_void);
-   FINDSYM(glsym_glXDestroyPixmap, "glXDestroyPixmapARB", glsym_func_void);
-   FINDSYM(glsym_glXDestroyPixmap, "glXDestroyPixmap", glsym_func_void);
+   // swap interval: EXT takes (dpy, drawable, interval)
+   FINDSYM(glsym_glXSwapIntervalEXT, "glXSwapIntervalEXT", "GLX_EXT_swap_control", glsym_func_void);
 
-   FINDSYM(glsym_glXQueryDrawable, "glXQueryDrawable", glsym_func_int);
-   FINDSYM(glsym_glXQueryDrawable, "glXQueryDrawableEXT", glsym_func_int);
-   FINDSYM(glsym_glXQueryDrawable, "glXQueryDrawableARB", glsym_func_int);
-
-   FINDSYM(glsym_glXSwapIntervalSGI, "glXSwapIntervalMESA", glsym_func_int);
-   FINDSYM(glsym_glXSwapIntervalSGI, "glXSwapIntervalSGI", glsym_func_int);
-
-   FINDSYM(glsym_glXSwapIntervalEXT, "glXSwapIntervalEXT", glsym_func_void);
-
-   FINDSYM(glsym_glXReleaseBuffersMESA, "glXReleaseBuffersMESA", glsym_func_void);
+   FINDSYM(glsym_glXReleaseBuffersMESA, "glXReleaseBuffersMESA", "GLX_MESA_release_buffers", glsym_func_void);
 
 #endif
+#undef FINDSYM
 
    done = 1;
 }
@@ -1580,74 +1591,17 @@ _re_winfree(Render_Engine *re)
    eng_window_unsurf(eng_get_ob(re));
 }
 
-static int
-eng_setup(Evas *eo_e, void *in)
+static void *
+eng_setup(void *in, unsigned int w, unsigned int h)
 {
-   Evas_Public_Data *e = eo_data_scope_get(eo_e, EVAS_CANVAS_CLASS);
-   Render_Engine *re;
-   Evas_Engine_Info_GL_X11 *info;
-   Render_Engine_Swap_Mode swap_mode = MODE_FULL;
+   Evas_Engine_Info_GL_X11 *info = in;
+   Render_Engine *re = NULL;
+   Outbuf *ob = NULL;
+   Render_Engine_Merge_Mode merge_mode = MERGE_SMART;
+   Render_Engine_Swap_Mode swap_mode;
    const char *s;
 
-   info = (Evas_Engine_Info_GL_X11 *)in;
-
-   if ((s = getenv("EVAS_GL_SWAP_MODE")))
-     {
-        if ((!strcasecmp(s, "full")) ||
-            (!strcasecmp(s, "f")))
-          swap_mode = MODE_FULL;
-        else if ((!strcasecmp(s, "copy")) ||
-                 (!strcasecmp(s, "c")))
-          swap_mode = MODE_COPY;
-        else if ((!strcasecmp(s, "double")) ||
-                 (!strcasecmp(s, "d")) ||
-                 (!strcasecmp(s, "2")))
-          swap_mode = MODE_DOUBLE;
-        else if ((!strcasecmp(s, "triple")) ||
-                 (!strcasecmp(s, "t")) ||
-                 (!strcasecmp(s, "3")))
-          swap_mode = MODE_TRIPLE;
-        else if ((!strcasecmp(s, "quadruple")) ||
-                 (!strcasecmp(s, "q")) ||
-                 (!strcasecmp(s, "4")))
-          swap_mode = MODE_QUADRUPLE;
-     }
-   else
-     {
-// in most gl implementations - egl and glx here that we care about the TEND
-// to either swap or copy backbuffer and front buffer, but strictly that is
-// not true. technically backbuffer content is totally undefined after a swap
-// and thus you MUST re-render all of it, thus MODE_FULL
-        swap_mode = MODE_FULL;
-// BUT... reality is that lmost every implementation copies or swaps so
-// triple buffer mode can be used as it is a superset of double buffer and
-// copy (though using those explicitly is more efficient). so let's play with
-// triple buffer mdoe as a default and see.
-//        re->mode = MODE_TRIPLE;
-// XXX: note - the above seems to break on some older intel chipsets and
-// drivers. it seems we CANT depend on backbuffer staying around. bugger!
-        switch (info->swap_mode)
-          {
-           case EVAS_ENGINE_GL_X11_SWAP_MODE_FULL:
-             swap_mode = MODE_FULL;
-             break;
-           case EVAS_ENGINE_GL_X11_SWAP_MODE_COPY:
-             swap_mode = MODE_COPY;
-             break;
-           case EVAS_ENGINE_GL_X11_SWAP_MODE_DOUBLE:
-             swap_mode = MODE_DOUBLE;
-             break;
-           case EVAS_ENGINE_GL_X11_SWAP_MODE_TRIPLE:
-             swap_mode = MODE_TRIPLE;
-             break;
-           case EVAS_ENGINE_GL_X11_SWAP_MODE_QUADRUPLE:
-             swap_mode = MODE_QUADRUPLE;
-             break;
-           default:
-             swap_mode = MODE_AUTO;
-             break;
-          }
-     }
+   swap_mode = evas_render_engine_gl_swap_mode_get(info->swap_mode);
 
    // Set this env var to dump files every frame
    // Or set the global var in gdb to 1|0 to turn it on and off
@@ -1672,184 +1626,170 @@ eng_setup(Evas *eo_e, void *in)
      }
 
 
-   if (!e->engine.data.output)
+   if (!initted)
      {
-        Outbuf *ob;
-        Render_Engine_Merge_Mode merge_mode = MERGE_SMART;
-
-        if (!initted)
-          {
-             evas_common_init();
-             glsym_evas_gl_preload_init();
-          }
+        glsym_evas_gl_preload_init();
+     }
 
 #ifdef GL_GLES
 #else
-        int eb, evb;
+   int eb, evb;
 
-        if (!glXQueryExtension(info->info.display, &eb, &evb)) return 0;
+   if (!glXQueryExtension(info->info.display, &eb, &evb)) return 0;
 #endif
-        re = calloc(1, sizeof(Render_Engine));
-        if (!re) return 0;
-        ob = eng_window_new(info, eo_e,
-                            info->info.display,
-                            info->info.drawable,
-                            info->info.screen,
-                            info->info.visual,
-                            info->info.colormap,
-                            info->info.depth,
-                            e->output.w, e->output.h,
-                            info->indirect,
-                            info->info.destination_alpha,
-                            info->info.rotation,
-                            swap_mode,
-                            info->depth_bits,
-                            info->stencil_bits,
-                            info->msaa_bits);
-        if (!ob)
-          {
-             free(re);
-             return 0;
-          }
+   re = calloc(1, sizeof(Render_Engine));
+   if (!re) return NULL;
 
-        if (!evas_render_engine_gl_generic_init(&re->generic, ob,
-                                                eng_outbuf_swap_mode,
-                                                eng_outbuf_get_rot,
-                                                eng_outbuf_reconfigure,
-                                                eng_outbuf_region_first_rect,
-                                                eng_outbuf_new_region_for_update,
-                                                eng_outbuf_push_updated_region,
-                                                eng_outbuf_push_free_region_for_update,
-                                                eng_outbuf_idle_flush,
-                                                eng_outbuf_flush,
-                                                eng_window_free,
-                                                eng_window_use,
-                                                eng_outbuf_gl_context_get,
-                                                eng_outbuf_egl_display_get,
-                                                eng_gl_context_new,
-                                                eng_gl_context_use,
-                                                &evgl_funcs,
-                                                e->output.w, e->output.h))
-          {
-             eng_window_free(ob);
-             free(re);
-             return 0;
-          }
+   ob = eng_window_new(info,
+                       info->info.display,
+                       info->info.drawable,
+                       info->info.screen,
+                       info->info.visual,
+                       info->info.colormap,
+                       info->info.depth,
+                       w, h,
+                       info->indirect,
+                       info->info.destination_alpha,
+                       info->info.rotation,
+                       swap_mode,
+                       info->depth_bits,
+                       info->stencil_bits,
+                       info->msaa_bits);
+   if (!ob) goto on_error;
 
-        e->engine.data.output = re;
-        gl_wins++;
+   if (!evas_render_engine_gl_generic_init(&re->generic, ob,
+                                           eng_outbuf_swap_mode,
+                                           eng_outbuf_get_rot,
+                                           eng_outbuf_reconfigure,
+                                           eng_outbuf_region_first_rect,
+#ifdef GL_GLES
+                                           eng_outbuf_damage_region_set,
+#else
+                                           NULL,
+#endif
+                                           eng_outbuf_new_region_for_update,
+                                           eng_outbuf_push_updated_region,
+                                           eng_outbuf_push_free_region_for_update,
+                                           eng_outbuf_idle_flush,
+                                           eng_outbuf_flush,
+                                           NULL,
+                                           eng_window_free,
+                                           eng_window_use,
+                                           eng_outbuf_gl_context_get,
+                                           eng_outbuf_egl_display_get,
+                                           eng_gl_context_new,
+                                           eng_gl_context_use,
+                                           &evgl_funcs,
+                                           w, h))
+     goto on_error;
 
-        if ((s = getenv("EVAS_GL_PARTIAL_MERGE")))
-          {
-             if ((!strcmp(s, "bounding")) ||
-                 (!strcmp(s, "b")))
-               merge_mode = MERGE_BOUNDING;
-             else if ((!strcmp(s, "full")) ||
-                      (!strcmp(s, "f")))
-               merge_mode = MERGE_FULL;
-             else if ((!strcmp(s, "smart")) ||
-                      (!strcmp(s, "s")))
-               merge_mode = MERGE_SMART;
-          }
+   gl_wins++;
 
-        evas_render_engine_software_generic_merge_mode_set(&re->generic.software, merge_mode);
-
-        if (!initted)
-          {
-             gl_extn_veto(re);
-//             evgl_engine_init(re, &evgl_funcs);
-             initted = 1;
-          }
-
-     }
-   else
+   if ((s = getenv("EVAS_GL_PARTIAL_MERGE")))
      {
-        re = e->engine.data.output;
-        if (eng_get_ob(re) && _re_wincheck(eng_get_ob(re)))
-          {
-             if ((info->info.display != eng_get_ob(re)->disp) ||
-                 (info->info.drawable != eng_get_ob(re)->win) ||
-                 (info->info.screen != eng_get_ob(re)->screen) ||
-                 (info->info.visual != eng_get_ob(re)->visual) ||
-                 (info->info.colormap != eng_get_ob(re)->colormap) ||
-                 (info->info.depth != eng_get_ob(re)->depth) ||
-                 (info->depth_bits != eng_get_ob(re)->depth_bits) ||
-                 (info->stencil_bits != eng_get_ob(re)->stencil_bits) ||
-                 (info->msaa_bits != eng_get_ob(re)->msaa_bits) ||
-                 (info->info.destination_alpha != eng_get_ob(re)->alpha))
-               {
-                  Outbuf *ob, *ob_old;
-
-                  ob_old = re->generic.software.ob;
-                  re->generic.software.ob = NULL;
-                  gl_wins--;
-
-                  ob = eng_window_new(info, eo_e,
-                                      info->info.display,
-                                      info->info.drawable,
-                                      info->info.screen,
-                                      info->info.visual,
-                                      info->info.colormap,
-                                      info->info.depth,
-                                      e->output.w, e->output.h,
-                                      info->indirect,
-                                      info->info.destination_alpha,
-                                      info->info.rotation,
-                                      swap_mode,
-                                      info->depth_bits,
-                                      info->stencil_bits,
-                                      info->msaa_bits);
-                  if (!ob)
-                    {
-                       if (ob_old) eng_window_free(ob_old);
-                       free(re);
-                       return 0;
-                    }
-                  eng_window_use(ob);
-                  if (ob_old) eng_window_free(ob_old);
-                  evas_render_engine_software_generic_update(&re->generic.software, ob,
-                                                             e->output.w, e->output.h);
-
-                  gl_wins++;
-               }
-             else if ((eng_get_ob(re)->w != e->output.w) ||
-                      (eng_get_ob(re)->h != e->output.h) ||
-                      (eng_get_ob(re)->info->info.rotation != eng_get_ob(re)->rot))
-               {
-                  eng_outbuf_reconfigure(eng_get_ob(re), e->output.w, e->output.h, eng_get_ob(re)->info->info.rotation, 0);
-                  if (re->generic.software.tb)
-                    evas_common_tilebuf_free(re->generic.software.tb);
-                  re->generic.software.tb = evas_common_tilebuf_new(e->output.w, e->output.h);
-                  if (re->generic.software.tb)
-                    evas_common_tilebuf_set_tile_size(re->generic.software.tb,
-                                                      TILESIZE, TILESIZE);
-               }
-          }
-     }
-   if (!eng_get_ob(re))
-     {
-        free(re);
-        return 0;
+        if ((!strcmp(s, "bounding")) ||
+            (!strcmp(s, "b")))
+          merge_mode = MERGE_BOUNDING;
+        else if ((!strcmp(s, "full")) ||
+                 (!strcmp(s, "f")))
+          merge_mode = MERGE_FULL;
+        else if ((!strcmp(s, "smart")) ||
+                 (!strcmp(s, "s")))
+          merge_mode = MERGE_SMART;
      }
 
-   if (!e->engine.data.output)
+   evas_render_engine_software_generic_merge_mode_set(&re->generic.software, merge_mode);
+
+   if (!initted)
      {
-        if (eng_get_ob(re))
-          {
-             eng_window_free(eng_get_ob(re));
-             gl_wins--;
-          }
-        free(re);
-        return 0;
+        gl_extn_veto(re);
+        //             evgl_engine_init(re, &evgl_funcs);
+        initted = 1;
      }
 
    if (re->generic.software.tb)
      evas_render_engine_software_generic_tile_strict_set
        (&re->generic.software, EINA_TRUE);
 
-   if (!e->engine.data.context)
-     e->engine.data.context =
-     e->engine.func->context_new(e->engine.data.output);
+   eng_window_use(eng_get_ob(re));
+
+   return re;
+
+ on_error:
+   if (ob) eng_window_free(ob);
+   free(re);
+   return NULL;
+}
+
+static int
+eng_update(void *data, void *in, unsigned int w, unsigned int h)
+{
+   Evas_Engine_Info_GL_X11 *info = in;
+   Render_Engine *re = data;
+   Render_Engine_Swap_Mode swap_mode;
+
+   swap_mode = evas_render_engine_gl_swap_mode_get(info->swap_mode);
+
+   if (eng_get_ob(re) && _re_wincheck(eng_get_ob(re)))
+     {
+        if ((info->info.display != eng_get_ob(re)->disp) ||
+            (info->info.drawable != eng_get_ob(re)->win) ||
+            (info->info.screen != eng_get_ob(re)->screen) ||
+            (info->info.visual != eng_get_ob(re)->visual) ||
+            (info->info.colormap != eng_get_ob(re)->colormap) ||
+            (info->info.depth != eng_get_ob(re)->depth) ||
+            (info->depth_bits != eng_get_ob(re)->depth_bits) ||
+            (info->stencil_bits != eng_get_ob(re)->stencil_bits) ||
+            (info->msaa_bits != eng_get_ob(re)->msaa_bits) ||
+            (info->info.destination_alpha != eng_get_ob(re)->alpha))
+          {
+             Outbuf *ob, *ob_old;
+
+             ob_old = re->generic.software.ob;
+             re->generic.software.ob = NULL;
+             gl_wins--;
+
+             ob = eng_window_new(info,
+                                 info->info.display,
+                                 info->info.drawable,
+                                 info->info.screen,
+                                 info->info.visual,
+                                 info->info.colormap,
+                                 info->info.depth,
+                                 w, h,
+                                 info->indirect,
+                                 info->info.destination_alpha,
+                                 info->info.rotation,
+                                 swap_mode,
+                                 info->depth_bits,
+                                 info->stencil_bits,
+                                 info->msaa_bits);
+             if (!ob)
+               {
+                  if (ob_old) eng_window_free(ob_old);
+                  return 0;
+               }
+
+             eng_window_use(ob);
+             if (ob_old) eng_window_free(ob_old);
+             evas_render_engine_software_generic_update(&re->generic.software, ob,
+                                                        w, h);
+             gl_wins++;
+          }
+        else if ((eng_get_ob(re)->w != w) ||
+                 (eng_get_ob(re)->h != h) ||
+                 (eng_get_ob(re)->info->info.rotation != eng_get_ob(re)->rot))
+          {
+             eng_outbuf_reconfigure(eng_get_ob(re), w, h, eng_get_ob(re)->info->info.rotation, 0);
+             if (re->generic.software.tb)
+               evas_common_tilebuf_free(re->generic.software.tb);
+             re->generic.software.tb = evas_common_tilebuf_new(w, h);
+             if (re->generic.software.tb)
+               evas_common_tilebuf_set_tile_size(re->generic.software.tb,
+                                                 TILESIZE, TILESIZE);
+          }
+     }
+
    eng_window_use(eng_get_ob(re));
 
    return 1;
@@ -1898,7 +1838,6 @@ eng_output_free(void *data)
    if ((initted == 1) && (gl_wins == 0))
      {
         glsym_evas_gl_preload_shutdown();
-        evas_common_shutdown();
         initted = 0;
      }
 }
@@ -1914,7 +1853,7 @@ eng_preload_make_current(void *data, void *doit)
    if (doit)
      {
 #ifdef GL_GLES
-        if (!evas_eglMakeCurrent(ob->egl_disp, ob->egl_surface[0], ob->egl_surface[0], ob->egl_context[0]))
+        if (!evas_eglMakeCurrent(ob->egl_disp, ob->egl_surface, ob->egl_surface, ob->egl_context))
           return EINA_FALSE;
 #else
         if (!__glXMakeContextCurrent(ob->info->info.display, ob->glxwin, ob->context))
@@ -1945,7 +1884,7 @@ eng_preload_make_current(void *data, void *doit)
 }
 
 static Eina_Bool
-eng_canvas_alpha_get(void *data, void *info EINA_UNUSED)
+eng_canvas_alpha_get(void *data)
 {
    Render_Engine *re = (Render_Engine *)data;
    return re->generic.software.ob->alpha;
@@ -2033,6 +1972,31 @@ _native_bind_cb(void *image)
 #ifdef GL_GLES
        if (n->ns_data.x11.surface)
          {
+            if (n->ns_data.x11.multiple_buffer)
+              {
+                 EGLint err;
+                 if (!glsym_eglDestroyImage)
+                   {
+                      ERR("Try eglDestroyImage()/eglCreateImage() on EGL with no support");
+                      return;
+                   }
+
+                 glsym_eglDestroyImage(im->native.disp, n->ns_data.x11.surface);
+                 if ((err = eglGetError()) != EGL_SUCCESS)
+                   {
+                      ERR("eglDestroyImage() failed.");
+                      glsym_evas_gl_common_error_set(err - EGL_SUCCESS);
+                   }
+
+                 n->ns_data.x11.surface = glsym_evas_gl_common_eglCreateImage(im->native.disp,
+                                                          EGL_NO_CONTEXT,
+                                                          EGL_NATIVE_PIXMAP_KHR,
+                                                          (void *)n->ns_data.x11.pixmap,
+                                                          NULL);
+                 if (!n->ns_data.x11.surface)
+                   ERR("eglCreateImage() for Pixmap 0x%#lx failed: %#x", n->ns_data.x11.pixmap, eglGetError());
+
+              }
             if (glsym_glEGLImageTargetTexture2DOES)
               {
                  glsym_glEGLImageTargetTexture2DOES(im->native.target, n->ns_data.x11.surface);
@@ -2563,7 +2527,7 @@ eng_image_native_set(void *data, void *image, void *native)
 #ifdef GL_GLES
        if (native)
          {
-            if (!glsym_eglCreateImage)
+            if (!glsym_eglDestroyImage)
               {
                  ERR("Try eglCreateImage on EGL with no support");
                  return NULL;
@@ -2620,10 +2584,17 @@ eng_image_native_set(void *data, void *image, void *native)
                  memcpy(&(n->ns), ns, sizeof(Evas_Native_Surface));
                  n->ns_data.x11.pixmap = pm;
                  n->ns_data.x11.visual = vis;
-                 n->ns_data.x11.surface = glsym_eglCreateImage(eng_get_ob(re)->egl_disp,
-                                                               EGL_NO_CONTEXT,
-                                                               EGL_NATIVE_PIXMAP_KHR,
-                                                               (void *)pm, NULL);
+                 n->ns_data.x11.surface = glsym_evas_gl_common_eglCreateImage(eng_get_ob(re)->egl_disp,
+                                                          EGL_NO_CONTEXT,
+                                                          EGL_NATIVE_PIXMAP_KHR,
+                                                          (void *)pm, NULL);
+
+                 if ((ns->version < 4) ||
+                     ((ns->version == 4) && !(ns->data.x11.multiple_buffer == 1)))
+                   n->ns_data.x11.multiple_buffer = 0;
+                 else
+                   n->ns_data.x11.multiple_buffer = 1;
+
                  if (!n->ns_data.x11.surface)
                    {
                       ERR("eglCreateImage() for Pixmap %#lx failed: %#x", pm, eglGetError());
@@ -2903,12 +2874,12 @@ eng_image_native_set(void *data, void *image, void *native)
 
                  memcpy(&(n->ns), ns, sizeof(Evas_Native_Surface));
                  n->ns_data.tbm.buffer = buffer;
-                 if (glsym_eglCreateImage)
-                   n->ns_data.tbm.surface = glsym_eglCreateImage(eng_get_ob(re)->egl_disp,
-                                                                 EGL_NO_CONTEXT,
-                                                                 EGL_NATIVE_SURFACE_TIZEN,
-                                                                 (void *)buffer,
-                                                                 NULL);
+                 if (glsym_eglDestroyImage)
+                   n->ns_data.tbm.surface = glsym_evas_gl_common_eglCreateImage(eng_get_ob(re)->egl_disp,
+                                                            EGL_NO_CONTEXT,
+                                                            EGL_NATIVE_SURFACE_TIZEN,
+                                                            (void *)buffer,
+                                                            NULL);
                  else
                    ERR("Try eglCreateImage on EGL with no support");
                  if (!n->ns_data.tbm.surface)
@@ -2972,7 +2943,7 @@ eng_image_native_set(void *data, void *image, void *native)
           {
              if ((n = calloc(1, sizeof(Native))))
                {
-                  EGLint attribs[3];
+                  EGLAttrib attribs[3];
                   int format, yinvert = 1;
 
                   glsym_eglQueryWaylandBufferWL(eng_get_ob(re)->egl_disp, wl_buf,
@@ -2986,6 +2957,12 @@ eng_image_native_set(void *data, void *image, void *native)
                        return NULL;
                     }
 
+#  ifndef EGL_WAYLAND_PLANE_WL
+#   define EGL_WAYLAND_PLANE_WL 0x31D6
+#  endif
+#  ifndef EGL_WAYLAND_BUFFER_WL
+#   define EGL_WAYLAND_BUFFER_WL 0x31D5
+#  endif
                   attribs[0] = EGL_WAYLAND_PLANE_WL;
                   attribs[1] = 0; //if plane is 1 then 0, if plane is 2 then 1
                   attribs[2] = EGL_NONE;
@@ -2999,11 +2976,11 @@ eng_image_native_set(void *data, void *image, void *native)
                                 &wlid, im);
 
                   n->ns_data.wl_surface.wl_buf = wl_buf;
-                  if (glsym_eglCreateImage)
-                    n->ns_data.wl_surface.surface = glsym_eglCreateImage(eng_get_ob(re)->egl_disp,
-                                                                         NULL,
-                                                                         EGL_WAYLAND_BUFFER_WL,
-                                                                         wl_buf, attribs);
+                  if (glsym_eglDestroyImage)
+                    n->ns_data.wl_surface.surface = glsym_evas_gl_common_eglCreateImage(eng_get_ob(re)->egl_disp,
+                                                                    NULL,
+                                                                    EGL_WAYLAND_BUFFER_WL,
+                                                                    wl_buf, attribs);
                   else
                     {
                        ERR("Try eglCreateImage on EGL with no support");
@@ -3083,6 +3060,7 @@ module_open(Evas_Module *em)
    ORD(info);
    ORD(info_free);
    ORD(setup);
+   ORD(update);
    ORD(canvas_alpha_get);
    ORD(output_free);
    ORD(output_dump);
@@ -3111,7 +3089,11 @@ module_open(Evas_Module *em)
 static void
 module_close(Evas_Module *em EINA_UNUSED)
 {
-    eina_log_domain_unregister(_evas_engine_GL_X11_log_dom);
+   if (_evas_engine_GL_X11_log_dom >= 0)
+     {
+        eina_log_domain_unregister(_evas_engine_GL_X11_log_dom);
+        _evas_engine_GL_X11_log_dom = -1;
+     }
 }
 
 static Evas_Module_Api evas_modapi =

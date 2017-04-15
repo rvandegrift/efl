@@ -148,8 +148,8 @@ am__aclocal_m4_deps = $(top_srcdir)/m4/ac_define_if.m4 \
 	$(top_srcdir)/m4/efl_check_funcs.m4 \
 	$(top_srcdir)/m4/efl_check_libs.m4 \
 	$(top_srcdir)/m4/efl_compiler.m4 \
-	$(top_srcdir)/m4/efl_doxygen.m4 $(top_srcdir)/m4/efl_eo.m4 \
-	$(top_srcdir)/m4/efl_find_x.m4 \
+	$(top_srcdir)/m4/efl_define.m4 $(top_srcdir)/m4/efl_doxygen.m4 \
+	$(top_srcdir)/m4/efl_eo.m4 $(top_srcdir)/m4/efl_find_x.m4 \
 	$(top_srcdir)/m4/efl_libunwind.m4 \
 	$(top_srcdir)/m4/efl_lua_old.m4 \
 	$(top_srcdir)/m4/efl_path_max.m4 \
@@ -184,10 +184,11 @@ am__CONFIG_DISTCLEAN_FILES = config.status config.cache config.log \
 mkinstalldirs = $(install_sh) -d
 CONFIG_HEADER = config.h
 CONFIG_CLEAN_FILES = src/lib/eina/eina_config.h \
-	src/lib/ecore_x/ecore_x_version.h src/lib/efl/Efl_Config.h \
-	src/lib/elementary/Elementary.h elm_intro.h spec/efl.spec \
-	pc/evil.pc pc/escape.pc pc/eina.pc pc/eina-cxx.pc pc/emile.pc \
-	pc/eet.pc pc/eet-cxx.pc pc/eo.pc pc/eo-cxx.pc pc/eolian.pc \
+	src/lib/efl/Efl_Config.h \
+	src/lib/elementary/Elementary_Options.h \
+	src/scripts/eo/eo_debug elm_intro.h spec/efl.spec pc/evil.pc \
+	pc/escape.pc pc/eina.pc pc/eina-cxx.pc pc/emile.pc pc/eet.pc \
+	pc/eet-cxx.pc pc/eo.pc pc/eo-cxx.pc pc/eolian.pc \
 	pc/eolian-cxx.pc pc/eina-js.pc pc/efl-js.pc pc/eolian-js.pc \
 	pc/eo-js.pc pc/efl.pc pc/efl-cxx.pc pc/evas-fb.pc \
 	pc/evas-eglfs.pc pc/evas-opengl-x11.pc pc/evas-opengl-sdl.pc \
@@ -472,10 +473,10 @@ am__DIST_COMMON = $(srcdir)/Makefile.in $(srcdir)/config.h.in \
 	$(top_srcdir)/pc/evas-wayland-shm.pc.in \
 	$(top_srcdir)/pc/evas.pc.in $(top_srcdir)/pc/evil.pc.in \
 	$(top_srcdir)/spec/efl.spec.in \
-	$(top_srcdir)/src/lib/ecore_x/ecore_x_version.h.in \
 	$(top_srcdir)/src/lib/efl/Efl_Config.h.in \
 	$(top_srcdir)/src/lib/eina/eina_config.h.in \
-	$(top_srcdir)/src/lib/elementary/Elementary.h.in \
+	$(top_srcdir)/src/lib/elementary/Elementary_Options.h.in \
+	$(top_srcdir)/src/scripts/eo/eo_debug.in \
 	$(top_srcdir)/systemd-services/ethumb.service.in ABOUT-NLS \
 	AUTHORS COPYING ChangeLog INSTALL NEWS README ar-lib compile \
 	config.guess config.rpath config.sub install-sh ltmain.sh \
@@ -782,6 +783,7 @@ EFL_LDFLAGS = @EFL_LDFLAGS@
 EFL_LIBS = @EFL_LIBS@
 EFL_LTLIBRARY_FLAGS = @EFL_LTLIBRARY_FLAGS@
 EFL_LTMODULE_FLAGS = @EFL_LTMODULE_FLAGS@
+EFL_NET_CONTROL_BACKEND = @EFL_NET_CONTROL_BACKEND@
 EFL_PTHREAD_CFLAGS = @EFL_PTHREAD_CFLAGS@
 EFL_PTHREAD_LIBS = @EFL_PTHREAD_LIBS@
 EFL_SUBBUILD_INTERNAL_LIBS = @EFL_SUBBUILD_INTERNAL_LIBS@
@@ -1040,7 +1042,6 @@ GREP = @GREP@
 GSTREAMER_CFLAGS = @GSTREAMER_CFLAGS@
 GSTREAMER_LIBS = @GSTREAMER_LIBS@
 HAVE_CXX11 = @HAVE_CXX11@
-HAVE_ECORE_X_BACKEND = @HAVE_ECORE_X_BACKEND@
 HAVE_JS = @HAVE_JS@
 HAVE_LIBUV = @HAVE_LIBUV@
 HAVE_NODEJS = @HAVE_NODEJS@
@@ -1057,7 +1058,6 @@ INTLLIBS = @INTLLIBS@
 INTL_MACOSX_LIBS = @INTL_MACOSX_LIBS@
 JP2K_CFLAGS = @JP2K_CFLAGS@
 JP2K_LIBS = @JP2K_LIBS@
-KEYSYMDEFS = @KEYSYMDEFS@
 LD = @LD@
 LDFLAGS = @LDFLAGS@
 LIBGCRYPT_CFLAGS = @LIBGCRYPT_CFLAGS@
@@ -1076,6 +1076,8 @@ LIBRAW_LIBS = @LIBRAW_LIBS@
 LIBS = @LIBS@
 LIBTHREAD = @LIBTHREAD@
 LIBTOOL = @LIBTOOL@
+LIBVNCSERVER_CFLAGS = @LIBVNCSERVER_CFLAGS@
+LIBVNCSERVER_LIBS = @LIBVNCSERVER_LIBS@
 LIPO = @LIPO@
 LN_S = @LN_S@
 LOCALE_DIR = @LOCALE_DIR@
@@ -1351,6 +1353,9 @@ WAYLAND_CFLAGS = @WAYLAND_CFLAGS@
 WAYLAND_EGL_CFLAGS = @WAYLAND_EGL_CFLAGS@
 WAYLAND_EGL_LIBS = @WAYLAND_EGL_LIBS@
 WAYLAND_LIBS = @WAYLAND_LIBS@
+WAYLAND_PROTOCOLS_DATADIR = @WAYLAND_PROTOCOLS_DATADIR@
+WAYLAND_SCANNER_CFLAGS = @WAYLAND_SCANNER_CFLAGS@
+WAYLAND_SCANNER_LIBS = @WAYLAND_SCANNER_LIBS@
 WAYLAND_SHM_CFLAGS = @WAYLAND_SHM_CFLAGS@
 WAYLAND_SHM_LIBS = @WAYLAND_SHM_LIBS@
 X11_DRI2_CFLAGS = @X11_DRI2_CFLAGS@
@@ -1359,12 +1364,6 @@ X11_DRI3_CFLAGS = @X11_DRI3_CFLAGS@
 X11_DRI3_LIBS = @X11_DRI3_LIBS@
 X11_DRI_COMMON_CFLAGS = @X11_DRI_COMMON_CFLAGS@
 X11_DRI_COMMON_LIBS = @X11_DRI_COMMON_LIBS@
-XCB_CFLAGS = @XCB_CFLAGS@
-XCB_GL_CFLAGS = @XCB_GL_CFLAGS@
-XCB_GL_LIBS = @XCB_GL_LIBS@
-XCB_LIBS = @XCB_LIBS@
-XCB_X11_CFLAGS = @XCB_X11_CFLAGS@
-XCB_X11_LIBS = @XCB_X11_LIBS@
 XDG_DATA_HOME = @XDG_DATA_HOME@
 XGETTEXT = @XGETTEXT@
 XGETTEXT_015 = @XGETTEXT_015@
@@ -1398,7 +1397,6 @@ build_vendor = @build_vendor@
 builddir = @builddir@
 cocoa_coreservices_ldflags = @cocoa_coreservices_ldflags@
 cocoa_ldflags = @cocoa_ldflags@
-coreaudio_ldflags = @coreaudio_ldflags@
 datadir = @datadir@
 datarootdir = @datarootdir@
 dbusservicedir = @dbusservicedir@
@@ -1466,11 +1464,6 @@ evas_engine_gl_drm_cflags = @evas_engine_gl_drm_cflags@
 evas_engine_gl_drm_libs = @evas_engine_gl_drm_libs@
 evas_engine_gl_sdl_cflags = @evas_engine_gl_sdl_cflags@
 evas_engine_gl_sdl_libs = @evas_engine_gl_sdl_libs@
-evas_engine_gl_xcb_CFLAGS = @evas_engine_gl_xcb_CFLAGS@
-evas_engine_gl_xcb_LIBS = @evas_engine_gl_xcb_LIBS@
-evas_engine_gl_xcb_cflags = @evas_engine_gl_xcb_cflags@
-evas_engine_gl_xcb_libdirs = @evas_engine_gl_xcb_libdirs@
-evas_engine_gl_xcb_libs = @evas_engine_gl_xcb_libs@
 evas_engine_gl_xlib_CFLAGS = @evas_engine_gl_xlib_CFLAGS@
 evas_engine_gl_xlib_LIBS = @evas_engine_gl_xlib_LIBS@
 evas_engine_gl_xlib_cflags = @evas_engine_gl_xlib_cflags@
@@ -1482,8 +1475,6 @@ evas_engine_software_ddraw_cflags = @evas_engine_software_ddraw_cflags@
 evas_engine_software_ddraw_libs = @evas_engine_software_ddraw_libs@
 evas_engine_software_gdi_cflags = @evas_engine_software_gdi_cflags@
 evas_engine_software_gdi_libs = @evas_engine_software_gdi_libs@
-evas_engine_software_xcb_cflags = @evas_engine_software_xcb_cflags@
-evas_engine_software_xcb_libs = @evas_engine_software_xcb_libs@
 evas_engine_software_xlib_CFLAGS = @evas_engine_software_xlib_CFLAGS@
 evas_engine_software_xlib_LIBS = @evas_engine_software_xlib_LIBS@
 evas_engine_software_xlib_cflags = @evas_engine_software_xlib_cflags@
@@ -1527,10 +1518,12 @@ evas_image_loader_webp_cflags = @evas_image_loader_webp_cflags@
 evas_image_loader_webp_libs = @evas_image_loader_webp_libs@
 evas_image_loader_xpm_cflags = @evas_image_loader_xpm_cflags@
 evas_image_loader_xpm_libs = @evas_image_loader_xpm_libs@
+evas_vg_loader_eet_cflags = @evas_vg_loader_eet_cflags@
+evas_vg_loader_eet_libs = @evas_vg_loader_eet_libs@
+evas_vg_loader_svg_cflags = @evas_vg_loader_svg_cflags@
+evas_vg_loader_svg_libs = @evas_vg_loader_svg_libs@
 exec_prefix = @exec_prefix@
-have_evas_engine_gl_xcb = @have_evas_engine_gl_xcb@
 have_evas_engine_gl_xlib = @have_evas_engine_gl_xlib@
-have_evas_engine_software_xcb = @have_evas_engine_software_xcb@
 have_evas_engine_software_xlib = @have_evas_engine_software_xlib@
 have_lcov = @have_lcov@
 host = @host@
@@ -1824,6 +1817,7 @@ want_liblz4 = @want_liblz4@
 want_lua_old = @want_lua_old@
 want_multisense = @want_multisense@
 want_physics = @want_physics@
+wayland_scanner = @wayland_scanner@
 with_eeze_eject = @with_eeze_eject@
 with_eeze_mount = @with_eeze_mount@
 with_eeze_umount = @with_eeze_umount@
@@ -1831,6 +1825,7 @@ ACLOCAL_AMFLAGS = -I m4
 AM_MAKEFLAGS = --no-print-directory
 AM_DISTCHECK_CONFIGURE_FLAGS = \
 --with-tests=regular \
+--with-systemdunitdir=. \
 --enable-always-build-examples
 
 SUBDIRS = src data config doc $(am__append_1)
@@ -2047,8 +2042,7 @@ DISTCLEANFILES = \
 ./src/lib/evil/Makefile \
 ./src/lib/edje/Makefile \
 ./src/lib/efl/Efl_Config.h \
-./src/lib/eina/eina_config.h \
-./src/lib/elementary/Elementary.h
+./src/lib/eina/eina_config.h
 
 all: config.h
 	$(MAKE) $(AM_MAKEFLAGS) all-recursive
@@ -2104,11 +2098,11 @@ distclean-hdr:
 	-rm -f config.h stamp-h1
 src/lib/eina/eina_config.h: $(top_builddir)/config.status $(top_srcdir)/src/lib/eina/eina_config.h.in
 	cd $(top_builddir) && $(SHELL) ./config.status $@
-src/lib/ecore_x/ecore_x_version.h: $(top_builddir)/config.status $(top_srcdir)/src/lib/ecore_x/ecore_x_version.h.in
-	cd $(top_builddir) && $(SHELL) ./config.status $@
 src/lib/efl/Efl_Config.h: $(top_builddir)/config.status $(top_srcdir)/src/lib/efl/Efl_Config.h.in
 	cd $(top_builddir) && $(SHELL) ./config.status $@
-src/lib/elementary/Elementary.h: $(top_builddir)/config.status $(top_srcdir)/src/lib/elementary/Elementary.h.in
+src/lib/elementary/Elementary_Options.h: $(top_builddir)/config.status $(top_srcdir)/src/lib/elementary/Elementary_Options.h.in
+	cd $(top_builddir) && $(SHELL) ./config.status $@
+src/scripts/eo/eo_debug: $(top_builddir)/config.status $(top_srcdir)/src/scripts/eo/eo_debug.in
 	cd $(top_builddir) && $(SHELL) ./config.status $@
 elm_intro.h: $(top_builddir)/config.status $(srcdir)/elm_intro.h.in
 	cd $(top_builddir) && $(SHELL) ./config.status $@
@@ -3451,24 +3445,24 @@ doc:
 # Unit tests
 
 @EFL_ENABLE_COVERAGE_TRUE@lcov-reset:
-@EFL_ENABLE_COVERAGE_TRUE@	@rm -rf $(top_builddir)/coverage
-@EFL_ENABLE_COVERAGE_TRUE@	@find $(top_builddir) -name "*.gcda" -delete
-@EFL_ENABLE_COVERAGE_TRUE@	@lcov --zerocounters --directory $(top_builddir)
+@EFL_ENABLE_COVERAGE_TRUE@	@rm -rf $(abs_top_builddir)/coverage
+@EFL_ENABLE_COVERAGE_TRUE@	@find $(abs_top_builddir) -name "*.gcda" -delete
+@EFL_ENABLE_COVERAGE_TRUE@	@lcov --zerocounters --directory $(abs_top_builddir)
 
 @EFL_ENABLE_COVERAGE_TRUE@lcov-baseline:
-@EFL_ENABLE_COVERAGE_TRUE@	$(MKDIR_P) $(top_builddir)/coverage
-@EFL_ENABLE_COVERAGE_TRUE@	lcov --capture --initial --compat-libtool --no-external --output-file $(top_builddir)/coverage/coverage-baseline.info --directory $(top_builddir) --config-file .lcov-config --rc lcov_branch_coverage=1
+@EFL_ENABLE_COVERAGE_TRUE@	$(MKDIR_P) $(abs_top_builddir)/coverage
+@EFL_ENABLE_COVERAGE_TRUE@	lcov --capture --initial --compat-libtool --no-external --output-file $(abs_top_builddir)/coverage/coverage-baseline.info --directory $(abs_top_builddir) --config-file .lcov-config
 
-@EFL_ENABLE_COVERAGE_TRUE@lcov-report:
-@EFL_ENABLE_COVERAGE_TRUE@	lcov --capture --compat-libtool --no-external --output-file $(top_builddir)/coverage/coverage-check.info --directory $(top_builddir) --config-file .lcov-config --rc lcov_branch_coverage=1
-@EFL_ENABLE_COVERAGE_TRUE@	lcov --no-external --compat-libtool --add-tracefile $(top_builddir)/coverage/coverage-baseline.info --add-tracefile $(top_builddir)/coverage/coverage-check.info --output-file $(top_builddir)/coverage/coverage.info --config-file .lcov-config --rc lcov_branch_coverage=1
-@EFL_ENABLE_COVERAGE_TRUE@	lcov --no-external --compat-libtool --remove $(top_builddir)/coverage/coverage.info '*.h' --output-file $(top_builddir)/coverage/coverage.cleaned.info --config-file .lcov-config --rc lcov_branch_coverage=1
-@EFL_ENABLE_COVERAGE_TRUE@	lcov --no-external --compat-libtool --remove $(top_builddir)/coverage/coverage.cleaned.info '*/tests/*' --output-file $(top_builddir)/coverage/coverage.cleaned2.info --config-file .lcov-config --rc lcov_branch_coverage=1
-@EFL_ENABLE_COVERAGE_TRUE@	lcov --no-external --compat-libtool --remove $(top_builddir)/coverage/coverage.cleaned2.info '*NONE*' --output-file $(top_builddir)/coverage/coverage.cleaned3.info --config-file .lcov-config --rc lcov_branch_coverage=1
-@EFL_ENABLE_COVERAGE_TRUE@	lcov --no-external --compat-libtool --remove $(top_builddir)/coverage/coverage.cleaned3.info '*/doc/*' --output-file $(top_builddir)/coverage/coverage.cleaned4.info --config-file .lcov-config --rc lcov_branch_coverage=1
-@EFL_ENABLE_COVERAGE_TRUE@	lcov --no-external --compat-libtool --remove $(top_builddir)/coverage/coverage.cleaned4.info '*usr/include*' --output-file $(top_builddir)/coverage/coverage.cleaned5.info --config-file .lcov-config --rc lcov_branch_coverage=1
-@EFL_ENABLE_COVERAGE_TRUE@	genhtml --config-file .lcov-config --legend -t "$(PACKAGE_STRING)" -o $(top_builddir)/coverage/html $(top_builddir)/coverage/coverage.cleaned5.info
-@EFL_ENABLE_COVERAGE_TRUE@	@echo "Coverage Report at $(top_builddir)/coverage/html"
+@EFL_ENABLE_COVERAGE_TRUE@lcov-report: lcov-baseline
+@EFL_ENABLE_COVERAGE_TRUE@	lcov --capture --compat-libtool --no-external --output-file $(abs_top_builddir)/coverage/coverage-check.info --directory $(abs_top_builddir) --config-file .lcov-config
+@EFL_ENABLE_COVERAGE_TRUE@	lcov --no-external --compat-libtool --add-tracefile $(abs_top_builddir)/coverage/coverage-baseline.info --add-tracefile $(abs_top_builddir)/coverage/coverage-check.info --output-file $(abs_top_builddir)/coverage/coverage.info --config-file .lcov-config
+@EFL_ENABLE_COVERAGE_TRUE@	lcov --no-external --compat-libtool --remove $(abs_top_builddir)/coverage/coverage.info '*.h' --output-file $(abs_top_builddir)/coverage/coverage.cleaned.info --config-file .lcov-config
+@EFL_ENABLE_COVERAGE_TRUE@	lcov --no-external --compat-libtool --remove $(abs_top_builddir)/coverage/coverage.cleaned.info '*/tests/*' --output-file $(abs_top_builddir)/coverage/coverage.cleaned2.info --config-file .lcov-config
+@EFL_ENABLE_COVERAGE_TRUE@	lcov --no-external --compat-libtool --remove $(abs_top_builddir)/coverage/coverage.cleaned2.info '*NONE*' --output-file $(abs_top_builddir)/coverage/coverage.cleaned3.info --config-file .lcov-config
+@EFL_ENABLE_COVERAGE_TRUE@	lcov --no-external --compat-libtool --remove $(abs_top_builddir)/coverage/coverage.cleaned3.info '*/doc/*' --output-file $(abs_top_builddir)/coverage/coverage.cleaned4.info --config-file .lcov-config
+@EFL_ENABLE_COVERAGE_TRUE@	lcov --no-external --compat-libtool --remove $(abs_top_builddir)/coverage/coverage.cleaned4.info '*usr/include*' --output-file $(abs_top_builddir)/coverage/coverage.cleaned5.info --config-file .lcov-config
+@EFL_ENABLE_COVERAGE_TRUE@	genhtml --config-file .lcov-config --legend -t "$(PACKAGE_STRING)" -o $(abs_top_builddir)/coverage/html $(abs_top_builddir)/coverage/coverage.cleaned5.info
+@EFL_ENABLE_COVERAGE_TRUE@	@echo "Coverage Report at $(abs_top_builddir)/coverage/html"
 
 @EFL_ENABLE_TESTS_TRUE@lcov-check:
 @EFL_ENABLE_COVERAGE_TRUE@@EFL_ENABLE_TESTS_TRUE@	@$(MAKE) $(AM_MAKEFLAGS) lcov-reset

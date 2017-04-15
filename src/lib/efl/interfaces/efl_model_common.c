@@ -12,6 +12,7 @@ EAPI Eina_Error EFL_MODEL_ERROR_READ_ONLY = 0;
 EAPI Eina_Error EFL_MODEL_ERROR_INIT_FAILED = 0;
 EAPI Eina_Error EFL_MODEL_ERROR_PERMISSION_DENIED = 0;
 EAPI Eina_Error EFL_MODEL_ERROR_INCORRECT_VALUE = 0;
+EAPI Eina_Error EFL_MODEL_ERROR_INVALID_OBJECT = 0;
 
 static const char EFL_MODEL_ERROR_UNKNOWN_STR[]           = "Unknown Error";
 static const char EFL_MODEL_ERROR_NOT_SUPPORTED_STR[]     = "Operation not supported";
@@ -20,9 +21,11 @@ static const char EFL_MODEL_ERROR_READ_ONLY_STR[]         = "Value read only";
 static const char EFL_MODEL_ERROR_INIT_FAILED_STR[]       = "Init failed";
 static const char EFL_MODEL_ERROR_PERMISSION_DENIED_STR[] = "Permission denied";
 static const char EFL_MODEL_ERROR_INCORRECT_VALUE_STR[]   = "Incorrect value";
+static const char EFL_MODEL_ERROR_INVALID_OBJECT_STR[]    = "Object is invalid";
+
 
 EAPI int
-efl_model_init()
+efl_model_init(void)
 {
    EFL_MODEL_ERROR_INCORRECT_VALUE = eina_error_msg_static_register(
                    EFL_MODEL_ERROR_INCORRECT_VALUE_STR);
@@ -44,6 +47,9 @@ efl_model_init()
 
    EFL_MODEL_ERROR_PERMISSION_DENIED = eina_error_msg_static_register(
                    EFL_MODEL_ERROR_PERMISSION_DENIED_STR);
+
+   EFL_MODEL_ERROR_INVALID_OBJECT = eina_error_msg_static_register(
+                   EFL_MODEL_ERROR_INVALID_OBJECT_STR);
 
    return EINA_TRUE;
 }
@@ -72,7 +78,7 @@ efl_model_list_slice(Eina_List *list, unsigned start, unsigned count)
 
    EINA_LIST_FOREACH(ln, l, child)
      {
-        eo_ref(child);
+        efl_ref(child);
         lr = eina_list_append(lr, child);
         if (eina_list_count(lr) == count)
           break;
@@ -94,7 +100,7 @@ efl_model_property_changed_notify(Efl_Model *model, const char *property)
    EINA_SAFETY_ON_FALSE_GOTO(ret, on_error);
 
    Efl_Model_Property_Event evt = {.changed_properties = changed_properties};
-   eo_event_callback_call(model, EFL_MODEL_EVENT_PROPERTIES_CHANGED, &evt);
+   efl_event_callback_call(model, EFL_MODEL_EVENT_PROPERTIES_CHANGED, &evt);
 
 on_error:
    eina_array_free(changed_properties);
@@ -110,7 +116,7 @@ efl_model_property_invalidated_notify(Efl_Model *model, const char *property)
    EINA_SAFETY_ON_FALSE_GOTO(ret, on_error);
 
    Efl_Model_Property_Event evt = {.invalidated_properties = invalidated_properties};
-   eo_event_callback_call(model, EFL_MODEL_EVENT_PROPERTIES_CHANGED, &evt);
+   efl_event_callback_call(model, EFL_MODEL_EVENT_PROPERTIES_CHANGED, &evt);
 
 on_error:
    eina_array_free(invalidated_properties);

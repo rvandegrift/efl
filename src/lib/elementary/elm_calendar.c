@@ -125,9 +125,11 @@ _eina_tmpstr_steal(Eina_Tmpstr *s)
 #endif
 
 static Eina_Bool _key_action_move(Evas_Object *obj, const char *params);
+static Eina_Bool _key_action_activate(Evas_Object *obj, const char *params);
 
 static const Elm_Action key_actions[] = {
    {"move", _key_action_move},
+   {"activate", _key_action_activate},
    {NULL, NULL}
 };
 
@@ -218,7 +220,7 @@ _select(Evas_Object *obj,
 
    ELM_CALENDAR_DATA_GET(obj, sd);
 
-   sd->selected_it = selected;
+   sd->focused_it = sd->selected_it = selected;
    snprintf(emission, sizeof(emission), "cit_%i,selected", selected);
    elm_layout_signal_emit(obj, emission, "elm");
 }
@@ -287,6 +289,17 @@ _cit_mark(Evas_Object *cal,
           int cit,
           const char *mtype)
 {
+   ELM_CALENDAR_DATA_GET(cal, sd);
+
+   int day = cit - sd->first_day_it + 1;
+   int mon = sd->shown_time.tm_mon;
+   int yr = sd->shown_time.tm_year;
+
+   if (strcmp(mtype, "clear")
+       && (((yr == sd->date_min.tm_year) && (mon == sd->date_min.tm_mon) && (day < sd->date_min.tm_mday))
+           || ((yr == sd->date_max.tm_year) && (mon == sd->date_max.tm_mon) && (day > sd->date_max.tm_mday))))
+     return;
+
    char sign[64];
 
    snprintf(sign, sizeof(sign), "cit_%i,%s", cit, mtype);
@@ -575,7 +588,12 @@ _populate(Evas_Object *obj)
 
         if ((day) && (day <= maxdays))
           {
-             _enable(sd, i);
+             if (((yr == sd->date_min.tm_year) && (mon == sd->date_min.tm_mon) && (day < sd->date_min.tm_mday))
+                 || ((yr == sd->date_max.tm_year) && (mon == sd->date_max.tm_mon) && (day > sd->date_max.tm_mday)))
+               _disable(sd, i);
+             else
+               _enable(sd, i);
+
              snprintf(day_s, sizeof(day_s), "%i", day++);
           }
         else
@@ -664,6 +682,20 @@ _populate(Evas_Object *obj)
                   ((mtime->tm_year == year) && (mtime->tm_mon <= month))))
                _cit_mark(obj, maxdays + sd->first_day_it - 1, mark->mark_type);
              break;
+
+           case ELM_CALENDAR_REVERSE_DAILY:
+             if (((mtime->tm_year == year) && (mtime->tm_mon > month)) ||
+                 (mtime->tm_year > year))
+               day = maxdays;
+             else if ((mtime->tm_year == year) && (mtime->tm_mon == month))
+               day = mtime->tm_mday - 1;
+             else
+               break;
+             for (; day >= 1; day--)
+               _cit_mark(obj, day + sd->first_day_it - 1,
+                         mark->mark_type);
+             break;
+
           }
      }
    sd->filling = EINA_FALSE;
@@ -683,15 +715,8 @@ _set_headers(Evas_Object *obj)
    elm_layout_freeze(obj);
 
    sd->filling = EINA_TRUE;
-   if (sd->weekdays_set)
-     {
-        for (i = 0; i < ELM_DAY_LAST; i++)
-          {
-             part[3] = i + '0';
-             elm_layout_text_set(obj, part, sd->weekdays[(i + sd->first_week_day) % ELM_DAY_LAST]);
-          }
-     }
-   else
+
+   if (!sd->weekdays_set)
      {
         for (i = 0; i < ELM_DAY_LAST; i++)
           {
@@ -716,11 +741,17 @@ _set_headers(Evas_Object *obj)
                            _days_abbrev[i]);
                     }
                }
-             part[3] = i + '0';
-             elm_layout_text_set(obj, part, sd->weekdays[(i + sd->first_week_day) % ELM_DAY_LAST]);
+
              weekday += 86400; /* Advance by a day */
           }
-    }
+     }
+
+   for (i = 0; i < ELM_DAY_LAST; i++)
+     {
+        part[3] = i + '0';
+        elm_layout_text_set(obj, part, sd->weekdays[(i + sd->first_week_day) % ELM_DAY_LAST]);
+     }
+
    sd->filling = EINA_FALSE;
 
    elm_layout_thaw(obj);
@@ -739,7 +770,7 @@ _spinner_buttons_add(Evas_Object *obj, Elm_Calendar_Data *sd)
 
    if (edje_object_part_exists(wd->resize_obj, ELM_CALENDAR_BUTTON_LEFT))
      {
-        if (sd->dec_btn_month && eo_isa(sd->dec_btn_month, ELM_ACCESS_CLASS))
+        if (sd->dec_btn_month && efl_isa(sd->dec_btn_month, ELM_ACCESS_CLASS))
           {
              _elm_access_edje_object_part_object_unregister
                (obj, elm_layout_edje_get(obj), "left_bt");
@@ -759,7 +790,7 @@ _spinner_buttons_add(Evas_Object *obj, Elm_Calendar_Data *sd)
         elm_object_style_set(sd->dec_btn_month, left_buf);
         elm_layout_content_set(obj, ELM_CALENDAR_BUTTON_LEFT, sd->dec_btn_month);
      }
-   else if (sd->dec_btn_month && !eo_isa(sd->dec_btn_month, ELM_ACCESS_CLASS))
+   else if (sd->dec_btn_month && !efl_isa(sd->dec_btn_month, ELM_ACCESS_CLASS))
      {
         evas_object_del(sd->dec_btn_month);
         sd->dec_btn_month = NULL;
@@ -767,7 +798,7 @@ _spinner_buttons_add(Evas_Object *obj, Elm_Calendar_Data *sd)
 
    if (edje_object_part_exists(wd->resize_obj, ELM_CALENDAR_BUTTON_RIGHT))
      {
-        if (sd->inc_btn_month && eo_isa(sd->inc_btn_month, ELM_ACCESS_CLASS))
+        if (sd->inc_btn_month && efl_isa(sd->inc_btn_month, ELM_ACCESS_CLASS))
           {
              _elm_access_edje_object_part_object_unregister
                (obj, elm_layout_edje_get(obj), "right_bt");
@@ -787,7 +818,7 @@ _spinner_buttons_add(Evas_Object *obj, Elm_Calendar_Data *sd)
         elm_object_style_set(sd->inc_btn_month, right_buf);
         elm_layout_content_set(obj, ELM_CALENDAR_BUTTON_RIGHT, sd->inc_btn_month);
      }
-   else if (sd->inc_btn_month && !eo_isa(sd->inc_btn_month, ELM_ACCESS_CLASS))
+   else if (sd->inc_btn_month && !efl_isa(sd->inc_btn_month, ELM_ACCESS_CLASS))
      {
         evas_object_del(sd->inc_btn_month);
         sd->inc_btn_month = NULL;
@@ -795,7 +826,7 @@ _spinner_buttons_add(Evas_Object *obj, Elm_Calendar_Data *sd)
 
    if (edje_object_part_exists(wd->resize_obj, ELM_CALENDAR_BUTTON_YEAR_LEFT))
      {
-        if (sd->dec_btn_year && eo_isa(sd->dec_btn_year, ELM_ACCESS_CLASS))
+        if (sd->dec_btn_year && efl_isa(sd->dec_btn_year, ELM_ACCESS_CLASS))
           {
              _elm_access_edje_object_part_object_unregister
                (obj, elm_layout_edje_get(obj), "left_bt_year");
@@ -815,7 +846,7 @@ _spinner_buttons_add(Evas_Object *obj, Elm_Calendar_Data *sd)
         elm_object_style_set(sd->dec_btn_year, left_buf);
         elm_layout_content_set(obj, ELM_CALENDAR_BUTTON_YEAR_LEFT, sd->dec_btn_year);
      }
-   else if (sd->dec_btn_year && !eo_isa(sd->dec_btn_year, ELM_ACCESS_CLASS))
+   else if (sd->dec_btn_year && !efl_isa(sd->dec_btn_year, ELM_ACCESS_CLASS))
      {
         evas_object_del(sd->dec_btn_year);
         sd->dec_btn_year = NULL;
@@ -823,7 +854,7 @@ _spinner_buttons_add(Evas_Object *obj, Elm_Calendar_Data *sd)
 
    if (edje_object_part_exists(wd->resize_obj, ELM_CALENDAR_BUTTON_YEAR_RIGHT))
      {
-        if (sd->inc_btn_year && eo_isa(sd->inc_btn_year, ELM_ACCESS_CLASS))
+        if (sd->inc_btn_year && efl_isa(sd->inc_btn_year, ELM_ACCESS_CLASS))
           {
              _elm_access_edje_object_part_object_unregister
                (obj, elm_layout_edje_get(obj), "right_bt_year");
@@ -843,7 +874,7 @@ _spinner_buttons_add(Evas_Object *obj, Elm_Calendar_Data *sd)
         elm_object_style_set(sd->inc_btn_year, right_buf);
         elm_layout_content_set(obj, ELM_CALENDAR_BUTTON_YEAR_RIGHT, sd->inc_btn_year);
      }
-   else if (sd->inc_btn_year && !eo_isa(sd->inc_btn_year, ELM_ACCESS_CLASS))
+   else if (sd->inc_btn_year && !efl_isa(sd->inc_btn_year, ELM_ACCESS_CLASS))
      {
         evas_object_del(sd->inc_btn_year);
         sd->inc_btn_year = NULL;
@@ -855,7 +886,7 @@ _elm_calendar_elm_widget_theme_apply(Eo *obj, Elm_Calendar_Data *sd)
 {
    Elm_Theme_Apply int_ret = ELM_THEME_APPLY_FAILED;
 
-   int_ret = elm_obj_widget_theme_apply(eo_super(obj, MY_CLASS));
+   int_ret = elm_obj_widget_theme_apply(efl_super(obj, MY_CLASS));
    if (!int_ret) return ELM_THEME_APPLY_FAILED;
 
    _spinner_buttons_add(obj, sd);
@@ -872,6 +903,20 @@ _fix_selected_time(Elm_Calendar_Data *sd)
      sd->selected_time.tm_mon = sd->shown_time.tm_mon;
    if (sd->selected_time.tm_year != sd->shown_time.tm_year)
      sd->selected_time.tm_year = sd->shown_time.tm_year;
+
+   if ((sd->selected_time.tm_year == sd->date_min.tm_year)
+       && (sd->selected_time.tm_mon == sd->date_min.tm_mon)
+       && (sd->selected_time.tm_mday < sd->date_min.tm_mday))
+     {
+        sd->selected_time.tm_mday = sd->date_min.tm_mday;
+     }
+   else if ((sd->selected_time.tm_year == sd->date_max.tm_year)
+            && (sd->selected_time.tm_mon == sd->date_max.tm_mon)
+            && (sd->selected_time.tm_mday > sd->date_max.tm_mday))
+     {
+        sd->selected_time.tm_mday = sd->date_max.tm_mday;
+     }
+
    mktime(&sd->selected_time);
 }
 
@@ -896,35 +941,55 @@ _update_data(Evas_Object *obj, Eina_Bool month,
    if (month)
      {
         sd->shown_time.tm_mon += delta;
-        if (sd->shown_time.tm_mon < 0)
+        if (delta < 0)
           {
-             if (sd->shown_time.tm_year == sd->year_min)
+             if (sd->shown_time.tm_year == sd->date_min.tm_year)
                {
-                  sd->shown_time.tm_mon++;
-                  return EINA_FALSE;
+                  if (sd->shown_time.tm_mon < sd->date_min.tm_mon)
+                    {
+                       sd->shown_time.tm_mon = sd->date_min.tm_mon;
+                       return EINA_FALSE;
+                    }
                }
-             sd->shown_time.tm_mon = 11;
-             sd->shown_time.tm_year--;
+             else if (sd->shown_time.tm_mon < 0)
+               {
+                  sd->shown_time.tm_mon = 11;
+                  sd->shown_time.tm_year--;
+               }
           }
-        else if (sd->shown_time.tm_mon > 11)
+        else
           {
-             if (sd->shown_time.tm_year == sd->year_max)
+             if (sd->shown_time.tm_year == sd->date_max.tm_year)
                {
-                  sd->shown_time.tm_mon--;
-                  return EINA_FALSE;
+                  if (sd->shown_time.tm_mon > sd->date_max.tm_mon)
+                    {
+                       sd->shown_time.tm_mon = sd->date_max.tm_mon;
+                       return EINA_FALSE;
+                    }
                }
-             sd->shown_time.tm_mon = 0;
-             sd->shown_time.tm_year++;
+             else if (sd->shown_time.tm_mon > 11)
+               {
+                  sd->shown_time.tm_mon = 0;
+                  sd->shown_time.tm_year++;
+               }
           }
      }
    else
      {
         years = sd->shown_time.tm_year + delta;
-        if (((years > sd->year_max) && (sd->year_max != -1)) ||
-            years < sd->year_min)
+        if (((years > sd->date_max.tm_year) && (sd->date_max.tm_year != -1)) ||
+            years < sd->date_min.tm_year)
           return EINA_FALSE;
 
         sd->shown_time.tm_year = years;
+        if ((years == sd->date_min.tm_year) && (sd->shown_time.tm_mon < sd->date_min.tm_mon))
+          {
+             sd->shown_time.tm_mon = sd->date_min.tm_mon;
+          }
+        else if ((years == sd->date_max.tm_year) && (sd->shown_time.tm_mon > sd->date_max.tm_mon))
+          {
+             sd->shown_time.tm_mon = sd->date_max.tm_mon;
+          }
      }
 
    if ((sd->select_mode != ELM_CALENDAR_SELECT_MODE_ONDEMAND)
@@ -935,9 +1000,9 @@ _update_data(Evas_Object *obj, Eina_Bool month,
           sd->selected_time.tm_mday = maxdays;
 
         _fix_selected_time(sd);
-        eo_event_callback_call(obj, ELM_CALENDAR_EVENT_CHANGED, NULL);
+        efl_event_callback_legacy_call(obj, ELM_CALENDAR_EVENT_CHANGED, NULL);
      }
-   eo_event_callback_call(obj, ELM_CALENDAR_EVENT_DISPLAY_CHANGED, NULL);
+   efl_event_callback_legacy_call(obj, ELM_CALENDAR_EVENT_DISPLAY_CHANGED, NULL);
 
    return EINA_TRUE;
 }
@@ -1196,7 +1261,61 @@ _get_item_day(Evas_Object *obj,
    if ((day < 0) || (day > _maxdays_get(&sd->shown_time, 0)))
      return 0;
 
+   if ((sd->shown_time.tm_year == sd->date_min.tm_year)
+       && (sd->shown_time.tm_mon == sd->date_min.tm_mon)
+       && (day < sd->date_min.tm_mday))
+     {
+        return 0;
+     }
+   else if ((sd->shown_time.tm_year == sd->date_max.tm_year)
+            && (sd->shown_time.tm_mon == sd->date_max.tm_mon)
+            && (day > sd->date_max.tm_mday))
+     {
+        return 0;
+     }
+
    return day;
+}
+
+static void
+_update_unfocused_it(Evas_Object *obj, int unfocused_it)
+{
+   int day;
+   char emission[32];
+
+   ELM_CALENDAR_DATA_GET(obj, sd);
+
+   day = _get_item_day(obj, unfocused_it);
+   if (!day)
+     return;
+
+   sd->focused_it = -1;
+
+   snprintf(emission, sizeof(emission), "cit_%i,unfocused", unfocused_it);
+   elm_layout_signal_emit(obj, emission, "elm");
+}
+
+static Eina_Bool
+_update_focused_it(Evas_Object *obj, int focused_it)
+{
+   int day;
+   char emission[32];
+
+   ELM_CALENDAR_DATA_GET(obj, sd);
+
+   day = _get_item_day(obj, focused_it);
+   if (!day)
+     return EINA_FALSE;
+
+   snprintf(emission, sizeof(emission), "cit_%i,unfocused", sd->focused_it);
+   elm_layout_signal_emit(obj, emission, "elm");
+
+   sd->focused_it = focused_it;
+
+   snprintf(emission, sizeof(emission), "cit_%i,focused", sd->focused_it);
+   elm_layout_signal_emit(obj, emission, "elm");
+
+   return EINA_TRUE;
 }
 
 static void
@@ -1217,11 +1336,13 @@ _update_sel_it(Evas_Object *obj,
    _unselect(obj, sd->selected_it);
    if (!sd->selected)
      sd->selected = EINA_TRUE;
+   if (sd->focused_it)
+     _update_unfocused_it(obj, sd->focused_it);
 
    sd->selected_time.tm_mday = day;
    _fix_selected_time(sd);
    _select(obj, sel_it);
-   eo_event_callback_call(obj, ELM_CALENDAR_EVENT_CHANGED, NULL);
+   efl_event_callback_legacy_call(obj, ELM_CALENDAR_EVENT_CHANGED, NULL);
 }
 
 static void
@@ -1273,10 +1394,23 @@ _update_cur_date(void *data)
 }
 
 static Eina_Bool
+_key_action_activate(Evas_Object *obj, const char *params EINA_UNUSED)
+{
+   ELM_CALENDAR_DATA_GET(obj, sd);
+
+   _update_sel_it(obj, sd->focused_it);
+
+   return EINA_TRUE;
+}
+
+static Eina_Bool
 _key_action_move(Evas_Object *obj, const char *params)
 {
    ELM_CALENDAR_DATA_GET(obj, sd);
    const char *dir = params;
+   Eina_Bool ret, double_spinner = EINA_FALSE;
+
+   ELM_WIDGET_DATA_GET_OR_RETURN(obj, wd, EINA_FALSE);
 
    _elm_widget_focus_auto_show(obj);
    if (!strcmp(dir, "prior"))
@@ -1291,33 +1425,212 @@ _key_action_move(Evas_Object *obj, const char *params)
             && ((sd->select_mode != ELM_CALENDAR_SELECT_MODE_ONDEMAND)
                 || (sd->selected)))
      {
+        if (edje_object_part_exists(wd->resize_obj, ELM_CALENDAR_BUTTON_YEAR_RIGHT))
+          double_spinner = EINA_TRUE;
+
         if (!strcmp(dir, "left"))
           {
              if ((sd->select_mode != ELM_CALENDAR_SELECT_MODE_ONDEMAND)
                  || ((sd->shown_time.tm_year == sd->selected_time.tm_year)
                      && (sd->shown_time.tm_mon == sd->selected_time.tm_mon)))
-               _update_sel_it(obj, sd->selected_it - 1);
+               {
+                  //Double spinner case.
+                  if (double_spinner)
+                    {
+                       if (elm_object_focus_get(sd->inc_btn_year))
+                         {
+                            elm_object_focus_set(sd->dec_btn_year, EINA_TRUE);
+                            return EINA_TRUE;
+                         }
+                       else if (elm_object_focus_get(sd->dec_btn_year))
+                         {
+                            elm_object_focus_set(sd->inc_btn_month, EINA_TRUE);
+                            return EINA_TRUE;
+                         }
+                    }
+
+                  //Give focus to dec_btn_month when left key down on the inc_btn_month.
+                  //Leave focus, if key down on dec_btn_month.
+                  if (elm_object_focus_get(sd->inc_btn_month))
+                    {
+                       elm_object_focus_set(sd->dec_btn_month, EINA_TRUE);
+                       return EINA_TRUE;
+                    }
+                  else if (elm_object_focus_get(sd->dec_btn_month)) return EINA_FALSE;
+
+                  //If key move from the left edge of the calendar,
+                  //Leave the focus policy on window.
+                  if (sd->focused_it % ELM_DAY_LAST == 0)
+                    return EINA_FALSE;
+
+                  //Focus on the day before the day.
+                  ret = _update_focused_it(obj, sd->focused_it - 1);
+                  if (!ret) return EINA_FALSE;
+               }
           }
         else if (!strcmp(dir, "right"))
           {
              if ((sd->select_mode != ELM_CALENDAR_SELECT_MODE_ONDEMAND)
                  || ((sd->shown_time.tm_year == sd->selected_time.tm_year)
                      && (sd->shown_time.tm_mon == sd->selected_time.tm_mon)))
-               _update_sel_it(obj, sd->selected_it + 1);
+               {
+                  //Double spinner case.
+                  if (double_spinner)
+                    {
+                       if (elm_object_focus_get(sd->inc_btn_year)) return EINA_FALSE;
+                       else if (elm_object_focus_get(sd->dec_btn_year))
+                         {
+                            elm_object_focus_set(sd->inc_btn_year, EINA_TRUE);
+                            return EINA_TRUE;
+                         }
+                       else if (elm_object_focus_get(sd->inc_btn_month))
+                         {
+                            elm_object_focus_set(sd->dec_btn_year, EINA_TRUE);
+                            return EINA_TRUE;
+                         }
+                    }
+
+                  //Give focus to inc_btn_month when right key down on the dec_btn_month.
+                  if (elm_object_focus_get(sd->dec_btn_month))
+                    {
+                       elm_object_focus_set(sd->inc_btn_month, EINA_TRUE);
+                       return EINA_TRUE;
+                    }
+                  else if (elm_object_focus_get(sd->inc_btn_month)) return EINA_FALSE;
+
+                  //If key move from the right edge of the calendar,
+                  //Leave the focus policy on window.
+                  if (sd->focused_it % ELM_DAY_LAST == ELM_DAY_LAST - 1)
+                    return EINA_FALSE;
+
+                  //Focus on the day after the day.
+                  ret = _update_focused_it(obj, sd->focused_it + 1);
+                  if (!ret) return EINA_FALSE;
+               }
           }
         else if (!strcmp(dir, "up"))
           {
              if ((sd->select_mode != ELM_CALENDAR_SELECT_MODE_ONDEMAND)
                  || ((sd->shown_time.tm_year == sd->selected_time.tm_year)
                      && (sd->shown_time.tm_mon == sd->selected_time.tm_mon)))
-               _update_sel_it(obj, sd->selected_it - ELM_DAY_LAST);
+               {
+                  //double spinner case.
+                  if (double_spinner)
+                    {
+                       if (elm_object_focus_get(sd->inc_btn_year))
+                         {
+                            elm_object_focus_set(sd->inc_btn_year, EINA_FALSE);
+                            return EINA_FALSE;
+                         }
+                       else if (elm_object_focus_get(sd->dec_btn_year))
+                         {
+                            elm_object_focus_set(sd->dec_btn_year, EINA_FALSE);
+                            return EINA_FALSE;
+                         }
+                    }
+
+                  //If the dec_btn_month, or inc_btn_month has focus.
+                  //Focus unset and leave the focus policy on window.
+                  if (elm_object_focus_get(sd->dec_btn_month))
+                    {
+                       elm_object_focus_set(sd->dec_btn_month, EINA_FALSE);
+                       return EINA_FALSE;
+                    }
+                  else if (elm_object_focus_get(sd->inc_btn_month))
+                    {
+                       elm_object_focus_set(sd->inc_btn_month, EINA_FALSE);
+                       return EINA_FALSE;
+                    }
+
+                  //If the focus item is the first week of month.
+                  if ((sd->focused_it >= 0) && (sd->focused_it < ELM_DAY_LAST))
+                    {
+                       //Give focus to inc_btn_month(right side located button)
+                       //If the focused item is smaller than 4.
+                       //Otherwise, give focus to dec_btn_month.
+                       if (sd->focused_it > (ELM_DAY_LAST / 2))
+                         //Double spinner case.
+                         if (double_spinner)
+                           elm_object_focus_set(sd->inc_btn_year, EINA_TRUE);
+                         else
+                           elm_object_focus_set(sd->inc_btn_month, EINA_TRUE);
+                       else
+                         elm_object_focus_set(sd->dec_btn_month, EINA_TRUE);
+
+                       _update_unfocused_it(obj, sd->focused_it);
+                       return EINA_TRUE;
+                    }
+
+                  //Focus on the last week day.
+                  ret = _update_focused_it(obj, sd->focused_it - ELM_DAY_LAST);
+                  if (!ret)
+                    {
+                       //If focused day is not available(not belongs to current month)
+                       //Take a focus from item and give the focus to suitable button.
+                       if (sd->focused_it >= ELM_DAY_LAST && sd->focused_it < (ELM_DAY_LAST * 2))
+                         {
+                            if (sd->focused_it > (ELM_DAY_LAST + (ELM_DAY_LAST / 2)))
+                              //Double spinner case.
+                              if (double_spinner)
+                                elm_object_focus_set(sd->inc_btn_year, EINA_TRUE);
+                              else
+                                elm_object_focus_set(sd->inc_btn_month, EINA_TRUE);
+                            else
+                              elm_object_focus_set(sd->dec_btn_month, EINA_TRUE);
+
+                            _update_unfocused_it(obj, sd->focused_it);
+                            return EINA_TRUE;
+                         }
+                    }
+               }
           }
         else if (!strcmp(dir, "down"))
           {
              if ((sd->select_mode != ELM_CALENDAR_SELECT_MODE_ONDEMAND)
                  || ((sd->shown_time.tm_year == sd->selected_time.tm_year)
                      && (sd->shown_time.tm_mon == sd->selected_time.tm_mon)))
-               _update_sel_it(obj, sd->selected_it + ELM_DAY_LAST);
+               {
+                  //double spinner case.
+                  if (double_spinner)
+                    {
+                       if (elm_object_focus_get(sd->inc_btn_year))
+                         {
+                            elm_object_focus_set(sd->inc_btn_year, EINA_FALSE);
+                            evas_object_focus_set(obj, EINA_TRUE);
+                            _update_focused_it(obj, (ELM_DAY_LAST - 1));
+                            return EINA_TRUE;
+                         }
+                       else if (elm_object_focus_get(sd->dec_btn_year))
+                         {
+                            elm_object_focus_set(sd->dec_btn_year, EINA_FALSE);
+                            evas_object_focus_set(obj, EINA_TRUE);
+                            _update_focused_it(obj, sd->first_day_it);
+                            return EINA_TRUE;
+                         }
+                    }
+
+                  //If the XXX_btn_month has focus.
+                  //Set as false to button focus and give to focus to first item of the calendar.
+                  //Otherwise, Give the focus to last day of first week of calendar.
+                  if (elm_object_focus_get(sd->dec_btn_month))
+                    {
+                       elm_object_focus_set(sd->dec_btn_month, EINA_FALSE);
+                       evas_object_focus_set(obj, EINA_TRUE);
+                       _update_focused_it(obj, sd->first_day_it);
+                       return EINA_TRUE;
+                    }
+                  else if(elm_object_focus_get(sd->inc_btn_month))
+                    {
+                       elm_object_focus_set(sd->inc_btn_month, EINA_FALSE);
+                       evas_object_focus_set(obj, EINA_TRUE);
+                       _update_focused_it(obj, (ELM_DAY_LAST - 1));
+                       return EINA_TRUE;
+                    }
+
+                  //Focus on the next week day.
+                  ret = _update_focused_it(obj, sd->focused_it + ELM_DAY_LAST);
+                  if (!ret) return EINA_FALSE;
+               }
           }
         else return EINA_FALSE;
      }
@@ -1327,7 +1640,23 @@ _key_action_move(Evas_Object *obj, const char *params)
 }
 
 EOLIAN static Eina_Bool
-_elm_calendar_elm_widget_event(Eo *obj, Elm_Calendar_Data *sd EINA_UNUSED, Evas_Object *src, Evas_Callback_Type type, void *event_info)
+_elm_calendar_elm_widget_on_focus(Eo *obj, Elm_Calendar_Data *sd, Elm_Object_Item *item EINA_UNUSED)
+{
+   Eina_Bool int_ret = EINA_FALSE;
+
+   int_ret = elm_obj_widget_on_focus(efl_super(obj, MY_CLASS), NULL);
+   if (!int_ret) return EINA_FALSE;
+
+   if (elm_widget_focus_get(obj))
+     _update_focused_it(obj, sd->selected_it);
+   else
+     _update_unfocused_it(obj, sd->focused_it);
+
+   return EINA_TRUE;
+}
+
+EOLIAN static Eina_Bool
+_elm_calendar_elm_widget_widget_event(Eo *obj, Elm_Calendar_Data *sd EINA_UNUSED, Evas_Object *src, Evas_Callback_Type type, void *event_info)
 {
    (void) src;
    Evas_Event_Key_Down *ev = event_info;
@@ -1377,12 +1706,16 @@ _elm_calendar_efl_canvas_group_group_add(Eo *obj, Elm_Calendar_Data *priv)
 
    ELM_WIDGET_DATA_GET_OR_RETURN(obj, wd);
 
-   efl_canvas_group_add(eo_super(obj, MY_CLASS));
+   efl_canvas_group_add(efl_super(obj, MY_CLASS));
    elm_widget_sub_object_parent_add(obj);
 
    priv->first_interval = 0.85;
-   priv->year_min = 2;
-   priv->year_max = -1;
+   priv->date_min.tm_year = 2;
+   priv->date_min.tm_mon = 0;
+   priv->date_min.tm_mday = 1;
+   priv->date_max.tm_year = -1;
+   priv->date_max.tm_mon = 11;
+   priv->date_max.tm_mday = 31;
    priv->today_it = -1;
    priv->selected_it = -1;
    priv->first_day_it = -1;
@@ -1457,7 +1790,7 @@ _elm_calendar_efl_canvas_group_group_del(Eo *obj, Elm_Calendar_Data *sd)
    for (i = 0; i < ELM_DAY_LAST; i++)
      eina_stringshare_del(sd->weekdays[i]);
 
-   efl_canvas_group_del(eo_super(obj, MY_CLASS));
+   efl_canvas_group_del(efl_super(obj, MY_CLASS));
 }
 
 static Eina_Bool _elm_calendar_smart_focus_next_enable = EINA_FALSE;
@@ -1465,7 +1798,7 @@ static Eina_Bool _elm_calendar_smart_focus_next_enable = EINA_FALSE;
 EOLIAN static Eina_Bool
 _elm_calendar_elm_widget_focus_next_manager_is(Eo *obj EINA_UNUSED, Elm_Calendar_Data *_pd EINA_UNUSED)
 {
-   return EINA_TRUE;
+   return EINA_FALSE;
 }
 
 EOLIAN static Eina_Bool
@@ -1538,13 +1871,13 @@ _access_obj_process(Evas_Object *obj, Eina_Bool is_access)
                }
           }
 
-        if (sd->dec_btn_month && eo_isa(sd->dec_btn_month, ELM_ACCESS_CLASS))
+        if (sd->dec_btn_month && efl_isa(sd->dec_btn_month, ELM_ACCESS_CLASS))
           {
              _elm_access_edje_object_part_object_unregister
                (obj, elm_layout_edje_get(obj), "left_bt");
              sd->dec_btn_month = NULL;
           }
-        if (sd->inc_btn_month && eo_isa(sd->inc_btn_month, ELM_ACCESS_CLASS))
+        if (sd->inc_btn_month && efl_isa(sd->inc_btn_month, ELM_ACCESS_CLASS))
           {
              _elm_access_edje_object_part_object_unregister
                (obj, elm_layout_edje_get(obj), "right_bt");
@@ -1554,13 +1887,13 @@ _access_obj_process(Evas_Object *obj, Eina_Bool is_access)
           _elm_access_edje_object_part_object_unregister
             (obj, elm_layout_edje_get(obj), "month_text");
 
-        if (sd->dec_btn_year && eo_isa(sd->dec_btn_year, ELM_ACCESS_CLASS))
+        if (sd->dec_btn_year && efl_isa(sd->dec_btn_year, ELM_ACCESS_CLASS))
           {
              _elm_access_edje_object_part_object_unregister
                (obj, elm_layout_edje_get(obj), "left_bt_year");
              sd->dec_btn_year = NULL;
           }
-        if (sd->inc_btn_year && eo_isa(sd->inc_btn_year, ELM_ACCESS_CLASS))
+        if (sd->inc_btn_year && efl_isa(sd->inc_btn_year, ELM_ACCESS_CLASS))
           {
              _elm_access_edje_object_part_object_unregister
                (obj, elm_layout_edje_get(obj), "right_bt_year");
@@ -1583,14 +1916,14 @@ EAPI Evas_Object *
 elm_calendar_add(Evas_Object *parent)
 {
    EINA_SAFETY_ON_NULL_RETURN_VAL(parent, NULL);
-   Evas_Object *obj = eo_add(MY_CLASS, parent);
+   Evas_Object *obj = efl_add(MY_CLASS, parent);
    return obj;
 }
 
 EOLIAN static Eo *
-_elm_calendar_eo_base_constructor(Eo *obj, Elm_Calendar_Data *sd)
+_elm_calendar_efl_object_constructor(Eo *obj, Elm_Calendar_Data *sd)
 {
-   obj = eo_constructor(eo_super(obj, MY_CLASS));
+   obj = efl_constructor(efl_super(obj, MY_CLASS));
    sd->obj = obj;
 
    efl_canvas_object_type_set(obj, MY_CLASS_NAME_LEGACY);
@@ -1634,29 +1967,163 @@ _elm_calendar_interval_get(Eo *obj EINA_UNUSED, Elm_Calendar_Data *sd)
    return sd->first_interval;
 }
 
-EOLIAN static void
-_elm_calendar_min_max_year_set(Eo *obj, Elm_Calendar_Data *sd, int min, int max)
+EAPI void
+elm_calendar_min_max_year_set(Elm_Calendar *obj, int min, int max)
 {
+   Elm_Calendar_Data *sd;
+
+   if (!efl_isa(obj, ELM_CALENDAR_CLASS)) return ;
+   sd = efl_data_scope_get(obj, ELM_CALENDAR_CLASS);
+
    min -= 1900;
    max -= 1900;
-   if ((sd->year_min == min) && (sd->year_max == max)) return;
-   sd->year_min = min > 2 ? min : 2;
-   if (max > sd->year_min)
-     sd->year_max = max;
+   if ((sd->date_min.tm_year == min) && (sd->date_max.tm_year == max)) return;
+   sd->date_min.tm_year = min > 2 ? min : 2;
+   if (max > sd->date_min.tm_year)
+     sd->date_max.tm_year = max;
    else
-     sd->year_max = sd->year_min;
-   if (sd->shown_time.tm_year > sd->year_max)
-     sd->shown_time.tm_year = sd->year_max;
-   if (sd->shown_time.tm_year < sd->year_min)
-     sd->shown_time.tm_year = sd->year_min;
+     sd->date_max.tm_year = sd->date_min.tm_year;
+   sd->date_min.tm_mon = 0;
+   sd->date_min.tm_mday = 1;
+   sd->date_max.tm_mon = 11;
+   sd->date_max.tm_mday = 31;
+
+   if (sd->shown_time.tm_year > sd->date_max.tm_year)
+     sd->shown_time.tm_year = sd->date_max.tm_year;
+   if (sd->shown_time.tm_year < sd->date_min.tm_year)
+     sd->shown_time.tm_year = sd->date_min.tm_year;
+
    evas_object_smart_changed(obj);
 }
 
-EOLIAN static void
-_elm_calendar_min_max_year_get(Eo *obj EINA_UNUSED, Elm_Calendar_Data *sd, int *min, int *max)
+EAPI void
+elm_calendar_min_max_year_get(const Elm_Calendar *obj, int *min, int *max)
 {
-   if (min) *min = sd->year_min + 1900;
-   if (max) *max = sd->year_max + 1900;
+   Elm_Calendar_Data *sd;
+
+   if (!efl_isa(obj, ELM_CALENDAR_CLASS)) return ;
+   sd = efl_data_scope_get(obj, ELM_CALENDAR_CLASS);
+
+   if (min) *min = sd->date_min.tm_year + 1900;
+   if (max) *max = sd->date_max.tm_year + 1900;
+}
+
+EOLIAN static void
+_elm_calendar_date_min_set(Eo *obj, Elm_Calendar_Data *sd, const struct tm *min)
+{
+   Eina_Bool upper = EINA_FALSE;
+
+   if ((sd->date_min.tm_year == min->tm_year)
+       && (sd->date_min.tm_mon == min->tm_mon)
+       && (sd->date_min.tm_mday == min->tm_mday))
+     return;
+
+   if (min->tm_year < 2)
+     {
+        sd->date_min.tm_year = 2;
+        sd->date_min.tm_mon = 0;
+        sd->date_min.tm_mday = 1;
+     }
+   else
+     {
+        if (sd->date_max.tm_year != -1)
+          {
+             if (min->tm_year > sd->date_max.tm_year)
+               {
+                  upper = EINA_TRUE;
+               }
+             else if (min->tm_year == sd->date_max.tm_year)
+               {
+                  if (min->tm_mon > sd->date_max.tm_mon)
+                    upper = EINA_TRUE;
+                  else if ((min->tm_mon == sd->date_max.tm_mon) && (min->tm_mday > sd->date_max.tm_mday))
+                    upper = EINA_TRUE;
+               }
+          }
+
+        if (upper)
+          {
+             sd->date_min.tm_year = sd->date_max.tm_year;
+             sd->date_min.tm_mon = sd->date_max.tm_mon;
+             sd->date_min.tm_mday = sd->date_max.tm_mday;
+          }
+        else
+          {
+             sd->date_min.tm_year = min->tm_year;
+             sd->date_min.tm_mon = min->tm_mon;
+             sd->date_min.tm_mday = min->tm_mday;
+          }
+     }
+
+   if (sd->shown_time.tm_year <= sd->date_min.tm_year)
+     {
+        sd->shown_time.tm_year = sd->date_min.tm_year;
+        if (sd->shown_time.tm_mon < sd->date_min.tm_mon)
+          sd->shown_time.tm_mon = sd->date_min.tm_mon;
+     }
+
+   _fix_selected_time(sd);
+
+   evas_object_smart_changed(obj);
+}
+
+EOLIAN static const struct tm *
+_elm_calendar_date_min_get(Eo *obj EINA_UNUSED, Elm_Calendar_Data *sd)
+{
+   return &(sd->date_min);
+}
+
+EOLIAN static void
+_elm_calendar_date_max_set(Eo *obj, Elm_Calendar_Data *sd, const struct tm *max)
+{
+   Eina_Bool lower = EINA_FALSE;
+
+   if ((sd->date_max.tm_year == max->tm_year)
+       && (sd->date_max.tm_mon == max->tm_mon)
+       && (sd->date_max.tm_mday == max->tm_mday))
+     return;
+
+   if (max->tm_year < sd->date_min.tm_year)
+     {
+        lower = EINA_TRUE;
+     }
+   else if (max->tm_year == sd->date_min.tm_year)
+     {
+        if (max->tm_mon < sd->date_min.tm_mon)
+          lower = EINA_TRUE;
+        else if ((max->tm_mon == sd->date_min.tm_mon) && (max->tm_mday < sd->date_min.tm_mday))
+          lower = EINA_TRUE;
+     }
+
+   if (lower)
+     {
+        sd->date_max.tm_year = sd->date_min.tm_year;
+        sd->date_max.tm_mon = sd->date_min.tm_mon;
+        sd->date_max.tm_mday = sd->date_min.tm_mday;
+     }
+   else
+     {
+        sd->date_max.tm_year = max->tm_year;
+        sd->date_max.tm_mon = max->tm_mon;
+        sd->date_max.tm_mday = max->tm_mday;
+     }
+
+   if (sd->shown_time.tm_year >= sd->date_max.tm_year)
+     {
+        sd->shown_time.tm_year = sd->date_max.tm_year;
+        if (sd->shown_time.tm_mon > sd->date_max.tm_mon)
+          sd->shown_time.tm_mon = sd->date_max.tm_mon;
+     }
+
+   _fix_selected_time(sd);
+
+   evas_object_smart_changed(obj);
+}
+
+EOLIAN static const struct tm *
+_elm_calendar_date_max_get(Eo *obj EINA_UNUSED, Elm_Calendar_Data *sd)
+{
+   return &(sd->date_max);
 }
 
 EINA_DEPRECATED EAPI void
@@ -1848,7 +2315,7 @@ _elm_calendar_displayed_time_get(const Eo *obj EINA_UNUSED, Elm_Calendar_Data *s
 }
 
 static void
-_elm_calendar_class_constructor(Eo_Class *klass)
+_elm_calendar_class_constructor(Efl_Class *klass)
 {
    evas_smart_legacy_type_register(MY_CLASS_NAME_LEGACY, klass);
 
@@ -1866,6 +2333,7 @@ _elm_calendar_elm_interface_atspi_widget_action_elm_actions_get(Eo *obj EINA_UNU
           { "move,right", "move", "right", _key_action_move},
           { "move,up", "move", "up", _key_action_move},
           { "move,down", "move", "down", _key_action_move},
+          { "activate", "activate", NULL, _key_action_activate},
           { NULL, NULL, NULL, NULL }
    };
    return &atspi_actions[0];

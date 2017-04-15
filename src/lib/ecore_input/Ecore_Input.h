@@ -9,6 +9,8 @@
 
 #include <Eina.h>
 
+#include <Eo.h>
+
 #ifdef EAPI
 # undef EAPI
 #endif
@@ -209,6 +211,8 @@ extern "C" {
         unsigned int     keycode; /**< Key scan code numeric value @since 1.10 */
 
         void            *data; /**< User data associated with an Ecore_Event_Key @since 1.10 */
+
+        Eo *dev; /**< The Efl_Input_Device that originated the event @since 1.19 */
      };
 
    /**
@@ -245,6 +249,8 @@ extern "C" {
               double     x, y;
            } root; /**< same as root.x, root.y, but with sub-pixel precision, if available */
         } multi;
+
+        Eo *dev; /**< The Efl_Input_Device that originated the event @since 1.19 */
      };
 
    /**
@@ -270,6 +276,8 @@ extern "C" {
            int           x;
            int           y;
         } root; /**< Coordinates relative to root window */
+
+        Eo *dev; /**< The Efl_Input_Device that originated the event @since 1.19 */
      };
 
    /**
@@ -304,6 +312,8 @@ extern "C" {
               double     x, y;
            } root;
         } multi;
+
+        Eo *dev; /**< The Efl_Input_Device that originated the event @since 1.19 */
      };
 
    typedef enum _Ecore_Axis_Label
@@ -319,7 +329,11 @@ extern "C" {
         ECORE_AXIS_LABEL_TOUCH_WIDTH_MAJOR,   /**< Length of contact ellipse along AZIMUTH. Range: Unbounded: Unit: Same as ECORE_AXIS_LABEL_{X,Y}. @since 1.13 */
         ECORE_AXIS_LABEL_TOUCH_WIDTH_MINOR,   /**< Length of contact ellipse perpendicular to AZIMUTH. Range: Unbounded. Unit: Same as ECORE_AXIS_LABEL_{X,Y}. @since 1.13 */
         ECORE_AXIS_LABEL_TOOL_WIDTH_MAJOR,    /**< Length of tool ellipse along AZIMUTH. Range: Unbounded. Unit: Same as ECORE_AXIS_LABEL_{X,Y}. @since 1.13 */
-        ECORE_AXIS_LABEL_TOOL_WIDTH_MINOR     /**< Length of tool ellipse perpendicular to AZIMUTH. Range: Unbounded. Unit: Same as ECORE_AXIS_LABEL_{X,Y}. @since 1.13 */
+        ECORE_AXIS_LABEL_TOOL_WIDTH_MINOR,    /**< Length of tool ellipse perpendicular to AZIMUTH. Range: Unbounded. Unit: Same as ECORE_AXIS_LABEL_{X,Y}. @since 1.13 */
+        ECORE_AXIS_LABEL_WINDOW_X,      /**< X coordinate mapped to the window. @since 1.19 */
+        ECORE_AXIS_LABEL_WINDOW_Y,      /**< Y coordinate mapped to the window. @since 1.19 */
+        ECORE_AXIS_LABEL_NORMAL_X,      /**< X normalized to the [0, 1] range. @since 1.19 */
+        ECORE_AXIS_LABEL_NORMAL_Y,      /**< Y normalized to the [0, 1] range. @since 1.19 */
    } Ecore_Axis_Label; /**< @since 1.13 */
 
    struct _Ecore_Axis
@@ -340,6 +354,8 @@ extern "C" {
 
         int naxis;
         Ecore_Axis *axis;
+
+        Eo *dev; /**< The Efl_Input_Device that originated the event @since 1.19 */
      };
 
    /**
@@ -356,6 +372,8 @@ extern "C" {
         
         int              x; /**< x coordinate relative to window where event happened */
         int              y; /**< y coordinate relative to window where event happened */
+
+        Eo *dev; /**< The Efl_Input_Device that originated the event @since 1.19 */
      };
 
    /**
@@ -392,10 +410,12 @@ extern "C" {
                   double       value; /* [0.0 .. 1.0] 0.0 == fully unpressed, 1.0 == fully pressed */
                } button;
           };
+
+        Eo *dev; /**< The Efl_Input_Device that originated the event @since 1.19 */
      };
 
    /**
-    * Initialises the Ecore Event system.
+    * Initializes the Ecore Event system.
     */
    EAPI int                  ecore_event_init(void);
    /**
@@ -404,7 +424,7 @@ extern "C" {
    EAPI int                  ecore_event_shutdown(void);
 
    /**
-    * Return the Ecore modifier event integer associated to a
+    * Returns the Ecore modifier event integer associated to a
     * Ecore_Event_Modifier modifier event.
     *
     * @param modifier A Ecore_Event_Modifier event.
@@ -426,7 +446,7 @@ extern "C" {
    EAPI Ecore_Event_Modifier ecore_event_update_modifier(const char *key, Ecore_Event_Modifiers *modifiers, int inc);
 
    /**
-    * Handle a sequence of key symbols to make a final compose string.
+    * Handles a sequence of key symbols to make a final compose string.
     *
     * The final compose string seqstr_ret is allocated in this function and
     * thus shall be freed when not needed anymore.
@@ -436,6 +456,27 @@ extern "C" {
     * @return The status of the composition.
     */
    EAPI Ecore_Compose_State  ecore_compose_get(const Eina_List *seq, char **seqstr_ret);
+
+   /**
+    * Set deadzone of joystick event for an axis.
+    *
+    * The axis type joystick event occurs without user's control if joystick is
+    * too sensitive. The deadzone prevents unnecessary events.
+    * The default value is 200. The event value for an axis is a signed integer
+    * between -32767 and +32767.
+    *
+    * @param event_axis_deadzone The joystick event axis deadzone.
+    * @since 1.19
+    */
+   EAPI void ecore_input_joystick_event_axis_deadzone_set(int event_axis_deadzone);
+
+   /**
+    * Get deadzone of joystick event for an axis.
+    *
+    * @return deadzone of joystick event for an axis.
+    * @since 1.19
+    */
+   EAPI int ecore_input_joystick_event_axis_deadzone_get(void);
 
 #ifdef __cplusplus
 }

@@ -62,6 +62,7 @@ _emotion_modules_load(void)
    if (_emotion_modules_loaded) return;
    _emotion_modules_loaded = EINA_TRUE;
 
+#ifdef NEED_RUN_IN_TREE
 #if defined(HAVE_GETUID) && defined(HAVE_GETEUID)
    if (getuid() == geteuid())
 #endif
@@ -101,6 +102,7 @@ _emotion_modules_load(void)
                }
           }
      }
+#endif
 
    snprintf(buf, sizeof(buf), "%s/emotion/modules", eina_prefix_lib_get(_emotion_pfx));
    _emotion_modules = eina_module_arch_list_get(_emotion_modules, buf, MODULE_ARCH);
@@ -576,9 +578,9 @@ emotion_engine_instance_format_get(const Emotion_Engine_Instance *inst)
 }
 
 void
-emotion_engine_instance_video_data_size_get(const Emotion_Engine_Instance *inst, int *w, int *h)
+emotion_engine_instance_videfl_data_size_get(const Emotion_Engine_Instance *inst, int *w, int *h)
 {
-   EMOTION_ENGINE_INSTANCE_CALL(inst, video_data_size_get, w, h);
+   EMOTION_ENGINE_INSTANCE_CALL(inst, videfl_data_size_get, w, h);
 }
 
 Eina_Bool
@@ -789,6 +791,12 @@ const char *
 emotion_engine_instance_meta_get(const Emotion_Engine_Instance *inst, int meta)
 {
    EMOTION_ENGINE_INSTANCE_CALL_RET(inst, meta_get, NULL, meta);
+}
+
+void *
+emotion_engine_instance_meta_artwork_get(const Emotion_Engine_Instance *inst, Evas_Object *img, const char *path,  Emotion_Artwork_Info type)
+{
+   EMOTION_ENGINE_INSTANCE_CALL_RET(inst, meta_artwork_get, NULL, img, path, type);
 }
 
 void

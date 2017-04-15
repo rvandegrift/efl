@@ -1,5 +1,6 @@
 class Elm.Naviframe (Elm.Layout, Elm.Interface.Atspi_Widget_Action)
 {
+   [[Elementary naviframe class]]
    legacy_prefix: elm_naviframe;
    eo_prefix: elm_obj_naviframe;
    event_prefix: elm_naviframe;
@@ -116,7 +117,7 @@ class Elm.Naviframe (Elm.Layout, Elm.Interface.Atspi_Widget_Action)
          [[Simple version of item_promote.]]
 
          params {
-            @in content: Efl.Canvas.Object;
+            @in content: Efl.Canvas.Object; [[Item to promote]]
          }
       }
       item_insert_after {
@@ -141,9 +142,9 @@ class Elm.Naviframe (Elm.Layout, Elm.Interface.Atspi_Widget_Action)
    }
    implements {
       class.constructor;
-      Eo.Base.constructor;
+      Efl.Object.constructor;
+      Efl.Gfx.visible { set; }
       Efl.Canvas.Group.group_del;
-      Efl.Canvas.Group.group_show;
       Efl.Canvas.Group.group_add;
       Elm.Widget.focus_direction;
       Elm.Widget.focus_next_manager_is;
@@ -152,18 +153,17 @@ class Elm.Naviframe (Elm.Layout, Elm.Interface.Atspi_Widget_Action)
       Elm.Widget.focus_next;
       Elm.Widget.translate;
       Elm.Widget.theme_apply;
-      Elm.Widget.event;
-      Elm.Layout.text.set;
-      Elm.Layout.text.get;
+      Elm.Widget.widget_event;
+      Elm.Layout.text { get; set; }
       Elm.Layout.signal_emit;
       Elm.Layout.sizing_eval;
-      Elm.Interface.Atspi_Widget_Action.elm_actions.get;
+      Elm.Interface.Atspi_Widget_Action.elm_actions { get; }
       Efl.Part.part;
    }
    events {
-      transition,finished;
-      title,transition,finished;
-      title,clicked;
+      transition,finished; [[Called when naviframe transition finished]]
+      title,transition,finished; [[Called when naviframe title transaction finished]]
+      title,clicked; [[Called when naviframe title was clicked]]
+      item,activated; [[Called when naviframe item was activated]]
    }
-
 }

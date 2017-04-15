@@ -5,6 +5,7 @@
 #include <Elementary.h>
 
 #include "elm_priv.h"
+#include "elm_icon.eo.h"
 
 static Elm_Theme theme_default =
 {
@@ -32,16 +33,25 @@ _elm_theme_item_finalize(Elm_Theme_Files *files,
                          Eina_Bool prepend,
                          Eina_Bool istheme)
 {
+   /* Theme version history:
+    * <110: legacy, had no version tag
+    *  110: first supported version
+    *  119: switched windows to always use border
+    *       win group has no menu, no blocker
+    *       border group has all required swallows (conformant, bg, win)
+    *       data: "elm_bg_version" matches "version" ("119")
+    */
    if (!f) return;
    if (istheme)
      {
         char *version;
+        int v;
 
         if (!(version = edje_mmap_data_get(f, "version"))) return;
-        if (atoi(version) < 110) // bump this version number when we need to
+        v = atoi(version);
+        if (v < 110) // bump this version number when we need to
           {
-             free(version);
-             return;
+             WRN("Selected theme is too old (version = %d, needs >= 110)", v);
           }
         free(version);
      }
@@ -231,7 +241,7 @@ _elm_theme_find_data_try(Elm_Theme *th, const Eina_File *f, const char *key)
    free(data);
    if (t)
      {
-        eina_hash_add(th->cache, key, t);
+        eina_hash_add(th->cache_data, key, t);
         return t;
      }
    return NULL;
@@ -312,7 +322,7 @@ _elm_theme_set(Elm_Theme *th, Evas_Object *o, const char *clas, const char *grou
         eina_hash_add(th->cache_style_load_failed, buf2, (void *)1);
      }
 
-   //Use the elementary default theme.
+   // Use the elementary default style.
    snprintf(buf2, sizeof(buf2), "elm/%s/%s/default", clas, group);
    if (!eina_hash_find(th->cache_style_load_failed, buf2))
      {
@@ -349,7 +359,7 @@ _elm_theme_icon_set(Elm_Theme *th,
    char buf2[1024];
    int w, h;
 
-   if (eo_isa((o), ELM_ICON_CLASS) && elm_icon_standard_get(o) &&
+   if (efl_isa((o), ELM_ICON_CLASS) && elm_icon_standard_get(o) &&
        strcmp(elm_config_icon_theme_get(), ELM_CONFIG_ICON_THEME_ELEMENTARY))
      {
         elm_icon_standard_set(o, elm_icon_standard_get(o));
@@ -376,7 +386,7 @@ _elm_theme_icon_set(Elm_Theme *th,
    return w > 0;
 }
 
-Eina_Bool
+void
 _elm_theme_parse(Elm_Theme *th, const char *theme)
 {
    Eina_List *names = NULL;
@@ -399,13 +409,17 @@ _elm_theme_parse(Elm_Theme *th, const char *theme)
                   eina_strbuf_append_char(buf, ':');
                   pe += 2;
                }
-             else if ((pe[0] == ':') && (pe[1] == '\\'))
+#ifdef HAVE_ELEMENTARY_WIN32
+             else if (isalpha(pe[0]) && (pe[1] == ':') &&
+                      ((pe[2] == '/') || (pe[2] == '\\')))
                {
+                  // Correct processing file path on  Windows OS "<disk>:/" or "<disk>:\"
                   eina_strbuf_append_char(buf, *pe);
                   pe++;
                   eina_strbuf_append_char(buf, *pe);
                   pe++;
                }
+#endif
              else if ((*pe == ':') || (!*pe))
                { // p -> pe == 'name:'
                   if (pe > p)
@@ -446,7 +460,6 @@ _elm_theme_parse(Elm_Theme *th, const char *theme)
 
    EINA_LIST_FREE(names, p)
      _elm_theme_file_item_add(&th->themes, p, EINA_FALSE, EINA_TRUE);
-   return EINA_TRUE;
 }
 
 void
@@ -619,7 +632,7 @@ elm_theme_extension_mmap_add(Elm_Theme *th, const Eina_File *f)
 
    if (!f) return;
    if (!th) th = &(theme_default);
-   _elm_theme_item_finalize(&th->overlay, eina_file_filename_get(file), file, EINA_FALSE, EINA_FALSE);
+   _elm_theme_item_finalize(&th->extension, eina_file_filename_get(file), file, EINA_FALSE, EINA_FALSE);
    elm_theme_flush(th);
 }
 

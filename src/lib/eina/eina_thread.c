@@ -23,6 +23,7 @@
 #include <stdlib.h>
 
 #include "eina_config.h"
+#include "eina_lock.h" /* it will include pthread.h with proper flags */
 #include "eina_thread.h"
 #include "eina_sched.h"
 #include "eina_cpu.h"
@@ -69,12 +70,9 @@ _eina_thread_create(Eina_Thread *t, int affinity, void *(*func)(void *data), voi
      {
 #ifdef EINA_HAVE_PTHREAD_AFFINITY
         cpu_set_t cpu;
-        int cpunum;
-
-        cpunum = eina_cpu_count();
 
         CPU_ZERO(&cpu);
-        CPU_SET(affinity % cpunum, &cpu);
+        CPU_SET(affinity, &cpu);
         pthread_attr_setaffinity_np(&attr, sizeof(cpu), &cpu);
 #endif
      }
@@ -139,6 +137,8 @@ _eina_internal_call(void *context)
    pthread_t self;
 #endif
 
+   EINA_THREAD_CLEANUP_PUSH(free, c);
+
    if (c->prio == EINA_THREAD_BACKGROUND ||
        c->prio == EINA_THREAD_IDLE)
      eina_sched_prio_drop();
@@ -146,13 +146,14 @@ _eina_internal_call(void *context)
 #ifdef EINA_HAVE_DEBUG
    self = pthread_self();
    _eina_debug_thread_add(&self);
+   EINA_THREAD_CLEANUP_PUSH(_eina_debug_thread_del, &self);
 #endif
    r = c->func((void*) c->data, eina_thread_self());
 #ifdef EINA_HAVE_DEBUG
-   _eina_debug_thread_del(&self);
+   EINA_THREAD_CLEANUP_POP(EINA_TRUE);
 #endif
 
-   free(c);
+   EINA_THREAD_CLEANUP_POP(EINA_TRUE);
 
    return r;
 }
@@ -225,6 +226,52 @@ eina_thread_name_set(Eina_Thread t, const char *name)
 #endif
    return EINA_FALSE;
 }
+
+EAPI Eina_Bool
+eina_thread_cancel(Eina_Thread t)
+{
+   if (!t) return EINA_FALSE;
+   return pthread_cancel((pthread_t)t) == 0;
+}
+
+EAPI Eina_Bool
+eina_thread_cancellable_set(Eina_Bool cancellable, Eina_Bool *was_cancellable)
+{
+   int state = cancellable ? PTHREAD_CANCEL_ENABLE : PTHREAD_CANCEL_DISABLE;
+   int old = 0;
+   int r;
+
+   /* enforce deferred in case users changed to asynchronous themselves */
+   pthread_setcanceltype(PTHREAD_CANCEL_DEFERRED, &old);
+
+   r = pthread_setcancelstate(state, &old);
+   if (was_cancellable && r == 0)
+     *was_cancellable = (old == PTHREAD_CANCEL_ENABLE);
+
+   return r == 0;
+}
+
+EAPI void
+eina_thread_cancel_checkpoint(void)
+{
+   pthread_testcancel();
+}
+
+EAPI void *
+eina_thread_cancellable_run(Eina_Thread_Cancellable_Run_Cb cb, Eina_Free_Cb cleanup_cb, void *data)
+{
+   Eina_Bool old = EINA_FALSE;
+   void *ret;
+
+   EINA_THREAD_CLEANUP_PUSH(cleanup_cb, data);
+   eina_thread_cancellable_set(EINA_TRUE, &old); // is a cancellation point
+   ret = cb(data); // may not run if was previously canceled
+   EINA_THREAD_CLEANUP_POP(EINA_TRUE);
+   eina_thread_cancellable_set(old, NULL);
+   return ret;
+}
+
+EAPI const void *EINA_THREAD_JOIN_CANCELED = PTHREAD_CANCELED;
 
 Eina_Bool
 eina_thread_init(void)

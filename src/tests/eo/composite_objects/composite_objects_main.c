@@ -11,7 +11,7 @@
 static int cb_called = EINA_FALSE;
 
 static void
-_a_changed_cb(void *data, const Eo_Event *event)
+_a_changed_cb(void *data, const Efl_Event *event)
 {
    int new_a = *((int *) event->info);
    printf("%s event_info:'%d' data:'%s'\n", __func__, new_a, (const char *) data);
@@ -24,13 +24,13 @@ main(int argc, char *argv[])
 {
    (void) argc;
    (void) argv;
-   eo_init();
+   efl_object_init();
 
-   Eo *obj = eo_add(COMP_CLASS, NULL);
-   eo_event_callback_add(obj, EV_A_CHANGED, _a_changed_cb, NULL);
+   Eo *obj = efl_add(COMP_CLASS, NULL);
+   efl_event_callback_add(obj, EV_A_CHANGED, _a_changed_cb, NULL);
 
-   fail_if(!eo_isa(obj, COMP_CLASS));
-   fail_if(!eo_isa(obj, SIMPLE_CLASS));
+   fail_if(!efl_isa(obj, COMP_CLASS));
+   fail_if(!efl_isa(obj, SIMPLE_CLASS));
 
    int a = 0;
    cb_called = EINA_FALSE;
@@ -53,26 +53,26 @@ main(int argc, char *argv[])
 
    /* disable the callback forwarder, and fail if it's still called. */
    Eo *simple = NULL;
-   simple = eo_key_data_get(obj, "simple-obj");
-   eo_ref(simple);
-   eo_event_callback_forwarder_del(simple, EV_A_CHANGED, obj);
+   simple = efl_key_data_get(obj, "simple-obj");
+   efl_ref(simple);
+   efl_event_callback_forwarder_del(simple, EV_A_CHANGED, obj);
 
    cb_called = EINA_FALSE;
    simple_a_set(obj, 2);
    fail_if(cb_called);
 
-   fail_if(!eo_composite_part_is(simple));
-   fail_if(!eo_composite_detach(obj, simple));
-   fail_if(eo_composite_detach(obj, simple));
-   fail_if(eo_composite_part_is(simple));
-   fail_if(!eo_composite_attach(obj, simple));
-   fail_if(!eo_composite_part_is(simple));
-   fail_if(eo_composite_attach(obj, simple));
+   fail_if(!efl_composite_part_is(simple));
+   fail_if(!efl_composite_detach(obj, simple));
+   fail_if(efl_composite_detach(obj, simple));
+   fail_if(efl_composite_part_is(simple));
+   fail_if(!efl_composite_attach(obj, simple));
+   fail_if(!efl_composite_part_is(simple));
+   fail_if(efl_composite_attach(obj, simple));
 
-   eo_unref(simple);
-   eo_unref(obj);
+   efl_unref(simple);
+   efl_unref(obj);
 
-   eo_shutdown();
+   efl_object_shutdown();
    return 0;
 }
 

@@ -48,8 +48,6 @@ struct _Elm_Pan_Smart_Data
    Evas_Object                   *content;
    Evas_Coord                     x, y, w, h;
    Evas_Coord                     content_w, content_h, px, py;
-   double                         gravity_x, gravity_y;
-   Evas_Coord                     prev_cw, prev_ch, delta_posx, delta_posy;
 };
 
 /**
@@ -209,6 +207,10 @@ struct _Elm_Scrollable_Smart_Interface_Data
    unsigned char size_adjust_recurse;
    unsigned char size_count;
    void         *event_info;
+
+   double                         gravity_x, gravity_y;
+   Evas_Coord                     prev_cw, prev_ch;
+
    Eina_Bool  size_adjust_recurse_abort : 1;
 
    Eina_Bool  momentum_animator_disabled : 1;
@@ -225,6 +227,7 @@ struct _Elm_Scrollable_Smart_Interface_Data
    Eina_Bool  bouncemey : 1;
    Eina_Bool  bouncemex : 1;
    Eina_Bool  freeze : 1;
+   Eina_Bool  freeze_want : 1;
    Eina_Bool  hold : 1;
    Eina_Bool  min_w : 1;
    Eina_Bool  min_h : 1;
@@ -238,13 +241,18 @@ struct _Elm_Scrollable_Smart_Interface_Data
 
 #define ELM_SCROLLABLE_CHECK(obj, ...)                                       \
                                                                              \
-  if (!eo_isa(obj, ELM_INTERFACE_SCROLLABLE_MIXIN))                    \
+  if (!efl_isa(obj, ELM_INTERFACE_SCROLLABLE_MIXIN))                    \
     {                                                                        \
        ERR("The object (%p) doesn't implement the Elementary scrollable"     \
             " interface", obj);                                              \
        if (getenv("ELM_ERROR_ABORT")) abort();                               \
        return __VA_ARGS__;                                                   \
     }
+
+#if defined(EFL_EO_API_SUPPORT) && defined(EFL_BETA_API_SUPPORT)
+EAPI void elm_pan_gravity_set(Elm_Pan *, double x, double) EINA_DEPRECATED;
+EAPI void elm_pan_gravity_get(const Elm_Pan *, double *, double *) EINA_DEPRECATED;
+#endif
 
 /**
  * @}

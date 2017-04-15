@@ -43,6 +43,7 @@ typedef struct _Ecore_Wl2_Seat Ecore_Wl2_Seat;
 typedef struct _Ecore_Wl2_Pointer Ecore_Wl2_Pointer;
 typedef struct _Ecore_Wl2_Keyboard Ecore_Wl2_Keyboard;
 typedef struct _Ecore_Wl2_Touch Ecore_Wl2_Touch;
+typedef struct _Ecore_Wl2_Offer Ecore_Wl2_Offer;
 
 /* matches protocol values */
 typedef enum
@@ -51,12 +52,22 @@ typedef enum
    ECORE_WL2_DRAG_ACTION_COPY = 1,
    ECORE_WL2_DRAG_ACTION_MOVE = 2,
    ECORE_WL2_DRAG_ACTION_ASK = 4,
+   ECORE_WL2_DRAG_ACTION_LAST = 5,
 } Ecore_Wl2_Drag_Action;
+
+typedef enum
+{
+  ECORE_WL2_SEAT_CAPABILITIES_NONE = 0,
+  ECORE_WL2_SEAT_CAPABILITIES_POINTER = 1,
+  ECORE_WL2_SEAT_CAPABILITIES_KEYBOARD = 2,
+  ECORE_WL2_SEAT_CAPABILITIES_TOUCH = 4
+} Ecore_Wl2_Seat_Capabilities;
 
 struct _Ecore_Wl2_Event_Connection
 {
    Ecore_Wl2_Display *display;
 };
+
 typedef struct _Ecore_Wl2_Event_Connection Ecore_Wl2_Event_Connect;
 typedef struct _Ecore_Wl2_Event_Connection Ecore_Wl2_Event_Disconnect;
 
@@ -77,30 +88,33 @@ typedef struct _Ecore_Wl2_Event_Focus_In
 {
    unsigned int window;
    unsigned int timestamp;
+   Eo *dev; //The seat device
 } Ecore_Wl2_Event_Focus_In;
 
 typedef struct _Ecore_Wl2_Event_Focus_Out
 {
    unsigned int window;
    unsigned int timestamp;
+   Eo *dev; //The seat device
 } Ecore_Wl2_Event_Focus_Out;
 
 typedef struct _Ecore_Wl2_Event_Dnd_Enter
 {
-   unsigned int win, source, serial;
-   char **types;
-   int num_types, x, y;
-   struct wl_data_offer *offer;
+   unsigned int win, source;
+   Ecore_Wl2_Offer *offer;
+   int x, y;
 } Ecore_Wl2_Event_Dnd_Enter;
 
 typedef struct _Ecore_Wl2_Event_Dnd_Leave
 {
    unsigned int win, source;
+   Ecore_Wl2_Offer *offer;
 } Ecore_Wl2_Event_Dnd_Leave;
 
 typedef struct _Ecore_Wl2_Event_Dnd_Motion
 {
-   unsigned int win, source, serial;
+   unsigned int win, source;
+   Ecore_Wl2_Offer *offer;
    int x, y;
 } Ecore_Wl2_Event_Dnd_Motion;
 
@@ -108,6 +122,7 @@ typedef struct _Ecore_Wl2_Event_Dnd_Drop
 {
    unsigned int win, source;
    int x, y;
+   Ecore_Wl2_Offer *offer;
 } Ecore_Wl2_Event_Dnd_Drop;
 
 typedef struct _Ecore_Wl2_Event_Dnd_End
@@ -136,18 +151,41 @@ typedef struct _Ecore_Wl2_Event_Data_Source_Send
    int fd;
 } Ecore_Wl2_Event_Data_Source_Send;
 
+typedef struct _Ecore_Wl2_Event_Seat_Name
+{
+   Eina_Stringshare *name;
+   unsigned int id;
+} Ecore_Wl2_Event_Seat_Name;
+
+typedef struct _Ecore_Wl2_Event_Seat_Capabilities
+{
+   unsigned int id;
+   Eina_Bool pointer_enabled : 1;
+   Eina_Bool keyboard_enabled : 1;
+   Eina_Bool touch_enabled : 1;
+} Ecore_Wl2_Event_Seat_Capabilities;
+
+typedef enum
+{
+   ECORE_WL2_DEVICE_TYPE_SEAT,
+   ECORE_WL2_DEVICE_TYPE_POINTER,
+   ECORE_WL2_DEVICE_TYPE_KEYBOARD,
+   ECORE_WL2_DEVICE_TYPE_TOUCH
+} Ecore_Wl2_Device_Type;
+
+typedef struct _Ecore_Wl2_Event_Device
+{
+   Eo *dev;
+   int window_id;
+   unsigned int seat_id;
+   Ecore_Wl2_Device_Type type;
+} Ecore_Wl2_Event_Device;
+
 typedef enum
 {
    ECORE_WL2_SELECTION_CNP,
    ECORE_WL2_SELECTION_DND
 } Ecore_Wl2_Selection_Type;
-
-typedef struct _Ecore_Wl2_Event_Selection_Data_Ready
-{
-   char *data;
-   int len;
-   Ecore_Wl2_Selection_Type sel_type;
-} Ecore_Wl2_Event_Selection_Data_Ready;
 
 typedef enum
 {
@@ -163,10 +201,23 @@ typedef struct _Ecore_Wl2_Event_Window_Configure
    unsigned int states;
 } Ecore_Wl2_Event_Window_Configure;
 
+typedef struct _Ecore_Wl2_Event_Window_Configure_Complete
+{
+   unsigned int win;
+} Ecore_Wl2_Event_Window_Configure_Complete;
+
 typedef struct _Ecore_Wl2_Event_Sync_Done
 {
    Ecore_Wl2_Display *display;
 } Ecore_Wl2_Event_Sync_Done;
+
+typedef struct _Ecore_Wl2_Event_Offer_Data_Ready
+{
+   Ecore_Wl2_Offer *offer;
+   char *data;
+   int len;
+   const char *mimetype;
+} Ecore_Wl2_Event_Offer_Data_Ready;
 
 typedef enum _Ecore_Wl2_Window_Type
 {
@@ -192,15 +243,19 @@ EAPI extern int ECORE_WL2_EVENT_DND_LEAVE; /** @since 1.17 */
 EAPI extern int ECORE_WL2_EVENT_DND_MOTION; /** @since 1.17 */
 EAPI extern int ECORE_WL2_EVENT_DND_DROP; /** @since 1.17 */
 EAPI extern int ECORE_WL2_EVENT_DND_END; /** @since 1.17 */
-EAPI extern int ECORE_WL2_EVENT_DND_DATA_READY; /** @since 1.18 */
 EAPI extern int ECORE_WL2_EVENT_DATA_SOURCE_END; /** @since 1.18 */
 EAPI extern int ECORE_WL2_EVENT_DATA_SOURCE_DROP; /** @since 1.18 */
 EAPI extern int ECORE_WL2_EVENT_DATA_SOURCE_ACTION; /** @since 1.18 */
 EAPI extern int ECORE_WL2_EVENT_DATA_SOURCE_TARGET; /** @since 1.17 */
 EAPI extern int ECORE_WL2_EVENT_DATA_SOURCE_SEND; /** @since 1.17 */
-EAPI extern int ECORE_WL2_EVENT_CNP_DATA_READY; /** @since 1.18 */
 EAPI extern int ECORE_WL2_EVENT_WINDOW_CONFIGURE; /** @since 1.17 */
 EAPI extern int ECORE_WL2_EVENT_SYNC_DONE; /** @since 1.17 */
+EAPI extern int ECORE_WL2_EVENT_OFFER_DATA_READY; /** @since 1.19 */
+EAPI extern int ECORE_WL2_EVENT_SEAT_NAME_CHANGED; /** @since 1.19 */
+EAPI extern int ECORE_WL2_EVENT_SEAT_CAPABILITIES_CHANGED; /** @since 1.19 */
+EAPI extern int ECORE_WL2_EVENT_DEVICE_ADDED; /** @since 1.19 */
+EAPI extern int ECORE_WL2_EVENT_DEVICE_REMOVED; /** @since 1.19 */
+EAPI extern int ECORE_WL2_EVENT_WINDOW_CONFIGURE_COMPLETE; /** @since 1.19 */
 
 /**
  * @file
@@ -403,6 +458,14 @@ EAPI Eina_Iterator *ecore_wl2_display_globals_get(Ecore_Wl2_Display *display);
  * @since 1.17
  */
 EAPI void ecore_wl2_display_screen_size_get(Ecore_Wl2_Display *display, int *w, int *h);
+
+/**
+ * Get all the Ecore_Wl2_Input from the display.
+ * @param display The display
+ * @return A Eina_Iterator of Ecore_Wl2_Input or @c NULL on error
+ * @since 1.19
+ */
+EAPI Eina_Iterator *ecore_wl2_display_inputs_get(Ecore_Wl2_Display *display);
 
 /**
  * Find an Ecore_Wl2_Window based on id
@@ -784,9 +847,22 @@ EAPI void ecore_wl2_window_iconified_set(Ecore_Wl2_Window *window, Eina_Bool ico
  * @param y where to return the vertical position. May be NULL. Returns 0 on error.
  *
  * @ingroup Ecore_Wl2_Window_Group
+ * @see ecore_wl2_window_pointer_device_xy_get
  * @since 1.17
  */
 EAPI void ecore_wl2_window_pointer_xy_get(Ecore_Wl2_Window *window, int *x, int *y);
+
+/**
+ * Retrieves the mouse position of the current window.
+ *
+ * @param window The window on which to retrieve the mouse position.
+ * @param pointer The Efl.Input.Pointer device to fetch the position.
+ * @param x where to return the horizontal position. May be NULL. Returns 0 on error.
+ * @param y where to return the vertical position. May be NULL. Returns 0 on error.
+ * @ingroup Ecore_Wl2_Window_Group
+ * @since 1.19
+ */
+EAPI void ecore_wl2_window_pointer_device_xy_get(Ecore_Wl2_Window *window, const Eo *pointer, int *x, int *y);
 
 /**
  * Set a given wl_surface to use as the pointer on a window
@@ -852,6 +928,22 @@ EAPI void ecore_wl2_input_ungrab(Ecore_Wl2_Input *input);
 EAPI struct wl_seat *ecore_wl2_input_seat_get(Ecore_Wl2_Input *input);
 
 /**
+ * Get the seat capabilities for a given input.
+ *
+ * @param input The input
+ * @since 1.19
+ */
+EAPI Ecore_Wl2_Seat_Capabilities ecore_wl2_input_seat_capabilities_get(Ecore_Wl2_Input *input);
+
+/**
+ * Get the wayland's seat id from an input.
+ * @param input The input
+ * @return The seat id
+ * @since 1.19
+ */
+EAPI unsigned int ecore_wl2_input_seat_id_get(Ecore_Wl2_Input *input);
+
+/**
  * @defgroup Ecore_Wl2_Dnd_Group Wayland Library Drag-n-Drop Functions
  * @ingroup Ecore_Wl2_Group
  *
@@ -859,36 +951,73 @@ EAPI struct wl_seat *ecore_wl2_input_seat_get(Ecore_Wl2_Input *input);
  * Wayland Drag-n-Drop
  */
 
-/* TODO: doxy */
-/** @since 1.17 */
+/**
+ * Set the types which are supported by a possible drag and drop operation.
+ * This call initializes a data source and offeres the given mimetypes
+ *
+ * @param input the input where to add on the data source
+ *
+ * @param types a null-terminated array of mimetypes
+ *
+ * @since 1.17
+ */
 EAPI void ecore_wl2_dnd_drag_types_set(Ecore_Wl2_Input *input, const char **types);
 
-/* TODO: doxy */
-/** @since 1.17 */
+/**
+ * Start a drag on the given input
+ *
+ * @param input the input to use
+ *
+ * @param window the window which is the origin of the drag operation
+ *
+ * @param drag_window the window which is used as window of the visible hint.
+ *
+ * @since 1.17
+ */
 EAPI void ecore_wl2_dnd_drag_start(Ecore_Wl2_Input *input, Ecore_Wl2_Window *window, Ecore_Wl2_Window *drag_window);
 
-/* TODO: doxy */
-/** @since 1.17 */
-EAPI Eina_Bool ecore_wl2_dnd_drag_get(Ecore_Wl2_Input *input, const char *type);
-
-/* TODO: doxy */
-/** @since 1.17 */
+/**
+ * End a drag started by a call to ecore_wl2_dnd_drag_start
+ *
+ * @param input the input object on which the drag was started
+ *
+ * @since 1.17
+ */
 EAPI void ecore_wl2_dnd_drag_end(Ecore_Wl2_Input *input);
 
-/* TODO: doxy */
-/** @since 1.17 */
-EAPI Eina_Bool ecore_wl2_dnd_selection_owner_has(Ecore_Wl2_Input *input);
+/**
+ * Get the offer which is currently resposible for the clipboard
+ *
+ * @param input the input object to use
+ *
+ * @since 1.19
+ */
+EAPI Ecore_Wl2_Offer* ecore_wl2_dnd_selection_get(Ecore_Wl2_Input *input);
 
-/* TODO: doxy */
-/** @since 1.17 */
+/**
+ * Set the types which are available from this client
+ * Later the event ECORE_WL2_EVENT_DATA_SOURCE_SEND is emitted,
+ * where the caller of this api must write the data (encoded in the given mimetype) to the fd
+ *
+ * @param input the input to provice this types on
+ *
+ * @param types a null-terminated array of mimetypes supported by the client
+ *
+ * @return 1 on success 0 on failure
+ *
+ * @since 1.17
+ */
 EAPI Eina_Bool ecore_wl2_dnd_selection_set(Ecore_Wl2_Input *input, const char **types);
 
-/* TODO: doxy */
-/** @since 1.17 */
-EAPI Eina_Bool ecore_wl2_dnd_selection_get(Ecore_Wl2_Input *input, const char *type);
-
-/* TODO: doxy */
-/** @since 1.17 */
+/**
+ * Clear the selection currently setted on this input.
+ *
+ * @param input the input to clear
+ *
+ * @return 1 on sucess 0 on failure
+ *
+ * @since 1.17
+ */
 EAPI Eina_Bool ecore_wl2_dnd_selection_clear(Ecore_Wl2_Input *input);
 
 /**
@@ -1111,6 +1240,108 @@ EAPI Ecore_Wl2_Display *ecore_wl2_window_display_get(const Ecore_Wl2_Window *win
 /* # ifdef __cplusplus */
 /* } */
 /* # endif */
+/**
+ * Get the actions available from the data source
+ *
+ * @param offer Offer object to use
+ *
+ * @return or´ed values from Ecore_Wl2_Drag_Action which are describing the available actions
+ * @since 1.19
+ */
+EAPI Ecore_Wl2_Drag_Action ecore_wl2_offer_actions_get(Ecore_Wl2_Offer *offer);
+
+/**
+ * Set the actions which are supported by you
+ *
+ * @param offer Offer object to use
+ * @param actions A or´ed value of mutliple Ecore_Wl2_Drag_Action values
+ * @param action the preffered action out of the actions
+ *
+ * @since 1.19
+ */
+EAPI void ecore_wl2_offer_actions_set(Ecore_Wl2_Offer *offer, Ecore_Wl2_Drag_Action actions, Ecore_Wl2_Drag_Action action);
+
+/**
+ * Get action which is set by either the data source or in the last call of actions_set
+ *
+ * @param offer Offer object to use
+ *
+ * @return the prefered action
+ *
+ * @since 1.19
+ */
+EAPI Ecore_Wl2_Drag_Action ecore_wl2_offer_action_get(Ecore_Wl2_Offer *offer);
+
+/**
+ * Get the mime types which are given by the source
+ *
+ * @param offer the offer to query
+ *
+ * @return a eina array of strdup´ed strings, this array must NOT be changed or freed
+ */
+EAPI Eina_Array* ecore_wl2_offer_mimes_get(Ecore_Wl2_Offer *offer);
+
+/**
+ * Set mimetypes you are accepting under this offer
+ *
+ * @param offer the offer to use
+ *
+ * @since 1.19
+ */
+EAPI void ecore_wl2_offer_mimes_set(Ecore_Wl2_Offer *offer, Eina_Array *mimes);
+
+/**
+ * Request the data from this offer.
+ * The event ECORE_WL2_EVENT_OFFER_DATA_READY is called when the data is available.
+ * There offer will be not destroyed as long as requested data is not emitted by the event.
+ *
+ * @param offer the offer to use
+ * @param mime the mimetype to receive
+ *
+ * @since 1.19
+ */
+EAPI void ecore_wl2_offer_receive(Ecore_Wl2_Offer *offer, char *mime);
+
+/**
+ * Check if the given offer supports the given mimetype
+ *
+ * @param offer the offer to use
+ * @param mime the mimetype to check
+ *
+ * @return Returns true if the mimetype is supported by this offer, false if not
+ *
+ * @since 1.19
+ */
+EAPI Eina_Bool ecore_wl2_offer_supports_mime(Ecore_Wl2_Offer *offer, const char *mime);
+
+/**
+ * Mark this offer as finished
+ * This will call the dnd_finished event on the source of the sender.
+ *
+ * @param offer the offer to use
+ *
+ * @since 1.19
+ */
+EAPI void ecore_wl2_offer_finish(Ecore_Wl2_Offer *offer);
+
+/**
+ * Check if a window has a shell surface - without one it can't be visible.
+ *
+ * @param The window to check
+ *
+ * @return Returns true if the window has an associated shell surface.
+ * @since 1.19
+ */
+EAPI Eina_Bool ecore_wl2_window_shell_surface_exists(Ecore_Wl2_Window *win);
+
+/**
+ * Disable session recovery for any further connections.  Must be called
+ * before connecting.  This is irreversible and not intended for general
+ * use.
+ *
+ * @since 1.19
+ */
+EAPI void ecore_wl2_session_recovery_disable(void);
 
 # endif
 

@@ -2,6 +2,8 @@ import evas_types;
 
 class Evas.Canvas3D.Light (Evas.Canvas3D.Object)
 {
+   [[Evas 3D canvas light class]]
+
    data: Evas_Canvas3D_Light_Data;
 
    methods {
@@ -193,7 +195,7 @@ class Evas.Canvas3D.Light (Evas.Canvas3D.Object)
 
            See also @.projection_perspective_set, @.projection_ortho_set and @.projection_frustum_set]]
          params {
-           @in matrix: const(Evas.Real) *; [[Projection Matrix. Pointer to the array of 16 Evas.Real values in column major order.]]
+           @in matrix: ptr(const(Evas.Real)); [[Projection Matrix. Pointer to the array of 16 Evas.Real values in column major order.]]
          }
       }
 
@@ -248,8 +250,8 @@ class Evas.Canvas3D.Light (Evas.Canvas3D.Object)
    }
 
    implements {
-      Eo.Base.constructor;
-      Eo.Base.destructor;
+      Efl.Object.constructor;
+      Efl.Object.destructor;
       Evas.Canvas3D.Object.update_notify;
       Evas.Canvas3D.Object.change_notify;
    }

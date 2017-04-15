@@ -350,6 +350,7 @@ _print_gl_log(Evas_GL_API *gl, GLuint id)
      gl->glGetShaderiv(id, GL_INFO_LOG_LENGTH, &log_len);
    else if (gl->glIsProgram(id))
      gl->glGetProgramiv(id, GL_INFO_LOG_LENGTH, &log_len);
+   if (!log_len) return;
 
    log_info = malloc(log_len * sizeof(char));
 
@@ -427,6 +428,9 @@ _init_gl(Evas_Object *obj)
 {
    GLData *gld = evas_object_data_get(obj, "gld");
 
+   printf("GL_VERSION: %s\n", gld->glapi->glGetString(GL_VERSION));
+   fflush(stdout);
+
    gears_init(gld);
 }
 
@@ -436,7 +440,8 @@ _del_gl(Evas_Object *obj)
    GLData *gld = evas_object_data_get(obj, "gld");
    if (!gld)
      {
-        printf("Unable to get GLData. \n");
+        printf("Unable to get GLData.\n");
+        fflush(stdout);
         return;
      }
    Evas_GL_API *gl = gld->glapi;
@@ -611,8 +616,8 @@ _mouse_up(void *data EINA_UNUSED, Evas *e EINA_UNUSED, Evas_Object *obj, void *e
    gld->mouse_down = 0;
 }
 
-void
-test_glview(void *data EINA_UNUSED, Evas_Object *obj EINA_UNUSED, void *event_info EINA_UNUSED)
+static void
+_test_glview_do(Evas_GL_Context_Version version)
 {
    Evas_Object *win, *bx, *bt, *gl, *lb;
    Ecore_Animator *ani;
@@ -636,10 +641,10 @@ test_glview(void *data EINA_UNUSED, Evas_Object *obj EINA_UNUSED, void *event_in
    elm_config_accel_preference_set(accel);
    eina_stringshare_del(accel);
 #else
-   win = eo_add(EFL_UI_WIN_STANDARD_CLASS, NULL,
-                efl_ui_win_name_set(eo_self, "glview"),
-                efl_text_set(eo_self, "GLView"),
-                efl_ui_win_accel_preference_set(eo_self, "gl:depth"));
+   win = efl_add(EFL_UI_WIN_STANDARD_CLASS, NULL,
+                efl_ui_win_name_set(efl_added, "glview"),
+                efl_text_set(efl_added, "GLView"),
+                efl_ui_win_accel_preference_set(efl_added, "gl:depth"));
    elm_win_autodel_set(win, EINA_TRUE);
 #endif
 
@@ -649,7 +654,7 @@ test_glview(void *data EINA_UNUSED, Evas_Object *obj EINA_UNUSED, void *event_in
    evas_object_show(bx);
 
    // Add a GLView
-   gl = elm_glview_add(win);
+   gl = elm_glview_version_add(win, version);
    if (gl)
      {
         evas_object_size_hint_align_set(gl, EVAS_HINT_FILL, EVAS_HINT_FILL);
@@ -703,7 +708,7 @@ test_glview(void *data EINA_UNUSED, Evas_Object *obj EINA_UNUSED, void *event_in
         elm_object_text_set(lb, "<align=left> GL backend engine is not supported.<br/>"
                             " 1. Check your back-end engine or<br/>"
                             " 2. Run elementary_test with engine option or<br/>"
-                            "    ex) $ <b>ELM_ENGINE=gl</b> elementary_test<br/>"
+                            "    ex) $ <b>ELM_ACCEL=gl</b> elementary_test<br/>"
                             " 3. Change your back-end engine from elementary_config.<br/></align>");
         evas_object_size_hint_weight_set(lb, EVAS_HINT_EXPAND, EVAS_HINT_EXPAND);
         evas_object_size_hint_align_set(lb, EVAS_HINT_FILL, EVAS_HINT_FILL);
@@ -722,4 +727,16 @@ test_glview(void *data EINA_UNUSED, Evas_Object *obj EINA_UNUSED, void *event_in
 
    evas_object_resize(win, 320, 480);
    evas_object_show(win);
+}
+
+void
+test_glview(void *data EINA_UNUSED, Evas_Object *obj EINA_UNUSED, void *event_info EINA_UNUSED)
+{
+   _test_glview_do(EVAS_GL_GLES_2_X);
+}
+
+void
+test_glview_gles3(void *data EINA_UNUSED, Evas_Object *obj EINA_UNUSED, void *event_info EINA_UNUSED)
+{
+   _test_glview_do(EVAS_GL_GLES_3_X);
 }

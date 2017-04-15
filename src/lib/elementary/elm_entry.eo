@@ -1,8 +1,7 @@
 import elm_general;
-import elm_icon;
 
-type Elm_Entry_Item_Provider_Cb: __undefined_type;
-type Elm_Entry_Filter_Cb: __undefined_type;
+type Elm_Entry_Item_Provider_Cb: __undefined_type; [[Elementary entry item provider callback type]]
+type Elm_Entry_Filter_Cb: __undefined_type; [[Elementary entry filter callback type]]
 
 enum Elm.Text_Format
 {
@@ -35,9 +34,12 @@ enum Elm.Input.Panel.Layout
    datetime,    [[Date and time layout
 
                   @since 1.8]]
-   emoticon     [[Emoticon layout
+   emoticon,    [[Emoticon layout
 
                   @since 1.10]]
+   voice        [[Voice layout, but if the IME does not support voice layout, then normal layout will be shown.
+
+                  @since 1.19]]
 }
 
 enum Elm.Input.Panel.Lang
@@ -100,7 +102,6 @@ enum Elm.Input.Hints
                                      @since 1.12]]
 }
 
-
 enum Elm.Cnp_Mode
 {
    [[
@@ -118,6 +119,7 @@ class Elm.Entry (Elm.Layout, Elm.Interface_Scrollable, Efl.Ui.Clickable,
                  Elm.Interface.Atspi.Text, Elm.Interface.Atspi.Text.Editable, Efl.File,
                  Efl.Ui.Selectable, Efl.Ui.Scrollable)
 {
+   [[Elementary entry class]]
    legacy_prefix: elm_entry;
    eo_prefix: elm_obj_entry;
    event_prefix: elm_entry;
@@ -155,7 +157,7 @@ class Elm.Entry (Elm.Layout, Elm.Interface_Scrollable, Efl.Ui.Clickable,
             ]]
          }
          values {
-            ondemand: bool; [[If true, the input panel will be shown in case of only Mouse up event.
+            ondemand: bool; [[If $true, the input panel will be shown in case of only Mouse up event.
             (Focus event will be ignored.)
             ]]
          }
@@ -224,7 +226,7 @@ class Elm.Entry (Elm.Layout, Elm.Interface_Scrollable, Efl.Ui.Clickable,
             [[Get the language mode of the input panel.]]
          }
          values {
-            lang: Elm.Input.Panel.Lang; [[language to be set to the input panel.]]
+            lang: Elm.Input.Panel.Lang; [[Language to be set to the input panel.]]
          }
       }
       @property selection_handler_disabled {
@@ -253,7 +255,7 @@ class Elm.Entry (Elm.Layout, Elm.Interface_Scrollable, Efl.Ui.Clickable,
             ]]
          }
          values {
-            variation: int; [[layout variation type.]]
+            variation: int; [[Layout variation type.]]
          }
       }
       @property autocapital_type {
@@ -323,7 +325,7 @@ class Elm.Entry (Elm.Layout, Elm.Interface_Scrollable, Efl.Ui.Clickable,
             [[Get whether the entry is set to be single line.]]
          }
          values {
-            single_line: bool; [[If true, the text in the entry
+            single_line: bool; [[If $true, the text in the entry
             will be on a single line.]]
          }
       }
@@ -339,7 +341,7 @@ class Elm.Entry (Elm.Layout, Elm.Interface_Scrollable, Efl.Ui.Clickable,
             [[Get whether the entry is set to password mode.]]
          }
          values {
-            password: bool; [[If true, password mode is enabled.]]
+            password: bool; [[If $true, password mode is enabled.]]
          }
       }
       @property input_panel_return_key_disabled {
@@ -414,7 +416,7 @@ class Elm.Entry (Elm.Layout, Elm.Interface_Scrollable, Efl.Ui.Clickable,
             [[Get the input panel layout of the entry.]]
          }
          values {
-            layout: Elm.Input.Panel.Layout(Elm.Input.Panel.Layout.invalid); [[layout type.]]
+            layout: Elm.Input.Panel.Layout(Elm.Input.Panel.Layout.invalid); [[Layout type.]]
          }
       }
       @property input_panel_return_key_type {
@@ -422,6 +424,8 @@ class Elm.Entry (Elm.Layout, Elm.Interface_Scrollable, Efl.Ui.Clickable,
             [[Set the "return" key type. This type is used to set string or icon on the "return" key of the input panel.
 
               An input panel displays the string or icon associated with this type.
+
+              Regardless of return key type, "activated" event will be generated when pressing return key in single line entry.
             ]]
          }
          get {
@@ -439,7 +443,7 @@ class Elm.Entry (Elm.Layout, Elm.Interface_Scrollable, Efl.Ui.Clickable,
             [[Get the attribute to show the input panel automatically.]]
          }
          values {
-            enabled: bool; [[If true, the input panel is appeared when entry is clicked or has a focus.]]
+            enabled: bool; [[If $true, the input panel is appeared when entry is clicked or has a focus.]]
          }
       }
       @property line_wrap {
@@ -520,7 +524,7 @@ class Elm.Entry (Elm.Layout, Elm.Interface_Scrollable, Efl.Ui.Clickable,
             ]]
          }
          values {
-            enabled: bool; [[If $enabled is true, the return key is automatically disabled when the entry has no text.]]
+            enabled: bool; [[If $enabled is $true, the return key is automatically disabled when the entry has no text.]]
          }
       }
       @property end_visible {
@@ -529,7 +533,7 @@ class Elm.Entry (Elm.Layout, Elm.Interface_Scrollable, Efl.Ui.Clickable,
               \@ref elm_object_part_content_set(ent, "end", content).]]
          }
          values {
-            setting: bool; [[true if the object should be displayed,
+            setting: bool; [[$true if the object should be displayed,
             false if not.]]
          }
       }
@@ -574,7 +578,7 @@ class Elm.Entry (Elm.Layout, Elm.Interface_Scrollable, Efl.Ui.Clickable,
               change the internal textblock object). This applies to all cursors
               returned from textblock calls, and all the other derivative values.
             ]]
-            return: Efl.Canvas.Object;
+            return: Efl.Canvas.Object; [[Textblock object]]
          }
       }
       @property cursor_geometry {
@@ -585,13 +589,13 @@ class Elm.Entry (Elm.Layout, Elm.Interface_Scrollable, Efl.Ui.Clickable,
               or for example in the case of scrolled entry where you want to show the
               cursor.
             ]]
-            return: bool;
+            return: bool; [[$true on success, $false otherwise]]
          }
          values {
-            x: Evas.Coord; [[returned geometry.]]
-            y: Evas.Coord; [[returned geometry.]]
-            w: Evas.Coord; [[returned geometry.]]
-            h: Evas.Coord; [[returned geometry.]]
+            x: Evas.Coord; [[X coordinate]]
+            y: Evas.Coord; [[Y coordinate]]
+            w: Evas.Coord; [[Width]]
+            h: Evas.Coord; [[Height]]
          }
       }
       @property imf_context {
@@ -603,7 +607,7 @@ class Elm.Entry (Elm.Layout, Elm.Interface_Scrollable, Efl.Ui.Clickable,
               IMPORTANT: Many functions may change (i.e delete and create a new one)
               the internal input method context. Do NOT cache the returned object.
             ]]
-            return: void_ptr;
+            return: void_ptr; [[Input method context]]
          }
       }
       @property cursor_is_format {
@@ -616,7 +620,7 @@ class Elm.Entry (Elm.Layout, Elm.Interface_Scrollable, Efl.Ui.Clickable,
               This function returns whether any format node exists at the current
               cursor position.
             ]]
-            return: bool;
+            return: bool; [[$true if format node exists, $false otherwise]]
          }
       }
       @property cursor_content {
@@ -628,7 +632,7 @@ class Elm.Entry (Elm.Layout, Elm.Interface_Scrollable, Efl.Ui.Clickable,
               Only the text is returned, any format that may exist will not be part
               of the return value. You must free the string when done with \@ref free.
             ]]
-            return: own(char *) @warn_unused;
+            return: own(ptr(char)) @warn_unused; [[Character]]
          }
       }
       @property selection {
@@ -643,13 +647,13 @@ class Elm.Entry (Elm.Layout, Elm.Interface_Scrollable, Efl.Ui.Clickable,
               or modified in any way. If the $entry object is deleted or its
               contents are changed, the returned pointer should be considered invalid.
             ]]
-            return: string;
+            return: string; [[Selected string]]
          }
       }
       @property cursor_is_visible_format {
          get {
             [[Get if the current cursor position holds a visible format node.]]
-            return: bool;
+            return: bool; [[$true if position has a visible format, $false otherwise]]
          }
       }
       @property select_allow {
@@ -667,7 +671,7 @@ class Elm.Entry (Elm.Layout, Elm.Interface_Scrollable, Efl.Ui.Clickable,
       }
       cursor_prev {
          [[This moves the cursor one place to the left within the entry.]]
-         return: bool;
+         return: bool; [[$true on success, $false otherwise]]
       }
       text_style_user_pop {
          [[Remove the style in the top of user style stack.
@@ -719,7 +723,7 @@ class Elm.Entry (Elm.Layout, Elm.Interface_Scrollable, Efl.Ui.Clickable,
       }
       cursor_down {
          [[This moves the cursor one line down within the entry.]]
-         return: bool;
+         return: bool; [[$true on success, $false otherwise]]
       }
       file_save {
          [[This function writes any changes made to the file set with
@@ -758,7 +762,7 @@ class Elm.Entry (Elm.Layout, Elm.Interface_Scrollable, Efl.Ui.Clickable,
 
            @since 1.7
          ]]
-         return: string;
+         return: string; [[Style]]
       }
       context_menu_clear {
          [[This clears and frees the items in a entry's contextual (longpress)
@@ -769,7 +773,7 @@ class Elm.Entry (Elm.Layout, Elm.Interface_Scrollable, Efl.Ui.Clickable,
       }
       cursor_up {
          [[This moves the cursor one line up within the entry.]]
-         return: bool;
+         return: bool; [[$true on success, $false otherwise]]
       }
       entry_insert {
          [[Inserts the given text into the entry at the current cursor position.
@@ -814,7 +818,7 @@ class Elm.Entry (Elm.Layout, Elm.Interface_Scrollable, Efl.Ui.Clickable,
       }
       cursor_next {
          [[This moves the cursor one place to the right within the entry.]]
-         return: bool;
+         return: bool; [[$true on success, $false otherwise]]
       }
       select_none {
          [[This drops any existing text selection within the entry.]]
@@ -843,7 +847,7 @@ class Elm.Entry (Elm.Layout, Elm.Interface_Scrollable, Efl.Ui.Clickable,
            tag for which no provider finds anything, and no text is displayed, this
            function still returns $false.
          ]]
-         return: bool(true);
+         return: bool(true); [[$true if empty, $false otherwise]]
       }
       markup_filter_remove {
          [[Remove a markup filter from the list
@@ -936,14 +940,13 @@ class Elm.Entry (Elm.Layout, Elm.Interface_Scrollable, Efl.Ui.Clickable,
    }
    implements {
       class.constructor;
-      Eo.Base.constructor;
-      Efl.Canvas.Group.group_move;
+      Efl.Object.constructor;
+      Efl.Gfx.visible { set; }
+      Efl.Gfx.position { set; }
+      Efl.Gfx.size { set; }
       Efl.Canvas.Group.group_member_add;
       Efl.Canvas.Group.group_add;
-      Efl.Canvas.Group.group_resize;
       Efl.Canvas.Group.group_del;
-      Efl.Canvas.Group.group_show;
-      Efl.Canvas.Group.group_hide;
       Elm.Widget.activate;
       Elm.Widget.focus_direction_manager_is;
       Elm.Widget.theme_apply;
@@ -954,66 +957,61 @@ class Elm.Entry (Elm.Layout, Elm.Interface_Scrollable, Efl.Ui.Clickable,
       Elm.Widget.focus_next_manager_is;
       Elm.Layout.theme_enable;
       Elm.Layout.sizing_eval;
-      Elm.Layout.text.get;
+      Elm.Layout.text { get; set; }
       Elm.Layout.signal_callback_add;
       Elm.Layout.signal_callback_del;
       Elm.Layout.signal_emit;
-      Elm.Layout.text.set;
-      Elm.Layout.content_aliases.get;
-      Elm.Interface_Scrollable.policy.set;
-      Elm.Interface_Scrollable.bounce_allow.set;
-      Elm.Interface.Atspi_Accessible.state_set.get;
-      Elm.Interface.Atspi_Accessible.name.get;
-      Elm.Interface.Atspi.Text.text.get;
-      Elm.Interface.Atspi.Text.string.get;
-      Elm.Interface.Atspi.Text.attribute.get;
-      Elm.Interface.Atspi.Text.attributes.get;
-      Elm.Interface.Atspi.Text.default_attributes.get;
-      Elm.Interface.Atspi.Text.caret_offset.get;
-      Elm.Interface.Atspi.Text.caret_offset.set;
-      Elm.Interface.Atspi.Text.character.get;
-      Elm.Interface.Atspi.Text.character_extents.get;
-      Elm.Interface.Atspi.Text.character_count.get;
-      Elm.Interface.Atspi.Text.offset_at_point.get;
-      Elm.Interface.Atspi.Text.bounded_ranges.get;
-      Elm.Interface.Atspi.Text.range_extents.get;
-      Elm.Interface.Atspi.Text.selection.get;
-      Elm.Interface.Atspi.Text.selections_count.get;
+      Elm.Layout.content_aliases { get; }
+      Elm.Interface_Scrollable.policy { set; }
+      Elm.Interface_Scrollable.bounce_allow { set; }
+      Elm.Interface.Atspi_Accessible.state_set { get; }
+      Elm.Interface.Atspi_Accessible.name { get; }
+      Elm.Interface.Atspi.Text.text { get; }
+      Elm.Interface.Atspi.Text.string { get; }
+      Elm.Interface.Atspi.Text.attribute { get; }
+      Elm.Interface.Atspi.Text.attributes { get; }
+      Elm.Interface.Atspi.Text.default_attributes { get; }
+      Elm.Interface.Atspi.Text.caret_offset { get; set; }
+      Elm.Interface.Atspi.Text.character { get; }
+      Elm.Interface.Atspi.Text.character_extents { get; }
+      Elm.Interface.Atspi.Text.character_count { get; }
+      Elm.Interface.Atspi.Text.offset_at_point { get; }
+      Elm.Interface.Atspi.Text.bounded_ranges { get; }
+      Elm.Interface.Atspi.Text.range_extents { get; }
+      Elm.Interface.Atspi.Text.selection { get; set; }
+      Elm.Interface.Atspi.Text.selections_count { get; }
       Elm.Interface.Atspi.Text.selection_add;
       Elm.Interface.Atspi.Text.selection_remove;
-      Elm.Interface.Atspi.Text.selection.set;
-      Elm.Interface.Atspi.Text.Editable.content.set;
+      Elm.Interface.Atspi.Text.Editable.content { set; }
       Elm.Interface.Atspi.Text.Editable.insert;
       Elm.Interface.Atspi.Text.Editable.copy;
       Elm.Interface.Atspi.Text.Editable.cut;
       Elm.Interface.Atspi.Text.Editable.delete;
       Elm.Interface.Atspi.Text.Editable.paste;
-      Efl.File.file.set;
-      Efl.File.file.get;
+      Efl.File.file { get; set; }
       Efl.Part.part;
    }
    events {
-      activated;
-      changed;
-      changed,user;
-      validate;
-      context,open;
-      anchor,clicked;
-      rejected;
-      maxlength,reached;
-      preedit,changed;
-      press;
-      redo,request;
-      undo,request;
-      text,set,done;
-      aborted;
-      anchor,down;
-      anchor,hover,opened;
-      anchor,in;
-      anchor,out;
-      anchor,up;
-      cursor,changed;
-      cursor,changed,manual;
+      activated; [[Called when entry got activated]]
+      changed; [[Called when entry changed]]
+      changed,user; [[Called when the object changed due to user interaction]]
+      validate; [[Called when validating]]
+      context,open; [[Called when context menu was opened]]
+      anchor,clicked; [[Called when anchor was clicked]]
+      rejected; [[Called when entry was rejected]]
+      maxlength,reached; [[Called when maximum entry length has been reached]]
+      preedit,changed; [[Called when entry preedit changed]]
+      press; [[Called when entry pressed]]
+      redo,request; [[Called when redo was requested]]
+      undo,request; [[Called when undo was requested]]
+      text,set,done; [[Called when text set finished]]
+      aborted; [[Called when entry was aborted]]
+      anchor,down; [[Called on anchor down]]
+      anchor,hover,opened; [[Called when hover opened]]
+      anchor,in; [[Called on anchor in]]
+      anchor,out; [[Called on anchor out]]
+      anchor,up; [[called on anchor up]]
+      cursor,changed; [[Called on cursor changed]]
+      cursor,changed,manual; [[Called on manual cursor change]]
    }
-
 }

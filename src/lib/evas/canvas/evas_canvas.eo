@@ -1,8 +1,10 @@
 import evas_types;
-import efl_event_types;
+import efl_input_types;
 
-class Evas.Canvas (Eo.Base, Efl.Canvas, Efl.Animator, Efl.Input.Interface)
+class Evas.Canvas (Efl.Object, Efl.Canvas, Efl.Animator, Efl.Input.Interface,
+                   Efl.Loop_User)
 {
+   [[Evas canvas class]]
    legacy_prefix: evas;
    data: Evas_Public_Data;
    methods {
@@ -44,7 +46,7 @@ class Evas.Canvas (Eo.Base, Efl.Canvas, Efl.Animator, Efl.Input.Interface)
             ]]
          }
          values {
-            flags: Efl.Event.Flags; [[The default flags to use.]]
+            flags: Efl.Input.Flags; [[The default flags to use.]]
          }
       }
       @property font_cache {
@@ -114,14 +116,13 @@ class Evas.Canvas (Eo.Base, Efl.Canvas, Efl.Animator, Efl.Input.Interface)
             ]]
          }
          values {
-            info: Evas.Engine_Info *; [[The pointer to the engine info to use.]]
+            info: ptr(Evas.Engine_Info); [[The pointer to the engine info to use.]]
          }
       }
       @property focus {
          get {
-            [[Retrieve the object that currently has focus.
+            [[Retrieve the object focused by the default seat.
 
-              Evas can have (at most) one of its objects focused at a time.
               Focused objects will be the ones having key events delivered
               to, which the programmer can act upon by means of
               \@ref evas_object_event_callback_add usage.
@@ -136,7 +137,10 @@ class Evas.Canvas (Eo.Base, Efl.Canvas, Efl.Animator, Efl.Input.Interface)
 
               See also \@ref evas_object_focus_set,
               \@ref evas_object_focus_get, \@ref evas_object_key_grab,
-              \@ref evas_object_key_ungrab.
+              \@ref evas_object_key_ungrab, @.seat_focus.get,
+              @Efl.Canvas.Object.seat_focus_check,
+              @Efl.Canvas.Object.seat_focus_add,
+              @Efl.Canvas.Object.seat_focus_del.
             ]]
             /* FIXME-doc
             Example:
@@ -153,6 +157,18 @@ class Evas.Canvas (Eo.Base, Efl.Canvas, Efl.Animator, Efl.Input.Interface)
             return: Efl.Canvas.Object @warn_unused; [[The object that has focus
                                                   or $null if there is not one.]]
          }
+      }
+      @property seat_focus {
+         [[Return the focused object by a given seat. @since 1.19]]
+         get {}
+         keys {
+            seat: Efl.Input.Device;[[The seat to fetch the focused
+                                     object or $null for the default seat.]]
+         }
+         values {
+            return: Efl.Canvas.Object; [[The object that has the focus or $null if
+                                         the seat has no focused object.]]
+        }
       }
       @property object_top {
          get {
@@ -182,15 +198,26 @@ class Evas.Canvas (Eo.Base, Efl.Canvas, Efl.Animator, Efl.Input.Interface)
               This is required to check for which locks are set at a given
               time with the \@ref evas_key_lock_is_set function.
             ]]
-            return: const(Evas.Lock)* @warn_unused; [[
+            return: ptr(const(Evas.Lock)) @warn_unused; [[
                An Evas_Lock handle to query Evas' keys subsystem with
-               \@ref evas_key_lock_is_set, or $null on error.
+               \@ref evas_key_lock_is_set or \@ref evas_seat_key_lock_is_set, or $null on error.
             ]]
+         }
+      }
+      @property pointer_canvas_xy_by_device {
+         [[This function returns the current known default pointer coordinates. @since 1.19]]
+         get {}
+         keys {
+           dev: Efl.Input.Device; [[The pointer device.]]
+         }
+         values {
+            x: Evas.Coord; [[The pointer to a Evas_Coord to be filled in.]]
+            y: Evas.Coord; [[The pointer to a Evas_Coord to be filled in.]]
          }
       }
       @property pointer_canvas_xy {
          get {
-            [[This function returns the current known pointer coordinates
+            [[This function returns the current known default pointer coordinates
 
               This function returns the current known canvas unit
               coordinates of the mouse pointer and sets the contents of
@@ -220,7 +247,7 @@ class Evas.Canvas (Eo.Base, Efl.Canvas, Efl.Animator, Efl.Input.Interface)
 
               @since 1.2
             ]]
-            return: int;
+            return: int; [[Mouse or multi presses currently active]]
          }
       }
       @property smart_objects_calculate_count {
@@ -240,13 +267,23 @@ class Evas.Canvas (Eo.Base, Efl.Canvas, Efl.Animator, Efl.Input.Interface)
 
               @since 1.1
             ]]
-            return: int;
+            return: int; [[Number of smart calculations]]
          }
       }
       @property focus_state {
          get {
-            [[Get the focus state known by the given evas.]]
-            return: bool;
+            [[Get the focus state for the default seat.]]
+            return: bool; [[$true if focused, $false otherwise]]
+         }
+      }
+      @property seat_focus_state {
+         [[Get the focus state by a given seat.]]
+         get {}
+         keys {
+            seat: Efl.Input.Device; [[The seat to check the focus state. Use $null for the default seat.]]
+         }
+         values {
+            return: bool; [[$true if the seat has the canvas focus, $false otherwise.]]
          }
       }
       @property changed {
@@ -255,12 +292,23 @@ class Evas.Canvas (Eo.Base, Efl.Canvas, Efl.Animator, Efl.Input.Interface)
 
               @since 1.11
             ]]
-            return: bool;
+            return: bool; [[$true if changed, $false otherwise]]
+         }
+      }
+      @property pointer_output_xy_by_device {
+         [[This function returns the current known pointer coordinates. @since 1.19]]
+         get {}
+         keys {
+            dev: Efl.Input.Device; [[The mouse device.]]
+         }
+         values {
+            x: int; [[The pointer to an integer to be filled in.]]
+            y: int; [[The pointer to an integer to be filled in.]]
          }
       }
       @property pointer_output_xy {
          get {
-            [[This function returns the current known pointer coordinates.
+            [[This function returns the current known default pointer coordinates.
 
               This function returns the current known screen/output
               coordinates of the mouse pointer and sets the contents of
@@ -284,9 +332,20 @@ class Evas.Canvas (Eo.Base, Efl.Canvas, Efl.Animator, Efl.Input.Interface)
             y: int; [[The pointer to an integer to be filled in.]]
          }
       }
+      @property pointer_inside_by_device {
+         [[Returns whether the mouse pointer is logically inside the
+           canvas. @since 1.19]]
+         keys {
+            dev: Efl.Input.Device; [[The pointer device.]]
+         }
+         get {}
+         values {
+            in: bool; [[$true if the pointer is inside, $false otherwise.]]
+         }
+      }
       @property pointer_inside {
          get {
-            [[Returns whether the mouse pointer is logically inside the
+            [[Returns whether the default mouse pointer is logically inside the
               canvas.
 
               When this function is called it will return a value of either
@@ -311,7 +370,7 @@ class Evas.Canvas (Eo.Base, Efl.Canvas, Efl.Animator, Efl.Input.Interface)
             else printf("Mouse is out!\n");
             @endcode
             */
-            return: bool @warn_unused;
+            return: bool @warn_unused; [[$true if the mouse pointer is inside the canvas, $false otherwise]]
          }
       }
       @property image_max_size {
@@ -327,7 +386,7 @@ class Evas.Canvas (Eo.Base, Efl.Canvas, Efl.Animator, Efl.Input.Interface)
 
               @since 1.1
             ]]
-            return: bool;
+            return: bool; [[$true if it can handle the maximum image size, $false otherwise]]
          }
          values {
             maxw: int; [[Pointer to hold the return value in pixels of the maximum width.]]
@@ -364,17 +423,29 @@ class Evas.Canvas (Eo.Base, Efl.Canvas, Efl.Animator, Efl.Input.Interface)
               given time with the \@ref evas_key_modifier_is_set function.
 
               See also @.key_modifier_add, @.key_modifier_del,
-              @.key_modifier_on, @.key_modifier_off.
+              @.key_modifier_on, @.key_modifier_off, @.seat_key_modifier_on,
+              @.seat_key_modifier_off.
             ]]
-            return: const(Evas.Modifier)* @warn_unused; [[
+            return: ptr(const(Evas.Modifier)) @warn_unused; [[
                An Evas_Modifier handle to query Evas' keys subsystem
-               with \@ref evas_key_modifier_is_set, or $null on error.
+               with \@ref evas_key_modifier_is_set or \@ref evas_seat_key_modifier_is_set, or $null on error.
             ]]
+         }
+      }
+      @property pointer_button_down_mask_by_device {
+         [[Returns a bitmask with the mouse buttons currently pressed,
+              set to 1.]]
+         keys {
+            dev: Efl.Input.Device; [[The mouse device.]]
+         }
+         get {}
+         values {
+            mask: uint; [[A bitmask of the currently depressed buttons on the canvas.]]
          }
       }
       @property pointer_button_down_mask {
          get {
-            [[Returns a bitmask with the mouse buttons currently pressed,
+            [[Returns a bitmask with the default mouse buttons currently pressed,
               set to 1.
 
               Calling this function will return a 32-bit integer with the
@@ -421,7 +492,7 @@ class Evas.Canvas (Eo.Base, Efl.Canvas, Efl.Animator, Efl.Input.Interface)
            It will not append to the list pass events as hidden objects.
            Call eina_list_free on the returned list after usage.
          ]]
-         return: list<Efl.Canvas.Object> @warn_unused;
+         return: list<Efl.Canvas.Object> @warn_unused; [[List of objects]]
          params {
             @in stop: Efl.Canvas.Object; [[An Evas Object where to stop searching.]]
             @in x: int; [[The horizontal coordinate of the position.]]
@@ -430,16 +501,47 @@ class Evas.Canvas (Eo.Base, Efl.Canvas, Efl.Animator, Efl.Input.Interface)
       }
       key_lock_on {
          [[Enables or turns on programmatically the lock key with name
-           $keyname.
+           $keyname for the default seat.
 
            The effect will be as if the key was put on its active state
            after this call.
 
-              See also @.key_lock_add, @.key_lock_del, @.key_lock_del,
-              @.key_lock_off.
+           See also @.key_lock_add, @.key_lock_del, @.key_lock_del,
+           @.key_lock_off, @.seat_key_lock_on, @.seat_key_lock_off.
          ]]
          params {
             @in keyname: string @nonull; [[The name of the lock to enable.]]
+         }
+      }
+      seat_key_lock_on {
+          [[Enables or turns on programmatically the lock key with name
+           $keyname for a give seat.
+
+           The effect will be as if the key was put on its active state
+           after this call.
+
+           See also @.key_lock_add, @.key_lock_del, @.key_lock_del,
+           @.key_lock_off, @.key_lock_on, @.seat_key_lock_off.
+           @since 1.19
+         ]]
+         params {
+            @in keyname: string @nonull; [[The name of the lock to enable.]]
+            @in seat: Efl.Input.Device; [[The seat to enable the keylock. A $null seat repesents the default seat.]]
+         }
+      }
+      seat_key_lock_off {
+         [[Disables or turns off programmatically the lock key with name
+           $keyname for a given seat.
+
+           The effect will be as if the key was put on its inactive state
+           after this call.
+
+           See also @.key_lock_on, @.seat_key_lock_on, @.key_lock_off.
+           @since 1.19
+         ]]
+         params {
+            @in keyname: string @nonull; [[The name of the lock to enable.]]
+            @in seat: Efl.Input.Device; [[The seat to disable the keylock. A $null seat repesents the default seat.]]
          }
       }
       key_modifier_mask_get @const {
@@ -452,8 +554,8 @@ class Evas.Canvas (Eo.Base, Efl.Canvas, Efl.Animator, Efl.Input.Interface)
            Go check their documentation for more information.
 
            See also @.key_modifier_add, \@ref evas_key_modifier_get,
-           @.key_modifier_on, @.key_modifier_off,
-           \@ref evas_key_modifier_is_set.
+           @.key_modifier_on, @.key_modifier_off, @.seat_key_modifier_on, @.seat_key_modifier_off,
+           \@ref evas_key_modifier_is_set, \@ref evas_seat_key_modifier_is_set..
          ]]
          return: Evas.Modifier_Mask @warn_unused; [[
             The bit mask or 0 if the $keyname key wasn't registered as a
@@ -491,11 +593,11 @@ class Evas.Canvas (Eo.Base, Efl.Canvas, Efl.Animator, Efl.Input.Interface)
       }
       key_modifier_off {
          [[Disables or turns off programmatically the modifier key with
-           name $keyname.
+           name $keyname for the default seat.
 
            See also @.key_modifier_add, \@ref evas_key_modifier_get,
-           @.key_modifier_on, @.key_modifier_mask_get,
-           \@ref evas_key_modifier_is_set.
+           @.key_modifier_on, @.key_modifier_mask_get, @.seat_key_modifier_off,
+           @.seat_key_modifier_off, \@ref evas_key_modifier_is_set, \@ref evas_seat_key_modifier_is_set.
          ]]
          params {
             @in keyname: string @nonull; [[The name of the modifier to disable.]]
@@ -571,7 +673,7 @@ class Evas.Canvas (Eo.Base, Efl.Canvas, Efl.Animator, Efl.Input.Interface)
 
            @since 1.15
          ]]
-         return: free(own(list<Eina.Rectangle *>), evas_render_updates_free)
+         return: free(own(list<ptr(Eina.Rectangle)>), evas_render_updates_free)
             @warn_unused; [[
             A newly allocated list of updated rectangles of the canvas
             ($Eina.Rectangle structs). Free this list with
@@ -579,7 +681,7 @@ class Evas.Canvas (Eo.Base, Efl.Canvas, Efl.Animator, Efl.Input.Interface)
          ]]
       }
       focus_out {
-         [[Inform to the evas that it lost the focus.]]
+         [[Inform to the evas that it lost the focus from the default seat.]]
       }
       norender {
          [[Update the canvas internal objects but not triggering immediate
@@ -597,16 +699,6 @@ class Evas.Canvas (Eo.Base, Efl.Canvas, Efl.Animator, Efl.Input.Interface)
            evas and point is removed whenever removing touched point from
            the evas.
          ]]
-         /* FIXME-doc
-         Example:
-         @code
-         extern Evas *evas;
-         int count;
-
-         count = evas_touch_point_list_count(evas);
-         printf("The count of touch points: %i\n", count);
-         @endcode
-         */
          return: uint; [[The number of touched point on the evas.]]
       }
       nochange_pop {
@@ -621,12 +713,12 @@ class Evas.Canvas (Eo.Base, Efl.Canvas, Efl.Animator, Efl.Input.Interface)
       }
       key_lock_off {
          [[Disables or turns off programmatically the lock key with name
-           $keyname.
+           $keyname for the default seat.
 
            The effect will be as if the key was put on its inactive state
            after this call.
 
-            See also @.key_lock_on.
+           See also @.key_lock_on, @.seat_key_lock_on, @.seat_key_lock_off.
          ]]
          params {
             @in keyname: string @nonull; [[The name of the lock to disable.]]
@@ -686,15 +778,46 @@ class Evas.Canvas (Eo.Base, Efl.Canvas, Efl.Animator, Efl.Input.Interface)
       }
       key_modifier_on {
          [[Enables or turns on programmatically the modifier key with name
-           $keyname.
+           $keyname for the default seat.
 
            The effect will be as if the key was pressed for the whole time
            between this call and a matching evas_key_modifier_off().
 
-           See also @.key_modifier_off.
+           See also @.key_modifier_off, @.seat_key_modifier_on,
+           @.seat_key_modifier_off.
          ]]
          params {
             @in keyname: string @nonull; [[The name of the modifier to enable.]]
+         }
+      }
+      seat_key_modifier_on {
+         [[Enables or turns on programmatically the modifier key with name
+           $keyname for a given seat.
+
+           The effect will be as if the key was pressed for the whole time
+           between this call and a matching @.seat_key_modifier_off.
+
+           See also @.key_modifier_off, @.seat_key_modifier_on,
+           @.seat_key_modifier_off.
+           @since 1.19
+         ]]
+         params {
+            @in keyname: string @nonull; [[The name of the lock to enable.]]
+            @in seat: Efl.Input.Device; [[The seat to enable the modifier. A $null seat repesents the default seat.]]
+         }
+      }
+      seat_key_modifier_off {
+         [[Disables or turns off programmatically the modifier key with
+           name $keyname for a given seat.
+
+           See also @.key_modifier_add, \@ref evas_key_modifier_get,
+           @.key_modifier_on, @.key_modifier_mask_get, @.seat_key_modifier_off,
+           @.seat_key_modifier_off, \@ref evas_key_modifier_is_set, \@ref evas_seat_key_modifier_is_set.
+           @since 1.19
+         ]]
+         params {
+            @in keyname: string @nonull; [[The name of the lock to enable.]]
+            @in seat: Efl.Input.Device; [[The seat to disable the modifier. A $null seat repesents the default seat.]]
          }
       }
       font_available_list @const {
@@ -711,14 +834,15 @@ class Evas.Canvas (Eo.Base, Efl.Canvas, Efl.Animator, Efl.Input.Interface)
          ]]
       }
       objects_in_rectangle_get @const {
-         return: list<Efl.Canvas.Object> @warn_unused;
+      	 [[Get all objects in the given rectangle]]
+         return: list<Efl.Canvas.Object> @warn_unused; [[List of objects]]
          params {
-            @in x: Evas.Coord;
-            @in y: Evas.Coord;
-            @in w: Evas.Coord;
-            @in h: Evas.Coord;
-            @in include_pass_events_objects: bool;
-            @in include_hidden_objects: bool;
+            @in x: Evas.Coord; [[X coordinate]]
+            @in y: Evas.Coord; [[Y coordinate]]
+            @in w: Evas.Coord; [[Width]]
+            @in h: Evas.Coord; [[Height]]
+            @in include_pass_events_objects: bool; [[$true if the list should include objects which pass events]]
+            @in include_hidden_objects: bool; [[$true if the list should include hidden objects]]
          }
       }
       object_name_find @const {
@@ -753,19 +877,6 @@ class Evas.Canvas (Eo.Base, Efl.Canvas, Efl.Animator, Efl.Input.Interface)
            which comes from Multi Event has $id that is same as Multi
            Event's device id.
          ]]
-         /* FIXME-doc
-         Example:
-         @code
-         extern Evas *evas;
-         int id;
-
-         if (evas_touch_point_list_count(evas))
-         {
-         id = evas_touch_point_nth_id_get(evas, 0);
-         printf("The first touch point's id: %i\n", id);
-         }
-         @endcode
-         */
          return: int; [[id of nth touch point, if the call succeeded, -1 otherwise.]]
          params {
             @in n: uint; [[The number of the touched point (0 being the first).]]
@@ -786,24 +897,13 @@ class Evas.Canvas (Eo.Base, Efl.Canvas, Efl.Animator, Efl.Input.Interface)
            Touch point's coordinates is updated whenever moving that point
            on the canvas.
          ]]
-         /* FIXME-doc
-         Example:
-         @code
-         extern Evas *evas;
-         Evas_Coord x, y;
-
-         if (evas_touch_point_list_count(evas))
-         {
-         evas_touch_point_nth_xy_get(evas, 0, &x, &y);
-         printf("The first touch point's coordinate: (%i, %i)\n", x, y);
-         }
-         @endcode
-         */
          params {
             @in n: uint; [[The number of the touched point (0 being the first).]]
-            @out x: Evas.Coord; [[The pointer to a Evas_Coord to be filled in.]]
-            @out y: Evas.Coord; [[The pointer to a Evas_Coord to be filled in.]]
+            @out x: double; [[Last known X position in window coordinates]]
+            @out y: double; [[Last known Y position in window coordinates]]
          }
+          /* Legacy uses int. */
+         legacy: null;
       }
       key_lock_del {
          [[Removes the $keyname key from the current list of lock keys on
@@ -830,6 +930,7 @@ class Evas.Canvas (Eo.Base, Efl.Canvas, Efl.Animator, Efl.Input.Interface)
          }
       }
       sync {
+         [[Sync evas canvas]]
       }
       font_path_list @const {
          [[Retrieves the list of font paths used by the given evas.]]
@@ -864,7 +965,7 @@ class Evas.Canvas (Eo.Base, Efl.Canvas, Efl.Animator, Efl.Input.Interface)
          */
          return: int @warn_unused; [[The output/screen coordinate translated to output coordinates.]]
          params {
-            @in x: Evas.Coord; [[The canvas x coordinate.]]
+            @in x: Evas.Coord; [[The canvas X coordinate.]]
          }
       }
       render_updates {
@@ -890,7 +991,7 @@ class Evas.Canvas (Eo.Base, Efl.Canvas, Efl.Animator, Efl.Input.Interface)
 
          See the full @ref Example_Evas_Events "example".
          */
-         return: free(own(list<Eina.Rectangle *>), evas_render_updates_free)
+         return: free(own(list<ptr(Eina.Rectangle)>), evas_render_updates_free)
             @warn_unused; [[
             A newly allocated list of updated rectangles of the canvas
             ($Eina.Rectangle structs). Free this list with
@@ -945,19 +1046,6 @@ class Evas.Canvas (Eo.Base, Efl.Canvas, Efl.Animator, Efl.Input.Interface)
            EVAS_TOUCH_POINT_MOVE when moved at least once after pressed and
            EVAS_TOUCH_POINT_UP when released.
          ]]
-         /* FIXME-doc
-         Example:
-         @code
-         extern Evas *evas;
-         Evas_Touch_Point_State state;
-
-         if (evas_touch_point_list_count(evas))
-         {
-         state = evas_touch_point_nth_state_get(evas, 0);
-         printf("The first touch point's state: %i\n", state);
-         }
-         @endcode
-         */
          return: Evas.Touch_Point_State; [[
             $state of nth touch point, if the call succeeded,
             EVAS_TOUCH_POINT_CANCEL otherwise.
@@ -967,7 +1055,21 @@ class Evas.Canvas (Eo.Base, Efl.Canvas, Efl.Animator, Efl.Input.Interface)
          }
       }
       focus_in {
-         [[Inform to the evas that it got the focus.]]
+         [[Inform to the evas that it got the focus from the default seat.]]
+      }
+      seat_focus_in {
+         [[Inform to the evas that it got the focus from a given seat. @since 1.19]]
+         legacy: null;
+         params {
+            @in seat: Efl.Input.Device; [[The seat or $null for the default seat.]]
+         }
+      }
+      seat_focus_out {
+         [[Inform to the evas that it lost the focus from a given seat. @since 1.19]]
+         legacy: null;
+         params {
+            @in seat: Efl.Input.Device; [[The seat or $null for the default seat.]]
+         }
       }
       obscured_rectangle_add {
          [[Add an "obscured region" to an Evas canvas.
@@ -1163,6 +1265,19 @@ class Evas.Canvas (Eo.Base, Efl.Canvas, Efl.Animator, Efl.Input.Interface)
            re-compute of that data etc.
          ]]
       }
+      @property default_device {
+         [[Return the default device of a given type.
+           \@note Currently Evas only creates a seat, mouse and keyboard.
+           @since 1.19
+         ]]
+         get {}
+         keys {
+            type: Efl.Input.Device.Class; [[The class of the default device to fetch.]]
+         }
+         values {
+            seat: Efl.Input.Device; [[The default device or $null on error.]]
+         }
+      }
       coord_world_y_to_screen @const {
          [[Convert/scale a canvas coordinate into output screen
            coordinates.
@@ -1190,16 +1305,17 @@ class Evas.Canvas (Eo.Base, Efl.Canvas, Efl.Animator, Efl.Input.Interface)
       }
    }
    implements {
-      Eo.Base.constructor;
-      Eo.Base.destructor;
-      Eo.Base.event_thaw;
-      Eo.Base.event_freeze;
-      Eo.Base.provider_find;
+      Efl.Object.constructor;
+      Efl.Object.destructor;
+      Efl.Object.event_thaw;
+      Efl.Object.event_freeze;
+      Efl.Object.provider_find;
+      Efl.Loop_User.loop { get; }
    }
    events {
-      render,flush,pre @beta;
-      render,flush,post @beta;
-      axis,update @beta;
-      viewport,resize @beta;
+      render,flush,pre @beta; [[Called on render flush pre phase]]
+      render,flush,post @beta; [[Called on render flush post phase]]
+      axis,update @beta; [[Called on axis update]]
+      viewport,resize @beta; [[Called on viewport resize]]
    }
 }

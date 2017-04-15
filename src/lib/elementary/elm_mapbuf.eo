@@ -1,5 +1,6 @@
 class Elm.Mapbuf (Elm.Widget, Efl.Container, Efl.Part)
 {
+   [[Elementary mapbuf class]]
    legacy_prefix: elm_mapbuf;
    eo_prefix: elm_private_mapbuf;
    methods {
@@ -128,19 +129,16 @@ class Elm.Mapbuf (Elm.Widget, Efl.Container, Efl.Part)
    }
    implements {
       class.constructor;
-      Eo.Base.constructor;
-      Efl.Canvas.Group.group_hide;
-      Efl.Canvas.Group.group_show;
-      Efl.Canvas.Group.group_move;
+      Efl.Object.constructor;
+      Efl.Gfx.visible { set; }
+      Efl.Gfx.position { set; }
+      Efl.Gfx.size { set; }
       Efl.Canvas.Group.group_add;
       Efl.Canvas.Group.group_del;
-      Efl.Canvas.Group.group_resize;
       Elm.Widget.theme_apply;
       Elm.Widget.sub_object_del;
-      Efl.Container.content.get;
-      Efl.Container.content.set;
+      Efl.Container.content { get; set; }
       Efl.Container.content_unset;
       Efl.Part.part;
    }
-
 }

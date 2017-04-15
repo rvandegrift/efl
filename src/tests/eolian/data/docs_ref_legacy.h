@@ -1,5 +1,5 @@
-#ifndef _EOLIAN_OUTPUT_H_
-#define _EOLIAN_OUTPUT_H_
+#ifndef _EOLIAN_DOCS_LEGACY_H_
+#define _EOLIAN_DOCS_LEGACY_H_
 
 #ifndef _DOCS_EO_CLASS_TYPE
 #define _DOCS_EO_CLASS_TYPE
@@ -29,9 +29,9 @@ typedef Eo Docs;
  */
 typedef struct _Foo
 {
-  int field1; /** Field documentation. */
+  int field1; /**< Field documentation. */
   float field2;
-  short field3; /** Another field documentation. */
+  short field3; /**< Another field documentation. */
 } Foo;
 
 /** Docs for enum Bar.
@@ -41,8 +41,8 @@ typedef struct _Foo
 typedef enum
 {
   BAR_BLAH = 0,
-  BAR_FOO = 1, /** Docs for foo. */
-  BAR_BAR = 2 /** Docs for bar. */
+  BAR_FOO = 1, /**< Docs for foo. */
+  BAR_BAR = 2 /**< Docs for bar. */
 } Bar;
 
 /**
@@ -56,6 +56,12 @@ typedef enum
  */
 typedef Bar Alias;
 
+/** Docs for var.
+ *
+ * @ingroup pants
+ */
+EWAPI extern int PANTS;
+
 /** Opaque struct docs. See @ref Foo for another struct.
  *
  * @ingroup Opaque
@@ -64,17 +70,21 @@ typedef struct _Opaque Opaque;
 
 
 #endif
+
 /**
- * @brief Docs for class.
+ * @brief Method documentation.
  *
- * More docs for class. Testing references now. @ref Foo @ref Bar @ref Alias
- * @ref pants @ref docs_meth @ref docs_prop_get @ref docs_prop_get
- * @ref docs_prop_set @ref Foo.field1 @ref Bar.BAR_FOO @ref Docs
+ * @param[in] a Param documentation.
+ * @param[out] b
+ * @param[out] c Another param documentation.
+ *
+ * @return Return documentation.
  *
  * @since 1.18
  *
  * @ingroup Docs
  */
+EAPI int docs_meth(Docs *obj, int a, float *b, long *c);
 
 /**
  * @brief Property common documentation.
@@ -101,20 +111,5 @@ EAPI void docs_prop_set(Docs *obj, int val);
  * @ingroup Docs
  */
 EAPI int docs_prop_get(const Docs *obj);
-
-/**
- * @brief Method documentation.
- *
- * @param[in] a Param documentation.
- * @param[out] b
- * @param[out] c Another param documentation.
- *
- * @return Return documentation.
- *
- * @since 1.18
- *
- * @ingroup Docs
- */
-EAPI int docs_meth(Docs *obj, int a, float *b, long *c);
 
 #endif

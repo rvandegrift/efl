@@ -75,6 +75,7 @@ static const Evas_Object_Func object_func =
      NULL,
      NULL,
      NULL,
+     NULL, // render_prepare
      NULL
 };
 
@@ -84,13 +85,13 @@ static const Evas_Object_Func object_func =
 EAPI Evas_Object *
 evas_object_polygon_add(Evas *e)
 {
-   return eo_add(MY_CLASS, e);
+   return efl_add(MY_CLASS, e);
 }
 
 EOLIAN static Eo *
-_efl_canvas_polygon_eo_base_constructor(Eo *eo_obj, Efl_Canvas_Polygon_Data *class_data EINA_UNUSED)
+_efl_canvas_polygon_efl_object_constructor(Eo *eo_obj, Efl_Canvas_Polygon_Data *class_data EINA_UNUSED)
 {
-   eo_obj = eo_constructor(eo_super(eo_obj, MY_CLASS));
+   eo_obj = efl_constructor(efl_super(eo_obj, MY_CLASS));
 
    evas_object_polygon_init(eo_obj);
 
@@ -100,11 +101,11 @@ _efl_canvas_polygon_eo_base_constructor(Eo *eo_obj, Efl_Canvas_Polygon_Data *cla
 EOLIAN static void
 _efl_canvas_polygon_point_add(Eo *eo_obj, Efl_Canvas_Polygon_Data *_pd, Evas_Coord x, Evas_Coord y)
 {
-   Evas_Object_Protected_Data *obj = eo_data_scope_get(eo_obj, EFL_CANVAS_OBJECT_CLASS);
+   Evas_Object_Protected_Data *obj = efl_data_scope_get(eo_obj, EFL_CANVAS_OBJECT_CLASS);
    Efl_Canvas_Polygon_Data *o = _pd;
    Efl_Canvas_Polygon_Point *p;
    Evas_Coord min_x, max_x, min_y, max_y;
-   int is, was = 0;
+   Eina_List *was = NULL;
 
    evas_object_async_block(obj);
    if (!obj->layer->evas->is_frozen)
@@ -112,10 +113,8 @@ _efl_canvas_polygon_point_add(Eo *eo_obj, Efl_Canvas_Polygon_Data *_pd, Evas_Coo
         if (!evas_event_passes_through(eo_obj, obj) &&
             !evas_event_freezes_through(eo_obj, obj) &&
             !evas_object_is_source_invisible(eo_obj, obj))
-          was = evas_object_is_in_output_rect(eo_obj, obj,
-                                              obj->layer->evas->pointer.x,
-                                              obj->layer->evas->pointer.y,
-                                              1, 1);
+          was = _evas_pointer_list_in_rect_get(obj->layer->evas, eo_obj, obj,
+                                               1, 1);
      }
    if (!o->points)
      {
@@ -183,23 +182,13 @@ _efl_canvas_polygon_point_add(Eo *eo_obj, Efl_Canvas_Polygon_Data *_pd, Evas_Coo
    evas_object_change(eo_obj, obj);
    evas_object_clip_dirty(eo_obj, obj);
    evas_object_coords_recalc(eo_obj, obj);
-   if (!obj->layer->evas->is_frozen)
-     {
-        is = evas_object_is_in_output_rect(eo_obj, obj,
-                                           obj->layer->evas->pointer.x,
-                                           obj->layer->evas->pointer.y, 1, 1);
-        if (!evas_event_passes_through(eo_obj, obj) &&
-            !evas_event_freezes_through(eo_obj, obj) &&
-            !evas_object_is_source_invisible(eo_obj, obj))
-          {
-             if ((is ^ was) && obj->cur->visible)
-               evas_event_feed_mouse_move(obj->layer->evas->evas,
-                                          obj->layer->evas->pointer.x,
-                                          obj->layer->evas->pointer.y,
-                                          obj->layer->evas->last_timestamp,
-                                          NULL);
-          }
-     }
+   if (!obj->layer->evas->is_frozen &&
+       !evas_event_passes_through(eo_obj, obj) &&
+       !evas_event_freezes_through(eo_obj, obj) &&
+       !evas_object_is_source_invisible(eo_obj, obj) &&
+       obj->cur->visible)
+     _evas_canvas_event_pointer_in_list_mouse_move_feed(obj->layer->evas, was, eo_obj, obj, 1, 1, EINA_TRUE, NULL);
+   eina_list_free(was);
    evas_object_inform_call_move(eo_obj, obj);
    evas_object_inform_call_resize(eo_obj);
 }
@@ -207,15 +196,14 @@ _efl_canvas_polygon_point_add(Eo *eo_obj, Efl_Canvas_Polygon_Data *_pd, Evas_Coo
 EOLIAN static void
 _efl_canvas_polygon_points_clear(Eo *eo_obj, Efl_Canvas_Polygon_Data *_pd)
 {
-   Evas_Object_Protected_Data *obj = eo_data_scope_get(eo_obj, EFL_CANVAS_OBJECT_CLASS);
+   Evas_Object_Protected_Data *obj = efl_data_scope_get(eo_obj, EFL_CANVAS_OBJECT_CLASS);
    Efl_Canvas_Polygon_Data *o = _pd;
    void *list_data;
-   int is, was;
+   Eina_List *was;
 
    evas_object_async_block(obj);
-   was = evas_object_is_in_output_rect(eo_obj, obj,
-                                       obj->layer->evas->pointer.x,
-                                       obj->layer->evas->pointer.y, 1, 1);
+   was = _evas_pointer_list_in_rect_get(obj->layer->evas, eo_obj, obj, 1, 1);
+
    EINA_LIST_FREE(o->points, list_data)
      {
         free(list_data);
@@ -235,15 +223,9 @@ _efl_canvas_polygon_points_clear(Eo *eo_obj, Efl_Canvas_Polygon_Data *_pd)
    evas_object_change(eo_obj, obj);
    evas_object_clip_dirty(eo_obj, obj);
    evas_object_coords_recalc(eo_obj, obj);
-   is = evas_object_is_in_output_rect(eo_obj, obj,
-                                      obj->layer->evas->pointer.x,
-                                      obj->layer->evas->pointer.y, 1, 1);
-   if ((is || was) && obj->cur->visible)
-     evas_event_feed_mouse_move(obj->layer->evas->evas,
-                                obj->layer->evas->pointer.x,
-                                obj->layer->evas->pointer.y,
-                                obj->layer->evas->last_timestamp,
-                                NULL);
+   if (obj->cur->visible)
+     _evas_canvas_event_pointer_in_list_mouse_move_feed(obj->layer->evas, was, eo_obj, obj, 1, 1, EINA_FALSE, NULL);
+   eina_list_free(was);
    evas_object_inform_call_move(eo_obj, obj);
    evas_object_inform_call_resize(eo_obj);
 }
@@ -252,20 +234,20 @@ _efl_canvas_polygon_points_clear(Eo *eo_obj, Efl_Canvas_Polygon_Data *_pd)
 static void
 evas_object_polygon_init(Evas_Object *eo_obj)
 {
-   Evas_Object_Protected_Data *obj = eo_data_scope_get(eo_obj, EFL_CANVAS_OBJECT_CLASS);
+   Evas_Object_Protected_Data *obj = efl_data_scope_get(eo_obj, EFL_CANVAS_OBJECT_CLASS);
    /* set up methods (compulsory) */
    obj->func = &object_func;
-   obj->private_data = eo_data_ref(eo_obj, MY_CLASS);
+   obj->private_data = efl_data_ref(eo_obj, MY_CLASS);
    obj->type = o_type;
 }
 
 EOLIAN static void
-_efl_canvas_polygon_eo_base_destructor(Eo *eo_obj, Efl_Canvas_Polygon_Data *_pd EINA_UNUSED)
+_efl_canvas_polygon_efl_object_destructor(Eo *eo_obj, Efl_Canvas_Polygon_Data *_pd EINA_UNUSED)
 {
-   Evas_Object_Protected_Data *obj = eo_data_scope_get(eo_obj, EFL_CANVAS_OBJECT_CLASS);
+   Evas_Object_Protected_Data *obj = efl_data_scope_get(eo_obj, EFL_CANVAS_OBJECT_CLASS);
 
    evas_object_polygon_free(eo_obj, obj, obj->private_data);
-   eo_destructor(eo_super(eo_obj, MY_CLASS));
+   efl_destructor(efl_super(eo_obj, MY_CLASS));
 }
 
 static void
@@ -281,7 +263,6 @@ evas_object_polygon_free(Evas_Object *eo_obj EINA_UNUSED,
         free(list_data);
      }
    o->engine_data = obj->layer->evas->engine.func->polygon_points_clear(obj->layer->evas->engine.data.output,
-                                                                        obj->layer->evas->engine.data.context,
                                                                         o->engine_data);
 }
 
@@ -309,14 +290,12 @@ evas_object_polygon_render(Evas_Object *eo_obj EINA_UNUSED,
    if (o->changed)
      {
         o->engine_data = obj->layer->evas->engine.func->polygon_points_clear(obj->layer->evas->engine.data.output,
-                                                                             obj->layer->evas->engine.data.context,
                                                                              o->engine_data);
         EINA_LIST_FOREACH(o->points, l, p)
           {
              //px = evas_coord_world_x_to_screen(obj->layer->evas, p->x);
              //py = evas_coord_world_y_to_screen(obj->layer->evas, p->y);
              o->engine_data = obj->layer->evas->engine.func->polygon_point_add(obj->layer->evas->engine.data.output,
-                                                                               obj->layer->evas->engine.data.context,
                                                                                o->engine_data,
                                                                                p->x, p->y);
           }
@@ -426,36 +405,36 @@ evas_object_polygon_render_pre(Evas_Object *eo_obj,
 }
 
 static void
-evas_object_polygon_render_post(Evas_Object *eo_obj,
-				Evas_Object_Protected_Data *obj EINA_UNUSED,
-				void *type_private_data EINA_UNUSED)
+evas_object_polygon_render_post(Evas_Object *eo_obj EINA_UNUSED,
+                                Evas_Object_Protected_Data *obj,
+                                void *type_private_data EINA_UNUSED)
 {
    /* this moves the current data to the previous state parts of the object */
    /* in whatever way is safest for the object. also if we don't need object */
    /* data anymore we can free it if the object deems this is a good idea */
    /* remove those pesky changes */
-   evas_object_clip_changes_clean(eo_obj);
+   evas_object_clip_changes_clean(obj);
    /* move cur to prev safely for object data */
-   evas_object_cur_prev(eo_obj);
+   evas_object_cur_prev(obj);
 }
 
 static unsigned int evas_object_polygon_id_get(Evas_Object *eo_obj)
 {
-   Efl_Canvas_Polygon_Data *o = eo_data_scope_get(eo_obj, MY_CLASS);
+   Efl_Canvas_Polygon_Data *o = efl_data_scope_get(eo_obj, MY_CLASS);
    if (!o) return 0;
    return MAGIC_OBJ_POLYGON;
 }
 
 static unsigned int evas_object_polygon_visual_id_get(Evas_Object *eo_obj)
 {
-   Efl_Canvas_Polygon_Data *o = eo_data_scope_get(eo_obj, MY_CLASS);
+   Efl_Canvas_Polygon_Data *o = efl_data_scope_get(eo_obj, MY_CLASS);
    if (!o) return 0;
    return MAGIC_OBJ_SHAPE;
 }
 
 static void *evas_object_polygon_engine_data_get(Evas_Object *eo_obj)
 {
-   Efl_Canvas_Polygon_Data *o = eo_data_scope_get(eo_obj, MY_CLASS);
+   Efl_Canvas_Polygon_Data *o = efl_data_scope_get(eo_obj, MY_CLASS);
    return o->engine_data;
 }
 

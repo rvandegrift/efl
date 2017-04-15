@@ -26,11 +26,13 @@ _render_engine_setup(Evas_Engine_Info_Drm *info, int w, int h)
                                                  _outbuf_rotation_get,
                                                  _outbuf_reconfigure,
                                                  NULL,
+                                                 NULL,
                                                  _outbuf_update_region_new,
                                                  _outbuf_update_region_push,
                                                  _outbuf_update_region_free,
                                                  NULL,
                                                  _outbuf_flush,
+                                                 _outbuf_redraws_clear,
                                                  _outbuf_free,
                                                  ob->w, ob->h))
      goto init_err;
@@ -70,46 +72,25 @@ eng_info_free(Evas *evas EINA_UNUSED, void *einfo)
    free(info);
 }
 
-static int
-eng_setup(Evas *evas, void *einfo)
+static void *
+eng_setup(void *einfo, unsigned int w, unsigned int h)
 {
-   Render_Engine *re;
-   Evas_Public_Data *epd;
-   Evas_Engine_Info_Drm *info;
+   Evas_Engine_Info_Drm *info = einfo;
 
-   info = (Evas_Engine_Info_Drm *)einfo;
-   if (!info) return 0;
+   return _render_engine_setup(info, w, h);
+}
 
-   epd = eo_data_scope_get(evas, EVAS_CANVAS_CLASS);
-   if (!epd) return 0;
+static int
+eng_update(void *data, void *einfo, unsigned int w, unsigned int h)
+{
+   Evas_Engine_Info_Drm *info = einfo;
+   Render_Engine *re = data;
 
-   re = epd->engine.data.output;
-   if (!re)
-     {
-        evas_common_init();
+   _outbuf_reconfigure(re->generic.ob, w, h,
+                       info->info.rotation, info->info.depth);
 
-        re = _render_engine_setup(info, epd->output.w, epd->output.h);
-        if (!re) return 0;
-     }
-   else
-     {
-        Outbuf *ob;
-
-        ob = _outbuf_setup(info, epd->output.w, epd->output.h);
-        if (!ob) return 0;
-
-        evas_render_engine_software_generic_update(&re->generic, ob,
-                                                   ob->w, ob->h);
-     }
-
-   epd->engine.data.output = re;
-   if (!epd->engine.data.output) return 0;
-
-   if (!epd->engine.data.context)
-     {
-        epd->engine.data.context =
-          epd->engine.func->context_new(epd->engine.data.output);
-     }
+   evas_render_engine_software_generic_update(&re->generic,
+                                              re->generic.ob, w, h);
 
    return 1;
 }
@@ -125,8 +106,6 @@ eng_output_free(void *data)
         evas_render_engine_software_generic_clean(&re->generic);
         free(re);
      }
-
-   evas_common_shutdown();
 }
 
 static int
@@ -158,6 +137,7 @@ module_open(Evas_Module *em)
    EVAS_API_OVERRIDE(info, &func, eng_);
    EVAS_API_OVERRIDE(info_free, &func, eng_);
    EVAS_API_OVERRIDE(setup, &func, eng_);
+   EVAS_API_OVERRIDE(update, &func, eng_);
    EVAS_API_OVERRIDE(output_free, &func, eng_);
 
    /* advertise our engine functions */
@@ -170,7 +150,11 @@ static void
 module_close(Evas_Module *em EINA_UNUSED)
 {
    /* unregister the eina log domain for this engine */
-   eina_log_domain_unregister(_evas_engine_drm_log_dom);
+   if (_evas_engine_drm_log_dom >= 0)
+     {
+        eina_log_domain_unregister(_evas_engine_drm_log_dom);
+        _evas_engine_drm_log_dom = -1;
+     }
 
    ecore_shutdown();
 }

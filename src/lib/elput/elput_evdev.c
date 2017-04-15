@@ -60,18 +60,16 @@ _keyboard_modifiers_update(Elput_Keyboard *kbd, Elput_Seat *seat)
 static int
 _keyboard_fd_get(off_t size)
 {
-   int fd = 0;
-   char *path;
-   char tmp[PATH_MAX];
-   long flags;
    Eina_Tmpstr *fullname;
+   long flags;
+   int fd = 0;
+   Efl_Vpath_File *file_obj;
 
-   if (!(path = getenv("XDG_RUNTIME_DIR")))
-     return -1;
+   file_obj = efl_vpath_manager_fetch(EFL_VPATH_MANAGER_CLASS,
+                                      "(:run:)/elput-keymap-XXXXXX");
+   fd = eina_file_mkstemp(efl_vpath_file_result_get(file_obj), &fullname);
+   efl_del(file_obj);
 
-   snprintf(tmp, sizeof(tmp), "%s/elput-keymap-XXXXXX", path);
-
-   fd = eina_file_mkstemp(tmp, &fullname);
    if (fd < 0) return -1;
 
    flags = fcntl(fd, F_GETFD);
@@ -685,6 +683,23 @@ _pointer_motion_send(Elput_Device *edev)
    ecore_event_add(ECORE_EVENT_MOUSE_MOVE, ev, NULL, NULL);
 }
 
+static void
+_pointer_motion_relative(struct libinput_event_pointer *event)
+{
+   Elput_Event_Pointer_Motion *ev;
+
+   ev = calloc(1, sizeof(Elput_Event_Pointer_Motion));
+   EINA_SAFETY_ON_NULL_RETURN(ev);
+
+   ev->time_usec = libinput_event_pointer_get_time_usec(event);
+   ev->dx = libinput_event_pointer_get_dx(event);
+   ev->dy = libinput_event_pointer_get_dy(event);
+   ev->dx_unaccel = libinput_event_pointer_get_dx_unaccelerated(event);
+   ev->dy_unaccel = libinput_event_pointer_get_dy_unaccelerated(event);
+
+   ecore_event_add(ELPUT_EVENT_POINTER_MOTION, ev, NULL, NULL);
+}
+
 static Eina_Bool
 _pointer_motion(struct libinput_device *idev, struct libinput_event_pointer *event)
 {
@@ -702,6 +717,7 @@ _pointer_motion(struct libinput_device *idev, struct libinput_event_pointer *eve
    ptr->timestamp = libinput_event_pointer_get_time(event);
 
    _pointer_motion_send(edev);
+   _pointer_motion_relative(event);
 
    return EINA_TRUE;
 }
@@ -725,6 +741,7 @@ _pointer_motion_abs(struct libinput_device *idev, struct libinput_event_pointer 
    /* TODO: these needs to run a matrix transform based on output */
 
    _pointer_motion_send(edev);
+   _pointer_motion_relative(event);
 
    return EINA_TRUE;
 }
@@ -955,7 +972,7 @@ _pointer_axis(struct libinput_device *idevice, struct libinput_event_pointer *ev
 }
 
 static void
-_touch_event_send(Elput_Device *dev, struct libinput_event_touch *event, int type)
+_touch_event_send(Elput_Device *dev, int type)
 {
    Elput_Touch *touch;
    Ecore_Event_Mouse_Button *ev;
@@ -970,7 +987,7 @@ _touch_event_send(Elput_Device *dev, struct libinput_event_touch *event, int typ
    ev->window = dev->seat->manager->window;
    ev->event_window = dev->seat->manager->window;
    ev->root_window = dev->seat->manager->window;
-   ev->timestamp = libinput_event_touch_get_time(event);
+   ev->timestamp = touch->timestamp;
    ev->same_screen = 1;
 
    ev->x = touch->x;
@@ -1004,70 +1021,7 @@ _touch_event_send(Elput_Device *dev, struct libinput_event_touch *event, int typ
 }
 
 static void
-_touch_down(struct libinput_device *idevice, struct libinput_event_touch *event)
-{
-   Elput_Device *dev;
-   Elput_Touch *touch;
-   unsigned int timestamp;
-   int slot;
-
-   dev = libinput_device_get_user_data(idevice);
-   if (!dev) return;
-
-   touch = _evdev_touch_get(dev->seat);
-   if (!touch) return;
-
-   slot = libinput_event_touch_get_seat_slot(event);
-   timestamp = libinput_event_touch_get_time(event);
-
-   touch->x = libinput_event_touch_get_x_transformed(event, dev->ow);
-   touch->y = libinput_event_touch_get_y_transformed(event, dev->oh);
-
-   /* TODO: these needs to run a matrix transform based on output */
-   /* _ecore_drm2_output_coordinate_transform(dev->output, */
-   /*                                         touch->x, touch->y, */
-   /*                                         &touch->x, &touch->y); */
-
-   if (slot == touch->grab.id)
-     {
-        touch->grab.x = touch->x;
-        touch->grab.y = touch->y;
-     }
-
-   touch->slot = slot;
-   touch->points++;
-
-   _touch_event_send(dev, event, ECORE_EVENT_MOUSE_BUTTON_DOWN);
-
-   if (touch->points == 1)
-     {
-        touch->grab.id = slot;
-        touch->grab.x = touch->x;
-        touch->grab.y = touch->y;
-        touch->grab.timestamp = timestamp;
-     }
-}
-
-static void
-_touch_up(struct libinput_device *idevice, struct libinput_event_touch *event)
-{
-   Elput_Device *dev;
-   Elput_Touch *touch;
-
-   dev = libinput_device_get_user_data(idevice);
-   if (!dev) return;
-
-   touch = _evdev_touch_get(dev->seat);
-   if (!touch) return;
-
-   touch->points--;
-   touch->slot = libinput_event_touch_get_seat_slot(event);
-
-   _touch_event_send(dev, event, ECORE_EVENT_MOUSE_BUTTON_UP);
-}
-
-static void
-_touch_motion_send(Elput_Device *dev, struct libinput_event_touch *event)
+_touch_motion_send(Elput_Device *dev)
 {
    Elput_Touch *touch;
    Ecore_Event_Mouse_Move *ev;
@@ -1081,7 +1035,7 @@ _touch_motion_send(Elput_Device *dev, struct libinput_event_touch *event)
    ev->window = dev->seat->manager->window;
    ev->event_window = dev->seat->manager->window;
    ev->root_window = dev->seat->manager->window;
-   ev->timestamp = libinput_event_touch_get_time(event);
+   ev->timestamp = touch->timestamp;
    ev->same_screen = 1;
 
    ev->x = touch->x;
@@ -1106,6 +1060,69 @@ _touch_motion_send(Elput_Device *dev, struct libinput_event_touch *event)
 }
 
 static void
+_touch_down(struct libinput_device *idevice, struct libinput_event_touch *event)
+{
+   Elput_Device *dev;
+   Elput_Touch *touch;
+
+   dev = libinput_device_get_user_data(idevice);
+   if (!dev) return;
+
+   touch = _evdev_touch_get(dev->seat);
+   if (!touch) return;
+
+   touch->slot = libinput_event_touch_get_seat_slot(event);
+   touch->timestamp = libinput_event_touch_get_time(event);
+
+   touch->x = libinput_event_touch_get_x_transformed(event, dev->ow);
+   touch->y = libinput_event_touch_get_y_transformed(event, dev->oh);
+
+   /* TODO: these needs to run a matrix transform based on output */
+   /* _ecore_drm2_output_coordinate_transform(dev->output, */
+   /*                                         touch->x, touch->y, */
+   /*                                         &touch->x, &touch->y); */
+
+   if (touch->slot == touch->grab.id)
+     {
+        touch->grab.x = touch->x;
+        touch->grab.y = touch->y;
+     }
+
+   touch->points++;
+
+   _touch_motion_send(dev);
+   _touch_event_send(dev, ECORE_EVENT_MOUSE_BUTTON_DOWN);
+
+   if (touch->points == 1)
+     {
+        touch->grab.id = touch->slot;
+        touch->grab.x = touch->x;
+        touch->grab.y = touch->y;
+        touch->grab.timestamp = touch->timestamp;
+     }
+}
+
+static void
+_touch_up(struct libinput_device *idevice, struct libinput_event_touch *event)
+{
+   Elput_Device *dev;
+   Elput_Touch *touch;
+
+   dev = libinput_device_get_user_data(idevice);
+   if (!dev) return;
+
+   touch = _evdev_touch_get(dev->seat);
+   if (!touch) return;
+
+   touch->points--;
+   touch->slot = libinput_event_touch_get_seat_slot(event);
+   touch->timestamp = libinput_event_touch_get_time(event);
+
+   _touch_motion_send(dev);
+   _touch_event_send(dev, ECORE_EVENT_MOUSE_BUTTON_UP);
+}
+
+static void
 _touch_motion(struct libinput_device *idevice, struct libinput_event_touch *event)
 {
    Elput_Device *dev;
@@ -1126,8 +1143,9 @@ _touch_motion(struct libinput_device *idevice, struct libinput_event_touch *even
    /*                                         &touch->x, &touch->y); */
 
    touch->slot = libinput_event_touch_get_seat_slot(event);
+   touch->timestamp = libinput_event_touch_get_time(event);
 
-   _touch_motion_send(dev, event);
+   _touch_motion_send(dev);
 }
 
 void
@@ -1232,20 +1250,27 @@ Elput_Device *
 _evdev_device_create(Elput_Seat *seat, struct libinput_device *device)
 {
    Elput_Device *edev;
+   const char *oname;
 
    edev = calloc(1, sizeof(Elput_Device));
    if (!edev) return NULL;
 
    edev->seat = seat;
    edev->device = device;
+   edev->caps = 0;
 
-   if (libinput_device_has_capability(device, LIBINPUT_DEVICE_CAP_KEYBOARD))
+   oname = libinput_device_get_output_name(device);
+   eina_stringshare_replace(&edev->output_name, oname);
+
+   if ((libinput_device_has_capability(device, LIBINPUT_DEVICE_CAP_KEYBOARD)) &&
+       (libinput_device_keyboard_has_key(device, KEY_ENTER)))
      {
         _keyboard_init(seat, seat->manager->cached.keymap);
         edev->caps |= EVDEV_SEAT_KEYBOARD;
      }
  
-   if (libinput_device_has_capability(device, LIBINPUT_DEVICE_CAP_POINTER))
+   if ((libinput_device_has_capability(device, LIBINPUT_DEVICE_CAP_POINTER) &&
+       (libinput_device_pointer_has_button(device, BTN_LEFT))))
      {
         _pointer_init(seat);
         edev->caps |= EVDEV_SEAT_POINTER;
@@ -1256,6 +1281,11 @@ _evdev_device_create(Elput_Seat *seat, struct libinput_device *device)
         _touch_init(seat);
         edev->caps |= EVDEV_SEAT_TOUCH;
      }
+
+   if (!((edev->caps & EVDEV_SEAT_KEYBOARD) ||
+         (edev->caps & EVDEV_SEAT_POINTER) ||
+         (edev->caps & EVDEV_SEAT_TOUCH)))
+     goto err;
 
    libinput_device_set_user_data(device, edev);
    libinput_device_ref(edev->device);
@@ -1268,12 +1298,12 @@ _evdev_device_create(Elput_Seat *seat, struct libinput_device *device)
         libinput_device_config_tap_set_enabled(edev->device, enable);
      }
 
-   /* FIXME: Normally we would do a device calibration set here however
-    * that requires Output support. Since this is just an input library, we
-    * may need to add external facing APIs to do calibration. Then a user of
-    * elput would handle outputs, and make calls to calibrate */
-
    return edev;
+
+err:
+   eina_stringshare_del(edev->output_name);
+   free(edev);
+   return NULL;
 }
 
 void

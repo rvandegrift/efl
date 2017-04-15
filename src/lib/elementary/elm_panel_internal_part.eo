@@ -1,10 +1,10 @@
-class Elm.Panel.Internal.Part (Eo.Base, Efl.Container)
+class Elm.Panel.Internal.Part (Efl.Object, Efl.Container)
 {
+   [[Elementary panel internal part class]]
    data: Elm_Part_Data;
    implements {
-      Eo.Base.destructor;
-      Efl.Container.content.set;
-      Efl.Container.content.get;
+      Efl.Object.destructor;
+      Efl.Container.content { get; set; }
       Efl.Container.content_unset;
    }
 }

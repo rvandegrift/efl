@@ -91,7 +91,9 @@ build_triplet = @build@
 host_triplet = @host@
 EXTRA_PROGRAMS = evas_buffer_simple$(EXEEXT) \
 	evas_init_shutdown$(EXEEXT) evas_images$(EXEEXT) \
-	evas_events$(EXEEXT) evas_object_manipulation$(EXEEXT) \
+	evas_events$(EXEEXT) evas_event_filter$(EXEEXT) \
+	evas_multiseat_events$(EXEEXT) \
+	evas_object_manipulation$(EXEEXT) \
 	evas_object_manipulation-eo$(EXEEXT) evas_hints$(EXEEXT) \
 	evas_stacking$(EXEEXT) evas_images2$(EXEEXT) \
 	evas_images3$(EXEEXT) evas_images4$(EXEEXT) \
@@ -126,8 +128,8 @@ am__aclocal_m4_deps = $(top_srcdir)/m4/ac_define_if.m4 \
 	$(top_srcdir)/m4/efl_check_funcs.m4 \
 	$(top_srcdir)/m4/efl_check_libs.m4 \
 	$(top_srcdir)/m4/efl_compiler.m4 \
-	$(top_srcdir)/m4/efl_doxygen.m4 $(top_srcdir)/m4/efl_eo.m4 \
-	$(top_srcdir)/m4/efl_find_x.m4 \
+	$(top_srcdir)/m4/efl_define.m4 $(top_srcdir)/m4/efl_doxygen.m4 \
+	$(top_srcdir)/m4/efl_eo.m4 $(top_srcdir)/m4/efl_find_x.m4 \
 	$(top_srcdir)/m4/efl_libunwind.m4 \
 	$(top_srcdir)/m4/efl_lua_old.m4 \
 	$(top_srcdir)/m4/efl_path_max.m4 \
@@ -288,6 +290,10 @@ am__evas_cxx_rectangle_SOURCES_DIST = evas_cxx_rectangle.cc
 evas_cxx_rectangle_OBJECTS = $(am_evas_cxx_rectangle_OBJECTS)
 @HAVE_CXX11_TRUE@evas_cxx_rectangle_DEPENDENCIES =  \
 @HAVE_CXX11_TRUE@	$(am__DEPENDENCIES_2)
+am_evas_event_filter_OBJECTS =  \
+	evas_event_filter-evas-event-filter.$(OBJEXT)
+evas_event_filter_OBJECTS = $(am_evas_event_filter_OBJECTS)
+evas_event_filter_DEPENDENCIES = $(am__DEPENDENCIES_2)
 am_evas_events_OBJECTS = evas_events-evas-events.$(OBJEXT)
 evas_events_OBJECTS = $(am_evas_events_OBJECTS)
 evas_events_DEPENDENCIES = $(am__DEPENDENCIES_2)
@@ -333,6 +339,10 @@ am_evas_multi_touch_OBJECTS =  \
 	evas_multi_touch-evas-multi-touch.$(OBJEXT)
 evas_multi_touch_OBJECTS = $(am_evas_multi_touch_OBJECTS)
 evas_multi_touch_DEPENDENCIES = $(am__DEPENDENCIES_2)
+am_evas_multiseat_events_OBJECTS =  \
+	evas_multiseat_events-evas-multiseat-events.$(OBJEXT)
+evas_multiseat_events_OBJECTS = $(am_evas_multiseat_events_OBJECTS)
+evas_multiseat_events_DEPENDENCIES = $(am__DEPENDENCIES_2)
 am_evas_object_manipulation_OBJECTS =  \
 	evas_object_manipulation-evas-object-manipulation.$(OBJEXT)
 evas_object_manipulation_OBJECTS =  \
@@ -442,14 +452,15 @@ SOURCES = $(evas_aspect_hints_SOURCES) $(evas_box_SOURCES) \
 	$(evas_canvas3d_shadows_SOURCES) \
 	$(evas_canvas3d_shooter_SOURCES) \
 	$(evas_canvas3d_static_lod_SOURCES) \
-	$(evas_cxx_rectangle_SOURCES) $(evas_events_SOURCES) \
-	$(evas_gl_SOURCES) $(evas_hints_SOURCES) \
-	$(evas_images_SOURCES) $(evas_images2_SOURCES) \
-	$(evas_images3_SOURCES) $(evas_images4_SOURCES) \
-	$(evas_images5_SOURCES) $(evas_init_shutdown_SOURCES) \
-	$(evas_map_aa_SOURCES) $(evas_map_aa_eo_SOURCES) \
-	$(evas_map_utils_SOURCES) $(evas_map_utils_eo_SOURCES) \
-	$(evas_multi_touch_SOURCES) \
+	$(evas_cxx_rectangle_SOURCES) $(evas_event_filter_SOURCES) \
+	$(evas_events_SOURCES) $(evas_gl_SOURCES) \
+	$(evas_hints_SOURCES) $(evas_images_SOURCES) \
+	$(evas_images2_SOURCES) $(evas_images3_SOURCES) \
+	$(evas_images4_SOURCES) $(evas_images5_SOURCES) \
+	$(evas_init_shutdown_SOURCES) $(evas_map_aa_SOURCES) \
+	$(evas_map_aa_eo_SOURCES) $(evas_map_utils_SOURCES) \
+	$(evas_map_utils_eo_SOURCES) $(evas_multi_touch_SOURCES) \
+	$(evas_multiseat_events_SOURCES) \
 	$(evas_object_manipulation_SOURCES) \
 	$(evas_object_manipulation_eo_SOURCES) \
 	$(evas_smart_interface_SOURCES) $(evas_smart_object_SOURCES) \
@@ -473,14 +484,15 @@ DIST_SOURCES = $(evas_aspect_hints_SOURCES) $(evas_box_SOURCES) \
 	$(evas_canvas3d_shadows_SOURCES) \
 	$(evas_canvas3d_shooter_SOURCES) \
 	$(evas_canvas3d_static_lod_SOURCES) \
-	$(am__evas_cxx_rectangle_SOURCES_DIST) $(evas_events_SOURCES) \
+	$(am__evas_cxx_rectangle_SOURCES_DIST) \
+	$(evas_event_filter_SOURCES) $(evas_events_SOURCES) \
 	$(evas_gl_SOURCES) $(evas_hints_SOURCES) \
 	$(evas_images_SOURCES) $(evas_images2_SOURCES) \
 	$(evas_images3_SOURCES) $(evas_images4_SOURCES) \
 	$(evas_images5_SOURCES) $(evas_init_shutdown_SOURCES) \
 	$(evas_map_aa_SOURCES) $(evas_map_aa_eo_SOURCES) \
 	$(evas_map_utils_SOURCES) $(evas_map_utils_eo_SOURCES) \
-	$(evas_multi_touch_SOURCES) \
+	$(evas_multi_touch_SOURCES) $(evas_multiseat_events_SOURCES) \
 	$(evas_object_manipulation_SOURCES) \
 	$(evas_object_manipulation_eo_SOURCES) \
 	$(evas_smart_interface_SOURCES) $(evas_smart_object_SOURCES) \
@@ -804,6 +816,7 @@ EFL_LDFLAGS = @EFL_LDFLAGS@
 EFL_LIBS = @EFL_LIBS@
 EFL_LTLIBRARY_FLAGS = @EFL_LTLIBRARY_FLAGS@
 EFL_LTMODULE_FLAGS = @EFL_LTMODULE_FLAGS@
+EFL_NET_CONTROL_BACKEND = @EFL_NET_CONTROL_BACKEND@
 EFL_PTHREAD_CFLAGS = @EFL_PTHREAD_CFLAGS@
 EFL_PTHREAD_LIBS = @EFL_PTHREAD_LIBS@
 EFL_SUBBUILD_INTERNAL_LIBS = @EFL_SUBBUILD_INTERNAL_LIBS@
@@ -1062,7 +1075,6 @@ GREP = @GREP@
 GSTREAMER_CFLAGS = @GSTREAMER_CFLAGS@
 GSTREAMER_LIBS = @GSTREAMER_LIBS@
 HAVE_CXX11 = @HAVE_CXX11@
-HAVE_ECORE_X_BACKEND = @HAVE_ECORE_X_BACKEND@
 HAVE_JS = @HAVE_JS@
 HAVE_LIBUV = @HAVE_LIBUV@
 HAVE_NODEJS = @HAVE_NODEJS@
@@ -1079,7 +1091,6 @@ INTLLIBS = @INTLLIBS@
 INTL_MACOSX_LIBS = @INTL_MACOSX_LIBS@
 JP2K_CFLAGS = @JP2K_CFLAGS@
 JP2K_LIBS = @JP2K_LIBS@
-KEYSYMDEFS = @KEYSYMDEFS@
 LD = @LD@
 LDFLAGS = @LDFLAGS@
 LIBGCRYPT_CFLAGS = @LIBGCRYPT_CFLAGS@
@@ -1098,6 +1109,8 @@ LIBRAW_LIBS = @LIBRAW_LIBS@
 LIBS = @LIBS@
 LIBTHREAD = @LIBTHREAD@
 LIBTOOL = @LIBTOOL@
+LIBVNCSERVER_CFLAGS = @LIBVNCSERVER_CFLAGS@
+LIBVNCSERVER_LIBS = @LIBVNCSERVER_LIBS@
 LIPO = @LIPO@
 LN_S = @LN_S@
 LOCALE_DIR = @LOCALE_DIR@
@@ -1373,6 +1386,9 @@ WAYLAND_CFLAGS = @WAYLAND_CFLAGS@
 WAYLAND_EGL_CFLAGS = @WAYLAND_EGL_CFLAGS@
 WAYLAND_EGL_LIBS = @WAYLAND_EGL_LIBS@
 WAYLAND_LIBS = @WAYLAND_LIBS@
+WAYLAND_PROTOCOLS_DATADIR = @WAYLAND_PROTOCOLS_DATADIR@
+WAYLAND_SCANNER_CFLAGS = @WAYLAND_SCANNER_CFLAGS@
+WAYLAND_SCANNER_LIBS = @WAYLAND_SCANNER_LIBS@
 WAYLAND_SHM_CFLAGS = @WAYLAND_SHM_CFLAGS@
 WAYLAND_SHM_LIBS = @WAYLAND_SHM_LIBS@
 X11_DRI2_CFLAGS = @X11_DRI2_CFLAGS@
@@ -1381,12 +1397,6 @@ X11_DRI3_CFLAGS = @X11_DRI3_CFLAGS@
 X11_DRI3_LIBS = @X11_DRI3_LIBS@
 X11_DRI_COMMON_CFLAGS = @X11_DRI_COMMON_CFLAGS@
 X11_DRI_COMMON_LIBS = @X11_DRI_COMMON_LIBS@
-XCB_CFLAGS = @XCB_CFLAGS@
-XCB_GL_CFLAGS = @XCB_GL_CFLAGS@
-XCB_GL_LIBS = @XCB_GL_LIBS@
-XCB_LIBS = @XCB_LIBS@
-XCB_X11_CFLAGS = @XCB_X11_CFLAGS@
-XCB_X11_LIBS = @XCB_X11_LIBS@
 XDG_DATA_HOME = @XDG_DATA_HOME@
 XGETTEXT = @XGETTEXT@
 XGETTEXT_015 = @XGETTEXT_015@
@@ -1420,7 +1430,6 @@ build_vendor = @build_vendor@
 builddir = @builddir@
 cocoa_coreservices_ldflags = @cocoa_coreservices_ldflags@
 cocoa_ldflags = @cocoa_ldflags@
-coreaudio_ldflags = @coreaudio_ldflags@
 datadir = @datadir@
 datarootdir = @datarootdir@
 dbusservicedir = @dbusservicedir@
@@ -1488,11 +1497,6 @@ evas_engine_gl_drm_cflags = @evas_engine_gl_drm_cflags@
 evas_engine_gl_drm_libs = @evas_engine_gl_drm_libs@
 evas_engine_gl_sdl_cflags = @evas_engine_gl_sdl_cflags@
 evas_engine_gl_sdl_libs = @evas_engine_gl_sdl_libs@
-evas_engine_gl_xcb_CFLAGS = @evas_engine_gl_xcb_CFLAGS@
-evas_engine_gl_xcb_LIBS = @evas_engine_gl_xcb_LIBS@
-evas_engine_gl_xcb_cflags = @evas_engine_gl_xcb_cflags@
-evas_engine_gl_xcb_libdirs = @evas_engine_gl_xcb_libdirs@
-evas_engine_gl_xcb_libs = @evas_engine_gl_xcb_libs@
 evas_engine_gl_xlib_CFLAGS = @evas_engine_gl_xlib_CFLAGS@
 evas_engine_gl_xlib_LIBS = @evas_engine_gl_xlib_LIBS@
 evas_engine_gl_xlib_cflags = @evas_engine_gl_xlib_cflags@
@@ -1504,8 +1508,6 @@ evas_engine_software_ddraw_cflags = @evas_engine_software_ddraw_cflags@
 evas_engine_software_ddraw_libs = @evas_engine_software_ddraw_libs@
 evas_engine_software_gdi_cflags = @evas_engine_software_gdi_cflags@
 evas_engine_software_gdi_libs = @evas_engine_software_gdi_libs@
-evas_engine_software_xcb_cflags = @evas_engine_software_xcb_cflags@
-evas_engine_software_xcb_libs = @evas_engine_software_xcb_libs@
 evas_engine_software_xlib_CFLAGS = @evas_engine_software_xlib_CFLAGS@
 evas_engine_software_xlib_LIBS = @evas_engine_software_xlib_LIBS@
 evas_engine_software_xlib_cflags = @evas_engine_software_xlib_cflags@
@@ -1549,10 +1551,12 @@ evas_image_loader_webp_cflags = @evas_image_loader_webp_cflags@
 evas_image_loader_webp_libs = @evas_image_loader_webp_libs@
 evas_image_loader_xpm_cflags = @evas_image_loader_xpm_cflags@
 evas_image_loader_xpm_libs = @evas_image_loader_xpm_libs@
+evas_vg_loader_eet_cflags = @evas_vg_loader_eet_cflags@
+evas_vg_loader_eet_libs = @evas_vg_loader_eet_libs@
+evas_vg_loader_svg_cflags = @evas_vg_loader_svg_cflags@
+evas_vg_loader_svg_libs = @evas_vg_loader_svg_libs@
 exec_prefix = @exec_prefix@
-have_evas_engine_gl_xcb = @have_evas_engine_gl_xcb@
 have_evas_engine_gl_xlib = @have_evas_engine_gl_xlib@
-have_evas_engine_software_xcb = @have_evas_engine_software_xcb@
 have_evas_engine_software_xlib = @have_evas_engine_software_xlib@
 have_lcov = @have_lcov@
 host = @host@
@@ -1846,6 +1850,7 @@ want_liblz4 = @want_liblz4@
 want_lua_old = @want_lua_old@
 want_multisense = @want_multisense@
 want_physics = @want_physics@
+wayland_scanner = @wayland_scanner@
 with_eeze_eject = @with_eeze_eject@
 with_eeze_mount = @with_eeze_mount@
 with_eeze_umount = @with_eeze_umount@
@@ -1958,6 +1963,12 @@ evas_images_CPPFLAGS = $(ECORE_EVAS_COMMON_CPPFLAGS)
 evas_events_SOURCES = evas-events.c
 evas_events_LDADD = $(ECORE_EVAS_COMMON_LDADD)
 evas_events_CPPFLAGS = $(ECORE_EVAS_COMMON_CPPFLAGS)
+evas_event_filter_SOURCES = evas-event-filter.c
+evas_event_filter_LDADD = $(ECORE_EVAS_COMMON_LDADD)
+evas_event_filter_CPPFLAGS = $(ECORE_EVAS_COMMON_CPPFLAGS)
+evas_multiseat_events_SOURCES = evas-multiseat-events.c
+evas_multiseat_events_LDADD = $(ECORE_EVAS_COMMON_LDADD)
+evas_multiseat_events_CPPFLAGS = $(ECORE_EVAS_COMMON_CPPFLAGS)
 evas_object_manipulation_SOURCES = evas-object-manipulation.c
 evas_object_manipulation_LDADD = $(ECORE_EVAS_COMMON_LDADD)
 evas_object_manipulation_CPPFLAGS = $(ECORE_EVAS_COMMON_CPPFLAGS)
@@ -2107,6 +2118,7 @@ evas-aspect-hints.c \
 evas-box.c \
 evas-buffer-simple.c \
 evas-events.c \
+evas-event-filter.c \
 evas-hints.c \
 evas-images.c \
 evas-images2.c \
@@ -2358,6 +2370,10 @@ evas_cxx_rectangle$(EXEEXT): $(evas_cxx_rectangle_OBJECTS) $(evas_cxx_rectangle_
 	@rm -f evas_cxx_rectangle$(EXEEXT)
 	$(AM_V_CXXLD)$(CXXLINK) $(evas_cxx_rectangle_OBJECTS) $(evas_cxx_rectangle_LDADD) $(LIBS)
 
+evas_event_filter$(EXEEXT): $(evas_event_filter_OBJECTS) $(evas_event_filter_DEPENDENCIES) $(EXTRA_evas_event_filter_DEPENDENCIES) 
+	@rm -f evas_event_filter$(EXEEXT)
+	$(AM_V_CCLD)$(LINK) $(evas_event_filter_OBJECTS) $(evas_event_filter_LDADD) $(LIBS)
+
 evas_events$(EXEEXT): $(evas_events_OBJECTS) $(evas_events_DEPENDENCIES) $(EXTRA_evas_events_DEPENDENCIES) 
 	@rm -f evas_events$(EXEEXT)
 	$(AM_V_CCLD)$(LINK) $(evas_events_OBJECTS) $(evas_events_LDADD) $(LIBS)
@@ -2413,6 +2429,10 @@ evas_map_utils_eo$(EXEEXT): $(evas_map_utils_eo_OBJECTS) $(evas_map_utils_eo_DEP
 evas_multi_touch$(EXEEXT): $(evas_multi_touch_OBJECTS) $(evas_multi_touch_DEPENDENCIES) $(EXTRA_evas_multi_touch_DEPENDENCIES) 
 	@rm -f evas_multi_touch$(EXEEXT)
 	$(AM_V_CCLD)$(LINK) $(evas_multi_touch_OBJECTS) $(evas_multi_touch_LDADD) $(LIBS)
+
+evas_multiseat_events$(EXEEXT): $(evas_multiseat_events_OBJECTS) $(evas_multiseat_events_DEPENDENCIES) $(EXTRA_evas_multiseat_events_DEPENDENCIES) 
+	@rm -f evas_multiseat_events$(EXEEXT)
+	$(AM_V_CCLD)$(LINK) $(evas_multiseat_events_OBJECTS) $(evas_multiseat_events_LDADD) $(LIBS)
 
 evas_object_manipulation$(EXEEXT): $(evas_object_manipulation_OBJECTS) $(evas_object_manipulation_DEPENDENCIES) $(EXTRA_evas_object_manipulation_DEPENDENCIES) 
 	@rm -f evas_object_manipulation$(EXEEXT)
@@ -2489,6 +2509,7 @@ distclean-compile:
 @AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/evas_canvas3d_shadows-evas-3d-shadows.Po@am__quote@
 @AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/evas_canvas3d_static_lod-evas-3d-static-lod.Po@am__quote@
 @AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/evas_cxx_rectangle-evas_cxx_rectangle.Po@am__quote@
+@AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/evas_event_filter-evas-event-filter.Po@am__quote@
 @AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/evas_events-evas-events.Po@am__quote@
 @AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/evas_gl-evas-gl.Po@am__quote@
 @AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/evas_hints-evas-hints.Po@am__quote@
@@ -2502,6 +2523,7 @@ distclean-compile:
 @AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/evas_map_utils-evas-map-utils.Po@am__quote@
 @AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/evas_map_utils_eo-evas-map-utils-eo.Po@am__quote@
 @AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/evas_multi_touch-evas-multi-touch.Po@am__quote@
+@AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/evas_multiseat_events-evas-multiseat-events.Po@am__quote@
 @AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/evas_object_manipulation-evas-object-manipulation.Po@am__quote@
 @AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/evas_object_manipulation_eo-evas-object-manipulation-eo.Po@am__quote@
 @AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/evas_smart_interface-evas-smart-interface.Po@am__quote@
@@ -2862,6 +2884,20 @@ evas_canvas3d_static_lod-evas-3d-static-lod.obj: evas-3d-static-lod.c
 @AMDEP_TRUE@@am__fastdepCC_FALSE@	DEPDIR=$(DEPDIR) $(CCDEPMODE) $(depcomp) @AMDEPBACKSLASH@
 @am__fastdepCC_FALSE@	$(AM_V_CC@am__nodep@)$(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(evas_canvas3d_static_lod_CPPFLAGS) $(CPPFLAGS) $(AM_CFLAGS) $(CFLAGS) -c -o evas_canvas3d_static_lod-evas-3d-static-lod.obj `if test -f 'evas-3d-static-lod.c'; then $(CYGPATH_W) 'evas-3d-static-lod.c'; else $(CYGPATH_W) '$(srcdir)/evas-3d-static-lod.c'; fi`
 
+evas_event_filter-evas-event-filter.o: evas-event-filter.c
+@am__fastdepCC_TRUE@	$(AM_V_CC)$(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(evas_event_filter_CPPFLAGS) $(CPPFLAGS) $(AM_CFLAGS) $(CFLAGS) -MT evas_event_filter-evas-event-filter.o -MD -MP -MF $(DEPDIR)/evas_event_filter-evas-event-filter.Tpo -c -o evas_event_filter-evas-event-filter.o `test -f 'evas-event-filter.c' || echo '$(srcdir)/'`evas-event-filter.c
+@am__fastdepCC_TRUE@	$(AM_V_at)$(am__mv) $(DEPDIR)/evas_event_filter-evas-event-filter.Tpo $(DEPDIR)/evas_event_filter-evas-event-filter.Po
+@AMDEP_TRUE@@am__fastdepCC_FALSE@	$(AM_V_CC)source='evas-event-filter.c' object='evas_event_filter-evas-event-filter.o' libtool=no @AMDEPBACKSLASH@
+@AMDEP_TRUE@@am__fastdepCC_FALSE@	DEPDIR=$(DEPDIR) $(CCDEPMODE) $(depcomp) @AMDEPBACKSLASH@
+@am__fastdepCC_FALSE@	$(AM_V_CC@am__nodep@)$(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(evas_event_filter_CPPFLAGS) $(CPPFLAGS) $(AM_CFLAGS) $(CFLAGS) -c -o evas_event_filter-evas-event-filter.o `test -f 'evas-event-filter.c' || echo '$(srcdir)/'`evas-event-filter.c
+
+evas_event_filter-evas-event-filter.obj: evas-event-filter.c
+@am__fastdepCC_TRUE@	$(AM_V_CC)$(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(evas_event_filter_CPPFLAGS) $(CPPFLAGS) $(AM_CFLAGS) $(CFLAGS) -MT evas_event_filter-evas-event-filter.obj -MD -MP -MF $(DEPDIR)/evas_event_filter-evas-event-filter.Tpo -c -o evas_event_filter-evas-event-filter.obj `if test -f 'evas-event-filter.c'; then $(CYGPATH_W) 'evas-event-filter.c'; else $(CYGPATH_W) '$(srcdir)/evas-event-filter.c'; fi`
+@am__fastdepCC_TRUE@	$(AM_V_at)$(am__mv) $(DEPDIR)/evas_event_filter-evas-event-filter.Tpo $(DEPDIR)/evas_event_filter-evas-event-filter.Po
+@AMDEP_TRUE@@am__fastdepCC_FALSE@	$(AM_V_CC)source='evas-event-filter.c' object='evas_event_filter-evas-event-filter.obj' libtool=no @AMDEPBACKSLASH@
+@AMDEP_TRUE@@am__fastdepCC_FALSE@	DEPDIR=$(DEPDIR) $(CCDEPMODE) $(depcomp) @AMDEPBACKSLASH@
+@am__fastdepCC_FALSE@	$(AM_V_CC@am__nodep@)$(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(evas_event_filter_CPPFLAGS) $(CPPFLAGS) $(AM_CFLAGS) $(CFLAGS) -c -o evas_event_filter-evas-event-filter.obj `if test -f 'evas-event-filter.c'; then $(CYGPATH_W) 'evas-event-filter.c'; else $(CYGPATH_W) '$(srcdir)/evas-event-filter.c'; fi`
+
 evas_events-evas-events.o: evas-events.c
 @am__fastdepCC_TRUE@	$(AM_V_CC)$(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(evas_events_CPPFLAGS) $(CPPFLAGS) $(AM_CFLAGS) $(CFLAGS) -MT evas_events-evas-events.o -MD -MP -MF $(DEPDIR)/evas_events-evas-events.Tpo -c -o evas_events-evas-events.o `test -f 'evas-events.c' || echo '$(srcdir)/'`evas-events.c
 @am__fastdepCC_TRUE@	$(AM_V_at)$(am__mv) $(DEPDIR)/evas_events-evas-events.Tpo $(DEPDIR)/evas_events-evas-events.Po
@@ -3043,6 +3079,20 @@ evas_multi_touch-evas-multi-touch.obj: evas-multi-touch.c
 @AMDEP_TRUE@@am__fastdepCC_FALSE@	$(AM_V_CC)source='evas-multi-touch.c' object='evas_multi_touch-evas-multi-touch.obj' libtool=no @AMDEPBACKSLASH@
 @AMDEP_TRUE@@am__fastdepCC_FALSE@	DEPDIR=$(DEPDIR) $(CCDEPMODE) $(depcomp) @AMDEPBACKSLASH@
 @am__fastdepCC_FALSE@	$(AM_V_CC@am__nodep@)$(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(evas_multi_touch_CPPFLAGS) $(CPPFLAGS) $(AM_CFLAGS) $(CFLAGS) -c -o evas_multi_touch-evas-multi-touch.obj `if test -f 'evas-multi-touch.c'; then $(CYGPATH_W) 'evas-multi-touch.c'; else $(CYGPATH_W) '$(srcdir)/evas-multi-touch.c'; fi`
+
+evas_multiseat_events-evas-multiseat-events.o: evas-multiseat-events.c
+@am__fastdepCC_TRUE@	$(AM_V_CC)$(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(evas_multiseat_events_CPPFLAGS) $(CPPFLAGS) $(AM_CFLAGS) $(CFLAGS) -MT evas_multiseat_events-evas-multiseat-events.o -MD -MP -MF $(DEPDIR)/evas_multiseat_events-evas-multiseat-events.Tpo -c -o evas_multiseat_events-evas-multiseat-events.o `test -f 'evas-multiseat-events.c' || echo '$(srcdir)/'`evas-multiseat-events.c
+@am__fastdepCC_TRUE@	$(AM_V_at)$(am__mv) $(DEPDIR)/evas_multiseat_events-evas-multiseat-events.Tpo $(DEPDIR)/evas_multiseat_events-evas-multiseat-events.Po
+@AMDEP_TRUE@@am__fastdepCC_FALSE@	$(AM_V_CC)source='evas-multiseat-events.c' object='evas_multiseat_events-evas-multiseat-events.o' libtool=no @AMDEPBACKSLASH@
+@AMDEP_TRUE@@am__fastdepCC_FALSE@	DEPDIR=$(DEPDIR) $(CCDEPMODE) $(depcomp) @AMDEPBACKSLASH@
+@am__fastdepCC_FALSE@	$(AM_V_CC@am__nodep@)$(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(evas_multiseat_events_CPPFLAGS) $(CPPFLAGS) $(AM_CFLAGS) $(CFLAGS) -c -o evas_multiseat_events-evas-multiseat-events.o `test -f 'evas-multiseat-events.c' || echo '$(srcdir)/'`evas-multiseat-events.c
+
+evas_multiseat_events-evas-multiseat-events.obj: evas-multiseat-events.c
+@am__fastdepCC_TRUE@	$(AM_V_CC)$(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(evas_multiseat_events_CPPFLAGS) $(CPPFLAGS) $(AM_CFLAGS) $(CFLAGS) -MT evas_multiseat_events-evas-multiseat-events.obj -MD -MP -MF $(DEPDIR)/evas_multiseat_events-evas-multiseat-events.Tpo -c -o evas_multiseat_events-evas-multiseat-events.obj `if test -f 'evas-multiseat-events.c'; then $(CYGPATH_W) 'evas-multiseat-events.c'; else $(CYGPATH_W) '$(srcdir)/evas-multiseat-events.c'; fi`
+@am__fastdepCC_TRUE@	$(AM_V_at)$(am__mv) $(DEPDIR)/evas_multiseat_events-evas-multiseat-events.Tpo $(DEPDIR)/evas_multiseat_events-evas-multiseat-events.Po
+@AMDEP_TRUE@@am__fastdepCC_FALSE@	$(AM_V_CC)source='evas-multiseat-events.c' object='evas_multiseat_events-evas-multiseat-events.obj' libtool=no @AMDEPBACKSLASH@
+@AMDEP_TRUE@@am__fastdepCC_FALSE@	DEPDIR=$(DEPDIR) $(CCDEPMODE) $(depcomp) @AMDEPBACKSLASH@
+@am__fastdepCC_FALSE@	$(AM_V_CC@am__nodep@)$(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(evas_multiseat_events_CPPFLAGS) $(CPPFLAGS) $(AM_CFLAGS) $(CFLAGS) -c -o evas_multiseat_events-evas-multiseat-events.obj `if test -f 'evas-multiseat-events.c'; then $(CYGPATH_W) 'evas-multiseat-events.c'; else $(CYGPATH_W) '$(srcdir)/evas-multiseat-events.c'; fi`
 
 evas_object_manipulation-evas-object-manipulation.o: evas-object-manipulation.c
 @am__fastdepCC_TRUE@	$(AM_V_CC)$(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(evas_object_manipulation_CPPFLAGS) $(CPPFLAGS) $(AM_CFLAGS) $(CFLAGS) -MT evas_object_manipulation-evas-object-manipulation.o -MD -MP -MF $(DEPDIR)/evas_object_manipulation-evas-object-manipulation.Tpo -c -o evas_object_manipulation-evas-object-manipulation.o `test -f 'evas-object-manipulation.c' || echo '$(srcdir)/'`evas-object-manipulation.c

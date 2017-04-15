@@ -1,5 +1,6 @@
 class Evas.VG (Efl.Canvas.Object, Efl.Gfx.Fill, Efl.Gfx.View)
 {
+   [[Efl vector graphics class]]
    legacy_prefix: evas_object_vg;
    eo_prefix: evas_obj_vg;
    methods {
@@ -8,23 +9,21 @@ class Evas.VG (Efl.Canvas.Object, Efl.Gfx.Fill, Efl.Gfx.View)
             [[Get the root node of the evas_object_vg.
 
               Note: To manually create the shape object and show in the Vg
-                    object canvas you must create the hirarchy and set the
+                    object canvas you must create the hierarchy and set the
                     parent as root node.
 
               @since 1.14]]
          }
          values {
-            container: Eo.Base; [[Root node of the VG canvas.]] /* FIXME: Should be Efl.VG */
+            container: Efl.Object; [[Root node of the VG canvas.]] /* FIXME: Should be Efl.VG */
          }
       }
    }
    implements {
-      Eo.Base.constructor;
-      Eo.Base.finalize;
-      Eo.Base.destructor;
-      Efl.Gfx.Fill.fill.set;
-      Efl.Gfx.Fill.fill.get;
-      Efl.Gfx.View.view_size.set;
-      Efl.Gfx.View.view_size.get;
+      Efl.Object.constructor;
+      Efl.Object.finalize;
+      Efl.Object.destructor;
+      Efl.Gfx.Fill.fill { get; set; }
+      Efl.Gfx.View.view_size { get; set; }
    }
 }

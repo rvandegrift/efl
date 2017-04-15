@@ -1,11 +1,12 @@
 import efl_types;
 
 struct Efl.Loop.Arguments {
-   argv: const(array<const(stringshare)>);
-   initialization: bool; [[Set to true when the program should initialize its internal state. This happen once per process instance.]]
+   [[EFL loop arguments data structure]]
+   argv: const(array<const(stringshare)>); [[Array with loop arguments]]
+   initialization: bool; [[Set to $true when the program should initialize its internal state. This happen once per process instance.]]
 }
 
-class Efl.Loop (Eo.Base)
+class Efl.Loop (Efl.Object)
 {
    [[The Efl Main Loop
 
@@ -22,7 +23,7 @@ class Efl.Loop (Eo.Base)
          [[Points to the main loop instance of the application.]]
          get {}
          values {
-            main_loop: Efl.Loop;
+            main_loop: Efl.Loop; [[Application main loop]]
          }
       }
       @property app_efl_version {
@@ -32,7 +33,7 @@ class Efl.Loop (Eo.Base)
          ]]
          get {}
          values {
-            version: const(Efl.Version)*;
+            version: ptr(const(Efl.Version)); [[Efl version]]
          }
       }
       @property efl_version {
@@ -42,7 +43,7 @@ class Efl.Loop (Eo.Base)
          ]]
          get {}
          values {
-            version: const(Efl.Version)*;
+            version: ptr(const(Efl.Version)); [[Efl version]]
          }
       }
       iterate {
@@ -52,7 +53,7 @@ class Efl.Loop (Eo.Base)
       iterate_may_block {
          [[Runs a single iteration of the main loop to process everything on the
            queue with block/non-blocking status.]]
-         return: int;
+         return: int; [[Return from single iteration run]]
          params {
             may_block: int; [[A flag if the main loop has a possibility of blocking.]]
          }
@@ -73,7 +74,7 @@ class Efl.Loop (Eo.Base)
          params {
             @in data: const(void_ptr) @optional; [[The data to be given when the promise is done.]]
          }
-         return: promise<void_ptr>; [[The promise that will be triggered.]]
+         return: future<void_ptr>; [[The promise that will be triggered.]]
       }
       timeout {
          [[Will trigger this promise when the specified timeout occur.]]
@@ -81,23 +82,23 @@ class Efl.Loop (Eo.Base)
             @in time: double; [[The time from now in second that the main loop will wait before triggering it.]]
             @in data: const(void_ptr) @optional; [[The data to be given when the promise is done.]]
          }
-         return: promise<void_ptr>; [[The promise that will be triggered.]]
+         return: future<void_ptr>; [[The promise that will be triggered.]]
       }
       register {
          [[Will register a manager of a specific class to be answered by eo.provider_find.]]
          params {
-            @in klass: const(Eo.Class); [[The class provided by the registered provider.]]
-            @in provider: const(Eo.Base); [[The provider for the newly registered class that has to provide that said Eo.Class.]]
+            @in klass: const(Efl.Class); [[The class provided by the registered provider.]]
+            @in provider: const(Efl.Object); [[The provider for the newly registered class that has to provide that said Efl.Class.]]
          }
-         return: bool; [[true if successfully register, false otherwise.]]
+         return: bool; [[$true if successfully register, $false otherwise.]]
       }
       unregister {
          [[Will unregister a manager of a specific class that was previously registered and answered by eo.provider_find.]]
          params {
-            @in klass: const(Eo.Class); [[The class provided by the provider to unregister for.]]
-            @in provider: const(Eo.Base); [[The provider for the registered class to unregister.]]
+            @in klass: const(Efl.Class); [[The class provided by the provider to unregister for.]]
+            @in provider: const(Efl.Object); [[The provider for the registered class to unregister.]]
          }
-         return: bool; [[true if successfully unregistered, false otherwise.]]
+         return: bool; [[$true if successfully unregistered, $false otherwise.]]
       }
    }
    events {
@@ -107,8 +108,8 @@ class Efl.Loop (Eo.Base)
       arguments: Efl.Loop.Arguments; [[Event happens when args are provided to the loop by args_add().]]
    }
    implements {
-      Eo.Base.constructor;
-      Eo.Base.destructor;
-      Eo.Base.provider_find;
+      Efl.Object.constructor;
+      Efl.Object.destructor;
+      Efl.Object.provider_find;
    }
 }

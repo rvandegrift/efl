@@ -1,7 +1,8 @@
 import evas_types;
 
-class Evas.Canvas3D.Object (Eo.Base)
+class Evas.Canvas3D.Object (Efl.Object)
 {
+   [[Evas 3D canvas object class]]
    data: Evas_Canvas3D_Object_Data;
    methods {
       change {
@@ -13,19 +14,19 @@ class Evas.Canvas3D.Object (Eo.Base)
       }
       type_get @const {
          [[Returns the type of the object.]]
-          return: Evas.Canvas3D.Object_Type;
+          return: Evas.Canvas3D.Object_Type; [[Object type]]
       }
 
       type_set {
-         [[Returns the type of the object.]]
+         [[Sets the type of the object.]]
           params{
-            @in type: Evas.Canvas3D.Object_Type;
+            @in type: Evas.Canvas3D.Object_Type; [[Object type]]
           }
       }
 
       dirty_get @const {
          [[Returns the status of a particular state of the object.]]
-          return: bool;
+          return: bool; [[$true if the status is dirty, $false otherwise]]
          params {
            @in state: Evas.Canvas3D.State; [[State whose status is being asked.]]
          }
@@ -34,13 +35,13 @@ class Evas.Canvas3D.Object (Eo.Base)
       update {
          [[Update request for the object.]]
       }
-      update_notify @virtual_pure {
+      update_notify @pure_virtual {
          [[Pure virtual update_notify function.
 
            Update request for the object.]]
       }
 
-      change_notify @virtual_pure {
+      change_notify @pure_virtual {
          [[Pure virtual change_notify function.
 
            Update request for the object.]]
@@ -49,14 +50,14 @@ class Evas.Canvas3D.Object (Eo.Base)
            @in ref: Evas.Canvas3D.Object; [[The Object that caused the change.]]
          }
       }
-      callback_register @virtual_pure {
+      callback_register @pure_virtual {
          [[Pure virtual register samrt callback function.]]
          params {
            @in event: string; [[Event type.]]
            @in data: const(void_ptr);  [[User data.]]
          }
       }
-      callback_unregister @virtual_pure {
+      callback_unregister @pure_virtual {
          [[Pure virtual unregister smart callback function.]]
          params {
            @in event: string; [[Event type.]]
@@ -65,10 +66,10 @@ class Evas.Canvas3D.Object (Eo.Base)
    }
 
    implements {
-      Eo.Base.constructor;
-      Eo.Base.event_callback_priority_add;
-      Eo.Base.event_callback_del;
-      Eo.Base.provider_find;
+      Efl.Object.constructor;
+      Efl.Object.event_callback_priority_add;
+      Efl.Object.event_callback_del;
+      Efl.Object.provider_find;
    }
    events {
       clicked; [[Clicked Event.]]

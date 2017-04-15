@@ -108,6 +108,14 @@ static_libs/rg_etc/rg_etc2.c \
 static_libs/rg_etc/rg_etc1.h \
 static_libs/rg_etc/etc2_encoder.c
 
+# Triangulator static lib
+triangulator_sources = \
+static_libs/triangulator/triangulator_stroker.c \
+static_libs/triangulator/triangulator_stroker.h \
+static_libs/triangulator/triangulator_simple.c \
+static_libs/triangulator/triangulator_simple.h \
+$(NULL)
+
 # And the default software backend
 lib_ector_libector_la_SOURCES += \
 lib/ector/software/ector_renderer_software_gradient_linear.c \
@@ -120,7 +128,8 @@ lib/ector/software/ector_software_surface.c \
 lib/ector/software/ector_software_buffer.c \
 static_libs/freetype/sw_ft_math.c \
 static_libs/freetype/sw_ft_raster.c \
-static_libs/freetype/sw_ft_stroker.c
+static_libs/freetype/sw_ft_stroker.c \
+$(triangulator_sources)
 
 # And now the gl backend
 lib_ector_libector_la_SOURCES += \
@@ -146,12 +155,14 @@ lib/ector/gl/shader/ector_gl_shaders.x: $(ECTOR_GL_SHADERS_GEN)
 	@sh $(srcdir)/lib/ector/gl/shader/gen_shaders.sh
 
 lib_ector_libector_la_CPPFLAGS = -I$(top_builddir)/src/lib/efl \
+-I$(top_builddir)/src/lib \
 -I$(top_builddir)/src/lib/ector \
 -I$(top_builddir)/src/lib/ector/cairo \
 -I$(top_builddir)/src/lib/ector/software \
 -I$(top_builddir)/src/lib/ector/gl \
 -I$(top_srcdir)/src/static_libs/freetype \
 -I$(top_srcdir)/src/static_libs/draw \
+-I$(top_srcdir)/src/static_libs/triangulator \
 @ECTOR_CFLAGS@ \
 -DPACKAGE_BIN_DIR=\"$(bindir)\" \
 -DPACKAGE_LIB_DIR=\"$(libdir)\" \
@@ -167,29 +178,30 @@ lib_ector_libector_la_LDFLAGS = @EFL_LTLIBRARY_FLAGS@
 
 if EFL_ENABLE_TESTS
 
-check_PROGRAMS += tests/ector/ector_suite tests/ector/cxx_compile_test
-TESTS += tests/ector/ector_suite
+check_PROGRAMS += tests/ector/suite/ector_suite tests/ector/cxx_compile_test/cxx_compile_test
+TESTS += tests/ector/suite/ector_suite
 
-tests_ector_ector_suite_SOURCES = \
-tests/ector/ector_suite.c \
-tests/ector/ector_suite.h \
-tests/ector/ector_test_init.c
+tests_ector_suite_ector_suite_SOURCES = \
+tests/ector/suite/ector_suite.c \
+tests/ector/suite/ector_suite.h \
+tests/ector/suite/ector_test_init.c
 
-tests_ector_cxx_compile_test_SOURCES = tests/ector/cxx_compile_test.cxx
-tests_ector_cxx_compile_test_CPPFLAGS = -I$(top_builddir)/src/lib/efl @ECTOR_CFLAGS@
-tests_ector_cxx_compile_test_LDADD = @USE_ECTOR_LIBS@
-tests_ector_cxx_compile_test_DEPENDENCIES = @USE_ECTOR_INTERNAL_LIBS@
+tests_ector_cxx_compile_test_cxx_compile_test_SOURCES = tests/ector/cxx_compile_test/cxx_compile_test.cxx
+tests_ector_cxx_compile_test_cxx_compile_test_CPPFLAGS = -I$(top_builddir)/src/lib/efl @ECTOR_CFLAGS@
+tests_ector_cxx_compile_test_cxx_compile_test_LDADD = @USE_ECTOR_LIBS@
+tests_ector_cxx_compile_test_cxx_compile_test_DEPENDENCIES = @USE_ECTOR_INTERNAL_LIBS@
 
 
-tests_ector_ector_suite_CPPFLAGS = -I$(top_builddir)/src/lib/efl \
+tests_ector_suite_ector_suite_CPPFLAGS = -I$(top_builddir)/src/lib/efl \
+-I$(top_srcdir)/src/tests/ector \
 -DTESTS_WD=\"`pwd`\" \
--DTESTS_SRC_DIR=\"$(top_srcdir)/src/tests/ector\" \
--DPACKAGE_BUILD_DIR=\"$(abs_top_builddir)/src/tests/ector\" \
+-DTESTS_SRC_DIR=\"$(top_srcdir)/src/tests/ector/suite\" \
+-DPACKAGE_BUILD_DIR=\"$(abs_top_builddir)/src/tests/ector/suite\" \
 -DTESTS_BUILD_DIR=PACKAGE_BUILD_DIR \
 @CHECK_CFLAGS@ \
 @ECTOR_CFLAGS@
-tests_ector_ector_suite_LDADD = @CHECK_LIBS@ @USE_ECTOR_LIBS@
-tests_ector_ector_suite_DEPENDENCIES = @USE_ECTOR_INTERNAL_LIBS@
+tests_ector_suite_ector_suite_LDADD = @CHECK_LIBS@ @USE_ECTOR_LIBS@
+tests_ector_suite_ector_suite_DEPENDENCIES = @USE_ECTOR_INTERNAL_LIBS@
 
 endif
 
@@ -204,3 +216,4 @@ static_libs/freetype/sw_ft_types.h \
 static_libs/draw/draw.h \
 static_libs/draw/draw_private.h \
 $(ECTOR_GL_SHADERS_GEN)
+

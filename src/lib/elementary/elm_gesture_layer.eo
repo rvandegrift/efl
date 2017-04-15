@@ -1,4 +1,4 @@
-type Elm_Gesture_Event_Cb: __undefined_type;
+type Elm_Gesture_Event_Cb: __undefined_type; [[Elementary gesture event callback type]]
 
 enum Elm.Gesture.Type
 {
@@ -6,7 +6,7 @@ enum Elm.Gesture.Type
      Enum of supported gesture types.
    ]]
    legacy: elm_gesture;
-   first = 0,
+   first = 0, [[First type used for iteration over the enum]]
    n_taps, [[N fingers single taps]]
    n_long_taps, [[N fingers single long-taps]]
    n_double_taps, [[N fingers double-single taps]]
@@ -16,7 +16,7 @@ enum Elm.Gesture.Type
    n_flicks, [[N fingers flick gesture]]
    zoom, [[Zoom]]
    rotate, [[Rotate]]
-   last
+   last [[Sentinel value to indicate last enum field during iteration]]
 }
 
 enum Elm.Gesture.State
@@ -33,13 +33,19 @@ enum Elm.Gesture.State
 
 class Elm.Gesture_Layer (Elm.Widget)
 {
+   [[Elementary gesture layer class]]
    legacy_prefix: elm_gesture_layer;
    eo_prefix: elm_obj_gesture_layer;
    methods {
       @property zoom_step {
-         [[Control step value for zoom action.]]
-         set {}
-         get {}
+            [[Control step value for zoom action.]]
+         set {
+            [[When recognizing the zoom gesture, it should be recognized as zooming larger
+              than step.
+            ]]
+         }
+         get {
+         }
          values {
             step: double; [[The zoom step value.]]
          }
@@ -80,18 +86,19 @@ class Elm.Gesture_Layer (Elm.Widget)
             [[Get the repeat-events setting.]]
          }
          values {
-            hold_events: bool;
+            hold_events: bool; [[If $true get events only if gesture was not detected, $false otherwise]]
          }
       }
       @property rotate_step {
+            [[This function returns step-value for rotate action.]]
          set {
-            [[This function sets the step value for rotate action.
+            [[Set to 0 to cancel step setting.
 
-              Set to 0 to cancel step setting.
+              When recognizing the rotate gesture, the rotated size must be larger
+              than step.
             ]]
          }
          get {
-            [[This function returns step-value for rotate action.]]
          }
          values {
             step: double; [[New rotate step value.]]
@@ -154,10 +161,9 @@ class Elm.Gesture_Layer (Elm.Widget)
    }
    implements {
       class.constructor;
-      Eo.Base.constructor;
+      Efl.Object.constructor;
       Efl.Canvas.Group.group_add;
       Efl.Canvas.Group.group_del;
       Elm.Widget.disable;
    }
-
 }

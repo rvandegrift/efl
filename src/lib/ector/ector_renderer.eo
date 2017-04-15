@@ -6,10 +6,10 @@ enum Ector.Quality
    best, [[Best quality]]
    good, [[Good quality]]
    fast, [[Lower quality]]
-   last, [[Sentinel]]
+   last, [[Sentinel value to indicate last enum field during iteration]]
 }
 
-abstract Ector.Renderer (Eo.Base)
+abstract Ector.Renderer (Efl.Object)
 {
    [[Ector renderer abstract interface]]
 
@@ -28,22 +28,24 @@ abstract Ector.Renderer (Eo.Base)
 	 }
       }
       @property transformation {
+      	 [[Transformation property]]
          set {
 	 }
 	 get {
 	 }
 	 values {
-	    m: const(Eina.Matrix3) *;
+	    m: ptr(const(Eina.Matrix3)); [[Transformation matrix]]
 	 }
       }
       @property origin {
+      	 [[Renderer origin]]
          set {
 	 }
 	 get {
 	 }
 	 values {
-	    x: double;
-	    y: double;
+	    x: double; [[X coordinate]]
+	    y: double; [[Y coordinate]]
 	 }
       }
       @property visibility {
@@ -53,7 +55,7 @@ abstract Ector.Renderer (Eo.Base)
 	 get {
 	 }
 	 values {
-	    v: bool; [[true if to make the object visible, false otherwise]]
+	    v: bool; [[$true if to make the object visible, $false otherwise]]
 	 }
       }
       @property color {
@@ -80,12 +82,13 @@ abstract Ector.Renderer (Eo.Base)
 	 }
       }
       @property mask {
+      	 [[Rendering mask]]
          set {
 	 }
 	 get {
 	 }
 	 values {
-	    r: Ector.Renderer;
+	    r: Ector.Renderer; [[Rendering mask]]
 	 }
       }
       @property quality {
@@ -104,31 +107,32 @@ abstract Ector.Renderer (Eo.Base)
             return: uint; [[CRC value]]
 	 }
       }
-      bounds_get @virtual_pure {
+      bounds_get @pure_virtual {
          [[Retrieve the bounds of the renderer]]
 	 params {
 	    @out r: Eina.Rectangle; [[Bounds as @Eina.Rectangle]]
 	 }
       }
-      draw @virtual_pure {
-         return: bool @warn_unused;
+      draw @pure_virtual {
+      	 [[Actual draw operation]]
+         return: bool; [[$true on success, $false otherwise]]
 	 params {
-	    @in op: Efl.Gfx.Render_Op;
-	    @in clips: array<Eina.Rectangle *>; [[array of @Eina.Rectangle clip]]
-	    @in mul_col: uint;
+	    @in op: Efl.Gfx.Render_Op; [[Renderer operation]]
+	    @in clips: array<ptr(Eina.Rectangle)>; [[Array of @Eina.Rectangle clip]]
+	    @in mul_col: uint; [[Premultiplied color]] 
 	 }
       }
       prepare {
-         return: bool @warn_unused;
-	 params {
-	 }
+      	 [[Prepare for rendering]]
+         return: bool; [[$true on success, $false otherwise]]
       }
-      done @virtual_pure {
-         return: bool @warn_unused;
+      done @pure_virtual {
+      	 [[Done with rendering]]
+         return: bool; [[$true on success, $false otherwise]]
       }
    }
    implements {
-      Eo.Base.destructor;
-      Eo.Base.finalize;
+      Efl.Object.destructor;
+      Efl.Object.finalize;
    }
 }

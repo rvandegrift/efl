@@ -103,10 +103,10 @@ emile_shutdown(void)
          */
         gnutls_global_deinit();
 #endif /* ifdef HAVE_GNUTLS */
-#ifdef HAVE_OPENSSL
+#if defined(HAVE_OPENSSL) && (OPENSSL_VERSION_NUMBER < 0x10100000L || defined(LIBRESSL_VERSION_NUMBER))
         EVP_cleanup();
         ERR_free_strings();
-#endif /* ifdef HAVE_OPENSSL */
+#endif /* if defined(HAVE_OPENSSL) && (OPENSSL_VERSION_NUMBER < 0x10100000L || defined(LIBRESSL_VERSION_NUMBER)) */
      }
 
    eina_log_domain_unregister(_emile_log_dom_global);
@@ -154,14 +154,14 @@ emile_pbkdf2_sha1(const char *key, unsigned int key_len, const unsigned char *sa
         memcpy(buf, salt, salt_len);
         memcpy(buf + salt_len, tab, 4);
 
-        if (!emile_binbuf_sha1(key, key_len, step1, digest))
+        if (!emile_binbuf_hmac_sha1(key, key_len, step1, digest))
           return EINA_FALSE;
 
         memcpy(p, digest, tmp_len);
 
         for (j = 1; j < iter; j++)
           {
-             if (!emile_binbuf_sha1(key, key_len, step2, digest))
+             if (!emile_binbuf_hmac_sha1(key, key_len, step2, digest))
                return EINA_FALSE;
              for (k = 0; k < tmp_len; k++)
                p[k] ^= digest[k];

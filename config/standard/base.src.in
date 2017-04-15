@@ -1,5 +1,6 @@
 group "Elm_Config" struct {
-  value "config_version" int: 131083;
+  value "config_version" int: 131086;
+  value "entry_select_allow" uchar: 1;
   value "engine" string: "";
   value "vsync" uchar: 0;
   value "thumbscroll_enable" uchar: 0;
@@ -39,7 +40,7 @@ group "Elm_Config" struct {
   value "finger_size" int: 10;
   value "fps" double: 60.0;
   value "theme" string: "default";
-  value "modules" string: "prefs>prefs_iface:access_output>access/api:datetime_input_ctxpopup>datetime/api";
+  value "modules" string: "prefs>prefs_iface:access_output>access/api:clock_input_ctxpopup>clock/api";
   value "tooltip_delay" double: 1.0;
   value "cursor_engine_only" uchar: 0;
   value "focus_highlight_enable" uchar: 0;
@@ -728,6 +729,24 @@ group "Elm_Config" struct {
               value "action" string: "move";
               value "params" string: "down";
            }
+           group "Elm_Config_Binding_Key" struct {
+              value "context" int: 0;
+              value "key" string: "Return";
+              value "action" string: "activate";
+              value "params" string: "";
+           }
+           group "Elm_Config_Binding_Key" struct {
+              value "context" int: 0;
+              value "key" string: "KP_Enter";
+              value "action" string: "activate";
+              value "params" string: "";
+           }
+           group "Elm_Config_Binding_Key" struct {
+              value "context" int: 0;
+              value "key" string: "space";
+              value "action" string: "activate";
+              value "params" string: "";
+           }
         }
      }
      group "Elm_Config_Bindings_Widget" struct {
@@ -803,6 +822,12 @@ group "Elm_Config" struct {
               value "key" string: "KP_Down";
               value "action" string: "move";
               value "params" string: "down";
+           }
+           group "Elm_Config_Binding_Key" struct {
+              value "context" int: 0;
+              value "key" string: "Return";
+              value "action" string: "activate";
+              value "params" string: "";
            }
         }
      }
@@ -1986,6 +2011,12 @@ group "Elm_Config" struct {
               value "context" int: 0;
               value "key" string: "BackSpace";
               value "action" string: "top_item_get";
+              value "params" string: "";
+           }
+           group "Elm_Config_Binding_Key" struct {
+              value "context" int: 0;
+              value "key" string: "Escape";
+              value "action" string: "item_pop";
               value "params" string: "";
            }
         }

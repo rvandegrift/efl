@@ -9,6 +9,7 @@
 #include "elm_priv.h"
 #include "elm_widget_icon.h"
 #include "efl_ui_widget_image.h"
+#include "elm_icon.eo.h"
 
 #define NON_EXISTING (void *)-1
 
@@ -112,10 +113,10 @@ _icon_thumb_display(Elm_Icon_Data *sd)
          (sd->obj, sd->thumb.thumb.path, sd->thumb.thumb.key);
 
    if (ret)
-     eo_event_callback_call
+     efl_event_callback_legacy_call
        (sd->obj, ELM_ICON_EVENT_THUMB_DONE, NULL);
    else
-     eo_event_callback_call
+     efl_event_callback_legacy_call
        (sd->obj, ELM_ICON_EVENT_THUMB_ERROR, NULL);
 
    return ret;
@@ -218,7 +219,7 @@ _icon_thumb_error(Ethumb_Client *client,
    ERR("could not generate thumbnail for %s (key: %s)",
        sd->thumb.file.path, sd->thumb.file.key);
 
-   eo_event_callback_call(sd->obj, ELM_ICON_EVENT_THUMB_ERROR, NULL);
+   efl_event_callback_legacy_call(sd->obj, ELM_ICON_EVENT_THUMB_ERROR, NULL);
 
    _icon_thumb_cleanup(client);
 }
@@ -298,7 +299,7 @@ static void
 _edje_signals_free(Elm_Icon_Data *sd)
 {
    Edje_Signal_Data *esd;
-   Efl_Ui_Image_Data *id = eo_data_scope_get(sd->obj, EFL_UI_IMAGE_CLASS);
+   Efl_Ui_Image_Data *id = efl_data_scope_get(sd->obj, EFL_UI_IMAGE_CLASS);
 
    EINA_LIST_FREE(sd->edje_signals, esd)
      {
@@ -316,7 +317,7 @@ _elm_icon_efl_file_file_set(Eo *obj, Elm_Icon_Data *sd, const char *file, const 
 {
    Evas_Object *pclip;
 
-   Efl_Ui_Image_Data *id = eo_data_scope_get(obj, EFL_UI_IMAGE_CLASS);
+   Efl_Ui_Image_Data *id = efl_data_scope_get(obj, EFL_UI_IMAGE_CLASS);
 
    EINA_SAFETY_ON_NULL_RETURN_VAL(file, EINA_FALSE);
 
@@ -326,11 +327,7 @@ _elm_icon_efl_file_file_set(Eo *obj, Elm_Icon_Data *sd, const char *file, const 
      ELM_SAFE_FREE(sd->stdicon, eina_stringshare_del);
 
    if (!sd->is_video)
-     {
-        Eina_Bool int_ret = EINA_FALSE;
-        int_ret = efl_file_set(eo_super(obj, MY_CLASS), file, key);
-        return int_ret;
-     }
+     return efl_file_set(efl_super(obj, MY_CLASS), file, key);
 
    /* parent's edje file setting path replicated here (we got .eet
     * extension, so bypassing it) */
@@ -347,9 +344,9 @@ _elm_icon_efl_file_file_set(Eo *obj, Elm_Icon_Data *sd, const char *file, const 
         if (id->show)
           evas_object_show(id->img);
         evas_object_clip_set(id->img, pclip);
+        id->edje = EINA_TRUE;
      }
 
-   id->edje = EINA_TRUE;
    if (!edje_object_file_set(id->img, file, key))
      {
         ERR("failed to set edje file '%s', group '%s': %s", file, key,
@@ -374,7 +371,7 @@ _elm_icon_elm_widget_theme_apply(Eo *obj, Elm_Icon_Data *sd)
    if (sd->stdicon)
      _elm_theme_object_icon_set(obj, sd->stdicon, elm_widget_style_get(obj));
 
-   int_ret = elm_obj_widget_theme_apply(eo_super(obj, MY_CLASS));
+   int_ret = elm_obj_widget_theme_apply(efl_super(obj, MY_CLASS));
    if (!int_ret) return ELM_THEME_APPLY_FAILED;
 
    return int_ret;
@@ -492,7 +489,7 @@ _elm_icon_thumb_resize_cb(void *data,
 EOLIAN static void
 _elm_icon_efl_canvas_group_group_add(Eo *obj, Elm_Icon_Data *priv)
 {
-   efl_canvas_group_add(eo_super(obj, MY_CLASS));
+   efl_canvas_group_add(efl_super(obj, MY_CLASS));
    elm_widget_sub_object_parent_add(obj);
 
    priv->thumb.request = NULL;
@@ -517,7 +514,7 @@ _elm_icon_efl_canvas_group_group_del(Eo *obj, Elm_Icon_Data *sd)
 
    _edje_signals_free(sd);
 
-   efl_canvas_group_del(eo_super(obj, MY_CLASS));
+   efl_canvas_group_del(efl_super(obj, MY_CLASS));
 }
 
 /* WARNING: to be deprecated */
@@ -527,7 +524,7 @@ _elm_icon_signal_emit(Evas_Object *obj,
                       const char *source)
 {
 
-   Efl_Ui_Image_Data *id = eo_data_scope_get(obj, EFL_UI_IMAGE_CLASS);
+   Efl_Ui_Image_Data *id = efl_data_scope_get(obj, EFL_UI_IMAGE_CLASS);
 
    if (!id->edje) return;
 
@@ -545,7 +542,7 @@ _elm_icon_signal_callback_add(Evas_Object *obj,
    Edje_Signal_Data *esd;
 
    ELM_ICON_DATA_GET(obj, sd);
-   Efl_Ui_Image_Data *id = eo_data_scope_get(obj, EFL_UI_IMAGE_CLASS);
+   Efl_Ui_Image_Data *id = efl_data_scope_get(obj, EFL_UI_IMAGE_CLASS);
 
    if (!id->edje) return;
 
@@ -576,7 +573,7 @@ _elm_icon_signal_callback_del(Evas_Object *obj,
    Eina_List *l;
 
    ELM_ICON_DATA_GET(obj, sd);
-   Efl_Ui_Image_Data *id = eo_data_scope_get(obj, EFL_UI_IMAGE_CLASS);
+   Efl_Ui_Image_Data *id = efl_data_scope_get(obj, EFL_UI_IMAGE_CLASS);
 
    if (!id->edje) return NULL;
 
@@ -607,14 +604,14 @@ EAPI Evas_Object *
 elm_icon_add(Evas_Object *parent)
 {
    EINA_SAFETY_ON_NULL_RETURN_VAL(parent, NULL);
-   Evas_Object *obj = eo_add(MY_CLASS, parent);
+   Evas_Object *obj = efl_add(MY_CLASS, parent);
    return obj;
 }
 
 EOLIAN static Eo *
-_elm_icon_eo_base_constructor(Eo *obj, Elm_Icon_Data *sd)
+_elm_icon_efl_object_constructor(Eo *obj, Elm_Icon_Data *sd)
 {
-   obj = eo_constructor(eo_super(obj, MY_CLASS));
+   obj = efl_constructor(efl_super(obj, MY_CLASS));
    sd->obj = obj;
 
    efl_canvas_object_type_set(obj, MY_CLASS_NAME_LEGACY);
@@ -625,7 +622,7 @@ _elm_icon_eo_base_constructor(Eo *obj, Elm_Icon_Data *sd)
 }
 
 static void
-_elm_icon_class_constructor(Eo_Class *klass)
+_elm_icon_class_constructor(Efl_Class *klass)
 {
    evas_smart_legacy_type_register(MY_CLASS_NAME_LEGACY, klass);
 }
@@ -648,7 +645,7 @@ elm_icon_memfile_set(Evas_Object *obj,
 
    _edje_signals_free(sd);
 
-   return elm_image_memfile_set(eo_super(obj, MY_CLASS), img, size, format, key);
+   return elm_image_memfile_set(efl_super(obj, MY_CLASS), img, size, format, key);
 }
 
 EAPI Eina_Bool

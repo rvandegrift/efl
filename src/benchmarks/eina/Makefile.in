@@ -99,8 +99,8 @@ am__aclocal_m4_deps = $(top_srcdir)/m4/ac_define_if.m4 \
 	$(top_srcdir)/m4/efl_check_funcs.m4 \
 	$(top_srcdir)/m4/efl_check_libs.m4 \
 	$(top_srcdir)/m4/efl_compiler.m4 \
-	$(top_srcdir)/m4/efl_doxygen.m4 $(top_srcdir)/m4/efl_eo.m4 \
-	$(top_srcdir)/m4/efl_find_x.m4 \
+	$(top_srcdir)/m4/efl_define.m4 $(top_srcdir)/m4/efl_doxygen.m4 \
+	$(top_srcdir)/m4/efl_eo.m4 $(top_srcdir)/m4/efl_find_x.m4 \
 	$(top_srcdir)/m4/efl_libunwind.m4 \
 	$(top_srcdir)/m4/efl_lua_old.m4 \
 	$(top_srcdir)/m4/efl_path_max.m4 \
@@ -147,11 +147,11 @@ am_eina_bench_OBJECTS = eina_bench.$(OBJEXT) eina_bench_sort.$(OBJEXT) \
 	eina_bench_mempool.$(OBJEXT) \
 	eina_bench_stringshare_e17.$(OBJEXT) \
 	eina_bench_array.$(OBJEXT) eina_bench_rectangle_pool.$(OBJEXT) \
-	eina_bench_promise.$(OBJEXT) ecore_list.$(OBJEXT) \
-	ecore_strings.$(OBJEXT) ecore_hash.$(OBJEXT) \
-	ecore_sheap.$(OBJEXT) evas_hash.$(OBJEXT) evas_list.$(OBJEXT) \
-	evas_mempool.$(OBJEXT) evas_object_list.$(OBJEXT) \
-	evas_stringshare.$(OBJEXT) eina_bench_quad.$(OBJEXT)
+	ecore_list.$(OBJEXT) ecore_strings.$(OBJEXT) \
+	ecore_hash.$(OBJEXT) ecore_sheap.$(OBJEXT) evas_hash.$(OBJEXT) \
+	evas_list.$(OBJEXT) evas_mempool.$(OBJEXT) \
+	evas_object_list.$(OBJEXT) evas_stringshare.$(OBJEXT) \
+	eina_bench_quad.$(OBJEXT)
 eina_bench_OBJECTS = $(am_eina_bench_OBJECTS)
 eina_bench_DEPENDENCIES = $(top_builddir)/src/lib/eina/libeina.la \
 	libcity.la
@@ -496,6 +496,7 @@ EFL_LDFLAGS = @EFL_LDFLAGS@
 EFL_LIBS = @EFL_LIBS@
 EFL_LTLIBRARY_FLAGS = @EFL_LTLIBRARY_FLAGS@
 EFL_LTMODULE_FLAGS = @EFL_LTMODULE_FLAGS@
+EFL_NET_CONTROL_BACKEND = @EFL_NET_CONTROL_BACKEND@
 EFL_PTHREAD_CFLAGS = @EFL_PTHREAD_CFLAGS@
 EFL_PTHREAD_LIBS = @EFL_PTHREAD_LIBS@
 EFL_SUBBUILD_INTERNAL_LIBS = @EFL_SUBBUILD_INTERNAL_LIBS@
@@ -754,7 +755,6 @@ GREP = @GREP@
 GSTREAMER_CFLAGS = @GSTREAMER_CFLAGS@
 GSTREAMER_LIBS = @GSTREAMER_LIBS@
 HAVE_CXX11 = @HAVE_CXX11@
-HAVE_ECORE_X_BACKEND = @HAVE_ECORE_X_BACKEND@
 HAVE_JS = @HAVE_JS@
 HAVE_LIBUV = @HAVE_LIBUV@
 HAVE_NODEJS = @HAVE_NODEJS@
@@ -771,7 +771,6 @@ INTLLIBS = @INTLLIBS@
 INTL_MACOSX_LIBS = @INTL_MACOSX_LIBS@
 JP2K_CFLAGS = @JP2K_CFLAGS@
 JP2K_LIBS = @JP2K_LIBS@
-KEYSYMDEFS = @KEYSYMDEFS@
 LD = @LD@
 LDFLAGS = @LDFLAGS@
 LIBGCRYPT_CFLAGS = @LIBGCRYPT_CFLAGS@
@@ -790,6 +789,8 @@ LIBRAW_LIBS = @LIBRAW_LIBS@
 LIBS = @LIBS@
 LIBTHREAD = @LIBTHREAD@
 LIBTOOL = @LIBTOOL@
+LIBVNCSERVER_CFLAGS = @LIBVNCSERVER_CFLAGS@
+LIBVNCSERVER_LIBS = @LIBVNCSERVER_LIBS@
 LIPO = @LIPO@
 LN_S = @LN_S@
 LOCALE_DIR = @LOCALE_DIR@
@@ -1065,6 +1066,9 @@ WAYLAND_CFLAGS = @WAYLAND_CFLAGS@
 WAYLAND_EGL_CFLAGS = @WAYLAND_EGL_CFLAGS@
 WAYLAND_EGL_LIBS = @WAYLAND_EGL_LIBS@
 WAYLAND_LIBS = @WAYLAND_LIBS@
+WAYLAND_PROTOCOLS_DATADIR = @WAYLAND_PROTOCOLS_DATADIR@
+WAYLAND_SCANNER_CFLAGS = @WAYLAND_SCANNER_CFLAGS@
+WAYLAND_SCANNER_LIBS = @WAYLAND_SCANNER_LIBS@
 WAYLAND_SHM_CFLAGS = @WAYLAND_SHM_CFLAGS@
 WAYLAND_SHM_LIBS = @WAYLAND_SHM_LIBS@
 X11_DRI2_CFLAGS = @X11_DRI2_CFLAGS@
@@ -1073,12 +1077,6 @@ X11_DRI3_CFLAGS = @X11_DRI3_CFLAGS@
 X11_DRI3_LIBS = @X11_DRI3_LIBS@
 X11_DRI_COMMON_CFLAGS = @X11_DRI_COMMON_CFLAGS@
 X11_DRI_COMMON_LIBS = @X11_DRI_COMMON_LIBS@
-XCB_CFLAGS = @XCB_CFLAGS@
-XCB_GL_CFLAGS = @XCB_GL_CFLAGS@
-XCB_GL_LIBS = @XCB_GL_LIBS@
-XCB_LIBS = @XCB_LIBS@
-XCB_X11_CFLAGS = @XCB_X11_CFLAGS@
-XCB_X11_LIBS = @XCB_X11_LIBS@
 XDG_DATA_HOME = @XDG_DATA_HOME@
 XGETTEXT = @XGETTEXT@
 XGETTEXT_015 = @XGETTEXT_015@
@@ -1112,7 +1110,6 @@ build_vendor = @build_vendor@
 builddir = @builddir@
 cocoa_coreservices_ldflags = @cocoa_coreservices_ldflags@
 cocoa_ldflags = @cocoa_ldflags@
-coreaudio_ldflags = @coreaudio_ldflags@
 datadir = @datadir@
 datarootdir = @datarootdir@
 dbusservicedir = @dbusservicedir@
@@ -1180,11 +1177,6 @@ evas_engine_gl_drm_cflags = @evas_engine_gl_drm_cflags@
 evas_engine_gl_drm_libs = @evas_engine_gl_drm_libs@
 evas_engine_gl_sdl_cflags = @evas_engine_gl_sdl_cflags@
 evas_engine_gl_sdl_libs = @evas_engine_gl_sdl_libs@
-evas_engine_gl_xcb_CFLAGS = @evas_engine_gl_xcb_CFLAGS@
-evas_engine_gl_xcb_LIBS = @evas_engine_gl_xcb_LIBS@
-evas_engine_gl_xcb_cflags = @evas_engine_gl_xcb_cflags@
-evas_engine_gl_xcb_libdirs = @evas_engine_gl_xcb_libdirs@
-evas_engine_gl_xcb_libs = @evas_engine_gl_xcb_libs@
 evas_engine_gl_xlib_CFLAGS = @evas_engine_gl_xlib_CFLAGS@
 evas_engine_gl_xlib_LIBS = @evas_engine_gl_xlib_LIBS@
 evas_engine_gl_xlib_cflags = @evas_engine_gl_xlib_cflags@
@@ -1196,8 +1188,6 @@ evas_engine_software_ddraw_cflags = @evas_engine_software_ddraw_cflags@
 evas_engine_software_ddraw_libs = @evas_engine_software_ddraw_libs@
 evas_engine_software_gdi_cflags = @evas_engine_software_gdi_cflags@
 evas_engine_software_gdi_libs = @evas_engine_software_gdi_libs@
-evas_engine_software_xcb_cflags = @evas_engine_software_xcb_cflags@
-evas_engine_software_xcb_libs = @evas_engine_software_xcb_libs@
 evas_engine_software_xlib_CFLAGS = @evas_engine_software_xlib_CFLAGS@
 evas_engine_software_xlib_LIBS = @evas_engine_software_xlib_LIBS@
 evas_engine_software_xlib_cflags = @evas_engine_software_xlib_cflags@
@@ -1241,10 +1231,12 @@ evas_image_loader_webp_cflags = @evas_image_loader_webp_cflags@
 evas_image_loader_webp_libs = @evas_image_loader_webp_libs@
 evas_image_loader_xpm_cflags = @evas_image_loader_xpm_cflags@
 evas_image_loader_xpm_libs = @evas_image_loader_xpm_libs@
+evas_vg_loader_eet_cflags = @evas_vg_loader_eet_cflags@
+evas_vg_loader_eet_libs = @evas_vg_loader_eet_libs@
+evas_vg_loader_svg_cflags = @evas_vg_loader_svg_cflags@
+evas_vg_loader_svg_libs = @evas_vg_loader_svg_libs@
 exec_prefix = @exec_prefix@
-have_evas_engine_gl_xcb = @have_evas_engine_gl_xcb@
 have_evas_engine_gl_xlib = @have_evas_engine_gl_xlib@
-have_evas_engine_software_xcb = @have_evas_engine_software_xcb@
 have_evas_engine_software_xlib = @have_evas_engine_software_xlib@
 have_lcov = @have_lcov@
 host = @host@
@@ -1538,6 +1530,7 @@ want_liblz4 = @want_liblz4@
 want_lua_old = @want_lua_old@
 want_multisense = @want_multisense@
 want_physics = @want_physics@
+wayland_scanner = @wayland_scanner@
 with_eeze_eject = @with_eeze_eject@
 with_eeze_mount = @with_eeze_mount@
 with_eeze_umount = @with_eeze_umount@
@@ -1563,7 +1556,6 @@ eina_bench_mempool.c \
 eina_bench_stringshare_e17.c \
 eina_bench_array.c \
 eina_bench_rectangle_pool.c \
-eina_bench_promise.c \
 ecore_list.c \
 ecore_strings.c \
 ecore_hash.c \
@@ -1658,7 +1650,6 @@ distclean-compile:
 @AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/eina_bench_crc_hash.Po@am__quote@
 @AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/eina_bench_hash.Po@am__quote@
 @AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/eina_bench_mempool.Po@am__quote@
-@AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/eina_bench_promise.Po@am__quote@
 @AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/eina_bench_quad.Po@am__quote@
 @AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/eina_bench_rectangle_pool.Po@am__quote@
 @AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/eina_bench_sort.Po@am__quote@

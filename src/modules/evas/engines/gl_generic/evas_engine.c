@@ -59,6 +59,8 @@ static Eina_Bool eng_gl_surface_read_pixels(void *data, void *surface, int x, in
 
 Eina_Bool _need_context_restore = EINA_FALSE;
 
+static Evas_Func func, pfunc;
+
 void
 _context_restore(void)
 {
@@ -134,13 +136,13 @@ eng_line_draw(void *data, void *context, void *surface, int p1x, int p1y, int p2
 }
 
 static void *
-eng_polygon_point_add(void *data EINA_UNUSED, void *context EINA_UNUSED, void *polygon, int x, int y)
+eng_polygon_point_add(void *data EINA_UNUSED, void *polygon, int x, int y)
 {
    return evas_gl_common_poly_point_add(polygon, x, y);
 }
 
 static void *
-eng_polygon_points_clear(void *data EINA_UNUSED, void *context EINA_UNUSED, void *polygon)
+eng_polygon_points_clear(void *data EINA_UNUSED, void *polygon)
 {
    return evas_gl_common_poly_points_clear(polygon);
 }
@@ -242,14 +244,23 @@ eng_image_file_colorspace_get(void *data EINA_UNUSED, void *image)
    return im->im->cache_entry.space;
 }
 
-static void *
-eng_image_data_direct(void *data EINA_UNUSED, void *image, Evas_Colorspace *cspace)
+static Eina_Bool
+eng_image_data_direct_get(void *data EINA_UNUSED, void *image, int plane,
+                          Eina_Slice *slice, Evas_Colorspace *cspace,
+                          Eina_Bool load)
 {
    Evas_GL_Image *im = image;
 
-   if (!im || !im->im) return NULL;
+   if (!slice || !im || !im->im)
+     return EINA_FALSE;
+
    if (cspace) *cspace = im->im->cache_entry.space;
-   return im->im->image.data;
+   if (load)
+     {
+        if (evas_cache_image_load_data(&im->im->cache_entry) != 0)
+          return EINA_FALSE;
+     }
+   return _evas_common_rgba_image_plane_get(im->im, plane, slice);
 }
 
 static void
@@ -571,13 +582,13 @@ eng_image_size_get(void *data EINA_UNUSED, void *image, int *w, int *h)
        im->orient == EVAS_IMAGE_FLIP_TRANSPOSE ||
        im->orient == EVAS_IMAGE_FLIP_TRANSVERSE)
      {
-        if (w) *w = ((Evas_GL_Image *)image)->h;
-        if (h) *h = ((Evas_GL_Image *)image)->w;
+        if (w) *w = im->h;
+        if (h) *h = im->w;
      }
    else
      {
-        if (w) *w = ((Evas_GL_Image *)image)->w;
-        if (h) *h = ((Evas_GL_Image *)image)->h;
+        if (w) *w = im->w;
+        if (h) *h = im->h;
      }
 }
 
@@ -672,7 +683,7 @@ _rotate_image_data(Render_Engine_GL_Generic *re, Evas_GL_Image *im1)
         h = im1->w;
      }
 
-   im2 = evas_gl_common_image_surface_new(gl_context, w, h, alpha);
+   im2 = evas_gl_common_image_surface_new(gl_context, w, h, alpha, EINA_FALSE);
 
    evas_gl_common_context_target_surface_set(gl_context, im2);
 
@@ -728,21 +739,8 @@ eng_image_data_get(void *data, void *image, int to_write, DATA32 **image_data, i
    if (im->native.data)
      return im;
 
-   if (im->im &&
-       im->orient != EVAS_IMAGE_ORIENT_NONE)
-     {
-        im_new = _rotate_image_data(data, image);
-        if (!im_new)
-          {
-             if (err) *err = EVAS_LOAD_ERROR_RESOURCE_ALLOCATION_FAILED;
-             ERR("Rotation failed.");
-             return im;
-          }
-        evas_gl_common_image_free(im);
-
-        *image_data = im_new->im->image.data;
-        return im_new;
-     }
+   if ((tofree != NULL) && im->im && (im->orient != EVAS_IMAGE_ORIENT_NONE))
+     goto rotate_image;
 
 #ifdef GL_GLES
    re->window_use(re->software.ob);
@@ -858,10 +856,14 @@ eng_image_data_get(void *data, void *image, int to_write, DATA32 **image_data, i
 
    if (!im->im)
      {
-        // FIXME: Should we create an FBO and draw the texture there, to then read it back?
-        ERR("GL image has no source data, failed to get pixel data");
-        if (err) *err = EVAS_LOAD_ERROR_RESOURCE_ALLOCATION_FAILED;
-        return NULL;
+        if (tofree)
+          goto rotate_image;
+        else
+          {
+             ERR("GL image has no source data, failed to get pixel data");
+             if (err) *err = EVAS_LOAD_ERROR_RESOURCE_ALLOCATION_FAILED;
+             return NULL;
+          }
      }
 
 #ifdef EVAS_CSERVE2
@@ -870,6 +872,13 @@ eng_image_data_get(void *data, void *image, int to_write, DATA32 **image_data, i
    else
 #endif
      error = evas_cache_image_load_data(&im->im->cache_entry);
+
+   if (error != EVAS_LOAD_ERROR_NONE)
+     {
+        if (tofree)
+          goto rotate_image;
+     }
+
    evas_gl_common_image_alloc_ensure(im);
    switch (im->cs.space)
      {
@@ -919,6 +928,19 @@ eng_image_data_get(void *data, void *image, int to_write, DATA32 **image_data, i
      }
    if (err) *err = error;
    return im;
+
+rotate_image:
+   // rotate data for image save
+   im_new = _rotate_image_data(data, image);
+   if (!im_new)
+     {
+        if (err) *err = EVAS_LOAD_ERROR_RESOURCE_ALLOCATION_FAILED;
+        ERR("Image rotation failed.");
+        return im;
+     }
+   *tofree = EINA_TRUE;
+   *image_data = im_new->im->image.data;
+   return im_new;
 }
 
 static void *
@@ -999,6 +1021,7 @@ eng_image_data_put(void *data, void *image, DATA32 *image_data)
               im->cs.data = image_data;
            }
          evas_gl_common_image_dirty(im, 0, 0, 0, 0);
+         evas_gl_common_image_update(im->gc, im);
          break;
       default:
          ERR("colorspace %d is not supported here", im->cs.space);
@@ -1056,10 +1079,10 @@ eng_image_orient_get(void *data EINA_UNUSED, void *image)
 }
 
 static void
-eng_image_data_preload_request(void *data, void *image, const Eo *target)
+eng_image_data_preload_request(void *data EINA_UNUSED, void *image, const Eo *target)
 {
    Evas_GL_Image *gim = image;
-   Render_Engine_GL_Generic *re = data;
+//   Render_Engine_GL_Generic *re = data;
    RGBA_Image *im;
 
    if (!gim) return;
@@ -1067,12 +1090,14 @@ eng_image_data_preload_request(void *data, void *image, const Eo *target)
    im = (RGBA_Image *)gim->im;
    if (!im) return;
 
+   evas_gl_common_image_preload_watch(gim);
 #ifdef EVAS_CSERVE2
    if (evas_cserve2_use_get() && evas_cache2_image_cached(&im->cache_entry))
      evas_cache2_image_preload_data(&im->cache_entry, target);
    else
 #endif
      evas_cache_image_preload_data(&im->cache_entry, target, NULL, NULL, NULL);
+/*
    if (!gim->tex)
      {
         Evas_Engine_GL_Context *gl_context;
@@ -1085,6 +1110,7 @@ eng_image_data_preload_request(void *data, void *image, const Eo *target)
         im->cache_entry.flags.updated_data = 1;
      }
    evas_gl_preload_target_register(gim->tex, (Eo*) target);
+ */
 }
 
 static void
@@ -1098,13 +1124,14 @@ eng_image_data_preload_cancel(void *data EINA_UNUSED, void *image, const Eo *tar
    im = (RGBA_Image *)gim->im;
    if (!im) return;
 
+   evas_gl_common_image_preload_unwatch(gim);
 #ifdef EVAS_CSERVE2
    if (evas_cserve2_use_get() && evas_cache2_image_cached(&im->cache_entry))
      evas_cache2_image_preload_cancel(&im->cache_entry, target);
    else
 #endif
      evas_cache_image_preload_cancel(&im->cache_entry, target);
-   evas_gl_preload_target_unregister(gim->tex, (Eo*) target);
+//   if (gim->tex) evas_gl_preload_target_unregister(gim->tex, (Eo*) target);
 }
 
 static Eina_Bool
@@ -1262,7 +1289,7 @@ eng_image_map_surface_new(void *data, int w, int h, int alpha)
 
    re->window_use(re->software.ob);
    gl_context = re->window_gl_context_get(re->software.ob);
-   return evas_gl_common_image_surface_new(gl_context, w, h, alpha);
+   return evas_gl_common_image_surface_new(gl_context, w, h, alpha, EINA_FALSE);
 }
 
 static void *
@@ -1372,6 +1399,7 @@ eng_image_cache_flush(void *data)
 
    re->window_use(re->software.ob);
    gl_context = re->window_gl_context_get(re->software.ob);
+   if (!gl_context) return;
 
    tmp_size = evas_common_image_get_cache();
    evas_common_image_set_cache(0);
@@ -1391,7 +1419,7 @@ eng_image_cache_set(void *data, int bytes)
 
    evas_common_image_set_cache(bytes);
    evas_common_rgba_image_scalecache_size_set(bytes);
-   evas_gl_common_image_cache_flush(gl_context);
+   if (gl_context) evas_gl_common_image_cache_flush(gl_context);
 }
 
 static int
@@ -1504,9 +1532,9 @@ eng_font_draw(void *data, void *context, void *surface, Evas_Font_Set *font EINA
                                               evas_gl_font_texture_new,
                                               evas_gl_font_texture_free,
                                               evas_gl_font_texture_draw,
-                                              evas_gl_image_new_from_data,
-                                              evas_gl_image_free,
-                                              evas_gl_image_draw);
+                                              evas_gl_font_image_new,
+                                              evas_gl_font_image_free,
+                                              evas_gl_font_image_draw);
         evas_common_font_draw_prepare(intl_props);
         evas_common_font_draw(gl_context->font_surface, context, x, y, intl_props->glyphs);
         evas_common_draw_context_font_ext_set(context,
@@ -1648,17 +1676,17 @@ eng_gl_proc_address_get(void *data, const char *name)
 {
    Render_Engine_GL_Generic *re = data;
    EVGLINIT(re, NULL);
-   void *func = NULL;
+   void *fun = NULL;
 
-   if (!evgl_safe_extension_get(name, &func))
+   if (!evgl_safe_extension_get(name, &fun))
      {
         DBG("The extension '%s' is not safe to use with Evas GL or is not "
             "supported on this platform.", name);
         return NULL;
      }
 
-   if (func)
-     return func;
+   if (fun)
+     return fun;
 
    if (re->evgl_funcs && re->evgl_funcs->proc_address_get)
      return re->evgl_funcs->proc_address_get(name);
@@ -1719,8 +1747,9 @@ eng_gl_surface_direct_renderable_get(void *data, Evas_Native_Surface *ns, Eina_B
    Evas_Engine_GL_Context *gl_context;
    Evas_GL_Image *sfc = surface;
 
+   if (!re) return EINA_FALSE;
    EVGLINIT(data, EINA_FALSE);
-   if (!re || !ns) return EINA_FALSE;
+   if (!ns) return EINA_FALSE;
    if (!evgl_native_surface_direct_opts_get(ns, &direct_render, &client_side_rotation, override))
      return EINA_FALSE;
 
@@ -1940,7 +1969,7 @@ eng_gl_surface_query(void *data, void *surface, int attr, void *value)
            /*
            case EVAS_GL_MIPMAP_TEXTURE:
            case EVAS_GL_MIPMAP_LEVEL:
-             return eglQuerySurface(re->win->egl_disp, re->win->egl_surface[0],
+             return eglQuerySurface(re->win->egl_disp, re->win->egl_surface,
                                     attr, (int *) value);
              */
            default: break;
@@ -2483,27 +2512,29 @@ eng_ector_create(void *data EINA_UNUSED)
    Ector_Surface *ector;
    const char *ector_backend;
    ector_backend = getenv("ECTOR_BACKEND");
+   efl_domain_current_push(EFL_ID_DOMAIN_SHARED);
    if (ector_backend && !strcasecmp(ector_backend, "default"))
      {
-        ector = eo_add(ECTOR_SOFTWARE_SURFACE_CLASS, NULL);
+        ector = efl_add(ECTOR_SOFTWARE_SURFACE_CLASS, NULL);
      }
    else if (ector_backend && !strcasecmp(ector_backend, "experimental"))
      {
-        ector = eo_add(ECTOR_GL_SURFACE_CLASS, NULL);
+        ector = efl_add(ECTOR_GL_SURFACE_CLASS, NULL);
         use_gl = EINA_TRUE;
      }
    else
      {
-        ector = eo_add(ECTOR_CAIRO_SOFTWARE_SURFACE_CLASS, NULL);
+        ector = efl_add(ECTOR_CAIRO_SOFTWARE_SURFACE_CLASS, NULL);
         use_cairo = EINA_TRUE;
      }
+   efl_domain_current_pop();
    return ector;
 }
 
 static void
 eng_ector_destroy(void *data EINA_UNUSED, Ector_Surface *ector)
 {
-   if (ector) eo_del(ector);
+   if (ector) efl_del(ector);
 }
 
 static Ector_Buffer *
@@ -2515,13 +2546,13 @@ eng_ector_buffer_wrap(void *data EINA_UNUSED, Evas *evas, void *engine_image, Ei
      {
         RGBA_Image *im = engine_image;
 
-        buf = eo_add(EVAS_ECTOR_GL_RGBAIMAGE_BUFFER_CLASS, evas, evas_ector_buffer_engine_image_set(eo_self, evas, im));
+        buf = efl_add(EVAS_ECTOR_GL_RGBAIMAGE_BUFFER_CLASS, evas, evas_ector_buffer_engine_image_set(efl_added, evas, im));
      }
    else
      {
         Evas_GL_Image *im = engine_image;
 
-        buf = eo_add(EVAS_ECTOR_GL_IMAGE_BUFFER_CLASS, evas, evas_ector_buffer_engine_image_set(eo_self, evas, im));
+        buf = efl_add(EVAS_ECTOR_GL_IMAGE_BUFFER_CLASS, evas, evas_ector_buffer_engine_image_set(efl_added, evas, im));
      }
    return buf;
 }
@@ -2532,7 +2563,7 @@ eng_ector_buffer_new(void *data, Evas *evas, void *pixels,
                      Efl_Gfx_Colorspace cspace, Eina_Bool writeable EINA_UNUSED,
                      int l, int r, int t, int b, Ector_Buffer_Flag flags)
 {
-   Evas_Public_Data *e = eo_data_scope_get(evas, EVAS_CANVAS_CLASS);
+   Evas_Public_Data *e = efl_data_scope_get(evas, EVAS_CANVAS_CLASS);
    Render_Engine_GL_Generic *re = e->engine.data.output;
    Evas_Engine_GL_Context *gc = NULL;
    Ector_Buffer *buf = NULL;
@@ -2581,8 +2612,8 @@ eng_ector_buffer_new(void *data, Evas *evas, void *pixels,
           WRN("Borders are not supported by Evas surfaces!");
 
         gc = re->window_gl_context_get(re->software.ob);
-        im = evas_gl_common_image_surface_new(gc, iw, ih, EINA_TRUE);
-        buf = eo_add(EVAS_ECTOR_GL_IMAGE_BUFFER_CLASS, evas, evas_ector_buffer_engine_image_set(eo_self, evas, im));
+        im = evas_gl_common_image_surface_new(gc, iw, ih, EINA_TRUE, EINA_FALSE);
+        buf = efl_add(EVAS_ECTOR_GL_IMAGE_BUFFER_CLASS, evas, evas_ector_buffer_engine_image_set(efl_added, evas, im));
         im->references--;
      }
    return buf;
@@ -2792,7 +2823,337 @@ eng_ector_end(void *data, void *context EINA_UNUSED, Ector_Surface *ector,
      }
 }
 
-static Evas_Func func, pfunc;
+static Eina_Bool
+eng_image_data_map(void *engdata EINA_UNUSED, void **image, Eina_Rw_Slice *slice,
+                   int *stride, int x, int y, int w, int h,
+                   Evas_Colorspace cspace, Efl_Gfx_Buffer_Access_Mode mode,
+                   int plane)
+{
+   Evas_GL_Image_Data_Map *map = NULL;
+   Evas_GL_Image *im;
+   Eina_Bool ok;
+
+   EINA_SAFETY_ON_FALSE_RETURN_VAL(image && *image && slice, EINA_FALSE);
+   im = *image;
+
+   if (im->im)
+     {
+        int strid = 0;
+
+        // Call sw generic implementation. Should work for simple cases.
+        ok = pfunc.image_data_map(NULL, (void **) &im->im, slice, &strid,
+                                  x, y, w, h, cspace, mode, plane);
+        if (ok)
+          {
+             map = calloc(1, sizeof(*map));
+             map->cspace = cspace;
+             map->rx = x;
+             map->ry = y;
+             map->rw = w;
+             map->rh = h;
+             map->mode = mode;
+             map->slice = *slice;
+             map->stride = strid;
+             map->im = im->im; // ref?
+             im->maps = eina_inlist_prepend(im->maps, EINA_INLIST_GET(map));
+          }
+        if (stride) *stride = strid;
+        return ok;
+     }
+
+   // TODO: glReadPixels from FBO if possible
+
+   return EINA_FALSE;
+}
+
+static Eina_Bool
+eng_image_data_unmap(void *engdata EINA_UNUSED, void *image, const Eina_Rw_Slice *slice)
+{
+   Evas_GL_Image_Data_Map *map;
+   Evas_GL_Image *im = image;
+   Eina_Bool found = EINA_FALSE;
+
+   if (!(image && slice))
+     return EINA_FALSE;
+
+   EINA_INLIST_FOREACH(im->maps, map)
+     {
+        if ((map->slice.len == slice->len) && (map->slice.mem == slice->mem))
+          {
+             found = EINA_TRUE;
+             if (map->im)
+               found = pfunc.image_data_unmap(NULL, map->im, slice);
+             if (found)
+               {
+                  if (im->im && im->tex &&
+                      (map->mode & EFL_GFX_BUFFER_ACCESS_MODE_WRITE))
+                    evas_gl_common_texture_update(im->tex, im->im);
+                  im->maps = eina_inlist_remove(im->maps, EINA_INLIST_GET(map));
+                  free(map);
+               }
+             return found;
+          }
+     }
+
+   ERR("failed to unmap region %p (%zu bytes)", slice->mem, slice->len);
+   return EINA_FALSE;
+}
+
+static int
+eng_image_data_maps_get(void *engdata EINA_UNUSED, const void *image, const Eina_Rw_Slice **slices)
+{
+   Evas_GL_Image_Data_Map *map;
+   const Evas_GL_Image *im = image;
+   int k = 0;
+
+   if (!im) return -1;
+
+   if (!slices)
+     return eina_inlist_count(im->maps);
+
+   EINA_INLIST_FOREACH(im->maps, map)
+     slices[k++] = &map->slice;
+
+   return k;
+}
+
+static inline Eina_Bool
+_is_yuv(Efl_Gfx_Colorspace cspace)
+{
+   switch (cspace)
+     {
+      case EFL_GFX_COLORSPACE_YCBCR422P601_PL:
+      case EFL_GFX_COLORSPACE_YCBCR422P709_PL:
+      case EFL_GFX_COLORSPACE_YCBCR422601_PL:
+      case EFL_GFX_COLORSPACE_YCBCR420NV12601_PL:
+      case EFL_GFX_COLORSPACE_YCBCR420TM12601_PL:
+        return EINA_TRUE;
+
+      default:
+        return EINA_FALSE;
+     }
+}
+
+static void *
+eng_image_data_slice_add(void *engdata, void *image,
+                         const Eina_Slice *slice, Eina_Bool copy,
+                         int w, int h, int stride, Evas_Colorspace cspace,
+                         int plane, Eina_Bool alpha)
+{
+   const Eina_Bool use_cs = _is_yuv(cspace);
+   const unsigned char **cs_data;
+   Evas_GL_Image *im = image;
+   int bpp = 0;
+
+   // Note: This code is not very robust by choice. It should NOT be used
+   // in conjunction with data_put/data_get. Ever.
+   // Assume w,h,cspace,alpha to be correct.
+   // We still use cs.data for YUV.
+   // 'image' may be NULL, in that case create a new one. Otherwise, it must
+   // have been created by a previous call to this function.
+
+   if ((plane < 0) || (plane >= RGBA_PLANE_MAX)) goto fail;
+   if (!slice || !slice->mem) goto fail;
+   copy = !!copy;
+
+   // not implemented
+   if (use_cs && copy)
+     {
+        // To implement this, we should switch the internals to slices first,
+        // as this would give 3 planes rather than N rows of datas
+        ERR("Evas can not copy YUV data (not implemented yet).");
+        goto fail;
+     }
+
+   if (im && !im->im)
+     {
+        evas_gl_common_image_unref(im);
+        im = NULL;
+     }
+
+   // alloc
+   if (!im)
+     {
+        switch (cspace)
+          {
+           case EFL_GFX_COLORSPACE_ARGB8888:
+           case EFL_GFX_COLORSPACE_AGRY88:
+           case EFL_GFX_COLORSPACE_GRY8:
+             if (plane != 0) goto fail;
+             if (copy)
+               im = eng_image_new_from_copied_data(engdata, w, h, NULL, alpha, cspace);
+             else
+               im = eng_image_new_from_data(engdata, w, h, NULL, alpha, cspace);
+             break;
+
+           case EFL_GFX_COLORSPACE_YCBCR422P601_PL:
+           case EFL_GFX_COLORSPACE_YCBCR422P709_PL:
+           case EFL_GFX_COLORSPACE_YCBCR422601_PL:
+           case EFL_GFX_COLORSPACE_YCBCR420NV12601_PL:
+             im = eng_image_new_from_data(engdata, w, h, NULL, alpha, cspace);
+             break;
+
+           default:
+             // TODO: ETC, S3TC, YCBCR420TM12 (aka ST12 or tiled NV12)
+             goto fail;
+          }
+        if (!im) goto fail;
+     }
+
+   if (use_cs && (!im->cs.data || im->cs.no_free))
+     {
+        im->cs.data = calloc(1, h * sizeof(void *) * 2);
+        if (!im->cs.data) goto fail;
+        im->cs.no_free = EINA_FALSE;
+        if (!im->im->cs.no_free) free(im->im->cs.data);
+        im->im->cs.data = im->cs.data;
+        im->im->cs.no_free = EINA_TRUE;
+     }
+
+   // is this allocating image.data or cs.data?
+   evas_gl_common_image_alloc_ensure(im);
+   if (!im->im)
+     goto fail;
+
+   // assign
+   switch (cspace)
+     {
+      case EFL_GFX_COLORSPACE_ARGB8888:
+        bpp = 4;
+        // falltrhough is intended
+      case EFL_GFX_COLORSPACE_AGRY88:
+        if (!bpp) bpp = 2;
+        // falltrhough is intended
+      case EFL_GFX_COLORSPACE_GRY8:
+        if (!bpp) bpp = 1;
+        if (plane != 0) goto fail;
+        if (!im->im->image.data) goto fail;
+        if (!stride) stride = w * bpp;
+        if (copy)
+          {
+             for (int y = 0; y < h; y++)
+               {
+                  const unsigned char *src = slice->bytes + h * stride;
+                  unsigned char *dst = im->im->image.data8 + bpp * w;
+                  memcpy(dst, src, w * bpp);
+               }
+          }
+        else
+          {
+             if (stride != (bpp * w))
+               {
+                  ERR("invalid stride for zero-copy data set");
+                  goto fail;
+               }
+             im->im->image.data = (DATA32 *) slice->mem;
+             im->im->image.no_free = EINA_TRUE;
+          }
+        break;
+
+      case EFL_GFX_COLORSPACE_YCBCR422P601_PL:
+      case EFL_GFX_COLORSPACE_YCBCR422P709_PL:
+        /* YCbCr 4:2:2 Planar: Y rows, then the Cb, then Cr rows. */
+        cs_data = im->cs.data;
+        if (plane == 0)
+          {
+             if (!stride) stride = w;
+             for (int y = 0; y < h; y++)
+               cs_data[y] = slice->bytes + (y * stride);
+          }
+        else if (plane == 1)
+          {
+             if (!stride) stride = w / 2;
+             for (int y = 0; y < (h / 2); y++)
+               cs_data[h + y] = slice->bytes + (y * stride);
+          }
+        else if (plane == 2)
+          {
+             if (!stride) stride = w / 2;
+             for (int y = 0; y < (h / 2); y++)
+               cs_data[h + (h / 2) + y] = slice->bytes + (y * stride);
+          }
+        break;
+
+      case EFL_GFX_COLORSPACE_YCBCR422601_PL:
+        /* YCbCr 4:2:2: lines of Y,Cb,Y,Cr bytes. */
+        if (plane != 0) goto fail;
+        if (!stride) stride = w * 2;
+        cs_data = im->cs.data;
+        for (int y = 0; y < h; y++)
+          cs_data[y] = slice->bytes + (y * stride);
+        break;
+
+      case EFL_GFX_COLORSPACE_YCBCR420NV12601_PL:
+        /* YCbCr 4:2:0: Y rows, then the Cb,Cr rows. */
+        if (!stride) stride = w;
+        cs_data = im->cs.data;
+        if (plane == 0)
+          {
+             for (int y = 0; y < h; y++)
+               cs_data[y] = slice->bytes + (y * stride);
+          }
+        else if (plane == 1)
+          {
+             for (int y = 0; y < (h / 2); y++)
+               cs_data[h + y] = slice->bytes + (y * stride);
+          }
+        break;
+
+        // ETC, S3TC, YCBCR420TM12 (aka ST12 or tiled NV12)
+      default:
+        ERR("unsupported color space %d", cspace);
+        goto fail;
+     }
+
+   evas_gl_common_image_dirty(im, 0, 0, 0, 0);
+   return im;
+
+fail:
+   if (im) eng_image_free(engdata, im);
+   return NULL;
+}
+
+static void
+eng_image_prepare(void *engdata EINA_UNUSED, void *image)
+{
+   Evas_GL_Image *im = image;
+
+   if (!im) return;
+   evas_gl_common_image_update(im->gc, im);
+}
+
+static void *
+eng_image_surface_noscale_new(void *engdata, int w, int h, int alpha)
+{
+   Evas_Engine_GL_Context *gl_context;
+   Render_Engine_GL_Generic *re = engdata;
+
+   re->window_use(re->software.ob);
+   gl_context = re->window_gl_context_get(re->software.ob);
+   return evas_gl_common_image_surface_noscale_new(gl_context, w, h, alpha);
+}
+
+static void
+eng_image_surface_noscale_region_get(void *engdata EINA_UNUSED, void *image, int *x, int *y, int *w, int *h)
+{
+   Evas_GL_Image *im = image;
+
+   if (im)
+     {
+        *x = im->tex->x;
+        *y = im->tex->y;
+        *w = im->w;
+        *h = im->h;
+        return;
+     }
+   else
+     {
+        *x = 0;
+        *y = 0;
+        *w = 0;
+        *h = 0;
+     }
+}
 
 static int
 module_open(Evas_Module *em)
@@ -2808,11 +3169,6 @@ module_open(Evas_Module *em)
         EINA_LOG_ERR("Can not create a module log domain.");
         return 0;
      }
-
-   /* disable map/unmap for now as it's not implemented */
-   pfunc.image_data_map = NULL;
-   pfunc.image_data_unmap = NULL;
-   pfunc.image_data_maps_get = NULL;
 
    ector_init();
    ector_glsym_set(dlsym, RTLD_DEFAULT);
@@ -2844,7 +3200,7 @@ module_open(Evas_Module *em)
    ORD(image_dirty_region);
    ORD(image_data_get);
    ORD(image_data_put);
-   ORD(image_data_direct);
+   ORD(image_data_direct_get);
    ORD(image_data_preload_request);
    ORD(image_data_preload_cancel);
    ORD(image_alpha_set);
@@ -2878,6 +3234,15 @@ module_open(Evas_Module *em)
    ORD(image_cache_flush);
    ORD(image_cache_set);
    ORD(image_cache_get);
+
+   ORD(image_data_map);
+   ORD(image_data_unmap);
+   ORD(image_data_maps_get);
+   ORD(image_data_slice_add);
+
+   ORD(image_prepare);
+   ORD(image_surface_noscale_new);
+   ORD(image_surface_noscale_region_get);
 
    ORD(font_cache_flush);
    ORD(font_cache_set);
@@ -2967,7 +3332,11 @@ static void
 module_close(Evas_Module *em EINA_UNUSED)
 {
    ector_shutdown();
-   eina_log_domain_unregister(_evas_engine_GL_log_dom);
+   if (_evas_engine_GL_log_dom >= 0)
+     {
+        eina_log_domain_unregister(_evas_engine_GL_log_dom);
+        _evas_engine_GL_log_dom = -1;
+     }
    evas_gl_common_module_close();
 }
 

@@ -68,8 +68,8 @@ typedef struct stat _eio_stat_t;
 # include <pwd.h>
 #endif
 
-/* Keeping 32 Eio_File_Progress alive should be enought */
-#define EIO_PROGRESS_LIMIT 32
+/* Keeping 8 Eio_File_Progress alive should be enought */
+#define EIO_PROGRESS_LIMIT 8
 
 /* Huge TLB == 16M on most system */
 #define EIO_PACKET_SIZE 65536
@@ -103,6 +103,8 @@ extern int _eio_log_dom_global;
 # undef CRI
 #endif /* ifdef CRI */
 #define CRI(...) EINA_LOG_DOM_CRIT(_eio_log_dom_global, __VA_ARGS__)
+
+typedef void (*Eio_Array_Cb)(void *data, Eio_File *common, Eina_Array *g);
 
 typedef struct _Eio_Eet_Open Eio_Eet_Open;
 typedef struct _Eio_Eet_Simple Eio_Eet_Simple;
@@ -142,6 +144,7 @@ struct _Eio_File_Associate
 
 struct _Eio_File_Direct_Info
 {
+   // Do not put anything before info
    Eina_File_Direct_Info info;
 
    Eina_Hash *associated;
@@ -168,6 +171,8 @@ struct _Eio_File
    struct {
       Eina_Hash *associated;
    } worker, main;
+
+   uint64_t length;
 };
 
 struct _Eio_Eet_Simple
@@ -276,6 +281,8 @@ struct _Eio_File_Ls
    Eio_File common;
    const char *directory;
    Eina_Iterator *ls;
+
+   Eina_Bool gather;
 };
 
 struct _Eio_File_Direct_Ls
@@ -283,7 +290,10 @@ struct _Eio_File_Direct_Ls
    Eio_File_Ls ls;
 
    Eio_Filter_Direct_Cb filter_cb;
-   Eio_Main_Direct_Cb main_cb;
+   union {
+      Eio_Main_Direct_Cb main_cb;
+      Eio_Array_Cb main_internal_cb;
+   };
 
    Eina_List *pack;
    double start;
@@ -294,7 +304,10 @@ struct _Eio_File_Dir_Ls
    Eio_File_Ls ls;
 
    Eio_Filter_Dir_Cb filter_cb;
-   Eio_Main_Direct_Cb main_cb;
+   union {
+      Eio_Main_Direct_Cb main_cb;
+      Eio_Array_Cb main_internal_cb;
+   };
 
    Eina_List *pack;
    double start;
@@ -305,7 +318,10 @@ struct _Eio_File_Char_Ls
    Eio_File_Ls ls;
 
    Eio_Filter_Cb filter_cb;
-   Eio_Main_Cb main_cb;
+   union {
+      Eio_Main_Cb main_cb;
+      Eio_Array_Cb main_internal_cb;
+   };
 };
 
 struct _Eio_File_Mkdir
@@ -503,5 +519,41 @@ void eio_common_free(Eio_File *common);
 
 void eio_file_register(Eio_File *common);
 void eio_file_unregister(Eio_File *common);
+
+Eio_File * _eio_file_ls(const char *dir,
+                        Eio_Array_Cb main_internal_cb,
+                        Eio_Done_Cb done_cb,
+                        Eio_Error_Cb error_cb,
+                        const void *data);
+Eio_File * _eio_file_direct_ls(const char *dir,
+                               Eio_Array_Cb main_internal_cb,
+                               Eio_Done_Cb done_cb,
+                               Eio_Error_Cb error_cb,
+                               const void *data);
+Eio_File * _eio_dir_direct_ls(const char *dir,
+                              Eio_Array_Cb main_internal_cb,
+                              Eio_Done_Cb done_cb,
+                              Eio_Error_Cb error_cb,
+                              const void *data);
+Eio_File * _eio_file_stat_ls(const char *dir,
+                             Eio_Array_Cb main_internal_cb,
+                             Eio_Done_Cb done_cb,
+                             Eio_Error_Cb error_cb,
+                             const void *data);
+Eio_File * _eio_dir_stat_ls(const char *dir,
+                            Eio_Array_Cb main_internal_cb,
+                            Eio_Done_Cb done_cb,
+                            Eio_Error_Cb error_cb,
+                            const void *data);
+Eio_File * _eio_file_xattr(const char *path,
+                           Eio_Array_Cb main_internal_cb,
+                           Eio_Done_Cb done_cb,
+                           Eio_Error_Cb error_cb,
+                           const void *data);
+
+// Sharing notifier between recursive and non recursive code.
+void _eio_string_notify(void *data, Ecore_Thread *thread EINA_UNUSED, void *msg_data);
+void _eio_direct_notify(void *data, Ecore_Thread *thread EINA_UNUSED, void *msg_data);
+
 
 #endif

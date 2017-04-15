@@ -1,5 +1,5 @@
 /* FIXME: This definitely shouldn't be here. */
-type Eo_Event_Cb: __undefined_type;
+type Efl_Event_Cb: __undefined_type; [[Efl event callback type]]
 
 enum Elm.Atspi.Type
 {
@@ -12,288 +12,293 @@ enum Elm.Atspi.Type
 enum Elm.Atspi.Role
 {
    [[Describes the role of an object visible to AT-SPI Clients.]]
-   invalid,
-   accelerator_label,
-   alert,
-   animation,
-   arrow,
-   calendar,
-   canvas,
-   check_box,
-   check_menu_item,
-   color_chooser,
-   column_header,
-   combo_box,
-   date_editor,
-   desktop_icon,
-   desktop_frame,
-   dial,
-   dialog,
-   directory_pane,
-   drawing_area,
-   file_chooser,
-   filler,
-   focus_traversable,
-   font_chooser,
-   frame,
-   glass_pane,
-   html_container,
-   icon,
-   image,
-   internal_frame,
-   label,
-   layered_pane,
-   list,
-   list_item,
-   menu,
-   menu_bar,
-   menu_item,
-   option_pane,
-   page_tab,
-   page_tab_list,
-   panel,
-   password_text,
-   popup_menu,
-   progress_bar,
-   push_button,
-   radio_button,
-   radio_menu_item,
-   root_pane,
-   row_header,
-   scroll_bar,
-   scroll_pane,
-   separator,
-   slider,
-   spin_button,
-   split_pane,
-   status_bar,
-   table,
-   table_cell,
-   table_column_header,
-   table_row_header,
-   tearoff_menu_item,
-   terminal,
-   text,
-   toggle_button,
-   tool_bar,
-   tool_tip,
-   tree,
-   tree_table,
-   unknown,
-   viewport,
-   window,
-   extended,
-   header,
-   footer,
-   paragraph,
-   ruler,
-   application,
-   autocomplete,
-   editbar,
-   embedded,
-   entry,
-   chart,
-   caption,
-   document_frame,
-   heading,
-   page,
-   section,
-   redundant_object,
-   form,
-   link,
-   input_method_window,
-   table_row,
-   tree_item,
-   document_spreadsheet,
-   document_presentation,
-   document_text,
-   document_web,
-   document_email,
-   comment,
-   list_box,
-   grouping,
-   image_map,
-   notification,
-   info_bar,
-   last_defined,
+   invalid, [[Role: invalid]]
+   accelerator_label, [[Role: accelerator label]]
+   alert, [[Role: alert]]
+   animation, [[Role: animation]]
+   arrow, [[Role: arrow]]
+   calendar, [[Role: calendar]]
+   canvas, [[Role: canvas]]
+   check_box, [[Role: check box]]
+   check_menu_item, [[Role: check menu item]]
+   color_chooser, [[Role: color chooser]]
+   column_header, [[Role: column header]]
+   combo_box, [[Role: combo box]]
+   date_editor, [[Role: data editor]]
+   desktop_icon, [[Role: desktop icon]]
+   desktop_frame, [[Role: desktop frame]]
+   dial, [[Role: dial]]
+   dialog, [[Role: dialog]]
+   directory_pane, [[Role: directory pane]]
+   drawing_area, [[Role: drawing area]]
+   file_chooser, [[Role: file chooser]]
+   filler, [[Role: filler]]
+   focus_traversable, [[Role: focus traversable]]
+   font_chooser, [[Role: font chooser]]
+   frame, [[Role: frame]]
+   glass_pane, [[Role: glass pane]]
+   html_container, [[Role: HTML container]]
+   icon, [[Role: icon]]
+   image, [[Role: image]]
+   internal_frame, [[Role: internal frame]]
+   label, [[Role: label]]
+   layered_pane, [[Role: layered pane]]
+   list, [[Role: list]]
+   list_item, [[Role: list item]]
+   menu, [[Role: menu]]
+   menu_bar, [[Role: menu bar]]
+   menu_item, [[Role: menu item]]
+   option_pane, [[Role: option pane]]
+   page_tab, [[Role: page tab]]
+   page_tab_list, [[Role: page tab list]]
+   panel, [[Role: panel]]
+   password_text, [[Role: password text]]
+   popup_menu, [[Role: popup menu]]
+   progress_bar, [[Role: progress bar]]
+   push_button, [[Role: push button]]
+   radio_button, [[Role: radio button]]
+   radio_menu_item, [[Role: radio menu item]]
+   root_pane, [[Role: root pane]]
+   row_header, [[Role: row header]]
+   scroll_bar, [[Role: scroll bar]]
+   scroll_pane, [[Role: scroll pane]]
+   separator, [[Role: separator]]
+   slider, [[Role: slider]]
+   spin_button, [[Role: spin button]]
+   split_pane, [[Role: split pane]]
+   status_bar, [[Role: status bar]]
+   table, [[Role: table]]
+   table_cell, [[Role: table cell]]
+   table_column_header, [[Role: table column header]]
+   table_row_header, [[Role: table row header]]
+   tearoff_menu_item, [[Role: tearoff menu item]]
+   terminal, [[Role: terminal]]
+   text, [[Role: text]]
+   toggle_button, [[Role: toggle button]]
+   tool_bar, [[Role: too bar]]
+   tool_tip, [[Role: tool tip]]
+   tree, [[Role: tree]]
+   tree_table, [[Role: tree table]]
+   unknown, [[Role: unknown]]
+   viewport, [[Role: viewport]]
+   window, [[Role: window]]
+   extended, [[Role: extended]]
+   header, [[Role: header]]
+   footer, [[Role: footer]]
+   paragraph, [[Role: paragraph]]
+   ruler, [[Role: ruler]]
+   application, [[Role: application]]
+   autocomplete, [[Role: autocomplete]]
+   editbar, [[Role: editbar]]
+   embedded, [[Role: embedded]]
+   entry, [[Role: entry]]
+   chart, [[Role: chart]]
+   caption, [[Role: caption]]
+   document_frame, [[Role: document frame]]
+   heading, [[Role: heading]]
+   page, [[Role: page]]
+   section, [[Role: section]]
+   redundant_object, [[Role: redundant object]]
+   form, [[Role: form]]
+   link, [[Role: link]]
+   input_method_window, [[Role: input method window]]
+   table_row, [[Role: table row]]
+   tree_item, [[Role: table item]]
+   document_spreadsheet, [[Role: document spreadsheet]]
+   document_presentation, [[Role: document presentation]]
+   document_text, [[Role: document text]]
+   document_web, [[Role: document web]]
+   document_email, [[Role: document email]]
+   comment, [[Role: comment]]
+   list_box, [[Role: list box]]
+   grouping, [[Role: grouping]]
+   image_map, [[Role: image map]]
+   notification, [[Role: notification]]
+   info_bar, [[Role: info bar]]
+   last_defined,  [[Last enum entry sentinel]]
 }
 
 enum Elm.Atspi.State_Type
 {
    [[Describes a possible states of an object visible to AT-SPI clients.]]
    legacy: elm_atspi_state;
-   invalid,
-   active,
-   armed,
-   busy,
-   checked,
-   collapsed,
-   defunct,
-   editable,
-   enabled,
-   expandable,
-   expanded,
-   focusable,
-   focused,
-   has_tooltip,
-   horizontal,
-   iconified,
-   modal,
-   multi_line,
-   multiselectable,
-   opaque,
-   pressed,
-   resizable,
-   selectable,
-   selected,
-   sensitive,
-   showing,
-   single_line,
-   stale,
-   transient,
-   vertical,
-   visible,
-   manages_descendants,
-   indeterminate,
-   required,
-   truncated,
-   animated,
-   invalid_entry,
-   supports_autocompletion,
-   selectable_text,
-   is_default,
-   visited,
-   last_defined,
+   invalid, [[State: invalid]]
+   active, [[State: active]]
+   armed, [[State: armed]]
+   busy, [[State: busy]]
+   checked, [[State: checked]]
+   collapsed, [[State: collapsed]]
+   defunct, [[State: defunct]]
+   editable, [[State: editable]]
+   enabled, [[State: enabled]]
+   expandable, [[State: expandable]]
+   expanded, [[State: expanded]]
+   focusable, [[State: focusable]]
+   focused, [[State: focused]]
+   has_tooltip, [[State: has a tooltip]]
+   horizontal, [[State: horizontal]]
+   iconified, [[State: iconified]]
+   modal, [[State: modal]]
+   multi_line, [[State: multi line]]
+   multiselectable, [[State: multiselectable]]
+   opaque, [[State: opaque]]
+   pressed, [[State: pressed]]
+   resizable, [[State: resizable]]
+   selectable, [[State: selectable]]
+   selected, [[State: selected]]
+   sensitive, [[State: sensitive]]
+   showing, [[State: showing]]
+   single_line, [[State: single line]]
+   stale, [[State: stale]]
+   transient, [[State: transient]]
+   vertical, [[State: vertical]]
+   visible, [[State: visible]]
+   manages_descendants, [[State: manage descendants]]
+   indeterminate, [[State: indeterminate]]
+   required, [[State: required]]
+   truncated, [[State: truncated]]
+   animated, [[State: animated]]
+   invalid_entry, [[State: invalid entry]]
+   supports_autocompletion, [[State: supports autocompletion]]
+   selectable_text, [[State: selectable text]]
+   is_default, [[State: is default]]
+   visited, [[State: visited]]
+   last_defined,  [[Last enum entry sentinel]]
 }
 
 enum Elm.Atspi.Relation_Type
 {
    [[Describes relation between two objects.]]
    legacy: elm_atspi_relation;
-   null,
-   label_for,
-   labelled_by,
-   controller_for,
-   controlled_by,
-   member_of,
-   tooltip_for,
-   node_child_of,
-   node_parent_of,
-   extended,
-   flows_to,
-   flows_from,
-   subwindow_of,
-   embeds,
-   embedded_by,
-   popup_for,
-   parent_window_of,
-   description_for,
-   described_by,
-   last_defined,
+   null, [[No relation]]
+   label_for, [[Label for relation]]
+   labelled_by, [[Labelled by relation]]
+   controller_for, [[Controller for relation]]
+   controlled_by, [[Controlled by relation]]
+   member_of, [[Member of relation]]
+   tooltip_for, [[Tooltip for relation]]
+   node_child_of, [[Node child of relation]]
+   node_parent_of, [[Node parent of relation]]
+   extended, [[Extended relation]]
+   flows_to, [[Flows to relation]]
+   flows_from, [[Flows from relation]]
+   subwindow_of, [[Subwindow of relation]]
+   embeds, [[Embeds relation]]
+   embedded_by, [[Embedded by relation]]
+   popup_for, [[Popup for relation]]
+   parent_window_of, [[Parent window of relation]]
+   description_for, [[Description for relation]]
+   described_by, [[Described by relation]]
+   last_defined, [[Last enum entry sentinel]]
 }
 
-type Elm.Atspi.State_Set: uint64; [[ATSPI object state set.]]
+type Elm.Atspi.State_Set: uint64; [[AT-SPI object state set.]]
 
-struct Elm.Atspi.Event.Handler; [[ATSPI event listener]]
+struct Elm.Atspi.Event.Handler; [[AT-SPI event listener]]
 
 struct Elm.Atspi.Event.State_Changed.Data
 {
-   type: Elm.Atspi.State_Type;
-   new_value: bool;
+   [[AT-SPI state changed event data]]
+   type: Elm.Atspi.State_Type; [[Type of the state changed event]]
+   new_value: bool; [[New value]]
 }
 
 struct Elm.Atspi.Event.Geometry_Changed.Data
 {
-   x: int;
-   y: int;
-   width: int;
-   height: int;
+   [[AT-SPI geometry changed event data]]
+   x: int; [[X coordinate]]
+   y: int; [[Y coordinate]]
+   width: int; [[Width]]
+   height: int; [[Height]]
 }
 
 struct Elm.Atspi.Event.Children_Changed.Data
 {
-   is_added: bool;
-   child: Eo.Base;
+   [[AT-SPI children changed event data]]
+   is_added: bool; [[Child is added or not]]
+   child: Efl.Object; [[Child object]]
 }
 
 struct Elm.Atspi.Attribute
 {
-   key: string;
-   value: string;
+   [[AT-SPI Attribute]]
+   key: string; [[Attribute key]]
+   value: string; [[Attribute value]]
 }
 
 struct Elm.Atspi.Relation
 {
-   type: Elm.Atspi.Relation_Type;
-   objects: list<Eo.Base>;
+   [[AT-SPI Relation]]
+   type: Elm.Atspi.Relation_Type; [[Relation type]]
+   objects: list<Efl.Object>; [[List with relation objects]]
 }
 
-type Elm.Atspi.Relation_Set: list<Elm.Atspi.Relation *>;
+type Elm.Atspi.Relation_Set: list<ptr(Elm.Atspi.Relation)>; [[Elementary AT-SPI relation set type]]
 
-mixin Elm.Interface.Atspi_Accessible ()
+mixin Elm.Interface.Atspi_Accessible (Efl.Interface, Efl.Object)
 {
-   [[ATSPI accessible mixin]]
+   [[AT-SPI accessible mixin]]
    eo_prefix: elm_interface_atspi_accessible;
    data: Elm_Interface_Atspi_Accessible_Data;
    methods {
       @property localized_role_name @protected {
-         [[Gets an localized string describing ATSPI widget role name.]]
+         [[Gets an localized string describing accessible object role name.]]
          get {
          }
          values {
-            localized_name: string; [[Localized widget role name]]
+            localized_name: string; [[Localized accessible object role name]]
          }
       }
       @property name {
-         [[String describing ATSPI widget role name. Should be free by a user.]]
+         [[Accessible name of the object.]]
          get {
          }
          set {
          }
          values {
-            name: char*; [[Obj name]]
+            name: string; [[Accessible name]]
          }
       }
       @property relation_set @protected {
-         [[Gets an string describing ATSPI widget role name. Lists and elements Should be free by a user.]]
+         [[Gets an all relations between accessible object and other accessible objects.]]
          get {
          }
          values {
-            relations: Elm.Atspi.Relation_Set;
+            relations: Elm.Atspi.Relation_Set; [[Accessible relation set]]
          }
       }
       @property role {
-         [[The role of the widget in ATSPI Accessibility domain.]]
+         [[The role of the object in accessibility domain.]]
          get {
          }
          set {
          }
          values {
-            role: Elm.Atspi.Role;
+            role: Elm.Atspi.Role; [[Accessible role]]
          }
       }
       @property children @protected {
-         [[Gets widget's accessible children.]]
+         [[Gets object's accessible children.]]
          get {
          }
          values {
-            children: free(own(list<Elm.Interface.Atspi_Accessible>), eina_list_free);
+            children: free(own(list<Elm.Interface.Atspi_Accessible>), eina_list_free); [[List of widget's children]]
          }
       }
       @property role_name @protected {
-         [[Gets human-readable string indentifying widget accessibility role.]]
+         [[Gets human-readable string indentifying object accessibility role.]]
          get {
          }
          values {
-            role_name: string;
+            role_name: string; [[Accessible role name]]
          }
       }
       @property attributes @protected {
-         [[Gets key-value pairs indentifying widget extra attributes. Must be free by a user.]]
+         [[Gets key-value pairs indentifying object extra attributes. Must be free by a user.]]
          get {
          }
          values {
-            attributes: free(own(list<own(Elm.Atspi.Attribute *)>), elm_atspi_attributes_list_free);
+            attributes: free(own(list<own(ptr(Elm.Atspi.Attribute))>), elm_atspi_attributes_list_free); [[List of object attributes]]
          }
       }
       @property index_in_parent @protected {
@@ -301,60 +306,61 @@ mixin Elm.Interface.Atspi_Accessible ()
          get {
          }
          values {
-            idx: int;
+            idx: int; [[Index in children list]]
          }
       }
       @property description {
-         [[Widget contextual information.]]
+         [[Contextual information about object.]]
          get {
          }
          set {
          }
          values {
-            description: string; [[Widget contextual information]]
+            description: string; [[Accessible contextual information]]
          }
       }
       @property parent {
-         [[Widget accessible parent.]]
+         [[Object's accessible parent.]]
          get {
          }
          set {
          }
          values {
-            parent: Elm.Interface.Atspi_Accessible;
+            parent: Elm.Interface.Atspi_Accessible; [[Accessible parent]]
          }
       }
       @property state_set @protected {
-         [[Gets set describing widget accessible states.]]
+         [[Gets set describing object accessible states.]]
          get {
          }
          values {
-            states: Elm.Atspi.State_Set;
+            states: Elm.Atspi.State_Set; [[Accessible state set]]
          }
       }
       event_handler_add @class @protected {
          [[Register accessibility event listener]]
          params {
-              @in cb: Eo_Event_Cb; [[callback]]
-              @in data: void_ptr; [[data]]
+              @in cb: Efl_Event_Cb; [[Callback]]
+              @in data: void_ptr; [[Data]]
          }
-         return: Elm.Atspi.Event.Handler*; [[Event handler]]
+         return: ptr(Elm.Atspi.Event.Handler); [[Event handler]]
       }
       event_handler_del @class @protected {
          [[Deregister accessibility event listener]]
          params {
-              @in handler: Elm.Atspi.Event.Handler *; [[Event handler]]
+              @in handler: ptr(Elm.Atspi.Event.Handler); [[Event handler]]
          }
       }
       event_emit @class @protected {
+      	 [[Emit event]]
          params {
             @in accessible: Elm.Interface.Atspi_Accessible; [[Accessibility object.]]
-            @in event: const(Eo.Event.Description)*; [[Accessibility event type.]]
+            @in event: ptr(const(Efl.Event.Description)); [[Accessibility event type.]]
             @in event_info: void_ptr; [[Accessibility event details.]]
          }
       }
       @property translation_domain {
-         [[Sets the translation domain of "name" and "description"
+         [[The translation domain of "name" and "description"
            properties.
 
            Translation domain should be set if application wants to support i18n
@@ -382,7 +388,7 @@ mixin Elm.Interface.Atspi_Accessible ()
            set {
            }
            values {
-               type: Elm.Atspi.Type;
+               type: Elm.Atspi.Type; [[Object type]]
            }
       }
       relationship_append {
@@ -397,14 +403,11 @@ mixin Elm.Interface.Atspi_Accessible ()
            Relationship_append API is asymmetric, which means that
            appending, for example, relation ELM_ATSPI_RELATION_FLOWS_TO from object A to B,
            do NOT append relation ELM_ATSPI_RELATION_FLOWS_FROM from object B to
-           object A.
-
-           return: EINA_TRUE is relationship was successfully appended, EINA_FALSE
-           otherwise]]
-         return: bool;
+           object A.]]
+         return: bool; [[$true if relationship was successfully appended, $false otherwise]]
          params {
-            @in type: Elm.Atspi.Relation_Type;
-            @in relation_object: const(Elm.Interface.Atspi_Accessible);
+            @in type: Elm.Atspi.Relation_Type; [[Relation type]]
+            @in relation_object: const(Elm.Interface.Atspi_Accessible); [[Object to relate to]]
          }
       }
       relationship_remove {
@@ -414,8 +417,8 @@ mixin Elm.Interface.Atspi_Accessible ()
           of given type.
          ]]
          params {
-            @in type: Elm.Atspi.Relation_Type;
-            @in relation_object: const(Elm.Interface.Atspi_Accessible);
+            @in type: Elm.Atspi.Relation_Type; [[Relation type]]
+            @in relation_object: const(Elm.Interface.Atspi_Accessible); [[Object to remove relation from]]
          }
       }
       relationships_clear {
@@ -425,19 +428,22 @@ mixin Elm.Interface.Atspi_Accessible ()
          get {
             [[Get root object of accessible object hierarchy]]
             values {
-               ret: Eo.Base;
+               ret: Efl.Object; [[Root object]]
             }
          }
       }
    }
+   implements {
+      Efl.Object.destructor;
+   }
    events {
-      property,changed: string;
-      children,changed: Elm.Atspi.Event.Children_Changed.Data;
-      state,changed: Elm.Atspi.Event.State_Changed.Data;
-      bounds,changed: Elm.Atspi.Event.Geometry_Changed.Data;
-      visible,data,changed;
-      active,descendant,changed;
-      added;
-      removed;
+      property,changed: string; [[Called when roperty has changed]]
+      children,changed: Elm.Atspi.Event.Children_Changed.Data; [[Called when children have changed]]
+      state,changed: Elm.Atspi.Event.State_Changed.Data; [[Called when tate has changed]]
+      bounds,changed: Elm.Atspi.Event.Geometry_Changed.Data; [[Called when bounds have changed]]
+      visible,data,changed; [[Called when visibility has changed]]
+      active,descendant,changed; [[Called when active state of descendant has changed]]
+      added; [[Called when item was added]]
+      removed; [[Called when item was removed]]
    }
 }

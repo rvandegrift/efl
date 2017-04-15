@@ -59,6 +59,30 @@ static const struct zwp_linux_dmabuf_v1_listener _dmabuf_listener =
 };
 
 static void
+_zxdg_shell_cb_ping(void *data EINA_UNUSED, struct zxdg_shell_v6 *shell, uint32_t serial)
+{
+   zxdg_shell_v6_pong(shell, serial);
+}
+
+static const struct zxdg_shell_v6_listener _zxdg_shell_listener =
+{
+   _zxdg_shell_cb_ping,
+};
+
+static void
+_session_recovery_create_uuid(void *data EINA_UNUSED, struct zwp_e_session_recovery *session_recovery EINA_UNUSED, struct wl_surface *surface, const char *uuid)
+{
+   Ecore_Wl2_Window *win = wl_surface_get_user_data(surface);
+
+   eina_stringshare_replace(&win->uuid, uuid);
+}
+
+static const struct zwp_e_session_recovery_listener _session_listener =
+{
+   _session_recovery_create_uuid,
+};
+
+static void
 _cb_global_event_free(void *data EINA_UNUSED, void *event)
 {
    Ecore_Wl2_Event_Global *ev;
@@ -101,14 +125,10 @@ _cb_global_add(void *data, struct wl_registry *registry, unsigned int id, const 
 
    if (!strcmp(interface, "wl_compositor"))
      {
-        unsigned int request_version = 3;
-#ifdef WL_SURFACE_DAMAGE_BUFFER_SINCE_VERSION
-        request_version = 4;
-#endif
+        ewd->wl.compositor_version = MIN(version, 4);
         ewd->wl.compositor =
           wl_registry_bind(registry, id, &wl_compositor_interface,
-                           MIN(version, request_version));
-        ewd->wl.compositor_version = MIN(version, request_version);
+                           ewd->wl.compositor_version);
      }
    else if (!strcmp(interface, "wl_subcompositor"))
      {
@@ -132,26 +152,8 @@ _cb_global_add(void *data, struct wl_registry *registry, unsigned int id, const 
         ewd->wl.data_device_manager =
           wl_registry_bind(registry, id, &wl_data_device_manager_interface, ewd->wl.data_device_manager_version);
      }
-   else if (!strcmp(interface, "wl_shell"))
-     {
-        ewd->wl.wl_shell =
-          wl_registry_bind(registry, id, &wl_shell_interface, 1);
-     }
-   else if ((!strcmp(interface, "xdg_shell")) &&
-            (!getenv("EFL_WAYLAND_DONT_USE_XDG_SHELL")))
-     {
-        Ecore_Wl2_Window *window;
-
-        ewd->wl.xdg_shell =
-          wl_registry_bind(registry, id, &xdg_shell_interface, 1);
-        xdg_shell_use_unstable_version(ewd->wl.xdg_shell, XDG_VERSION);
-        xdg_shell_add_listener(ewd->wl.xdg_shell, &_xdg_shell_listener, NULL);
-
-        EINA_INLIST_FOREACH(ewd->windows, window)
-          _ecore_wl2_window_shell_surface_init(window);
-     }
    else if ((eina_streq(interface, "www")) &&
-            (!getenv("EFL_WAYLAND_DISABLE_WWW")))
+            (getenv("EFL_WAYLAND_ENABLE_WWW")))
      {
         Ecore_Wl2_Window *window;
 
@@ -165,6 +167,8 @@ _cb_global_add(void *data, struct wl_registry *registry, unsigned int id, const 
         ewd->wl.session_recovery =
           wl_registry_bind(registry, id,
                            &zwp_e_session_recovery_interface, 1);
+        zwp_e_session_recovery_add_listener(ewd->wl.session_recovery,
+                                            &_session_listener, ewd);
      }
    else if (!strcmp(interface, "zwp_teamwork"))
      {
@@ -263,7 +267,7 @@ _recovery_timer(Ecore_Wl2_Display *ewd)
 static void
 _recovery_timer_add(Ecore_Wl2_Display *ewd)
 {
-   Eina_Inlist *tmp;
+   Eina_Inlist *tmp, *tmp2;
    Ecore_Wl2_Output *output;
    Ecore_Wl2_Input *input;
    Ecore_Wl2_Window *window;
@@ -275,11 +279,13 @@ _recovery_timer_add(Ecore_Wl2_Display *ewd)
    ecore_main_fd_handler_del(ewd->fd_hdl);
    ewd->fd_hdl = NULL;
 
+   ewd->shell_done = EINA_FALSE;
+
    if (ewd->wl.session_recovery)
      zwp_e_session_recovery_destroy(ewd->wl.session_recovery);
    if (ewd->wl.www) www_destroy(ewd->wl.www);
+   if (ewd->wl.zxdg_shell) zxdg_shell_v6_destroy(ewd->wl.zxdg_shell);
    if (ewd->wl.xdg_shell) xdg_shell_destroy(ewd->wl.xdg_shell);
-   if (ewd->wl.wl_shell) wl_shell_destroy(ewd->wl.wl_shell);
    if (ewd->wl.shm) wl_shm_destroy(ewd->wl.shm);
    if (ewd->wl.data_device_manager)
      wl_data_device_manager_destroy(ewd->wl.data_device_manager);
@@ -296,7 +302,15 @@ _recovery_timer_add(Ecore_Wl2_Display *ewd)
      _ecore_wl2_output_del(output);
 
    EINA_INLIST_FOREACH_SAFE(ewd->windows, tmp, window)
-     ecore_wl2_window_hide(window);
+     {
+        Ecore_Wl2_Subsurface *subsurf;
+
+        EINA_INLIST_FOREACH_SAFE(window->subsurfs, tmp2, subsurf)
+          _ecore_wl2_subsurf_unmap(subsurf);
+        _ecore_wl_window_semi_free(window);
+        window->configure_serial = 0;
+        window->configure_ack = NULL;
+     }
 
    ewd->recovery_timer =
      ecore_timer_add(0.5, (Ecore_Task_Cb)_recovery_timer, ewd);
@@ -304,9 +318,9 @@ _recovery_timer_add(Ecore_Wl2_Display *ewd)
 }
 
 static void
-_begin_recovery_maybe(Ecore_Wl2_Display *ewd)
+_begin_recovery_maybe(Ecore_Wl2_Display *ewd, int code)
 {
-   if (ewd->wl.session_recovery)// && (errno == EPIPE))
+   if ((_server_displays || (code != EPROTO)) && ewd->wl.session_recovery)// && (errno == EPIPE))
      _recovery_timer_add(ewd);
    else
      {
@@ -319,28 +333,30 @@ static Eina_Bool
 _cb_connect_data(void *data, Ecore_Fd_Handler *hdl)
 {
    Ecore_Wl2_Display *ewd = data;
-   int ret = 0;
+   int ret = 0, code;
 
    if (ecore_main_fd_handler_active_get(hdl, ECORE_FD_READ))
      {
         ret = wl_display_dispatch(ewd->wl.display);
-        if ((ret < 0) && (errno != EAGAIN)) goto err;
+        code = errno;
+        if ((ret < 0) && (code != EAGAIN)) goto err;
      }
 
    if (ecore_main_fd_handler_active_get(hdl, ECORE_FD_WRITE))
      {
         ret = wl_display_flush(ewd->wl.display);
+        code = errno;
         if (ret == 0)
           ecore_main_fd_handler_active_set(hdl, ECORE_FD_READ);
 
-        if ((ret < 0) && (errno != EAGAIN)) goto err;
+        if ((ret < 0) && (code != EAGAIN)) goto err;
      }
 
    return ECORE_CALLBACK_RENEW;
 
 err:
    ewd->fd_hdl = NULL;
-   _begin_recovery_maybe(ewd);
+   _begin_recovery_maybe(ewd, code);
 
    return ECORE_CALLBACK_CANCEL;
 }
@@ -361,31 +377,110 @@ static Eina_Bool
 _cb_connect_idle(void *data)
 {
    Ecore_Wl2_Display *ewd = data;
-   int ret = 0;
+   int ret = 0, code;
 
    ret = wl_display_get_error(ewd->wl.display);
+   code = errno;
    if (ret < 0) goto err;
 
    ret = wl_display_dispatch_pending(ewd->wl.display);
+   code = errno;
    if (ret < 0) goto err;
 
    ret = wl_display_flush(ewd->wl.display);
-   if ((ret < 0) && (errno == EAGAIN))
+   code = errno;
+   if ((ret < 0) && (code == EAGAIN))
      ecore_main_fd_handler_active_set(ewd->fd_hdl,
                                       (ECORE_FD_READ | ECORE_FD_WRITE));
 
    return ECORE_CALLBACK_RENEW;
 
 err:
-   if ((ret < 0) && (errno != EAGAIN))
+   if ((ret < 0) && (code != EAGAIN))
      {
         ewd->idle_enterer = NULL;
-        _begin_recovery_maybe(ewd);
+        _begin_recovery_maybe(ewd, code);
 
         return ECORE_CALLBACK_CANCEL;
      }
 
    return ECORE_CALLBACK_RENEW;
+}
+
+static Ecore_Wl2_Global *
+_ecore_wl2_global_find(Ecore_Wl2_Display *ewd, const char *interface)
+{
+   Eina_Iterator *itr;
+   Ecore_Wl2_Global *global = NULL, *g = NULL;
+
+   itr = eina_hash_iterator_data_new(ewd->globals);
+   if (!itr) return NULL;
+
+   EINA_ITERATOR_FOREACH(itr, g)
+     {
+        if (!strcmp(g->interface, interface))
+          {
+             global = g;
+             break;
+          }
+     }
+
+   eina_iterator_free(itr);
+   return global;
+}
+
+static void
+_ecore_wl2_shell_bind(Ecore_Wl2_Display *ewd)
+{
+   Ecore_Wl2_Global *global = NULL;
+   const char **itr;
+   const char *shells[] =
+     {
+        "zxdg_shell_v6",
+        "xdg_shell",
+        NULL
+     };
+
+   if (ewd->shell_done) return;
+
+   for (itr = shells; *itr != NULL; itr++)
+     {
+        global = _ecore_wl2_global_find(ewd, *itr);
+        if (!global) continue;
+        break;
+     }
+
+   if (!global) return;
+
+   if ((!strcmp(global->interface, "xdg_shell")) &&
+            (!getenv("EFL_WAYLAND_DONT_USE_XDG_SHELL")))
+     {
+        Ecore_Wl2_Window *window;
+
+        ewd->wl.xdg_shell =
+          wl_registry_bind(ewd->wl.registry, global->id,
+                           &xdg_shell_interface, 1);
+        xdg_shell_use_unstable_version(ewd->wl.xdg_shell,
+                                       XDG_V5_UNSTABLE_VERSION);
+        xdg_shell_add_listener(ewd->wl.xdg_shell, &_xdg_shell_listener, NULL);
+        ewd->shell_done = EINA_TRUE;
+
+        EINA_INLIST_FOREACH(ewd->windows, window)
+          if ((window->type != ECORE_WL2_WINDOW_TYPE_DND) &&
+              (window->type != ECORE_WL2_WINDOW_TYPE_NONE))
+                _ecore_wl2_window_shell_surface_init(window);
+          else
+            window->pending.configure = EINA_FALSE;
+     }
+   else if (!strcmp(global->interface, "zxdg_shell_v6"))
+     {
+        ewd->wl.zxdg_shell =
+          wl_registry_bind(ewd->wl.registry, global->id,
+                           &zxdg_shell_v6_interface, 1);
+        zxdg_shell_v6_add_listener(ewd->wl.zxdg_shell,
+                                   &_zxdg_shell_listener, NULL);
+        ewd->shell_done = EINA_TRUE;
+     }
 }
 
 static void
@@ -396,6 +491,8 @@ _cb_sync_done(void *data, struct wl_callback *cb, uint32_t serial EINA_UNUSED)
 
    ewd = data;
    ewd->sync_done = EINA_TRUE;
+
+   _ecore_wl2_shell_bind(ewd);
 
    wl_callback_destroy(cb);
 
@@ -465,8 +562,6 @@ _ecore_wl2_display_cleanup(Ecore_Wl2_Display *ewd)
    Ecore_Wl2_Input *input;
    Eina_Inlist *tmp;
 
-   if (--ewd->refs) return;
-
    if (ewd->xkb_context) xkb_context_unref(ewd->xkb_context);
 
    /* free each input */
@@ -486,8 +581,8 @@ _ecore_wl2_display_cleanup(Ecore_Wl2_Display *ewd)
    if (ewd->wl.session_recovery)
      zwp_e_session_recovery_destroy(ewd->wl.session_recovery);
    if (ewd->wl.www) www_destroy(ewd->wl.www);
+   if (ewd->wl.zxdg_shell) zxdg_shell_v6_destroy(ewd->wl.zxdg_shell);
    if (ewd->wl.xdg_shell) xdg_shell_destroy(ewd->wl.xdg_shell);
-   if (ewd->wl.wl_shell) wl_shell_destroy(ewd->wl.wl_shell);
    if (ewd->wl.shm) wl_shm_destroy(ewd->wl.shm);
    if (ewd->wl.data_device_manager)
      wl_data_device_manager_destroy(ewd->wl.data_device_manager);
@@ -709,9 +804,13 @@ ecore_wl2_display_disconnect(Ecore_Wl2_Display *display)
 {
    EINA_SAFETY_ON_NULL_RETURN(display);
 
-   _ecore_wl2_display_cleanup(display);
+   --display->refs;
    if (display->refs == 0)
      {
+        wl_display_roundtrip(display->wl.display);
+
+        _ecore_wl2_display_cleanup(display);
+
         wl_display_disconnect(display->wl.display);
 
         /* remove this client display from hash */
@@ -727,9 +826,13 @@ ecore_wl2_display_destroy(Ecore_Wl2_Display *display)
 {
    EINA_SAFETY_ON_NULL_RETURN(display);
 
-   _ecore_wl2_display_cleanup(display);
+   --display->refs;
    if (display->refs == 0)
      {
+        /* this ensures that things like wl_registry are destroyed
+         * before we destroy the actual wl_display */
+        _ecore_wl2_display_cleanup(display);
+
         wl_display_destroy(display->wl.display);
 
         /* remove this client display from hash */
@@ -773,7 +876,9 @@ EAPI Eina_Iterator *
 ecore_wl2_display_globals_get(Ecore_Wl2_Display *display)
 {
    EINA_SAFETY_ON_NULL_RETURN_VAL(display, NULL);
-   return display->globals ? eina_hash_iterator_data_new(display->globals) : NULL;
+   EINA_SAFETY_ON_NULL_RETURN_VAL(display->globals, NULL);
+
+   return eina_hash_iterator_data_new(display->globals);
 }
 
 EAPI void

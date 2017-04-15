@@ -2,10 +2,10 @@
 struct Generic.Event
 {
   field1: int;
-  field2: list<int*>;
+  field2: list<int>;
 }
 
-class Generic (Eo.Base)
+class Generic (Efl.Object)
 {
    data: Generic_Data;
    methods {
@@ -102,7 +102,7 @@ class Generic (Eo.Base)
       .optional_ctor_b @optional;
    }
    implements {
-      Eo.Base.constructor;
+      Efl.Object.constructor;
    }
    events {
      prefix,event1;

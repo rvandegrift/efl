@@ -41,6 +41,7 @@ enum Edje.Text.Autocapital_Type {
 }
 
 enum Edje.Input_Hints {
+   [[Input hints]]
    legacy: Edje_Input_Hint;
 
    none                = 0,        [[No active hints
@@ -55,6 +56,7 @@ enum Edje.Input_Hints {
 }
 
 enum Edje.Input_Panel.Lang {
+   [[Input panel language]]
    automatic,    [[Automatic
 
                    @since 1.2]]
@@ -64,6 +66,7 @@ enum Edje.Input_Panel.Lang {
 }
 
 enum Edje.Input_Panel.Return_Key_Type {
+   [[Input panel retrun key types]]
    default, [[Default
 
               @since 1.2]]
@@ -94,6 +97,7 @@ enum Edje.Input_Panel.Return_Key_Type {
 }
 
 enum Edje.Input_Panel.Layout {
+   [[Input panel layout]]
    normal,          [[Default layout]]
    number,          [[Number layout]]
    email,           [[Email layout]]
@@ -116,9 +120,12 @@ enum Edje.Input_Panel.Layout {
    datetime,        [[Date and time layout
 
                       @since 1.8]]
-   emoticon         [[Emoticon layout
+   emoticon,        [[Emoticon layout
 
                       @since 1.10]]
+   voice            [[Voice layout, but if the IME does not support voice layout, then normal layout will be shown.
+
+                      @since 1.19]]
 }
 
 enum Edje.External.Param_Type {
@@ -130,19 +137,19 @@ enum Edje.External.Param_Type {
    bool, [[Parameter value is boolean.]]
    choice, [[Parameter value is one of a set of
              predefined string choices.]]
-   max [[Sentinel. Don't use.]]
+   max [[Sentinel value to indicate last enum field during iteration]]
 }
 
 struct Edje.External.Param {
    [[Struct that holds parameters for parts of type EXTERNAL.]]
-   name: const(char) *; [[The name of the parameter.]]
+   name: string; [[The name of the parameter.]]
    type: Edje.External.Param_Type; [[The type of the parameter. This defines
                                      which of the next three variables holds
                                      the value for it.]]
    // XXX these could be in a union, but eet doesn't support them (or does it?)
    i: int; [[Used by both integer and boolean]]
    d: double; [[Used by double]]
-   s: const(char) *; [[Used by both string and choice]]
+   s: string; [[Used by both string and choice]]
 }
 
 enum Edje.Message_Type {
@@ -151,9 +158,9 @@ enum Edje.Message_Type {
    ]]
    legacy: Edje_Message;
 
-   none = 0,
+   none = 0, [[No message type]]
 
-   signal = 1, [[DONT USE THIS]]
+   signal = 1, [[DO NOT USE THIS]]
 
    string = 2, [[A message with a string as value. Use #Edje_Message_String structs as message body, for this type.]]
    int = 3, [[A message with an integer number as value. Use #Edje_Message_Int structs as message body, for this type.]]
@@ -183,9 +190,9 @@ enum Edje.Color_Class.Mode {
 }
 
 /* FIXME-cb: Ignore cb types that should be fixed. */
-type Edje.Signal_Cb: __undefined_type;
-type Edje.Markup_Filter_Cb: __undefined_type;
-type Edje.Text.Filter_Cb: __undefined_type;
-type Edje.Text.Change_Cb: __undefined_type;
-type Edje.Item_Provider_Cb: __undefined_type;
-type Edje.Message_Handler_Cb: __undefined_type;
+type Edje.Signal_Cb: __undefined_type; [[Edje signal callback type]]
+type Edje.Markup_Filter_Cb: __undefined_type; [[Edje markup filter callback type]]
+type Edje.Text.Filter_Cb: __undefined_type; [[Edje text filter callback type]]
+type Edje.Text.Change_Cb: __undefined_type; [[Edje text change callback type]]
+type Edje.Item_Provider_Cb: __undefined_type; [[Edje item provider callback type]]
+type Edje.Message_Handler_Cb: __undefined_type; [[Edje message handler callback type]]

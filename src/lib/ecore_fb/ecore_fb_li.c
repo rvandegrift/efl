@@ -11,7 +11,7 @@
 
 static Eina_List *_ecore_fb_li_devices = NULL;
 
-static const char *_ecore_fb_li_kbd_syms[128 * 7] =
+static const char *_ecore_fb_li_kbd_syms[144 * 7] =
 {
 #include "ecore_fb_keytable.h"
 };
@@ -43,7 +43,7 @@ _ecore_fb_li_device_event_key(Ecore_Fb_Input_Device *dev, struct input_event *ie
    if (!dev->listen) return;
 
    /* check for basic keyboard keys */
-   if ((iev->code >= KEY_ESC) && (iev->code <= KEY_COMPOSE))
+   if ((iev->code >= KEY_ESC) && (iev->code <= KEY_WAKEUP))
      {
         int offset = 0;
         const char *keyname = _ecore_fb_li_kbd_syms[iev->code * 7];
@@ -699,7 +699,8 @@ EAPI void
 ecore_fb_input_device_threshold_click_set(Ecore_Fb_Input_Device *dev, double threshold)
 {
    if (!dev) return;
-   if ((threshold == dev->mouse.threshold) || (threshold == 0)) return;
+   if ((EINA_DBL_EQ(threshold, dev->mouse.threshold)) ||
+       (EINA_DBL_EQ(threshold, 0.0))) return;
    dev->mouse.threshold = threshold;
 }
 

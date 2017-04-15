@@ -4,13 +4,10 @@
 
 #include <string.h>
 #include <sys/types.h>
+#include <sys/stat.h>
 
-#ifdef HAVE_NETINET_IN_H
-# include <netinet/in.h>
-#endif
-
-#ifdef HAVE_WINSOCK2_H
-# include <winsock2.h>
+#ifdef HAVE_ARPA_INET_H
+# include <arpa/inet.h>
 #endif
 
 #include <Ecore.h>
@@ -37,7 +34,7 @@
 #define DLT_R1     14
 #define DLT_R2     15
 
-int _ecore_ipc_log_dom = -1;
+static int _ecore_ipc_log_dom = -1;
 
 /****** This swap function are around just for backward compatibility do not remove *******/
 EAPI unsigned short
@@ -207,12 +204,8 @@ _ecore_ipc_ddlt_int(int in, int prev, int mode)
    return 0;
 }
 
-static Eina_Bool _ecore_ipc_event_client_add(void *data, int ev_type, void *ev);
-static Eina_Bool _ecore_ipc_event_client_del(void *data, int ev_type, void *ev);
-static Eina_Bool _ecore_ipc_event_server_add(void *data, int ev_type, void *ev);
-static Eina_Bool _ecore_ipc_event_server_del(void *data, int ev_type, void *ev);
-static Eina_Bool _ecore_ipc_event_client_data(void *data, int ev_type, void *ev);
-static Eina_Bool _ecore_ipc_event_server_data(void *data, int ev_type, void *ev);
+/* EFL_NET_SERVER_UNIX_CLASS and EFL_NET_DIALER_UNIX_CLASS should be defined at the same time, we're only checking for EFL_NET_SERVER_UNIX_CLASS in shared blocks */
+
 static void _ecore_ipc_event_client_add_free(void *data, void *ev);
 static void _ecore_ipc_event_client_del_free(void *data, void *ev);
 static void _ecore_ipc_event_client_data_free(void *data, void *ev);
@@ -229,35 +222,104 @@ EAPI int ECORE_IPC_EVENT_SERVER_DATA = 0;
 
 static int                  _ecore_ipc_init_count = 0;
 static Eina_List           *servers = NULL;
-static Ecore_Event_Handler *handler[6];
 
-/**
- * @defgroup Ecore_IPC_Library_Group Ecore_IPC - Inter Process Communication Library Functions
- * @ingroup Ecore
- *
- * Functions that set up and shut down the Ecore IPC Library.
- */
+static void
+ecore_ipc_post_event_server_add(Ecore_Ipc_Server *svr)
+{
+   Ecore_Ipc_Event_Server_Add *ev;
 
-/**
- * Initialises the Ecore IPC library.
- * @return  Number of times the library has been initialised without
- *          being shut down.
- * @ingroup Ecore_IPC_Library_Group
- */
+   if (svr->delete_me) return;
+
+   ev = calloc(1, sizeof(Ecore_Ipc_Event_Server_Add));
+   EINA_SAFETY_ON_NULL_RETURN(ev);
+
+   svr->event_count++;
+   ev->server = svr;
+   ecore_event_add(ECORE_IPC_EVENT_SERVER_ADD, ev,
+                   _ecore_ipc_event_server_add_free, NULL);
+}
+
+static void
+ecore_ipc_post_event_server_del(Ecore_Ipc_Server *svr)
+{
+   Ecore_Ipc_Event_Server_Del *ev;
+
+   if (svr->delete_me) return;
+
+   ev = calloc(1, sizeof(Ecore_Ipc_Event_Server_Del));
+   EINA_SAFETY_ON_NULL_RETURN(ev);
+
+   svr->event_count++;
+   ev->server = svr;
+   ecore_event_add(ECORE_IPC_EVENT_SERVER_DEL, ev,
+                   _ecore_ipc_event_server_del_free, NULL);
+}
+
+static void
+ecore_ipc_post_event_client_add(Ecore_Ipc_Client *cl)
+{
+   Ecore_Ipc_Event_Client_Add *ev;
+
+   if (cl->delete_me) return;
+
+   ev = calloc(1, sizeof(Ecore_Ipc_Event_Client_Add));
+   EINA_SAFETY_ON_NULL_RETURN(ev);
+
+   cl->event_count++;
+   ev->client = cl;
+   ecore_event_add(ECORE_IPC_EVENT_CLIENT_ADD, ev,
+                   _ecore_ipc_event_client_add_free, NULL);
+}
+
+static void
+ecore_ipc_post_event_client_del(Ecore_Ipc_Client *cl)
+{
+   Ecore_Ipc_Event_Client_Del *ev;
+
+   if (cl->delete_me) return;
+
+   ev = calloc(1, sizeof(Ecore_Ipc_Event_Client_Del));
+   EINA_SAFETY_ON_NULL_RETURN(ev);
+
+   cl->event_count++;
+   ev->client = cl;
+   ecore_event_add(ECORE_IPC_EVENT_CLIENT_DEL, ev,
+                   _ecore_ipc_event_client_del_free, NULL);
+}
+
+static Ecore_Ipc_Client *
+ecore_ipc_client_add(Ecore_Ipc_Server *svr)
+{
+   Ecore_Ipc_Client *cl;
+
+   cl = calloc(1, sizeof(Ecore_Ipc_Client));
+   EINA_SAFETY_ON_NULL_RETURN_VAL(cl, NULL);
+   cl->svr = svr;
+   cl->max_buf_size = 32 * 1024;
+
+   ECORE_MAGIC_SET(cl, ECORE_MAGIC_IPC_CLIENT);
+   svr->clients = eina_list_append(svr->clients, cl);
+
+   return cl;
+}
+
 EAPI int
 ecore_ipc_init(void)
 {
-   int i = 0;
-
    if (++_ecore_ipc_init_count != 1)
      return _ecore_ipc_init_count;
-   _ecore_ipc_log_dom = eina_log_domain_register
-     ("ecore_ipc", ECORE_IPC_DEFAULT_LOG_COLOR);
-   if(_ecore_ipc_log_dom < 0)
+
+   if (_ecore_ipc_log_dom < 0)
      {
-       EINA_LOG_ERR("Impossible to create a log domain for the Ecore IPC module.");
-       return --_ecore_ipc_init_count;
+        _ecore_ipc_log_dom = eina_log_domain_register
+          ("ecore_ipc", ECORE_IPC_DEFAULT_LOG_COLOR);
+        if(_ecore_ipc_log_dom < 0)
+          {
+             EINA_LOG_ERR("Impossible to create a log domain for the Ecore IPC module.");
+             return --_ecore_ipc_init_count;
+          }
      }
+
    if (!ecore_con_init())
      return --_ecore_ipc_init_count;
 
@@ -268,32 +330,12 @@ ecore_ipc_init(void)
    ECORE_IPC_EVENT_CLIENT_DATA = ecore_event_type_new();
    ECORE_IPC_EVENT_SERVER_DATA = ecore_event_type_new();
 
-   handler[i++] = ecore_event_handler_add(ECORE_CON_EVENT_CLIENT_ADD,
-                                          _ecore_ipc_event_client_add, NULL);
-   handler[i++] = ecore_event_handler_add(ECORE_CON_EVENT_CLIENT_DEL,
-                                          _ecore_ipc_event_client_del, NULL);
-   handler[i++] = ecore_event_handler_add(ECORE_CON_EVENT_SERVER_ADD,
-                                          _ecore_ipc_event_server_add, NULL);
-   handler[i++] = ecore_event_handler_add(ECORE_CON_EVENT_SERVER_DEL,
-                                          _ecore_ipc_event_server_del, NULL);
-   handler[i++] = ecore_event_handler_add(ECORE_CON_EVENT_CLIENT_DATA,
-                                          _ecore_ipc_event_client_data, NULL);
-   handler[i] = ecore_event_handler_add(ECORE_CON_EVENT_SERVER_DATA,
-                                          _ecore_ipc_event_server_data, NULL);
    return _ecore_ipc_init_count;
 }
 
-/**
- * Shuts down the Ecore IPC library.
- * @return  Number of times the library has been initialised without being
- *          shut down.
- * @ingroup Ecore_IPC_Library_Group
- */
 EAPI int
 ecore_ipc_shutdown(void)
 {
-   int i;
-
    if (--_ecore_ipc_init_count != 0)
      return _ecore_ipc_init_count;
 
@@ -302,143 +344,440 @@ ecore_ipc_shutdown(void)
    EINA_LIST_FOREACH_SAFE(servers, l, l2, svr)
      ecore_ipc_server_del(svr);
 
-   for (i = 0; i < 6; i++)
-     ecore_event_handler_del(handler[i]);
+   ecore_event_type_flush(ECORE_IPC_EVENT_CLIENT_ADD,
+                          ECORE_IPC_EVENT_CLIENT_DEL,
+                          ECORE_IPC_EVENT_SERVER_ADD,
+                          ECORE_IPC_EVENT_SERVER_DEL,
+                          ECORE_IPC_EVENT_CLIENT_DATA,
+                          ECORE_IPC_EVENT_SERVER_DATA);
 
    ecore_con_shutdown();
-   eina_log_domain_unregister(_ecore_ipc_log_dom);
-   _ecore_ipc_log_dom = -1;
+
+   /* do not unregister log domain as ecore_ipc_servers may be pending deletion
+    * due Ecore_Event.
+    */
+
    return _ecore_ipc_init_count;
 }
 
-/**
- * @defgroup Ecore_IPC_Server_Group IPC Server Functions
- * @ingroup Ecore_IPC_Library_Group
- *
- * Functions the deal with IPC server objects.
- */
+static void
+_ecore_ipc_server_del(Ecore_Ipc_Server *svr)
+{
+   DBG("server %p del", svr);
 
-/**
- * Creates an IPC server that listens for connections.
- *
- * For more details about the @p compl_type, @p name and @p port
- * parameters, see the @ref ecore_con_server_add documentation.
- *
- * @param   compl_type The connection type.
- * @param   name       Name to associate with the socket used for connection.
- * @param   port       Number to identify with socket used for connection.
- * @param   data       Data to associate with the IPC server.
- * @return  New IPC server.  If there is an error, @c NULL is returned.
- * @ingroup Ecore_IPC_Server_Group
- * @todo    Need to add protocol type parameter to this function.
- */
+   if (svr->server)
+     {
+        efl_del(svr->server);
+        svr->server = NULL;
+     }
+}
+
+static void _ecore_ipc_server_client_add(void *data, const Efl_Event *event);
+
+EFL_CALLBACKS_ARRAY_DEFINE(_ecore_ipc_server_cbs,
+                           { EFL_NET_SERVER_EVENT_CLIENT_ADD, _ecore_ipc_server_client_add });
+
+/* FIXME: need to add protocol type parameter */
 EAPI Ecore_Ipc_Server *
-ecore_ipc_server_add(Ecore_Ipc_Type compl_type, const char *name, int port, const void *data)
+ecore_ipc_server_add(Ecore_Ipc_Type type, const char *name, int port, const void *data)
 {
    Ecore_Ipc_Server *svr;
-   Ecore_Ipc_Type type;
-   Ecore_Con_Type extra = 0;
+   Eo *loop = ecore_main_loop_get();
+   char *address = NULL;
+   Eina_Error err;
+#ifdef EFL_NET_SERVER_UNIX_CLASS
+   mode_t old_mask = 0, new_mask = 0;
+#endif
 
-   if (!name) return NULL;
+   EINA_SAFETY_ON_NULL_RETURN_VAL(name, NULL);
 
    svr = calloc(1, sizeof(Ecore_Ipc_Server));
-   if (!svr) return NULL;
-   type = compl_type;
-   type &= ~ECORE_IPC_USE_SSL;
-   if (compl_type & ECORE_IPC_USE_SSL) extra = ECORE_CON_USE_SSL;
-   switch (type)
+   EINA_SAFETY_ON_NULL_RETURN_VAL(svr, NULL);
+
+   if (0) { }
+#ifdef EFL_NET_SERVER_UNIX_CLASS
+   if ((type & ECORE_IPC_TYPE) == ECORE_IPC_LOCAL_USER)
      {
-      case ECORE_IPC_LOCAL_USER:
-        svr->server = ecore_con_server_add(ECORE_CON_LOCAL_USER | extra, name, port, svr);
-        break;
-      case ECORE_IPC_LOCAL_SYSTEM:
-        svr->server = ecore_con_server_add(ECORE_CON_LOCAL_SYSTEM | extra, name, port, svr);
-        break;
-      case ECORE_IPC_REMOTE_SYSTEM:
-        svr->server = ecore_con_server_add(ECORE_CON_REMOTE_SYSTEM | extra, name, port, svr);
-        break;
-      default:
-        free(svr);
-        return NULL;
+        address = ecore_con_local_path_new(EINA_FALSE, name, port);
+        EINA_SAFETY_ON_NULL_GOTO(address, error_server);
+
+        new_mask = S_IRGRP | S_IWGRP | S_IXGRP | S_IROTH | S_IWOTH | S_IXOTH;
+
+        svr->server = efl_add(EFL_NET_SERVER_UNIX_CLASS, ecore_main_loop_get(),
+                              efl_net_server_unix_leading_directories_create_set(efl_added, EINA_TRUE, S_IRUSR | S_IWUSR | S_IXUSR));
+        EINA_SAFETY_ON_NULL_GOTO(svr->server, error_server);
      }
-   if (!svr->server)
+   else if ((type & ECORE_IPC_TYPE) == ECORE_IPC_LOCAL_SYSTEM)
      {
-        free(svr);
-        return NULL;
+        address = ecore_con_local_path_new(EINA_TRUE, name, port);
+        EINA_SAFETY_ON_NULL_GOTO(address, error_server);
+
+        /* ecore_con didn't create leading directories for LOCAL_SYSTEM */
+
+        new_mask = 0;
+
+        svr->server = efl_add(EFL_NET_SERVER_UNIX_CLASS, ecore_main_loop_get());
+        EINA_SAFETY_ON_NULL_GOTO(svr->server, error_server);
      }
+#endif /* EFL_NET_SERVER_UNIX_CLASS */
+#ifdef EFL_NET_SERVER_WINDOWS_CLASS
+   if ((type & ECORE_IPC_TYPE) == ECORE_IPC_LOCAL_USER)
+     {
+        address = ecore_con_local_path_new(EINA_FALSE, name, port);
+        EINA_SAFETY_ON_NULL_GOTO(address, error_server);
+
+        // TODO: specify SECURITY_ATTRIBUTES to use or some
+        // Efl_Net_Server_Windows API to limit access
+
+        svr->server = efl_add(EFL_NET_SERVER_WINDOWS_CLASS, ecore_main_loop_get());
+        EINA_SAFETY_ON_NULL_GOTO(svr->server, error_server);
+     }
+   else if ((type & ECORE_IPC_TYPE) == ECORE_IPC_LOCAL_SYSTEM)
+     {
+        address = ecore_con_local_path_new(EINA_TRUE, name, port);
+        EINA_SAFETY_ON_NULL_GOTO(address, error_server);
+
+        // TODO: specify SECURITY_ATTRIBUTES to use or some
+        // Efl_Net_Server_Windows API to limit access
+
+        svr->server = efl_add(EFL_NET_SERVER_WINDOWS_CLASS, ecore_main_loop_get());
+        EINA_SAFETY_ON_NULL_GOTO(svr->server, error_server);
+     }
+#endif /* EFL_NET_SERVER_WINDOWS_CLASS */
+   else if ((type & ECORE_IPC_TYPE) == ECORE_IPC_REMOTE_SYSTEM)
+     {
+        char buf[4096];
+
+        if (port <= 0)
+          {
+             ERR("remote system requires port>=0, got %d", port);
+             goto error_server;
+          }
+
+        snprintf(buf, sizeof(buf), "%s:%d", name, port);
+        address = strdup(buf);
+        EINA_SAFETY_ON_NULL_GOTO(address, error_server);
+
+        if ((type & ECORE_IPC_USE_SSL) == ECORE_IPC_USE_SSL)
+          {
+             svr->server = efl_add(EFL_NET_SERVER_SSL_CLASS, loop);
+             EINA_SAFETY_ON_NULL_GOTO(svr->server, error_server);
+          }
+        else
+          {
+             svr->server = efl_add(EFL_NET_SERVER_TCP_CLASS, loop);
+             EINA_SAFETY_ON_NULL_GOTO(svr->server, error_server);
+          }
+     }
+   else
+     {
+        ERR("IPC Type must be one of: local_user, local_system or remote_system");
+        goto error_server;
+     }
+
+   efl_event_callback_array_add(svr->server, _ecore_ipc_server_cbs(), svr);
+
+#ifdef EFL_NET_SERVER_UNIX_CLASS
+   if (efl_isa(svr->server, EFL_NET_SERVER_UNIX_CLASS))
+     old_mask = umask(new_mask);
+#endif
+
+   err = efl_net_server_serve(svr->server, address);
+
+#ifdef EFL_NET_SERVER_UNIX_CLASS
+   if (efl_isa(svr->server, EFL_NET_SERVER_UNIX_CLASS))
+     umask(old_mask);
+#endif
+
+   if (err)
+     {
+        WRN("Could not serve %s %s: %s",
+            efl_class_name_get(efl_class_get(svr->server)),
+            address, eina_error_msg_get(err));
+        goto error;
+     }
+   DBG("will serve %p %s address='%s'",
+       svr->server,
+       efl_class_name_get(efl_class_get(svr->server)),
+       address);
+
    svr->max_buf_size = 32 * 1024;
    svr->data = (void *)data;
    servers = eina_list_append(servers, svr);
    ECORE_MAGIC_SET(svr, ECORE_MAGIC_IPC_SERVER);
+   free(address);
    return svr;
+
+ error:
+   free(address);
+   _ecore_ipc_server_del(svr);
+   free(svr);
+   return NULL; /* server will trigger all cleanup on its own callbacks */
+
+ error_server:
+   free(address);
+   free(svr);
+   return NULL;
 }
 
-/**
- * Creates an IPC server object to represent the IPC server listening
- * on the given port.
- *
- * For more details about the @p compl_type, @p name and @p port
- * parameters, see the @ref ecore_con_server_connect documentation.
- *
- * @param   compl_type The IPC connection type.
- * @param   name       Name used to determine which socket to use for the
- *                     IPC connection.
- * @param   port       Number used to identify the socket to use for the
- *                     IPC connection.
- * @param   data       Data to associate with the server.
- * @return  A new IPC server.  @c NULL is returned on error.
- * @ingroup Ecore_IPC_Server_Group
- * @todo    Need to add protocol type parameter.
- */
+static void
+_ecore_ipc_dialer_del(Ecore_Ipc_Server *svr)
+{
+   DBG("dialer %p del", svr);
+
+   if (svr->dialer.recv_copier)
+     {
+        efl_del(svr->dialer.recv_copier);
+        svr->dialer.recv_copier = NULL;
+     }
+
+   if (svr->dialer.send_copier)
+     {
+        efl_del(svr->dialer.send_copier);
+        svr->dialer.send_copier = NULL;
+     }
+
+   if (svr->dialer.input)
+     {
+        efl_del(svr->dialer.input);
+        svr->dialer.input = NULL;
+     }
+
+   if (svr->dialer.dialer)
+     {
+        efl_del(svr->dialer.dialer);
+        svr->dialer.dialer = NULL;
+     }
+}
+
+static void
+_ecore_ipc_dialer_eos(void *data, const Efl_Event *event EINA_UNUSED)
+{
+   Ecore_Ipc_Server *svr = data;
+
+   DBG("dialer %p %p eos", svr, svr->dialer.dialer);
+
+   _ecore_ipc_dialer_del(svr);
+
+   ecore_ipc_post_event_server_del(svr);
+}
+
+static void
+_ecore_ipc_dialer_error(void *data, const Efl_Event *event)
+{
+   Ecore_Ipc_Server *svr = data;
+   Eina_Error *perr = event->info;
+
+   WRN("dialer %p %p error %s", svr, svr->dialer.dialer, eina_error_msg_get(*perr));
+
+   if (!efl_io_closer_closed_get(svr->dialer.dialer))
+     efl_io_closer_close(svr->dialer.dialer); /* triggers EOS */
+}
+
+static void
+_ecore_ipc_dialer_connected(void *data, const Efl_Event *event EINA_UNUSED)
+{
+   Ecore_Ipc_Server *svr = data;
+
+   DBG("connected to %s %s",
+       efl_class_name_get(efl_class_get(svr->dialer.dialer)),
+       efl_net_dialer_address_dial_get(svr->dialer.dialer));
+
+   ecore_ipc_post_event_server_add(svr);
+}
+
+EFL_CALLBACKS_ARRAY_DEFINE(_ecore_ipc_dialer_cbs,
+                           { EFL_IO_READER_EVENT_EOS, _ecore_ipc_dialer_eos },
+                           { EFL_NET_DIALER_EVENT_ERROR, _ecore_ipc_dialer_error },
+                           { EFL_NET_DIALER_EVENT_CONNECTED, _ecore_ipc_dialer_connected });
+
+static Eina_Bool ecore_ipc_server_data_process(Ecore_Ipc_Server *svr, void *data, int size, Eina_Bool *stolen);
+
+static void
+_ecore_ipc_dialer_copier_data(void *data, const Efl_Event *event EINA_UNUSED)
+{
+   Ecore_Ipc_Server *svr = data;
+   Eina_Binbuf *binbuf;
+   uint8_t *mem;
+   int size;
+   Eina_Bool stolen;
+
+   DBG("dialer %p recv_copier %p data", svr, svr->dialer.recv_copier);
+
+   binbuf = efl_io_copier_binbuf_steal(svr->dialer.recv_copier);
+   EINA_SAFETY_ON_NULL_RETURN(binbuf);
+   size = eina_binbuf_length_get(binbuf);
+   mem = eina_binbuf_string_steal(binbuf);
+   eina_binbuf_free(binbuf);
+
+   ecore_ipc_server_data_process(svr, mem, size, &stolen);
+   if (!stolen) free(mem);
+}
+
+static void
+_ecore_ipc_dialer_copier_error(void *data, const Efl_Event *event)
+{
+   Ecore_Ipc_Server *svr = data;
+   Eina_Error *perr = event->info;
+
+   WRN("dialer %p %p copier %p error %s", svr, svr->dialer.dialer, event->object, eina_error_msg_get(*perr));
+
+   if (!efl_io_closer_closed_get(svr->dialer.dialer))
+     efl_io_closer_close(svr->dialer.dialer);
+}
+
+EFL_CALLBACKS_ARRAY_DEFINE(_ecore_ipc_dialer_copier_cbs,
+                           { EFL_IO_COPIER_EVENT_ERROR, _ecore_ipc_dialer_copier_error });
+
+/* FIXME: need to add protocol type parameter */
 EAPI Ecore_Ipc_Server *
-ecore_ipc_server_connect(Ecore_Ipc_Type compl_type, char *name, int port, const void *data)
+ecore_ipc_server_connect(Ecore_Ipc_Type type, char *name, int port, const void *data)
 {
    Ecore_Ipc_Server *svr;
-   Ecore_Ipc_Type type;
-   Ecore_Con_Type extra = 0;
-   int features;
+   Eo *loop = ecore_main_loop_get();
+   char *address = NULL;
+   Eina_Error err;
+
+   EINA_SAFETY_ON_NULL_RETURN_VAL(name, NULL);
 
    svr = calloc(1, sizeof(Ecore_Ipc_Server));
-   if (!svr) return NULL;
-   type = compl_type & ECORE_IPC_TYPE;
-   features = compl_type & ECORE_IPC_SSL;
-   if ((features & ECORE_IPC_USE_SSL) == ECORE_IPC_USE_SSL)
-     extra |= ECORE_CON_USE_SSL;
-   if ((features & ECORE_IPC_NO_PROXY) == ECORE_IPC_NO_PROXY)
-     extra |= ECORE_CON_NO_PROXY;
-   switch (type)
+   EINA_SAFETY_ON_NULL_RETURN_VAL(svr, NULL);
+
+   if (0) { }
+#ifdef EFL_NET_DIALER_UNIX_CLASS
+   if ((type & ECORE_IPC_TYPE) == ECORE_IPC_LOCAL_USER)
      {
-      case ECORE_IPC_LOCAL_USER:
-        svr->server = ecore_con_server_connect(ECORE_CON_LOCAL_USER | extra, name, port, svr);
-        break;
-      case ECORE_IPC_LOCAL_SYSTEM:
-        svr->server = ecore_con_server_connect(ECORE_CON_LOCAL_SYSTEM | extra, name, port, svr);
-        break;
-      case ECORE_IPC_REMOTE_SYSTEM:
-        svr->server = ecore_con_server_connect(ECORE_CON_REMOTE_SYSTEM | extra, name, port, svr);
-        break;
-      default:
-        free(svr);
-        return NULL;
+        struct stat st;
+
+        address = ecore_con_local_path_new(EINA_FALSE, name, port);
+        EINA_SAFETY_ON_NULL_GOTO(address, error_dialer);
+
+        if ((stat(address, &st) != 0)
+#ifdef S_ISSOCK
+            || (!S_ISSOCK(st.st_mode))
+#endif
+            )
+          {
+             DBG("%s is not a socket", address);
+             goto error_dialer;
+          }
+
+        svr->dialer.dialer = efl_add(EFL_NET_DIALER_UNIX_CLASS, ecore_main_loop_get());
+        EINA_SAFETY_ON_NULL_GOTO(svr->dialer.dialer, error_dialer);
      }
-   if (!svr->server)
+   else if ((type & ECORE_IPC_TYPE) == ECORE_IPC_LOCAL_SYSTEM)
      {
-        free(svr);
-        return NULL;
+        address = ecore_con_local_path_new(EINA_TRUE, name, port);
+        EINA_SAFETY_ON_NULL_GOTO(address, error_dialer);
+
+        svr->dialer.dialer = efl_add(EFL_NET_DIALER_UNIX_CLASS, ecore_main_loop_get());
+        EINA_SAFETY_ON_NULL_GOTO(svr->dialer.dialer, error_dialer);
      }
+#endif /* EFL_NET_DIALER_UNIX_CLASS */
+#ifdef EFL_NET_DIALER_WINDOWS_CLASS
+   if ((type & ECORE_IPC_TYPE) == ECORE_IPC_LOCAL_USER)
+     {
+        address = ecore_con_local_path_new(EINA_FALSE, name, port);
+        EINA_SAFETY_ON_NULL_GOTO(address, error_dialer);
+
+        svr->dialer.dialer = efl_add(EFL_NET_DIALER_WINDOWS_CLASS, ecore_main_loop_get());
+        EINA_SAFETY_ON_NULL_GOTO(svr->dialer.dialer, error_dialer);
+     }
+   else if ((type & ECORE_IPC_TYPE) == ECORE_IPC_LOCAL_SYSTEM)
+     {
+        address = ecore_con_local_path_new(EINA_TRUE, name, port);
+        EINA_SAFETY_ON_NULL_GOTO(address, error_dialer);
+
+        svr->dialer.dialer = efl_add(EFL_NET_DIALER_WINDOWS_CLASS, ecore_main_loop_get());
+        EINA_SAFETY_ON_NULL_GOTO(svr->dialer.dialer, error_dialer);
+     }
+#endif /* EFL_NET_DIALER_WINDOWS_CLASS */
+   else if ((type & ECORE_IPC_TYPE) == ECORE_IPC_REMOTE_SYSTEM)
+     {
+        char buf[4096];
+
+        if (port <= 0)
+          {
+             ERR("remote system requires port>=0, got %d", port);
+             goto error_dialer;
+          }
+
+        snprintf(buf, sizeof(buf), "%s:%d", name, port);
+        address = strdup(buf);
+        EINA_SAFETY_ON_NULL_GOTO(address, error_dialer);
+
+        if ((type & ECORE_IPC_USE_SSL) == ECORE_IPC_USE_SSL)
+          {
+             svr->dialer.dialer = efl_add(EFL_NET_DIALER_SSL_CLASS, loop);
+             EINA_SAFETY_ON_NULL_GOTO(svr->dialer.dialer, error_dialer);
+          }
+        else
+          {
+             svr->dialer.dialer = efl_add(EFL_NET_DIALER_TCP_CLASS, loop);
+             EINA_SAFETY_ON_NULL_GOTO(svr->dialer.dialer, error_dialer);
+          }
+
+        if ((type & ECORE_IPC_NO_PROXY) == ECORE_IPC_NO_PROXY)
+          efl_net_dialer_proxy_set(svr->dialer.dialer, "");
+     }
+   else
+     {
+        ERR("IPC Type must be one of: local_user, local_system or remote_system");
+        goto error_dialer;
+     }
+
+   efl_io_closer_close_on_destructor_set(svr->dialer.dialer, EINA_TRUE);
+   efl_event_callback_array_add(svr->dialer.dialer, _ecore_ipc_dialer_cbs(), svr);
+
+   svr->dialer.input = efl_add(EFL_IO_QUEUE_CLASS, loop);
+   EINA_SAFETY_ON_NULL_GOTO(svr->dialer.input, error);
+
+   svr->dialer.send_copier = efl_add(EFL_IO_COPIER_CLASS, loop,
+                                     efl_io_closer_close_on_destructor_set(efl_added, EINA_FALSE),
+                                     efl_io_copier_source_set(efl_added, svr->dialer.input),
+                                     efl_io_copier_destination_set(efl_added, svr->dialer.dialer),
+                                     efl_event_callback_array_add(efl_added, _ecore_ipc_dialer_copier_cbs(), svr));
+   EINA_SAFETY_ON_NULL_GOTO(svr->dialer.send_copier, error);
+
+   svr->dialer.recv_copier = efl_add(EFL_IO_COPIER_CLASS, loop,
+                                     efl_io_closer_close_on_destructor_set(efl_added, EINA_FALSE),
+                                     efl_io_copier_source_set(efl_added, svr->dialer.dialer),
+                                     efl_event_callback_array_add(efl_added, _ecore_ipc_dialer_copier_cbs(), svr),
+                                     efl_event_callback_add(efl_added, EFL_IO_COPIER_EVENT_DATA, _ecore_ipc_dialer_copier_data, svr));
+   EINA_SAFETY_ON_NULL_GOTO(svr->dialer.recv_copier, error);
+
+   err = efl_net_dialer_dial(svr->dialer.dialer, address);
+   if (err)
+     {
+        WRN("Could not reach %s %s: %s",
+            efl_class_name_get(efl_class_get(svr->dialer.dialer)),
+            address, eina_error_msg_get(err));
+        goto error;
+     }
+   DBG("connecting %p %s address='%s'",
+       svr->dialer.dialer,
+       efl_class_name_get(efl_class_get(svr->dialer.dialer)),
+       address);
+
    svr->max_buf_size = -1;
    svr->data = (void *)data;
    servers = eina_list_append(servers, svr);
    ECORE_MAGIC_SET(svr, ECORE_MAGIC_IPC_SERVER);
+   free(address);
    return svr;
+
+ error:
+   free(address);
+   _ecore_ipc_dialer_del(svr);
+   free(svr);
+   return NULL; /* dialer will trigger all cleanup on its own callbacks */
+
+ error_dialer:
+   free(address);
+   free(svr);
+   return NULL;
 }
 
-/**
- * Closes the connection and frees the given IPC server.
- * @param   svr The given IPC server.
- * @return  The data associated with the server when it was created.
- * @ingroup Ecore_IPC_Server_Group
- */
 EAPI void *
 ecore_ipc_server_del(Ecore_Ipc_Server *svr)
 {
@@ -451,7 +790,6 @@ ecore_ipc_server_del(Ecore_Ipc_Server *svr)
                          "ecore_ipc_server_del");
         return NULL;
      }
-   if (svr->delete_me) return NULL;
 
    data = svr->data;
    svr->data = NULL;
@@ -465,22 +803,20 @@ ecore_ipc_server_del(Ecore_Ipc_Server *svr)
              cl->svr = NULL;
              ecore_ipc_client_del(cl);
           }
-        if (svr->server) ecore_con_server_del(svr->server);
+
+        if (svr->dialer.dialer) _ecore_ipc_dialer_del(svr);
+        if (svr->server) _ecore_ipc_server_del(svr);
         servers = eina_list_remove(servers, svr);
 
         if (svr->buf) free(svr->buf);
         ECORE_MAGIC_SET(svr, ECORE_MAGIC_NONE);
+        DBG("server %p freed", svr);
         free(svr);
      }
+   else DBG("server %p has %d events pending, postpone deletion", svr, svr->event_count);
    return data;
 }
 
-/**
- * Retrieves the data associated with the given IPC server.
- * @param   svr The given IPC server.
- * @return  The associated data.
- * @ingroup Ecore_IPC_Server_Group
- */
 EAPI void *
 ecore_ipc_server_data_get(Ecore_Ipc_Server *svr)
 {
@@ -493,12 +829,6 @@ ecore_ipc_server_data_get(Ecore_Ipc_Server *svr)
    return svr->data;
 }
 
-/**
- * Retrieves whether the given IPC server is currently connected.
- * @param   svr The given IPC server.
- * @return @c EINA_TRUE if the server is connected, @c EINA_FALSE otherwise.
- * @ingroup Ecore_IPC_Server_Group
- */
 EAPI Eina_Bool
 ecore_ipc_server_connected_get(Ecore_Ipc_Server *svr)
 {
@@ -508,15 +838,13 @@ ecore_ipc_server_connected_get(Ecore_Ipc_Server *svr)
                          "ecore_ipc_server_connected_get");
         return EINA_FALSE;
      }
-   return ecore_con_server_connected_get(svr->server);
+
+   if (svr->dialer.dialer)
+     return efl_net_dialer_connected_get(svr->dialer.dialer);
+   else if (svr->server) return EINA_TRUE;
+   return EINA_FALSE;
 }
 
-/**
- * Retrieves the list of clients for this server.
- * @param   svr The given IPC server.
- * @return  An Eina_List with the clients.
- * @ingroup Ecore_IPC_Server_Group
- */
 EAPI Eina_List *
 ecore_ipc_server_clients_get(Ecore_Ipc_Server *svr)
 {
@@ -561,30 +889,11 @@ ecore_ipc_server_clients_get(Ecore_Ipc_Server *svr)
         s += 1; \
      }
 
-/**
- * Sends a message to the given IPC server.
- *
- * The content of the parameters, excluding the @p svr parameter, is up to
- * the client.
- *
- * @param   svr      The given IPC server.
- * @param   major    Major opcode of the message.
- * @param   minor    Minor opcode of the message.
- * @param   ref      Message reference number.
- * @param   ref_to   Reference number of the message this message refers to.
- * @param   response Requires response.
- * @param   data     The data to send as part of the message.
- * @param   size     Length of the data, in bytes, to send.
- * @return  Number of bytes sent.  @c 0 is returned if there is an error.
- * @ingroup Ecore_IPC_Server_Group
- * @todo    This function needs to become an IPC message.
- * @todo Fix up the documentation: Make sure what ref_to and response are.
- */
+/* FIXME: this needs to become an ipc message */
 EAPI int
 ecore_ipc_server_send(Ecore_Ipc_Server *svr, int major, int minor, int ref, int ref_to, int response, const void *data, int size)
 {
    Ecore_Ipc_Msg_Head msg;
-   int ret;
    int *head, md = 0, d, s;
    unsigned char dat[sizeof(Ecore_Ipc_Msg_Head)];
 
@@ -617,33 +926,54 @@ ecore_ipc_server_send(Ecore_Ipc_Server *svr, int major, int minor, int ref, int 
    *head |= md << (4 * 5);
    *head = htonl(*head);
    svr->prev.o = msg;
-   ret = ecore_con_server_send(svr->server, dat, s);
-   if (size > 0) ret += ecore_con_server_send(svr->server, data, size);
-   return ret;
+
+   if (svr->dialer.input)
+     {
+        Eina_Slice slice;
+        Eina_Error err;
+
+        slice.mem = dat;
+        slice.len = s;
+        err = efl_io_writer_write(svr->dialer.input, &slice, NULL);
+        if (err)
+          {
+             ERR("could not write queue=%p %zd bytes: %s",
+                 svr->dialer.input, slice.len, eina_error_msg_get(err));
+             return 0;
+          }
+        if (slice.len < (size_t)s)
+          {
+             ERR("only wrote %zd of %d bytes to queue %p",
+                 slice.len, s, svr->dialer.input);
+             return 0;
+          }
+
+        slice.mem = data;
+        slice.len = size;
+        err = efl_io_writer_write(svr->dialer.input, &slice, NULL);
+        if (err)
+          {
+             ERR("could not write queue=%p %zd bytes: %s",
+                 svr->dialer.input, slice.len, eina_error_msg_get(err));
+             return 0;
+          }
+        if (slice.len < (size_t)size)
+          {
+             ERR("only wrote %zd of %d bytes to queue %p",
+                 slice.len, size, svr->dialer.input);
+             return 0;
+          }
+
+        return s + size;
+     }
+   else if (svr->server)
+     {
+        ERR("Send data to clients, not the server handle");
+        return 0;
+     }
+   return 0;
 }
 
-/**
- * Sets a limit on the number of clients that can be handled concurrently
- * by the given server, and a policy on what to do if excess clients try to
- * connect.
- * Beware that if you set this once ecore is already running, you may
- * already have pending CLIENT_ADD events in your event queue.  Those
- * clients have already connected and will not be affected by this call.
- * Only clients subsequently trying to connect will be affected.
- * @param   svr           The given server.
- * @param   client_limit  The maximum number of clients to handle
- *                        concurrently.  -1 means unlimited (default).  0
- *                        effectively disables the server.
- * @param   reject_excess_clients  Set to 1 to automatically disconnect
- *                        excess clients as soon as they connect if you are
- *                        already handling client_limit clients.  Set to 0
- *                        (default) to just hold off on the "accept()"
- *                        system call until the number of active clients
- *                        drops. This causes the kernel to queue up to 4096
- *                        connections (or your kernel's limit, whichever is
- *                        lower).
- * @ingroup Ecore_Ipc_Server_Group
- */
 EAPI void
 ecore_ipc_server_client_limit_set(Ecore_Ipc_Server *svr, int client_limit, char reject_excess_clients)
 {
@@ -653,16 +983,13 @@ ecore_ipc_server_client_limit_set(Ecore_Ipc_Server *svr, int client_limit, char 
                          "ecore_ipc_server_client_limit_set");
         return;
      }
-   ecore_con_server_client_limit_set(svr->server, client_limit, reject_excess_clients);
+   if (svr->server)
+     {
+        efl_net_server_clients_limit_set(svr->server, client_limit, reject_excess_clients);
+        return;
+     }
 }
 
-/**
- * Sets the max data payload size for an Ipc message in bytes
- *
- * @param   svr           The given server.
- * @param   size          The maximum data payload size in bytes.
- * @ingroup Ecore_Ipc_Server_Group
- */
 EAPI void
 ecore_ipc_server_data_size_max_set(Ecore_Ipc_Server *svr, int size)
 {
@@ -675,13 +1002,6 @@ ecore_ipc_server_data_size_max_set(Ecore_Ipc_Server *svr, int size)
    svr->max_buf_size = size;
 }
 
-/**
- * Gets the max data payload size for an Ipc message in bytes
- *
- * @param   svr           The given server.
- * @return The maximum data payload in bytes.
- * @ingroup Ecore_Ipc_Server_Group
- */
 EAPI int
 ecore_ipc_server_data_size_max_get(Ecore_Ipc_Server *svr)
 {
@@ -694,16 +1014,6 @@ ecore_ipc_server_data_size_max_get(Ecore_Ipc_Server *svr)
    return svr->max_buf_size;
 }
 
-/**
- * Gets the IP address of a server that has been connected to.
- *
- * @param   svr           The given server.
- * @return  A pointer to an internal string that contains the IP address of
- *          the connected server in the form "XXX.YYY.ZZZ.AAA" IP notation.
- *          This string should not be modified or trusted to stay valid after
- *          deletion for the @p svr object. If no IP is known NULL is returned.
- * @ingroup Ecore_Ipc_Server_Group
- */
 EAPI const char *
 ecore_ipc_server_ip_get(Ecore_Ipc_Server *svr)
 {
@@ -713,15 +1023,26 @@ ecore_ipc_server_ip_get(Ecore_Ipc_Server *svr)
                          "ecore_ipc_server_ip_get");
         return NULL;
      }
-   return ecore_con_server_ip_get(svr->server);
+
+   if (svr->dialer.dialer)
+     {
+        if (efl_isa(svr->dialer.dialer, EFL_NET_DIALER_TCP_CLASS) ||
+            efl_isa(svr->dialer.dialer, EFL_NET_DIALER_SSL_CLASS))
+          return efl_net_dialer_address_dial_get(svr->dialer.dialer);
+        /* original IPC just returned IP for remote connections */
+        return NULL;
+     }
+   else if (svr->server)
+     {
+        if (efl_isa(svr->server, EFL_NET_SERVER_TCP_CLASS) ||
+            efl_isa(svr->server, EFL_NET_SERVER_SSL_CLASS))
+          return efl_net_server_address_get(svr->server);
+        /* original IPC just returned IP for remote connections */
+        return NULL;
+     }
+   return NULL;
 }
 
-/**
- * Flushes all pending data to the given server. Will return when done.
- *
- * @param   svr           The given server.
- * @ingroup Ecore_Ipc_Server_Group
- */
 EAPI void
 ecore_ipc_server_flush(Ecore_Ipc_Server *svr)
 {
@@ -731,7 +1052,20 @@ ecore_ipc_server_flush(Ecore_Ipc_Server *svr)
                          "ecore_ipc_server_server_flush");
         return;
      }
-   ecore_con_server_flush(svr->server);
+   if (svr->dialer.input)
+     {
+        while (!efl_io_closer_closed_get(svr->dialer.dialer) &&
+               !efl_net_dialer_connected_get(svr->dialer.dialer))
+          ecore_main_loop_iterate();
+        while (efl_io_queue_usage_get(svr->dialer.input) > 0)
+          efl_io_copier_flush(svr->dialer.send_copier, EINA_TRUE, EINA_TRUE);
+        return;
+     }
+   else if (svr->server)
+     {
+        ERR("Flush clients, not the server handle");
+        return;
+     }
 }
 
 #define CLENC(_member) \
@@ -766,34 +1100,11 @@ ecore_ipc_server_flush(Ecore_Ipc_Server *svr)
         s += 1; \
      }
 
-/**
- * @defgroup Ecore_IPC_Client_Group IPC Client Functions
- * @ingroup Ecore_IPC_Library_Group
- *
- * Functions that deal with IPC client objects.
- */
-
-/**
- * Sends a message to the given IPC client.
- * @param   cl       The given IPC client.
- * @param   major    Major opcode of the message.
- * @param   minor    Minor opcode of the message.
- * @param   ref      Reference number of the message.
- * @param   ref_to   Reference number of the message this message refers to.
- * @param   response Requires response.
- * @param   data     The data to send as part of the message.
- * @param   size     Length of the data, in bytes, to send.
- * @return  The number of bytes sent.  @c 0 will be returned if there is
- *          an error.
- * @ingroup Ecore_IPC_Client_Group
- * @todo    This function needs to become an IPC message.
- * @todo    Make sure ref_to and response parameters are described correctly.
- */
+/* FIXME: this needs to become an ipc message */
 EAPI int
 ecore_ipc_client_send(Ecore_Ipc_Client *cl, int major, int minor, int ref, int ref_to, int response, const void *data, int size)
 {
    Ecore_Ipc_Msg_Head msg;
-   int ret;
    int *head, md = 0, d, s;
    unsigned char dat[sizeof(Ecore_Ipc_Msg_Head)];
 
@@ -803,8 +1114,14 @@ ecore_ipc_client_send(Ecore_Ipc_Client *cl, int major, int minor, int ref, int r
                          "ecore_ipc_client_send");
         return 0;
      }
-   EINA_SAFETY_ON_TRUE_RETURN_VAL(!cl->client, 0);
-   EINA_SAFETY_ON_TRUE_RETURN_VAL(!ecore_con_client_connected_get(cl->client), 0);
+   if (cl->socket.socket)
+     EINA_SAFETY_ON_TRUE_RETURN_VAL(efl_io_closer_closed_get(cl->socket.socket), 0);
+   else
+     {
+        ERR("client %p is not connected", cl);
+        return 0;
+     }
+
    if (size < 0) size = 0;
    msg.major    = major;
    msg.minor    = minor;
@@ -828,17 +1145,49 @@ ecore_ipc_client_send(Ecore_Ipc_Client *cl, int major, int minor, int ref, int r
    *head |= md << (4 * 5);
    *head = htonl(*head);
    cl->prev.o = msg;
-   ret = ecore_con_client_send(cl->client, dat, s);
-   if (size > 0) ret += ecore_con_client_send(cl->client, data, size);
-   return ret;
+
+   if (cl->socket.input)
+     {
+        Eina_Slice slice;
+        Eina_Error err;
+
+        slice.mem = dat;
+        slice.len = s;
+        err = efl_io_writer_write(cl->socket.input, &slice, NULL);
+        if (err)
+          {
+             ERR("could not write queue=%p %zd bytes: %s",
+                 cl->socket.input, slice.len, eina_error_msg_get(err));
+             return 0;
+          }
+        if (slice.len < (size_t)s)
+          {
+             ERR("only wrote %zd of %d bytes to queue %p",
+                 slice.len, s, cl->socket.input);
+             return 0;
+          }
+
+        slice.mem = data;
+        slice.len = size;
+        err = efl_io_writer_write(cl->socket.input, &slice, NULL);
+        if (err)
+          {
+             ERR("could not write queue=%p %zd bytes: %s",
+                 cl->socket.input, slice.len, eina_error_msg_get(err));
+             return 0;
+          }
+        if (slice.len < (size_t)size)
+          {
+             ERR("only wrote %zd of %d bytes to queue %p",
+                 slice.len, size, cl->socket.input);
+             return 0;
+          }
+
+        return s + size;
+     }
+   return 0;
 }
 
-/**
- * Retrieves the IPC server that the given IPC client is connected to.
- * @param   cl The given IPC client.
- * @return  The IPC server the IPC client is connected to.
- * @ingroup Ecore_IPC_Client_Group
- */
 EAPI Ecore_Ipc_Server *
 ecore_ipc_client_server_get(Ecore_Ipc_Client *cl)
 {
@@ -851,13 +1200,140 @@ ecore_ipc_client_server_get(Ecore_Ipc_Client *cl)
    return cl->svr;
 }
 
-/**
- * Closes the connection and frees memory allocated to the given IPC
- * client.
- * @param   cl The given client.
- * @return  Data associated with the client.
- * @ingroup Ecore_IPC_Client_Group
- */
+static Efl_Callback_Array_Item *_ecore_ipc_socket_cbs(void);
+
+static void
+_ecore_ipc_client_socket_del(Ecore_Ipc_Client *cl)
+{
+   DBG("client %p socket del", cl);
+
+   if (cl->socket.recv_copier)
+     {
+        efl_del(cl->socket.recv_copier);
+        cl->socket.recv_copier = NULL;
+     }
+
+   if (cl->socket.send_copier)
+     {
+        efl_del(cl->socket.send_copier);
+        cl->socket.send_copier = NULL;
+     }
+
+   if (cl->socket.input)
+     {
+        efl_del(cl->socket.input);
+        cl->socket.input = NULL;
+     }
+
+   if (cl->socket.socket)
+     {
+        efl_event_callback_array_del(cl->socket.socket, _ecore_ipc_socket_cbs(), cl);
+        /* do not del() as it's owned by srv->server */
+        if (!efl_io_closer_closed_get(cl->socket.socket))
+          efl_io_closer_close(cl->socket.socket);
+        efl_unref(cl->socket.socket);
+        cl->socket.socket = NULL;
+     }
+}
+
+static void
+_ecore_ipc_client_socket_eos(void *data, const Efl_Event *event EINA_UNUSED)
+{
+   Ecore_Ipc_Client *cl = data;
+
+   DBG("client %p socket %p eos", cl, cl->socket.socket);
+
+   _ecore_ipc_client_socket_del(cl);
+
+   ecore_ipc_post_event_client_del(cl);
+}
+
+EFL_CALLBACKS_ARRAY_DEFINE(_ecore_ipc_socket_cbs,
+                           { EFL_IO_READER_EVENT_EOS, _ecore_ipc_client_socket_eos });
+
+static Eina_Bool ecore_ipc_client_data_process(Ecore_Ipc_Client *cl, void *data, int size, Eina_Bool *stolen);
+
+static void
+_ecore_ipc_client_socket_copier_data(void *data, const Efl_Event *event EINA_UNUSED)
+{
+   Ecore_Ipc_Client *cl = data;
+   Eina_Binbuf *binbuf;
+   uint8_t *mem;
+   int size;
+   Eina_Bool stolen;
+
+   DBG("client %p recv_copier %p data", cl, cl->socket.recv_copier);
+
+   binbuf = efl_io_copier_binbuf_steal(cl->socket.recv_copier);
+   EINA_SAFETY_ON_NULL_RETURN(binbuf);
+   size = eina_binbuf_length_get(binbuf);
+   mem = eina_binbuf_string_steal(binbuf);
+   eina_binbuf_free(binbuf);
+
+   ecore_ipc_client_data_process(cl, mem, size, &stolen);
+   if (!stolen) free(mem);
+}
+
+static void
+_ecore_ipc_client_socket_copier_error(void *data, const Efl_Event *event)
+{
+   Ecore_Ipc_Client *cl = data;
+   Eina_Error *perr = event->info;
+
+   WRN("client %p socket %p copier %p error %s", cl, cl->socket.socket, event->object, eina_error_msg_get(*perr));
+
+   if (!efl_io_closer_closed_get(cl->socket.socket))
+     efl_io_closer_close(cl->socket.socket);
+}
+
+EFL_CALLBACKS_ARRAY_DEFINE(_ecore_ipc_client_socket_copier_cbs,
+                           { EFL_IO_COPIER_EVENT_ERROR, _ecore_ipc_client_socket_copier_error });
+
+static void
+_ecore_ipc_server_client_add(void *data, const Efl_Event *event)
+{
+   Ecore_Ipc_Server *svr = data;
+   Eo *socket = event->info;
+   Ecore_Ipc_Client *cl;
+   Eo *loop;
+
+   DBG("server %p %p got new client %p (%s)",
+       svr, svr->server,
+       event->object, efl_net_socket_address_remote_get(socket));
+
+   cl = ecore_ipc_client_add(svr);
+   EINA_SAFETY_ON_NULL_RETURN(cl);
+
+   cl->socket.socket = efl_ref(socket);
+   efl_event_callback_array_add(cl->socket.socket, _ecore_ipc_socket_cbs(), cl);
+
+   loop = efl_loop_get(socket);
+
+   cl->socket.input = efl_add(EFL_IO_QUEUE_CLASS, loop);
+   EINA_SAFETY_ON_NULL_GOTO(cl->socket.input, error);
+
+   cl->socket.send_copier = efl_add(EFL_IO_COPIER_CLASS, loop,
+                                     efl_io_closer_close_on_destructor_set(efl_added, EINA_FALSE),
+                                     efl_io_copier_source_set(efl_added, cl->socket.input),
+                                     efl_io_copier_destination_set(efl_added, cl->socket.socket),
+                                     efl_event_callback_array_add(efl_added, _ecore_ipc_client_socket_copier_cbs(), cl));
+   EINA_SAFETY_ON_NULL_GOTO(cl->socket.send_copier, error);
+
+   cl->socket.recv_copier = efl_add(EFL_IO_COPIER_CLASS, loop,
+                                     efl_io_closer_close_on_destructor_set(efl_added, EINA_FALSE),
+                                     efl_io_copier_source_set(efl_added, cl->socket.socket),
+                                     efl_event_callback_array_add(efl_added, _ecore_ipc_client_socket_copier_cbs(), cl),
+                                     efl_event_callback_add(efl_added, EFL_IO_COPIER_EVENT_DATA, _ecore_ipc_client_socket_copier_data, cl));
+   EINA_SAFETY_ON_NULL_GOTO(cl->socket.recv_copier, error);
+
+   ecore_ipc_post_event_client_add(cl);
+   return;
+
+ error:
+   _ecore_ipc_client_socket_del(cl);
+   free(cl);
+}
+
 EAPI void *
 ecore_ipc_client_del(Ecore_Ipc_Client *cl)
 {
@@ -877,7 +1353,7 @@ ecore_ipc_client_del(Ecore_Ipc_Client *cl)
    if (cl->event_count == 0)
      {
         svr = cl->svr;
-        if (cl->client) ecore_con_client_del(cl->client);
+        if (cl->socket.socket) _ecore_ipc_client_socket_del(cl);
         if (ECORE_MAGIC_CHECK(svr, ECORE_MAGIC_IPC_SERVER))
           svr->clients = eina_list_remove(svr->clients, cl);
         if (cl->buf) free(cl->buf);
@@ -887,12 +1363,6 @@ ecore_ipc_client_del(Ecore_Ipc_Client *cl)
    return data;
 }
 
-/**
- * Sets the IPC data associated with the given IPC client to @p data.
- * @param   cl   The given IPC client.
- * @param   data The data to associate with the IPC client.
- * @ingroup Ecore_IPC_Client_Group
- */
 EAPI void
 ecore_ipc_client_data_set(Ecore_Ipc_Client *cl, const void *data)
 {
@@ -905,12 +1375,6 @@ ecore_ipc_client_data_set(Ecore_Ipc_Client *cl, const void *data)
    cl->data = (void *)data;
 }
 
-/**
- * Retrieves the data that has been associated with the given IPC client.
- * @param   cl The given client.
- * @return  The data associated with the IPC client.
- * @ingroup Ecore_IPC_Client_Group
- */
 EAPI void *
 ecore_ipc_client_data_get(Ecore_Ipc_Client *cl)
 {
@@ -923,13 +1387,6 @@ ecore_ipc_client_data_get(Ecore_Ipc_Client *cl)
    return cl->data;
 }
 
-/**
- * Sets the max data payload size for an Ipc message in bytes
- *
- * @param   cl        The given client.
- * @param   size          The maximum data payload size in bytes.
- * @ingroup Ecore_Ipc_Client_Group
- */
 EAPI void
 ecore_ipc_client_data_size_max_set(Ecore_Ipc_Client *cl, int size)
 {
@@ -942,13 +1399,6 @@ ecore_ipc_client_data_size_max_set(Ecore_Ipc_Client *cl, int size)
    cl->max_buf_size = size;
 }
 
-/**
- * Gets the max data payload size for an Ipc message in bytes
- *
- * @param   cl            The given client.
- * @return The maximum data payload size in bytes on success, @c -1 on failure.
- * @ingroup Ecore_Ipc_Client_Group
- */
 EAPI int
 ecore_ipc_client_data_size_max_get(Ecore_Ipc_Client *cl)
 {
@@ -961,17 +1411,6 @@ ecore_ipc_client_data_size_max_get(Ecore_Ipc_Client *cl)
    return cl->max_buf_size;
 }
 
-/**
- * Gets the IP address of a client that has been connected to.
- *
- * @param   cl            The given client.
- * @return  A pointer to an internal string that contains the IP address of
- *          the connected server in the form "XXX.YYY.ZZZ.AAA" IP notation.
- *          This string should not be modified or trusted to stay valid after
- *          deletion for the @p cl object. If no IP is known @c NULL is
- *          returned.
- * @ingroup Ecore_Ipc_Client_Group
- */
 EAPI const char *
 ecore_ipc_client_ip_get(Ecore_Ipc_Client *cl)
 {
@@ -981,15 +1420,19 @@ ecore_ipc_client_ip_get(Ecore_Ipc_Client *cl)
                          "ecore_ipc_client_ip_get");
         return NULL;
      }
-   return ecore_con_client_ip_get(cl->client);
+   if (cl->socket.socket)
+     {
+        if (efl_isa(cl->socket.socket, EFL_NET_SOCKET_TCP_CLASS) ||
+            efl_isa(cl->socket.socket, EFL_NET_SOCKET_SSL_CLASS))
+          return efl_net_socket_address_remote_get(cl->socket.socket);
+        /* original IPC just returned IP for remote connections,
+         * for unix socket it returned 0.0.0.0
+         */
+        return "0.0.0.0";
+     }
+   return NULL;
 }
 
-/**
- * Flushes all pending data to the given client. Will return when done.
- *
- * @param   cl            The given client.
- * @ingroup Ecore_Ipc_Client_Group
- */
 EAPI void
 ecore_ipc_client_flush(Ecore_Ipc_Client *cl)
 {
@@ -999,151 +1442,18 @@ ecore_ipc_client_flush(Ecore_Ipc_Client *cl)
                          "ecore_ipc_client_flush");
         return;
      }
-   ecore_con_client_flush(cl->client);
+   if (cl->socket.input)
+     {
+        while (efl_io_queue_usage_get(cl->socket.input) > 0)
+          efl_io_copier_flush(cl->socket.send_copier, EINA_TRUE, EINA_TRUE);
+        return;
+     }
 }
 
-/**
- * Returns if SSL support is available
- * @return  1 if SSL is available, 0 if it is not.
- * @ingroup Ecore_Con_Client_Group
- */
 EAPI int
 ecore_ipc_ssl_available_get(void)
 {
    return ecore_con_ssl_available_get();
-}
-
-
-static Eina_Bool
-_ecore_ipc_event_client_add(void *data EINA_UNUSED, int ev_type EINA_UNUSED, void *ev)
-{
-   Ecore_Con_Event_Client_Add *e;
-   Ecore_Ipc_Server *svr;
-
-   e = ev;
-   svr = ecore_con_server_data_get(ecore_con_client_server_get(e->client));
-   if (!eina_list_data_find(servers, svr)) return ECORE_CALLBACK_RENEW;
-   /* handling code here */
-     {
-        Ecore_Ipc_Client *cl;
-
-        cl = calloc(1, sizeof(Ecore_Ipc_Client));
-        if (!cl) return ECORE_CALLBACK_CANCEL;
-        cl->svr = svr;
-        ECORE_MAGIC_SET(cl, ECORE_MAGIC_IPC_CLIENT);
-        cl->client = e->client;
-        cl->max_buf_size = 32 * 1024;
-        ecore_con_client_data_set(cl->client, (void *)cl);
-        svr->clients = eina_list_append(svr->clients, cl);
-        if (!cl->delete_me)
-          {
-             Ecore_Ipc_Event_Client_Add *e2;
-
-             e2 = calloc(1, sizeof(Ecore_Ipc_Event_Client_Add));
-             if (e2)
-               {
-                  cl->event_count++;
-                  e2->client = cl;
-                  ecore_event_add(ECORE_IPC_EVENT_CLIENT_ADD, e2,
-                                  _ecore_ipc_event_client_add_free, NULL);
-               }
-          }
-     }
-   return ECORE_CALLBACK_CANCEL;
-}
-
-static Eina_Bool
-_ecore_ipc_event_client_del(void *data EINA_UNUSED, int ev_type EINA_UNUSED, void *ev)
-{
-   Ecore_Con_Event_Client_Del *e;
-   Ecore_Ipc_Server *svr;
-
-   e = ev;
-   if (!e->client) return ECORE_CALLBACK_RENEW;
-   svr = ecore_con_server_data_get(ecore_con_client_server_get(e->client));
-   if (!eina_list_data_find(servers, svr)) return ECORE_CALLBACK_RENEW;
-   /* handling code here */
-     {
-        Ecore_Ipc_Client *cl;
-
-        cl = ecore_con_client_data_get(e->client);
-        cl->client = NULL;
-          {
-             Ecore_Ipc_Event_Client_Del *e2;
-
-             if (!cl->delete_me)
-               {
-                  e2 = calloc(1, sizeof(Ecore_Ipc_Event_Client_Del));
-                  if (e2)
-                    {
-                       cl->event_count++;
-                       e2->client = cl;
-                       ecore_event_add(ECORE_IPC_EVENT_CLIENT_DEL, e2,
-                                       _ecore_ipc_event_client_del_free, NULL);
-                    }
-               }
-          }
-     }
-   return ECORE_CALLBACK_CANCEL;
-}
-
-static Eina_Bool
-_ecore_ipc_event_server_add(void *data EINA_UNUSED, int ev_type EINA_UNUSED, void *ev)
-{
-   Ecore_Con_Event_Server_Add *e;
-
-   e = ev;
-   if (!eina_list_data_find(servers, ecore_con_server_data_get(e->server))) return ECORE_CALLBACK_RENEW;
-   /* handling code here */
-     {
-        Ecore_Ipc_Server *svr;
-
-        svr = ecore_con_server_data_get(e->server);
-        if (!svr->delete_me)
-          {
-             Ecore_Ipc_Event_Server_Add *e2;
-
-             e2 = calloc(1, sizeof(Ecore_Ipc_Event_Server_Add));
-             if (e2)
-               {
-                  svr->event_count++;
-                  e2->server = svr;
-                  ecore_event_add(ECORE_IPC_EVENT_SERVER_ADD, e2,
-                                  _ecore_ipc_event_server_add_free, NULL);
-               }
-          }
-     }
-   return ECORE_CALLBACK_CANCEL;
-}
-
-static Eina_Bool
-_ecore_ipc_event_server_del(void *data EINA_UNUSED, int ev_type EINA_UNUSED, void *ev)
-{
-   Ecore_Con_Event_Server_Del *e;
-
-   e = ev;
-   if (!eina_list_data_find(servers, ecore_con_server_data_get(e->server))) return ECORE_CALLBACK_RENEW;
-   /* handling code here */
-     {
-        Ecore_Ipc_Server *svr;
-
-        svr = ecore_con_server_data_get(e->server);
-        svr->server = NULL;
-        if (!svr->delete_me)
-          {
-             Ecore_Ipc_Event_Server_Del *e2;
-
-             e2 = calloc(1, sizeof(Ecore_Ipc_Event_Server_Del));
-             if (e2)
-               {
-                  svr->event_count++;
-                  e2->server = svr;
-                  ecore_event_add(ECORE_IPC_EVENT_SERVER_DEL, e2,
-                                  _ecore_ipc_event_server_del_free, NULL);
-               }
-          }
-     }
-   return ECORE_CALLBACK_CANCEL;
 }
 
 #define CLSZ(_n) \
@@ -1188,28 +1498,23 @@ _ecore_ipc_event_server_del(void *data EINA_UNUSED, int ev_type EINA_UNUSED, voi
    msg._member = _ecore_ipc_ddlt_int(d, cl->prev.i._member, md);
 
 static Eina_Bool
-_ecore_ipc_event_client_data(void *data EINA_UNUSED, int ev_type EINA_UNUSED, void *ev)
+ecore_ipc_client_data_process(Ecore_Ipc_Client *cl, void *data, int size, Eina_Bool *stolen)
 {
-   Ecore_Con_Event_Client_Data *e;
-   Ecore_Ipc_Server *svr;
-
-   e = ev;
-   svr = ecore_con_server_data_get(ecore_con_client_server_get(e->client));
-   if (!eina_list_data_find(servers, svr)) return ECORE_CALLBACK_RENEW;
-   /* handling code here */
-     {
-        Ecore_Ipc_Client *cl;
+   /* use e->data and e->size to reduce diff to original code */
+   struct { void *data; int size; } _e = { data, size }, *e = &_e;
+   Ecore_Ipc_Server *svr = ecore_ipc_client_server_get(cl);
+   *stolen = EINA_FALSE;
+   if (1)
+     { /* keep same identation as original code to help verification */
         Ecore_Ipc_Msg_Head msg;
         int offset = 0;
         unsigned char *buf;
-
-        cl = ecore_con_client_data_get(e->client);
 
         if (!cl->buf)
           {
              cl->buf_size = e->size;
              cl->buf = e->data;
-             e->data = NULL; /* take it out of the old event */
+             *stolen = EINA_TRUE;
           }
         else
           {
@@ -1339,6 +1644,7 @@ _ecore_ipc_event_client_data(void *data EINA_UNUSED, int ev_type EINA_UNUSED, vo
              cl->buf_size -= offset;
           }
      }
+
    return ECORE_CALLBACK_CANCEL;
 }
 
@@ -1384,27 +1690,22 @@ _ecore_ipc_event_client_data(void *data EINA_UNUSED, int ev_type EINA_UNUSED, vo
    msg._member = _ecore_ipc_ddlt_int(d, svr->prev.i._member, md);
 
 static Eina_Bool
-_ecore_ipc_event_server_data(void *data EINA_UNUSED, int ev_type EINA_UNUSED, void *ev)
+ecore_ipc_server_data_process(Ecore_Ipc_Server *svr, void *data, int size, Eina_Bool *stolen)
 {
-   Ecore_Con_Event_Server_Data *e;
-
-   e = ev;
-   if (!eina_list_data_find(servers, ecore_con_server_data_get(e->server))) 
-     return ECORE_CALLBACK_RENEW;
-   /* handling code here */
-     {
-        Ecore_Ipc_Server *svr;
+   /* use e->data and e->size to reduce diff to original code */
+   struct { void *data; int size; } _e = { data, size }, *e = &_e;
+   *stolen = EINA_FALSE;
+   if (1)
+     { /* keep same identation as original code to help verification */
         Ecore_Ipc_Msg_Head msg;
         int offset = 0;
         unsigned char *buf = NULL;
-
-        svr = ecore_con_server_data_get(e->server);
 
         if (!svr->buf)
           {
              svr->buf_size = e->size;
              svr->buf = e->data;
-             e->data = NULL; /* take it out of the old event */
+             *stolen = EINA_TRUE;
           }
         else
           {
@@ -1539,6 +1840,7 @@ _ecore_ipc_event_server_data(void *data EINA_UNUSED, int ev_type EINA_UNUSED, vo
              svr->buf_size -= offset;
           }
      }
+
    return ECORE_CALLBACK_CANCEL;
 }
 
@@ -1594,7 +1896,7 @@ _ecore_ipc_event_server_add_free(void *data EINA_UNUSED, void *ev)
 static void
 _ecore_ipc_event_server_del_free(void *data EINA_UNUSED, void *ev)
 {
-   Ecore_Ipc_Event_Server_Add *e;
+   Ecore_Ipc_Event_Server_Del *e;
 
    e = ev;
    e->server->event_count--;

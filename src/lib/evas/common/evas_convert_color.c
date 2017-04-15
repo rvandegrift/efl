@@ -26,6 +26,34 @@ evas_common_convert_ag_premul(DATA16 *data, unsigned int len)
    return nas;
 }
 
+EAPI void
+evas_common_convert_ag_unpremul(DATA16 *data, unsigned int len)
+{
+   DATA16 *de = data + len;
+   DATA16 p_val = 0x0000, p_res = 0x0000;
+
+   while (data < de)
+     {
+        if (p_val == *data) *data = p_res;
+        else
+          {
+             DATA16 a = (*data >> 8);
+
+             p_val = *data;
+             if ((a > 0) && (a < 255))
+               {
+                  *data = ((a << 8) | (((*data & 0xff) * 0xff) / a));
+               }
+             else if (a == 0)
+               {
+                  *data = 0x0000;
+               }
+             p_res = *data;
+          }
+        data++;
+     }
+}
+
 EAPI DATA32
 evas_common_convert_argb_premul(DATA32 *data, unsigned int len)
 {
@@ -43,7 +71,7 @@ evas_common_convert_argb_premul(DATA32 *data, unsigned int len)
 
         while (data <= de - 8)
           {
-             uint8x8x4_t rgba = vld4_u8(data);
+             uint8x8x4_t rgba = vld4_u8((uint8_t *)data);
 
              cmp = vand_u8(vorr_u8(vceq_u8(rgba.val[3], mask_0xff),
                                    vceq_u8(rgba.val[3], mask_0x00)),
@@ -63,7 +91,7 @@ evas_common_convert_argb_premul(DATA32 *data, unsigned int len)
                                                  lrgba.val[3]), 8);
              rgba.val[2] = vshrn_n_u16(vmlaq_u16(lrgba.val[2], lrgba.val[2],
                                                  lrgba.val[3]), 8);
-             vst4_u8(data, rgba);
+             vst4_u8((uint8_t *)data, rgba);
              data += 8;
           }
      }
@@ -138,7 +166,7 @@ evas_common_convert_color_hsv_to_rgb(float h, float s, float v, int *r, int *g, 
    float f;
 
    v *= 255;
-   if (s == 0)
+   if (EINA_FLT_EQ(s, 0.0))
      {
        if (r) *r = v;
        if (g) *g = v;

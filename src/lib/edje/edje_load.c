@@ -258,7 +258,7 @@ edje_file_collection_list(const char *file)
    lst = edje_mmap_collection_list(f);
 
    eina_file_close(f);
-   eo_del(file_obj);
+   efl_del(file_obj);
    return lst;
 }
 
@@ -507,6 +507,234 @@ _edje_physics_world_update_cb(void *data, EPhysics_World *world EINA_UNUSED, voi
 }
 #endif
 
+Eina_Bool
+_edje_part_allowed_seat_find(Edje_Real_Part *rp, const char *seat_name)
+{
+   const char *name;
+   unsigned int i;
+
+   for (i = 0; i < rp->part->allowed_seats_count; i++)
+     {
+        name = rp->part->allowed_seats[i]->name;
+        if (!strcmp(seat_name, name))
+          return EINA_TRUE;
+     }
+
+   return EINA_FALSE;
+}
+
+/* It goes throught the list of registered seats and
+ * set event filters for each of these seats. */
+static void
+_edje_part_seat_filter_apply(Edje *ed, Edje_Real_Part *rp)
+{
+   Edje_Seat *seat;
+   Eina_List *l;
+   Eina_Bool found;
+
+   EINA_LIST_FOREACH(ed->seats, l, seat)
+     {
+        found = _edje_part_allowed_seat_find(rp, seat->name);
+        efl_input_seat_event_filter_set(rp->object, seat->device, found);
+     }
+}
+
+/* It goes throught the list of all edje parts and
+ * set event filters for each of these parts. Should be called when
+ * a new seat is added.
+ */
+static void
+_edje_seat_event_filter_apply(Edje *ed, Edje_Seat *seat)
+{
+   Edje_Real_Part *rp;
+   unsigned short i;
+   Eina_Bool found;
+
+   for (i = 0; i < ed->table_parts_size; i++)
+     {
+        rp = ed->table_parts[i];
+        if (!rp->part->allowed_seats)
+          continue;
+
+        found = _edje_part_allowed_seat_find(rp, seat->name);
+        efl_input_seat_event_filter_set(rp->object, seat->device, found);
+     }
+}
+
+static void
+_edje_device_add(Edje *ed, Efl_Input_Device *dev)
+{
+   Edje_Seat *s, *seat = NULL;
+   Eina_Stringshare *name;
+   char sig[256];
+   Eina_List *l;
+
+   if (ed->collection && ed->collection->use_custom_seat_names)
+     name = eina_stringshare_add(efl_input_device_name_get(dev));
+   else
+     {
+        ed->seats_count++;
+        name = eina_stringshare_printf("seat%i", ed->seats_count);
+     }
+   EINA_SAFETY_ON_NULL_RETURN(name);
+
+   EINA_LIST_FOREACH(ed->seats, l, s)
+     {
+        if (s->name != name)
+          continue;
+        seat = s;
+        break;
+     }
+
+   if (!seat)
+     {
+        seat = calloc(1, sizeof(Edje_Seat));
+        EINA_SAFETY_ON_NULL_GOTO(seat, seat_err);
+        ed->seats = eina_list_append(ed->seats, seat);
+        seat->name = eina_stringshare_ref(name);
+     }
+
+   seat->device = dev;
+   snprintf(sig, sizeof(sig), "seat,added,%s,%s", seat->name,
+            efl_input_device_name_get(dev));
+   _edje_emit(ed, sig, "");
+   _edje_seat_event_filter_apply(ed, seat);
+
+seat_err:
+   eina_stringshare_del(name);
+}
+
+static void
+_edje_device_added_cb(void *data, const Efl_Event *event)
+{
+   Efl_Input_Device *dev = event->info;
+   Edje *ed = data;
+
+   if (efl_input_device_type_get(dev) != EFL_INPUT_DEVICE_CLASS_SEAT)
+     return;
+
+   _edje_device_add(ed, dev);
+}
+
+static void
+_edje_device_removed_cb(void *data, const Efl_Event *event)
+{
+   Efl_Input_Device *dev = event->info;
+   Edje_Seat *s, *seat = NULL;
+   Edje *ed = data;
+   char sig[256];
+   Eina_List *l;
+
+   if (efl_input_device_type_get(dev) != EFL_INPUT_DEVICE_CLASS_SEAT)
+     return;
+
+   EINA_LIST_FOREACH(ed->seats, l, s)
+     {
+        if (s->device != dev)
+          continue;
+        seat = s;
+        break;
+     }
+
+   /* It shouldn't happen. New seats are always registered. */
+   EINA_SAFETY_ON_NULL_RETURN(seat);
+
+   seat->device = NULL;
+   snprintf(sig, sizeof(sig), "seat,removed,%s", seat->name);
+   _edje_emit(ed, sig, "");
+}
+
+static void
+_edje_device_changed_cb(void *data, const Efl_Event *event)
+{
+   Efl_Input_Device *dev = event->info;
+   Edje_Seat *s, *seat = NULL;
+   Eina_Stringshare *name;
+   Edje *ed = data;
+   char sig[256];
+   Eina_List *l;
+
+   if (efl_input_device_type_get(dev) != EFL_INPUT_DEVICE_CLASS_SEAT)
+     return;
+
+   EINA_LIST_FOREACH(ed->seats, l, s)
+     {
+        if (s->device != dev)
+          continue;
+        seat = s;
+        break;
+     }
+
+   /* not registered seat */
+   if (!seat)
+     return;
+
+   name = efl_input_device_name_get(dev);
+   if (!name)
+     return;
+
+   /* no name changes */
+   if (eina_streq(seat->name, name))
+     return;
+
+   /* check if device name was changed to match name used on EDC */
+   EINA_LIST_FOREACH(ed->seats, l, s)
+     {
+        if (eina_streq(s->name, name))
+          {
+             if (s->device == dev)
+               continue;
+             if (s->device)
+               {
+                  WRN("Two seats were detected with the same name: %s.\n"
+                      "Fix it or focus will misbehave", name);
+                  break;
+               }
+
+             /* merge seats */
+             s->device = dev;
+             if (seat->focused_part)
+               s->focused_part = seat->focused_part;
+
+             ed->seats = eina_list_remove(ed->seats, seat);
+             eina_stringshare_del(seat->name);
+             free(seat);
+
+             _edje_seat_event_filter_apply(ed, s);
+
+             return;
+          }
+     }
+
+   snprintf(sig, sizeof(sig), "seat,renamed,%s,%s", seat->name, name);
+   eina_stringshare_replace(&seat->name, name);
+   _edje_emit(ed, sig, "");
+   _edje_seat_event_filter_apply(ed, seat);
+}
+
+static void
+_edje_devices_add(Edje *ed, Evas *tev)
+{
+   const Eina_List *devices, *l;
+   Efl_Input_Device *dev;
+
+   devices = evas_device_list(tev, NULL);
+   EINA_LIST_FOREACH(devices, l, dev)
+     {
+        if (efl_input_device_type_get(dev) == EFL_INPUT_DEVICE_CLASS_SEAT)
+          _edje_device_add(ed, dev);
+     }
+
+   efl_event_callback_add(tev, EFL_CANVAS_EVENT_DEVICE_ADDED,
+                          _edje_device_added_cb, ed);
+   efl_event_callback_add(tev, EFL_CANVAS_EVENT_DEVICE_REMOVED,
+                          _edje_device_removed_cb, ed);
+
+   if (ed->collection && ed->collection->use_custom_seat_names)
+     efl_event_callback_add(tev, EFL_CANVAS_EVENT_DEVICE_CHANGED,
+                            _edje_device_changed_cb, ed);
+}
+
 int
 _edje_object_file_set_internal(Evas_Object *obj, const Eina_File *file, const char *group, const char *parent, Eina_List *group_path, Eina_Array *nested)
 {
@@ -627,6 +855,9 @@ _edje_object_file_set_internal(Evas_Object *obj, const Eina_File *file, const ch
                ERR("Edje compiled without support to physics.");
 #endif
 
+             /* handle multiseat stuff */
+             _edje_devices_add(ed, tev);
+
              /* colorclass stuff */
              for (i = 0; i < ed->collection->parts_count; ++i)
                {
@@ -637,7 +868,7 @@ _edje_object_file_set_internal(Evas_Object *obj, const Eina_File *file, const ch
 
                   /* Register any color classes in this parts descriptions. */
                   if ((ep->default_desc) && (ep->default_desc->color_class))
-                    _edje_color_class_member_add(ed, ep->default_desc->color_class);
+                    efl_observable_observer_add(_edje_color_class_member, ep->default_desc->color_class, obj);
 
                   for (k = 0; k < ep->other.desc_count; k++)
                     {
@@ -646,7 +877,7 @@ _edje_object_file_set_internal(Evas_Object *obj, const Eina_File *file, const ch
                        desc = ep->other.desc[k];
 
                        if (desc->color_class)
-                         _edje_color_class_member_add(ed, desc->color_class);
+                         efl_observable_observer_add(_edje_color_class_member, desc->color_class, obj);
                     }
                }
              /* sizeclass stuff */
@@ -659,7 +890,7 @@ _edje_object_file_set_internal(Evas_Object *obj, const Eina_File *file, const ch
 
                   /* Register any size classes in this parts descriptions. */
                   if ((ep->default_desc) && (ep->default_desc->size_class))
-                    _edje_size_class_member_add(ed, ep->default_desc->size_class);
+                    efl_observable_observer_add(_edje_size_class_member, ep->default_desc->size_class, obj);
 
                   for (k = 0; k < ep->other.desc_count; k++)
                     {
@@ -668,7 +899,7 @@ _edje_object_file_set_internal(Evas_Object *obj, const Eina_File *file, const ch
                        desc = ep->other.desc[k];
 
                        if (desc->size_class)
-                         _edje_size_class_member_add(ed, desc->size_class);
+                         efl_observable_observer_add(_edje_size_class_member, desc->size_class, obj);
                     }
                }
              /* build real parts */
@@ -703,11 +934,6 @@ _edje_object_file_set_internal(Evas_Object *obj, const Eina_File *file, const ch
                     }
 
                   memset(rp, 0, sizeof (Edje_Real_Part));
-
-                  rp->param1.p.map = eina_cow_alloc(_edje_calc_params_map_cow);
-#ifdef HAVE_EPHYSICS
-                  rp->param1.p.physics = eina_cow_alloc(_edje_calc_params_physics_cow);
-#endif
 
                   if ((ep->dragable.x != 0) || (ep->dragable.y != 0))
                     {
@@ -852,9 +1078,9 @@ _edje_object_file_set_internal(Evas_Object *obj, const Eina_File *file, const ch
                           Evas_Canvas3D_Material *material = NULL;
                           Edje_Part_Description_Mesh_Node *pd_mesh_node;
 
-                          rp->node = eo_add(EVAS_CANVAS3D_NODE_CLASS, ed->base->evas, evas_canvas3d_node_constructor(eo_self, EVAS_CANVAS3D_NODE_TYPE_MESH));
+                          rp->node = efl_add(EVAS_CANVAS3D_NODE_CLASS, ed->base->evas, evas_canvas3d_node_constructor(efl_added, EVAS_CANVAS3D_NODE_TYPE_MESH));
 
-                          mesh = eo_add(EVAS_CANVAS3D_MESH_CLASS, ed->base->evas);
+                          mesh = efl_add(EVAS_CANVAS3D_MESH_CLASS, ed->base->evas);
                           evas_canvas3d_node_mesh_add(rp->node, mesh);
 
                           pd_mesh_node = (Edje_Part_Description_Mesh_Node*) rp->chosen_description;
@@ -868,13 +1094,13 @@ _edje_object_file_set_internal(Evas_Object *obj, const Eina_File *file, const ch
                                evas_canvas3d_mesh_frame_add(mesh, 0);
                             }
 
-                          material = eo_add(EVAS_CANVAS3D_MATERIAL_CLASS, ed->base->evas);
+                          material = efl_add(EVAS_CANVAS3D_MATERIAL_CLASS, ed->base->evas);
                           evas_canvas3d_mesh_frame_material_set(mesh, 0, material);
                           if (pd_mesh_node->mesh_node.texture.need_texture && pd_mesh_node->mesh_node.texture.textured)
                             {
                                Evas_Canvas3D_Texture *texture = NULL;
 
-                               texture = eo_add(EVAS_CANVAS3D_TEXTURE_CLASS, ed->base->evas);
+                               texture = efl_add(EVAS_CANVAS3D_TEXTURE_CLASS, ed->base->evas);
                                evas_canvas3d_material_texture_set(material, EVAS_CANVAS3D_MATERIAL_ATTRIB_DIFFUSE, texture);
                             }
                           rp->object = NULL;
@@ -885,8 +1111,8 @@ _edje_object_file_set_internal(Evas_Object *obj, const Eina_File *file, const ch
                        {
                           Evas_Canvas3D_Light *light = NULL;
 
-                          rp->node = eo_add(EVAS_CANVAS3D_NODE_CLASS, ed->base->evas, evas_canvas3d_node_constructor(eo_self, EVAS_CANVAS3D_NODE_TYPE_LIGHT));
-                          light = eo_add(EVAS_CANVAS3D_LIGHT_CLASS, ed->base->evas);
+                          rp->node = efl_add(EVAS_CANVAS3D_NODE_CLASS, ed->base->evas, evas_canvas3d_node_constructor(efl_added, EVAS_CANVAS3D_NODE_TYPE_LIGHT));
+                          light = efl_add(EVAS_CANVAS3D_LIGHT_CLASS, ed->base->evas);
                           evas_canvas3d_node_light_set(rp->node, light);
 
                           rp->object = NULL;
@@ -897,13 +1123,13 @@ _edje_object_file_set_internal(Evas_Object *obj, const Eina_File *file, const ch
                        {
                           Evas_Canvas3D_Camera *camera = NULL;
 
-                          rp->node = eo_add(EVAS_CANVAS3D_NODE_CLASS, ed->base->evas, evas_canvas3d_node_constructor(eo_self, EVAS_CANVAS3D_NODE_TYPE_CAMERA));
-                          camera = eo_add(EVAS_CANVAS3D_CAMERA_CLASS, ed->base->evas);
+                          rp->node = efl_add(EVAS_CANVAS3D_NODE_CLASS, ed->base->evas, evas_canvas3d_node_constructor(efl_added, EVAS_CANVAS3D_NODE_TYPE_CAMERA));
+                          camera = efl_add(EVAS_CANVAS3D_CAMERA_CLASS, ed->base->evas);
                           evas_canvas3d_node_camera_set(rp->node, camera);
 
                           rp->object = evas_object_image_filled_add(ed->base->evas);
 
-                          Eo* viewport = eo_add(EFL_CANVAS_SCENE3D_CLASS, ed->base->evas);
+                          Eo* viewport = efl_add(EFL_CANVAS_SCENE3D_CLASS, ed->base->evas);
                           evas_object_image_source_set(rp->object, viewport);
                           evas_object_show(viewport);
                           evas_object_event_callback_add(rp->object, EVAS_CALLBACK_DEL, _evas_object_viewport_del, viewport);
@@ -924,6 +1150,9 @@ _edje_object_file_set_internal(Evas_Object *obj, const Eina_File *file, const ch
                             rp->nested_smart = nested_smart;
                             nested_smart = NULL;
                          }
+
+                       if (ep->allowed_seats)
+                         _edje_part_seat_filter_apply(ed, rp);
 
                        if (ep->no_render)
                          efl_canvas_object_no_render_set(rp->object, 1);
@@ -963,13 +1192,16 @@ _edje_object_file_set_internal(Evas_Object *obj, const Eina_File *file, const ch
                          evas_object_smart_member_add(rp->object, ed->obj);
 
                        //		       evas_object_layer_set(rp->object, evas_object_layer_get(ed->obj));
+                       rp->mouse_events = ep->mouse_events;
+                       rp->repeat_events = ep->repeat_events;
+
                        if (ep->type != EDJE_PART_TYPE_SWALLOW && ep->type != EDJE_PART_TYPE_GROUP && ep->type != EDJE_PART_TYPE_EXTERNAL)
                          {
-                            if (ep->mouse_events)
+                            if (rp->mouse_events)
                               {
                                  _edje_callbacks_add(rp->object, ed, rp);
-                                 if (ep->repeat_events)
-                                   evas_object_repeat_events_set(rp->object, 1);
+                                 if (rp->repeat_events)
+                                   evas_object_repeat_events_set(rp->object, rp->repeat_events);
 
                                  if (ep->pointer_mode != EVAS_OBJECT_POINTER_MODE_AUTOGRAB)
                                    evas_object_pointer_mode_set(rp->object, ep->pointer_mode);
@@ -1016,7 +1248,10 @@ _edje_object_file_set_internal(Evas_Object *obj, const Eina_File *file, const ch
                          }
 
                        if (rp->param1.description && (rp->param1.description->clip_to_id >= 0))
-                         clip_to = ed->table_parts[rp->param1.description->clip_to_id % ed->table_parts_size];
+                         {
+                            clip_to = ed->table_parts[rp->param1.description->clip_to_id % ed->table_parts_size];
+                            ed->has_state_clip = EINA_TRUE;
+                         }
                        else if (rp->part->clip_to_id >= 0)
                          clip_to = ed->table_parts[rp->part->clip_to_id % ed->table_parts_size];
                        if (clip_to && clip_to->object && rp->object)
@@ -1206,6 +1441,8 @@ _edje_object_file_set_internal(Evas_Object *obj, const Eina_File *file, const ch
                        do
                          {
                             child_obj = edje_object_add(ed->base->evas);
+                            edje_object_mirrored_set(child_obj, edje_object_mirrored_get(ed->obj));
+
                             group_path = eina_list_append(group_path, group_path_entry);
                             if (rp->part->type == EDJE_PART_TYPE_GROUP)
                               {
@@ -1374,7 +1611,18 @@ _edje_object_file_set_internal(Evas_Object *obj, const Eina_File *file, const ch
                             break;
 
                           case EDJE_USER_STRING:
-                            edje_object_part_text_set(obj, eud->part, eud->u.string.text);
+                            switch (eud->u.string.type)
+                              {
+                               case EDJE_TEXT_TYPE_NORMAL:
+                                 edje_object_part_text_set(obj, eud->part, eud->u.string.text);
+                                 break;
+                               case EDJE_TEXT_TYPE_ESCAPED:
+                                 edje_object_part_text_escaped_set(obj, eud->part, eud->u.string.text);
+                                 break;
+                               case EDJE_TEXT_TYPE_UNESCAPED:
+                                 edje_object_part_text_unescaped_set(obj, eud->part, eud->u.string.text);
+                                 break;
+                              }
                             eina_stringshare_del(eud->u.string.text);
                             break;
                          }
@@ -1593,7 +1841,19 @@ _edje_file_del(Edje *ed)
 
    ed->groups = eina_list_free(ed->groups);
 
-   if (tev) evas_event_freeze(tev);
+   if (tev)
+     {
+        efl_event_callback_del(tev, EFL_CANVAS_EVENT_DEVICE_ADDED,
+                               _edje_device_added_cb, ed);
+        efl_event_callback_del(tev, EFL_CANVAS_EVENT_DEVICE_REMOVED,
+                               _edje_device_removed_cb, ed);
+        if (ed->collection && ed->collection->use_custom_seat_names)
+          efl_event_callback_del(tev, EFL_CANVAS_EVENT_DEVICE_CHANGED,
+                                 _edje_device_changed_cb, ed);
+
+        evas_event_freeze(tev);
+     }
+
    if (ed->freeze_calc)
      {
         _edje_util_freeze_calc_list = eina_list_remove(_edje_util_freeze_calc_list, ed);
@@ -1686,6 +1946,12 @@ _edje_file_del(Edje *ed)
                   free(rp->typedata.text);
                   rp->typedata.text = NULL;
                }
+             else if ((rp->type == EDJE_PART_TYPE_VECTOR) &&
+                      (rp->typedata.vector))
+               {
+                  free(rp->typedata.vector);
+                  rp->typedata.vector = NULL;
+               }
              else if ((rp->type == EDJE_RP_TYPE_SWALLOW) &&
                       (rp->typedata.swallow))
                {
@@ -1724,9 +1990,8 @@ _edje_file_del(Edje *ed)
                {
                   free(rp->param2->set);
                   rp->param2->set = NULL;
-                  eina_cow_free(_edje_calc_params_map_cow, (const Eina_Cow_Data **)&rp->param2->p.map);
-#ifdef HAVE_EPHYSICS
-                  eina_cow_free(_edje_calc_params_physics_cow, (const Eina_Cow_Data **)&rp->param2->p.physics);
+#ifdef EDJE_CALC_CACHE
+                  _edje_calc_params_clear(&(rp->param2->p));
 #endif
                }
              eina_mempool_free(_edje_real_part_state_mp, rp->param2);
@@ -1735,26 +2000,23 @@ _edje_file_del(Edje *ed)
                {
                   free(rp->custom->set);
                   rp->custom->set = NULL;
-                  eina_cow_free(_edje_calc_params_map_cow, (const Eina_Cow_Data **)&rp->custom->p.map);
-#ifdef HAVE_EPHYSICS
-                  eina_cow_free(_edje_calc_params_physics_cow, (const Eina_Cow_Data **)&rp->custom->p.physics);
+#ifdef EDJE_CALC_CACHE
+                  _edje_calc_params_clear(&(rp->custom->p));
 #endif
                }
              eina_mempool_free(_edje_real_part_state_mp, rp->custom);
 
              if (rp->current)
                {
-                  eina_cow_free(_edje_calc_params_map_cow, (const Eina_Cow_Data **)&rp->current->map);
-#ifdef HAVE_EPHYSICS
-                  eina_cow_free(_edje_calc_params_physics_cow, (const Eina_Cow_Data **)&rp->current->physics);
+#ifdef EDJE_CALC_CACHE
+                  _edje_calc_params_clear(rp->current);
 #endif
                   free(rp->current);
                   rp->current = NULL;
                }
              _edje_unref(ed);
-             eina_cow_free(_edje_calc_params_map_cow, (const Eina_Cow_Data **)&rp->param1.p.map);
-#ifdef HAVE_EPHYSICS
-             eina_cow_free(_edje_calc_params_physics_cow, (const Eina_Cow_Data **)&rp->param1.p.physics);
+#ifdef EDJE_CALC_CACHE
+             _edje_calc_params_clear(&(rp->param1.p));
 #endif
              eina_mempool_free(_edje_real_part_mp, rp);
              ed->table_parts[i] = NULL;
@@ -1792,7 +2054,7 @@ _edje_file_del(Edje *ed)
           free(runp);
      }
    _edje_animators = eina_list_remove(_edje_animators, ed);
-   eo_event_callback_del(ed->obj, EFL_EVENT_ANIMATOR_TICK, _edje_timer_cb, ed);
+   efl_event_callback_del(ed->obj, EFL_EVENT_ANIMATOR_TICK, _edje_timer_cb, ed);
    ecore_animator_del(ed->animator);
    ed->animator = NULL;
 
@@ -1803,7 +2065,19 @@ _edje_file_del(Edje *ed)
         EINA_LIST_FREE(ed->pending_actions, pp)
           {
              ecore_timer_del(pp->timer);
+             pp->timer = NULL;
              free(pp);
+          }
+     }
+
+   if (ed->seats)
+     {
+        Edje_Seat *seat;
+
+        EINA_LIST_FREE(ed->seats, seat)
+          {
+             eina_stringshare_del(seat->name);
+             free(seat);
           }
      }
 
@@ -1813,7 +2087,6 @@ _edje_file_del(Edje *ed)
    if (ed->table_parts) free(ed->table_parts);
    ed->table_parts = NULL;
    ed->table_parts_size = 0;
-   ed->focused_part = NULL;
    if (tev)
      {
         evas_event_thaw(tev);
@@ -1980,6 +2253,7 @@ _edje_program_free(Edje_Program *pr, Eina_Bool free_strings)
         if (pr->state2) eina_stringshare_del(pr->state2);
         if (pr->sample_name) eina_stringshare_del(pr->sample_name);
         if (pr->tone_name) eina_stringshare_del(pr->tone_name);
+        if (pr->seat) eina_stringshare_del(pr->seat);
      }
    EINA_LIST_FREE(pr->targets, prt)
      free(prt);
@@ -2030,10 +2304,18 @@ _edje_collection_free(Edje_File *edf, Edje_Part_Collection *ec, Edje_Part_Collec
         for (j = 0; j < ep->items_count; ++j)
           free(ep->items[j]);
         free(ep->items);
+
+        for (j = 0; j < ep->allowed_seats_count; ++j)
+          {
+             if (edf->free_strings)
+               eina_stringshare_del(ep->allowed_seats[j]->name);
+             free(ep->allowed_seats[j]);
+          }
+        free(ep->allowed_seats);
         // technically need this - but we ASSUME we use "one_big" so everything gets
         // freed in one go lower down when we del the mempool... but what if pool goes
         // "over"?
-        eina_mempool_free(ce->mp.part, ep);
+        eina_mempool_free(ce->mp->mp.part, ep);
      }
    free(ec->parts);
    ec->parts = NULL;
@@ -2139,9 +2421,9 @@ _edje_collection_free_part_description_free(int type,
                                             Edje_Part_Collection_Directory_Entry *ce,
                                             Eina_Bool free_strings)
 {
-#define FREE_POOL(Type, Ce, Desc)                                 \
-case EDJE_PART_TYPE_##Type: eina_mempool_free(Ce->mp.Type, Desc); \
-  ce->count.Type--;                                               \
+#define FREE_POOL(Type, Ce, Desc)                                     \
+case EDJE_PART_TYPE_##Type: eina_mempool_free(ce->mp->mp.Type, Desc); \
+  ce->count.Type--;                                                   \
   break;
 
    _edje_collection_free_part_description_clean(type, desc, free_strings);
@@ -2377,13 +2659,13 @@ _apply_gradient_property(Svg_Style_Gradient *g)
 
    if (g->type == SVG_LINEAR_GRADIENT)
      {
-        grad_obj = eo_add(EFL_VG_GRADIENT_LINEAR_CLASS, NULL);
+        grad_obj = efl_add(EFL_VG_GRADIENT_LINEAR_CLASS, NULL);
         evas_vg_gradient_linear_start_set(grad_obj, g->linear->x1, g->linear->y1);
         evas_vg_gradient_linear_end_set(grad_obj, g->linear->x2, g->linear->y2);
      }
    else if (g->type == SVG_RADIAL_GRADIENT)
      {
-        grad_obj = eo_add(EFL_VG_GRADIENT_RADIAL_CLASS, NULL);
+        grad_obj = efl_add(EFL_VG_GRADIENT_RADIAL_CLASS, NULL);
         evas_vg_gradient_radial_center_set(grad_obj, g->radial->cx, g->radial->cy);
         evas_vg_gradient_radial_radius_set(grad_obj, g->radial->r);
         evas_vg_gradient_radial_focal_set(grad_obj, g->radial->fx, g->radial->fy);
@@ -2499,12 +2781,12 @@ _add_polyline(Efl_VG *vg, double *array, int size, Eina_Bool polygon)
 
    if (size < 2) return;
 
-   evas_vg_shape_shape_append_move_to(vg, array[0], array[1]);
+   evas_vg_shape_append_move_to(vg, array[0], array[1]);
    for (i=2; i < size; i+=2)
-     evas_vg_shape_shape_append_line_to(vg, array[i], array[i+1]);
+     evas_vg_shape_append_line_to(vg, array[i], array[i+1]);
 
    if (polygon)
-     evas_vg_shape_shape_append_close(vg);
+     evas_vg_shape_append_close(vg);
 }
 
 static void
@@ -2529,7 +2811,7 @@ _create_vg_node(Svg_Node *node, Efl_VG *parent)
            break;
         case SVG_NODE_PATH:
            vg = evas_vg_shape_add(parent);
-           evas_vg_shape_shape_append_svg_path(vg, node->node.path.path);
+           evas_vg_shape_append_svg_path(vg, node->node.path.path);
            break;
         case SVG_NODE_POLYGON:
            vg = evas_vg_shape_add(parent);
@@ -2541,18 +2823,18 @@ _create_vg_node(Svg_Node *node, Efl_VG *parent)
            break;
         case SVG_NODE_ELLIPSE:
            vg = evas_vg_shape_add(parent);
-           evas_vg_shape_shape_append_arc(vg, node->node.ellipse.cx - node->node.ellipse.rx,
+           evas_vg_shape_append_arc(vg, node->node.ellipse.cx - node->node.ellipse.rx,
                                           node->node.ellipse.cy - node->node.ellipse.ry,
                                           2*node->node.ellipse.rx, 2*node->node.ellipse.ry, 0, 360);
-           evas_vg_shape_shape_append_close(vg);
+           evas_vg_shape_append_close(vg);
            break;
         case SVG_NODE_CIRCLE:
            vg = evas_vg_shape_add(parent);
-           evas_vg_shape_shape_append_circle(vg, node->node.circle.cx, node->node.circle.cy, node->node.circle.r);
+           evas_vg_shape_append_circle(vg, node->node.circle.cx, node->node.circle.cy, node->node.circle.r);
            break;
         case SVG_NODE_RECT:
            vg = evas_vg_shape_add(parent);
-           evas_vg_shape_shape_append_rect(vg, node->node.rect.x, node->node.rect.y, node->node.rect.w, node->node.rect.h,
+           evas_vg_shape_append_rect(vg, node->node.rect.x, node->node.rect.y, node->node.rect.w, node->node.rect.h,
                                            node->node.rect.rx, node->node.rect.ry);
            break;
        default:
@@ -2568,7 +2850,7 @@ _edje_vector_data_free(Edje *ed)
 
    EINA_LIST_FREE(ed->vector_cache, vector)
      {
-        if (vector->vg) eo_del(vector->vg);
+        if (vector->vg) efl_del(vector->vg);
         free(vector);
      }
 }
@@ -2628,7 +2910,7 @@ _apply_stroke_scale(Efl_VG *node, double scale)
    Efl_VG *child;
    Eina_Iterator *itr;
 
-   if (eo_isa(node, EFL_VG_CONTAINER_CLASS))
+   if (efl_isa(node, EFL_VG_CONTAINER_CLASS))
      {
         itr = efl_vg_container_children_get(node);
         EINA_ITERATOR_FOREACH(itr, child)
@@ -2678,7 +2960,8 @@ _edje_dupe_vector_data(Edje *ed, int svg_id, double width, double height,
    root = evas_vg_container_add(NULL);
    efl_vg_dup(root, vector->vg);
 
-   if (vector->w && vector->h)
+   if (!EINA_DBL_EQ(vector->w, 0) &&
+       !EINA_DBL_EQ(vector->h, 0))
      {
         _apply_transformation(root, width, height, vector);
      }
@@ -2707,11 +2990,11 @@ edje_3d_object_add(Evas_Object *obj, Eo **root_node, Eo *scene)
      }
 
    if (*root_node == NULL)
-     *root_node = eo_add(EVAS_CANVAS3D_NODE_CLASS, ed->base->evas,
-                                 evas_canvas3d_node_constructor(eo_self, EVAS_CANVAS3D_NODE_TYPE_NODE));
+     *root_node = efl_add(EVAS_CANVAS3D_NODE_CLASS, ed->base->evas,
+                                 evas_canvas3d_node_constructor(efl_added, EVAS_CANVAS3D_NODE_TYPE_NODE));
 
    if (scene == NULL)
-     scene = eo_add(EVAS_CANVAS3D_SCENE_CLASS, ed->base->evas);
+     scene = efl_add(EVAS_CANVAS3D_SCENE_CLASS, ed->base->evas);
 
    if ((*root_node == NULL) || (scene == NULL))
      {

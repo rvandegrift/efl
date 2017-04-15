@@ -43,8 +43,6 @@ static void *_output_setup(int w, int h);
 static void *eng_info(Evas *e);
 static void
              eng_info_free(Evas *e, void *info);
-static int
-             eng_setup(Evas *e, void *info);
 static void
              eng_output_free(void *data);
 static void
@@ -107,9 +105,6 @@ _output_setup(int w, int h)
 
    flipBuffer(re->context, MAX_BUFFERS - 1);
 
-   /* if we haven't initialized - init (automatic abort if already done) */
-   evas_common_init();
-
    re->tb = evas_common_tilebuf_new(w, h);
 
    /* in preliminary tests 16x16 gave highest framerates */
@@ -152,23 +147,14 @@ eng_info_free(Evas *e EINA_UNUSED, void *info)
    free(in);
 }
 
-static int
-eng_setup(Evas *eo_e, void *in)
+static void *
+eng_setup(void *in, unsigned int w, unsigned int h)
 {
-   Evas_Public_Data *e = eo_data_scope_get(eo_e, EVAS_CANVAS_CLASS);
-   Evas_Engine_Info_PSL1GHT *info;
+   Evas_Engine_Info_PSL1GHT *info = in;
 
    printf ("eng_setup called\n");
-   info = (Evas_Engine_Info_PSL1GHT *)in;
 
-   e->engine.data.output = _output_setup(e->output.w, e->output.h);
-   if (!e->engine.data.output)
-     return 0;
-
-   e->engine.func = &func;
-   e->engine.data.context = e->engine.func->context_new(e->engine.data.output);
-
-   return 1;
+   return _output_setup(w, h);
 }
 
 static void
@@ -201,8 +187,6 @@ eng_output_free(void *data)
      evas_common_tilebuf_free_render_rects(re->rects);
 
    free(re);
-
-   evas_common_shutdown();
 }
 
 static void
@@ -431,7 +415,7 @@ eng_output_idle_flush(void *data)
 }
 
 static Eina_Bool
-eng_canvas_alpha_get(void *data, void *context EINA_UNUSED)
+eng_canvas_alpha_get(void *data)
 {
    Render_Engine *re;
 
@@ -482,7 +466,11 @@ module_open(Evas_Module *em)
 static void
 module_close(Evas_Module *em EINA_UNUSED)
 {
-   eina_log_domain_unregister(_evas_engine_psl1ght_log_dom);
+   if (_evas_engine_psl1ght_log_dom >= 0)
+     {
+        eina_log_domain_unregister(_evas_engine_psl1ght_log_dom);
+        _evas_engine_psl1ght_log_dom = -1;
+     }
 }
 
 static Evas_Module_Api evas_modapi =

@@ -5,15 +5,15 @@
 #define MY_CLASS_NAME_LEGACY "elm_grid"
 
 EOLIAN static Eo *
-_efl_ui_grid_static_eo_base_constructor(Eo *obj, void *pd EINA_UNUSED)
+_efl_ui_grid_static_efl_object_constructor(Eo *obj, void *pd EINA_UNUSED)
 {
    Efl_Ui_Grid_Data *gd;
 
-   obj = eo_constructor(eo_super(obj, MY_CLASS));
+   obj = efl_constructor(efl_super(obj, MY_CLASS));
    efl_canvas_object_type_set(obj, MY_CLASS_NAME);
    elm_interface_atspi_accessible_role_set(obj, ELM_ATSPI_ROLE_FILLER);
 
-   gd = eo_data_scope_get(obj, EFL_UI_GRID_CLASS);
+   gd = efl_data_scope_get(obj, EFL_UI_GRID_CLASS);
    gd->layout_engine = MY_CLASS;
    gd->req_cols = 100;
    gd->req_rows = 100;
@@ -22,7 +22,7 @@ _efl_ui_grid_static_eo_base_constructor(Eo *obj, void *pd EINA_UNUSED)
 }
 
 EOLIAN static void
-_efl_ui_grid_static_efl_pack_layout_layout_do(Eo_Class *klass EINA_UNUSED,
+_efl_ui_grid_static_efl_pack_layout_layout_do(Efl_Class *klass EINA_UNUSED,
                                               void *_pd EINA_UNUSED,
                                               Eo *obj, const void *data EINA_UNUSED)
 {
@@ -33,11 +33,11 @@ _efl_ui_grid_static_efl_pack_layout_layout_do(Eo_Class *klass EINA_UNUSED,
    long long xl, yl, wl, hl, vwl, vhl;
    Eina_Bool mirror;
 
-   gd = eo_data_scope_get(obj, EFL_UI_GRID_CLASS);
+   gd = efl_data_scope_get(obj, EFL_UI_GRID_CLASS);
    if (!gd->items) return;
 
    e = evas_object_evas_get(obj);
-   eo_event_freeze(e);
+   efl_event_freeze(e);
 
    efl_gfx_position_get(obj, &x, &y);
    efl_gfx_size_get(obj, &w, &h);
@@ -75,7 +75,7 @@ _efl_ui_grid_static_efl_pack_layout_layout_do(Eo_Class *klass EINA_UNUSED,
         efl_gfx_size_set(gi->object, x2 - x1, y2 - y1);
      }
 
-   eo_event_thaw(e);
+   efl_event_thaw(e);
 }
 
 #include "efl_ui_grid_static.eo.c"

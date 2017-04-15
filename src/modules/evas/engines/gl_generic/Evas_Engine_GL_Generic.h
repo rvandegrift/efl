@@ -2,6 +2,8 @@
 # define EVAS_ENGINE_GL_GENERIC_H__
 
 #include "../software_generic/Evas_Engine_Software_Generic.h"
+#include "Evas_Engine_GL_Shared.h"
+
 #include "../gl_common/evas_gl_common.h"
 #include "../gl_common/evas_gl_core.h"
 #include "../gl_common/evas_gl_core_private.h"
@@ -45,11 +47,13 @@ evas_render_engine_gl_generic_init(Render_Engine_GL_Generic *re,
                                    Outbuf_Get_Rot outbuf_get_rot,
                                    Outbuf_Reconfigure outbuf_reconfigure,
                                    Outbuf_Region_First_Rect outbuf_region_first_rect,
+                                   Outbuf_Damage_Region_Set outbuf_damage_region_set,
                                    Outbuf_New_Region_For_Update outbuf_new_region_for_update,
                                    Outbuf_Push_Updated_Region outbuf_push_updated_region,
                                    Outbuf_Free_Region_For_Update outbuf_free_region_for_update,
                                    Outbuf_Idle_Flush outbuf_idle_flush,
                                    Outbuf_Flush outbuf_flush,
+                                   Outbuf_Redraws_Clear outbuf_redraws_clear,
                                    Outbuf_Free outbuf_free,
                                    Window_Use window_use,
                                    Window_GL_Context_Get window_gl_context_get,
@@ -64,11 +68,13 @@ evas_render_engine_gl_generic_init(Render_Engine_GL_Generic *re,
                                                  outbuf_get_rot,
                                                  outbuf_reconfigure,
                                                  outbuf_region_first_rect,
+                                                 outbuf_damage_region_set,
                                                  outbuf_new_region_for_update,
                                                  outbuf_push_updated_region,
                                                  outbuf_free_region_for_update,
                                                  outbuf_idle_flush,
                                                  outbuf_flush,
+                                                 outbuf_redraws_clear,
                                                  outbuf_free,
                                                  w, h))
      return EINA_FALSE;

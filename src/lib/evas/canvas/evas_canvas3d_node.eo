@@ -2,13 +2,14 @@ import evas_types;
 
 class Evas.Canvas3D.Node (Evas.Canvas3D.Object)
 {
+   [[Evas 3D canvas node class]]
    data: Evas_Canvas3D_Node_Data;
    methods {
       constructor {
          [[Constructor.]]
          legacy: null;
          params {
-            @in type: Evas.Canvas3D.Node_Type;
+            @in type: Evas.Canvas3D.Node_Type; [[Node type]]
          }
       }
       type_get @const {
@@ -212,12 +213,12 @@ class Evas.Canvas3D.Node (Evas.Canvas3D.Object)
       bounding_box_get{
          [[Get axis-aligned bounding box (AABB) of the given node.]]
          params {
-            @in x: Evas.Real *; [[Pointer to receive X coordinate of the first point of AABB.]]
-            @in y: Evas.Real *; [[Pointer to receive Y coordinate of the first point of AABB.]]
-            @in z: Evas.Real *; [[Pointer to receive Z coordinate of the first point of AABB.]]
-            @in x2: Evas.Real *; [[Pointer to receive X coordinate of the second point of AABB.]]
-            @in y2: Evas.Real *; [[Pointer to receive Y coordinate of the second point of AABB.]]
-            @in z2: Evas.Real *; [[Pointer to receive Z coordinate of the second point of AABB.]]
+            @in x: ptr(Evas.Real); [[Pointer to receive X coordinate of the first point of AABB.]]
+            @in y: ptr(Evas.Real); [[Pointer to receive Y coordinate of the first point of AABB.]]
+            @in z: ptr(Evas.Real); [[Pointer to receive Z coordinate of the first point of AABB.]]
+            @in x2: ptr(Evas.Real); [[Pointer to receive X coordinate of the second point of AABB.]]
+            @in y2: ptr(Evas.Real); [[Pointer to receive Y coordinate of the second point of AABB.]]
+            @in z2: ptr(Evas.Real); [[Pointer to receive Z coordinate of the second point of AABB.]]
          }
       }
 
@@ -225,10 +226,10 @@ class Evas.Canvas3D.Node (Evas.Canvas3D.Object)
          [[Get bounding sphere of the given node.]]
          params {
 
-            @in x: Evas.Real *; [[Pointer to receive X coordinate of the center of sphere.]]
-            @in y: Evas.Real *; [[Pointer to receive Y coordinate of the center of sphere.]]
-            @in z: Evas.Real *; [[Pointer to receive Z coordinate of center of sphere.]]
-            @in r: Evas.Real *; [[Pointer to receive radius of center of sphere.]]
+            @in x: ptr(Evas.Real); [[Pointer to receive X coordinate of the center of sphere.]]
+            @in y: ptr(Evas.Real); [[Pointer to receive Y coordinate of the center of sphere.]]
+            @in z: ptr(Evas.Real); [[Pointer to receive Z coordinate of center of sphere.]]
+            @in r: ptr(Evas.Real); [[Pointer to receive radius of center of sphere.]]
          }
       }
 
@@ -382,7 +383,7 @@ class Evas.Canvas3D.Node (Evas.Canvas3D.Object)
       }
    }
    implements {
-      Eo.Base.destructor;
+      Efl.Object.destructor;
       Evas.Canvas3D.Object.update_notify;
       Evas.Canvas3D.Object.change_notify;
       Evas.Canvas3D.Object.callback_register;

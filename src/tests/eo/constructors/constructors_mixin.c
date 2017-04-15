@@ -24,35 +24,40 @@ _constructor(Eo *obj, void *class_data EINA_UNUSED)
 {
    my_init_count++;
 
-   return eo_constructor(eo_super(obj, MY_CLASS));
+   return efl_constructor(efl_super(obj, MY_CLASS));
 }
 
 static void
 _destructor(Eo *obj, void *class_data EINA_UNUSED)
 {
-   eo_destructor(eo_super(obj, MY_CLASS));
+   efl_destructor(efl_super(obj, MY_CLASS));
 
    my_init_count--;
 }
 
-EAPI EO_VOID_FUNC_BODYV(mixin_add_and_print, EO_FUNC_CALL(x), int x);
+EAPI EFL_VOID_FUNC_BODYV(mixin_add_and_print, EFL_FUNC_CALL(x), int x);
 
-static Eo_Op_Description op_descs[] = {
-     EO_OP_FUNC(mixin_add_and_print, _add_and_print_set),
-     EO_OP_FUNC_OVERRIDE(eo_constructor, _constructor),
-     EO_OP_FUNC_OVERRIDE(eo_destructor, _destructor),
-};
+static Eina_Bool
+_class_initializer(Efl_Class *klass)
+{
+   EFL_OPS_DEFINE(ops,
+         EFL_OBJECT_OP_FUNC(mixin_add_and_print, _add_and_print_set),
+         EFL_OBJECT_OP_FUNC(efl_constructor, _constructor),
+         EFL_OBJECT_OP_FUNC(efl_destructor, _destructor),
+   );
 
-static const Eo_Class_Description class_desc = {
+   return efl_class_functions_set(klass, &ops, NULL);
+}
+
+static const Efl_Class_Description class_desc = {
      EO_VERSION,
      "Mixin",
-     EO_CLASS_TYPE_MIXIN,
-     EO_CLASS_DESCRIPTION_OPS(op_descs),
-     NULL,
+     EFL_CLASS_TYPE_MIXIN,
      0,
+     _class_initializer,
      NULL,
      NULL
 };
 
-EO_DEFINE_CLASS(mixin_class_get, &class_desc, NULL, EO_CLASS, NULL);
+EFL_DEFINE_CLASS(mixin_class_get, &class_desc, NULL, EO_CLASS, NULL);
 

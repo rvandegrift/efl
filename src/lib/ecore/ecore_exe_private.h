@@ -80,29 +80,24 @@ struct _Ecore_Exe_Data
    Ecore_Win32_Handler *h_close;
    Ecore_Exe_Win32_Signal sig;
 
-   struct
-   {
-      HANDLE child_pipe;
-      HANDLE thread;
-      void *data_buf;
-      DWORD data_size;
-   } pipe_read;
+   Ecore_Thread *th;
 
-   struct
-   {
+   struct {
       HANDLE child_pipe;
-      HANDLE child_pipe_x;
       void *data_buf;
       int data_size;
-   } pipe_write;
+   } pipe_read;
 
-   struct
-   {
+   struct {
       HANDLE child_pipe;
-      HANDLE thread;
       void *data_buf;
-      DWORD data_size;
+      int data_size;
    } pipe_error;
+
+   struct {
+      HANDLE child_pipe;
+      HANDLE child_pipe_x;
+   } pipe_write;
 
    Eina_Bool close_threads : 1;
    Eina_Bool is_suspended : 1;
@@ -154,11 +149,11 @@ void _ecore_exe_event_add_free(void *data EINA_UNUSED, void *ev);
 void _impl_ecore_exe_run_priority_set(int pri);
 int _impl_ecore_exe_run_priority_get(void);
 void _impl_ecore_exe_auto_limits_set(Ecore_Exe *obj, Ecore_Exe_Data *exe, int start_bytes, int end_bytes, int start_lines, int end_lines);
-Eo *_impl_ecore_exe_eo_base_finalize(Eo *obj, Ecore_Exe_Data *exe);
+Eo *_impl_ecore_exe_efl_object_finalize(Eo *obj, Ecore_Exe_Data *exe);
 void _impl_ecore_exe_efl_control_suspend_set(Eo *obj EINA_UNUSED, Ecore_Exe_Data *exe, Eina_Bool suspend);
 Eina_Bool _impl_ecore_exe_send(Ecore_Exe *obj, Ecore_Exe_Data *exe, const void *data, int size);
 Ecore_Exe_Event_Data *_impl_ecore_exe_event_data_get(Ecore_Exe *obj, Ecore_Exe_Data *exe, Ecore_Exe_Flags flags);
-void _impl_ecore_exe_eo_base_destructor(Eo *obj, Ecore_Exe_Data *exe);
+void _impl_ecore_exe_efl_object_destructor(Eo *obj, Ecore_Exe_Data *exe);
 void _impl_ecore_exe_pause(Ecore_Exe *obj, Ecore_Exe_Data *exe);
 void _impl_ecore_exe_continue(Ecore_Exe *obj, Ecore_Exe_Data *exe);
 void _impl_ecore_exe_interrupt(Ecore_Exe *obj, Ecore_Exe_Data *exe);

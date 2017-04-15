@@ -338,7 +338,7 @@ eet_flush2(Eet_File *ef)
         int fd;
 
         /* opening for write - delete old copy of file right away */
-        unlink(ef->path);
+        eina_file_unlink(ef->path);
         fd = open(ef->path, O_CREAT | O_TRUNC | O_RDWR | O_BINARY, S_IRUSR | S_IWUSR);
         if (fd < 0)
           {
@@ -1926,6 +1926,10 @@ eet_read_cipher(Eet_File   *ef,
    /* hunt hash bucket */
    efn = find_node_by_name(ef, name);
    if (!efn)
+     goto on_error;
+
+   /* Requested decryption but file not encrypted -> integrity violation */
+   if (!efn->ciphered && cipher_key)
      goto on_error;
 
    /* Get a binbuf attached to this efn */

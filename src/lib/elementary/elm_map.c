@@ -264,14 +264,27 @@ _scale_cb(const Evas_Object *obj EINA_UNUSED,
    return _osm_scale_meter[zoom] * cos(lat * ELM_PI / 180.0);
 }
 
+static Evas_Object *
+_osm_copyright_cb(Evas_Object *obj)
+{
+   Evas_Object *label;
+
+   label = elm_label_add(obj);
+   elm_object_text_set(label, "<color=#000000FF><backing=on><backing_color=#FCFCFBFF><shadow_color=#00000000>"
+                       "openstreetmap.org opendatacommons.org creativecommons.org"
+                       "</shadow_color></backing_color></backing></color>");
+
+   return label;
+}
+
 static const Source_Tile src_tiles[] =
 {
-   {"Mapnik", 0, 18, _mapnik_url_cb, NULL, NULL, _scale_cb},
-   {"Osmarender", 0, 17, _osmarender_url_cb, NULL, NULL, _scale_cb},
-   {"CycleMap", 0, 16, _cyclemap_url_cb, NULL, NULL, _scale_cb},
-   {"MapQuest", 0, 18, _mapquest_url_cb, NULL, NULL, _scale_cb},
+   {"Mapnik", 0, 18, _mapnik_url_cb, NULL, NULL, _scale_cb, _osm_copyright_cb},
+   {"Osmarender", 0, 17, _osmarender_url_cb, NULL, NULL, _scale_cb, _osm_copyright_cb},
+   {"CycleMap", 0, 16, _cyclemap_url_cb, NULL, NULL, _scale_cb, _osm_copyright_cb},
+   {"MapQuest", 0, 18, _mapquest_url_cb, NULL, NULL, _scale_cb, _osm_copyright_cb},
    {"MapQuest Open Aerial", 0, 11, _mapquest_aerial_url_cb, NULL, NULL,
-    _scale_cb}
+    _scale_cb, _osm_copyright_cb}
 };
 
 static void _kml_parse(Elm_Map_Route *r);
@@ -599,7 +612,7 @@ _loaded_timeout_cb(void *data)
 
    sd->loaded_timer = NULL;
    if (!(sd->download_num) && !(sd->download_idler))
-      eo_event_callback_call
+      efl_event_callback_legacy_call
         (sd->obj, ELM_MAP_EVENT_LOADED, NULL);
    return ECORE_CALLBACK_CANCEL;
 }
@@ -751,7 +764,7 @@ _downloaded_cb(void *data,
 
         _grid_item_update(gi);
         gi->wsd->finish_num++;
-        eo_event_callback_call
+        efl_event_callback_legacy_call
           ((gi->wsd)->obj, ELM_MAP_EVENT_TILE_LOADED, NULL);
      }
    else
@@ -760,7 +773,7 @@ _downloaded_cb(void *data,
 
         ecore_file_remove(gi->file);
         gi->file_have = EINA_FALSE;
-        eo_event_callback_call
+        efl_event_callback_legacy_call
           ((gi->wsd)->obj, ELM_MAP_EVENT_TILE_LOADED_FAIL, NULL);
      }
 
@@ -809,7 +822,7 @@ _download_job(void *data)
            sd->download_list = eina_list_remove(sd->download_list, gi);
            sd->try_num++;
            sd->download_num++;
-           eo_event_callback_call
+           efl_event_callback_legacy_call
              (obj, ELM_MAP_EVENT_TILE_LOAD, NULL);
            if (sd->download_num == 1)
              edje_object_signal_emit(wd->resize_obj,
@@ -1070,7 +1083,7 @@ _zoom_timeout_cb(void *data)
 
    _smooth_update(sd);
    sd->zoom_timer = NULL;
-   eo_event_callback_call
+   efl_event_callback_legacy_call
      (sd->obj, EFL_UI_EVENT_ZOOM_STOP, NULL);
 
    return ECORE_CALLBACK_CANCEL;
@@ -1132,21 +1145,21 @@ _zoom_do(Elm_Map_Data *sd,
         sd->zoom_timer = NULL;
      }
    else
-      eo_event_callback_call
+      efl_event_callback_legacy_call
         (sd->obj, EFL_UI_EVENT_ZOOM_START, NULL);
 
    if (sd->obj)
      sd->zoom_timer = ecore_timer_add(0.25, _zoom_timeout_cb, sd->obj);
-   eo_event_callback_call
+   efl_event_callback_legacy_call
      (sd->obj, ELM_MAP_EVENT_ZOOM_CHANGE, NULL);
 
-   eo_event_callback_call
+   efl_event_callback_legacy_call
      (sd->pan_obj, ELM_PAN_EVENT_CHANGED, NULL);
    evas_object_smart_changed(sd->pan_obj);
 }
 
 static void
-_zoom_anim_cb(void *data, const Eo_Event *event EINA_UNUSED)
+_zoom_anim_cb(void *data, const Efl_Event *event EINA_UNUSED)
 {
    ELM_MAP_DATA_GET(data, sd);
 
@@ -1165,7 +1178,7 @@ _zoom_anim_cb(void *data, const Eo_Event *event EINA_UNUSED)
 }
 
 static void
-_zoom_bring_anim_cb(void *data, const Eo_Event *event EINA_UNUSED)
+_zoom_bring_anim_cb(void *data, const Efl_Event *event EINA_UNUSED)
 {
    ELM_MAP_DATA_GET(data, sd);
 
@@ -1207,9 +1220,9 @@ _zoom_animator_set(Elm_Map_Data *sd,
    Eina_Bool r = EINA_FALSE;
 
    sd->zoom_animator = !!callback;
-   r = eo_event_callback_del(sd->obj, EFL_EVENT_ANIMATOR_TICK, _zoom_anim_cb, sd->obj);
-   r |= eo_event_callback_del(sd->obj, EFL_EVENT_ANIMATOR_TICK, _zoom_bring_anim_cb, sd->obj);
-   if (callback) eo_event_callback_add(sd->obj, EFL_EVENT_ANIMATOR_TICK, callback, sd->obj);
+   r = efl_event_callback_del(sd->obj, EFL_EVENT_ANIMATOR_TICK, _zoom_anim_cb, sd->obj);
+   r |= efl_event_callback_del(sd->obj, EFL_EVENT_ANIMATOR_TICK, _zoom_bring_anim_cb, sd->obj);
+   if (callback) efl_event_callback_add(sd->obj, EFL_EVENT_ANIMATOR_TICK, callback, sd->obj);
 
    return r;
 }
@@ -1280,7 +1293,7 @@ _scr_timeout_cb(void *data)
 
    _smooth_update(sd);
    sd->scr_timer = NULL;
-   eo_event_callback_call
+   efl_event_callback_legacy_call
      (sd->obj, EFL_UI_EVENT_SCROLL_DRAG_STOP, NULL);
 
    return ECORE_CALLBACK_CANCEL;
@@ -1294,11 +1307,11 @@ _scroll_cb(Evas_Object *obj,
 
    if (sd->scr_timer) ecore_timer_del(sd->scr_timer);
    else
-      eo_event_callback_call
+      efl_event_callback_legacy_call
         (sd->obj, EFL_UI_EVENT_SCROLL_DRAG_START, NULL);
    ELM_SAFE_FREE(sd->long_timer, ecore_timer_del);
    sd->scr_timer = ecore_timer_add(0.25, _scr_timeout_cb, obj);
-   eo_event_callback_call
+   efl_event_callback_legacy_call
      (sd->obj, EFL_UI_EVENT_SCROLL, NULL);
 }
 
@@ -1308,7 +1321,7 @@ _scroll_animate_start_cb(Evas_Object *obj,
 {
    ELM_MAP_DATA_GET(obj, sd);
 
-   eo_event_callback_call
+   efl_event_callback_legacy_call
      (sd->obj, EFL_UI_EVENT_SCROLL_ANIM_START, NULL);
 }
 
@@ -1318,7 +1331,7 @@ _scroll_animate_stop_cb(Evas_Object *obj,
 {
    ELM_MAP_DATA_GET(obj, sd);
 
-   eo_event_callback_call
+   efl_event_callback_legacy_call
      (sd->obj, EFL_UI_EVENT_SCROLL_ANIM_STOP, NULL);
 }
 
@@ -1328,7 +1341,7 @@ _long_press_cb(void *data)
    ELM_MAP_DATA_GET(data, sd);
 
    sd->long_timer = NULL;
-   eo_event_callback_call
+   efl_event_callback_legacy_call
      (sd->obj, EFL_UI_EVENT_LONGPRESSED, &sd->ev);
 
    return ECORE_CALLBACK_CANCEL;
@@ -1348,10 +1361,10 @@ _mouse_down_cb(void *data,
    else sd->on_hold = EINA_FALSE;
 
    if (ev->flags & EVAS_BUTTON_DOUBLE_CLICK)
-     eo_event_callback_call
+     efl_event_callback_legacy_call
        (sd->obj, EFL_UI_EVENT_CLICKED_DOUBLE, ev);
    else
-     eo_event_callback_call
+     efl_event_callback_legacy_call
        (sd->obj, ELM_MAP_EVENT_PRESS, ev);
 
    ecore_timer_del(sd->long_timer);
@@ -1379,7 +1392,7 @@ _mouse_up_cb(void *data,
    ELM_SAFE_FREE(sd->long_timer, ecore_timer_del);
 
    if (!sd->on_hold)
-   eo_event_callback_call
+   efl_event_callback_legacy_call
      (sd->obj, EFL_UI_EVENT_CLICKED, ev);
    sd->on_hold = EINA_FALSE;
 }
@@ -1491,7 +1504,7 @@ _overlay_clicked_cb(void *data,
 
    EINA_SAFETY_ON_NULL_RETURN(data);
 
-   eo_event_callback_call
+   efl_event_callback_legacy_call
      ((overlay->wsd)->obj, ELM_MAP_EVENT_OVERLAY_CLICKED, overlay);
    if (overlay->cb)
      overlay->cb(overlay->cb_data, (overlay->wsd)->obj, overlay);
@@ -2651,6 +2664,18 @@ _overlay_show(Elm_Map_Overlay *overlay)
 }
 
 static void
+_copyright_place(Elm_Map_Data *sd)
+{
+   Evas_Coord w, h;
+   Evas_Coord vw, vx, vy, vh;
+
+   _viewport_coord_get(sd, &vx, &vy, &vw, &vh);
+   _coord_to_canvas_no_rotation(sd, vx, vy, &vx, &vy);
+   evas_object_size_hint_min_get(sd->copyright, &w, &h);
+   _obj_place(sd->copyright, vx + vw - w, vy + vh - h, w, h);
+}
+
+static void
 _overlay_place(Elm_Map_Data *sd)
 {
    Eina_List *l, *ll;
@@ -2921,7 +2946,7 @@ _kml_parse(Elm_Map_Route *r)
           }
         fclose(f);
 
-        if (dump.distance) r->info.distance = dump.distance;
+        if (!EINA_DBL_EQ(dump.distance, 0)) r->info.distance = dump.distance;
         if (dump.description)
           {
              eina_stringshare_replace(&r->info.waypoints, dump.description);
@@ -3078,14 +3103,14 @@ _route_cb(void *data,
         INF("Route request success from (%lf, %lf) to (%lf, %lf)",
             route->flon, route->flat, route->tlon, route->tlat);
         if (route->cb) route->cb(route->data, sd->obj, route);
-        eo_event_callback_call
+        efl_event_callback_legacy_call
           (sd->obj, ELM_MAP_EVENT_ROUTE_LOADED, NULL);
      }
    else
      {
         ERR("Route request failed: %d", status);
         if (route->cb) route->cb(route->data, sd->obj, NULL);
-        eo_event_callback_call
+        efl_event_callback_legacy_call
           (sd->obj, ELM_MAP_EVENT_ROUTE_LOADED_FAIL, NULL);
      }
 
@@ -3115,14 +3140,14 @@ _name_cb(void *data,
         INF("Name request success address:%s, lon:%lf, lat:%lf",
             name->address, name->lon, name->lat);
         if (name->cb) name->cb(name->data, sd->obj, name);
-        eo_event_callback_call
+        efl_event_callback_legacy_call
           (sd->obj, ELM_MAP_EVENT_NAME_LOADED, NULL);
      }
    else
      {
         ERR("Name request failed: %d", status);
         if (name->cb) name->cb(name->data, sd->obj, NULL);
-        eo_event_callback_call
+        efl_event_callback_legacy_call
           (sd->obj, ELM_MAP_EVENT_NAME_LOADED_FAIL, NULL);
      }
    edje_object_signal_emit(wd->resize_obj,
@@ -3152,7 +3177,7 @@ _name_list_cb(void *data,
         if (name_list->cb)
           name_list->cb(name_list->data, wd->obj,
                         name_list->names);
-        eo_event_callback_call
+        efl_event_callback_legacy_call
           (wd->obj, ELM_MAP_EVENT_NAME_LOADED, NULL);
      }
    else
@@ -3160,7 +3185,7 @@ _name_list_cb(void *data,
         ERR("Name List request failed: %d", status);
         if (name_list->cb)
           name_list->cb(name_list->data, wd->obj, NULL);
-        eo_event_callback_call
+        efl_event_callback_legacy_call
           (wd->obj, ELM_MAP_EVENT_NAME_LOADED_FAIL, NULL);
      }
 
@@ -3238,7 +3263,7 @@ _name_request(const Evas_Object *obj,
    free(fname);
 
    sd->names = eina_list_append(sd->names, name);
-   eo_event_callback_call
+   efl_event_callback_legacy_call
      (sd->obj, ELM_MAP_EVENT_NAME_LOAD, name);
    edje_object_signal_emit(wd->resize_obj,
                            "elm,state,busy,start", "elm");
@@ -3292,7 +3317,7 @@ _name_list_request(const Evas_Object *obj,
    free(url);
    free(fname);
 
-   eo_event_callback_call
+   efl_event_callback_legacy_call
      (wd->obj, ELM_MAP_EVENT_NAME_LOAD, name_list->names);
    edje_object_signal_emit(wd->resize_obj,
                            "elm,state,busy,start", "elm");
@@ -3406,6 +3431,17 @@ _source_tile_set(Elm_Map_Data *sd,
    if (sd->src_tile->zoom_min > sd->zoom_min)
      sd->zoom_min = sd->src_tile->zoom_min;
 
+   ELM_SAFE_FREE(sd->copyright, evas_object_del);
+   if (sd->src_tile->copyright_cb)
+     {
+        sd->copyright = sd->src_tile->copyright_cb(sd->obj);
+        if (sd->copyright)
+          {
+             evas_object_smart_member_add(sd->copyright, sd->pan_obj);
+             evas_object_stack_above(sd->copyright, sd->sep_maps_overlays);
+          }
+     }
+
    _grid_all_clear(sd);
    _grid_all_create(sd);
    _zoom_do(sd, sd->zoom);
@@ -3477,6 +3513,7 @@ _source_mod_cb(Eina_Module *m,
    Elm_Map_Module_Source_Name_Func name_cb;
    Elm_Map_Module_Tile_Url_Func tile_url_cb;
    Elm_Map_Module_Tile_Scale_Func scale_cb;
+   Elm_Map_Module_Tile_Copyright_Func copyright_cb;
    Elm_Map_Module_Tile_Zoom_Min_Func zoom_min;
    Elm_Map_Module_Tile_Zoom_Max_Func zoom_max;
    Elm_Map_Module_Tile_Geo_to_Coord_Func geo_to_coord;
@@ -3503,7 +3540,6 @@ _source_mod_cb(Eina_Module *m,
         return EINA_FALSE;
      }
    free(dir);
-
    if (!eina_module_load(m)) return EINA_FALSE;
 
    name_cb = eina_module_symbol_get(m, "map_module_source_name_get");
@@ -3520,6 +3556,7 @@ _source_mod_cb(Eina_Module *m,
    geo_to_coord = eina_module_symbol_get(m, "map_module_tile_geo_to_coord");
    coord_to_geo = eina_module_symbol_get(m, "map_module_tile_coord_to_geo");
    scale_cb = eina_module_symbol_get(m, "map_module_tile_scale_get");
+   copyright_cb = eina_module_symbol_get(m, "map_module_tile_copyright_get");
    if (tile_url_cb && zoom_min && zoom_max && geo_to_coord && coord_to_geo &&
        scale_cb)
      {
@@ -3533,6 +3570,7 @@ _source_mod_cb(Eina_Module *m,
         s->geo_to_coord = geo_to_coord;
         s->coord_to_geo = coord_to_geo;
         s->scale_cb = scale_cb;
+        s->copyright_cb = copyright_cb;
         sd->src_tiles = eina_list_append(sd->src_tiles, s);
      }
 
@@ -3629,6 +3667,7 @@ _source_all_load(Elm_Map_Data *sd)
         src_tile->geo_to_coord = src_tiles[idx].geo_to_coord;
         src_tile->coord_to_geo = src_tiles[idx].coord_to_geo;
         src_tile->scale_cb = src_tiles[idx].scale_cb;
+        src_tile->copyright_cb = src_tiles[idx].copyright_cb;
         sd->src_tiles = eina_list_append(sd->src_tiles, src_tile);
      }
    // Load hard coded ROUTE source
@@ -3864,8 +3903,13 @@ _elm_map_pan_elm_pan_content_size_get(Eo *obj EINA_UNUSED, Elm_Map_Pan_Data *psd
 }
 
 EOLIAN static void
-_elm_map_pan_efl_canvas_group_group_resize(Eo *obj, Elm_Map_Pan_Data *psd, Evas_Coord w EINA_UNUSED, Evas_Coord h EINA_UNUSED)
+_elm_map_pan_efl_gfx_size_set(Eo *obj, Elm_Map_Pan_Data *psd, Evas_Coord w, Evas_Coord h)
 {
+   if (_evas_object_intercept_call(obj, EVAS_OBJECT_INTERCEPT_CB_RESIZE, 0, w, h))
+     return;
+
+   efl_gfx_size_set(efl_super(obj, MY_PAN_CLASS), w, h);
+
    _sizing_eval(psd->wsd->obj);
    elm_map_zoom_mode_set(psd->wobj, psd->wsd->mode);
    evas_object_smart_changed(obj);
@@ -3880,14 +3924,20 @@ _elm_map_pan_efl_canvas_group_group_calculate(Eo *obj, Elm_Map_Pan_Data *psd)
    if (w <= 0 || h <= 0) return;
 
    _grid_place(psd->wsd);
+   if (psd->wsd->copyright)
+     _copyright_place(psd->wsd);
    _overlay_place(psd->wsd);
    _track_place(psd->wsd);
    _calc_job(psd->wsd);
 }
 
 EOLIAN static void
-_elm_map_pan_efl_canvas_group_group_move(Eo *obj, Elm_Map_Pan_Data *_pd EINA_UNUSED, Evas_Coord x EINA_UNUSED, Evas_Coord y EINA_UNUSED)
+_elm_map_pan_efl_gfx_position_set(Eo *obj, Elm_Map_Pan_Data *_pd EINA_UNUSED, Evas_Coord x, Evas_Coord y)
 {
+   if (_evas_object_intercept_call(obj, EVAS_OBJECT_INTERCEPT_CB_MOVE, 0, x, y))
+     return;
+
+   efl_gfx_position_set(efl_super(obj, MY_PAN_CLASS), x, y);
    evas_object_smart_changed(obj);
 }
 
@@ -3897,7 +3947,7 @@ _elm_map_elm_widget_on_focus(Eo *obj, Elm_Map_Data *_pd EINA_UNUSED, Elm_Object_
    ELM_WIDGET_DATA_GET_OR_RETURN(obj, wd, EINA_FALSE);
    Eina_Bool int_ret = EINA_FALSE;
 
-   int_ret = elm_obj_widget_on_focus(eo_super(obj, MY_CLASS), NULL);
+   int_ret = elm_obj_widget_on_focus(efl_super(obj, MY_CLASS), NULL);
    if (!int_ret) return EINA_FALSE;
 
    if (elm_widget_focus_get(obj))
@@ -3917,14 +3967,14 @@ _elm_map_elm_widget_on_focus(Eo *obj, Elm_Map_Data *_pd EINA_UNUSED, Elm_Object_
 }
 
 EOLIAN static void
-_elm_map_pan_eo_base_destructor(Eo *obj, Elm_Map_Pan_Data *psd)
+_elm_map_pan_efl_object_destructor(Eo *obj, Elm_Map_Pan_Data *psd)
 {
-   eo_data_unref(psd->wobj, psd->wsd);
-   eo_destructor(eo_super(obj, MY_PAN_CLASS));
+   efl_data_unref(psd->wobj, psd->wsd);
+   efl_destructor(efl_super(obj, MY_PAN_CLASS));
 }
 
 static void
-_elm_map_pan_class_constructor(Eo_Class *klass)
+_elm_map_pan_class_constructor(Efl_Class *klass)
 {
    evas_smart_legacy_type_register(MY_PAN_CLASS_NAME_LEGACY, klass);
 }
@@ -3936,7 +3986,7 @@ _elm_map_elm_widget_theme_apply(Eo *obj, Elm_Map_Data *sd EINA_UNUSED)
 {
    ELM_WIDGET_DATA_GET_OR_RETURN(obj, wd, ELM_THEME_APPLY_FAILED);
    Elm_Theme_Apply int_ret = ELM_THEME_APPLY_FAILED;
-   int_ret = elm_obj_widget_theme_apply(eo_super(obj, MY_CLASS));
+   int_ret = elm_obj_widget_theme_apply(efl_super(obj, MY_CLASS));
    if (!int_ret) return ELM_THEME_APPLY_FAILED;
 
 
@@ -4019,7 +4069,7 @@ _key_action_zoom(Evas_Object *obj, const char *params)
 }
 
 EOLIAN static Eina_Bool
-_elm_map_elm_widget_event(Eo *obj, Elm_Map_Data *sd EINA_UNUSED, Evas_Object *src, Evas_Callback_Type type, void *event_info)
+_elm_map_elm_widget_widget_event(Eo *obj, Elm_Map_Data *sd EINA_UNUSED, Evas_Object *src, Evas_Callback_Type type, void *event_info)
 {
    (void) src;
    Evas_Event_Key_Down *ev = event_info;
@@ -4046,7 +4096,7 @@ _elm_map_efl_canvas_group_group_add(Eo *obj, Elm_Map_Data *priv)
    edje = edje_object_add(evas_object_evas_get(obj));
    elm_widget_resize_object_set(obj, edje, EINA_TRUE);
 
-   efl_canvas_group_add(eo_super(obj, MY_CLASS));
+   efl_canvas_group_add(efl_super(obj, MY_CLASS));
 
    elm_widget_theme_object_set
      (obj, edje, "map", "base", elm_widget_style_get(obj));
@@ -4081,9 +4131,9 @@ _elm_map_efl_canvas_group_group_add(Eo *obj, Elm_Map_Data *priv)
    elm_interface_scrollable_animate_stop_cb_set(obj, _scroll_animate_stop_cb);
    elm_interface_scrollable_scroll_cb_set(obj, _scroll_cb);
 
-   priv->pan_obj = eo_add(MY_PAN_CLASS, evas_object_evas_get(obj));
-   pan_data = eo_data_scope_get(priv->pan_obj, MY_PAN_CLASS);
-   eo_data_ref(obj, NULL);
+   priv->pan_obj = efl_add(MY_PAN_CLASS, evas_object_evas_get(obj));
+   pan_data = efl_data_scope_get(priv->pan_obj, MY_PAN_CLASS);
+   efl_data_ref(obj, MY_CLASS);
    pan_data->wobj = obj;
    pan_data->wsd = priv;
 
@@ -4141,6 +4191,16 @@ _elm_map_efl_canvas_group_group_add(Eo *obj, Elm_Map_Data *priv)
 
    if (!ecore_file_download_protocol_available("http://"))
      ERR("Ecore must be built with curl support for the map widget!");
+
+   if (priv->src_tile->copyright_cb)
+     {
+        priv->copyright = priv->src_tile->copyright_cb(obj);
+        if (priv->copyright)
+          {
+             evas_object_smart_member_add(priv->copyright, priv->pan_obj);
+             evas_object_stack_above(priv->copyright, priv->sep_maps_overlays);
+          }
+     }
 }
 
 EOLIAN static void
@@ -4200,21 +4260,28 @@ _elm_map_efl_canvas_group_group_del(Eo *obj, Elm_Map_Data *sd)
    evas_object_del(sd->pan_obj);
    sd->pan_obj = NULL;
 
-   efl_canvas_group_del(eo_super(obj, MY_CLASS));
+   ELM_SAFE_FREE(sd->copyright, evas_object_del);
+   efl_canvas_group_del(efl_super(obj, MY_CLASS));
 }
 
 EOLIAN static void
-_elm_map_efl_canvas_group_group_move(Eo *obj, Elm_Map_Data *sd, Evas_Coord x, Evas_Coord y)
+_elm_map_efl_gfx_position_set(Eo *obj, Elm_Map_Data *sd, Evas_Coord x, Evas_Coord y)
 {
-   efl_canvas_group_move(eo_super(obj, MY_CLASS), x, y);
+   if (_evas_object_intercept_call(obj, EVAS_OBJECT_INTERCEPT_CB_MOVE, 0, x, y))
+     return;
+
+   efl_gfx_position_set(efl_super(obj, MY_CLASS), x, y);
 
    evas_object_move(sd->hit_rect, x, y);
 }
 
 EOLIAN static void
-_elm_map_efl_canvas_group_group_resize(Eo *obj, Elm_Map_Data *sd, Evas_Coord w, Evas_Coord h)
+_elm_map_efl_gfx_size_set(Eo *obj, Elm_Map_Data *sd, Evas_Coord w, Evas_Coord h)
 {
-   efl_canvas_group_resize(eo_super(obj, MY_CLASS), w, h);
+   if (_evas_object_intercept_call(obj, EVAS_OBJECT_INTERCEPT_CB_RESIZE, 0, w, h))
+     return;
+
+   efl_gfx_size_set(efl_super(obj, MY_CLASS), w, h);
 
    evas_object_resize(sd->hit_rect, w, h);
 }
@@ -4222,7 +4289,7 @@ _elm_map_efl_canvas_group_group_resize(Eo *obj, Elm_Map_Data *sd, Evas_Coord w, 
 EOLIAN static void
 _elm_map_efl_canvas_group_group_member_add(Eo *obj, Elm_Map_Data *sd, Evas_Object *member)
 {
-   efl_canvas_group_member_add(eo_super(obj, MY_CLASS), member);
+   efl_canvas_group_member_add(efl_super(obj, MY_CLASS), member);
 
    if (sd->hit_rect)
      evas_object_raise(sd->hit_rect);
@@ -4232,14 +4299,14 @@ EAPI Evas_Object *
 elm_map_add(Evas_Object *parent)
 {
    EINA_SAFETY_ON_NULL_RETURN_VAL(parent, NULL);
-   Evas_Object *obj = eo_add(MY_CLASS, parent);
+   Evas_Object *obj = efl_add(MY_CLASS, parent);
    return obj;
 }
 
 EOLIAN static Eo *
-_elm_map_eo_base_constructor(Eo *obj, Elm_Map_Data *sd)
+_elm_map_efl_object_constructor(Eo *obj, Elm_Map_Data *sd)
 {
-   obj = eo_constructor(eo_super(obj, MY_CLASS));
+   obj = efl_constructor(efl_super(obj, MY_CLASS));
    sd->obj = obj;
 
    efl_canvas_object_type_set(obj, MY_CLASS_NAME_LEGACY);
@@ -4579,7 +4646,7 @@ _elm_map_route_add(Eo *obj, Elm_Map_Data *sd, Elm_Map_Route_Type type, Elm_Map_R
    free(url);
 
    sd->routes = eina_list_append(sd->routes, route);
-   eo_event_callback_call
+   efl_event_callback_legacy_call
      (sd->obj, ELM_MAP_EVENT_ROUTE_LOAD, route);
    edje_object_signal_emit(wd->resize_obj,
                            "elm,state,busy,start", "elm");
@@ -4748,7 +4815,7 @@ elm_map_overlay_del(Elm_Map_Overlay *overlay)
    EINA_SAFETY_ON_NULL_RETURN(overlay->wsd);
    ELM_MAP_CHECK((overlay->wsd)->obj);
 
-   eo_event_callback_call
+   efl_event_callback_legacy_call
      ((overlay->wsd)->obj, ELM_MAP_EVENT_OVERLAY_DEL, overlay);
    if (overlay->del_cb)
      overlay->del_cb
@@ -5015,7 +5082,6 @@ elm_map_overlay_icon_set(Elm_Map_Overlay *overlay,
                          Evas_Object *icon)
 {
    EINA_SAFETY_ON_NULL_RETURN(overlay);
-   EINA_SAFETY_ON_NULL_RETURN(icon);
    EINA_SAFETY_ON_NULL_RETURN(overlay->wsd);
    ELM_MAP_CHECK((overlay->wsd)->obj);
 
@@ -5538,7 +5604,7 @@ _elm_map_track_remove(Eo *obj EINA_UNUSED, Elm_Map_Data *sd, Evas_Object *route)
 }
 
 static void
-_elm_map_class_constructor(Eo_Class *klass)
+_elm_map_class_constructor(Efl_Class *klass)
 {
    evas_smart_legacy_type_register(MY_CLASS_NAME_LEGACY, klass);
 }

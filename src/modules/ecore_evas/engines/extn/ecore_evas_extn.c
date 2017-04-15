@@ -750,8 +750,11 @@ _ecore_evas_extn_cb_focus_in(void *data, Evas *e EINA_UNUSED, Evas_Object *obj E
    Ecore_Evas *ee = data;
    Ecore_Evas_Engine_Buffer_Data *bdata = ee->engine.data;
    Extn *extn;
+   Evas_Device *dev;
 
-   ee->prop.focused = EINA_TRUE;
+   dev = evas_default_device_get(ee->evas, EFL_INPUT_DEVICE_CLASS_SEAT);
+   if (ecore_evas_focus_device_get(ee, dev)) return;
+   ee->prop.focused_by = eina_list_append(ee->prop.focused_by, dev);
    extn = bdata->data;
    if (!extn) return;
    if (!extn->ipc.server) return;
@@ -765,7 +768,8 @@ _ecore_evas_extn_cb_focus_out(void *data, Evas *e EINA_UNUSED, Evas_Object *obj 
    Ecore_Evas_Engine_Buffer_Data *bdata = ee->engine.data;
    Extn *extn;
 
-   ee->prop.focused = EINA_FALSE;
+   ee->prop.focused_by = eina_list_remove(ee->prop.focused_by,
+                                          evas_default_device_get(ee->evas, EFL_INPUT_DEVICE_CLASS_SEAT));
    extn = bdata->data;
    if (!extn) return;
    if (!extn->ipc.server) return;
@@ -913,7 +917,15 @@ static const Ecore_Evas_Engine_Func _ecore_extn_plug_engine_func =
    NULL, // aux_hints_set
 
    NULL, // fn_animator_register
-   NULL  // fn_animator_unregister
+   NULL, // fn_animator_unregister
+
+   NULL, // fn_evas_changed
+   NULL, //fn_focus_device_set
+   NULL, //fn_callback_focus_device_in_set
+   NULL, //fn_callback_focus_device_out_set
+   NULL, //fn_callback_device_mouse_in_set
+   NULL, //fn_callback_device_mouse_out_set
+   NULL, //fn_pointer_device_xy_get
 };
 
 static Eina_Bool
@@ -1009,6 +1021,21 @@ _ipc_server_data(void *data, int type EINA_UNUSED, void *event)
            {
               Ipc_Data_Update *ipc;
               int n = e->response;
+
+              /* b->lockfd is not enough to ensure the size is same 
+               * between what server knows, and client knows.
+               * So should check file lock also. */
+              if ((n >= 0) && (n < NBUF))
+                {
+                   if (extn->b[n].buf && (!_extnbuf_lock_file_get(extn->b[n].buf)))
+                     {
+                        EINA_LIST_FREE(extn->file.updates, ipc)
+                          {
+                             free(ipc);
+                          }
+                        break;
+                     }
+                }
 
               EINA_LIST_FREE(extn->file.updates, ipc)
                 {
@@ -1197,7 +1224,6 @@ ecore_evas_extn_plug_new_internal(Ecore_Evas *ee_target)
    ee->prop.max.w = 0;
    ee->prop.max.h = 0;
    ee->prop.layer = 0;
-   ee->prop.focused = EINA_FALSE;
    ee->prop.borderless = EINA_TRUE;
    ee->prop.override = EINA_TRUE;
    ee->prop.maximized = EINA_FALSE;
@@ -1658,20 +1684,10 @@ _ipc_client_data(void *data, int type EINA_UNUSED, void *event)
            }
          break;
       case OP_FOCUS:
-         if (!ee->prop.focused)
-           {
-              ee->prop.focused = EINA_TRUE;
-              evas_focus_in(ee->evas);
-              if (ee->func.fn_focus_in) ee->func.fn_focus_in(ee);
-           }
+         if (!ecore_evas_focus_device_get(ee, NULL)) _ecore_evas_focus_device_set(ee, NULL, EINA_TRUE);
          break;
       case OP_UNFOCUS:
-         if (ee->prop.focused)
-           {
-              ee->prop.focused = EINA_FALSE;
-              evas_focus_out(ee->evas);
-              if (ee->func.fn_focus_out) ee->func.fn_focus_out(ee);
-           }
+         if (ecore_evas_focus_device_get(ee, NULL)) _ecore_evas_focus_device_set(ee, NULL, EINA_FALSE);
          break;
       case OP_EV_MOUSE_IN:
          if (ee->events_block) break;
@@ -2078,6 +2094,8 @@ static const Ecore_Evas_Engine_Func _ecore_extn_socket_engine_func =
 
    NULL, // fn_animator_register
    NULL, // fn_animator_unregister
+
+   NULL, // fn_evas_changed
 };
 
 EAPI Ecore_Evas *
@@ -2121,7 +2139,6 @@ ecore_evas_extn_socket_new_internal(int w, int h)
    ee->prop.max.w = 0;
    ee->prop.max.h = 0;
    ee->prop.layer = 0;
-   ee->prop.focused = EINA_FALSE;
    ee->prop.borderless = EINA_TRUE;
    ee->prop.override = EINA_TRUE;
    ee->prop.maximized = EINA_FALSE;

@@ -33,9 +33,6 @@ _output_setup(int  width,
    if (!re)
      return NULL;
 
-   /* if we haven't initialized - init (automatic abort if already done) */
-   evas_common_init();
-
    evas_software_ddraw_outbuf_init();
 
    ob = evas_software_ddraw_outbuf_setup(width, height, rot,
@@ -47,11 +44,13 @@ _output_setup(int  width,
                                                  evas_software_ddraw_outbuf_rot_get,
                                                  evas_software_ddraw_outbuf_reconfigure,
                                                  NULL,
+                                                 NULL,
                                                  evas_software_ddraw_outbuf_new_region_for_update,
                                                  evas_software_ddraw_outbuf_push_updated_region,
                                                  evas_software_ddraw_outbuf_free_region_for_update,
                                                  evas_software_ddraw_outbuf_idle_flush,
                                                  evas_software_ddraw_outbuf_flush,
+                                                 NULL,
                                                  evas_software_ddraw_outbuf_free,
                                                  width, height))
      goto on_error;
@@ -88,48 +87,16 @@ eng_info_free(Evas *e EINA_UNUSED, void *info)
    free(in);
 }
 
-static int
-eng_setup(Evas *eo_e, void *in)
+static void *
+eng_setup(void *in, unsigned int w, unsigned int h)
 {
-   Evas_Public_Data *e = eo_data_scope_get(eo_e, EVAS_CANVAS_CLASS);
-   Render_Engine *re;
-   Evas_Engine_Info_Software_DDraw *info;
+   Evas_Engine_Info_Software_DDraw *info = in;
 
-   info = (Evas_Engine_Info_Software_DDraw *)in;
-   if (!e->engine.data.output)
-     e->engine.data.output = _output_setup(e->output.w,
-                                           e->output.h,
-                                           info->info.rotation,
-                                           info->info.window,
-                                           info->info.depth,
-                                           info->info.fullscreen);
-   else
-     {
-        Outbuf *ob;
-        int ponebuf = 0;
-
-        re = e->engine.data.output;
-        ponebuf = re->generic.ob->onebuf;
-
-        ob = evas_software_ddraw_outbuf_setup(e->output.w,
-                                              e->output.h,
-                                              info->info.rotation,
-                                              OUTBUF_DEPTH_INHERIT,
-                                              info->info.window,
-                                              info->info.depth,
-                                              info->info.fullscreen);
-        if (!ob) return 0;
-        evas_render_engine_software_generic_update(&re->generic, ob, e->output.w, e->output.h);
-
-        re->generic.ob->onebuf = ponebuf;
-     }
-   if (!e->engine.data.output) return 0;
-   if (!e->engine.data.context)
-     e->engine.data.context = e->engine.func->context_new(e->engine.data.output);
-
-   re = e->engine.data.output;
-
-   return 1;
+   return _output_setup(w, h,
+                        info->info.rotation,
+                        info->info.window,
+                        info->info.depth,
+                        info->info.fullscreen);
 }
 
 static void
@@ -142,12 +109,10 @@ eng_output_free(void *data)
    re = (Render_Engine *)data;
    evas_render_engine_software_generic_clean(&re->generic);
    free(re);
-
-   evas_common_shutdown();
 }
 
 static Eina_Bool
-eng_canvas_alpha_get(void *data EINA_UNUSED, void *context EINA_UNUSED)
+eng_canvas_alpha_get(void *data EINA_UNUSED)
 {
 #warning "We need to handle window with alpha channel."
    return EINA_FALSE;
@@ -184,7 +149,11 @@ module_open(Evas_Module *em)
 static void
 module_close(Evas_Module *em EINA_UNUSED)
 {
-  eina_log_domain_unregister(_evas_log_dom_module);
+   if (_evas_log_dom_module >= 0)
+     {
+        eina_log_domain_unregister(_evas_log_dom_module);
+        _evas_log_dom_module = -1;
+     }
 }
 
 static Evas_Module_Api evas_modapi =

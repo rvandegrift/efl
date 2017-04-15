@@ -4,6 +4,8 @@
 #include <stdlib.h> /* getenv */
 #include <stdio.h> /* fprintf, fputs */
 #include <string.h> /* strcmp */
+#include <unistd.h> /* execvp */
+#include <errno.h> /* errno */
 
 typedef struct _Efl_Test_Case Efl_Test_Case;
 struct _Efl_Test_Case
@@ -29,17 +31,37 @@ _efl_test_option_disp(int argc, char **argv, const Efl_Test_Case *etc)
    for (i = 1; i < argc; i++)
      {
         if ((strcmp(argv[i], "-h") == 0) ||
-              (strcmp(argv[i], "--help") == 0))
+            (strcmp(argv[i], "--help") == 0))
           {
-             fprintf(stderr, "Usage:\n\t%s [test_case1 .. [test_caseN]]\n",
-                   argv[0]);
-             _efl_tests_list(etc);
+             fprintf(stderr, "Usage: %s [options] [test_case1 .. [test_caseN]]\n",
+                     argv[0]);
+             fprintf(stderr, " -l\t--list\t\tList all tests case.\n");
+             fprintf(stderr, " \t--valgrind\tRun the tests under valgrind.\n");
+             fprintf(stderr, "\nNote that CK_RUN_CASE=test_case does also filter which tests are run\n");
              return 0;
           }
         else if ((strcmp(argv[i], "-l") == 0) ||
-              (strcmp(argv[i], "--list") == 0))
+                 (strcmp(argv[i], "--list") == 0))
           {
              _efl_tests_list(etc);
+             return 0;
+          }
+        else if (strcmp(argv[i], "--valgrind") == 0)
+          {
+             const char *nav[argc + 3];
+             int j, k;
+
+             nav[0] = "valgrind";
+             nav[1] = "--trace-children=yes";
+             for (j = 0, k = 2; j < argc; j++)
+               {
+                  if (i == j) continue ; // Remove --valgrind
+                  nav[k++] = argv[j];
+               }
+
+             nav[k] = NULL;
+             execvp("valgrind", (char**) nav);
+             fprintf(stderr, "Failed to execute valgrind due to '%s'\n", strerror(errno));
              return 0;
           }
      }

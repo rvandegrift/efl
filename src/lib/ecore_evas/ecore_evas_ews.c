@@ -400,50 +400,10 @@ _ecore_evas_ews_size_step_set(Ecore_Evas *ee, int w, int h)
 }
 
 static void
-_ecore_evas_ews_object_cursor_del(void *data, Evas *e EINA_UNUSED, Evas_Object *obj EINA_UNUSED, void *event_info EINA_UNUSED)
+_ecore_evas_ews_object_cursor_set(Ecore_Evas *ee, Evas_Object *obj EINA_UNUSED,
+                                  int layer EINA_UNUSED, int hot_x EINA_UNUSED,
+                                  int hot_y EINA_UNUSED)
 {
-   Ecore_Evas *ee = data;
-   ee->prop.cursor.object = NULL;
-}
-
-static void
-_ecore_evas_ews_object_cursor_unset(Ecore_Evas *ee)
-{
-   evas_object_event_callback_del_full(ee->prop.cursor.object, EVAS_CALLBACK_DEL, _ecore_evas_ews_object_cursor_del, ee);
-}
-
-static void
-_ecore_evas_ews_object_cursor_set(Ecore_Evas *ee, Evas_Object *obj, int layer, int hot_x, int hot_y)
-{
-   int x, y;
-
-   if (ee->prop.cursor.object) evas_object_del(ee->prop.cursor.object);
-
-   if (!obj)
-     {
-        ee->prop.cursor.object = NULL;
-        ee->prop.cursor.layer = 0;
-        ee->prop.cursor.hot.x = 0;
-        ee->prop.cursor.hot.y = 0;
-        return;
-     }
-
-   ee->prop.cursor.object = obj;
-   ee->prop.cursor.layer = layer;
-   ee->prop.cursor.hot.x = hot_x;
-   ee->prop.cursor.hot.y = hot_y;
-   evas_pointer_output_xy_get(ee->evas, &x, &y);
-   evas_object_layer_set(ee->prop.cursor.object, ee->prop.cursor.layer);
-   evas_object_move(ee->prop.cursor.object,
-                    x - ee->prop.cursor.hot.x,
-                    y - ee->prop.cursor.hot.y);
-   evas_object_pass_events_set(ee->prop.cursor.object, 1);
-   if (evas_pointer_inside_get(ee->evas))
-     evas_object_show(ee->prop.cursor.object);
-
-   evas_object_event_callback_add
-     (obj, EVAS_CALLBACK_DEL, _ecore_evas_ews_object_cursor_del, ee);
-
    _ecore_evas_ews_event(ee, ECORE_EVAS_EWS_EVENT_CONFIG_CHANGE);
 }
 
@@ -465,19 +425,11 @@ static void
 _ecore_evas_ews_focus_set(Ecore_Evas *ee, Eina_Bool on)
 {
    evas_object_focus_set(ee->engine.ews.image, on);
-   ee->prop.focused = on;
+   _ecore_evas_focus_device_set(ee, NULL, on);
    if (on)
-     {
-        evas_focus_in(ee->evas);
-        if (ee->func.fn_focus_in) ee->func.fn_focus_in(ee);
-        _ecore_evas_ews_event(ee, ECORE_EVAS_EWS_EVENT_FOCUS);
-     }
+     _ecore_evas_ews_event(ee, ECORE_EVAS_EWS_EVENT_FOCUS);
    else
-     {
-        evas_focus_out(ee->evas);
-        if (ee->func.fn_focus_out) ee->func.fn_focus_out(ee);
-        _ecore_evas_ews_event(ee, ECORE_EVAS_EWS_EVENT_UNFOCUS);
-     }
+     _ecore_evas_ews_event(ee, ECORE_EVAS_EWS_EVENT_UNFOCUS);
 }
 
 static void
@@ -501,7 +453,8 @@ _ecore_evas_ews_override_set(Ecore_Evas *ee, Eina_Bool on)
 {
    if (ee->prop.override == on) return;
    if (ee->visible) evas_object_show(ee->engine.ews.image);
-   if (ee->prop.focused) evas_object_focus_set(ee->engine.ews.image, EINA_TRUE);
+   if (ecore_evas_focus_device_get(ee, NULL))
+     evas_object_focus_set(ee->engine.ews.image, EINA_TRUE);
    ee->prop.override = on;
    _ecore_evas_ews_event(ee, ECORE_EVAS_EWS_EVENT_CONFIG_CHANGE);
 }
@@ -677,7 +630,7 @@ static const Ecore_Evas_Engine_Func _ecore_ews_engine_func =
      _ecore_evas_ews_size_base_set,
      _ecore_evas_ews_size_step_set,
      _ecore_evas_ews_object_cursor_set,
-     _ecore_evas_ews_object_cursor_unset,
+     NULL,
      _ecore_evas_ews_layer_set,
      _ecore_evas_ews_focus_set,
      _ecore_evas_ews_iconified_set,
@@ -719,6 +672,14 @@ static const Ecore_Evas_Engine_Func _ecore_ews_engine_func =
 
      NULL, // fn_animator_register
      NULL, // fn_animator_unregister
+
+     NULL, // fn_evas_changed
+     NULL, //fn_focus_device_set
+     NULL, //fn_callback_focus_device_in_set
+     NULL, //fn_callback_focus_device_out_set
+     NULL, //fn_callback_device_mouse_in_set
+     NULL, //fn_callback_device_mouse_out_set
+     NULL, //fn_pointer_device_xy_get
 };
 
 void
@@ -742,6 +703,28 @@ _ecore_evas_ews_events_init(void)
    ECORE_EVAS_EWS_EVENT_LAYER_CHANGE = ecore_event_type_new();
    ECORE_EVAS_EWS_EVENT_FULLSCREEN_CHANGE = ecore_event_type_new();
    ECORE_EVAS_EWS_EVENT_CONFIG_CHANGE = ecore_event_type_new();
+}
+
+void
+_ecore_evas_ews_events_flush(void)
+{
+   ecore_event_type_flush(ECORE_EVAS_EWS_EVENT_MANAGER_CHANGE,
+                          ECORE_EVAS_EWS_EVENT_ADD,
+                          ECORE_EVAS_EWS_EVENT_DEL,
+                          ECORE_EVAS_EWS_EVENT_RESIZE,
+                          ECORE_EVAS_EWS_EVENT_MOVE,
+                          ECORE_EVAS_EWS_EVENT_SHOW,
+                          ECORE_EVAS_EWS_EVENT_HIDE,
+                          ECORE_EVAS_EWS_EVENT_FOCUS,
+                          ECORE_EVAS_EWS_EVENT_UNFOCUS,
+                          ECORE_EVAS_EWS_EVENT_RAISE,
+                          ECORE_EVAS_EWS_EVENT_LOWER,
+                          ECORE_EVAS_EWS_EVENT_ACTIVATE,
+                          ECORE_EVAS_EWS_EVENT_ICONIFIED_CHANGE,
+                          ECORE_EVAS_EWS_EVENT_MAXIMIZED_CHANGE,
+                          ECORE_EVAS_EWS_EVENT_LAYER_CHANGE,
+                          ECORE_EVAS_EWS_EVENT_FULLSCREEN_CHANGE,
+                          ECORE_EVAS_EWS_EVENT_CONFIG_CHANGE);
 }
 
 static int
@@ -882,7 +865,7 @@ _ecore_evas_ews_cb_mouse_out(void *data, Evas *e EINA_UNUSED, Evas_Object *obj E
    if (ee->func.fn_mouse_out) ee->func.fn_mouse_out(ee);
    _ecore_evas_ews_modifiers_apply(ee, ev->modifiers);
    evas_event_feed_mouse_out(ee->evas, ev->timestamp, NULL);
-   if (ee->prop.cursor.object) evas_object_hide(ee->prop.cursor.object);
+   _ecore_evas_default_cursor_hide(ee);
    _ecore_evas_mouse_move_process(ee, x, y, ev->timestamp);
 }
 
@@ -1260,6 +1243,12 @@ ecore_evas_ews_new(int x, int y, int w, int h)
    evas_key_lock_add(ee->evas, "Num_Lock");
    evas_key_lock_add(ee->evas, "Scroll_Lock");
 
+   if (!_ecore_evas_cursors_init(ee))
+     {
+        ERR("Could not init the Ecore Evas cursors");
+        ecore_evas_free(ee);
+     }
+
    _ews_ee->sub_ecore_evas = eina_list_append(_ews_ee->sub_ecore_evas, ee);
    _ews_children = eina_list_append(_ews_children, ee);
 
@@ -1323,7 +1312,13 @@ ecore_evas_ews_engine_set(const char *engine, const char *options)
    _ews_options = options ? strdup(options) : NULL;
 
    if ((engine) && (!_ews_engine)) return EINA_FALSE;
-   if ((options) && (!_ews_options)) return EINA_FALSE;
+   if ((options) && (!_ews_options))
+     {
+        free(_ews_engine);
+        _ews_engine = NULL;
+        _ews_defaults_engine = EINA_TRUE;
+        return EINA_FALSE;
+     }
 
    _ews_defaults_engine = EINA_FALSE;
    return EINA_TRUE;

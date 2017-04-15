@@ -410,6 +410,7 @@ typedef struct _Elm_Widget_Smart_Data
    const char                   *style;
    const char                   *focus_highlight_style;  /**< custom focus style for a widget */
    const char                   *access_info;
+   const char                   *accessible_name;
    unsigned int                  focus_order;
    Eina_Bool                     focus_order_on_calc;
 
@@ -454,7 +455,7 @@ typedef struct _Elm_Widget_Smart_Data
    Eina_Bool                     on_translate : 1; /**< This is true when any types of elm translate function is being called. */
    Eina_Bool                     on_create : 1; /**< This is true when the widget is on creation(general widget constructor). */
    Eina_Bool                     on_destroy: 1; /**< This is true when the widget is on destruction(general widget destructor). */
-   Eina_Bool                     provider_lookup : 1; /**< This is true when eo_provider_find is currently walking the tree */
+   Eina_Bool                     provider_lookup : 1; /**< This is true when efl_provider_find is currently walking the tree */
 } Elm_Widget_Smart_Data;
 
 /**
@@ -571,10 +572,10 @@ struct _Elm_Widget_Item_Signal_Data
 };
 
 #define WIDGET_ITEM_DATA_GET(eo_obj) \
-    eo_key_data_get((Eo *) eo_obj, "__elm_widget_item_data")
+    efl_key_data_get((Eo *) eo_obj, "__elm_widget_item_data")
 
 #define WIDGET_ITEM_DATA_SET(eo_obj, data) \
-    eo_key_data_set((Eo *) eo_obj, "__elm_widget_item_data", data)
+    efl_key_data_set((Eo *) eo_obj, "__elm_widget_item_data", data)
 
 struct _Elm_Widget_Item_Data
 {
@@ -603,6 +604,7 @@ struct _Elm_Widget_Item_Data
 
    Evas_Object                   *access_obj;
    const char                    *access_info;
+   const char                    *accessible_name;
    Eina_List                     *access_order;
    Eina_Inlist                   *translate_strings;
    Eina_List                     *signals;
@@ -788,7 +790,7 @@ EAPI Eina_Bool        _elm_widget_item_onscreen_is(Elm_Object_Item *item);
 
 #define ELM_WIDGET_DATA_GET_OR_RETURN(o, ptr, ...)   \
   Elm_Widget_Smart_Data *ptr;                        \
-  ptr = eo_data_scope_get(o, ELM_WIDGET_CLASS);  \
+  ptr = efl_data_scope_get(o, ELM_WIDGET_CLASS);  \
   if (EINA_UNLIKELY(!ptr))                           \
     {                                                \
        CRI("no widget data for object %p (%s)",      \
@@ -797,7 +799,7 @@ EAPI Eina_Bool        _elm_widget_item_onscreen_is(Elm_Object_Item *item);
     }
 
 #define ELM_WIDGET_CHECK(obj)                              \
-  if (EINA_UNLIKELY(!eo_isa((obj), ELM_WIDGET_CLASS))) \
+  if (EINA_UNLIKELY(!efl_isa((obj), ELM_WIDGET_CLASS))) \
     return
 
 #define ELM_WIDGET_ITEM_RETURN_IF_ONDEL(item, ...)              \
@@ -815,7 +817,7 @@ EAPI Eina_Bool        _elm_widget_item_onscreen_is(Elm_Object_Item *item);
              return __VA_ARGS__;                                \
         }                                                       \
        if ((item)->eo_obj &&                                   \
-           eo_isa((item)->eo_obj, ELM_WIDGET_ITEM_CLASS)) break; \
+           efl_isa((item)->eo_obj, ELM_WIDGET_ITEM_CLASS)) break; \
        if (!EINA_MAGIC_CHECK(item, ELM_WIDGET_ITEM_MAGIC)) {    \
             EINA_MAGIC_FAIL(item, ELM_WIDGET_ITEM_MAGIC);       \
             return __VA_ARGS__;                                 \
@@ -829,7 +831,7 @@ EAPI Eina_Bool        _elm_widget_item_onscreen_is(Elm_Object_Item *item);
              goto label;                                        \
         }                                                       \
        if ((item)->eo_obj &&                                    \
-           eo_isa((item)->eo_obj, ELM_WIDGET_ITEM_CLASS)) break; \
+           efl_isa((item)->eo_obj, ELM_WIDGET_ITEM_CLASS)) break; \
        if (!EINA_MAGIC_CHECK(item, ELM_WIDGET_ITEM_MAGIC)) {    \
             EINA_MAGIC_FAIL(item, ELM_WIDGET_ITEM_MAGIC);       \
             goto label;                                         \

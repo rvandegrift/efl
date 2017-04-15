@@ -1,22 +1,22 @@
 class Elm.Conformant (Elm.Layout)
 {
+   [[Elementary conformant class]]
    legacy_prefix: elm_conformant;
    eo_prefix: elm_obj_conformant;
    event_prefix: elm_conformant;
    implements {
       class.constructor;
-      Eo.Base.constructor;
+      Efl.Object.constructor;
       Efl.Canvas.Group.group_add;
       Efl.Canvas.Group.group_del;
-      Elm.Widget.widget_parent.set;
+      Elm.Widget.widget_parent { set; }
       Elm.Widget.theme_apply;
-      Elm.Layout.content_aliases.get;
+      Elm.Layout.content_aliases { get; }
    }
    events {
-      virtualkeypad,state,on;
-      virtualkeypad,state,off;
-      clipboard,state,on;
-      clipboard,state,off;
+      virtualkeypad,state,on; [[Called when virtualkeypad was enabled]]
+      virtualkeypad,state,off; [[Called when virtualkeypad was disabled]]
+      clipboard,state,on; [[Called when clipboard was enabled]]
+      clipboard,state,off; [[Called when clipboard was disabled]]
    }
-
 }

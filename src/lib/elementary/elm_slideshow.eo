@@ -1,7 +1,8 @@
-type Elm_Slideshow_Item_Class: __undefined_type;
+type Elm_Slideshow_Item_Class: __undefined_type; [[Elementary slideshow item class type]]
 
 class Elm.Slideshow (Elm.Layout, Elm.Interface.Atspi_Widget_Action)
 {
+   [[Elementary slideshow class]]
    eo_prefix: elm_obj_slideshow;
    legacy_prefix: elm_slideshow;
    event_prefix: elm_slideshow;
@@ -275,7 +276,7 @@ class Elm.Slideshow (Elm.Layout, Elm.Interface.Atspi_Widget_Action)
          ]]
          return: Elm.Widget.Item; [[A handle to the item added or $null on errors.]]
          params {
-            @in itc: const(Elm_Slideshow_Item_Class)*; [[The item class for the item.]]
+            @in itc: ptr(const(Elm_Slideshow_Item_Class)); [[The item class for the item.]]
             @in data: const(void_ptr); [[The item's data.]]
          }
       }
@@ -293,7 +294,7 @@ class Elm.Slideshow (Elm.Layout, Elm.Interface.Atspi_Widget_Action)
          return: Elm.Widget.Item; [[Returns The slideshow item handle,
                                       on success, or $null on errors.]]
          params {
-            @in itc: const(Elm_Slideshow_Item_Class)*; [[The item class for the item.]]
+            @in itc: ptr(const(Elm_Slideshow_Item_Class)); [[The item class for the item.]]
             @in data: const(void_ptr); [[The item's data.]]
             @in func: Eina_Compare_Cb; [[The comparing function to be used to sort the slideshow
                                          items by #Elm_Slideshow_Item_Class item handles.]]
@@ -302,18 +303,17 @@ class Elm.Slideshow (Elm.Layout, Elm.Interface.Atspi_Widget_Action)
    }
    implements {
       class.constructor;
-      Eo.Base.constructor;
+      Efl.Object.constructor;
       Efl.Canvas.Group.group_add;
       Efl.Canvas.Group.group_del;
       Elm.Widget.focus_next_manager_is;
       Elm.Widget.focus_direction_manager_is;
-      Elm.Widget.event;
+      Elm.Widget.widget_event;
       Elm.Layout.sizing_eval;
-      Elm.Interface.Atspi_Widget_Action.elm_actions.get;
+      Elm.Interface.Atspi_Widget_Action.elm_actions { get; }
    }
    events {
-      changed;
-      transition,end;
+      changed; [[Called when slideshow widget changed]]
+      transition,end; [[Called on transition end]]
    }
-
 }

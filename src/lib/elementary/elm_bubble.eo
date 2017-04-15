@@ -37,16 +37,16 @@ class Elm.Bubble (Elm.Layout, Efl.Ui.Clickable)
    }
    implements {
       class.constructor;
-      Eo.Base.constructor;
+      Efl.Object.constructor;
       Efl.Canvas.Group.group_add;
       Elm.Widget.focus_direction;
       Elm.Widget.focus_next_manager_is;
       Elm.Widget.focus_next;
       Elm.Widget.focus_direction_manager_is;
       Elm.Widget.access;
-      Elm.Layout.text.set;
-      Elm.Layout.text_aliases.get;
-      Elm.Layout.content_aliases.get;
+      Elm.Layout.text { set; }
+      Elm.Layout.text_aliases { get; }
+      Elm.Layout.content_aliases { get; }
       Elm.Layout.sizing_eval;
    }
 }

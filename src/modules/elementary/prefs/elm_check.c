@@ -7,7 +7,7 @@ static Elm_Prefs_Item_Type supported_types[] =
 };
 
 static void
-_item_changed_cb(void *data, const Eo_Event *event)
+_item_changed_cb(void *data, const Efl_Event *event)
 {
     Elm_Prefs_Item_Changed_Cb prefs_it_changed_cb = data;
 
@@ -23,7 +23,7 @@ elm_prefs_check_add(const Elm_Prefs_Item_Iface *iface EINA_UNUSED,
 {
    Evas_Object *obj = elm_check_add(prefs);
 
-   eo_event_callback_add
+   efl_event_callback_add
      (obj, EFL_UI_CHECK_EVENT_CHANGED, _item_changed_cb, cb);
    elm_check_state_set(obj, spec.b.def);
 

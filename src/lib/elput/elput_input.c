@@ -12,6 +12,7 @@ _cb_open_restricted(const char *path, int flags, void *data)
    if (!em->input.thread)
      return em->interface->open(em, path, flags);
    if (!em->interface->open_async) return ret;
+   if (ecore_thread_check(em->input.thread)) return ret;
    ao = calloc(1, sizeof(Elput_Async_Open));
    if (!ao) return ret;
    if (pipe2(p, O_CLOEXEC) < 0)
@@ -168,7 +169,6 @@ _device_add(Elput_Manager *em, struct libinput_device *dev)
 {
    Elput_Seat *eseat;
    Elput_Device *edev;
-   const char *oname;
 
    eseat = _udev_seat_get(em, dev);
    if (!eseat) return;
@@ -176,10 +176,15 @@ _device_add(Elput_Manager *em, struct libinput_device *dev)
    edev = _evdev_device_create(eseat, dev);
    if (!edev) return;
 
-   oname = libinput_device_get_output_name(dev);
-   eina_stringshare_replace(&edev->output_name, oname);
-
    eseat->devices = eina_list_append(eseat->devices, edev);
+
+   DBG("Input Device Added: %s", libinput_device_get_name(dev));
+   if (edev->caps & EVDEV_SEAT_KEYBOARD)
+     DBG("\tDevice added as Keyboard device");
+   if (edev->caps & EVDEV_SEAT_POINTER)
+     DBG("\tDevice added as Pointer device");
+   if (edev->caps & EVDEV_SEAT_TOUCH)
+     DBG("\tDevice added as Touch device");
 
    _device_event_send(edev, ELPUT_DEVICE_ADDED);
 }
@@ -191,6 +196,8 @@ _device_remove(Elput_Manager *em EINA_UNUSED, struct libinput_device *device)
 
    edev = libinput_device_get_user_data(device);
    if (!edev) return;
+
+   DBG("Input Device Removed: %s", libinput_device_get_name(device));
 
    _device_event_send(edev, ELPUT_DEVICE_REMOVED);
 }
@@ -210,11 +217,9 @@ _udev_process_event(struct libinput_event *event)
    switch (libinput_event_get_type(event))
      {
       case LIBINPUT_EVENT_DEVICE_ADDED:
-        DBG("Input Device Added: %s", libinput_device_get_name(dev));
         _device_add(em, dev);
         break;
       case LIBINPUT_EVENT_DEVICE_REMOVED:
-        DBG("Input Device Removed: %s", libinput_device_get_name(dev));
         _device_remove(em, dev);
         break;
       default:
@@ -425,6 +430,16 @@ elput_input_pointer_xy_get(Elput_Manager *manager, const char *seat, int *x, int
           continue;
         if (x) *x = eseat->ptr->x;
         if (y) *y = eseat->ptr->y;
+        return;
+     }
+
+   EINA_LIST_FOREACH(manager->input.seats, l, eseat)
+     {
+        if (!eseat->touch) continue;
+        if ((eseat->name) && (strcmp(eseat->name, seat)))
+          continue;
+        if (x) *x = eseat->touch->x;
+        if (y) *y = eseat->touch->y;
         break;
      }
 }
@@ -637,4 +652,39 @@ elput_input_device_output_name_get(Elput_Device *device)
 
    if (!device->output_name) return NULL;
    return eina_stringshare_ref(device->output_name);
+}
+
+EAPI void
+elput_input_pointer_accel_profile_set(Elput_Manager *manager, const char *seat, uint32_t profile)
+{
+   Elput_Seat *eseat;
+   Elput_Device *edev;
+   Eina_List *l, *ll;
+
+   EINA_SAFETY_ON_NULL_RETURN(manager);
+
+   /* if no seat name is passed in, just use default seat name */
+   if (!seat) seat = "seat0";
+
+   EINA_LIST_FOREACH(manager->input.seats, l, eseat)
+     {
+        if ((eseat->name) && (strcmp(eseat->name, seat)))
+          continue;
+
+        EINA_LIST_FOREACH(eseat->devices, ll, edev)
+          {
+             if (!libinput_device_has_capability(edev->device,
+                                                 LIBINPUT_DEVICE_CAP_POINTER))
+               continue;
+
+             if (libinput_device_config_accel_set_profile(edev->device,
+                                                          profile) !=
+                 LIBINPUT_CONFIG_STATUS_SUCCESS)
+               {
+                  WRN("Failed to set acceleration profile for device: %s",
+                      libinput_device_get_name(edev->device));
+                  continue;
+               }
+          }
+     }
 }

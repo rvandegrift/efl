@@ -196,7 +196,7 @@ _em_slave(void *par)
 		       
 		       pos = *((double *)eev->xine_event);
 		       if ((xine_get_param(ev->stream, XINE_PARAM_SPEED) == XINE_SPEED_PAUSE) &&
-			   (pos == ev->pos) &&
+			   (EINA_DBL_EQ(pos, ev->pos)) &&
 			   (!ev->just_loaded))
 			 {
 			    xine_set_param(ev->stream, XINE_PARAM_SPEED, XINE_SPEED_NORMAL);
@@ -630,7 +630,7 @@ em_format_get(void *ef)
 }
 
 static void
-em_video_data_size_get(void *ef, int *w, int *h)
+em_videfl_data_size_get(void *ef, int *w, int *h)
 {
    Emotion_Xine_Video *ev;
    volatile Emotion_Xine_Video_Frame *fr;
@@ -1324,7 +1324,7 @@ _em_fd_ev_active(void *data EINA_UNUSED, Ecore_Fd_Handler *fdh)
 		       ev->play_ok = 1;
 		       break;
                      case 15: /* get pos done */
-                       if (ev->last_pos != ev->pos)
+                       if (!EINA_DBL_EQ(ev->last_pos, ev->pos))
                          {
                             ev->last_pos = ev->pos;
                             _emotion_video_pos_update(ev->obj, ev->pos, ev->len);
@@ -1519,7 +1519,7 @@ static const Emotion_Engine em_engine =
      em_seekable, /* seekable */
      em_frame_done, /* frame_done */
      em_format_get, /* format_get */
-     em_video_data_size_get, /* video_data_size_get */
+     em_videfl_data_size_get, /* videfl_data_size_get */
      em_yuv_rows_get, /* yuv_rows_get */
      em_bgra_data_get, /* bgra_data_get */
      em_event_feed, /* event_feed */
@@ -1556,7 +1556,8 @@ static const Emotion_Engine em_engine =
      em_eject, /* eject */
      em_meta_get, /* meta_get */
      NULL, /* priority_set */
-     NULL /* priority_get */
+     NULL, /* priority_get */
+     NULL /* em_meta_artwork_get */
 };
 
 Eina_Bool

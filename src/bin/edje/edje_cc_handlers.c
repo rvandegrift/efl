@@ -262,6 +262,7 @@ static void st_collections_group_broadcast_signal(void);
 static void st_collections_group_data_item(void);
 static void st_collections_group_orientation(void);
 static void st_collections_group_mouse_events(void);
+static void st_collections_group_use_custom_seat_names(void);
 
 static void st_collections_group_limits_vertical(void);
 static void st_collections_group_limits_horizontal(void);
@@ -312,6 +313,7 @@ static void st_collections_group_parts_part_dragable_y(void);
 static void st_collections_group_parts_part_dragable_confine(void);
 static void st_collections_group_parts_part_dragable_threshold(void);
 static void st_collections_group_parts_part_dragable_events(void);
+static void st_collections_group_parts_part_allowed_seats(void);
 
 /* box and table items share these */
 static void ob_collections_group_parts_part_box_items_item(void);
@@ -340,6 +342,7 @@ static void st_collections_group_parts_part_description_link_base(void);
 static void st_collections_group_parts_part_description_source(void);
 static void st_collections_group_parts_part_description_state(void);
 static void st_collections_group_parts_part_description_visible(void);
+static void st_collections_group_parts_part_description_no_render(void);
 static void st_collections_group_parts_part_description_limit(void);
 static void st_collections_group_parts_part_description_align(void);
 static void st_collections_group_parts_part_description_fixed(void);
@@ -378,7 +381,6 @@ static void st_collections_group_parts_part_description_fill_origin_relative(voi
 static void st_collections_group_parts_part_description_fill_origin_offset(void);
 static void st_collections_group_parts_part_description_fill_size_relative(void);
 static void st_collections_group_parts_part_description_fill_size_offset(void);
-static void st_collections_group_parts_part_description_fill_spread(void);
 static void st_collections_group_parts_part_description_fill_type(void);
 static void st_collections_group_parts_part_description_color_class(void);
 static void st_collections_group_parts_part_description_color(void);
@@ -541,6 +543,7 @@ static void _handle_vector_image(void);
 
 /*****/
 
+#define STRDUP(x) eina_strdup(x)
 
 #define IMAGE_STATEMENTS(PREFIX) \
      {PREFIX"images.image", st_images_image}, \
@@ -716,6 +719,7 @@ New_Statement_Handler statement_handlers[] =
      {"collections.group.program_source", st_collections_group_program_source},
      {"collections.group.inherit", st_collections_group_inherit},
      {"collections.group.inherit_only", st_collections_group_inherit_only},
+     {"collections.group.use_custom_seat_names", st_collections_group_use_custom_seat_names},
      {"collections.group.target_group", st_collections_group_target_group}, /* dup */
      {"collections.group.part_remove", st_collections_group_part_remove},
      {"collections.group.program_remove", st_collections_group_program_remove},
@@ -787,6 +791,7 @@ New_Statement_Handler statement_handlers[] =
      {"collections.group.parts.part.cursor_mode", st_collections_group_parts_part_cursor_mode},
      {"collections.group.parts.part.multiline", st_collections_group_parts_part_multiline},
      {"collections.group.parts.part.access", st_collections_group_parts_part_access},
+     {"collections.group.parts.part.allowed_seats", st_collections_group_parts_part_allowed_seats},
      IMAGE_SET_STATEMENTS("collections.group.parts.part")
      IMAGE_STATEMENTS("collections.group.parts.part.")
      {"collections.group.parts.part.font", st_fonts_font}, /* dup */
@@ -831,6 +836,7 @@ New_Statement_Handler statement_handlers[] =
      {"collections.group.parts.part.description.state", st_collections_group_parts_part_description_state},
      {"collections.group.parts.part.description.visible", st_collections_group_parts_part_description_visible},
      {"collections.group.parts.part.description.limit", st_collections_group_parts_part_description_limit},
+     {"collections.group.parts.part.description.no_render", st_collections_group_parts_part_description_no_render},
      {"collections.group.parts.part.description.align", st_collections_group_parts_part_description_align},
      {"collections.group.parts.part.description.fixed", st_collections_group_parts_part_description_fixed},
      {"collections.group.parts.part.description.min", st_collections_group_parts_part_description_min},
@@ -868,7 +874,6 @@ New_Statement_Handler statement_handlers[] =
      {"collections.group.parts.part.description.fill.origin.offset", st_collections_group_parts_part_description_fill_origin_offset},
      {"collections.group.parts.part.description.fill.size.relative", st_collections_group_parts_part_description_fill_size_relative},
      {"collections.group.parts.part.description.fill.size.offset", st_collections_group_parts_part_description_fill_size_offset},
-     {"collections.group.parts.part.description.fill.spread", st_collections_group_parts_part_description_fill_spread},
      {"collections.group.parts.part.description.fill.type", st_collections_group_parts_part_description_fill_type},
      {"collections.group.parts.part.description.color_class", st_collections_group_parts_part_description_color_class},
      {"collections.group.parts.part.description.color", st_collections_group_parts_part_description_color},
@@ -1561,6 +1566,7 @@ New_Object_Handler object_handlers_short[] =
      {"collections.group.parts.external", ob_collections_group_parts_part_short},
      {"collections.group.parts.proxy", ob_collections_group_parts_part_short},
      {"collections.group.parts.spacer", ob_collections_group_parts_part_short},
+     {"collections.group.parts.snapshot", ob_collections_group_parts_part_short},
      {"collections.group.parts.part.desc", ob_collections_group_parts_part_desc},
      {"collections.group.parts.vector", ob_collections_group_parts_part_short},
 };
@@ -1640,8 +1646,6 @@ _edje_part_description_fill(Edje_Part_Description_Spec_Fill *fill)
    fill->pos_abs_y = 0;
    fill->rel_y = FROM_DOUBLE(1.0);
    fill->abs_y = 0;
-   fill->angle = 0;
-   fill->spread = 0;
    fill->type = EDJE_FILL_TYPE_SCALE;
 }
 
@@ -2020,7 +2024,6 @@ _edje_program_copy(Edje_Program *ep, Edje_Program *ep2)
 
    pc = eina_list_data_get(eina_list_last(edje_collections));
 
-   #define STRDUP(x) x ? strdup(x) : NULL
    ep->name = STRDUP(ep2->name);
 
    _edje_program_remove(pc, current_program);
@@ -2033,6 +2036,7 @@ _edje_program_copy(Edje_Program *ep, Edje_Program *ep2)
    ep->in.from = ep2->in.from;
    ep->in.range = ep2->in.range;
    ep->action = ep2->action;
+   ep->seat = STRDUP(ep2->seat);
    ep->state = STRDUP(ep2->state);
    ep->state2 = STRDUP(ep2->state2);
    ep->value = ep2->value;
@@ -2094,7 +2098,8 @@ _edje_program_copy(Edje_Program *ep, Edje_Program *ep2)
         ep->after = eina_list_append(ep->after, pa);
         copy = (char*) (pa + 1);
         memcpy(copy, name, strlen(name) + 1);
-        data_queue_copied_program_lookup(pc, &(pa2->id), &(pa->id));
+        if (!data_queue_copied_program_lookup(pc, &(pa2->id), &(pa->id)))
+          data_queue_program_lookup(pc, copy, &(pa->id));
      }
 
    ep->api.name = STRDUP(ep2->api.name);
@@ -2104,8 +2109,6 @@ _edje_program_copy(Edje_Program *ep, Edje_Program *ep2)
 
    epp = (Edje_Program_Parser *)ep;
    epp->can_override = EINA_TRUE;
-
-   #undef STRDUP
 }
 
 /*****/
@@ -2209,6 +2212,8 @@ st_externals_external(void)
         included inside other blocks, normally "collections", "group" and
         "part", easing maintenance of the file list when the theme is split
         among multiple files.
+        @note if svg file use as image, not vector, it will be converted to bitmap
+        and '.png' will be add to file name.
     @endblock
 
     @property
@@ -4144,8 +4149,8 @@ _link_combine(void)
                   if (fabs(ell->ed->state.value - el->ed->state.value) > DBL_EPSILON) continue;
                   if ((!!ell->ed->state.name) != (!!el->ed->state.name))
                     {
-                      if (((!!ell->ed->state.name) && strcmp(el->ed->state.name, "default")) ||
-                         ((!!el->ed->state.name) && strcmp(ell->ed->state.name, "default")))
+                      if (((!!ell->ed->state.name) && strcmp(ell->ed->state.name, "default")) ||
+                         ((!!el->ed->state.name) && strcmp(el->ed->state.name, "default")))
                            continue;
                     }
                   else if (ell->ed->state.name && strcmp(ell->ed->state.name, el->ed->state.name))
@@ -4336,7 +4341,6 @@ _edje_data_item_list_foreach(const Eina_Hash *hash EINA_UNUSED, const void *key,
    return EINA_TRUE;
 }
 
-#define STRDUP(x) x ? strdup(x) : NULL
 static void
 _filter_copy(Edje_Part_Description_Spec_Filter *ed, const Edje_Part_Description_Spec_Filter *parent)
 {
@@ -4365,6 +4369,63 @@ _filter_copy(Edje_Part_Description_Spec_Filter *ed, const Edje_Part_Description_
           }
      }
    else memset(ed, 0, sizeof(*ed));
+}
+
+static void
+_parts_count_update(unsigned int type, int inc)
+{
+   switch (type)
+     {
+      case EDJE_PART_TYPE_RECTANGLE:
+         current_de->count.RECTANGLE += inc;
+         break;
+      case EDJE_PART_TYPE_TEXT:
+         current_de->count.TEXT += inc;
+         break;
+      case EDJE_PART_TYPE_IMAGE:
+         current_de->count.IMAGE += inc;
+         break;
+      case EDJE_PART_TYPE_SWALLOW:
+         current_de->count.SWALLOW += inc;
+         break;
+      case EDJE_PART_TYPE_TEXTBLOCK:
+         current_de->count.TEXTBLOCK += inc;
+         break;
+      case EDJE_PART_TYPE_GROUP:
+         current_de->count.GROUP += inc;
+         break;
+      case EDJE_PART_TYPE_BOX:
+         current_de->count.BOX += inc;
+         break;
+      case EDJE_PART_TYPE_TABLE:
+         current_de->count.TABLE += inc;
+         break;
+      case EDJE_PART_TYPE_EXTERNAL:
+         current_de->count.EXTERNAL += inc;
+         break;
+      case EDJE_PART_TYPE_PROXY:
+         current_de->count.PROXY += inc;
+         break;
+      case EDJE_PART_TYPE_MESH_NODE:
+         current_de->count.MESH_NODE += inc;
+         break;
+      case EDJE_PART_TYPE_LIGHT:
+         current_de->count.LIGHT += inc;
+         break;
+      case EDJE_PART_TYPE_CAMERA:
+         current_de->count.CAMERA += inc;
+         break;
+      case EDJE_PART_TYPE_SPACER:
+         current_de->count.SPACER += inc;
+         break;
+      case EDJE_PART_TYPE_SNAPSHOT:
+         current_de->count.SNAPSHOT += inc;
+         break;
+      case EDJE_PART_TYPE_VECTOR:
+         current_de->count.VECTOR += inc;
+         break;
+     }
+   current_de->count.part += inc;
 }
 
 static void
@@ -4415,6 +4476,36 @@ _part_copy(Edje_Part *ep, Edje_Part *ep2)
    ep->dragable.count_y = ep2->dragable.count_y;
    ep->nested_children_count = ep2->nested_children_count;
 
+   if (ep2->allowed_seats)
+     {
+        Edje_Part_Allowed_Seat *seat;
+        unsigned int s;
+
+        ep->allowed_seats_count = ep2->allowed_seats_count;
+        ep->allowed_seats = calloc(ep2->allowed_seats_count,
+                                   sizeof(Edje_Part_Allowed_Seat *));
+        if (!ep->allowed_seats)
+          {
+             ERR("Not enough memory.");
+             exit(-1);
+          }
+
+        for (s = 0; s < ep->allowed_seats_count; s++)
+          {
+             seat = mem_alloc(SZ(Edje_Part_Allowed_Seat));
+             if (ep2->allowed_seats[s]->name)
+               {
+                  seat->name = strdup(ep2->allowed_seats[s]->name);
+                  if (!seat->name)
+                    {
+                       ERR("Not enough memory.");
+                       exit(-1);
+                    }
+               }
+             ep->allowed_seats[s] = seat;
+          }
+     }
+
    data_queue_copied_part_lookup(pc, &(ep2->dragable.confine_id), &(ep->dragable.confine_id));
    data_queue_copied_part_lookup(pc, &(ep2->dragable.threshold_id), &(ep->dragable.threshold_id));
    data_queue_copied_part_lookup(pc, &(ep2->dragable.event_id), &(ep->dragable.event_id));
@@ -4460,6 +4551,8 @@ _part_copy(Edje_Part *ep, Edje_Part *ep2)
 
         pitem = (Edje_Pack_Element_Parser *)item;
         pitem->can_override = EINA_TRUE;
+
+        _parts_count_update(item->type, 1);
      }
 
    ep->api.name = STRDUP(ep2->api.name);
@@ -4511,6 +4604,43 @@ st_collections_group_inherit_only(void)
 
    pcp = eina_list_data_get(eina_list_last(edje_collections));
    pcp->inherit_only = parse_bool(0);
+}
+
+/**
+    @page edcref
+    @property
+        use_custom_seat_names
+    @parameters
+        [1 or 0]
+    @effect
+        This flags a group as designed to listen for multiseat signals
+        following a custom naming instead of default Edje naming.
+        Seats are named on Edje as "seat1", "seat2", etc, in an incremental
+        way and never are changed.
+
+        But on Evas, names may be set on different places
+        (Evas, Ecore Evas backends, the application itself)
+        and name changes are allowed.
+        So custom names come from system at first, but can be overriden with
+        evas_device_name_set().
+        Also Evas seat names don't need to follow any pattern.
+
+        It's useful for cases where there is control of the
+        system, as seat names, or when the application
+        sets the devices names to guarantee they'll match
+        seat names on EDC.
+    @since 1.19
+    @endproperty
+*/
+static void
+st_collections_group_use_custom_seat_names(void)
+{
+   Edje_Part_Collection *pc;
+
+   check_arg_count(1);
+
+   pc = eina_list_data_get(eina_list_last(edje_collections));
+   pc->use_custom_seat_names = parse_bool(0);
 }
 
 /**
@@ -4649,7 +4779,7 @@ st_collections_group_inherit(void)
 
    if (pc2->alias)
      {
-        char *key, *alias;
+        char *key;
 
         memset(&fdata, 0, sizeof(Edje_List_Foreach_Data));
         eina_hash_foreach(pc2->alias,
@@ -4657,8 +4787,9 @@ st_collections_group_inherit(void)
         if (!pc->alias) pc->alias = eina_hash_string_small_new(free);
         EINA_LIST_FREE(fdata.list, key)
           {
-             alias = eina_hash_find(pc2->alias, key);
-             eina_hash_direct_add(pc->alias, key, alias);
+             char *tmp;
+             tmp = eina_hash_find(pc2->alias, key);
+             eina_hash_direct_add(pc->alias, key, tmp);
           }
      }
    if (pc2->aliased)
@@ -4690,6 +4821,7 @@ st_collections_group_inherit(void)
    pc->prop.orientation = pc2->prop.orientation;
 
    pc->lua_script_only = pc2->lua_script_only;
+   pc->use_custom_seat_names = pc2->use_custom_seat_names;
 
    pcp = (Edje_Part_Collection_Parser *)pc;
    pcp2 = (Edje_Part_Collection_Parser *)pc2;
@@ -4837,7 +4969,6 @@ st_collections_group_inherit(void)
      }
 
    free(parent_name);
-   #undef STRDUP
 }
 
 /**
@@ -5785,6 +5916,9 @@ edje_cc_handlers_part_make(int id)
    ep->items = NULL;
    ep->nested_children_count = 0;
 
+   ep->allowed_seats = NULL;
+   ep->allowed_seats_count = 0;
+
    epp = (Edje_Part_Parser *)ep;
    epp->reorder.insert_before = NULL;
    epp->reorder.insert_after = NULL;
@@ -5911,6 +6045,8 @@ _part_type_set(unsigned int type)
         free(dummy);
         current_desc = cur;
      }
+
+   _parts_count_update(current_part->type, 1);
 }
 
 static void
@@ -5950,8 +6086,7 @@ ob_collections_group_parts_part_short(void)
                   "vector", EDJE_PART_TYPE_VECTOR,
                   NULL);
 
-   stack_pop_quick(EINA_TRUE, EINA_TRUE);
-   stack_push_quick("part");
+   stack_replace_quick("part");
    _part_create();
    _part_type_set(type);
 }
@@ -5980,6 +6115,13 @@ _part_free(Edje_Part_Collection *pc, Edje_Part *ep)
    for (j = 0 ; j < ep->items_count ; j++)
      free(ep->items[j]);
    free(ep->items);
+
+   for (j = 0 ; j < ep->allowed_seats_count; j++)
+     {
+        free((void*)(ep->allowed_seats[j]->name));
+        free(ep->allowed_seats[j]);
+     }
+   free(ep->allowed_seats);
 
    free((void*)ep->name);
    free((void*)ep->source);
@@ -6067,6 +6209,7 @@ _program_free(Edje_Program *pr)
    free((void*)pr->source);
    free((void*)pr->filter.part);
    free((void*)pr->filter.state);
+   free((void*)pr->seat);
    free((void*)pr->state);
    free((void*)pr->state2);
    free((void*)pr->sample_name);
@@ -6093,6 +6236,17 @@ _program_remove(const char *name, Edje_Program **pgrms, unsigned int count)
      if (pgrms[i]->name && (!strcmp(name, pgrms[i]->name)))
        {
           Edje_Program *pr = pgrms[i];
+
+          if (pr->after)
+            {
+               Eina_List *l;
+               Edje_Program_After *pa;
+
+               EINA_LIST_FOREACH(pr->after, l, pa)
+                 {
+                    copied_program_lookup_delete(pc, (char *)(pa + 1));
+                 }
+            }
 
           _edje_program_remove(pc, pr);
 
@@ -6149,7 +6303,6 @@ st_collections_group_program_remove(void)
         success |= _program_remove(name, pc->programs.strrncmp, pc->programs.strrncmp_count);
         success |= _program_remove(name, pc->programs.nocmp, pc->programs.nocmp_count);
 
-        copied_program_lookup_delete(pc, name);
         if (anonymous_delete)
           {
              copied_program_anonymous_lookup_delete(pc, anonymous_delete);
@@ -6221,7 +6374,7 @@ _part_name_check(void)
 static void
 st_collections_group_part_remove(void)
 {
-   unsigned int n, argc, orig_count;
+   unsigned int n, argc, orig_count, part_type;
    Edje_Part_Collection *pc;
 
    check_min_arg_count(1);
@@ -6248,6 +6401,7 @@ st_collections_group_part_remove(void)
 
              if (strcmp(pc->parts[j]->name, name)) continue;
 
+             part_type = pc->parts[j]->type;
              pc->parts[j] = _part_free(pc, pc->parts[j]);
              for (i = j; i < pc->parts_count - 1; i++)
                {
@@ -6255,6 +6409,7 @@ st_collections_group_part_remove(void)
                   pc->parts[i] = pc->parts[i + 1];
                }
              pc->parts_count--;
+             _parts_count_update(part_type, -1);
              break;
           }
         if (cur_count == pc->parts_count)
@@ -7345,6 +7500,53 @@ st_collections_group_parts_part_dragable_events(void)
      }
 }
 
+/**
+    @page edcref
+    @property
+        allowed_seats
+    @parameters
+        [seat1] [seat2] [seat3] ...
+    @effect
+        List of seat names allowed to interact with the part.
+
+        If no list is defined all seats are allowed. It's the
+        default behaviour.
+
+        If a seat isn't allowed, no signals will be emitted
+        related to its actions, as mouse and focus events.
+        Also it won't be able to focus this part.
+    @since 1.19
+    @endproperty
+*/
+static void
+st_collections_group_parts_part_allowed_seats(void)
+{
+   Edje_Part_Allowed_Seat *seat;
+   Edje_Part *ep;
+   int n, argc;
+
+   check_min_arg_count(1);
+
+   ep = current_part;
+   argc = get_arg_count();
+
+   ep->allowed_seats = calloc(argc, sizeof(Edje_Part_Allowed_Seat *));
+   if (!ep->allowed_seats)
+     {
+        ERR("Not enough memory.");
+        exit(-1);
+     }
+
+   for (n = 0; n < argc; n++)
+     {
+        seat = mem_alloc(SZ(Edje_Part_Allowed_Seat));
+        seat->name = parse_str(n);
+        ep->allowed_seats[n] = seat;
+     }
+
+   ep->allowed_seats_count = argc;
+}
+
 /** @edcsubsection{collections_group_parts_items,
  *                 Group.Parts.Part.Box/Table.Items} */
 
@@ -7868,6 +8070,7 @@ _copied_map_colors_get(Edje_Part_Description_Common *parent)
             step: 0 0;
             aspect: 1 1;
             clip_to: "clip_override_part_name";
+            no_render: 0;
 
             rel1 {
                 ..
@@ -7923,6 +8126,7 @@ ob_collections_group_parts_part_description(void)
 
    ed->visible = 1;
    ed->limit = 0;
+   ed->no_render = 0;
    ed->align.x = FROM_DOUBLE(0.5);
    ed->align.y = FROM_DOUBLE(0.5);
    ed->min.w = 0;
@@ -7976,8 +8180,7 @@ ob_collections_group_parts_part_description(void)
 static void
 ob_collections_group_parts_part_desc(void)
 {
-   stack_pop_quick(EINA_TRUE, EINA_TRUE);
-   stack_push_quick("description");
+   stack_replace_quick("description");
    ob_collections_group_parts_part_description();
 }
 
@@ -8113,7 +8316,6 @@ st_collections_group_parts_part_description_inherit(void)
    /* make sure all the allocated memory is getting copied, not just
     * referenced
     */
-#define STRDUP(x) x ? strdup(x) : NULL
 
    ed->size_class = STRDUP(ed->size_class);
    ed->color_class = STRDUP(ed->color_class);
@@ -8288,8 +8490,6 @@ st_collections_group_parts_part_description_inherit(void)
               break;
            }
      }
-
-#undef STRDUP
 }
 
 /**
@@ -8478,6 +8678,35 @@ st_collections_group_parts_part_description_hid(void)
      }
 
    current_desc->visible = 0;
+}
+
+/**
+    @page edcref
+    @property
+        visible
+    @parameters
+        [0 or 1]
+    @effect
+        Takes a boolean value specifying whether part is visible (1) or not
+        (0). Non-visible parts do not emit signals. The default value is 1.
+
+    @since 1.19
+    @endproperty
+*/
+static void
+st_collections_group_parts_part_description_no_render(void)
+{
+   if (current_part->type == EDJE_PART_TYPE_SPACER)
+     {
+       ERR("parse error %s:%i. SPACER part can't be marked as no_render",
+           file_in, line - 1);
+       exit(-1);
+     }
+
+   if (check_range_arg_count(0, 1) == 1)
+     EDJE_DESC_NO_RENDER_SET(current_desc, parse_bool(0));
+   else /* lazEDC form */
+     EDJE_DESC_NO_RENDER_SET(current_desc, 1);
 }
 
 /**
@@ -9333,7 +9562,8 @@ st_collections_group_parts_part_description_image_normal(void)
    {
       char *name;
 
-      ed->image.set = EINA_TRUE;
+      if (current_part->type == EDJE_PART_TYPE_MESH_NODE)
+        ed->image.set = EINA_TRUE;
 
       name = parse_str(0);
       data_queue_image_remove(&(ed->image.id), &(ed->image.set));
@@ -9647,54 +9877,6 @@ st_collections_group_parts_part_description_fill_smooth(void)
      }
 
    fill->smooth = parse_bool(0);
-}
-
-/**
-    @page edcref
-
-    @property
-        spread
-    @parameters
-        TODO
-    @effect
-        TODO
-    @endproperty
-*/
-static void
-st_collections_group_parts_part_description_fill_spread(void)
-{
-#if 0
-   Edje_Part_Collection *pc;
-   Edje_Part *ep;
-   Edje_Part_Description_Image *ed;
-#endif
-
-   check_arg_count(1);
-
-   /* XXX this will need to include IMAGES when spread support is added to evas images */
-   {
-      ERR("parse error %s:%i. fill.spread not supported yet.",
-	  file_in, line - 1);
-      exit(-1);
-   }
-
-#if 0
-   pc = eina_list_data_get(eina_list_last(edje_collections));
-
-   ep = pc->parts[pc->parts_count - 1];
-
-   if (ep->type != EDJE_PART_TYPE_IMAGE)
-     {
-        ERR("parse error %s:%i. image attributes in non-IMAGE part.",
-            file_in, line - 1);
-        exit(-1);
-     }
-
-   ed = (Edje_Part_Description_Image*) ep->default_desc;
-   if (ep->other.desc_count) ed = (Edje_Part_Description_Image*)  ep->other.desc[ep->other.desc_count - 1];
-
-   ed->image.fill.spread = parse_int_range(0, 0, 1);
-#endif
 }
 
 /**
@@ -11297,6 +11479,7 @@ st_collections_group_parts_part_description_properties_specular(void)
            ed->light.properties.specular.g = parse_int_range(1, 0, 255);
            ed->light.properties.specular.b = parse_int_range(2, 0, 255);
            ed->light.properties.specular.a = parse_int_range(3, 0, 255);
+           break;
         }
       case EDJE_PART_TYPE_MESH_NODE:
         {
@@ -14096,7 +14279,8 @@ st_collections_group_programs_program_in(void)
         @li DRAG_VAL_SET 0.5 0.0
         @li DRAG_VAL_STEP 1.0 0.0
         @li DRAG_VAL_PAGE 0.0 0.0
-        @li FOCUS_SET
+        @li FOCUS_SET ("seat")
+        @li FOCUS_OBJECT ("seat")
         @li PARAM_COPY "src_part" "src_param" "dst_part" "dst_param"
         @li PARAM_SET "part" "param" "value"
         @li PLAY_SAMPLE "sample name" speed (channel)
@@ -14113,7 +14297,7 @@ st_collections_group_programs_program_in(void)
         @li PHYSICS_ROT_SET 0.707 0 0 0.707
 
         Only one action can be specified per program.
-        
+
         PLAY_SAMPLE (optional) channel can be one of:
         @li EFFECT/FX
         @li BACKGROUND/BG
@@ -14170,6 +14354,14 @@ st_collections_group_programs_program_action(void)
 	  ep->value = 0.0;
 	else
 	  ep->value = parse_float_range(2, 0.0, 1.0);
+     }
+   else if ((ep->action == EDJE_ACTION_TYPE_FOCUS_SET) ||
+            (ep->action == EDJE_ACTION_TYPE_FOCUS_OBJECT))
+     {
+        if (get_arg_count() == 1)
+          ep->seat = NULL;
+        else
+          ep->seat = parse_str(1);
      }
    else if (ep->action == EDJE_ACTION_TYPE_SIGNAL_EMIT)
      {
@@ -14312,8 +14504,6 @@ st_collections_group_programs_program_action(void)
 	 * completeness */
 	break;
       case EDJE_ACTION_TYPE_ACTION_STOP:
-      case EDJE_ACTION_TYPE_FOCUS_OBJECT:
-      case EDJE_ACTION_TYPE_FOCUS_SET:
       case EDJE_ACTION_TYPE_PHYSICS_FORCES_CLEAR:
       case EDJE_ACTION_TYPE_PHYSICS_STOP:
         check_arg_count(1);
@@ -14336,6 +14526,10 @@ st_collections_group_programs_program_action(void)
         break;
       case EDJE_ACTION_TYPE_STATE_SET:
         check_min_arg_count(2);
+        break;
+      case EDJE_ACTION_TYPE_FOCUS_SET:
+      case EDJE_ACTION_TYPE_FOCUS_OBJECT:
+        check_min_arg_count(1);
         break;
       default:
 	check_arg_count(3);

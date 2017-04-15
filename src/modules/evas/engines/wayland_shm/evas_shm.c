@@ -82,11 +82,9 @@ static struct wl_shm_pool *
 _shm_pool_make(struct wl_shm *shm, int size, void **data)
 {
    struct wl_shm_pool *pool;
-   static const char tmp[] = "/evas-wayland_shm-XXXXXX";
-   const char *path;
-   char *name;
    int fd = 0;
    Eina_Tmpstr *fullname;
+   Efl_Vpath_File *file_obj;
 
    LOGFN(__FILE__, __LINE__, __FUNCTION__);
 
@@ -94,33 +92,20 @@ _shm_pool_make(struct wl_shm *shm, int size, void **data)
    if (!shm) return NULL;
 
    /* create tmp file name */
-   if ((path = getenv("XDG_RUNTIME_DIR")))
-     {
-        if ((name = malloc(strlen(path) + sizeof(tmp))))
-          strcpy(name, path);
-     }
-   else
-     {
-        if ((name = malloc(strlen("/tmp") + sizeof(tmp))))
-          strcpy(name, "/tmp");
-     }
+   file_obj = efl_vpath_manager_fetch(EFL_VPATH_MANAGER_CLASS,
+                                      "(:run:)/evas-wayland_shm-XXXXXX");
+   fd = eina_file_mkstemp(efl_vpath_file_result_get(file_obj), &fullname);
+   efl_del(file_obj);
 
-   if (!name) return NULL;
-
-   strcat(name, tmp);
-
-   fd = eina_file_mkstemp(name, &fullname);
    if (fd < 0)
    /* try to create tmp file */
    /* if ((fd = mkstemp(name)) < 0) */
      {
         ERR("Could not create temporary file: %m");
-        free(name);
         return NULL;
      }
 
    unlink(fullname);
-   free(name);
    eina_tmpstr_del(fullname);
 
    /* try to truncate file to size */
@@ -414,7 +399,7 @@ _evas_shm_surface_destroy(Surface *surface)
 }
 
 void 
-_evas_shm_surface_reconfigure(Surface *s, int w, int h, uint32_t flags)
+_evas_shm_surface_reconfigure(Surface *s, int w, int h, uint32_t flags, Eina_Bool force)
 {
    Shm_Surface *surface;
    int i = 0, resize = 0;
@@ -423,6 +408,12 @@ _evas_shm_surface_reconfigure(Surface *s, int w, int h, uint32_t flags)
 
    surface = s->surf.shm;
    resize = !!flags;
+
+   if (force)
+     {
+        for (; i < surface->num_buff; i++)
+          surface->leaf[i].busy = EINA_FALSE;
+     }
 
    for (; i < surface->num_buff; i++)
      {
@@ -461,18 +452,19 @@ _evas_shm_surface_reconfigure(Surface *s, int w, int h, uint32_t flags)
 static Shm_Leaf *
 _evas_shm_surface_wait(Shm_Surface *surface)
 {
-   int iterations = 0, i;
+   int i = 0, best = -1, best_age = -1;
 
-   while (iterations++ < 10)
+   for (i = 0; i < surface->num_buff; i++)
      {
-        for (i = 0; i < surface->num_buff; i++)
+        if (surface->leaf[i].busy) continue;
+        if ((surface->leaf[i].valid) && (surface->leaf[i].age > best_age))
           {
-             if (surface->leaf[i].busy) continue;
-             if (surface->leaf[i].valid) return &surface->leaf[i];
+             best = i;
+             best_age = surface->leaf[i].age;
           }
-
-        wl_display_dispatch_pending(surface->disp);
      }
+
+   if (best >= 0) return &surface->leaf[best];
    return NULL;
 }
 
@@ -506,7 +498,7 @@ _evas_shm_surface_assign(Surface *s)
         if (surface->leaf[i].valid && surface->leaf[i].drawn)
           {
              surface->leaf[i].age++;
-             if (surface->leaf[i].age > surface->num_buff)
+             if (surface->leaf[i].age > 4)
                {
                   surface->leaf[i].age = 0;
                   surface->leaf[i].drawn = EINA_FALSE;
@@ -542,9 +534,8 @@ _evas_shm_surface_data_get(Surface *s, int *w, int *h)
 }
 
 void
-_evas_shm_surface_post(Surface *s, Eina_Rectangle *rects, unsigned int count)
+_evas_shm_surface_post(Surface *s, Eina_Rectangle *rects, unsigned int count, Eina_Bool hidden)
 {
-   /* struct wl_callback *frame_cb; */
    Shm_Surface *surf;
    Shm_Leaf *leaf;
 
@@ -556,12 +547,15 @@ _evas_shm_surface_post(Surface *s, Eina_Rectangle *rects, unsigned int count)
 
    if (!surf->surface) return;
 
-   wl_surface_attach(surf->surface, leaf->data->buffer, 0, 0);
+   if (!hidden)
+     {
+        wl_surface_attach(surf->surface, leaf->data->buffer, 0, 0);
 
-   _evas_surface_damage(surf->surface, surf->compositor_version,
-                        leaf->w, leaf->h, rects, count);
-   /* frame_cb = wl_surface_frame(surface->surface); */
-   /* wl_callback_add_listener(frame_cb, &_shm_frame_listener, surface); */
+        _evas_surface_damage(surf->surface, surf->compositor_version,
+                             leaf->w, leaf->h, rects, count);
+     }
+   else
+     wl_surface_attach(surf->surface, NULL, 0, 0);
 
    wl_surface_commit(surf->surface);
 
@@ -569,6 +563,21 @@ _evas_shm_surface_post(Surface *s, Eina_Rectangle *rects, unsigned int count)
    leaf->drawn = EINA_TRUE;
    leaf->age = 0;
    surf->current = NULL;
+}
+
+Eina_Bool
+_evas_shm_surface_surface_set(Surface *s, struct wl_shm *wl_shm, struct zwp_linux_dmabuf_v1 *wl_dmabuf EINA_UNUSED, struct wl_surface *wl_surface)
+{
+   Shm_Surface *surf;
+
+   surf = s->surf.shm;
+
+   if ((surf->shm == wl_shm) && (surf->surface == wl_surface))
+     return EINA_FALSE;
+
+   surf->shm = wl_shm;
+   surf->surface = wl_surface;
+   return EINA_TRUE;
 }
 
 Eina_Bool
@@ -584,7 +593,7 @@ _evas_shm_surface_create(Surface *s, int w, int h, int num_buff)
 
    surf->w = w;
    surf->h = h;
-   surf->disp = s->info->info.wl_disp;
+   surf->disp = s->info->info.wl_display;
    surf->shm = s->info->info.wl_shm;
    surf->surface = s->info->info.wl_surface;
    surf->num_buff = num_buff;
@@ -607,6 +616,7 @@ _evas_shm_surface_create(Surface *s, int w, int h, int num_buff)
    s->funcs.data_get = _evas_shm_surface_data_get;
    s->funcs.assign = _evas_shm_surface_assign;
    s->funcs.post = _evas_shm_surface_post;
+   s->funcs.surface_set = _evas_shm_surface_surface_set;
 
    return EINA_TRUE;
 

@@ -1,32 +1,34 @@
 enum Efl.Ui.Flip.Mode
 {
-   [[]]
+   [[Efl UI flip mode ]]
    legacy: efl_ui_flip;
-   rotate_y_center_axis,
-   rotate_x_center_axis,
-   rotate_xz_center_axis,
-   rotate_yz_center_axis,
-   cube_left,
-   cube_right,
-   cube_up,
-   cube_down,
-   page_left,
-   page_right,
-   page_up,
-   page_down
+   rotate_y_center_axis, [[Rotate Y center axis flip mode]]
+   rotate_x_center_axis, [[Rotate X center axis flip mode]]
+   rotate_xz_center_axis, [[Rotate XZ center axis flip mode]]
+   rotate_yz_center_axis, [[Rotate YZ center axis flip mode]]
+   cube_left, [[Cube left flip mode]]
+   cube_right, [[Cube right flip mode]]
+   cube_up, [[Cube up flip mode]]
+   cube_down, [[Cube down flip mode]]
+   page_left, [[Page left flip mode]]
+   page_right, [[Page right flip mode]]
+   page_up, [[Page up flip mode]]
+   page_down, [[Page down flip mode]]
+   cross_fade, [[Cross fade flip mode]]
 }
 
 enum Efl.Ui.Flip.Interaction
 {
-   [[]]
-   none,
-   rotate,
-   cube,
-   page
+   [[Efl UI flip interaction]]
+   none, [[No interaction]]
+   rotate, [[Rotate interaction]]
+   cube, [[Cube interaction]]
+   page [[Page interaction]]
 }
 
 class Efl.Ui.Flip (Elm.Widget, Efl.Pack.Linear, Efl.Part)
 {
+   [[Efl UI flip class]]
    legacy_prefix: elm_flip;
    methods {
       @property interaction {
@@ -159,9 +161,11 @@ class Efl.Ui.Flip (Elm.Widget, Efl.Pack.Linear, Efl.Part)
            right s if the flip was a book, the other content is shown as the
            page below that), #ELM_FLIP_PAGE_UP (move the currently visible
            content up as if the flip was a book, the other content is shown
-           as the page below that) and #ELM_FLIP_PAGE_DOWN (move the
+           as the page below that), #ELM_FLIP_PAGE_DOWN (move the
            currently visible content down as if the flip was a book, the
-           other content is shown as the page below that).
+           other content is shown as the page below that) and #ELM_FLIP_CROSS_FADE
+           (fade out the currently visible content, while fading in the
+           invisible content).
          ]]
          /* FIXME-doc
           * @image html elm_flip.png
@@ -224,7 +228,7 @@ class Efl.Ui.Flip (Elm.Widget, Efl.Pack.Linear, Efl.Part)
    }
    implements {
       class.constructor;
-      Eo.Base.constructor;
+      Efl.Object.constructor;
       Efl.Canvas.Group.group_add;
       Efl.Canvas.Group.group_del;
       Elm.Widget.focus_direction;
@@ -250,8 +254,7 @@ class Efl.Ui.Flip (Elm.Widget, Efl.Pack.Linear, Efl.Part)
       Efl.Pack.Linear.pack_index_get;
    }
    events {
-      animate,begin;
-      animate,done;
+      animate,begin; [[Called when flip animation begins]]
+      animate,done; [[Called when flip animation is done]]
    }
-
 }

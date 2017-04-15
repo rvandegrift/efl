@@ -48,6 +48,8 @@
 #endif /* ! _WIN32 */
 
 #include "elm_widget.h"
+#include "elm_access.eo.h"
+#include "elm_code_private.h"
 
 #ifdef HAVE_LANGINFO_H
 # include <langinfo.h>
@@ -129,7 +131,7 @@ struct _Elm_Theme
  * the users config doesn't need to be wiped - simply new values need
  * to be put in
  */
-#define ELM_CONFIG_FILE_GENERATION 0x000B
+#define ELM_CONFIG_FILE_GENERATION 0x000e
 #define ELM_CONFIG_VERSION_EPOCH_OFFSET 16
 #define ELM_CONFIG_VERSION         ((ELM_CONFIG_EPOCH << ELM_CONFIG_VERSION_EPOCH_OFFSET) | \
                                     ELM_CONFIG_FILE_GENERATION)
@@ -173,6 +175,7 @@ extern const char *_elm_engines[];
 
 
 #define ELM_SAFE_FREE(_h, _fn) do { _fn((void*)_h); _h = NULL; } while (0)
+#define ELM_SAFE_DEL(_h) do { efl_del(_h); _h = NULL; } while (0)
 
 #define ELM_PRIV_STATIC_VARIABLE_DECLARE(name, signal, type) \
    static const char name[] = signal;
@@ -310,6 +313,7 @@ struct _Elm_Config
    int           gl_stencil;
    int           gl_msaa;
    const char   *icon_theme;
+   unsigned char entry_select_allow;
 
    /* Not part of the EET file */
    Eina_Bool     is_mirrored : 1;
@@ -380,6 +384,7 @@ void                 _elm_win_rescale(Elm_Theme *th,
 void                 _elm_win_access(Eina_Bool is_access);
 void                 _elm_win_translate(void);
 void                 _elm_win_focus_reconfigure(void);
+void                 _elm_win_standard_init(Eo *win);
 
 Ecore_X_Window       _elm_ee_xwin_get(const Ecore_Evas *ee);
 
@@ -400,7 +405,7 @@ Eina_Bool            _elm_theme_icon_set(Elm_Theme *th,
                                          Evas_Object *o,
                                          const char *group,
                                          const char *style);
-Eina_Bool            _elm_theme_parse(Elm_Theme *th,
+void                 _elm_theme_parse(Elm_Theme *th,
                                       const char *theme);
 void                 _elm_theme_shutdown(void);
 
@@ -531,6 +536,10 @@ void                 _elm_dbus_menu_item_select_cb(Elm_Object_Item *obj_item);
 void                 _elm_menu_menu_bar_set(Eo *obj, Eina_Bool menu_bar);
 void                 _elm_menu_menu_bar_hide(Eo *obj);
 
+#ifdef HAVE_ELEMENTARY_WL2
+void                 _elm_win_wl_cursor_set(Evas_Object *obj, const char *cursor);
+#endif
+
 /* DEPRECATED, will be removed on next release */
 void                 _elm_icon_signal_emit(Evas_Object *obj,
                                            const char *emission,
@@ -546,18 +555,6 @@ void                *_elm_icon_signal_callback_del(Evas_Object *obj,
                                                    Edje_Signal_Cb func_cb);
  void                _efl_ui_image_sizing_eval(Evas_Object *obj);
 /* end of DEPRECATED */
-
-
-/* Elm helper to download content */
-typedef struct _Elm_Url Elm_Url;
-
-typedef void (*Elm_Url_Done)(void *data, Elm_Url *url, Eina_Binbuf *download);
-typedef void (*Elm_Url_Cancel)(void *data, Elm_Url *url, int error);
-typedef void (*Elm_Url_Progress)(void *data, Elm_Url *url, double now, double total);
-
-Elm_Url *_elm_url_download(const char *url, Elm_Url_Done done_cb, Elm_Url_Cancel cancel_cb, Elm_Url_Progress progress_cb, const void *data);
-void _elm_url_cancel(Elm_Url *r);
-const char *_elm_url_get(Elm_Url *r);
 
 Eina_Bool _elm_config_accel_preference_parse(const char *pref, Eina_Stringshare **accel, int *gl_depth, int *gl_stencil, int *gl_msaa);
 

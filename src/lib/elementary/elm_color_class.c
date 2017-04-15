@@ -128,7 +128,7 @@ _colorclass_select(void *data, Evas_Object *obj EINA_UNUSED, const char *sig, co
 }
 
 static void
-_colorclass_changed(void *data, const Eo_Event *event EINA_UNUSED)
+_colorclass_changed(void *data, const Efl_Event *event EINA_UNUSED)
 {
    Colorclass_UI *cc = data;
 
@@ -151,14 +151,14 @@ _colorclass_changed(void *data, const Eo_Event *event EINA_UNUSED)
 }
 
 static void
-_colorclass_reset(void *data, const Eo_Event *event EINA_UNUSED)
+_colorclass_reset(void *data, const Efl_Event *event EINA_UNUSED)
 {
    Colorclass_UI *cc = data;
    Colorclass color;
 
    if (!cc->current)
      {
-        eo_event_callback_stop(event->object);
+        efl_event_callback_stop(event->object);
         return;
      }
    //if (cc->winid && remote_iface)
@@ -170,7 +170,7 @@ _colorclass_reset(void *data, const Eo_Event *event EINA_UNUSED)
         //eldbus_message_arguments_append(msg, "s", cc->current->name);
         //eldbus_service_signal_send(remote_iface, msg);
         //cc->change_reset = 1;
-        //eo_event_callback_stop(event->object);
+        //efl_event_callback_stop(event->object);
         //return;
      //}
    edje_color_class_del(cc->current->name);
@@ -193,7 +193,7 @@ _colorclass_reset(void *data, const Eo_Event *event EINA_UNUSED)
 }
 
 static void
-_colorclass_activate(void *data, const Eo_Event *event)
+_colorclass_activate(void *data, const Efl_Event *event)
 {
    Colorclass_UI *cc = data;
    Elm_Object_Item *it = event->info;
@@ -737,7 +737,7 @@ elm_color_class_editor_add(Evas_Object *obj)
    elm_scroller_policy_set(gl, ELM_SCROLLER_POLICY_OFF, ELM_SCROLLER_POLICY_AUTO);
    elm_genlist_mode_set(gl, ELM_LIST_COMPRESS);
    elm_object_part_content_set(ly, "elm.swallow.list", gl);
-   eo_event_callback_add
+   efl_event_callback_add
      (gl, EFL_UI_EVENT_SELECTED, _colorclass_activate, cc);
 
    cc->reset = bt = elm_button_add(ly);
@@ -745,13 +745,13 @@ elm_color_class_editor_add(Evas_Object *obj)
    /* FIXME: translate */
    elm_object_text_set(bt, "Reset");
    elm_object_part_content_set(ly, "elm.swallow.reset", bt);
-   eo_event_callback_add
+   efl_event_callback_add
      (bt, EFL_UI_EVENT_CLICKED, _colorclass_reset, cc);
 
    cc->cs = cs = elm_colorselector_add(ly);
    elm_colorselector_mode_set(cs, ELM_COLORSELECTOR_COMPONENTS);
    elm_object_part_content_set(ly, "elm.swallow.colors", cs);
-   eo_event_callback_add
+   efl_event_callback_add
      (cs, ELM_COLORSELECTOR_EVENT_CHANGED_USER, _colorclass_changed, cc);
 
    EINA_LIST_FREE(ccs, ecc)

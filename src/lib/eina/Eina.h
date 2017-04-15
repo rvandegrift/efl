@@ -81,7 +81,6 @@
  * @li @ref Eina_Tiler_Group split, merge and navigates into 2D tiled regions.
  * @li @ref Eina_Trash_Group container of unused but allocated data.
  * @li @ref Eina_Value_Group container for generic value storage and access.
- * @li @ref Eina_Model_Group container for data with user defined hierarchy/structure.
  *
  * The tools that are available are (see @ref Eina_Tools_Group):
  * @li @ref Eina_Benchmark_Group helper to write benchmarks.
@@ -198,9 +197,9 @@
  * should return properly populated @ref _Eina_Iterator and @ref _Eina_Accessor.
  *
  * @defgroup Eina_Tools_Group Tools
+ * @ingroup Eina
  * @brief Eina tools aims to help application development, providing ways to
  *        make it safer, log errors, manage memory more efficiently and more.
- * @ingroup Eina
  */
 
 #ifdef _WIN32
@@ -243,7 +242,6 @@ extern "C" {
 #include <eina_cpu.h>
 #include <eina_sched.h>
 #include <eina_tiler.h>
-#include <eina_thread.h>
 #include <eina_hamster.h>
 #include <eina_matrixsparse.h>
 #include <eina_str.h>
@@ -254,6 +252,7 @@ extern "C" {
 #include <eina_quadtree.h>
 #include <eina_simple_xml_parser.h>
 #include <eina_lock.h>
+#include <eina_thread.h> /* after eina_lock.h since it will include pthread.h with proper flags */
 #include <eina_prefix.h>
 #include <eina_refcount.h>
 #include <eina_mmap.h>
@@ -268,9 +267,11 @@ extern "C" {
 #include <eina_evlog.h>
 #include <eina_util.h>
 #include <eina_quaternion.h>
-#include <eina_promise.h>
 #include <eina_bezier.h>
 #include <eina_safepointer.h>
+#include <eina_slice.h>
+#include <eina_freeq.h>
+#include <eina_slstr.h>
 
 #undef EAPI
 #define EAPI

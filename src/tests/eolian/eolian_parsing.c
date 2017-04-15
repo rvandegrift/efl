@@ -87,10 +87,6 @@ START_TEST(eolian_namespaces)
    fail_if(eina_iterator_next(iter, &dummy));
    eina_iterator_free(iter);
 
-   /* Virtual regression */
-   fail_if(!(fid = eolian_class_function_get_by_name(class112, "a", EOLIAN_UNRESOLVED)));
-   fail_if(!eolian_function_is_virtual_pure(fid, EOLIAN_PROP_SET));
-
    eolian_shutdown();
 }
 END_TEST
@@ -170,7 +166,6 @@ END_TEST
 START_TEST(eolian_override)
 {
    Eina_Iterator *iter;
-   const Eolian_Function *fid = NULL;
    const Eolian_Class *impl_class = NULL;
    const Eolian_Function *impl_func = NULL;
    const Eolian_Class *class, *base;
@@ -185,69 +180,39 @@ START_TEST(eolian_override)
    fail_if(!(class = eolian_class_get_by_name("Override")));
    fail_if(!(base = eolian_class_get_by_name("Base")));
 
-   /* Base ctor */
-   fail_if(!(fid = eolian_class_function_get_by_name(base, "constructor", EOLIAN_UNRESOLVED)));
-   fail_if(!eolian_function_is_virtual_pure(fid, EOLIAN_UNRESOLVED));
-   fail_if(!eolian_function_is_implemented(fid, EOLIAN_UNRESOLVED, class));
-   fail_if(!eolian_function_is_implemented(fid, EOLIAN_METHOD, class));
-   fail_if(eolian_function_is_implemented(fid, EOLIAN_PROP_GET, class));
-
-   /* Property */
-   fail_if(!(fid = eolian_class_function_get_by_name(class, "a", EOLIAN_PROPERTY)));
-   fail_if(!eolian_function_is_virtual_pure(fid, EOLIAN_PROP_SET));
-   fail_if(eolian_function_is_virtual_pure(fid, EOLIAN_PROP_GET));
-   fail_if(eolian_function_is_implemented(fid, EOLIAN_PROP_SET, class));
-   fail_if(!eolian_function_is_implemented(fid, EOLIAN_PROP_GET, class));
-   fail_if(eolian_function_is_implemented(fid, EOLIAN_PROPERTY, class));
-
-   /* Method */
-   fail_if(!(fid = eolian_class_function_get_by_name(class, "foo", EOLIAN_METHOD)));
-   fail_if(!eolian_function_is_virtual_pure(fid, EOLIAN_METHOD));
-   fail_if(eolian_function_is_implemented(fid, EOLIAN_UNRESOLVED, class));
-   fail_if(eolian_function_is_implemented(fid, EOLIAN_UNRESOLVED, base));
-
-   fail_if(!(fid = eolian_class_function_get_by_name(base, "z", EOLIAN_PROPERTY)));
-   fail_if(!eolian_function_is_implemented(fid, EOLIAN_PROPERTY, class));
-   fail_if(!eolian_function_is_implemented(fid, EOLIAN_PROP_SET, class));
-
    /* Implements */
    fail_if(!(iter = eolian_class_implements_get(class)));
+   fail_if(!(eina_iterator_next(iter, (void**)&impl))); /* skip a */
 
    fail_if(!(eina_iterator_next(iter, (void**)&impl)));
-   fail_if(eolian_implement_is_auto(impl));
-   fail_if(eolian_implement_is_empty(impl));
-   fail_if(eolian_implement_is_virtual(impl));
-   fail_if(!(impl_class = eolian_implement_class_get(impl)));
-   fail_if(!(impl_func = eolian_implement_function_get(impl, NULL)));
-   fail_if(impl_class != base);
-   fail_if(strcmp(eolian_function_name_get(impl_func), "constructor"));
-
-   fail_if(!(eina_iterator_next(iter, (void**)&impl)));
-   fail_if(!eolian_implement_is_auto(impl));
-   fail_if(eolian_implement_is_empty(impl));
-   fail_if(eolian_implement_is_virtual(impl));
+   fail_if(!eolian_implement_is_auto(impl, EOLIAN_PROP_SET));
+   fail_if(eolian_implement_is_empty(impl, EOLIAN_PROP_SET));
+   fail_if(eolian_implement_is_pure_virtual(impl, EOLIAN_PROP_SET));
    fail_if(!(impl_class = eolian_implement_class_get(impl)));
    fail_if(!(impl_func = eolian_implement_function_get(impl, NULL)));
    fail_if(impl_class != class);
    fail_if(strcmp(eolian_function_name_get(impl_func), "b"));
-   fail_if(!eolian_function_is_auto(impl_func, EOLIAN_PROP_SET));
-   fail_if(eolian_function_is_auto(impl_func, EOLIAN_PROP_GET));
-   fail_if(eolian_function_is_empty(impl_func, EOLIAN_PROP_SET));
-   fail_if(eolian_function_is_empty(impl_func, EOLIAN_PROP_GET));
-   fail_if(eolian_function_is_virtual_pure(impl_func, EOLIAN_PROP_SET));
-   fail_if(eolian_function_is_virtual_pure(impl_func, EOLIAN_PROP_GET));
+
+   fail_if(!(eina_iterator_next(iter, (void**)&impl))); /* skip c */
+   fail_if(!(eina_iterator_next(iter, (void**)&impl))); /* skip foo */
 
    fail_if(!(eina_iterator_next(iter, (void**)&impl)));
-   fail_if(eolian_implement_is_auto(impl));
-   fail_if(!eolian_implement_is_empty(impl));
-   fail_if(eolian_implement_is_virtual(impl));
+   fail_if(eolian_implement_is_auto(impl, EOLIAN_METHOD));
+   fail_if(!eolian_implement_is_empty(impl, EOLIAN_METHOD));
+   fail_if(eolian_implement_is_pure_virtual(impl, EOLIAN_METHOD));
    fail_if(!(impl_class = eolian_implement_class_get(impl)));
    fail_if(!(impl_func = eolian_implement_function_get(impl, NULL)));
    fail_if(impl_class != class);
    fail_if(strcmp(eolian_function_name_get(impl_func), "bar"));
-   fail_if(eolian_function_is_auto(impl_func, EOLIAN_METHOD));
-   fail_if(!eolian_function_is_empty(impl_func, EOLIAN_METHOD));
-   fail_if(eolian_function_is_virtual_pure(impl_func, EOLIAN_METHOD));
+
+   fail_if(!(eina_iterator_next(iter, (void**)&impl)));
+   fail_if(eolian_implement_is_auto(impl, EOLIAN_METHOD));
+   fail_if(eolian_implement_is_empty(impl, EOLIAN_METHOD));
+   fail_if(eolian_implement_is_pure_virtual(impl, EOLIAN_METHOD));
+   fail_if(!(impl_class = eolian_implement_class_get(impl)));
+   fail_if(!(impl_func = eolian_implement_function_get(impl, NULL)));
+   fail_if(impl_class != base);
+   fail_if(strcmp(eolian_function_name_get(impl_func), "constructor"));
 
    eina_iterator_free(iter);
 
@@ -296,6 +261,8 @@ START_TEST(eolian_ctor_dtor)
 
    /* Base ctor/dtor */
    fail_if(!(iter = eolian_class_implements_get(class)));
+   fail_if(!(eina_iterator_next(iter, (void**)&impl)));
+   fail_if(!(eina_iterator_next(iter, (void**)&impl)));
    fail_if(!(eina_iterator_next(iter, (void**)&impl)));
    fail_if(!(impl_class = eolian_implement_class_get(impl)));
    fail_if(!(impl_func = eolian_implement_function_get(impl, NULL)));
@@ -410,7 +377,8 @@ START_TEST(eolian_typedef)
    fail_if(!eina_iterator_next(iter, (void**)&tdl));
    /* not generated undefined type, skip */
    fail_if(!eina_iterator_next(iter, (void**)&tdl));
-   /* event type, tested by generation tests */
+   /* event type and free cb, tested by generation tests */
+   fail_if(!eina_iterator_next(iter, (void**)&tdl));
    fail_if(!eina_iterator_next(iter, (void**)&tdl));
    fail_if(eina_iterator_next(iter, (void**)&tdl));
 
@@ -450,7 +418,7 @@ START_TEST(eolian_complex_type)
    fail_if(!!eolian_type_next_type_get(type));
    fail_if(!(type_name = eolian_type_c_type_get(type)));
    fail_if(!eolian_type_is_own(type));
-   fail_if(strcmp(type_name, "Eo **"));
+   fail_if(strcmp(type_name, "Eo *"));
    eina_stringshare_del(type_name);
    /* Properties parameter type */
    fail_if(!(iter = eolian_property_values_get(fid, EOLIAN_PROP_GET)));
@@ -510,10 +478,11 @@ START_TEST(eolian_scope)
    fail_if(!(class = eolian_class_get_by_name("Scope")));
 
    /* Property scope */
-   fail_if(!(fid = eolian_class_function_get_by_name(class, "a", EOLIAN_PROPERTY)));
-   fail_if(eolian_function_scope_get(fid, EOLIAN_PROPERTY) != EOLIAN_SCOPE_PROTECTED);
-   fail_if(!(fid = eolian_class_function_get_by_name(class, "b", EOLIAN_PROPERTY)));
-   fail_if(eolian_function_scope_get(fid, EOLIAN_PROPERTY) != EOLIAN_SCOPE_PUBLIC);
+   fail_if(eolian_class_function_get_by_name(class, "a", EOLIAN_PROPERTY));
+   fail_if(!(fid = eolian_class_function_get_by_name(class, "a", EOLIAN_PROP_GET)));
+   fail_if(eolian_function_scope_get(fid, EOLIAN_PROP_GET) != EOLIAN_SCOPE_PROTECTED);
+   fail_if(!(fid = eolian_class_function_get_by_name(class, "b", EOLIAN_PROP_GET)));
+   fail_if(eolian_function_scope_get(fid, EOLIAN_PROP_GET) != EOLIAN_SCOPE_PUBLIC);
    fail_if(!(fid = eolian_class_function_get_by_name(class, "c", EOLIAN_PROPERTY)));
    fail_if(eolian_function_scope_get(fid, EOLIAN_PROP_GET) != EOLIAN_SCOPE_PUBLIC);
    fail_if(eolian_function_scope_get(fid, EOLIAN_PROP_SET) != EOLIAN_SCOPE_PROTECTED);
@@ -555,10 +524,18 @@ START_TEST(eolian_simple_parsing)
    fail_if(strcmp(eolian_class_legacy_prefix_get(class), "evas_object_simple"));
    fail_if(strcmp(eolian_class_eo_prefix_get(class), "efl_canvas_object_simple"));
    fail_if(strcmp(eolian_class_data_type_get(class), "Evas_Simple_Data"));
+   Eina_Stringshare *dt = eolian_class_c_data_type_get(class);
+   fail_if(strcmp(dt, "Evas_Simple_Data"));
+   eina_stringshare_del(dt);
 
    /* c get func */
    fail_if(!(string = eolian_class_c_get_function_name_get(class)));
    fail_if(strcmp(string, "class_simple_class_get"));
+   eina_stringshare_del(string);
+
+   /* c name */
+   fail_if(!(string = eolian_class_c_name_get(class)));
+   fail_if(strcmp(string, "CLASS_SIMPLE_CLASS"));
    eina_stringshare_del(string);
 
    /* Property */
@@ -593,7 +570,8 @@ START_TEST(eolian_simple_parsing)
    fail_if(v.value.i != 100);
 
    /* legacy only + c only */
-   fail_if(!(fid = eolian_class_function_get_by_name(class, "b", EOLIAN_PROPERTY)));
+   fail_if(eolian_class_function_get_by_name(class, "b", EOLIAN_PROPERTY));
+   fail_if(!(fid = eolian_class_function_get_by_name(class, "b", EOLIAN_PROP_SET)));
    fail_if(eolian_function_is_legacy_only(fid, EOLIAN_PROP_GET));
    fail_if(!eolian_function_is_legacy_only(fid, EOLIAN_PROP_SET));
    fail_if(!eolian_function_is_c_only(fid));
@@ -602,7 +580,7 @@ START_TEST(eolian_simple_parsing)
    /* Method */
    fail_if(!(fid = eolian_class_function_get_by_name(class, "foo", EOLIAN_METHOD)));
    fail_if(!eolian_function_is_beta(fid));
-   fail_if(eolian_type_is_ref(eolian_function_return_type_get(fid, EOLIAN_METHOD)));
+   fail_if(!eolian_type_is_ptr(eolian_function_return_type_get(fid, EOLIAN_METHOD)));
    /* Function return */
    tp = eolian_function_return_type_get(fid, EOLIAN_METHOD);
    fail_if(!tp);
@@ -639,7 +617,7 @@ START_TEST(eolian_simple_parsing)
    fail_if(!(eina_iterator_next(iter, (void**)&param)));
    fail_if(eolian_parameter_direction_get(param) != EOLIAN_IN_PARAM);
    fail_if(strcmp(eolian_type_name_get(eolian_parameter_type_get(param)), "int"));
-   fail_if(!eolian_type_is_ref(eolian_parameter_type_get(param)));
+   fail_if(!eolian_type_is_ptr(eolian_parameter_type_get(param)));
    fail_if(strcmp(eolian_parameter_name_get(param), "d"));
    fail_if(eina_iterator_next(iter, &dummy));
    eina_iterator_free(iter);
@@ -649,7 +627,7 @@ START_TEST(eolian_simple_parsing)
    fail_if(!eolian_function_is_legacy_only(fid, EOLIAN_METHOD));
    fail_if(!eolian_function_is_c_only(fid));
    fail_if(eolian_function_is_beta(fid));
-   fail_if(!eolian_type_is_ref(eolian_function_return_type_get(fid, EOLIAN_METHOD)));
+   fail_if(!eolian_type_is_ptr(eolian_function_return_type_get(fid, EOLIAN_METHOD)));
 
    eolian_shutdown();
 }
@@ -683,18 +661,18 @@ START_TEST(eolian_struct)
    fail_if(strcmp(file, "struct.eo"));
    fail_if(!(field = eolian_typedecl_struct_field_get(tdl, "field")));
    fail_if(!(ftype = eolian_typedecl_struct_field_type_get(field)));
-   fail_if(!eolian_type_is_ref(ftype));
+   fail_if(!eolian_type_is_ptr(ftype));
    fail_if(!(type_name = eolian_type_name_get(ftype)));
    fail_if(strcmp(type_name, "int"));
    fail_if(!(field = eolian_typedecl_struct_field_get(tdl, "something")));
    fail_if(!(ftype = eolian_typedecl_struct_field_type_get(field)));
-   fail_if(eolian_type_is_ref(ftype));
+   fail_if(eolian_type_is_ptr(ftype));
    fail_if(!(type_name = eolian_type_c_type_get(ftype)));
    fail_if(strcmp(type_name, "const char *"));
    eina_stringshare_del(type_name);
    fail_if(!(field = eolian_typedecl_struct_field_get(tdl, "arr")));
    fail_if(!(ftype = eolian_typedecl_struct_field_type_get(field)));
-   fail_if(eolian_type_is_ref(ftype));
+   fail_if(eolian_type_is_ptr(ftype));
    fail_if(eolian_type_array_size_get(ftype) != 16);
    fail_if(eolian_type_type_get(ftype) != EOLIAN_TYPE_STATIC_ARRAY);
    fail_if(!(type_name = eolian_type_c_type_get(ftype)));
@@ -702,7 +680,7 @@ START_TEST(eolian_struct)
    eina_stringshare_del(type_name);
    fail_if(!(field = eolian_typedecl_struct_field_get(tdl, "tarr")));
    fail_if(!(ftype = eolian_typedecl_struct_field_type_get(field)));
-   fail_if(eolian_type_is_ref(ftype));
+   fail_if(eolian_type_is_ptr(ftype));
    fail_if(!(type_name = eolian_type_c_type_get(ftype)));
    fail_if(eolian_type_type_get(ftype) != EOLIAN_TYPE_TERMINATED_ARRAY);
    fail_if(strcmp(type_name, "const char **"));
@@ -730,9 +708,8 @@ START_TEST(eolian_struct)
    /* use in function */
    fail_if(!(func = eolian_class_function_get_by_name(class, "bar", EOLIAN_METHOD)));
    fail_if(!(type = eolian_function_return_type_get(func, EOLIAN_METHOD)));
-   fail_if(eolian_type_type_get(type) != EOLIAN_TYPE_POINTER);
-   fail_if(!(type = eolian_type_base_type_get(type)));
    fail_if(eolian_type_type_get(type) != EOLIAN_TYPE_REGULAR);
+   fail_if(!eolian_type_is_ptr(type));
    fail_if(!(tdl = eolian_type_typedecl_get(type)));
    fail_if(eolian_typedecl_type_get(tdl) != EOLIAN_TYPEDECL_STRUCT);
 
@@ -949,9 +926,10 @@ START_TEST(eolian_class_funcs)
    fail_if(!(class = eolian_class_get_by_name("Class_Funcs")));
 
    /* Class properties */
-   fail_if(!(fid = eolian_class_function_get_by_name(class, "a", EOLIAN_PROPERTY)));
+   fail_if(eolian_class_function_get_by_name(class, "a", EOLIAN_PROPERTY));
+   fail_if(!(fid = eolian_class_function_get_by_name(class, "a", EOLIAN_PROP_GET)));
    fail_if(!eolian_function_is_class(fid));
-   fail_if(!(fid = eolian_class_function_get_by_name(class, "b", EOLIAN_PROPERTY)));
+   fail_if(!(fid = eolian_class_function_get_by_name(class, "b", EOLIAN_PROP_GET)));
    fail_if(eolian_function_is_class(fid));
 
    /* Class methods */
@@ -1180,6 +1158,80 @@ START_TEST(eolian_docs)
    fail_if(strcmp(eolian_documentation_since_get(doc),
                   "1.66"));
 
+   const char *sdesc = eolian_documentation_description_get(doc);
+   Eina_List *sdoc = eolian_documentation_string_split(sdesc);
+
+   char *dpar = eina_list_data_get(sdoc);
+   fail_if(strcmp(dpar, "Note: This is a note."));
+   sdoc = eina_list_remove_list(sdoc, sdoc);
+   dpar = eina_list_data_get(sdoc);
+   fail_if(strcmp(dpar, "This is a longer description for struct Foo."));
+   EINA_LIST_FREE(sdoc, dpar)
+     free(dpar);
+
+   const char *tdoc = "Note: This is $something, see @pants, "
+                      "@Docs.meth, \\@ref foo and @[Things.Stuffs.foo,bar].";
+
+   Eolian_Doc_Token tok;
+   eolian_doc_token_init(&tok);
+   fail_if(eolian_doc_token_type_get(&tok) != EOLIAN_DOC_TOKEN_UNKNOWN);
+   tdoc = eolian_documentation_tokenize(tdoc, &tok);
+   fail_if(eolian_doc_token_type_get(&tok) != EOLIAN_DOC_TOKEN_MARK_NOTE);
+   char *txt = eolian_doc_token_text_get(&tok);
+   fail_if(strcmp(txt, "Note: "));
+   free(txt);
+   tdoc = eolian_documentation_tokenize(tdoc, &tok);
+   fail_if(eolian_doc_token_type_get(&tok) != EOLIAN_DOC_TOKEN_TEXT);
+   txt = eolian_doc_token_text_get(&tok);
+   fail_if(strcmp(txt, "This is "));
+   free(txt);
+   tdoc = eolian_documentation_tokenize(tdoc, &tok);
+   fail_if(eolian_doc_token_type_get(&tok) != EOLIAN_DOC_TOKEN_MARKUP_MONOSPACE);
+   txt = eolian_doc_token_text_get(&tok);
+   fail_if(strcmp(txt, "something"));
+   free(txt);
+   tdoc = eolian_documentation_tokenize(tdoc, &tok);
+   fail_if(eolian_doc_token_type_get(&tok) != EOLIAN_DOC_TOKEN_TEXT);
+   txt = eolian_doc_token_text_get(&tok);
+   fail_if(strcmp(txt, ", see "));
+   free(txt);
+   tdoc = eolian_documentation_tokenize(tdoc, &tok);
+   fail_if(eolian_doc_token_type_get(&tok) != EOLIAN_DOC_TOKEN_REF);
+   txt = eolian_doc_token_text_get(&tok);
+   fail_if(strcmp(txt, "pants"));
+   fail_if(eolian_doc_token_ref_get(&tok, NULL, NULL) != EOLIAN_DOC_REF_VAR);
+   free(txt);
+   tdoc = eolian_documentation_tokenize(tdoc, &tok);
+   fail_if(eolian_doc_token_type_get(&tok) != EOLIAN_DOC_TOKEN_TEXT);
+   txt = eolian_doc_token_text_get(&tok);
+   fail_if(strcmp(txt, ", "));
+   free(txt);
+   tdoc = eolian_documentation_tokenize(tdoc, &tok);
+   fail_if(eolian_doc_token_type_get(&tok) != EOLIAN_DOC_TOKEN_REF);
+   txt = eolian_doc_token_text_get(&tok);
+   fail_if(strcmp(txt, "Docs.meth"));
+   fail_if(eolian_doc_token_ref_get(&tok, NULL, NULL) != EOLIAN_DOC_REF_FUNC);
+   free(txt);
+   tdoc = eolian_documentation_tokenize(tdoc, &tok);
+   fail_if(eolian_doc_token_type_get(&tok) != EOLIAN_DOC_TOKEN_TEXT);
+   txt = eolian_doc_token_text_get(&tok);
+   fail_if(strcmp(txt, ", @ref foo and "));
+   free(txt);
+   tdoc = eolian_documentation_tokenize(tdoc, &tok);
+   fail_if(eolian_doc_token_type_get(&tok) != EOLIAN_DOC_TOKEN_REF);
+   txt = eolian_doc_token_text_get(&tok);
+   fail_if(strcmp(txt, "[Things.Stuffs.foo,bar]"));
+   free(txt);
+   tdoc = eolian_documentation_tokenize(tdoc, &tok);
+   fail_if(tdoc[0] != '\0');
+   fail_if(eolian_doc_token_type_get(&tok) != EOLIAN_DOC_TOKEN_TEXT);
+   txt = eolian_doc_token_text_get(&tok);
+   fail_if(strcmp(txt, "."));
+   free(txt);
+   tdoc = eolian_documentation_tokenize(tdoc, &tok);
+   fail_if(tdoc != NULL);
+   fail_if(eolian_doc_token_type_get(&tok) != EOLIAN_DOC_TOKEN_UNKNOWN);
+
    fail_if(!(sfl = eolian_typedecl_struct_field_get(tdl, "field1")));
    fail_if(!(doc = eolian_typedecl_struct_field_documentation_get(sfl)));
    fail_if(strcmp(eolian_documentation_summary_get(doc),
@@ -1248,7 +1300,8 @@ START_TEST(eolian_docs)
                   "@Docs.prop.get @Docs.prop.set @Foo.field1 @Bar.foo @Docs"));
 
    fail_if(!(fid = eolian_class_function_get_by_name(class, "meth", EOLIAN_METHOD)));
-   fail_if(!(doc = eolian_function_documentation_get(fid, EOLIAN_METHOD)));
+   const Eolian_Implement *fimp = eolian_function_implement_get(fid);
+   fail_if(!(doc = eolian_implement_documentation_get(fimp, EOLIAN_METHOD)));
    fail_if(strcmp(eolian_documentation_summary_get(doc),
                   "Method documentation."));
    fail_if(eolian_documentation_description_get(doc));
@@ -1279,17 +1332,18 @@ START_TEST(eolian_docs)
    fail_if(eolian_documentation_description_get(doc));
 
    fail_if(!(fid = eolian_class_function_get_by_name(class, "prop", EOLIAN_PROPERTY)));
-   fail_if(!(doc = eolian_function_documentation_get(fid, EOLIAN_PROPERTY)));
+   fimp = eolian_function_implement_get(fid);
+   fail_if(!(doc = eolian_implement_documentation_get(fimp, EOLIAN_PROPERTY)));
    fail_if(strcmp(eolian_documentation_summary_get(doc),
                   "Property common documentation."));
    fail_if(eolian_documentation_description_get(doc));
    fail_if(strcmp(eolian_documentation_since_get(doc),
                   "1.18"));
-   fail_if(!(doc = eolian_function_documentation_get(fid, EOLIAN_PROP_GET)));
+   fail_if(!(doc = eolian_implement_documentation_get(fimp, EOLIAN_PROP_GET)));
    fail_if(strcmp(eolian_documentation_summary_get(doc),
                   "Get documentation."));
    fail_if(eolian_documentation_description_get(doc));
-   fail_if(!(doc = eolian_function_documentation_get(fid, EOLIAN_PROP_SET)));
+   fail_if(!(doc = eolian_implement_documentation_get(fimp, EOLIAN_PROP_SET)));
    fail_if(strcmp(eolian_documentation_summary_get(doc),
                   "Set documentation."));
    fail_if(eolian_documentation_description_get(doc));

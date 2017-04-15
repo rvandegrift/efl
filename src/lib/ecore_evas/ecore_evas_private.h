@@ -76,6 +76,7 @@ typedef struct _Ecore_Evas_Engine Ecore_Evas_Engine;
 typedef struct _Ecore_Evas_Engine_Func Ecore_Evas_Engine_Func;
 typedef struct _Ecore_Evas_Interface Ecore_Evas_Interface;
 typedef struct _Ecore_Evas_Aux_Hint Ecore_Evas_Aux_Hint;
+typedef struct _Ecore_Evas_Cursor Ecore_Evas_Cursor;
 
 /* Engines interfaces */
 struct _Ecore_Evas_Engine_Func
@@ -156,6 +157,16 @@ struct _Ecore_Evas_Engine_Func
 
    void (*fn_animator_register)  (Ecore_Evas *ee);
    void (*fn_animator_unregister)(Ecore_Evas *ee);
+
+   void (*fn_evas_changed)(Ecore_Evas *ee, Eina_Bool changed);
+
+   void (*fn_focus_device_set) (Ecore_Evas *ee, Efl_Input_Device *seat, Eina_Bool on);
+   void (*fn_callback_focus_device_in_set) (Ecore_Evas *ee, Ecore_Evas_Focus_Device_Event_Cb func);
+   void (*fn_callback_focus_device_out_set) (Ecore_Evas *ee, Ecore_Evas_Focus_Device_Event_Cb func);
+
+   void (*fn_callback_device_mouse_in_set) (Ecore_Evas *ee, Ecore_Evas_Mouse_IO_Cb func);
+   void (*fn_callback_device_mouse_out_set) (Ecore_Evas *ee, Ecore_Evas_Mouse_IO_Cb func);
+   void (*fn_pointer_device_xy_get)(const Ecore_Evas *ee, const Efl_Input_Device *pointer, Evas_Coord *x, Evas_Coord *y);
 };
 
 struct _Ecore_Evas_Interface
@@ -177,6 +188,16 @@ struct _Ecore_Evas_Engine
 #endif
 };
 
+struct _Ecore_Evas_Cursor {
+   Evas_Object *object;
+   int          layer;
+   struct {
+      int       x, y;
+   } hot;
+   int pos_x;
+   int pos_y;
+};
+
 struct _Ecore_Evas
 {
    EINA_INLIST;
@@ -192,24 +213,28 @@ struct _Ecore_Evas
    Eina_Bool   should_be_visible : 1;
    Eina_Bool   alpha  : 1;
    Eina_Bool   transparent  : 1;
-   Eina_Bool   in  : 1;
    Eina_Bool   events_block  : 1; /* @since 1.14 */
 
    Eina_Hash  *data;
+   Eina_List  *mice_in;
+
+   void *vnc_server; /* @since 1.19 */
 
    struct {
       int      x, y, w, h;
    } req;
 
    struct {
-      int      x, y;
-   } mouse;
+      int      l, r, t, b;
+      int      changed : 1;
+   } shadow;
 
    struct {
       int      w, h;
    } expecting_resize;
 
    struct {
+      Eina_Hash      *cursors;
       char           *title;
       char           *name;
       char           *clas;
@@ -221,13 +246,7 @@ struct _Ecore_Evas
       struct {
          int          w, h;
       } min, max, base, step;
-      struct {
-         Evas_Object *object;
-         int          layer;
-         struct {
-            int       x, y;
-         } hot;
-      } cursor;
+      Ecore_Evas_Cursor cursor_cache;
       struct {
          Eina_Bool       supported;      // indicate that the underlying window system supports window manager rotation protocol
          Eina_Bool       app_set;        // indicate that the ee supports window manager rotation protocol
@@ -248,13 +267,13 @@ struct _Ecore_Evas
          Eina_List      *hints;
          int             id;
       } aux_hint;
+      Eina_List       *focused_by;
       int             layer;
       Ecore_Window    window;
       unsigned char   avoid_damage;
       Ecore_Evas     *group_ee;
       Ecore_Window    group_ee_win;
       double          aspect;
-      Eina_Bool       focused      : 1;
       Eina_Bool       iconified    : 1;
       Eina_Bool       borderless   : 1;
       Eina_Bool       override     : 1;
@@ -263,7 +282,6 @@ struct _Ecore_Evas
       Eina_Bool       withdrawn    : 1;
       Eina_Bool       sticky       : 1;
       Eina_Bool       request_pos  : 1;
-      Eina_Bool       draw_frame   : 1;
       Eina_Bool       hwsurface    : 1;
       Eina_Bool       urgent           : 1;
       Eina_Bool       modal            : 1;
@@ -292,6 +310,10 @@ struct _Ecore_Evas
       void          (*fn_msg_handle) (Ecore_Evas *ee, int maj, int min, void *data, int size);
       void          (*fn_pointer_xy_get) (const Ecore_Evas *ee, Evas_Coord *x, Evas_Coord *y);
       Eina_Bool     (*fn_pointer_warp) (const Ecore_Evas *ee, Evas_Coord x, Evas_Coord y);
+      void          (*fn_focus_device_in) (Ecore_Evas *ee, Efl_Input_Device *seat);
+      void          (*fn_focus_device_out) (Ecore_Evas *ee, Efl_Input_Device *seat);
+      void          (*fn_device_mouse_in) (Ecore_Evas *ee, Efl_Input_Device *mouse);
+      void          (*fn_device_mouse_out) (Ecore_Evas *ee, Efl_Input_Device *mouse);
    } func;
 
    Ecore_Evas_Engine engine;
@@ -340,8 +362,13 @@ struct _Ecore_Evas
    unsigned char semi_sync  : 1;
    unsigned char deleted : 1;
    unsigned char profile_supported : 1;
+
    unsigned char in_async_render : 1;
    unsigned char can_async_render : 1;
+   unsigned char animator_registered : 1;
+   unsigned char animator_ticked : 1;
+   unsigned char animator_ran : 1;
+   unsigned char first_frame : 1;
 };
 
 struct _Ecore_Evas_Aux_Hint
@@ -365,6 +392,8 @@ EAPI void _ecore_evas_register_animators(Ecore_Evas *ee);
 EAPI void _ecore_evas_free(Ecore_Evas *ee);
 EAPI void _ecore_evas_idle_timeout_update(Ecore_Evas *ee);
 EAPI void _ecore_evas_mouse_move_process(Ecore_Evas *ee, int x, int y, unsigned int timestamp);
+EAPI void _ecore_evas_mouse_device_move_process(Ecore_Evas *ee, Efl_Input_Device *pointer,
+                                                int x, int y, unsigned int timestamp);
 EAPI void _ecore_evas_mouse_multi_move_process(Ecore_Evas *ee, int device,
                                           int x, int y,
                                           double radius,
@@ -414,6 +443,7 @@ EAPI void _ecore_evas_window_available_profiles_free(Ecore_Evas *ee);
 
 #ifdef BUILD_ECORE_EVAS_EWS
 void _ecore_evas_ews_events_init(void);
+void _ecore_evas_ews_events_flush(void);
 int _ecore_evas_ews_shutdown(void);
 #endif
 
@@ -428,7 +458,21 @@ const Eina_List *_ecore_evas_available_engines_get(void);
 void _ecore_evas_engine_init(void);
 void _ecore_evas_engine_shutdown(void);
 
-EAPI void ecore_evas_animator_tick(Ecore_Evas *ee, Eina_Rectangle *viewport);
+EAPI void ecore_evas_animator_tick(Ecore_Evas *ee, Eina_Rectangle *viewport, double loop_time);
+
+Eina_Module *_ecore_evas_vnc_server_module_load(void);
+
+EAPI void _ecore_evas_focus_device_set(Ecore_Evas *ee, Efl_Input_Device *seat,
+                                       Eina_Bool on);
+
+EAPI Eina_Bool _ecore_evas_mouse_in_check(Ecore_Evas *ee, Efl_Input_Device *mouse);
+EAPI void _ecore_evas_mouse_inout_set(Ecore_Evas *ee, Efl_Input_Device *mouse,
+                                      Eina_Bool in, Eina_Bool force_out);
+
+EAPI Evas_Object *_ecore_evas_default_cursor_image_get(Ecore_Evas *ee);
+EAPI void _ecore_evas_default_cursor_hide(Ecore_Evas *ee);
+
+Eina_Bool _ecore_evas_cursors_init(Ecore_Evas *ee);
 
 #undef EAPI
 #define EAPI

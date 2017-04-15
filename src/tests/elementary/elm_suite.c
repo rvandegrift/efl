@@ -72,15 +72,17 @@ static const Efl_Test_Case etc[] = {
   { "elm_slideshow", elm_test_slideshow},
   { "elm_spinner", elm_test_spinner},
   { "elm_plug", elm_test_plug},
-  { "file_load", elm_code_file_test_load },
-  { "file_memory", elm_code_file_test_memory },
-  { "parse", elm_code_test_parse },
-  { "text", elm_code_test_text },
-  { "basic", elm_code_test_basic },
-  { "widget", elm_code_test_widget },
-  { "widget_text", elm_code_test_widget_text },
-  { "widget_selection", elm_code_test_widget_selection },
-  { "widget_undo", elm_code_test_widget_undo },
+  { "elm_code_file_load", elm_code_file_test_load },
+  { "elm_code_file_memory", elm_code_file_test_memory },
+  { "elm_code_parse", elm_code_test_parse },
+  { "elm_code_syntax", elm_code_test_syntax },
+  { "elm_code_text", elm_code_test_text },
+  { "elm_code_indent", elm_code_test_indent },
+  { "elm_code_basic", elm_code_test_basic },
+  { "elm_code_widget", elm_code_test_widget },
+  { "elm_code_widget_text", elm_code_test_widget_text },
+  { "elm_code_widget_selection", elm_code_test_widget_selection },
+  { "elm_code_widget_undo", elm_code_test_widget_undo },
   { NULL, NULL }
 };
 
@@ -92,8 +94,10 @@ main(int argc, char **argv)
    if (!_efl_test_option_disp(argc, argv, etc))
      return 0;
 
+#ifdef NEED_RUN_IN_TREE
    putenv("EFL_RUN_IN_TREE=1");
    putenv("ELM_RUN_IN_TREE=1");
+#endif
 
    failed_count = _efl_suite_build_and_run(argc - 1, (const char **)argv + 1,
                                            "Elementary", etc);

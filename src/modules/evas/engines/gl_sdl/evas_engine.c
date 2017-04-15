@@ -68,7 +68,7 @@ _outbuf_get_rot(Outbuf *ob EINA_UNUSED)
 }
 
 static void
-_outbuf_flush(Outbuf *ob, Tilebuf_Rect *rects EINA_UNUSED, Evas_Render_Mode render_mode EINA_UNUSED)
+_outbuf_flush(Outbuf *ob, Tilebuf_Rect *surface_damage EINA_UNUSED, Tilebuf_Rect *buffer_damage EINA_UNUSED, Evas_Render_Mode render_mode EINA_UNUSED)
 {
    SDL_GL_SwapWindow(ob->window);
 }
@@ -286,17 +286,14 @@ eng_info_free(Evas *e EINA_UNUSED, void *info)
    free(in);
 }
 
-static int
-eng_setup(Evas *eo_e, void *in)
+static void *
+eng_setup(void *in, unsigned int w, unsigned int h)
 {
-   Evas_Public_Data *e = eo_data_scope_get(eo_e, EVAS_CANVAS_CLASS);
    Render_Engine *re = NULL;
    Outbuf *ob = NULL;
-   Evas_Engine_Info_GL_SDL *info;
+   Evas_Engine_Info_GL_SDL *info = in;
 
-   info = (Evas_Engine_Info_GL_SDL *)in;
-
-   ob = _sdl_output_setup(e->output.w, e->output.h,
+   ob = _sdl_output_setup(w, h,
                           info->flags.fullscreen,
                           info->flags.noframe,
                           info);
@@ -305,16 +302,17 @@ eng_setup(Evas *eo_e, void *in)
    re = calloc(1, sizeof (Render_Engine));
    if (!re) goto on_error;
 
-
    if (!evas_render_engine_gl_generic_init(&re->generic, ob, NULL,
                                            _outbuf_get_rot,
                                            _outbuf_reconfigure,
                                            _outbuf_region_first_rect,
+                                           NULL,
                                            _outbuf_new_region_for_update,
                                            _outbuf_push_updated_region,
                                            _outbuf_free_region_for_update,
                                            NULL,
                                            _outbuf_flush,
+                                           NULL,
                                            _outbuf_free,
                                            _window_use,
                                            _window_gl_context_get,
@@ -322,25 +320,16 @@ eng_setup(Evas *eo_e, void *in)
                                            _window_gl_context_new,
                                            _window_gl_context_use,
                                            &evgl_funcs,
-                                           e->output.w, e->output.h))
+                                           w, h))
      goto on_error;
 
-   e->engine.data.output = re;
-   if (!e->engine.data.output)
-     return 0;
-   e->engine.func = &func;
-   e->engine.data.context = e->engine.func->context_new(e->engine.data.output);
-
-   /* if we haven't initialized - init (automatic abort if already done) */
-   evas_common_init();
-
-   return 1;
+   return re;
 
  on_error:
    if (ob) _outbuf_free(ob);
    free(ob);
    free(re);
-   return 0;
+   return NULL;
 }
 
 static void
@@ -363,7 +352,7 @@ eng_output_dump(void *data)
 }
 
 static Eina_Bool
-eng_canvas_alpha_get(void *data EINA_UNUSED, void *info EINA_UNUSED)
+eng_canvas_alpha_get(void *data EINA_UNUSED)
 {
    return 0;
 }
@@ -421,7 +410,11 @@ module_open(Evas_Module *em)
 static void
 module_close(Evas_Module *em EINA_UNUSED)
 {
-    eina_log_domain_unregister(_evas_engine_GL_SDL_log_dom);
+   if (_evas_engine_GL_SDL_log_dom >= 0)
+     {
+        eina_log_domain_unregister(_evas_engine_GL_SDL_log_dom);
+        _evas_engine_GL_SDL_log_dom = -1;
+     }
 }
 
 static Evas_Module_Api evas_modapi =

@@ -493,6 +493,7 @@ _pool_tex_find(Evas_Engine_GL_Context *gc, int w, int h,
    if (th2 < 0) return NULL;
    EINA_LIST_FOREACH(gc->shared->tex.atlas[th2], l, pt)
      {
+        if (pt->render) continue;
         if ((*apt = _pool_tex_alloc(pt, w, h, u, v)) != NULL)
           {
              gc->shared->tex.atlas[th2] =
@@ -590,7 +591,7 @@ evas_gl_common_texture_new(Evas_Engine_GL_Context *gc, RGBA_Image *im, Eina_Bool
 }
 
 static Evas_GL_Texture_Pool *
-_pool_tex_render_new(Evas_Engine_GL_Context *gc, int w, int h, int intformat, int format)
+_pool_tex_render_new(Evas_Engine_GL_Context *gc, int w, int h, int intformat, int format, int stencil)
 {
    Evas_GL_Texture_Pool *pt;
    int fnum;
@@ -646,6 +647,15 @@ _pool_tex_render_new(Evas_Engine_GL_Context *gc, int w, int h, int intformat, in
         // note: should check fbo completeness
      }
 
+   if (stencil)
+     {
+        glGenRenderbuffers(1, &(pt->stencil));
+        glBindRenderbuffer(GL_RENDERBUFFER, pt->stencil);
+        glRenderbufferStorage(GL_RENDERBUFFER, GL_STENCIL_INDEX8, pt->w, pt->h);
+        glBindRenderbuffer(GL_RENDERBUFFER, 0);
+        glFramebufferRenderbuffer(GL_FRAMEBUFFER, GL_STENCIL_ATTACHMENT, GL_RENDERBUFFER, pt->stencil);
+     }
+
    glsym_glBindFramebuffer(GL_FRAMEBUFFER, fnum);
    glBindTexture(gc->state.current.tex_target, gc->state.current.cur_tex);
 
@@ -661,6 +671,65 @@ _pool_tex_render_new(Evas_Engine_GL_Context *gc, int w, int h, int intformat, in
    texinfo.r.num++;
    texinfo.r.pix += pt->w * pt->h;
    _print_tex_count();
+   return pt;
+}
+
+static Evas_GL_Texture_Pool *
+_pool_tex_render_find(Evas_Engine_GL_Context *gc, int w, int h,
+                      GLenum intformat, GLenum format, int *u, int *v,
+                      Eina_Rectangle **apt, int atlas_w, Eina_Bool disable_atlas)
+{
+   Evas_GL_Texture_Pool *pt = NULL;
+   Eina_List *l;
+   int th2;
+   int pool_h;
+   /*Return texture unit without atlas*/
+   if (disable_atlas)
+     {
+        pt = _pool_tex_render_new(gc, w, h, intformat, format, EINA_FALSE);
+        return pt ? pt : NULL;
+     }
+   if (atlas_w > gc->shared->info.max_texture_size)
+      atlas_w = gc->shared->info.max_texture_size;
+   if ((w > gc->shared->info.tune.atlas.max_w) ||
+       (h > gc->shared->info.tune.atlas.max_h) ||
+       (!gc->shared->info.etc1_subimage && (intformat == etc1_fmt)))
+     {
+        pt = _pool_tex_render_new(gc, w, h, intformat, format, EINA_FALSE);
+        if (!pt) return NULL;
+        gc->shared->tex.whole = eina_list_prepend(gc->shared->tex.whole, pt);
+        pt->fslot = -1;
+        pt->whole = 1;
+        *apt = _pool_tex_alloc(pt, w, h, u, v);
+        return pt;
+     }
+
+   th2 = _tex_format_index(intformat);
+   if (th2 < 0) return NULL;
+   EINA_LIST_FOREACH(gc->shared->tex.atlas[th2], l, pt)
+     {
+        if (!pt->render) continue;
+        if ((*apt = _pool_tex_alloc(pt, w, h, u, v)) != NULL)
+          {
+             gc->shared->tex.atlas[th2] =
+               eina_list_promote_list(gc->shared->tex.atlas[th2], l);
+             return pt;
+          }
+     }
+   pool_h = atlas_w;
+   if ( h > pool_h || w > atlas_w )
+     {
+        atlas_w = gc->shared->info.tune.atlas.max_w;
+        pool_h = gc->shared->info.tune.atlas.max_h;
+     }
+   pt = _pool_tex_render_new(gc, atlas_w, pool_h, intformat, format, EINA_FALSE);
+   if (!pt) return NULL;
+   gc->shared->tex.atlas[th2] =
+     eina_list_prepend(gc->shared->tex.atlas[th2], pt);
+   pt->fslot = th2;
+
+   *apt = _pool_tex_alloc(pt, w, h, u, v);
+
    return pt;
 }
 
@@ -780,10 +849,10 @@ _pool_tex_dynamic_new(Evas_Engine_GL_Context *gc, int w, int h, int intformat, i
                                                            buffer_format);
         if (!pt->dyn.buffer) goto error;
 
-        pt->dyn.img = secsym_eglCreateImage(egldisplay,
-                                            EGL_NO_CONTEXT,
-                                            EGL_NATIVE_SURFACE_TIZEN,
-                                            pt->dyn.buffer, NULL);
+        pt->dyn.img = evas_gl_common_eglCreateImage(egldisplay,
+                                                    EGL_NO_CONTEXT,
+                                                    EGL_NATIVE_SURFACE_TIZEN,
+                                                    pt->dyn.buffer, NULL);
         if (!pt->dyn.img)
           {
              secsym_tbm_surface_destroy(pt->dyn.buffer);
@@ -798,7 +867,7 @@ _pool_tex_dynamic_new(Evas_Engine_GL_Context *gc, int w, int h, int intformat, i
      {
         int fmt; // EGL_MAP_GL_TEXTURE_RGBA_SEC or EGL_MAP_GL_TEXTURE_RGB_SEC or bust
         int pixtype; // EGL_MAP_GL_TEXTURE_UNSIGNED_BYTE_SEC or bust
-        int attr[] =
+        EGLAttrib attr[] =
           {
              EGL_MAP_GL_TEXTURE_WIDTH_SEC, 32,
              EGL_MAP_GL_TEXTURE_HEIGHT_SEC, 32,
@@ -825,10 +894,10 @@ _pool_tex_dynamic_new(Evas_Engine_GL_Context *gc, int w, int h, int intformat, i
 
         // FIXME: seems a bit slower than i'd like - maybe too many flushes?
         // FIXME: YCbCr no support as yet
-        pt->dyn.img = secsym_eglCreateImage(egldisplay,
-                                            EGL_NO_CONTEXT,
-                                            EGL_MAP_GL_TEXTURE_2D_SEC,
-                                            0, attr);
+        pt->dyn.img = evas_gl_common_eglCreateImage(egldisplay,
+                                                    EGL_NO_CONTEXT,
+                                                    EGL_MAP_GL_TEXTURE_2D_SEC,
+                                                    0, attr);
         if (!pt->dyn.img) goto error;
 
         if (secsym_eglGetImageAttribSEC(egldisplay,
@@ -949,6 +1018,11 @@ evas_gl_texture_pool_empty(Evas_GL_Texture_Pool *pt)
    glDeleteTextures(1, &(pt->texture));
    if (pt->gc->state.current.cur_tex == pt->texture)
      pt->gc->state.current.cur_tex = 0;
+   if (pt->stencil)
+     {
+        glDeleteRenderbuffers(1, &(pt->stencil));
+        pt->stencil = 0;
+     }
    if (pt->fb)
      {
         glsym_glDeleteFramebuffers(1, &(pt->fb));
@@ -969,7 +1043,7 @@ pt_unref(Evas_GL_Texture_Pool *pt)
    pt->references--;
    if (pt->references != 0) return;
 
-   if ((pt->gc) && !((pt->render) || (pt->native)))
+   if ((pt->gc) && !(pt->native))
      {
         if (pt->whole)
            pt->gc->shared->tex.whole =
@@ -1018,7 +1092,7 @@ evas_gl_common_texture_native_new(Evas_Engine_GL_Context *gc, unsigned int w, un
 }
 
 Evas_GL_Texture *
-evas_gl_common_texture_render_new(Evas_Engine_GL_Context *gc, unsigned int w, unsigned int h, int alpha)
+evas_gl_common_texture_render_new(Evas_Engine_GL_Context *gc, unsigned int w, unsigned int h, int alpha, int stencil)
 {
    Evas_GL_Texture *tex;
    int lformat;
@@ -1030,12 +1104,43 @@ evas_gl_common_texture_render_new(Evas_Engine_GL_Context *gc, unsigned int w, un
    if (!tex) return NULL;
    tex->pt = _pool_tex_render_new(gc, w, h,
                                   *matching_format[lformat].intformat,
-                                  *matching_format[lformat].format);
+                                  *matching_format[lformat].format, stencil);
    if (!tex->pt)
      {
         evas_gl_common_texture_light_free(tex);
         return NULL;
      }
+   tex->pt->references++;
+   return tex;
+}
+
+Evas_GL_Texture *
+evas_gl_common_texture_render_noscale_new(Evas_Engine_GL_Context *gc, unsigned int w, unsigned int h, int alpha)
+{
+   Evas_GL_Texture *tex;
+   int u = 0, v = 0;
+   int lformat;
+
+   lformat = _evas_gl_texture_search_format(alpha, gc->shared->info.bgra, EVAS_COLORSPACE_ARGB8888);
+   if (lformat < 0) return NULL;
+
+   tex = evas_gl_common_texture_alloc(gc, w, h, alpha);
+   if (!tex) return NULL;
+   tex->pt = _pool_tex_render_find(gc, w, h,
+                                   *matching_format[lformat].intformat,
+                                   *matching_format[lformat].format,
+                                   &u, &v, &tex->apt,
+                                   // XXX: should this be another atlas size?
+                                   gc->shared->info.tune.atlas.max_alloc_size * 8,
+                                   EINA_FALSE);
+   if (!tex->pt)
+     {
+        evas_gl_common_texture_light_free(tex);
+        return NULL;
+     }
+   tex->x = u;
+   tex->y = v;
+
    tex->pt->references++;
    return tex;
 }
@@ -1068,6 +1173,8 @@ evas_gl_common_texture_upload(Evas_GL_Texture *tex, RGBA_Image *im, unsigned int
 {
    GLuint fmt;
 
+   if ((((int)im->cache_entry.w) <= 0) ||
+       (((int)im->cache_entry.h) <= 0)) return;
    fmt = tex->pt->format;
    glBindTexture(GL_TEXTURE_2D, tex->pt->texture);
    if (tex->gc->shared->info.unpack_row_length)
@@ -1205,7 +1312,7 @@ evas_gl_common_texture_update(Evas_GL_Texture *tex, RGBA_Image *im)
         // FIXME: why a 'render' new here ??? Should already have been allocated, quite a weird path.
         tex->pt = _pool_tex_render_new(tex->gc, tex->w, tex->h,
                                        *matching_format[lformat].intformat,
-                                       *matching_format[lformat].format);
+                                       *matching_format[lformat].format, EINA_FALSE);
      }
    // If image was preloaded then we need a ptt
    if (!tex->pt) return;
@@ -1847,7 +1954,7 @@ evas_gl_common_texture_yuv_update(Evas_GL_Texture *tex, DATA8 **rows, unsigned i
    tex->ptv2 = ptv;
 
    // FIXME: works on lowest size 4 pixel high buffers. must also be multiple of 2
-   if (tex->gc->shared->info.unpack_row_length)
+   if ((tex->gc->shared->info.unpack_row_length) && (rows[0] && rows[h]))
      {
         glPixelStorei(GL_UNPACK_ROW_LENGTH, rows[1] - rows[0]);
         glPixelStorei(GL_UNPACK_ALIGNMENT, 1);
@@ -1866,7 +1973,7 @@ evas_gl_common_texture_yuv_update(Evas_GL_Texture *tex, DATA8 **rows, unsigned i
           return;
         _tex_sub_2d(tex->gc, 0, 0, w / 2, h / 2, tex->ptv->format, tex->ptv->dataformat, rows[h + (h / 2)]);
      }
-   else
+   else if (rows[0] && rows[h])
      {
         unsigned int y;
         
@@ -2096,7 +2203,7 @@ evas_gl_common_texture_nv12_update(Evas_GL_Texture *tex, DATA8 **rows, unsigned 
           return;
         _tex_sub_2d(tex->gc, 0, 0, w, h, tex->pt->format, tex->pt->dataformat, rows[0]);
         glBindTexture(GL_TEXTURE_2D, tex->ptuv->texture);
-        glPixelStorei(GL_UNPACK_ROW_LENGTH, rows[h + 1] - rows[h]);
+        glPixelStorei(GL_UNPACK_ROW_LENGTH, (rows[h + 1] - rows[h]) / 2);
         if (!_tex_2d(tex->gc, tex->ptuv->intformat, w / 2, h / 2, tex->ptuv->format, tex->ptuv->dataformat))
           return;
         _tex_sub_2d(tex->gc, 0, 0, w / 2, h / 2, tex->ptuv->format, tex->ptuv->dataformat, rows[h]);

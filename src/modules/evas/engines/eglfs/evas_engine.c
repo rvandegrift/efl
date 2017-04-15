@@ -690,207 +690,68 @@ eng_info_free(Evas *eo_e EINA_UNUSED, void *in)
      free(info);
 }
 
-static int
-eng_setup(Evas *evas, void *in)
+static void *
+eng_setup(void *in, unsigned int w, unsigned int h)
 {
-   Evas_Engine_Info_Eglfs *info;
-   Evas_Public_Data *epd;
-   Render_Engine *re;
-   Render_Engine_Swap_Mode swap_mode = MODE_FULL;
-   const char *s = NULL;
+   Evas_Engine_Info_Eglfs *info = in;
+   Render_Engine *re = NULL;
+   Outbuf *ob = NULL;
+   Render_Engine_Merge_Mode merge_mode = MERGE_BOUNDING;
+   Render_Engine_Swap_Mode swap_mode;
 
-   /* try to cast to our engine info structure */
-   if (!(info = (Evas_Engine_Info_Eglfs *)in)) return 0;
+   swap_mode = evas_render_engine_gl_swap_mode_get(info->info.swap_mode);
 
-   /* try to get the evas public data */
-   if (!(epd = eo_data_scope_get(evas, EVAS_CANVAS_CLASS))) return 0;
+   if (!initted)
+     {
+        glsym_evas_gl_preload_init();
+     }
 
-   s = getenv("EVAS_GL_SWAP_MODE");
+   if (!(re = calloc(1, sizeof(Render_Engine)))) return NULL;
+
+   /* try to create new outbuf */
+   ob = evas_outbuf_new(info, w, h, swap_mode);
+   if (!ob) goto on_error;
+
+   ob->evas = evas;
+
+   if (!evas_render_engine_gl_generic_init(&re->generic, ob,
+                                           evas_outbuf_buffer_state_get,
+                                           evas_outbuf_rot_get,
+                                           evas_outbuf_reconfigure,
+                                           evas_outbuf_update_region_first_rect,
+                                           NULL,
+                                           evas_outbuf_update_region_new,
+                                           evas_outbuf_update_region_push,
+                                           evas_outbuf_update_region_free,
+                                           NULL,
+                                           evas_outbuf_flush,
+                                           NULL,
+                                           evas_outbuf_free,
+                                           evas_outbuf_use,
+                                           evas_outbuf_gl_context_get,
+                                           evas_outbuf_egl_display_get,
+                                           evas_outbuf_gl_context_new,
+                                           evas_outbuf_gl_context_use,
+                                           &evgl_funcs, ob->w, ob->h))
+     goto on_error;
+
+   gl_wins++;
+
+   s = getenv("EVAS_GL_PARTIAL_MERGE");
    if (s)
      {
-        if ((!strcasecmp(s, "full")) || (!strcasecmp(s, "f")))
-          swap_mode = MODE_FULL;
-        else if ((!strcasecmp(s, "copy")) || (!strcasecmp(s, "c")))
-          swap_mode = MODE_COPY;
-        else if ((!strcasecmp(s, "double")) ||
-                 (!strcasecmp(s, "d")) || (!strcasecmp(s, "2")))
-          swap_mode = MODE_DOUBLE;
-        else if ((!strcasecmp(s, "triple")) ||
-                 (!strcasecmp(s, "t")) || (!strcasecmp(s, "3")))
-          swap_mode = MODE_TRIPLE;
-        else if ((!strcasecmp(s, "quadruple")) ||
-                 (!strcasecmp(s, "q")) || (!strcasecmp(s, "4")))
-          swap_mode = MODE_QUADRUPLE;
-     }
-   else
-     {
-// in most gl implementations - egl and glx here that we care about the TEND
-// to either swap or copy backbuffer and front buffer, but strictly that is
-// not true. technically backbuffer content is totally undefined after a swap
-// and thus you MUST re-render all of it, thus MODE_FULL
-        swap_mode = MODE_FULL;
-// BUT... reality is that lmost every implementation copies or swaps so
-// triple buffer mode can be used as it is a superset of double buffer and
-// copy (though using those explicitly is more efficient). so let's play with
-// triple buffer mdoe as a default and see.
-//        re->mode = MODE_TRIPLE;
-// XXX: note - the above seems to break on some older intel chipsets and
-// drivers. it seems we CANT depend on backbuffer staying around. bugger!
-        switch (info->info.swap_mode)
-          {
-           case EVAS_ENGINE_EGLFS_SWAP_MODE_FULL:
-             swap_mode = MODE_FULL;
-             break;
-           case EVAS_ENGINE_EGLFS_SWAP_MODE_COPY:
-             swap_mode = MODE_COPY;
-             break;
-           case EVAS_ENGINE_EGLFS_SWAP_MODE_DOUBLE:
-             swap_mode = MODE_DOUBLE;
-             break;
-           case EVAS_ENGINE_EGLFS_SWAP_MODE_TRIPLE:
-             swap_mode = MODE_TRIPLE;
-             break;
-           case EVAS_ENGINE_EGLFS_SWAP_MODE_QUADRUPLE:
-             swap_mode = MODE_QUADRUPLE;
-             break;
-           default:
-             swap_mode = MODE_AUTO;
-             break;
-          }
+        if ((!strcmp(s, "bounding")) || (!strcmp(s, "b")))
+          merge_mode = MERGE_BOUNDING;
+        else if ((!strcmp(s, "full")) || (!strcmp(s, "f")))
+          merge_mode = MERGE_FULL;
      }
 
-   if (!(re = epd->engine.data.output))
-     {
-        Outbuf *ob;
-        Render_Engine_Merge_Mode merge_mode = MERGE_BOUNDING;
-
-        if (!initted)
-          {
-             evas_common_init();
-             glsym_evas_gl_preload_init();
-          }
-
-        if (!(re = calloc(1, sizeof(Render_Engine)))) return 0;
-
-        /* try to create new outbuf */
-        ob = evas_outbuf_new(info, epd->output.w, epd->output.h, swap_mode);
-        if (!ob)
-          {
-             free(re);
-             return 0;
-          }
-
-        ob->evas = evas;
-
-        if (!evas_render_engine_gl_generic_init(&re->generic, ob,
-                                                evas_outbuf_buffer_state_get,
-                                                evas_outbuf_rot_get,
-                                                evas_outbuf_reconfigure,
-                                                evas_outbuf_update_region_first_rect,
-                                                evas_outbuf_update_region_new,
-                                                evas_outbuf_update_region_push,
-                                                evas_outbuf_update_region_free,
-                                                NULL,
-                                                evas_outbuf_flush,
-                                                evas_outbuf_free,
-                                                evas_outbuf_use,
-                                                evas_outbuf_gl_context_get,
-                                                evas_outbuf_egl_display_get,
-                                                evas_outbuf_gl_context_new,
-                                                evas_outbuf_gl_context_use,
-                                                &evgl_funcs, ob->w, ob->h))
-          {
-             /* free outbuf */
-
-             evas_outbuf_free(ob);
-             free(re);
-             return 0;
-          }
-
-        epd->engine.data.output = re;
-        gl_wins++;
-
-        s = getenv("EVAS_GL_PARTIAL_MERGE");
-        if (s)
-          {
-             if ((!strcmp(s, "bounding")) || (!strcmp(s, "b")))
-               merge_mode = MERGE_BOUNDING;
-             else if ((!strcmp(s, "full")) || (!strcmp(s, "f")))
-               merge_mode = MERGE_FULL;
-          }
-
-        evas_render_engine_software_generic_merge_mode_set(&re->generic.software, merge_mode);
-
-        if (!initted)
-          {
-             gl_extn_veto(re);
-             initted = EINA_TRUE;
-          }
-     }
-   else
-     {
-        if (eng_get_ob(re) && _re_wincheck(eng_get_ob(re)))
-          {
-             if ((info->info.depth != eng_get_ob(re)->depth) ||
-                 (info->info.destination_alpha != eng_get_ob(re)->destination_alpha))
-               {
-                  Outbuf *ob, *ob_old;
-
-                  ob_old = re->generic.software.ob;
-                  re->generic.software.ob = NULL;
-                  gl_wins--;
-
-                  ob = evas_outbuf_new(info, epd->output.w, epd->output.h, swap_mode);
-                  if (!ob)
-                    {
-                       if (ob_old) evas_outbuf_free(ob_old);
-                       free(re);
-                       return 0;
-                    }
-
-                  evas_outbuf_use(ob);
-                  if (ob_old) evas_outbuf_free(ob_old);
-
-                  ob->evas = evas;
-
-                  evas_render_engine_software_generic_update(&re->generic.software, ob,
-                                                             epd->output.w, epd->output.h);
-
-                  gl_wins++;
-               }
-             else if ((eng_get_ob(re)->w != epd->output.w) ||
-                      (eng_get_ob(re)->h != epd->output.h) ||
-                      (info->info.rotation != eng_get_ob(re)->rotation))
-               {
-                  evas_outbuf_reconfigure(eng_get_ob(re),
-                                          epd->output.w, epd->output.h,
-                                          info->info.rotation,
-                                          info->info.depth);
-               }
-          }
-     }
-
-   if (!eng_get_ob(re))
-     {
-        free(re);
-        return 0;
-     }
-
-   if (!epd->engine.data.output)
-     {
-        if (eng_get_ob(re))
-          {
-             evas_outbuf_free(eng_get_ob(re));
-             gl_wins--;
-          }
-        free(re);
-        return 0;
-     }
+   evas_render_engine_software_generic_merge_mode_set(&re->generic.software, merge_mode);
 
    if (re->generic.software.tb)
      evas_common_tilebuf_free(re->generic.software.tb);
    re->generic.software.tb =
-     evas_common_tilebuf_new(epd->output.w, epd->output.h);
+     evas_common_tilebuf_new(w, h);
    if (re->generic.software.tb)
      evas_common_tilebuf_set_tile_size(re->generic.software.tb,
                                        TILESIZE, TILESIZE);
@@ -898,11 +759,77 @@ eng_setup(Evas *evas, void *in)
    if (re->generic.software.tb)
      evas_render_engine_software_generic_tile_strict_set(&re->generic.software, EINA_TRUE);
 
-   if (!epd->engine.data.context)
+   evas_outbuf_use(eng_get_ob(re));
+
+   if (!initted)
      {
-        epd->engine.data.context =
-           epd->engine.func->context_new(epd->engine.data.output);
+        gl_extn_veto(re);
+        initted = EINA_TRUE;
      }
+
+   return re;
+
+ on_error:
+   /* free outbuf */
+   evas_outbuf_free(ob);
+   free(re);
+   return NULL;
+}
+
+static int
+eng_update(void *data, void *info, unsigned int w, unsigned int h)
+{
+   Render_Engine *re = data;
+
+   if (eng_get_ob(re) && _re_wincheck(eng_get_ob(re)))
+     {
+        if ((info->info.depth != eng_get_ob(re)->depth) ||
+            (info->info.destination_alpha != eng_get_ob(re)->destination_alpha))
+          {
+             Outbuf *ob, *ob_old;
+
+             ob_old = re->generic.software.ob;
+             re->generic.software.ob = NULL;
+             gl_wins--;
+
+             ob = evas_outbuf_new(info, w, h, swap_mode);
+             if (!ob)
+               {
+                  if (ob_old) evas_outbuf_free(ob_old);
+                  return 0;
+               }
+
+             evas_outbuf_use(ob);
+             if (ob_old) evas_outbuf_free(ob_old);
+
+             ob->evas = evas;
+
+             evas_render_engine_software_generic_update(&re->generic.software, ob,
+                                                        w, h);
+
+             gl_wins++;
+          }
+        else if ((eng_get_ob(re)->w != w) ||
+                 (eng_get_ob(re)->h != h) ||
+                 (info->info.rotation != eng_get_ob(re)->rotation))
+          {
+             evas_outbuf_reconfigure(eng_get_ob(re),
+                                     w, h,
+                                     info->info.rotation,
+                                     info->info.depth);
+          }
+     }
+
+   if (re->generic.software.tb)
+     evas_common_tilebuf_free(re->generic.software.tb);
+   re->generic.software.tb =
+     evas_common_tilebuf_new(w, h);
+   if (re->generic.software.tb)
+     evas_common_tilebuf_set_tile_size(re->generic.software.tb,
+                                       TILESIZE, TILESIZE);
+
+   if (re->generic.software.tb)
+     evas_render_engine_software_generic_tile_strict_set(&re->generic.software, EINA_TRUE);
 
    evas_outbuf_use(eng_get_ob(re));
 
@@ -932,13 +859,12 @@ eng_output_free(void *data)
    if ((initted == EINA_TRUE) && (gl_wins == 0))
      {
         glsym_evas_gl_preload_shutdown();
-        evas_common_shutdown();
         initted = EINA_FALSE;
      }
 }
 
 static Eina_Bool
-eng_canvas_alpha_get(void *data, void *info EINA_UNUSED)
+eng_canvas_alpha_get(void *data)
 {
    Render_Engine *re;
 
@@ -1098,6 +1024,12 @@ eng_image_native_set(void *data, void *image, void *native)
                        return NULL;
                     }
 
+#ifndef EGL_WAYLAND_PLANE_WL
+# define EGL_WAYLAND_PLANE_WL 0x31D6
+#endif
+#ifndef EGL_WAYLAND_BUFFER_WL
+# define EGL_WAYLAND_BUFFER_WL 0x31D5
+#endif
                   attribs[0] = EGL_WAYLAND_PLANE_WL;
                   attribs[1] = 0; //if plane is 1 then 0, if plane is 2 then 1
                   attribs[2] = EGL_NONE;
@@ -1213,6 +1145,7 @@ module_open(Evas_Module *em)
    EVAS_API_OVERRIDE(info, &func, eng_);
    EVAS_API_OVERRIDE(info_free, &func, eng_);
    EVAS_API_OVERRIDE(setup, &func, eng_);
+   EVAS_API_OVERRIDE(update, &func, eng_);
    EVAS_API_OVERRIDE(canvas_alpha_get, &func, eng_);
    EVAS_API_OVERRIDE(output_free, &func, eng_);
    EVAS_API_OVERRIDE(output_dump, &func, eng_);
@@ -1232,8 +1165,11 @@ static void
 module_close(Evas_Module *em EINA_UNUSED)
 {
    /* unregister the eina log domain for this engine */
-   eina_log_domain_unregister(_evas_engine_eglfs_log_dom);
-   _evas_engine_eglfs_log_dom = -1;
+   if (_evas_engine_eglfs_log_dom >= 0)
+     {
+        eina_log_domain_unregister(_evas_engine_eglfs_log_dom);
+        _evas_engine_eglfs_log_dom = -1;
+     }
 }
 
 static Evas_Module_Api evas_modapi =

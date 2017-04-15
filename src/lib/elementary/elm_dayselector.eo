@@ -14,11 +14,12 @@ enum Elm.Dayselector.Day
    thu,    [[Indicates Thursday.]]
    fri,    [[Indicates Friday.]]
    sat,    [[Indicates Saturday.]]
-   max     [[Sentinel value, don't use.]]
+   max     [[Sentinel value to indicate last enum field during iteration]]
 }
 
 class Elm.Dayselector (Elm.Layout)
 {
+   [[Elementary dayselector class]]
    legacy_prefix: elm_dayselector;
    eo_prefix: elm_obj_dayselector;
    event_prefix: elm_dayselector;
@@ -106,7 +107,7 @@ class Elm.Dayselector (Elm.Layout)
             */
 
          params {
-            @in weekdays: string * @nullable; [[Array of seven strings to be used as weekday names.
+            @in weekdays: ptr(string) @nullable; [[Array of seven strings to be used as weekday names.
             Warning: It must have 7 elements, or it will access invalid memory.
             Warning: The strings must be NULL terminated ('@\0').]]
          }
@@ -132,7 +133,7 @@ class Elm.Dayselector (Elm.Layout)
          ]]
          params {
             @in day: Elm.Dayselector.Day; [[Dayselector_Day that the user want to set state.]]
-            @in selected: bool; [[state of the day. $true is selected.]]
+            @in selected: bool; [[State of the day. $true is selected.]]
          }
       }
       day_selected_get @const {
@@ -141,7 +142,7 @@ class Elm.Dayselector (Elm.Layout)
            See also @Elm.Dayselector.Day,
            @.day_selected_set.
          ]]
-         return: bool;
+         return: bool; [[$true on success, $false on failure]]
          params {
             @in day: Elm.Dayselector.Day; [[Dayselector_Day that the user want to know state.]]
          }
@@ -149,7 +150,7 @@ class Elm.Dayselector (Elm.Layout)
    }
    implements {
       class.constructor;
-      Eo.Base.constructor;
+      Efl.Object.constructor;
       Efl.Canvas.Group.group_add;
       Efl.Canvas.Group.group_del;
       Elm.Widget.theme_apply;
@@ -159,7 +160,6 @@ class Elm.Dayselector (Elm.Layout)
       Efl.Part.part;
    }
    events {
-      dayselector,changed;
+      dayselector,changed; [[Called when dayselector widget changed]]
    }
-
 }

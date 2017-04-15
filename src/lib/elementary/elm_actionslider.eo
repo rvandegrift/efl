@@ -70,18 +70,16 @@ class Elm.Actionslider (Elm.Layout, Efl.Ui.Selectable)
    }
    implements {
       class.constructor;
-      Eo.Base.constructor;
+      Efl.Object.constructor;
       Efl.Canvas.Group.group_add;
       Elm.Widget.focus_next_manager_is;
       Elm.Widget.focus_direction_manager_is;
       Elm.Widget.theme_apply;
-      Elm.Layout.text.set;
-      Elm.Layout.text.get;
-      Elm.Layout.text_aliases.get;
+      Elm.Layout.text { get; set; }
+      Elm.Layout.text_aliases { get; }
       Elm.Layout.sizing_eval;
    }
    events {
       pos_changed; [[The position of the actionslider has changed]]
    }
-
 }

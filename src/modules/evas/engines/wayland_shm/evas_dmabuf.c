@@ -42,6 +42,8 @@ struct _Buffer_Manager
    void (*manager_destroy)(void);
    void *priv;
    void *dl_handle;
+   int refcount;
+   Eina_Bool destroyed;
 };
 
 Buffer_Manager *buffer_manager = NULL;
@@ -303,7 +305,11 @@ _buffer_manager_get(void)
    int fd;
    Eina_Bool success = EINA_FALSE;
 
-   if (buffer_manager) return buffer_manager;
+   if (buffer_manager)
+     {
+        buffer_manager->refcount++;
+        return buffer_manager;
+     }
 
    buffer_manager = calloc(1, sizeof(Buffer_Manager));
    if (!buffer_manager) goto err_alloc;
@@ -316,6 +322,7 @@ _buffer_manager_get(void)
    if (!success) goto err_bm;
 
    drm_fd = fd;
+   buffer_manager->refcount = 1;
    return buffer_manager;
 
 err_bm:
@@ -328,14 +335,65 @@ err_alloc:
 }
 
 static void
-_buffer_manager_destroy(void)
+_buffer_manager_ref(void)
 {
-   if (!buffer_manager) return;
+   buffer_manager->refcount++;
+}
+
+static void
+_buffer_manager_deref(void)
+{
+   buffer_manager->refcount--;
+   if (buffer_manager->refcount || !buffer_manager->destroyed) return;
 
    if (buffer_manager->manager_destroy) buffer_manager->manager_destroy();
    free(buffer_manager);
    buffer_manager = NULL;
    close(drm_fd);
+}
+
+static void
+_buffer_manager_destroy(void)
+{
+   if (buffer_manager->destroyed) return;
+   buffer_manager->destroyed = EINA_TRUE;
+   _buffer_manager_deref();
+}
+
+
+static Buffer_Handle *
+_buffer_manager_alloc(const char *name, int w, int h, unsigned long *stride, int32_t *fd)
+{
+   Buffer_Handle *out;
+
+   _buffer_manager_ref();
+   out = buffer_manager->alloc(buffer_manager, name, w, h, stride, fd);
+   if (!out) _buffer_manager_deref();
+   return out;
+}
+
+static void *
+_buffer_manager_map(Dmabuf_Buffer *buf)
+{
+   void *out;
+
+   _buffer_manager_ref();
+   out = buffer_manager->map(buf);
+   if (!out) _buffer_manager_deref();
+   return out;
+}
+
+static void
+_buffer_manager_unmap(Dmabuf_Buffer *buf)
+{
+   buffer_manager->unmap(buf);
+   _buffer_manager_deref();
+}
+static void
+_buffer_manager_discard(Dmabuf_Buffer *buf)
+{
+   buffer_manager->discard(buf);
+   _buffer_manager_deref();
 }
 
 static void
@@ -357,12 +415,15 @@ _fallback(Dmabuf_Surface *s, int w, int h)
 {
    Evas_Public_Data *epd;
    Dmabuf_Buffer *b;
-   Surface *surf = s->surface;
+   Surface *surf;
    Eina_Bool recovered;
    unsigned char *new_data, *old_data;
    int y;
 
    dmabuf_totally_hosed = EINA_TRUE;
+   surf = s->surface;
+   if (!surf) goto out;
+
    recovered = _evas_surface_init(surf, w, h, s->nbuf);
    if (!recovered)
      {
@@ -379,10 +440,13 @@ _fallback(Dmabuf_Surface *s, int w, int h)
    if (!b) b = s->current;
    if (!b) goto out;
 
-   if (!b->mapping) b->mapping = buffer_manager->map(b);
+   if (!b->mapping) b->mapping = _buffer_manager_map(b);
+
+   b->busy = EINA_FALSE;
+
    if (!b->mapping) goto out;
 
-   epd = eo_data_scope_get(surf->info->evas, EVAS_CANVAS_CLASS);
+   epd = efl_data_scope_get(surf->info->evas, EVAS_CANVAS_CLASS);
    while (epd && epd->rendering) evas_async_events_process_blocking();
 
    old_data = b->mapping;
@@ -390,8 +454,9 @@ _fallback(Dmabuf_Surface *s, int w, int h)
    new_data = surf->funcs.data_get(surf, NULL, NULL);
    for (y = 0; y < h; y++)
      memcpy(new_data + y * w * 4, old_data + y * b->stride, w * 4);
-   surf->funcs.post(surf, NULL, 0);
-   buffer_manager->unmap(b);
+   surf->funcs.post(surf, NULL, 0, EINA_FALSE);
+   _buffer_manager_unmap(b);
+   b->mapping = NULL;
 
 out:
    _internal_evas_dmabuf_surface_destroy(s);
@@ -468,7 +533,7 @@ static const struct zwp_linux_buffer_params_v1_listener params_listener =
 static void
 _evas_dmabuf_buffer_unlock(Dmabuf_Buffer *b)
 {
-   buffer_manager->unmap(b);
+   _buffer_manager_unmap(b);
    b->mapping = NULL;
    b->locked = EINA_FALSE;
 }
@@ -485,16 +550,15 @@ _evas_dmabuf_buffer_destroy(Dmabuf_Buffer *b)
         return;
      }
    if (b->fd != -1) close(b->fd);
-   /* The buffer manager may have been destroyed already if we're
-    * doing fallback */
-   if (buffer_manager) buffer_manager->discard(b);
+   if (b->mapping) _buffer_manager_unmap(b);
+   _buffer_manager_discard(b);
    if (b->wl_buffer) wl_buffer_destroy(b->wl_buffer);
    b->wl_buffer = NULL;
    free(b);
 }
 
 static void
-_evas_dmabuf_surface_reconfigure(Surface *s, int w, int h, uint32_t flags EINA_UNUSED)
+_evas_dmabuf_surface_reconfigure(Surface *s, int w, int h, uint32_t flags EINA_UNUSED, Eina_Bool force)
 {
    Dmabuf_Buffer *buf;
    Dmabuf_Surface *surface;
@@ -507,7 +571,7 @@ _evas_dmabuf_surface_reconfigure(Surface *s, int w, int h, uint32_t flags EINA_U
         int stride = b->stride;
 
         /* If stride is a little bigger than width we still fit */
-        if ((w >= b->w) && (w <= stride / 4) && (h == b->h))
+        if (!force && (w >= b->w) && (w <= stride / 4) && (h == b->h))
           {
              b->w = w;
              continue;
@@ -542,7 +606,7 @@ _evas_dmabuf_surface_data_get(Surface *s, int *w, int *h)
    if (h) *h = b->h;
    if (b->locked) return b->mapping;
 
-   ptr = buffer_manager->map(b);
+   ptr = _buffer_manager_map(b);
    if (!ptr)
      return NULL;
 
@@ -600,7 +664,7 @@ _evas_dmabuf_surface_assign(Surface *s)
 }
 
 static void
-_evas_dmabuf_surface_post(Surface *s, Eina_Rectangle *rects, unsigned int count)
+_evas_dmabuf_surface_post(Surface *s, Eina_Rectangle *rects, unsigned int count, Eina_Bool hidden)
 {
    Dmabuf_Surface *surface;
    Dmabuf_Buffer *b;
@@ -620,15 +684,23 @@ _evas_dmabuf_surface_post(Surface *s, Eina_Rectangle *rects, unsigned int count)
     * most recently filled unassigned buffer and make sure it gets
     * displayed.
     */
+   if (surface->pre) surface->pre->busy = EINA_FALSE;
    if (!b->wl_buffer)
      {
         surface->pre = b;
         return;
      }
    surface->pre = NULL;
-   wl_surface_attach(surface->wl_surface, b->wl_buffer, 0, 0);
-   _evas_surface_damage(surface->wl_surface, surface->compositor_version,
-                        b->w, b->h, rects, count);
+
+   if (!hidden)
+     {
+        wl_surface_attach(surface->wl_surface, b->wl_buffer, 0, 0);
+        _evas_surface_damage(surface->wl_surface, surface->compositor_version,
+                             b->w, b->h, rects, count);
+     }
+   else
+     wl_surface_attach(surface->wl_surface, NULL, 0, 0);
+
    wl_surface_commit(surface->wl_surface);
 }
 
@@ -637,23 +709,20 @@ _evas_dmabuf_buffer_init(Dmabuf_Surface *s, int w, int h)
 {
    Dmabuf_Buffer *out;
    struct zwp_linux_buffer_params_v1 *dp;
-   Buffer_Manager *bm = _buffer_manager_get();
-   uint32_t flags = ZWP_LINUX_BUFFER_PARAMS_V1_FLAGS_Y_INVERT;
-
-   if (!bm) return NULL;
+   uint32_t flags = 0;
 
    out = calloc(1, sizeof(Dmabuf_Buffer));
    if (!out) return NULL;
 
    out->fd = -1;
    out->surface = s;
-   out->bh = bm->alloc(bm, "name", w, h, &out->stride, &out->fd);
+   out->bh = _buffer_manager_alloc("name", w, h, &out->stride, &out->fd);
    if (!out->bh)
-   {
-      free(out);
-      _fallback(s, w, h);
-      return NULL;
-   }
+     {
+        free(out);
+        _fallback(s, w, h);
+        return NULL;
+     }
    out->w = w;
    out->h = h;
 
@@ -687,6 +756,21 @@ _evas_dmabuf_surface_destroy(Surface *s)
 }
 
 Eina_Bool
+_evas_dmabuf_surface_surface_set(Surface *s, struct wl_shm *wl_shm EINA_UNUSED, struct zwp_linux_dmabuf_v1 *wl_dmabuf, struct wl_surface *wl_surface)
+{
+   Dmabuf_Surface *surf;
+
+   surf = s->surf.dmabuf;
+
+   if ((surf->dmabuf == wl_dmabuf) && (surf->wl_surface == wl_surface))
+     return EINA_FALSE;
+
+   surf->dmabuf = wl_dmabuf;
+   surf->wl_surface = wl_surface;
+   return EINA_TRUE;
+}
+
+Eina_Bool
 _evas_dmabuf_surface_create(Surface *s, int w, int h, int num_buff)
 {
    Dmabuf_Surface *surf = NULL;
@@ -695,13 +779,12 @@ _evas_dmabuf_surface_create(Surface *s, int w, int h, int num_buff)
    if (dmabuf_totally_hosed) return EINA_FALSE;
 
    if (!s->info->info.wl_dmabuf) return EINA_FALSE;
-   if (!_buffer_manager_get()) return EINA_FALSE;
 
-   if (!(s->surf.dmabuf = calloc(1, sizeof(Dmabuf_Surface)))) goto err;
+   if (!(s->surf.dmabuf = calloc(1, sizeof(Dmabuf_Surface)))) return EINA_FALSE;
    surf = s->surf.dmabuf;
 
    surf->surface = s;
-   surf->wl_display = s->info->info.wl_disp;
+   surf->wl_display = s->info->info.wl_display;
    surf->dmabuf = s->info->info.wl_dmabuf;
    surf->wl_surface = s->info->info.wl_surface;
    surf->alpha = s->info->info.destination_alpha;
@@ -712,13 +795,16 @@ _evas_dmabuf_surface_create(Surface *s, int w, int h, int num_buff)
    surf->buffer = calloc(surf->nbuf, sizeof(Dmabuf_Buffer *));
    if (!surf->buffer) goto err;
 
+   if (!_buffer_manager_get()) goto err;
+
    for (i = 0; i < num_buff; i++)
      {
         surf->buffer[i] = _evas_dmabuf_buffer_init(surf, w, h);
         if (!surf->buffer[i])
           {
-             ERR("Could not create buffers");
-             goto err;
+             DBG("Could not create buffers");
+             /* _init() handled surface cleanup when it failed */
+             return EINA_FALSE;
           }
      }
 
@@ -728,10 +814,12 @@ _evas_dmabuf_surface_create(Surface *s, int w, int h, int num_buff)
    s->funcs.data_get = _evas_dmabuf_surface_data_get;
    s->funcs.assign = _evas_dmabuf_surface_assign;
    s->funcs.post = _evas_dmabuf_surface_post;
+   s->funcs.surface_set = _evas_dmabuf_surface_surface_set;
 
    return EINA_TRUE;
 
 err:
-   if (surf) _fallback(surf, w, h);
+   free(surf->buffer);
+   free(surf);
    return EINA_FALSE;
 }

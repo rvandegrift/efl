@@ -27,6 +27,16 @@
 
 # ifdef EFL_BETA_API_SUPPORT
 
+typedef enum _Ecore_Drm2_Rotation
+{
+   ECORE_DRM2_ROTATION_NORMAL = 1,
+   ECORE_DRM2_ROTATION_90 = 2,
+   ECORE_DRM2_ROTATION_180 = 4,
+   ECORE_DRM2_ROTATION_270 = 8,
+   ECORE_DRM2_ROTATION_REFLECT_X = 16,
+   ECORE_DRM2_ROTATION_REFLECT_Y = 32
+} Ecore_Drm2_Rotation;
+
 /* opaque structure to represent a drm device */
 typedef struct _Ecore_Drm2_Device Ecore_Drm2_Device;
 
@@ -58,8 +68,20 @@ typedef struct _Ecore_Drm2_Event_Activate
    Eina_Bool active : 1;
 } Ecore_Drm2_Event_Activate;
 
+/* structure to represent a drm event context */
+typedef struct _Ecore_Drm2_Context
+{
+   int version;
+   void (*vblank_handler)(int fd, unsigned int sequence, unsigned int tv_sec,
+                          unsigned int tv_usec, void *user_data);
+   void (*page_flip_handler)(int fd, unsigned int sequence, unsigned int tv_sec,
+                             unsigned int tv_usec, void *user_data);
+} Ecore_Drm2_Context;
+
 EAPI extern int ECORE_DRM2_EVENT_OUTPUT_CHANGED;
 EAPI extern int ECORE_DRM2_EVENT_ACTIVATE;
+
+typedef void (*Ecore_Drm2_Release_Handler)(void *data, Ecore_Drm2_Fb *b);
 
 /**
  * @file
@@ -103,6 +125,23 @@ EAPI int ecore_drm2_init(void);
  * @since 1.18
  */
 EAPI int ecore_drm2_shutdown(void);
+
+/**
+ * Read and process pending Drm events
+ *
+ * @param fd drm file descriptor
+ * @param ctx
+ *
+ * @return 0 on success, -1 otherwise
+ *
+ * @note: Do not ever use this function in applications !!!
+ * This is a special-purpose API function and should not be used by
+ * application developers.
+ *
+ * @ingroup Ecore_Drm_Init_Group
+ * @since 1.19
+ */
+EAPI int ecore_drm2_event_handle(int fd, Ecore_Drm2_Context *drmctx);
 
 /**
  * @defgroup Ecore_Drm2_Device_Group Drm device functions
@@ -316,6 +355,18 @@ EAPI void ecore_drm2_device_calibrate(Ecore_Drm2_Device *device, int w, int h);
 EAPI Eina_Bool ecore_drm2_device_vt_set(Ecore_Drm2_Device *device, int vt);
 
 /**
+ * Get if a given device prefers the use of shadow buffers
+ *
+ * @param device
+ *
+ * @return EINA_TRUE if preferred, EINA_FALSE otherwise
+ *
+ * @ingroup Ecore_Drm2_Device_Group
+ * @since 1.19
+ */
+EAPI Eina_Bool ecore_drm2_device_prefer_shadow(Ecore_Drm2_Device *device);
+
+/**
  * @defgroup Ecore_Drm2_Output_Group Drm output functions
  *
  * Functions that deal with setup of outputs
@@ -432,6 +483,18 @@ EAPI Ecore_Drm2_Output *ecore_drm2_output_find(Ecore_Drm2_Device *device, int x,
 EAPI void ecore_drm2_output_geometry_get(Ecore_Drm2_Output *output, int *x, int *y, int *w, int *h);
 
 /**
+ * Get the dpi of a given output
+ *
+ * @param output
+ * @param xdpi
+ * @param ydpi
+ *
+ * @ingroup Ecore_Drm2_Output_Group
+ * @since 1.19
+ */
+EAPI void ecore_drm2_output_dpi_get(Ecore_Drm2_Output *output, int *xdpi, int *ydpi);
+
+/**
  * Get the id of the crtc that an output is using
  *
  * @param output
@@ -444,39 +507,20 @@ EAPI void ecore_drm2_output_geometry_get(Ecore_Drm2_Output *output, int *x, int 
 EAPI unsigned int ecore_drm2_output_crtc_get(Ecore_Drm2_Output *output);
 
 /**
- * Return the next Ecore_Drm2_Fb to be used on a given output
+ * Return the most recently set Ecore_Drm2_Fb for a given output
+ *
+ * This may be the currently scanned out buffer, a buffer currently being
+ * flipped to scanout, or a buffer that has been submit but may not
+ * actually ever hit scanout at all.
  *
  * @param output
  *
- * @return The next Ecore_Drm2_Fb which is scheduled to to be flipped, or NULL otherwise
+ * @return The latest Ecore_Drm2_Fb submit for this output, or NULL otherwise
  *
  * @ingroup Ecore_Drm2_Output_Group
- * @since 1.18
+ * @since 1.19
  */
-EAPI Ecore_Drm2_Fb *ecore_drm2_output_next_fb_get(Ecore_Drm2_Output *output);
-
-/**
- * Return the current Ecore_Drm2_Fb used on a given output
- *
- * @param output
- *
- * @return The current Ecore_Drm2_Fb used on this output, or NULL otherwise
- *
- * @ingroup Ecore_Drm2_Output_Group
- * @since 1.18
- */
-EAPI Ecore_Drm2_Fb *ecore_drm2_output_current_fb_get(Ecore_Drm2_Output *output);
-
-/**
- * Set the next Ecore_Drm2_Fb to be used on a given output
- *
- * @param output
- * @param fb
- *
- * @ingroup Ecore_Drm2_Output_Group
- * @since 1.18
- */
-EAPI void ecore_drm2_output_next_fb_set(Ecore_Drm2_Output *output, Ecore_Drm2_Fb *fb);
+EAPI Ecore_Drm2_Fb *ecore_drm2_output_latest_fb_get(Ecore_Drm2_Output *output);
 
 /**
  * Get the size of the crtc for a given output
@@ -683,6 +727,53 @@ EAPI void ecore_drm2_output_resolution_get(Ecore_Drm2_Output *output, int *w, in
 EAPI Eina_Bool ecore_drm2_output_possible_crtc_get(Ecore_Drm2_Output *output, unsigned int crtc);
 
 /**
+ * Set the gamma level of an Ecore_Drm_Output
+ *
+ * This function will set the gamma of an Ecore_Drm2_Output
+ *
+ * @param output The Ecore_Drm2_Output to set the gamma level on
+ * @param size The gamma table size to set
+ * @param red The amount to scale the red channel
+ * @param green The amount to scale the green channel
+ * @param blue The amount to scale the blue channel
+ *
+ * @ingroup Ecore_Drm2_Output_Group
+ * @since 1.19
+ */
+EAPI void ecore_drm2_output_gamma_set(Ecore_Drm2_Output *output, uint16_t size, uint16_t *red, uint16_t *green, uint16_t *blue);
+
+/**
+ * Get the supported rotations of a given output
+ *
+ * @param output
+ *
+ * @return An integer representing possible rotations, or -1 on failure
+ *
+ * @note This function will only return valid values if Atomic support
+ *       is enabled as it requires hardware plane support.
+ *
+ * @ingroup Ecore_Drm2_Output_Group
+ * @since 1.19
+ */
+EAPI int ecore_drm2_output_supported_rotations_get(Ecore_Drm2_Output *output);
+
+/**
+ * Set a rotation on a given output
+ *
+ * @param output
+ * @param rotation
+ *
+ * @return EINA_TRUE on success, EINA_FALSE otherwise
+ *
+ * @note This function will only work if Atomic support
+ *       is enabled as it requires hardware plane support.
+ *
+ * @ingroup Ecore_Drm2_Output_Group
+ * @since 1.19
+ */
+EAPI Eina_Bool ecore_drm2_output_rotation_set(Ecore_Drm2_Output *output, int rotation);
+
+/**
  * @defgroup Ecore_Drm2_Fb_Group Drm framebuffer functions
  *
  * Functions that deal with setup of framebuffers
@@ -705,7 +796,7 @@ EAPI Eina_Bool ecore_drm2_output_possible_crtc_get(Ecore_Drm2_Output *output, un
  */
 EAPI Ecore_Drm2_Fb *ecore_drm2_fb_create(int fd, int width, int height, int depth, int bpp, unsigned int format);
 
-EAPI Ecore_Drm2_Fb *ecore_drm2_fb_gbm_create(int fd, int width, int height, int depth, int bpp, unsigned int format, unsigned int handle, unsigned int stride);
+EAPI Ecore_Drm2_Fb *ecore_drm2_fb_gbm_create(int fd, int width, int height, int depth, int bpp, unsigned int format, unsigned int handle, unsigned int stride, void *bo);
 
 /**
  * Destroy a framebuffer object
@@ -768,16 +859,110 @@ EAPI void ecore_drm2_fb_dirty(Ecore_Drm2_Fb *fb, Eina_Rectangle *rects, unsigned
 /**
  * Schedule a pageflip to the given Ecore_Drm2_Fb
  *
+ * The caller is responsible for running a page flip handler
+ * and calling ecore_drm2_fb_flip_complete() when it completes.
+ *
  * @param fb
  * @param output
- * @param data
  *
  * @return The result of drmModePageFlip function call
  *
  * @ingroup Ecore_Drm2_Fb_Group
  * @since 1.18
  */
-EAPI int ecore_drm2_fb_flip(Ecore_Drm2_Fb *fb, Ecore_Drm2_Output *output, void *data);
+EAPI int ecore_drm2_fb_flip(Ecore_Drm2_Fb *fb, Ecore_Drm2_Output *output);
+
+/**
+ * Must be called by a page flip handler when the flip completes.
+ *
+ * @param output
+ *
+ * @return Whether there's an undisplayed buffer still in the queue.
+ *
+ * @ingroup Ecore_Drm2_Fb_Group
+ * @since 1.18
+ */
+EAPI Eina_Bool ecore_drm2_fb_flip_complete(Ecore_Drm2_Output *output);
+
+/**
+ * Return the Ecore_Drm2_Fb's busy status
+ *
+ * @param fb
+ *
+ * @return The busy status
+ *
+ * @ingroup Ecore_Drm2_Fb_Group
+ * @since 1.19
+ */
+EAPI Eina_Bool ecore_drm2_fb_busy_get(Ecore_Drm2_Fb *fb);
+
+/**
+ * Change the Ecore_Drm2_Fb's busy status
+ *
+ * @param fb
+ * @param busy The new busy status
+ *
+ * @ingroup Ecore_Drm2_Fb_Group
+ * @since 1.19
+ */
+EAPI void ecore_drm2_fb_busy_set(Ecore_Drm2_Fb *fb, Eina_Bool busy);
+
+/**
+ * Try to force a framebuffer release for an output
+ *
+ * This tries to release the next or optionally pending, or current
+ * buffer from the output.  If successful there will be a release callback
+ * to the registered handler, and the fb will no longer be flagged busy.
+ *
+ * Releasing buffers committed to scanout will potentially cause flicker,
+ * so this is only done when the panic flag is set.
+ *
+ * @param output The output to force release
+ * @param panic Try to release even buffers committed to scanout
+ *
+ * @return EINA_TRUE if a buffer was released
+ *
+ * @ingroup Ecore_Drm2_Fb_Group
+ * @since 1.19
+ */
+EAPI Eina_Bool ecore_drm2_fb_release(Ecore_Drm2_Output *o, Eina_Bool panic);
+
+/**
+ * Set the user data for the output's page flip handler
+ *
+ * @param output The output to update user data for
+ * @param data The new user data pointer
+ *
+ * @ingroup Ecore_Drm2_Output_Group
+ * @since 1.19
+ */
+EAPI void ecore_drm2_output_user_data_set(Ecore_Drm2_Output *o, void *data);
+
+/**
+ * Register a callback for the buffer release handler
+ *
+ * When a flip completes ecore_drm2 may release a buffer.  Use this callback
+ * if you need to do bookkeeping or locking on buffer release.
+ *
+ * @param output The output to register the callback on
+ * @param handler The function to handle the callback
+ * @param data The user data to pass to the callback
+ * @ingroup Ecore_Drm2_Output_Group
+ * @since 1.19
+ */
+EAPI void ecore_drm2_output_release_handler_set(Ecore_Drm2_Output *output, Ecore_Drm2_Release_Handler handler, void *data);
+
+/**
+ * Get the Framebuffer's gbm buffer object
+ *
+ * @param fb The framebuffer to query
+ *
+ * @return The gbm bo for the framebuffer
+ *
+ * @ingroup Ecore_Drm2_Output_Group
+ * @since 1.19
+ */
+EAPI void *ecore_drm2_fb_bo_get(Ecore_Drm2_Fb *fb);
 
 # endif
 

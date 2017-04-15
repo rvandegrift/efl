@@ -17,8 +17,10 @@ struct Elm.Layout_Part_Alias_Description
    real_part: string; [[Target part name for the alias set on Elm.Layout_Part_Proxies_Description::real_part. An example of usage would be "default" on that field, with "elm.content.swallow" on this one]]
 }
 
-class Elm.Layout (Elm.Widget, Efl.Part, Efl.Container, Efl.File)
+class Elm.Layout (Elm.Widget, Efl.Part, Efl.Container, Efl.File,
+                         Efl.Ui.View, Efl.Ui.Model.Connect, Efl.Ui.Model.Factory.Connect)
 {
+   [[Elementary layout class]]
    legacy_prefix: elm_layout;
    eo_prefix: elm_obj_layout;
    event_prefix: elm_layout;
@@ -55,7 +57,7 @@ class Elm.Layout (Elm.Widget, Efl.Part, Efl.Container, Efl.File)
               Note that $style will be the new style of $obj too, as in an
               \@ref elm_object_style_set call.
             ]]
-            return: bool;
+            return: bool; [[$true on success, $false otherwise]]
          }
          values {
             klass: string; [[The class of the group.]]
@@ -64,19 +66,21 @@ class Elm.Layout (Elm.Widget, Efl.Part, Efl.Container, Efl.File)
          }
       }
       @property text_aliases @protected {
+      	 [[Text aliases property]]
          get {
             legacy: null;
          }
          values {
-            aliases: const(Elm.Layout_Part_Alias_Description)*;
+            aliases: ptr(const(Elm.Layout_Part_Alias_Description)); [[Text aliases]]
          }
       }
       @property content_aliases @protected {
+      	 [[Content aliases property]]
          get {
             legacy: null;
          }
          values {
-            aliases: const(Elm.Layout_Part_Alias_Description)*;
+            aliases: ptr(const(Elm.Layout_Part_Alias_Description)); [[Content aliases]]
          }
       }
       @property edje {
@@ -134,8 +138,9 @@ class Elm.Layout (Elm.Widget, Efl.Part, Efl.Container, Efl.File)
          return: int; [[The frozen state or 0 on error.]]
       }
       theme_enable {
+      	 [[Enable theme]]
          legacy: null;
-         return: bool;
+         return: bool; [[$true on success, $false otherwise]]
       }
       sizing_eval {
          [[Eval sizing.
@@ -174,7 +179,7 @@ class Elm.Layout (Elm.Widget, Efl.Part, Efl.Container, Efl.File)
       }
       part_cursor_style_set {
          [[Sets a specific cursor style for an edje part.]]
-         return: bool; [[True on success or false on failure, that may be
+         return: bool; [[$true on success or $false on failure, that may be
                          part not exists or it did not had a cursor set.]]
          params {
             @in part_name: string; [[A part from loaded edje group.]]
@@ -194,7 +199,7 @@ class Elm.Layout (Elm.Widget, Efl.Part, Efl.Container, Efl.File)
       @property text {
          set {
             [[Set the text of the given part.]]
-            return: bool;
+            return: bool; [[$true on success, $false otherwise]]
          }
          get {
             [[Get the text set in the given part.]]
@@ -234,14 +239,15 @@ class Elm.Layout (Elm.Widget, Efl.Part, Efl.Container, Efl.File)
       }
       part_cursor_get @const {
          [[Get the cursor to be shown when mouse is over an edje part.]]
-         return: string;
+         return: string; [[Cursor name]]
          params {
             @in part_name: string; [[A part from loaded edje group.]]
          }
       }
       sub_object_add_enable {
+      	 [[Enable sub object add]]
          legacy: null;
-         return: bool;
+         return: bool; [[$true on success, $false otherwise]]
       }
       data_get @const {
          [[Get the edje data from the given layout.
@@ -317,7 +323,7 @@ class Elm.Layout (Elm.Widget, Efl.Part, Efl.Container, Efl.File)
       }
       part_cursor_unset {
          [[Unsets a cursor previously set with @.part_cursor_set.]]
-         return: bool;
+         return: bool; [[$true on success, $false otherwise]]
          params {
             @in part_name: string; [[A part from loaded edje group,
                                            that had a cursor set wit
@@ -327,10 +333,10 @@ class Elm.Layout (Elm.Widget, Efl.Part, Efl.Container, Efl.File)
    }
    implements {
       class.constructor;
-      Eo.Base.constructor;
-      Eo.Base.dbg_info_get;
-      Efl.File.file.set;
-      Efl.File.file.get;
+      Efl.Object.constructor;
+      Efl.Object.dbg_info_get;
+      Efl.File.file { get; set; }
+      Efl.File.mmap { get; set; }
       Efl.Canvas.Group.group_del;
       Efl.Canvas.Group.group_add;
       Efl.Canvas.Group.group_calculate;
@@ -343,17 +349,18 @@ class Elm.Layout (Elm.Widget, Efl.Part, Efl.Container, Efl.File)
       Elm.Widget.disable;
       Elm.Widget.sub_object_del;
       Elm.Widget.on_focus;
-      Efl.Container.content_part_name.get;
+      Efl.Container.content_part_name { get; }
       Efl.Container.content_count;
       Efl.Container.content_remove;
       Efl.Container.content_iterate;
-      Efl.Container.content.set;
-      Efl.Container.content.get;
+      Efl.Container.content { get; set; }
       Efl.Container.content_unset;
       Efl.Part.part;
+      Efl.Ui.View.model { get; set; }
+      Efl.Ui.Model.Connect.connect;
+      Efl.Ui.Model.Factory.Connect.connect;
    }
    events {
-      theme,changed;
+      theme,changed; [[Called when theme changed]]
    }
-
 }

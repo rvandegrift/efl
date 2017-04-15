@@ -1,7 +1,8 @@
-struct Efl.Canvas.Text.Style;
+struct Efl.Canvas.Text.Style; [[EFL text style data structure]]
 
-class Efl.Canvas.Text (Efl.Canvas.Object, Efl.Text)
+class Efl.Canvas.Text (Efl.Canvas.Object, Efl.Text, Efl.Canvas.Filter.Internal)
 {
+   [[Efl canvas text class]]
    legacy_prefix: evas_object_textblock;
    methods {
       @property bidi_delimiters {
@@ -10,23 +11,23 @@ class Efl.Canvas.Text (Efl.Canvas.Object, Efl.Text)
            e-mail clients where bidi oddities can occur when mixing RTL
            and LTR.
 
-           @since 1.1
+           @since 1.18
          ]]
          set {}
          get {}
          values {
-            delim: string; [[A null terminated string of delimiters, e.g ",|" or $null if empty.]]
+            delim: string; [[A null terminated string of delimiters, e.g ",|" or $null if empty]]
          }
       }
       @property legacy_newline {
-         [[When true, newline character will behave as a paragraph separator.
+         [[When $true, newline character will behave as a paragraph separator.
 
-           @since 1.1
+           @since 1.18
          ]]
          set {}
          get {}
          values {
-            mode: bool; [[$true for legacy mode, $false otherwise.]]
+            mode: bool; [[$true for legacy mode, $false otherwise]]
          }
       }
       @property style {
@@ -39,6 +40,8 @@ class Efl.Canvas.Text (Efl.Canvas.Object, Efl.Text)
            first.
 
            Set $style to $NULL to delete it.
+
+           @since 1.18
          ]]
          set {
             legacy: null;
@@ -50,7 +53,7 @@ class Efl.Canvas.Text (Efl.Canvas.Object, Efl.Text)
             key: string; [[The name to the style. $NULL is the default style]]
          }
          values {
-            style: string; [[The style.]]
+            style: string; [[The style]]
          }
       }
       @property size_formatted {
@@ -70,6 +73,8 @@ class Efl.Canvas.Text (Efl.Canvas.Object, Efl.Text)
            "You shall not pass!" with no margins or padding and assuming
            a monospace font and a size of 7x10 char widths (for simplicity)
            has a native size of 19x1 and a formatted size of 5x4.
+
+           @since 1.18
          ]]
          get {}
          values {
@@ -78,9 +83,12 @@ class Efl.Canvas.Text (Efl.Canvas.Object, Efl.Text)
          }
       }
       @property cursor {
-         [[The object's main cursor.]]
+         [[The object's main cursor.
+
+           @since 1.18
+         ]]
          get {
-            return: Efl.Canvas.Text.Cursor;
+            return: Efl.Canvas.Text.Cursor; [[Text cursor object]]
          }
       }
       @property size_native {
@@ -100,6 +108,8 @@ class Efl.Canvas.Text (Efl.Canvas.Object, Efl.Text)
            "You shall not pass!" with no margins or padding and assuming
            a monospace font and a size of 7x10 char widths (for simplicity)
            has a native size of 19x1 and a formatted size of 5x4.
+
+           @since 1.18
          ]]
          get {}
          values {
@@ -108,21 +118,30 @@ class Efl.Canvas.Text (Efl.Canvas.Object, Efl.Text)
          }
       }
       @property style_insets {
+         [[Gets the left, right, top and bottom insets of the text.
+
+           The inset is any applied padding on the text.
+
+           @since 1.18
+         ]]
          get {}
          values {
-            l: Evas.Coord;
-            r: Evas.Coord;
-            t: Evas.Coord;
-            b: Evas.Coord;
+            l: Evas.Coord; [[Left padding]]
+            r: Evas.Coord; [[Right padding]]
+            t: Evas.Coord; [[Top padding]]
+            b: Evas.Coord; [[Bottom padding]]
          }
       }
       @property is_empty {
-         [[Whether the object is empty (no text) or not]]
+         [[Whether the object is empty (no text) or not
+
+           @since 1.18
+         ]]
          get {
             legacy: null;
          }
          values {
-            is_empty: bool; [[$true if empty]]
+            is_empty: bool; [[$true if empty, $false otherwise]]
          }
       }
       obstacle_add {
@@ -132,20 +151,20 @@ class Efl.Canvas.Text (Efl.Canvas.Object, Efl.Text)
            The textblock does the layout of the text according to the
            position of the obstacle.
 
-           @since 1.15
+           @since 1.18
          ]]
          params {
-            @in eo_obs: Efl.Canvas.Object;
+            @in eo_obs: Efl.Canvas.Object; [[Obstacle object]]
          }
          return: bool; [[$true on success, $false otherwise.]]
       }
       obstacle_del {
          [[Removes $eo_obs from observation during text layout.
 
-           @since 1.15
+           @since 1.18
          ]]
          params {
-            @in eo_obs: Efl.Canvas.Object;
+            @in eo_obs: Efl.Canvas.Object; [[Obstacle object]]
          }
          return: bool; [[$true on success, $false otherwise.]]
       }
@@ -162,7 +181,7 @@ class Efl.Canvas.Text (Efl.Canvas.Object, Efl.Text)
            call this so it will consider this new state and will relayout
            the text.
 
-           @since 1.15
+           @since 1.18
          ]]
       }
       @property annotation {
@@ -183,10 +202,10 @@ class Efl.Canvas.Text (Efl.Canvas.Object, Efl.Text)
             legacy: null;
          }
          keys {
-            annotation: Efl.Canvas.Text.Annotation *;
+            annotation: ptr(Efl.Canvas.Text.Annotation); [[Given annotation]]
          }
          values {
-            format: string;
+            format: string; [[The new format for the given annotation]]
          }
       }
       range_annotations_get {
@@ -196,62 +215,87 @@ class Efl.Canvas.Text (Efl.Canvas.Object, Efl.Text)
          ]]
          legacy: null;
          params {
-              @in start: const(Efl.Canvas.Text.Cursor);
-              @in end:   const(Efl.Canvas.Text.Cursor);
+              @in start: const(Efl.Canvas.Text.Cursor); [[Start of range]]
+              @in end:   const(Efl.Canvas.Text.Cursor); [[End of range]]
          }
-         return: free(own(iterator<Efl.Canvas.Text.Annotation *>),
+         return: free(own(iterator<ptr(Efl.Canvas.Text.Annotation)>),
                  eina_iterator_free); [[Handle of the Annotation]]
-      }
-      annotation_del {
-         [[Deletes $annotation.
-
-           All formats applied by $annotations will be removed and it will be
-           deleted.
-         ]]
-         legacy: null;
-         params {
-            @in annotation: Efl.Canvas.Text.Annotation *;
-         }
-         return: bool; [[$true on success, $false otherwise.]]
       }
       annotation_insert {
          [[Inserts an annotation format in a specified range [$start, $end - 1].
 
-           This will add both opening and closing formats for the given
-           $format.
-           Returns a handle to manipulate the inserted annotation.
+           The $format will be applied to the given range, and the $annotation
+           handle will be returned for further handling.
 
            @since 1.18
          ]]
          legacy: null;
          params {
-              @in start: Efl.Canvas.Text.Cursor;
-              @in end:   Efl.Canvas.Text.Cursor;
-              @in format: string;
+              @in start: Efl.Canvas.Text.Cursor; [[Start of range]]
+              @in end:   Efl.Canvas.Text.Cursor; [[End of range]]
+              @in format: string; [[Annotation format]]
          }
-         return: Efl.Canvas.Text.Annotation *;
+         return: ptr(Efl.Canvas.Text.Annotation); [[Handle of inserted annotation]]
       }
-      range_geometry_get {
-         [[Get the geometry of a range.  The geometry is the geometry in
-           which rectangles in middle lines of range are merged into one big
-           rectangle.
+      annotation_del {
+         [[Deletes given annotation.
 
-           @since 1.13
+           All formats applied by $annotation will be removed and it will be
+           deleted.
+
+           @since 1.18
          ]]
          legacy: null;
          params {
-             @in cur1: const(Efl.Canvas.Text.Cursor);
-             @in cur2: const(Efl.Canvas.Text.Cursor);
+            @in annotation: ptr(Efl.Canvas.Text.Annotation); [[Annotation to be
+                removed]]
          }
-         return: free(own(iterator<Eina.Rectangle>),
-                         eina_iterator_free);
+         return: bool; [[$true on success, $false otherwise.]]
       }
-      range_delete {
-         [[Deletes the range between given cursors.]]
+      range_geometry_get {
+         [[Get the geometry of a range in the text.
+
+           The geometry is represented as rectangles for each of the line
+           segments in the given range [$cur1, $cur2].
+
+           @since 1.19
+         ]]
          legacy: null;
          params {
-            @in cur1: Efl.Canvas.Text.Cursor; [[Range start position.]]
-            @in cur2: Efl.Canvas.Text.Cursor; [[Range end position.]]
+             @in cur1: const(Efl.Canvas.Text.Cursor); [[Start of range]]
+             @in cur2: const(Efl.Canvas.Text.Cursor); [[End of range]]
+         }
+         return: free(own(iterator<Eina.Rectangle>),
+                         eina_iterator_free); [[Iterator on all geoemtries of
+                     the given range]]
+      }
+      range_simple_geometry_get {
+         [[Get the "simple" geometry of a range.
+
+           The geometry is the geometry in which rectangles in middle lines of
+           range are merged into one big rectangle. This is an optimized
+           version of @.range_geometry_get.
+
+           @since 1.19
+         ]]
+         legacy: null;
+         params {
+             @in cur1: const(Efl.Canvas.Text.Cursor); [[Start of range]]
+             @in cur2: const(Efl.Canvas.Text.Cursor); [[End of range]]
+         }
+         return: free(own(iterator<Eina.Rectangle>),
+                         eina_iterator_free); [[Iterator on all simple
+                     geometries of the given range]]
+      }
+      range_delete {
+         [[Deletes the range between given cursors.
+
+           This removes all the text in given range [$start,$end].
+         ]]
+         legacy: null;
+         params {
+            @in cur1: Efl.Canvas.Text.Cursor; [[Range start position]]
+            @in cur2: Efl.Canvas.Text.Cursor; [[Range end position]]
          }
       }
       visible_range_get {
@@ -263,47 +307,75 @@ class Efl.Canvas.Text (Efl.Canvas.Object, Efl.Text)
 
            @since 1.18
          ]]
-         return: bool; [[$true on success, $false otherwise.]]
+         return: bool; [[$true on success, $false otherwise]]
          params {
-            @in start: Efl.Canvas.Text.Cursor; [[Range start position.]]
-            @in end: Efl.Canvas.Text.Cursor; [[Range end position.]]
+            @in start: Efl.Canvas.Text.Cursor; [[Range start position]]
+            @in end: Efl.Canvas.Text.Cursor; [[Range end position]]
          }
       }
       range_text_get {
-         [[Returns the text in the range between $cur1 and $cur2.]]
+         [[Returns the text in the range between $cur1 and $cur2.
+
+           @since 1.18
+         ]]
          legacy: null;
-         return: own(char*); [[The text in the given range.]]
+         return: own(ptr(char)); [[The text in the given range]]
          params {
-            @in cur1: const(Efl.Canvas.Text.Cursor); [[Range start position.]]
-            @in cur2: const(Efl.Canvas.Text.Cursor); [[Range end position.]]
+            @in cur1: const(Efl.Canvas.Text.Cursor); [[Start of range]]
+            @in cur2: const(Efl.Canvas.Text.Cursor); [[End of range]]
          }
       }
       object_item_geometry_get {
-         [[Queries a given object item for its geometry
+         [[Queries a given object item for its geometry.
 
            Note that the provided annotation should be an object item type.
+
+           @since 1.18
          ]]
          legacy: null;
          params {
-            @in an: const(Efl.Canvas.Text.Annotation)*; [[Given annotation to query]]
-            @out x: Evas.Coord;
-            @out y: Evas.Coord;
-            @out w: Evas.Coord;
-            @out h: Evas.Coord;
+            @in an: ptr(const(Efl.Canvas.Text.Annotation)); [[Given annotation to query]]
+            @out x: Evas.Coord; [[X coordinate of the annotation]]
+            @out y: Evas.Coord; [[Y coordinate of the annotation]]
+            @out w: Evas.Coord; [[Width of the annotation]]
+            @out h: Evas.Coord; [[Height of the annotation]]
          }
          return: bool; [[$true if given annotation is an object item, $false otherwise]]
       }
+      annotation_positions_get {
+         [[Sets given cursors to the start and end positions of the annotation.
+
+           The cursors $start and $end will be set to the start and end
+           positions of the given annotation $annotation.
+
+           @since 1.18
+         ]]
+         legacy: null;
+         params {
+             @in annotation: ptr(const(Efl.Canvas.Text.Annotation)); [[Annotation
+                 handle to query]]
+             @in start: Efl.Canvas.Text.Cursor; [[Cursor to be set to the start
+             position of the annotation in the text]]
+             @in end: Efl.Canvas.Text.Cursor; [[Cursor to be set to the end
+             position of the annotation in the text]]
+         }
+      }
    }
    implements {
-      Eo.Base.constructor;
-      Eo.Base.destructor;
-      Eo.Base.dbg_info_get;
-      Efl.Canvas.Object.paragraph_direction.set;
-      Efl.Canvas.Object.paragraph_direction.get;
-      Efl.Text.text.set;
-      Efl.Text.text.get;
+      Efl.Object.constructor;
+      Efl.Object.destructor;
+      Efl.Object.dbg_info_get;
+      Efl.Canvas.Object.paragraph_direction { get; set; }
+      Efl.Text.text { get; set; }
+      Efl.Gfx.Filter.filter_program { get; set; }
+      Efl.Gfx.Filter.filter_data { get; set; }
+      Efl.Gfx.Filter.filter_source { get; set; }
+      Efl.Canvas.Filter.Internal.filter_dirty;
+      Efl.Canvas.Filter.Internal.filter_input_render;
+      Efl.Canvas.Filter.Internal.filter_state_prepare;
    }
    events {
-      changed; [[The content (text or annotations) have changed.]]
+      changed; [[Called when the content (text or annotations) changed.]]
+      style_insets,changed; [[Called when the property @.style_insets changed.]]
    }
 }

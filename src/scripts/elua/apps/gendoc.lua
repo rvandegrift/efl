@@ -1,84 +1,52 @@
-local eolian = require("eolian")
 local getopt = require("getopt")
 
 local serializer = require("serializer")
 
-local eomap = require("docgen.mappings")
 local stats = require("docgen.stats")
 local dutil = require("docgen.util")
 local writer = require("docgen.writer")
 local keyref = require("docgen.keyref")
-local ser = require("docgen.serializers")
 local dtree = require("docgen.doctree")
 
--- eolian to various doc elements conversions
-
-local get_fallback_fdoc = function(f, ftype)
-    if not ftype then
-        local ft = f:type_get()
-        local ftt = eolian.function_type
-        if ft == ftt.PROP_GET or ft == ftt.PROP_SET then
-            ftype = ft
-        end
-    end
-    if ftype then
-        return dtree.Doc(f:documentation_get(ftype))
-    end
-    return nil
-end
-
-local get_brief_fdoc = function(f, ftype)
-    return dtree.Doc(f:documentation_get(eolian.function_type.METHOD))
-        :brief_get(get_fallback_fdoc(f, ftype))
-end
-
-local get_full_fdoc = function(f, ftype)
-    return dtree.Doc(f:documentation_get(eolian.function_type.METHOD))
-        :full_get(get_fallback_fdoc(f, ftype))
-end
+local printgen = function() end
 
 local propt_to_type = {
-    [eolian.function_type.PROPERTY] = "(get, set)",
-    [eolian.function_type.PROP_GET] = "(get)",
-    [eolian.function_type.PROP_SET] = "(set)",
+    [dtree.Function.PROPERTY] = "(get, set)",
+    [dtree.Function.PROP_GET] = "(get)",
+    [dtree.Function.PROP_SET] = "(set)",
 }
-
-local gen_func_sig = function(f, ftype)
-    ftype = ftype or eolian.function_type.METHOD
-end
 
 local gen_cparam = function(par, out)
     local part = par:type_get()
-    out = out or (par:direction_get() == eolian.parameter_dir.OUT)
+    out = out or (par:direction_get() == par.OUT)
     local tstr = part:c_type_get()
     if out then
-        tstr = ser.get_ctype_str(tstr, "*")
+        tstr = dtree.type_cstr_get(tstr, "*")
     end
-    return ser.get_ctype_str(tstr, par:name_get())
+    return dtree.type_cstr_get(tstr, par:name_get())
 end
 
 local get_func_csig_part = function(cn, tp)
     if not tp then
         return "void " .. cn
     end
-    return ser.get_ctype_str(tp, cn)
+    return dtree.type_cstr_get(tp, cn)
 end
 
 local gen_func_csig = function(f, ftype)
-    ftype = ftype or eolian.function_type.METHOD
-    assert(ftype ~= eolian.function_type.PROPERTY)
+    ftype = ftype or f.METHOD
+    assert(ftype ~= f.PROPERTY)
 
     local cn = f:full_c_name_get(ftype)
-    keyref.add(cn, "c")
     local rtype = f:return_type_get(ftype)
 
     local fparam = "Eo *obj"
-    if f:is_const() or f:is_class() or ftype == eolian.function_type.PROP_GET then
+    if f:is_const() or f:is_class() or ftype == f.PROP_GET then
         fparam = "const Eo *obj"
     end
 
-    if f:type_get() == eolian.function_type.METHOD then
-        local pars = f:parameters_get():to_array()
+    if f:type_get() == f.METHOD then
+        local pars = f:parameters_get()
         local cnrt = get_func_csig_part(cn, rtype)
         for i = 1, #pars do
             pars[i] = gen_cparam(pars[i])
@@ -87,10 +55,10 @@ local gen_func_csig = function(f, ftype)
         return cnrt .. "(" .. table.concat(pars, ", ") .. ");"
     end
 
-    local keys = f:property_keys_get(ftype):to_array()
-    local vals = f:property_values_get(ftype):to_array()
+    local keys = f:property_keys_get(ftype)
+    local vals = f:property_values_get(ftype)
 
-    if ftype == eolian.function_type.PROP_SET then
+    if ftype == f.PROP_SET then
         local cnrt = get_func_csig_part(cn, rtype)
         local pars = {}
         for i, par in ipairs(keys) do
@@ -130,19 +98,15 @@ local gen_func_namesig = function(fn, cl, buf, isprop, isget, isset)
     if isprop then
         buf[#buf + 1] = "@property "
     end
-    buf[#buf + 1] = cl:full_name_get()
-    buf[#buf + 1] = "."
     buf[#buf + 1] = fn:name_get()
     buf[#buf + 1] = " "
-    local ftt = eolian.function_type
-    local obs = eolian.object_scope
     if not isprop then
-        if fn:scope_get(ftt.METHOD) == obs.PROTECTED then
+        if fn:scope_get(fn.METHOD) == fn.scope.PROTECTED then
             buf[#buf + 1] = "@protected "
         end
     elseif isget and isset then
-        if fn:scope_get(ftt.PROP_GET) == obs.PROTECTED and
-           fn:scope_get(ftt.PROP_SET) == obs.PROTECTED then
+        if fn:scope_get(fn.PROP_GET) == fn.scope.PROTECTED and
+           fn:scope_get(fn.PROP_SET) == fn.scope.PROTECTED then
             buf[#buf + 1] = "@protected "
         end
     end
@@ -161,14 +125,14 @@ local gen_func_param = function(fp, buf, nodir)
     -- TODO: default value
     buf[#buf + 1] = "        "
     local dirs = {
-        [eolian.parameter_dir.IN] = "@in ",
-        [eolian.parameter_dir.OUT] = "@out ",
-        [eolian.parameter_dir.INOUT] = "@inout ",
+        [dtree.Parameter.IN] = "@in ",
+        [dtree.Parameter.OUT] = "@out ",
+        [dtree.Parameter.INOUT] = "@inout ",
     }
     if not nodir then buf[#buf + 1] = dirs[fp:direction_get()] end
     buf[#buf + 1] = fp:name_get()
     buf[#buf + 1] = ": "
-    buf[#buf + 1] = ser.get_type_str(fp:type_get())
+    buf[#buf + 1] = fp:type_get():serialize()
     local dval = fp:default_value_get()
     if dval then
         buf[#buf + 1] = " ("
@@ -194,7 +158,7 @@ local gen_func_return = function(fp, ftype, buf, indent)
     end
     buf[#buf + 1] = indent and ("    "):rep(indent) or "    "
     buf[#buf + 1] = "return: "
-    buf[#buf + 1] = ser.get_type_str(rett)
+    buf[#buf + 1] = rett:serialize()
     local dval = fp:return_default_value_get(ftype)
     if dval then
         buf[#buf + 1] = " ("
@@ -210,12 +174,15 @@ end
 local gen_method_sig = function(fn, cl)
     local buf = {}
     gen_func_namesig(fn, cl, buf, false, false, false)
-    if fn:is_virtual_pure(eolian.function_type.METHOD) then
-        buf[#buf + 1] = "@virtual_pure "
+
+    local fimp = fn:implement_get()
+
+    if fimp:is_pure_virtual(fn.METHOD) then
+        buf[#buf + 1] = "@pure_virtual "
     end
     buf[#buf + 1] = "{"
-    local params = fn:parameters_get():to_array()
-    local rtp = fn:return_type_get(eolian.function_type.METHOD)
+    local params = fn:parameters_get()
+    local rtp = fn:return_type_get(fn.METHOD)
     if #params == 0 and not rtp then
         buf[#buf + 1] = "}"
         return table.concat(buf)
@@ -228,7 +195,7 @@ local gen_method_sig = function(fn, cl)
         end
         buf[#buf + 1] = "    }\n"
     end
-    gen_func_return(fn, eolian.function_type.METHOD, buf)
+    gen_func_return(fn, fn.METHOD, buf)
     buf[#buf + 1] = "}"
     return table.concat(buf)
 end
@@ -260,25 +227,25 @@ end
 local gen_prop_sig = function(fn, cl)
     local buf = {}
     local fnt = fn:type_get()
-    local ftt = eolian.function_type
-    local obs = eolian.object_scope
-    local isget = (fnt == ftt.PROPERTY or fnt == ftt.PROP_GET)
-    local isset = (fnt == ftt.PROPERTY or fnt == ftt.PROP_SET)
+    local isget = (fnt == fn.PROPERTY or fnt == fn.PROP_GET)
+    local isset = (fnt == fn.PROPERTY or fnt == fn.PROP_SET)
     gen_func_namesig(fn, cl, buf, true, isget, isset)
 
-    local gvirt = fn:is_virtual_pure(ftt.PROP_GET)
-    local svirt = fn:is_virtual_pure(ftt.PROP_SET)
+    local pimp = fn:implement_get()
+
+    local gvirt = pimp:is_pure_virtual(fn.PROP_GET)
+    local svirt = pimp:is_pure_virtual(fn.PROP_SET)
 
     if (not isget or gvirt) and (not isset or svirt) then
-        buf[#buf + 1] = "@virtual_pure "
+        buf[#buf + 1] = "@pure_virtual "
     end
 
-    local gkeys = isget and fn:property_keys_get(ftt.PROP_GET):to_array() or {}
-    local skeys = isset and fn:property_keys_get(ftt.PROP_SET):to_array() or {}
-    local gvals = isget and fn:property_values_get(ftt.PROP_GET):to_array() or {}
-    local svals = isget and fn:property_values_get(ftt.PROP_SET):to_array() or {}
-    local grtt = isget and fn:return_type_get(ftt.PROP_GET) or nil
-    local srtt = isset and fn:return_type_get(ftt.PROP_SET) or nil
+    local gkeys = isget and fn:property_keys_get(fn.PROP_GET) or {}
+    local skeys = isset and fn:property_keys_get(fn.PROP_SET) or {}
+    local gvals = isget and fn:property_values_get(fn.PROP_GET) or {}
+    local svals = isget and fn:property_values_get(fn.PROP_SET) or {}
+    local grtt = isget and fn:return_type_get(fn.PROP_GET) or nil
+    local srtt = isset and fn:return_type_get(fn.PROP_SET) or nil
 
     local keys_same = eovals_check_same(gkeys, skeys)
     local vals_same = eovals_check_same(gvals, svals)
@@ -287,8 +254,8 @@ local gen_prop_sig = function(fn, cl)
 
     if isget then
         buf[#buf + 1] = "    get "
-        if fn:scope_get(ftt.PROP_GET) == obs.PROTECTED and
-           fn:scope_get(ftt.PROP_SET) ~= obs.PROTECTED then
+        if fn:scope_get(fn.PROP_GET) == fn.scope.PROTECTED and
+           fn:scope_get(fn.PROP_SET) ~= fn.scope.PROTECTED then
             buf[#buf + 1] = "@protected "
         end
         buf[#buf + 1] = "{"
@@ -300,7 +267,7 @@ local gen_prop_sig = function(fn, cl)
             if not keys_same then gen_prop_keyvals(gkeys, "keys", buf) end
             if not vals_same then gen_prop_keyvals(gvals, "values", buf) end
             if grtt ~= srtt then
-                gen_func_return(fn, ftt.PROP_GET, buf, 2)
+                gen_func_return(fn, fn.PROP_GET, buf, 2)
             end
             buf[#buf + 1] = "    }\n"
         end
@@ -308,8 +275,8 @@ local gen_prop_sig = function(fn, cl)
 
     if isset then
         buf[#buf + 1] = "    set "
-        if fn:scope_get(ftt.PROP_SET) == obs.PROTECTED and
-           fn:scope_get(ftt.PROP_GET) ~= obs.PROTECTED then
+        if fn:scope_get(fn.PROP_SET) == fn.scope.PROTECTED and
+           fn:scope_get(fn.PROP_GET) ~= fn.scope.PROTECTED then
             buf[#buf + 1] = "@protected "
         end
         buf[#buf + 1] = "{"
@@ -321,7 +288,7 @@ local gen_prop_sig = function(fn, cl)
             if not keys_same then gen_prop_keyvals(skeys, "keys", buf) end
             if not vals_same then gen_prop_keyvals(svals, "values", buf) end
             if grtt ~= srtt then
-                gen_func_return(fn, ftt.PROP_SET, buf, 2)
+                gen_func_return(fn, fn.PROP_SET, buf, 2)
             end
             buf[#buf + 1] = "    }\n"
         end
@@ -347,40 +314,12 @@ local build_reftable = function(f, title, ctitle, ctype, t, iscl)
     for i, v in ipairs(t) do
         nt[#nt + 1] = {
             writer.Buffer():write_link(
-                iscl and v:nspaces_get() or eomap.gen_nsp_eo(v, ctype, true),
+                iscl and v:nspaces_get(true)
+                      or dtree.Node.nspaces_get(v, ctype, true),
                 v:full_name_get()
             ):finish(),
-            (iscl and v:doc_get() or dtree.Doc(v:documentation_get())):brief_get()
+            v:doc_get():brief_get()
         }
-    end
-    table.sort(nt, function(v1, v2) return v1[1] < v2[1] end)
-    f:write_table({ ctitle, "Brief description" }, nt)
-    f:write_nl()
-end
-
-local build_functable = function(f, title, ctitle, cl, tp)
-    local t = cl:functions_get(tp)
-    if #t == 0 then
-        return
-    end
-    f:write_h(title, 3)
-    local nt = {}
-    for i, v in ipairs(t) do
-        local lbuf = writer.Buffer()
-        lbuf:write_link(eomap.gen_nsp_func(v, cl, true), v:name_get())
-        local pt = propt_to_type[v:type_get()]
-        if pt then
-            lbuf:write_raw(" ")
-            lbuf:write_i(pt)
-        end
-        nt[#nt + 1] = {
-            lbuf:finish(), get_brief_fdoc(v)
-        }
-        if eomap.funct_to_str[v:type_get()] == "property" then
-            build_property(v, cl)
-        else
-            build_method(v, cl)
-        end
     end
     table.sort(nt, function(v1, v2) return v1[1] < v2[1] end)
     f:write_table({ ctitle, "Brief description" }, nt)
@@ -388,25 +327,24 @@ local build_functable = function(f, title, ctitle, cl, tp)
 end
 
 local build_ref = function()
-    local f = writer.Writer("reference")
-    f:write_h("EFL Reference", 2)
+    local f = writer.Writer("reference", "EFL Reference")
+    printgen("Generating reference...")
+
+    f:write_editable({ "reference" }, "general")
+    f:write_nl()
 
     local classes = {}
     local ifaces = {}
     local mixins = {}
 
-    local clt = eolian.class_type
-
     for i, cl in ipairs(dtree.Class.all_get()) do
         local tp = cl:type_get()
-        if tp == clt.REGULAR or tp == clt.ABSTRACT then
+        if tp == dtree.Class.REGULAR or tp == dtree.Class.ABSTRACT then
             classes[#classes + 1] = cl
-        elseif tp == clt.MIXIN then
+        elseif tp == dtree.Class.MIXIN then
             mixins[#mixins + 1] = cl
-        elseif tp == clt.INTERFACE then
+        elseif tp == dtree.Class.INTERFACE then
             ifaces[#ifaces + 1] = cl
-        else
-            error("unknown class: " .. cl:full_name_get())
         end
     end
 
@@ -415,26 +353,21 @@ local build_ref = function()
     build_reftable(f, "Mixins", "Mixin name", "mixin", mixins, true)
 
     build_reftable(f, "Aliases", "Alias name", "alias",
-        eolian.typedecl_all_aliases_get():to_array())
+        dtree.Typedecl.all_aliases_get())
 
     build_reftable(f, "Structures", "Struct name", "struct",
-        eolian.typedecl_all_structs_get():to_array())
+        dtree.Typedecl.all_structs_get())
 
     build_reftable(f, "Enums", "Enum name", "enum",
-        eolian.typedecl_all_enums_get():to_array())
+        dtree.Typedecl.all_enums_get())
 
     build_reftable(f, "Constants", "Constant name", "constant",
-        eolian.variable_all_constants_get():to_array())
+        dtree.Variable.all_constants_get())
 
     build_reftable(f, "Globals", "Global name", "global",
-        eolian.variable_all_globals_get():to_array())
+        dtree.Variable.all_globals_get())
 
     f:finish()
-end
-
-local write_full_fdoc = function(f, fn, ftype)
-    f:write_raw(dtree.Doc(fn:documentation_get(eolian.function_type.METHOD))
-        :full_get(get_fallback_fdoc(fn, ftype), true))
 end
 
 local build_inherits
@@ -444,16 +377,12 @@ build_inherits = function(cl, t, lvl)
     local lbuf = writer.Buffer()
     lbuf:write_link(cl:nspaces_get(true), cl:full_name_get())
     lbuf:write_raw(" ")
-    lbuf:write_i("(" .. eomap.classt_to_str[cl:type_get()] .. ")")
+    lbuf:write_i("(" .. cl:type_str_get() .. ")")
     if lvl == 0 then
         lbuf:write_b(lbuf:finish())
     end
     t[#t + 1] = { lvl, lbuf:finish() }
-    for i, cln in ipairs(cl:inherits_get()) do
-        local acl = dtree.Class.by_name_get(cln)
-        if not acl then
-            error("error retrieving inherited class " .. cln)
-        end
+    for i, acl in ipairs(cl:inherits_get()) do
         build_inherits(acl, t, lvl + 1)
     end
     return t
@@ -669,20 +598,13 @@ local set_theme = function(tname)
     end
 end
 
-local classt_to_theme = {
-    [eolian.class_type.REGULAR] = "regular",
-    [eolian.class_type.ABSTRACT] = "abstract",
-    [eolian.class_type.MIXIN] = "mixin",
-    [eolian.class_type.INTERFACE] = "interface"
-}
-
 local class_to_node = function(cl, main)
     local ret = {}
 
     ret.label = cl:full_name_get()
     ret.name = ret.label:lower():gsub("%.", "_")
 
-    local clr = classt_to_theme[cl:type_get()]
+    local clr = cl:theme_str_get()
 
     ret.style = current_theme.classes[clr].style
     ret.color = current_theme.classes[clr][main and "primary_color" or "color"]
@@ -702,13 +624,9 @@ end
 local build_igraph_r
 build_igraph_r = function(cl, nbuf, ibuf)
     local sn = cl:full_name_get():lower():gsub("%.", "_")
-    for i, cln in ipairs(cl:inherits_get()) do
-        local acl = dtree.Class.by_name_get(cln)
-        if not acl then
-            error("error retrieving inherited class " .. cln)
-        end
+    for i, acl in ipairs(cl:inherits_get()) do
         nbuf[#nbuf + 1] = class_to_node(acl)
-        ibuf[#ibuf + 1] = { sn, (cln:lower():gsub("%.", "_")) }
+        ibuf[#ibuf + 1] = { sn, (acl:full_name_get():lower():gsub("%.", "_")) }
         build_igraph_r(acl, nbuf, ibuf)
     end
 end
@@ -736,12 +654,319 @@ local build_igraph = function(cl)
     return graph
 end
 
-local build_class = function(cl)
-    local f = writer.Writer(cl:nspaces_get())
-    stats.check_class(cl)
+local find_parent_impl
+find_parent_impl = function(fulln, cl)
+    for i, pcl in ipairs(cl:inherits_get()) do
+        for j, impl in ipairs(pcl:implements_get()) do
+            if impl:full_name_get() == fulln then
+                return impl, pcl
+            end
+        end
+        local pimpl, pcl = find_parent_impl(fulln, pcl)
+        if pimpl then
+            return pimpl, pcl
+        end
+    end
+    return nil, cl
+end
 
-    f:write_h(cl:full_name_get(), 2)
-    keyref.add(cl:full_name_get():gsub("%.", "_"), "c")
+local find_parent_briefdoc
+find_parent_briefdoc = function(fulln, cl)
+    local pimpl, pcl = find_parent_impl(fulln, cl)
+    if not pimpl then
+        return dtree.Doc():brief_get()
+    end
+    local pdoc = pimpl:doc_get(dtree.Function.METHOD, true)
+    local pdocf = pimpl:fallback_doc_get(true)
+    if not pdoc:exists() and (not pdocf or not pdocf:exists()) then
+        return find_parent_briefdoc(fulln, pcl)
+    end
+    return pdoc:brief_get(pdocf)
+end
+
+local build_functable = function(f, title, tcl, tbl, newm)
+    if #tbl == 0 then
+        return
+    end
+    f:write_h(title, newm and 2 or 3)
+    local nt = {}
+    for i, implt in ipairs(tbl) do
+        local lbuf = writer.Buffer()
+
+        local cl, impl = unpack(implt)
+        local ocl = impl:class_get()
+        if not newm then
+            lbuf:write_link(ocl:nspaces_get(true), ocl:full_name_get())
+            lbuf:write_raw(".")
+        end
+
+        local func = impl:function_get()
+        local over = impl:is_overridden(cl)
+
+        local llbuf = writer.Buffer()
+        llbuf:write_link(func:nspaces_get(cl, true), func:name_get())
+        lbuf:write_b(llbuf:finish())
+
+        local pt = propt_to_type[func:type_get()]
+        if pt then
+            lbuf:write_raw(" ")
+            local llbuf = writer.Buffer()
+            llbuf:write_b(pt)
+            lbuf:write_i(llbuf:finish())
+        end
+
+        local wt = {}
+        wt[0] = func
+        -- name info
+        wt[1] = lbuf:finish()
+
+        if over then
+            -- TODO: possibly also mention which part of a property was
+            -- overridden and where, get/set override point might differ!
+            -- but we get latest doc every time so it's ok for now
+            lbuf:write_raw(" ")
+            local llbuf = writer.Buffer()
+            llbuf:write_raw("[Overridden")
+            if cl ~= tcl then
+                llbuf:write_raw(" in ")
+                llbuf:write_link(cl:nspaces_get(true), cl:full_name_get())
+            else
+                llbuf:write_raw(" here")
+            end
+            llbuf:write_raw("]")
+            lbuf:write_i(llbuf:finish())
+        end
+
+        -- overridde info (or empty)
+        wt[#wt + 1] = lbuf:finish()
+
+        local doc = impl:doc_get(func.METHOD, true)
+        local docf = impl:fallback_doc_get(true)
+        local bdoc
+        if over and (not doc:exists() and (not docf or not docf:exists())) then
+            bdoc = find_parent_briefdoc(impl:full_name_get(), cl)
+        else
+            bdoc = doc:brief_get(docf)
+        end
+
+        lbuf:write_nl()
+        local codes = {}
+        if func:type_get() ~= dtree.Function.PROPERTY then
+            codes[#codes + 1] = gen_func_csig(func, func:type_get())
+        else
+            codes[#codes + 1] = gen_func_csig(func, dtree.Function.PROP_GET)
+            codes[#codes + 1] = gen_func_csig(func, dtree.Function.PROP_SET)
+        end
+        lbuf:write_code(table.concat(codes, "\n"), "c")
+
+        if bdoc ~= "No description supplied." then
+            lbuf:write_nl()
+            lbuf:write_raw(bdoc)
+            lbuf:write_br()
+        end
+
+        -- sigs and description
+        wt[#wt + 1] = lbuf:finish()
+        nt[#nt + 1] = wt
+
+        if cl == tcl then
+            if impl:is_prop_get() or impl:is_prop_set() then
+                build_property(impl, cl)
+            else
+                build_method(impl, cl)
+            end
+        end
+    end
+    local get_best_scope = function(f)
+        local ft = f:type_get()
+        if ft == f.PROPERTY then
+            local fs1, fs2 = f:scope_get(f.PROP_GET), f:scope_get(f.PROP_SET)
+            if fs1 == f.scope.PUBLIC or fs2 == f.scope.PUBLIC then
+                return f.scope.PUBLIC
+            elseif fs1 == f.scope.PROTECTED or fs2 == f.scope.PROTECTED then
+                return f.scope.PROTECTED
+            else
+                return f.scope.PRIVATE
+            end
+        else
+            return f:scope_get(ft)
+        end
+    end
+    table.sort(nt, function(v1, v2)
+        local f1, f2 = v1[0], v2[0]
+        local f1s, f2s = get_best_scope(f1), get_best_scope(f2)
+        if f1s ~= f2s then
+            if f1s ~= f1.scope.PROTECED then
+                -- public funcs go first, private funcs go last
+                return f1s == f1.scope.PUBLIC
+            else
+                -- protected funcs go second
+                return f2s == f2.scope.PRIVATE
+            end
+        end
+        return v1[1] < v2[1]
+    end)
+    for i, item in ipairs(nt) do
+        -- scope
+        local func = item[0]
+        local ftt = {
+            [func.scope.PROTECTED] = "protected",
+            [func.scope.PRIVATE] = "private"
+        }
+        if fs then
+            f:write_b(fs)
+            f:write_raw(" ")
+        end
+        -- name
+        f:write_raw(item[1])
+        -- override
+        f:write_raw(item[2])
+        -- scope
+        if func:type_get() == func.PROPERTY then
+            local ft1, ft2 = ftt[func:scope_get(func.PROP_GET)],
+                             ftt[func:scope_get(func.PROP_SET)]
+            if ft1 and ft1 == ft2 then
+                f:write_raw(" ")
+                f:write_m(ft1)
+            elseif ft1 or ft2 then
+                local s = ""
+                if ft1 then
+                    s = s .. ft1 .. " get" .. (ft2 and ", " or "")
+                end
+                if ft2 then
+                    s = s .. ft2 .. " set"
+                end
+                f:write_raw(" ")
+                f:write_m(s)
+            end
+        else
+            local ft = ftt[func:scope_get(func:type_get())]
+            if ft then
+                f:write_raw(" ")
+                f:write_m(ft)
+            end
+        end
+        -- desc
+        f:write_raw(item[3])
+        f:write_nl()
+        f:write_br()
+        f:write_nl()
+    end
+    f:write_nl()
+end
+
+-- finds all stuff that is callable on a class, respecting
+-- overrides and not duplicating, does a depth-first search
+local find_callables
+find_callables = function(cl, omeths, events, written)
+    for i, pcl in ipairs(cl:inherits_get()) do
+        for j, impl in ipairs(pcl:implements_get()) do
+            local func = impl:function_get()
+            local fid = func:id_get()
+            if not written[fid] then
+                omeths[#omeths + 1] = { pcl, impl }
+                written[fid] = true
+            end
+        end
+        for i, ev in ipairs(pcl:events_get()) do
+            events[#events + 1] = { pcl, ev }
+        end
+        find_callables(pcl, omeths, events, written)
+    end
+end
+
+local build_evcsig = function(ev)
+    local csbuf = { ev:c_name_get(), "(" }
+    csbuf[#csbuf + 1] = dtree.type_cstr_get(ev:type_get())
+    if ev:is_beta() then
+        csbuf[#csbuf + 1] = ", @beta"
+    end
+    if ev:is_hot() then
+        csbuf[#csbuf + 1] = ", @hot"
+    end
+    if ev:is_restart() then
+        csbuf[#csbuf + 1] = ", @restart"
+    end
+    csbuf[#csbuf + 1] = ")";
+    return table.concat(csbuf)
+end
+
+local build_evtable = function(f, title, tcl, tbl, newm)
+    if #tbl == 0 then
+        return
+    end
+    f:write_h(title, newm and 2 or 3)
+    local nt = {}
+    for i, evt in ipairs(tbl) do
+        local lbuf = writer.Buffer()
+        local evn
+        local cl, ev
+        if not newm then
+            cl, ev = evt[1], evt[2]
+        else
+            cl, ev = tcl, evt
+        end
+
+        if not newm then
+            lbuf:write_link(cl:nspaces_get(true), cl:full_name_get())
+            lbuf:write_raw(".")
+        end
+
+        local llbuf = writer.Buffer()
+        llbuf:write_link(ev:nspaces_get(cl, true), ev:name_get())
+        lbuf:write_b(llbuf:finish())
+
+        local wt = {}
+        wt[0] = ev
+        -- name info
+        wt[1] = lbuf:finish()
+
+        lbuf:write_nl()
+        lbuf:write_code(build_evcsig(ev), "c");
+
+        local bdoc = ev:doc_get():brief_get()
+        if bdoc ~= "No description supplied." then
+            lbuf:write_nl()
+            lbuf:write_raw(bdoc)
+            lbuf:write_br()
+        end
+
+        -- description
+        wt[#wt + 1] = lbuf:finish()
+        nt[#nt + 1] = wt
+
+        if cl == tcl then
+            build_event(ev, cl)
+        end
+    end
+    table.sort(nt, function(v1, v2) return v1[1] < v2[1] end)
+    for i, item in ipairs(nt) do
+        -- name
+        f:write_raw(item[1])
+        -- scope
+        local ev = item[0]
+        local ett = {
+            [ev.scope.PROTECTED] = "protected",
+            [ev.scope.PRIVATE] = "private"
+        }
+        local ets = ett[ev:scope_get()]
+        if ets then
+            f:write_raw(" ")
+            f:write_m(ets)
+        end
+        -- desc
+        f:write_raw(item[2])
+        f:write_nl()
+        f:write_br()
+        f:write_nl()
+    end
+end
+
+local build_class = function(cl)
+    local cln = cl:nspaces_get()
+    local fulln = cl:full_name_get()
+    local f = writer.Writer(cln, fulln)
+    printgen("Generating class: " .. fulln)
 
     f:write_folded("Inheritance graph", function()
         f:write_graph(build_igraph(cl))
@@ -750,92 +975,99 @@ local build_class = function(cl)
         f:write_nl(2)
     end
 
-    f:write_h("Inheritance hierarchy", 3)
+    f:write_h("Inheritance hierarchy", 2)
     f:write_list(build_inherits(cl))
     f:write_nl()
 
-    f:write_h("Description", 3)
+    f:write_h("Description", 2)
     f:write_raw(cl:doc_get():full_get(nil, true))
     f:write_nl(2)
 
-    build_functable(f, "Methods", "Method name", cl, eolian.function_type.METHOD)
-    build_functable(f, "Properties", "Property name",
-        cl, eolian.function_type.PROPERTY)
+    f:write_editable(cln, "description")
+    f:write_nl()
 
-    f:write_h("Events", 3)
-    local evs = cl:events_get()
-    if #evs == 0 then
-        f:write_raw("This class does not define any events.\n")
-    else
-        local nt = {}
-        for i, ev in ipairs(evs) do
-            ev = dtree.Event(ev)
-            local lbuf = writer.Buffer()
-            lbuf:write_link(ev:nspaces_get(cl, true), ev:name_get())
-            nt[#nt + 1] = {
-                lbuf:finish(), ev:doc_get():brief_get()
-            }
-            build_event(ev, cl)
+    local written = {}
+    local ievs = {}
+    local meths, omeths = {}, {}
+    for i, impl in ipairs(cl:implements_get()) do
+        local func = impl:function_get()
+        written[func:id_get()] = true
+        if impl:is_overridden(cl) then
+            omeths[#omeths + 1] = { cl, impl }
+        else
+            meths[#meths + 1] = { cl, impl }
         end
-        table.sort(nt, function(v1, v2) return v1[1] < v2[1] end)
-        f:write_table({ "Event name", "Brief description" }, nt)
     end
+    find_callables(cl, omeths, ievs, written)
+
+    build_functable(f, "Members", cl, meths, true)
+    build_functable(f, "Inherited", cl, omeths, false)
+
+    build_evtable(f, "Events", cl, cl:events_get(), true)
+    build_evtable(f, "Inherited", cl, ievs, false)
 
     f:finish()
 end
 
 local build_classes = function()
     for i, cl in ipairs(dtree.Class.all_get()) do
-        local ct = cl:type_get()
-        if not eomap.classt_to_str[ct] then
-            error("unknown class: " .. cl:full_name_get())
-        end
         build_class(cl)
     end
 end
 
-local write_tsigs = function(f, tp)
-    f:write_h(tp:full_name_get(), 2)
-
-    f:write_h("Signature", 3)
-    f:write_code(ser.get_typedecl_str(tp))
+local write_tsigs = function(f, tp, ns)
+    f:write_h("Signature", 2)
+    f:write_code(tp:serialize())
     f:write_nl()
 
-    f:write_h("C signature", 3)
-    f:write_code(ser.get_typedecl_cstr(tp), "c")
+    f:write_h("C signature", 2)
+    f:write_code(tp:serialize_c(ns), "c")
     f:write_nl()
 end
 
 local build_alias = function(tp)
-    local f = writer.Writer(eomap.gen_nsp_eo(tp, "alias"))
-    stats.check_alias(tp)
+    local ns = dtree.Node.nspaces_get(tp, "alias")
+    local fulln = tp:full_name_get()
+    local f = writer.Writer(ns, fulln)
+    printgen("Generating alias: " .. fulln)
 
-    write_tsigs(f, tp)
+    write_tsigs(f, tp, ns)
 
-    f:write_h("Description", 3)
-    f:write_raw(dtree.Doc(tp:documentation_get()):full_get(nil, true))
+    f:write_h("Description", 2)
+    f:write_raw(tp:doc_get():full_get(nil, true))
     f:write_nl(2)
+
+    f:write_editable(ns, "description")
+    f:write_nl()
 
     f:finish()
 end
 
 local build_struct = function(tp)
-    local f = writer.Writer(eomap.gen_nsp_eo(tp, "struct"))
-    stats.check_struct(tp)
+    local ns = dtree.Node.nspaces_get(tp, "struct")
+    local fulln = tp:full_name_get()
+    local f = writer.Writer(ns, fulln)
+    printgen("Generating struct: " .. fulln)
 
-    write_tsigs(f, tp)
+    write_tsigs(f, tp, ns)
 
-    f:write_h("Description", 3)
-    f:write_raw(dtree.Doc(tp:documentation_get()):full_get(nil, true))
+    f:write_h("Description", 2)
+    f:write_raw(tp:doc_get():full_get(nil, true))
     f:write_nl(2)
 
-    f:write_h("Fields", 3)
+    f:write_editable(ns, "description")
+    f:write_nl()
+
+    f:write_h("Fields", 2)
+
+    f:write_editable(ns, "fields")
+    f:write_nl()
 
     local arr = {}
-    for fl in tp:struct_fields_get() do
+    for i, fl in ipairs(tp:struct_fields_get()) do
         local buf = writer.Buffer()
         buf:write_b(fl:name_get())
-        buf:write_raw(" - ", dtree.Doc(fl:documentation_get()):full_get())
+        buf:write_raw(" - ", fl:doc_get():full_get())
         arr[#arr + 1] = buf:finish()
     end
     f:write_list(arr)
@@ -845,22 +1077,30 @@ local build_struct = function(tp)
 end
 
 local build_enum = function(tp)
-    local f = writer.Writer(eomap.gen_nsp_eo(tp, "enum"))
-    stats.check_enum(tp)
+    local ns = dtree.Node.nspaces_get(tp, "enum")
+    local fulln = tp:full_name_get()
+    local f = writer.Writer(ns, fulln)
+    printgen("Generating enum: " .. fulln)
 
-    write_tsigs(f, tp)
+    write_tsigs(f, tp, ns)
 
-    f:write_h("Description", 3)
-    f:write_raw(dtree.Doc(tp:documentation_get()):full_get(nil, true))
+    f:write_h("Description", 2)
+    f:write_raw(tp:doc_get():full_get(nil, true))
     f:write_nl(2)
 
-    f:write_h("Fields", 3)
+    f:write_editable(ns, "description")
+    f:write_nl()
+
+    f:write_h("Fields", 2)
+
+    f:write_editable(ns, "fields")
+    f:write_nl()
 
     local arr = {}
-    for fl in tp:enum_fields_get() do
+    for i, fl in ipairs(tp:enum_fields_get()) do
         local buf = writer.Buffer()
         buf:write_b(fl:name_get())
-        buf:write_raw(" - ", dtree.Doc(fl:documentation_get()):full_get())
+        buf:write_raw(" - ", fl:doc_get():full_get())
         arr[#arr + 1] = buf:finish()
     end
     f:write_list(arr)
@@ -870,36 +1110,43 @@ local build_enum = function(tp)
 end
 
 local build_variable = function(v, constant)
-    local f = writer.Writer(eomap.gen_nsp_eo(v, constant and "constant" or "global"))
-    if constant then
-        stats.check_constant(v)
-    else
-        stats.check_global(v)
-    end
+    local ns = v:nspaces_get()
+    local fulln = v:full_name_get()
+    local f = writer.Writer(ns, fulln)
+    printgen("Generating variable: " .. fulln)
+
+    write_tsigs(f, v, ns)
+
+    f:write_h("Description", 2)
+    f:write_raw(v:doc_get():full_get(nil, true))
+    f:write_nl(2)
+
+    f:write_editable(ns, "description")
+    f:write_nl()
 
     f:finish()
 end
 
 local build_typedecls = function()
-    for tp in eolian.typedecl_all_aliases_get() do
+    for i, tp in ipairs(dtree.Typedecl.all_aliases_get()) do
         build_alias(tp)
     end
 
-    for tp in eolian.typedecl_all_structs_get() do
+    for i, tp in ipairs(dtree.Typedecl.all_structs_get()) do
         build_struct(tp)
     end
 
-    for tp in eolian.typedecl_all_enums_get() do
+    for i, tp in ipairs(dtree.Typedecl.all_enums_get()) do
         build_enum(tp)
     end
 end
 
 local build_variables = function()
-    for v in eolian.variable_all_constants_get() do
+    for i, v in ipairs(dtree.Variable.all_constants_get()) do
         build_variable(v, true)
     end
 
-    for v in eolian.variable_all_globals_get() do
+    for i, v in ipairs(dtree.Variable.all_globals_get()) do
         build_variable(v, false)
     end
 end
@@ -911,9 +1158,9 @@ local build_parlist = function(f, pl, nodir)
         buf:write_b(p:name_get())
         if not nodir then
             buf:write_raw(" ")
-            buf:write_i(eomap.pdir_to_str[p:direction_get()])
+            buf:write_i("(", p:direction_name_get(), ")")
         end
-        buf:write_raw(" - ", dtree.Doc(p:documentation_get()):full_get())
+        buf:write_raw(" - ", p:doc_get():full_get())
         params[#params + 1] = buf:finish()
     end
     f:write_list(params)
@@ -923,7 +1170,7 @@ local build_vallist = function(f, pg, ps, title)
     if #pg == #ps then
         local same = true
         for i = 1, #pg do
-            if pg[i] ~= ps[i] then
+            if not pg[i]:is_same(ps[i]) then
                 same = false
                 break
             end
@@ -931,136 +1178,301 @@ local build_vallist = function(f, pg, ps, title)
         if same then ps = {} end
     end
     if #pg > 0 or #ps > 0 then
-        f:write_h(title, 3)
+        f:write_h(title, 2)
         if #pg > 0 then
             if #ps > 0 then
-                f:write_h("Getter", 4)
+                f:write_h("Getter", 3)
             end
             build_parlist(f, pg, true)
         end
         if #ps > 0 then
             if #pg > 0 then
-                f:write_h("Setter", 4)
+                f:write_h("Setter", 3)
             end
             build_parlist(f, ps, true)
         end
     end
 end
 
-build_method = function(fn, cl)
-    local f = writer.Writer(eomap.gen_nsp_func(fn, cl))
-    stats.check_method(fn, cl)
+local find_parent_doc
+find_parent_doc = function(fulln, cl, ftype)
+    local pimpl, pcl = find_parent_impl(fulln, cl)
+    if not pimpl then
+        return dtree.Doc()
+    end
+    local pdoc = pimpl:doc_get(ftype)
+    if not pdoc:exists() then
+        return find_parent_doc(fulln, pcl, ftype)
+    end
+    return pdoc
+end
 
-    f:write_h(cl:full_name_get() .. "." .. fn:name_get(), 2)
+local write_inherited_from = function(f, impl, cl, over, prop)
+    if not over then
+        return
+    end
+    local buf = writer.Buffer()
+    buf:write_raw("Overridden from ")
+    local pimpl, pcl = find_parent_impl(impl:full_name_get(), cl)
+    buf:write_link(
+        impl:function_get():nspaces_get(pcl, true), impl:full_name_get()
+    )
+    if prop then
+        buf:write_raw(" ")
+        local lbuf = writer.Buffer()
+        lbuf:write_raw("(")
+        if impl:is_prop_get() then
+            lbuf:write_raw("get")
+            if impl:is_prop_set() then
+                lbuf:write_raw(", ")
+            end
+        end
+        if impl:is_prop_set() then
+            lbuf:write_raw("set")
+        end
+        lbuf:write_raw(")")
+        buf:write_b(lbuf:finish())
+    end
+    buf:write_raw(".")
+    f:write_i(buf:finish())
+end
 
-    f:write_h("Signature", 3)
+local impls_of = {}
+
+local get_all_impls_of
+get_all_impls_of = function(tbl, cl, fn, got)
+    local cfn = cl:full_name_get()
+    if got[cfn] then
+        return
+    end
+    got[cfn] = true
+    for i, imp in ipairs(cl:implements_get()) do
+        local ofn = imp:function_get()
+        if ofn:is_same(fn) then
+            tbl[#tbl + 1] = cl
+            break
+        end
+    end
+    for i, icl in ipairs(cl:children_get()) do
+        get_all_impls_of(tbl, icl, fn, got)
+    end
+end
+
+local write_ilist = function(f, impl, cl)
+    local fn = impl:function_get()
+    local fnn = fn:name_get()
+    local ocl = fn:implement_get():class_get()
+    local onm = ocl:full_name_get() .. "." .. fnn
+    local imps = impls_of[onm]
+    if not imps then
+        imps = {}
+        impls_of[onm] = imps
+        get_all_impls_of(imps, ocl, fn, {})
+    end
+
+    f:write_h("Implemented by", 2)
+    local t = {}
+    for i, icl in ipairs(imps) do
+        local buf = writer.Buffer()
+        local cfn = icl:full_name_get() .. "." .. fnn
+        if icl:is_same(cl) then
+            buf:write_b(cfn)
+        else
+            buf:write_link(fn:nspaces_get(icl, true), cfn)
+        end
+        t[#t + 1] = buf:finish()
+    end
+    f:write_list(t)
+end
+
+build_method = function(impl, cl)
+    local over = impl:is_overridden(cl)
+    local fn = impl:function_get()
+    local mns = fn:nspaces_get(cl)
+    local methn = cl:full_name_get() .. "." .. fn:name_get()
+    local f = writer.Writer(mns, methn)
+    printgen("Generating method: " .. methn)
+
+    write_inherited_from(f, impl, cl, over, false)
+
+    local doc = impl:doc_get(fn.METHOD)
+    if over and not doc:exists() then
+        doc = find_parent_doc(impl:full_name_get(), cl, fn.METHOD)
+    end
+
+    f:write_h("Signature", 2)
     f:write_code(gen_method_sig(fn, cl))
     f:write_nl()
 
-    f:write_h("C signature", 3)
-    f:write_code(gen_func_csig(fn), "c")
+    f:write_h("C signature", 2)
+    f:write_code(gen_func_csig(fn, nil), "c")
     f:write_nl()
 
-    local pars = fn:parameters_get():to_array()
+    local pars = fn:parameters_get()
     if #pars > 0 then
-        f:write_h("Parameters", 3)
+        f:write_h("Parameters", 2)
         build_parlist(f, pars)
         f:write_nl()
     end
 
-    f:write_h("Description", 3)
-    f:write_raw(dtree.Doc(fn:documentation_get(eolian.function_type.METHOD)):full_get(nil, true))
+    f:write_h("Description", 2)
+    f:write_raw(doc:full_get(nil, true))
+    f:write_nl()
+
+    f:write_editable(mns, "description")
+    f:write_nl()
+
+    write_ilist(f, impl, cl)
     f:write_nl()
 
     f:finish()
 end
 
-build_property = function(fn, cl)
-    local f = writer.Writer(eomap.gen_nsp_func(fn, cl))
+build_property = function(impl, cl)
+    local over = impl:is_overridden(cl)
+    local fn = impl:function_get()
+    local pns = fn:nspaces_get(cl)
+    local propn = cl:full_name_get() .. "." .. fn:name_get()
+    local f = writer.Writer(pns, propn)
+    printgen("Generating property: " .. propn)
 
-    local fts = eolian.function_type
-    local ft = fn:type_get()
-    local isget = (ft == fts.PROP_GET or ft == fts.PROPERTY)
-    local isset = (ft == fts.PROP_SET or ft == fts.PROPERTY)
+    write_inherited_from(f, impl, cl, over, true)
 
-    if isget then stats.check_property(fn, cl, fts.PROP_GET) end
-    if isset then stats.check_property(fn, cl, fts.PROP_SET) end
+    local pimp = fn:implement_get()
 
-    local doc = fn:documentation_get(fts.PROPERTY)
-    local gdoc = fn:documentation_get(fts.PROP_GET)
-    local sdoc = fn:documentation_get(fts.PROP_SET)
+    local isget = pimp:is_prop_get()
+    local isset = pimp:is_prop_set()
 
-    f:write_h(cl:full_name_get() .. "." .. fn:name_get(), 2)
+    local doc = impl:doc_get(fn.PROPERTY)
+    local gdoc = impl:doc_get(fn.PROP_GET)
+    local sdoc = impl:doc_get(fn.PROP_SET)
 
-    f:write_h("Signature", 3)
+    if over then
+        if not doc:exists() then
+            doc = find_parent_doc(impl:full_name_get(), cl, fn.PROPERTY)
+        end
+        if isget and not gdoc:exists() then
+            gdoc = find_parent_doc(impl:full_name_get(), cl, fn.PROP_GET)
+        end
+        if isset and not sdoc:exists() then
+            sdoc = find_parent_doc(impl:full_name_get(), cl, fn.PROP_SET)
+        end
+    end
+
+    f:write_h("Signature", 2)
     f:write_code(gen_prop_sig(fn, cl))
     f:write_nl()
 
-    f:write_h("C signature", 3)
+    f:write_h("C signature", 2)
     local codes = {}
     if isget then
-        codes[#codes + 1] = gen_func_csig(fn, fts.PROP_GET)
+        codes[#codes + 1] = gen_func_csig(fn, fn.PROP_GET)
     end
     if isset then
-        codes[#codes + 1] = gen_func_csig(fn, fts.PROP_SET)
+        codes[#codes + 1] = gen_func_csig(fn, fn.PROP_SET)
     end
     f:write_code(table.concat(codes, "\n"), "c")
     f:write_nl()
 
-    local pgkeys = isget and fn:property_keys_get(fts.PROP_GET):to_array() or {}
-    local pskeys = isset and fn:property_keys_get(fts.PROP_SET):to_array() or {}
+    local pgkeys = isget and fn:property_keys_get(fn.PROP_GET) or {}
+    local pskeys = isset and fn:property_keys_get(fn.PROP_SET) or {}
     build_vallist(f, pgkeys, pskeys, "Keys")
 
-    local pgvals = isget and fn:property_values_get(fts.PROP_GET):to_array() or {}
-    local psvals = isset and fn:property_values_get(fts.PROP_SET):to_array() or {}
+    local pgvals = isget and fn:property_values_get(fn.PROP_GET) or {}
+    local psvals = isset and fn:property_values_get(fn.PROP_SET) or {}
     build_vallist(f, pgvals, psvals, "Values")
 
     if isget and isset then
-        f:write_h("Description", 3)
-        if doc or (not gdoc and not sdoc) then
-            f:write_raw(dtree.Doc(doc):full_get(nil, true))
+        f:write_h("Description", 2)
+        if doc:exists() or (not gdoc:exists() and not sdoc:exists()) then
+            f:write_raw(doc:full_get(nil, true))
         end
-        if (isget and gdoc) or (isset and sdoc) then
+        if (isget and gdoc:exists()) or (isset and sdoc:exists()) then
             f:write_nl(2)
         end
+        f:write_editable(pns, "description")
+        f:write_nl()
     end
 
-    if isget and gdoc then
+    if isget and gdoc:exists() then
         if isset then
-            f:write_h("Getter", 4)
+            f:write_h("Getter", 3)
         else
-            f:write_h("Description", 3)
+            f:write_h("Description", 2)
         end
-        f:write_raw(dtree.Doc(gdoc):full_get(nil, true))
-        if isset and sdoc then
+        f:write_raw(gdoc:full_get(nil, true))
+        if isset and sdoc:exists() then
             f:write_nl(2)
+        end
+        if isset then
+            f:write_editable(pns, "getter_description")
+            f:write_nl()
         end
     end
 
-    if isset and sdoc then
+    if isset and sdoc:exists() then
         if isget then
-            f:write_h("Setter", 4)
+            f:write_h("Setter", 3)
         else
-            f:write_h("Description", 3)
+            f:write_h("Description", 2)
         end
-        f:write_raw(dtree.Doc(sdoc):full_get(nil, true))
+        f:write_raw(sdoc:full_get(nil, true))
+        if isget then
+            f:write_editable(pns, "getter_description")
+            f:write_nl()
+        end
     end
 
     f:write_nl()
+    if not isget or not isset then
+        f:write_editable(pns, "description")
+        f:write_nl()
+    end
+
+    write_ilist(f, impl, cl)
+    f:write_nl()
+
     f:finish()
 end
 
+local build_event_example = function(ev)
+    local evcn = ev:c_name_get()
+    local evcnl = evcn:lower()
+
+    local dtype = "Data *"
+
+    local tbl = { "static void\n" }
+    tbl[#tbl + 1] = "on_"
+    tbl[#tbl + 1] = evcnl
+    tbl[#tbl + 1] = "(void *data, const Efl_Event *event)\n{\n    "
+    tbl[#tbl + 1] = dtree.type_cstr_get(ev:type_get(), "info = event->info;\n")
+    tbl[#tbl + 1] = "    Eo *obj = event->object;\n    "
+    tbl[#tbl + 1] = dtree.type_cstr_get(dtype, "d = data;\n\n")
+    tbl[#tbl + 1] = "    /* event hander code */\n}\n\n"
+    tbl[#tbl + 1] = "static void\nsetup_event_handler(Eo *obj, "
+    tbl[#tbl + 1] = dtree.type_cstr_get(dtype, "d")
+    tbl[#tbl + 1] = ")\n{\n"
+    tbl[#tbl + 1] = "    efl_event_callback_add(obj, "
+    tbl[#tbl + 1] = evcn
+    tbl[#tbl + 1] = ", on_"
+    tbl[#tbl + 1] = evcnl
+    tbl[#tbl + 1] = ", d);\n}\n"
+
+    return table.concat(tbl)
+end
+
 build_event = function(ev, cl)
-    local f = writer.Writer(ev:nspaces_get(cl))
+    local evn = ev:nspaces_get(cl)
+    local evnm = cl:full_name_get() .. ": " .. ev:name_get()
+    local f = writer.Writer(evn, evnm)
+    printgen("Generating event: " .. evnm)
 
-    f:write_h(cl:full_name_get() .. ": " .. ev:name_get(), 2)
-
-    f:write_h("Signature", 3)
+    f:write_h("Signature", 2)
     local buf = { ev:name_get() }
 
-    if ev:scope_get() == eolian.object_scope.PRIVATE then
+    if ev:scope_get() == ev.scope.PRIVATE then
         buf[#buf + 1] = " @private"
-    elseif ev:scope_get() == eolian.object_scope.PROTECTED then
+    elseif ev:scope_get() == ev.scope.PROTECTED then
         buf[#buf + 1] = " @protected"
     end
 
@@ -1077,24 +1489,74 @@ build_event = function(ev, cl)
     local etp = ev:type_get()
     if etp then
         buf[#buf + 1] = ": "
-        buf[#buf + 1] = ser.get_type_str(etp)
+        buf[#buf + 1] = etp:serialize()
     end
 
     buf[#buf + 1] = ";"
     f:write_code(table.concat(buf))
     f:write_nl()
 
-    f:write_h("C signature", 3)
-    local cn = ev:c_name_get()
-    keyref.add(cn, "c")
-    f:write_code(ser.get_ctype_str(etp, cn) .. ";", "c")
+    f:write_h("C information", 2)
+    f:write_code(build_evcsig(ev), "c")
     f:write_nl()
 
-    f:write_h("Description", 3)
+    f:write_h("C usage", 2)
+    f:write_code(build_event_example(ev), "c")
+    f:write_nl()
+
+    f:write_h("Description", 2)
     f:write_raw(ev:doc_get():full_get(nil, true))
     f:write_nl()
 
+    f:write_editable(evn, "description")
+    f:write_nl()
+
     f:finish()
+end
+
+local build_stats_keyref = function()
+    for i, cl in ipairs(dtree.Class.all_get()) do
+        stats.check_class(cl)
+        keyref.add(cl:full_name_get():gsub("%.", "_"), cl:nspaces_get(), "c")
+        for i, imp in ipairs(cl:implements_get()) do
+            -- TODO: handle doc overrides in stats system
+            if not imp:is_overridden(cl) then
+                local func = imp:function_get()
+                local fns = func:nspaces_get(cl)
+                if imp:is_prop_get() or imp:is_prop_set() then
+                    if imp:is_prop_get() then
+                        stats.check_property(func, cl, func.PROP_GET)
+                        keyref.add(func:full_c_name_get(func.PROP_GET), fns, "c")
+                    end
+                    if imp:is_prop_set() then
+                        stats.check_property(func, cl, func.PROP_SET)
+                        keyref.add(func:full_c_name_get(func.PROP_SET), fns, "c")
+                    end
+                else
+                    stats.check_method(func, cl)
+                    keyref.add(func:full_c_name_get(func.METHOD), fns, "c")
+                end
+            end
+        end
+        for i, ev in ipairs(cl:events_get()) do
+            keyref.add(ev:c_name_get(), ev:nspaces_get(cl), "c")
+        end
+    end
+    for i, tp in ipairs(dtree.Typedecl.all_aliases_get()) do
+        stats.check_alias(tp)
+    end
+    for i, tp in ipairs(dtree.Typedecl.all_structs_get()) do
+        stats.check_struct(tp)
+    end
+    for i, tp in ipairs(dtree.Typedecl.all_enums_get()) do
+        stats.check_enum(tp)
+    end
+    for i, v in ipairs(dtree.Variable.all_constants_get()) do
+        stats.check_constant(v)
+    end
+    for i, v in ipairs(dtree.Variable.all_globals_get()) do
+        stats.check_global(v)
+    end
 end
 
 getopt.parse {
@@ -1105,6 +1567,7 @@ getopt.parse {
             callback = getopt.help_cb(io.stdout)
         },
         { "v", "verbose", false, help = "Be verbose." },
+        { "p", "print-gen", false, help = "Print what is being generated." },
 
         { category = "Generator" },
         { "r", "root", true, help = "Root path of the docs." },
@@ -1113,7 +1576,10 @@ getopt.parse {
         { nil, "graph-theme-light", false, help = "Use light builtin graph theme." },
         { nil, "disable-graphviz", false, help = "Disable graphviz usage." },
         { nil, "disable-notes", false, help = "Disable notes plugin usage." },
-        { nil, "disable-folded", false, help = "Disable folded plugin usage." }
+        { nil, "disable-folded", false, help = "Disable folded plugin usage." },
+        { nil, "disable-title", false, help = "Disable title plugin usage." },
+        { nil, "pass", true, help = "The pass to run (optional) "
+            .. "(rm, ref, clist, classes, types, vars, stats or class name)." }
     },
     error_cb = function(parser, msg)
         io.stderr:write(msg, "\n")
@@ -1123,6 +1589,9 @@ getopt.parse {
         if opts["h"] then
             return
         end
+        if opts["p"] then
+            printgen = function(...) print(...) end
+        end
         if opts["graph-theme-dark"] then
             current_theme = default_theme_light
         end
@@ -1130,7 +1599,7 @@ getopt.parse {
             set_theme(opts["graph-theme"])
         end
         local rootns = (not opts["n"] or opts["n"] == "")
-            and "efl" or opts["n"]
+            and "docs:efl" or opts["n"]
         local dr
         if not opts["r"] or opts["r"] == "" then
             dr = "dokuwiki/data/pages"
@@ -1138,39 +1607,64 @@ getopt.parse {
             dr = opts["r"]
         end
         dr = dutil.path_join(dr, dutil.nspace_to_path(rootns))
-        dutil.init(dr)
+        dutil.init(dr, rootns)
         if #args == 0 then
-            if not eolian.system_directory_scan() then
-                error("failed scanning system directory")
-            end
+            dtree.scan_directory()
         else
             for i, p in ipairs(args) do
-                if not eolian.directory_scan(p) then
-                    error("failed scanning directory: " .. p)
-                end
+                dtree.scan_directory(p)
             end
         end
-        if not eolian.all_eot_files_parse() then
-            error("failed parsing eo type files")
+
+        local st = opts["pass"]
+
+        dtree.parse(st)
+
+        if st == "clist" then
+            for i, cl in ipairs(dtree.Class.all_get()) do
+                print(cl:full_name_get())
+            end
+            return
         end
-        if not eolian.all_eo_files_parse() then
-            error("failed parsing eo files")
-        end
-        stats.init(not not opts["v"])
+
         local wfeatures = {
             notes = not opts["disable-notes"],
             folds = not opts["disable-folded"],
-            dot = not opts["disable-graphviz"]
+            dot = not opts["disable-graphviz"],
+            title = not opts["disable-title"]
         }
         writer.init(rootns, wfeatures)
-        dutil.rm_root()
-        dutil.mkdir_r(nil)
-        build_ref()
-        build_classes()
-        build_typedecls()
-        build_variables()
-        keyref.build()
-        stats.print()
+        if not st or st == "rm" then
+            dutil.rm_root()
+            dutil.mkdir_r(nil)
+        end
+        if not st or st == "ref" then
+            build_ref()
+        end
+        if not st or st == "classes" then
+            build_classes()
+        end
+        if st and st:match("%.") then
+            local cl = dtree.Class.by_name_get(st)
+            if cl then
+                build_class(cl)
+            end
+        end
+        if not st or st == "types" then
+            build_typedecls()
+        end
+        if not st or st == "vars" then
+            build_variables()
+        end
+
+        if not st or st == "stats" then
+            stats.init(not not opts["v"])
+            build_stats_keyref()
+            keyref.build()
+            -- newline if printing what's being generated
+            printgen()
+            stats.print()
+        end
     end
 }
 

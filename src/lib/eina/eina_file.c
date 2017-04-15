@@ -123,17 +123,6 @@ _eina_name_max(DIR *dirp)
    return name_max;
 }
 
-static size_t
-_eina_dirent_buffer_size(DIR *dirp)
-{
-   long name_max = _eina_name_max(dirp);
-   size_t name_end;
-
-   name_end = (size_t) offsetof(struct dirent, d_name) + name_max + 1;
-
-   return (name_end > sizeof (struct dirent) ? name_end : sizeof (struct dirent));
-}
-
 static Eina_Bool
 _eina_file_ls_iterator_next(Eina_File_Iterator *it, void **data)
 {
@@ -141,12 +130,9 @@ _eina_file_ls_iterator_next(Eina_File_Iterator *it, void **data)
    char *name;
    size_t length;
 
-   dp = alloca(_eina_dirent_buffer_size(it->dirp));
-
    do
      {
-        if (readdir_r(it->dirp, dp, &dp))
-          return EINA_FALSE;
+        dp = readdir(it->dirp);
         if (dp == NULL)
           return EINA_FALSE;
      }
@@ -203,14 +189,11 @@ _eina_file_direct_ls_iterator_next(Eina_File_Direct_Iterator *it, void **data)
    struct dirent *dp;
    size_t length;
 
-   dp = alloca(_eina_dirent_buffer_size(it->dirp));
-
    do
      {
-        if (readdir_r(it->dirp, dp, &dp))
-           return EINA_FALSE;
-        if (!dp)
-           return EINA_FALSE;
+        dp = readdir(it->dirp);
+        if (dp == NULL)
+          return EINA_FALSE;
 
 #ifdef _DIRENT_HAVE_D_NAMLEN
         length = dp->d_namlen;
@@ -327,10 +310,10 @@ _eina_file_map_close(Eina_File_Map *map)
 
 #ifndef MAP_POPULATE
 static unsigned int
-_eina_file_map_populate(char *map, unsigned int size, Eina_Bool hugetlb)
+_eina_file_map_populate(char *map, unsigned long int size, Eina_Bool hugetlb)
 {
    unsigned int r = 0xDEADBEEF;
-   unsigned int i;
+   unsigned long int i;
    unsigned int s;
 
    if (size == 0) return 0;
@@ -913,6 +896,16 @@ eina_file_refresh(Eina_File *file)
    file->inode = file_stat.st_ino;
 
    return r;
+}
+
+EAPI Eina_Bool
+eina_file_unlink(const char *pathname)
+{
+   if ( unlink(pathname) < 0)
+     {
+        return EINA_FALSE;
+     }
+   return EINA_TRUE;
 }
 
 EAPI void *

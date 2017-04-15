@@ -145,6 +145,7 @@ struct _Elm_Genlist_Data
    void                                 *filter_data;
    unsigned int                          processed_count;
    unsigned int                          filtered_count;
+   unsigned int                          top_level_parent_items;
    Ecore_Idle_Enterer                   *queue_filter_enterer;
    Eina_Hash                             *size_caches;
 
@@ -227,7 +228,7 @@ struct Elm_Gen_Item_Type
    Eina_List              *rel_revs; // FIXME: find better way not to use this
    Evas_Object            *deco_it_view;
    int                     expanded_depth;
-   int                     order_num_in;
+   int                     order_num_in; // Written by _item_order_update()
 
    Eina_Bool               decorate_all_item_realized : 1;
    Eina_Bool               tree_effect_finished : 1; /* tree effect */
@@ -254,6 +255,7 @@ struct _Item_Block
    EINA_INLIST;
 
    int                     count;
+   int                     vis_count;
    int                     num;
    int                     reorder_offset;
    Elm_Genlist_Data       *sd;
@@ -319,16 +321,14 @@ struct _Elm_Genlist_Filter
  * @}
  */
 
-#define GL_IT(_it) (_it->item)
-
 #define ELM_GENLIST_DATA_GET(o, sd) \
-  Elm_Genlist_Data * sd = eo_data_scope_get(o, ELM_GENLIST_CLASS)
+  Elm_Genlist_Data * sd = efl_data_scope_get(o, ELM_GENLIST_CLASS)
 
 #define ELM_GENLIST_DATA_GET_FROM_ITEM(it, sd) \
-  Elm_Genlist_Data * sd = GL_IT(it)->wsd
+  Elm_Genlist_Data * sd = it->item->wsd
 
 #define ELM_GENLIST_PAN_DATA_GET(o, sd) \
-  Elm_Genlist_Pan_Data * sd = eo_data_scope_get(o, ELM_GENLIST_PAN_CLASS)
+  Elm_Genlist_Pan_Data * sd = efl_data_scope_get(o, ELM_GENLIST_PAN_CLASS)
 
 #define ELM_GENLIST_DATA_GET_OR_RETURN(o, ptr)       \
   ELM_GENLIST_DATA_GET(o, ptr);                      \
@@ -349,7 +349,7 @@ struct _Elm_Genlist_Filter
     }
 
 #define ELM_GENLIST_CHECK(obj)                              \
-  if (EINA_UNLIKELY(!eo_isa((obj), ELM_GENLIST_CLASS))) \
+  if (EINA_UNLIKELY(!efl_isa((obj), ELM_GENLIST_CLASS))) \
     return
 
 #define ELM_GENLIST_ITEM_CHECK(it)                          \
@@ -362,10 +362,10 @@ struct _Elm_Genlist_Filter
 
 #define ELM_GENLIST_ITEM_CHECK_OR_GOTO(it, label)              \
   ELM_WIDGET_ITEM_CHECK_OR_GOTO(it->base, label); \
-  if (!it->base->widget || !eo_isa                              \
+  if (!it->base->widget || !efl_isa                              \
         ((it->base->widget), ELM_GENLIST_CLASS)) goto label;
 
 #define ELM_GENLIST_ITEM_DATA_GET(o, sd) \
-  Elm_Gen_Item* sd = eo_data_scope_get(o, ELM_GENLIST_ITEM_CLASS)
+  Elm_Gen_Item* sd = efl_data_scope_get(o, ELM_GENLIST_ITEM_CLASS)
 
 #endif

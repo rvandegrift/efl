@@ -42,7 +42,8 @@ typedef struct _Ecore_X_Version
 
 EAPI extern Ecore_X_Version *ecore_x_version;
 
-#include "ecore_x_version.h"
+//legacy this was earlier there to indicate if we are running under xlib or xcb
+#define HAVE_ECORE_X_XLIB 1
 
 #include <sys/types.h>
 
@@ -72,8 +73,8 @@ EAPI extern Ecore_X_Version *ecore_x_version;
  * @li @ref Ecore_X_Window_Parent_Group
  * @li @ref Ecore_X_Window_Shape
  *
- * When using the XLib backend, setting the ECORE_X_SYNC environment variable
- * will cause X calls to be run synchronously for easier debugging.
+ * The ECORE_X_SYNC environment variable will cause X calls to be run
+ * synchronously for easier debugging.
  */
 
 typedef unsigned int   Ecore_X_ID;
@@ -89,11 +90,7 @@ typedef struct _Ecore_X_Icon
 #endif // ifndef _ECORE_X_WINDOW_PREDEF
 typedef void          *Ecore_X_Visual;
 typedef Ecore_X_ID     Ecore_X_Drawable;
-#ifdef HAVE_ECORE_X_XCB
-typedef Ecore_X_ID     Ecore_X_GC;
-#else // ifdef HAVE_ECORE_X_XCB
 typedef void          *Ecore_X_GC;
-#endif /* HAVE_ECORE_X_XCB */
 typedef Ecore_X_ID     Ecore_X_Colormap;
 typedef Ecore_X_ID     Ecore_X_Time;
 typedef Ecore_X_ID     Ecore_X_Cursor;
@@ -1118,7 +1115,7 @@ struct Ecore_X_Event_Present_Idle
 }; /**< @since 1.9 */
 
 EAPI extern int ECORE_X_EVENT_ANY; /**< low level event dependent on
-                                        backend in use, if Xlib will be XEvent, if XCB will be xcb_generic_event_t.
+                                        backend in use, will be XEvent.
                                         @warning avoid using it.
                                     */
 EAPI extern int ECORE_X_EVENT_MOUSE_IN;
@@ -1382,6 +1379,26 @@ typedef enum _Ecore_X_Illume_Window_State
    ECORE_X_ILLUME_WINDOW_STATE_NORMAL = 0,
    ECORE_X_ILLUME_WINDOW_STATE_FLOATING
 } Ecore_X_Illume_Window_State;
+
+#ifdef EFL_BETA_API_SUPPORT
+// XXX: FIXME: re-evaluate this after looking at xdg foreign in wayland
+typedef enum _Ecore_X_Stack_Type
+{
+   ECORE_X_STACK_NONE = 0,
+   ECORE_X_STACK_BASE = 1,
+   ECORE_X_STACK_STANDARD,
+   ECORE_X_STACK_LAST
+} Ecore_X_Stack_Type;
+
+typedef enum _Ecore_X_Stack_Position
+{
+   ECORE_X_STACK_POSITION_NONE = 0,
+   ECORE_X_STACK_POSITION_BOTTOM = 1,
+   ECORE_X_STACK_POSITION_MIDDLE,
+   ECORE_X_STACK_POSITION_TOP,
+   ECORE_X_STACK_POSITION_LAST
+} Ecore_X_Stack_Position;
+#endif
 
 /* Window layer constants */
 #define ECORE_X_WINDOW_LAYER_BELOW  2
@@ -2742,6 +2759,14 @@ EAPI Eina_Bool                             ecore_x_window_keygrab_unset(Ecore_X_
 //this API for keyrouter protocol
 EAPI void                                  ecore_x_e_keyrouter_set(Ecore_X_Window root, Eina_Bool on); /**< @since 1.15 */ //Key router set keyrouter flag using this
 EAPI Eina_Bool                             ecore_x_e_keyrouter_get(Ecore_X_Window root); /**< @since 1.15 */ //Client check the existance of keyrouter using this
+
+#ifdef EFL_BETA_API_SUPPORT
+// XXX: FIXME: re-evaluate this after looking at xdg foreign in wayland
+EAPI void                                  ecore_x_e_stack_type_set(Ecore_X_Window win, Ecore_X_Stack_Type stack_type);
+EAPI Ecore_X_Stack_Type                    ecore_x_e_stack_type_get(Ecore_X_Window win);
+EAPI void                                  ecore_x_e_stack_position_set(Ecore_X_Window win, Ecore_X_Stack_Position stack_position);
+EAPI Ecore_X_Stack_Position                ecore_x_e_stack_position_get(Ecore_X_Window win);
+#endif
 
 #include <Ecore_X_Atoms.h>
 #include <Ecore_X_Cursor.h>

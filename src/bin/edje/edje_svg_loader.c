@@ -680,10 +680,12 @@ _attr_parse_svg_node(void *data, const char *key, const char *value)
      }
    else if (!strcmp(key, "viewBox"))
      {
-        if (_parse_number(&value, &doc->vx))
-          if (_parse_number(&value, &doc->vy))
-            if (_parse_number(&value, &doc->vw))
-              _parse_number(&value, &doc->vh);
+
+        if (!_parse_number(&value, &doc->vx) && !_parse_number(&value, &doc->vy) &&
+            !_parse_number(&value, &doc->vw) && !_parse_number(&value, &doc->vh))
+          {
+             return EINA_FALSE;
+	  }
      }
    else if (!strcmp(key, "style"))
      {
@@ -1114,6 +1116,7 @@ _attr_parse_polygon_points(const char *str, double **points, int *point_count)
              point_array = realloc(point_array, (count + tmp_count) * sizeof(double));
              memcpy(&point_array[count], tmp, tmp_count * sizeof(double));
              count += tmp_count;
+             tmp_count = 0;
           }
      }
 
@@ -1230,8 +1233,8 @@ _attr_parse_rect_node(void *data, const char *key, const char *value)
         _parse_style_attr(node, key, value);
      }
 
-   if (rect->rx != 0 && rect->ry == 0) rect->ry = rect->rx;
-   if (rect->ry != 0 && rect->rx == 0) rect->rx = rect->ry;
+   if (!EINA_DBL_EQ(rect->rx, 0) && EINA_DBL_EQ(rect->ry, 0)) rect->ry = rect->rx;
+   if (!EINA_DBL_EQ(rect->ry, 0) && EINA_DBL_EQ(rect->rx, 0)) rect->rx = rect->ry;
 
    return EINA_TRUE;
 }
@@ -1733,7 +1736,7 @@ _evas_svg_loader_xml_open_parser(Evas_SVG_Loader *loader,
    const char *attrs = NULL;
    int attrs_length = 0;
    int sz = length;
-   char tag_name[20];
+   char tag_name[20] = "";
    Factory_Method method;
    Gradient_Factory_Method gradient_method;
    Svg_Node *node = NULL, *parent;
@@ -1853,6 +1856,7 @@ _evas_svg_loader_parser(void *data, Eina_Simple_XML_Type type,
          break;
       case EINA_SIMPLE_XML_OPEN_EMPTY:
          _evas_svg_loader_xml_open_parser(loader, content, length);
+         break;
       case EINA_SIMPLE_XML_CLOSE:
          _evas_svg_loader_xml_close_parser(loader, content, length);
          break;

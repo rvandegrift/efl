@@ -378,6 +378,9 @@ check_image_part_desc(Edje_Part_Collection *pc, Edje_Part *ep,
                       Edje_Part_Description_Image *epd, Eet_File *ef)
 {
    unsigned int i;
+   Edje_Part_Collection_Parser *pcp = (Edje_Part_Collection_Parser *)pc;
+
+   if (pcp->inherit_only) return;
 
    if (epd->image.id == -1 && epd->common.visible)
      WRN("Collection %s(%i): image attributes missing for "
@@ -657,6 +660,31 @@ check_program(Edje_Part_Collection *pc, Edje_Program *ep, Eet_File *ef)
      }
 }
 
+/* reset part counters for alias */
+static void
+_alias_clean(Edje_Part_Collection_Directory_Entry *ce)
+{
+   if (ce)
+     {
+         ce->count.RECTANGLE = 0;
+         ce->count.TEXT = 0;
+         ce->count.IMAGE = 0;
+         ce->count.SWALLOW = 0;
+         ce->count.TEXTBLOCK = 0;
+         ce->count.GROUP = 0;
+         ce->count.BOX = 0;
+         ce->count.TABLE = 0;
+         ce->count.EXTERNAL = 0;
+         ce->count.PROXY = 0;
+         ce->count.MESH_NODE = 0;
+         ce->count.LIGHT = 0;
+         ce->count.CAMERA = 0;
+         ce->count.SPACER = 0;
+         ce->count.VECTOR = 0;
+         ce->count.part = 0;
+     }
+}
+
 static void
 data_thread_head(void *data, Ecore_Thread *thread EINA_UNUSED)
 {
@@ -696,6 +724,7 @@ data_thread_head(void *data, Ecore_Thread *thread EINA_UNUSED)
                        return;
                     }
 
+                  _alias_clean(ce);
 		  eina_hash_direct_add(edje_file->collection, ce->entry, ce);
 	       }
 	  }
@@ -757,6 +786,7 @@ data_thread_fonts(void *data, Ecore_Thread *thread EINA_UNUSED)
    int bytes = 0;
    char buf[EINA_PATH_MAX];
    char buf2[EINA_PATH_MAX];
+   size_t size;
 
    f = eina_file_open(fc->fn->file, 0);
    if (f)
@@ -806,9 +836,10 @@ data_thread_fonts(void *data, Ecore_Thread *thread EINA_UNUSED)
         return;
      }
 
+   size = eina_file_size_get(f);
    INF("Wrote %9i bytes (%4iKb) for \"%s\" font entry \"%s\" compress: [real: %2.1f%%]",
        bytes, (bytes + 512) / 1024, buf, fc->fn->file,
-       100 - (100 * (double)bytes) / ((double)(eina_file_size_get(f)))
+       100 - (100 * (double)bytes) / ((double)((size > 0) ? size : 1))
        );
    eina_file_map_free(f, m);
    eina_file_close(f);
@@ -1291,6 +1322,7 @@ data_write_images(Eet_File *ef, int *image_num)
    int i;
    Ecore_Evas *ee;
    Evas *evas;
+   const char *ext = NULL;
 
    if (!((edje_file) && (edje_file->image_dir))) return;
 
@@ -1316,7 +1348,7 @@ data_write_images(Eet_File *ef, int *image_num)
         if (img->source_type == EDJE_IMAGE_SOURCE_TYPE_INLINE_LOSSY_ETC1 ||
             img->source_type == EDJE_IMAGE_SOURCE_TYPE_INLINE_LOSSY_ETC2)
           {
-             const char *ext = strrchr(img->entry, '.');
+             ext = strrchr(img->entry, '.');
              if (ext && !strcasecmp(ext, ".tgv"))
                {
                   if (tgv_file_check_and_add(ef, img, image_num))
@@ -1379,6 +1411,35 @@ data_write_images(Eet_File *ef, int *image_num)
                   error_and_abort_image_load_error(ef, img->entry, load_err);
                   exit(1); // ensure static analysis tools know we exit
                }
+          }
+        if (img->source_type != EDJE_IMAGE_SOURCE_TYPE_EXTERNAL)
+          {
+             ext = strrchr(img->entry, '.');
+             if (ext && (!strcasecmp(ext, ".svg") || !strcasecmp(ext, ".svgz")))
+               {
+                  int size = strlen(img->entry) + strlen(".png") + 1;
+                  char *tmp = malloc(size);
+                  snprintf(tmp, size, "%s.png", img->entry);
+                  INF("Vector '%s' used as image, convert to bitmap '%s'", img->entry, tmp);
+                  free((void *)img->entry);
+                  img->entry = tmp;
+               }
+          }
+     }
+
+   for (i = 0; i < (int)edje_file->image_dir->sets_count; i++)
+     {
+        Edje_Image_Directory_Set *set;
+        Edje_Image_Directory_Set_Entry *set_entry;
+        Edje_Image_Directory_Entry *img;
+        Eina_List *ll = NULL;
+
+        set = edje_file->image_dir->sets + i;
+        if (!set->entries) continue;
+        EINA_LIST_FOREACH(set->entries, ll, set_entry)
+          {
+             img = &edje_file->image_dir->entries[set_entry->id];
+             set_entry->name = img->entry;
           }
      }
 }
@@ -1691,7 +1752,7 @@ data_write_mo(Eet_File *ef, int *mo_num)
                               }
                          }
                        else
-                         error_and_abort(mw->ef, "Invalid .po file.");
+                         error_and_abort(mw->ef, "Invalid .po file \"%s\".", po_path);
                     }
                   free(mw);
                }
@@ -2162,6 +2223,7 @@ data_write_scripts(Eet_File *ef)
 #else
 # define BIN_EXT
 #endif
+#ifdef NEED_RUN_IN_TREE
      if (getenv("EFL_RUN_IN_TREE"))
        {
           snprintf(embryo_cc_path, sizeof(embryo_cc_path),
@@ -2172,6 +2234,7 @@ data_write_scripts(Eet_File *ef)
           if (!ecore_file_exists(embryo_cc_path))
             embryo_cc_path[0] = '\0';
        }
+#endif
 
      if (embryo_cc_path[0] == '\0')
        {
@@ -2615,7 +2678,6 @@ data_write(void)
 
    pending_threads++;
    t = ecore_time_get();
-   data_write_header(ef);
 
    INF("header: %3.5f", ecore_time_get() - t); t = ecore_time_get();
    data_write_groups(ef, &collection_num);
@@ -2676,6 +2738,7 @@ data_write(void)
    pending_threads--;
    if (pending_threads > 0) ecore_main_loop_begin();
    INF("THREADS: %3.5f", ecore_time_get() - t);
+   data_write_header(ef);
 
    err = eet_close(ef);
    if (err)
@@ -3184,7 +3247,7 @@ copied_program_lookup_delete(Edje_Part_Collection *pc, const char *name)
      }
 }
 
-void
+Eina_Bool
 data_queue_copied_program_lookup(Edje_Part_Collection *pc, int *src, int *dest)
 {
    Eina_List *l;
@@ -3193,8 +3256,12 @@ data_queue_copied_program_lookup(Edje_Part_Collection *pc, int *src, int *dest)
    EINA_LIST_FOREACH(program_lookups, l, pl)
      {
         if (pl->dest == src)
-          data_queue_program_lookup(pc, pl->u.name, dest);
+          {
+             data_queue_program_lookup(pc, pl->u.name, dest);
+             return EINA_TRUE;
+          }
      }
+   return EINA_FALSE;
 }
 
 void
@@ -3592,7 +3659,12 @@ data_process_lookups(void)
           }
         find = eina_hash_find(edje_file->collection, pc->part);
         if (find && find->id == pc->id)
-          continue ;
+          {
+             if ( ((Edje_Part_Collection_Parser*)pc)->inherit_only)
+               eina_hash_del_by_data(edje_file->collection, find);
+             else
+               continue ;
+          }
 
         EINA_LIST_FOREACH(aliases, l3, alias)
           if (alias->id == pc->id)
@@ -3885,7 +3957,7 @@ free_group:
    if (edje_file->image_dir && !is_lua)
      {
         Edje_Image_Directory_Entry *de, *de_last, *img;
-        Edje_Image_Directory_Set *set;
+        Edje_Image_Directory_Set *set, *set_last, *set_realloc;
         Edje_Image_Directory_Set_Entry *set_e;
         Eina_List *images_unused_list = NULL;
         unsigned int i;
@@ -3933,6 +4005,19 @@ free_group:
                   free((void *)set_e->name);
                   free(set_e);
                }
+             set->entries = NULL;
+             set_last = edje_file->image_dir->sets + edje_file->image_dir->sets_count - 1;
+             iui = mem_alloc(SZ(Image_Unused_Ids));
+             iui->old_id = set_last->id;
+             images_unused_list = eina_list_append(images_unused_list, iui);
+             iui->new_id = i;
+             set_last->id = i;
+              memcpy(set, set_last, sizeof(Edje_Image_Directory_Set));
+             --i;
+             edje_file->image_dir->sets_count--;
+             set_realloc = realloc(edje_file->image_dir->sets,
+                                   sizeof(Edje_Image_Directory_Set) * edje_file->image_dir->sets_count);
+             edje_file->image_dir->sets = set_realloc;
           }
 
         /* update image id in parts */

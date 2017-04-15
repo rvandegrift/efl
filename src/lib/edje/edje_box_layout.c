@@ -166,7 +166,7 @@ _edje_box_recalc_apply(Edje *ed EINA_UNUSED, Edje_Real_Part *ep, Edje_Calc_Param
    if ((ep->type != EDJE_RP_TYPE_CONTAINER) ||
        (!ep->typedata.container)) return;
 
-   if ((ep->param2) && (ep->description_pos != ZERO))
+   if ((ep->param2) && (NEQ(ep->description_pos, ZERO)))
      {
         Edje_Part_Description_Box *param2_desc = (Edje_Part_Description_Box *)ep->param2->description;
         if (ep->typedata.container->anim->end.layout == NULL)
@@ -177,7 +177,7 @@ _edje_box_recalc_apply(Edje *ed EINA_UNUSED, Edje_Real_Part *ep, Edje_Calc_Param
              ep->typedata.container->anim->end.align.x = param2_desc->box.align.x;
              ep->typedata.container->anim->end.align.y = param2_desc->box.align.y;
 
-             priv = eo_data_scope_get(ep->object, EVAS_BOX_CLASS);
+             priv = efl_data_scope_get(ep->object, EVAS_BOX_CLASS);
              if (priv == NULL)
                return;
 

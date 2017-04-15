@@ -21,8 +21,6 @@
 #define MY_CLASS_NAME "Elm_Popup"
 #define MY_CLASS_NAME_LEGACY "elm_popup"
 
-#define ELM_POPUP_ACTION_BUTTON_MAX 3
-
 static void _button_remove(Evas_Object *, int, Eina_Bool);
 
 static const char ACCESS_TITLE_PART[] = "access.title";
@@ -49,10 +47,10 @@ static const Evas_Smart_Cb_Description _smart_callbacks[] = {
 static Eina_Bool _key_action_move(Evas_Object *obj, const char *params);
 static Eina_Bool _key_action_escape(Evas_Object *obj, const char *params);
 static void _parent_geom_cb(void *data, Evas *e EINA_UNUSED, Evas_Object *obj, void *event_info EINA_UNUSED);
-static void _block_clicked_cb(void *data, const Eo_Event *event);
-static void _timeout_cb(void *data, const Eo_Event *event);
+static void _block_clicked_cb(void *data, const Efl_Event *event);
+static void _timeout_cb(void *data, const Efl_Event *event);
 
-static void _hide_effect_finished_cb(void *data, const Eo_Event *event);
+static void _hide_effect_finished_cb(void *data, const Efl_Event *event);
 
 static const Elm_Action key_actions[] = {
    {"move", _key_action_move},
@@ -60,7 +58,7 @@ static const Elm_Action key_actions[] = {
    {NULL, NULL}
 };
 
-EO_CALLBACKS_ARRAY_DEFINE(_notify_cb,
+EFL_CALLBACKS_ARRAY_DEFINE(_notify_cb,
    { ELM_NOTIFY_EVENT_BLOCK_CLICKED, _block_clicked_cb },
    { ELM_NOTIFY_EVENT_TIMEOUT, _timeout_cb },
    { ELM_NOTIFY_EVENT_DISMISSED, _hide_effect_finished_cb }
@@ -77,7 +75,7 @@ _elm_popup_elm_widget_translate(Eo *obj EINA_UNUSED, Elm_Popup_Data *sd)
    EINA_LIST_FOREACH(sd->items, l, it)
       elm_wdg_item_translate(EO_OBJ(it));
 
-   elm_obj_widget_translate(eo_super(obj, MY_CLASS));
+   elm_obj_widget_translate(efl_super(obj, MY_CLASS));
    elm_obj_widget_translate(sd->main_layout);
 
    return EINA_TRUE;
@@ -94,7 +92,10 @@ _visuals_set(Evas_Object *obj)
      elm_layout_signal_emit(sd->main_layout, "elm,state,title_area,visible", "elm");
 
    if (sd->action_area)
-     elm_layout_signal_emit(sd->main_layout, "elm,state,action_area,visible", "elm");
+     {
+        elm_layout_signal_emit(sd->main_layout, "elm,state,action_area,visible", "elm");
+        evas_object_show(sd->action_area);
+     }
    else
      elm_layout_signal_emit(sd->main_layout, "elm,state,action_area,hidden", "elm");
 
@@ -102,22 +103,23 @@ _visuals_set(Evas_Object *obj)
 }
 
 static void
-_block_clicked_cb(void *data, const Eo_Event *event EINA_UNUSED)
+_block_clicked_cb(void *data, const Efl_Event *event EINA_UNUSED)
 {
-   eo_event_callback_call(data, ELM_POPUP_EVENT_BLOCK_CLICKED, NULL);
+   efl_event_callback_legacy_call(data, ELM_POPUP_EVENT_BLOCK_CLICKED, NULL);
 }
 
 static void
-_timeout_cb(void *data, const Eo_Event *event EINA_UNUSED)
+_timeout_cb(void *data, const Efl_Event *event EINA_UNUSED)
 {
    evas_object_hide(data);
-   eo_event_callback_call(data, ELM_POPUP_EVENT_TIMEOUT, NULL);
+   efl_event_callback_legacy_call(data, ELM_POPUP_EVENT_TIMEOUT, NULL);
 }
 
 static void
-_hide_effect_finished_cb(void *data, const Eo_Event *event EINA_UNUSED)
+_hide_effect_finished_cb(void *data, const Efl_Event *event EINA_UNUSED)
 {
-   eo_event_callback_call(data, ELM_POPUP_EVENT_DISMISSED, NULL);
+   efl_event_callback_legacy_call(data, ELM_POPUP_EVENT_DISMISSED, NULL);
+   efl_gfx_visible_set(data, EINA_FALSE);
 }
 
 
@@ -233,7 +235,7 @@ _elm_popup_efl_canvas_group_group_del(Eo *obj, Elm_Popup_Data *sd)
    evas_object_event_callback_del_full(sd->parent, EVAS_CALLBACK_MOVE, _parent_geom_cb, obj);
    evas_object_event_callback_del_full(sd->notify, EVAS_CALLBACK_RESIZE, _notify_resize_cb, obj);
 
-   eo_event_callback_array_del(sd->notify, _notify_cb(), obj);
+   efl_event_callback_array_del(sd->notify, _notify_cb(), obj);
    evas_object_event_callback_del
      (sd->content, EVAS_CALLBACK_DEL, _on_content_del);
    evas_object_event_callback_del(obj, EVAS_CALLBACK_SHOW, _on_show);
@@ -268,7 +270,7 @@ _elm_popup_efl_canvas_group_group_del(Eo *obj, Elm_Popup_Data *sd)
    ELM_SAFE_FREE(sd->content, evas_object_del);
    ELM_SAFE_FREE(sd->title_text, eina_stringshare_del);
 
-   efl_canvas_group_del(eo_super(obj, MY_CLASS));
+   efl_canvas_group_del(efl_super(obj, MY_CLASS));
 }
 
 static void
@@ -466,9 +468,9 @@ _elm_popup_elm_layout_sizing_eval(Eo *obj, Elm_Popup_Data *sd)
         elm_popup_align_get(obj, &horizontal, &vertical);
         evas_object_geometry_get(sd->parent, NULL, NULL, &w, &h);
 
-        if (horizontal == ELM_NOTIFY_ALIGN_FILL)
+        if (EINA_DBL_EQ(horizontal, ELM_NOTIFY_ALIGN_FILL))
           minw = w;
-        if (vertical == ELM_NOTIFY_ALIGN_FILL)
+        if (EINA_DBL_EQ(vertical, ELM_NOTIFY_ALIGN_FILL))
           minh = h;
         edje_object_size_min_restricted_calc(elm_layout_edje_get(sd->content_area),
                                              &minw, &minh, minw, minh);
@@ -501,7 +503,7 @@ _elm_popup_elm_widget_sub_object_del(Eo *obj, Elm_Popup_Data *sd, Evas_Object *s
    Elm_Popup_Item_Data *it;
    Eina_Bool int_ret = EINA_FALSE;
 
-   int_ret = elm_obj_widget_sub_object_del(eo_super(obj, MY_CLASS), sobj);
+   int_ret = elm_obj_widget_sub_object_del(efl_super(obj, MY_CLASS), sobj);
    if (!int_ret) return EINA_FALSE;
 
    if (sobj == sd->title_icon)
@@ -854,7 +856,7 @@ _elm_popup_item_elm_widget_item_disable(Eo *eo_it, Elm_Popup_Item_Data *it)
 }
 
 EOLIAN static void
-_elm_popup_item_eo_base_destructor(Eo *eo_it, Elm_Popup_Item_Data *it)
+_elm_popup_item_efl_object_destructor(Eo *eo_it, Elm_Popup_Item_Data *it)
 {
    ELM_POPUP_ITEM_CHECK_OR_RETURN(it);
    ELM_POPUP_DATA_GET(WIDGET(it), sd);
@@ -867,7 +869,7 @@ _elm_popup_item_eo_base_destructor(Eo *eo_it, Elm_Popup_Item_Data *it)
         sd->items = NULL;
         _list_del(sd);
      }
-   eo_destructor(eo_super(eo_it, ELM_POPUP_ITEM_CLASS));
+   efl_destructor(efl_super(eo_it, ELM_POPUP_ITEM_CLASS));
 }
 
 EOLIAN static void
@@ -879,26 +881,26 @@ _elm_popup_item_elm_widget_item_signal_emit(Eo *eo_it EINA_UNUSED, Elm_Popup_Ite
 }
 
 static void
-_item_focused_cb(void *data, const Eo_Event *event EINA_UNUSED)
+_item_focused_cb(void *data, const Efl_Event *event EINA_UNUSED)
 {
    Elm_Popup_Item_Data *it = data;
 
-   eo_event_callback_call(WIDGET(it), ELM_POPUP_EVENT_ITEM_FOCUSED, EO_OBJ(it));
+   efl_event_callback_legacy_call(WIDGET(it), ELM_POPUP_EVENT_ITEM_FOCUSED, EO_OBJ(it));
 }
 
 static void
-_item_unfocused_cb(void *data, const Eo_Event *event EINA_UNUSED)
+_item_unfocused_cb(void *data, const Efl_Event *event EINA_UNUSED)
 {
    Elm_Popup_Item_Data *it = data;
 
-   eo_event_callback_call(WIDGET(it), ELM_POPUP_EVENT_ITEM_UNFOCUSED, EO_OBJ(it));
+   efl_event_callback_legacy_call(WIDGET(it), ELM_POPUP_EVENT_ITEM_UNFOCUSED, EO_OBJ(it));
 }
 
 EOLIAN static Eo *
-_elm_popup_item_eo_base_constructor(Eo *eo_it, Elm_Popup_Item_Data *it)
+_elm_popup_item_efl_object_constructor(Eo *eo_it, Elm_Popup_Item_Data *it)
 {
-   eo_it = eo_constructor(eo_super(eo_it, ELM_POPUP_ITEM_CLASS));
-   it->base = eo_data_scope_get(eo_it, ELM_WIDGET_ITEM_CLASS);
+   eo_it = efl_constructor(efl_super(eo_it, ELM_POPUP_ITEM_CLASS));
+   it->base = efl_data_scope_get(eo_it, ELM_WIDGET_ITEM_CLASS);
 
    return eo_it;
 }
@@ -919,9 +921,9 @@ _item_new(Elm_Popup_Item_Data *it)
         elm_layout_signal_callback_add(VIEW(it), "elm,action,click", "*",
                                        _item_select_cb, it);
         evas_object_size_hint_align_set(VIEW(it), EVAS_HINT_FILL, EVAS_HINT_FILL);
-        eo_event_callback_add
+        efl_event_callback_add
               (VIEW(it), ELM_WIDGET_EVENT_FOCUSED, _item_focused_cb, it);
-        eo_event_callback_add
+        efl_event_callback_add
               (VIEW(it), ELM_WIDGET_EVENT_UNFOCUSED, _item_unfocused_cb, it);
         evas_object_show(VIEW(it));
      }
@@ -1132,6 +1134,7 @@ _content_set(Evas_Object *obj,
         else
           elm_object_content_set(sd->scr, sd->content_area);
 
+        evas_object_show(content);
         efl_content_set(efl_part(sd->content_area, CONTENT_PART), content);
 
         evas_object_event_callback_add
@@ -1198,6 +1201,7 @@ _action_button_set(Evas_Object *obj,
      CRI("Failed to set layout!");
 
    snprintf(buf, sizeof(buf), "elm.swallow.content.button%i", idx + 1);
+   evas_object_show(sd->buttons[idx]->btn);
    elm_object_part_content_set
      (sd->action_area, buf, sd->buttons[idx]->btn);
 }
@@ -1467,7 +1471,7 @@ _key_action_escape(Evas_Object *obj, const char *params EINA_UNUSED)
 }
 
 EOLIAN static Eina_Bool
-_elm_popup_elm_widget_event(Eo *obj, Elm_Popup_Data *_pd EINA_UNUSED, Evas_Object *src, Evas_Callback_Type type, void *event_info)
+_elm_popup_elm_widget_widget_event(Eo *obj, Elm_Popup_Data *_pd EINA_UNUSED, Evas_Object *src, Evas_Callback_Type type, void *event_info)
 {
    (void)src;
    Evas_Event_Key_Down *ev = event_info;
@@ -1487,7 +1491,7 @@ _elm_popup_efl_canvas_group_group_add(Eo *obj, Elm_Popup_Data *priv)
 {
    char style[1024];
 
-   efl_canvas_group_add(eo_super(obj, MY_CLASS));
+   efl_canvas_group_add(efl_super(obj, MY_CLASS));
    elm_widget_sub_object_parent_add(obj);
 
    snprintf(style, sizeof(style), "popup/%s", elm_widget_style_get(obj));
@@ -1534,7 +1538,7 @@ _elm_popup_efl_canvas_group_group_add(Eo *obj, Elm_Popup_Data *priv)
          _size_hints_changed_cb, priv->main_layout);
 
    priv->content_text_wrap_type = ELM_WRAP_MIXED;
-   eo_event_callback_array_add(priv->notify, _notify_cb(), obj);
+   efl_event_callback_array_add(priv->notify, _notify_cb(), obj);
 
    elm_widget_can_focus_set(obj, EINA_TRUE);
    elm_widget_can_focus_set(priv->main_layout, EINA_TRUE);
@@ -1555,7 +1559,7 @@ _parent_geom_cb(void *data, Evas *e EINA_UNUSED, Evas_Object *obj, void *event_i
 
    evas_object_geometry_get(obj, &x, &y, &w, &h);
 
-   if (eo_isa(obj, EFL_UI_WIN_CLASS))
+   if (efl_isa(obj, EFL_UI_WIN_CLASS))
      {
         x = 0;
         y = 0;
@@ -1571,7 +1575,7 @@ _elm_popup_elm_widget_widget_parent_set(Eo *obj, Elm_Popup_Data *sd, Evas_Object
    Evas_Coord x, y, w, h;
    evas_object_geometry_get(parent, &x, &y, &w, &h);
 
-   if (eo_isa(parent, EFL_UI_WIN_CLASS))
+   if (efl_isa(parent, EFL_UI_WIN_CLASS))
      {
         x = 0;
         y = 0;
@@ -1594,7 +1598,7 @@ EAPI Evas_Object *
 elm_popup_add(Evas_Object *parent)
 {
    EINA_SAFETY_ON_NULL_RETURN_VAL(parent, NULL);
-   Evas_Object *obj = eo_add(MY_CLASS, parent);
+   Evas_Object *obj = efl_add(MY_CLASS, parent);
 
    ELM_WIDGET_DATA_GET_OR_RETURN(obj, wd, NULL);
    wd->highlight_root = EINA_TRUE;
@@ -1603,9 +1607,9 @@ elm_popup_add(Evas_Object *parent)
 }
 
 EOLIAN static Eo *
-_elm_popup_eo_base_constructor(Eo *obj, Elm_Popup_Data *_pd EINA_UNUSED)
+_elm_popup_efl_object_constructor(Eo *obj, Elm_Popup_Data *_pd EINA_UNUSED)
 {
-   obj = eo_constructor(eo_super(obj, MY_CLASS));
+   obj = efl_constructor(efl_super(obj, MY_CLASS));
    efl_canvas_object_type_set(obj, MY_CLASS_NAME_LEGACY);
    evas_object_smart_callbacks_descriptions_set(obj, _smart_callbacks);
    elm_interface_atspi_accessible_role_set(obj, ELM_ATSPI_ROLE_NOTIFICATION);
@@ -1641,23 +1645,23 @@ _elm_notify_orient_get(const Evas_Object *obj)
 
    elm_notify_align_get(obj, &horizontal, &vertical);
 
-   if ((horizontal == 0.5) && (vertical == 0.0))
+   if ((EINA_DBL_EQ(horizontal, 0.5)) && (EINA_DBL_EQ(vertical, 0.0)))
      orient = ELM_NOTIFY_ORIENT_TOP;
-   else if ((horizontal == 0.5) && (vertical == 0.5))
+   else if ((EINA_DBL_EQ(horizontal, 0.5)) && (EINA_DBL_EQ(vertical, 0.5)))
      orient = ELM_NOTIFY_ORIENT_CENTER;
-   else if ((horizontal == 0.5) && (vertical == 1.0))
+   else if ((EINA_DBL_EQ(horizontal, 0.5)) && (EINA_DBL_EQ(vertical, 1.0)))
      orient = ELM_NOTIFY_ORIENT_BOTTOM;
-   else if ((horizontal == 0.0) && (vertical == 0.5))
+   else if ((EINA_DBL_EQ(horizontal, 0.0)) && (EINA_DBL_EQ(vertical, 0.5)))
      orient = ELM_NOTIFY_ORIENT_LEFT;
-   else if ((horizontal == 1.0) && (vertical == 0.5))
+   else if ((EINA_DBL_EQ(horizontal, 1.0)) && (EINA_DBL_EQ(vertical, 0.5)))
      orient = ELM_NOTIFY_ORIENT_RIGHT;
-   else if ((horizontal == 0.0) && (vertical == 0.0))
+   else if ((EINA_DBL_EQ(horizontal, 0.0)) && (EINA_DBL_EQ(vertical, 0.0)))
      orient = ELM_NOTIFY_ORIENT_TOP_LEFT;
-   else if ((horizontal == 1.0) && (vertical == 0.0))
+   else if ((EINA_DBL_EQ(horizontal, 1.0)) && (EINA_DBL_EQ(vertical, 0.0)))
      orient = ELM_NOTIFY_ORIENT_TOP_RIGHT;
-   else if ((horizontal == 0.0) && (vertical == 1.0))
+   else if ((EINA_DBL_EQ(horizontal, 0.0)) && (EINA_DBL_EQ(vertical, 1.0)))
      orient = ELM_NOTIFY_ORIENT_BOTTOM_LEFT;
-   else if ((horizontal == 1.0) && (vertical == 1.0))
+   else if ((EINA_DBL_EQ(horizontal, 1.0)) && (EINA_DBL_EQ(vertical, 1.0)))
      orient = ELM_NOTIFY_ORIENT_BOTTOM_RIGHT;
    else
      orient = ELM_NOTIFY_ORIENT_TOP;
@@ -1772,7 +1776,7 @@ _elm_popup_item_append(Eo *obj, Elm_Popup_Data *sd, const char *label, Evas_Obje
    Evas_Object *prev_content;
    Eo *eo_it;
 
-   eo_it = eo_add(ELM_POPUP_ITEM_CLASS, obj);
+   eo_it = efl_add(ELM_POPUP_ITEM_CLASS, obj);
    if (!eo_it) return NULL;
    ELM_POPUP_ITEM_DATA_GET(eo_it, it);
    if (sd->content || sd->text_content_obj)
@@ -1847,7 +1851,7 @@ _elm_popup_dismiss(Eo *obj EINA_UNUSED, Elm_Popup_Data *pd)
 }
 
 static void
-_elm_popup_class_constructor(Eo_Class *klass)
+_elm_popup_class_constructor(Efl_Class *klass)
 {
    evas_smart_legacy_type_register(MY_CLASS_NAME_LEGACY, klass);
 }
@@ -1855,7 +1859,7 @@ _elm_popup_class_constructor(Eo_Class *klass)
 static Eina_Bool
 _action_dismiss(Evas_Object *obj, const char *params EINA_UNUSED)
 {
-   eo_event_callback_call(obj, ELM_POPUP_EVENT_BLOCK_CLICKED, NULL);
+   efl_event_callback_legacy_call(obj, ELM_POPUP_EVENT_BLOCK_CLICKED, NULL);
    return EINA_TRUE;
 }
 
@@ -1873,7 +1877,7 @@ EOLIAN static Elm_Atspi_State_Set
 _elm_popup_elm_interface_atspi_accessible_state_set_get(Eo *obj, Elm_Popup_Data *sd EINA_UNUSED)
 {
    Elm_Atspi_State_Set ret;
-   ret = elm_interface_atspi_accessible_state_set_get(eo_super(obj, MY_CLASS));
+   ret = elm_interface_atspi_accessible_state_set_get(efl_super(obj, MY_CLASS));
 
    STATE_TYPE_SET(ret, ELM_ATSPI_STATE_MODAL);
 

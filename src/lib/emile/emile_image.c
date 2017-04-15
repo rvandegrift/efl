@@ -125,6 +125,9 @@ struct _Emile_Image
    Eina_Bool             (*data)(Emile_Image *image, Emile_Image_Property *prop, unsigned int property_size, void *pixels, Emile_Image_Load_Error *error);
    void                  (*close)(Emile_Image *image);
 
+   Emile_Action_Cb       cancelled;
+   const void           *cancelled_data;
+
    Emile_Colorspace      cspace;
 
    Eina_Bool             bin_source : 1;
@@ -135,6 +138,27 @@ struct _Emile_Image
    Eina_Bool             blockless : 1;
    Eina_Bool             load_opts : 1;
 };
+
+static inline Eina_Bool
+_emile_image_cancelled_is(Emile_Image *image)
+{
+   if (!image->cancelled) return EINA_FALSE;
+   return image->cancelled((void*) image->cancelled_data, image, EMILE_ACTION_CANCELLED);
+}
+
+#define EMILE_IMAGE_TASK_CHECK(Image, Count, Mask, Error, Error_Handler) \
+  do {                                                                  \
+     Count++;                                                           \
+     if ((Count & Mask) == Mask)                                        \
+       {                                                                \
+          Count = 0;                                                    \
+          if (_emile_image_cancelled_is(Image))                         \
+            {                                                           \
+               *Error = EMILE_IMAGE_LOAD_ERROR_CANCELLED;               \
+               goto Error_Handler;                                      \
+            }                                                           \
+       }                                                                \
+  } while (0);
 
 static const unsigned char *
 _emile_image_file_source_map(Emile_Image *image, unsigned int *length)
@@ -909,6 +933,10 @@ _get_orientation_app1(const unsigned char *map,
      {
         // get 4byte by little endian
         ifd_offset += (*(buf + 14) << 24) + (*(buf + 15) << 16) + (*(buf + 16) << 8) + (*(buf + 17));
+
+        if (ifd_offset > fsize)
+          return EINA_FALSE;
+
         byte_align = EXIF_BYTE_ALIGN_MM;
         num_directory = ((*(buf + ifd_offset) << 8) + *(buf + ifd_offset + 1));
         orientation[0] = 0x01;
@@ -918,6 +946,10 @@ _get_orientation_app1(const unsigned char *map,
      {
         // get 4byte by big endian
         ifd_offset += (*(buf + 14))  + (*(buf + 15) << 8) + (*(buf + 16) << 16) + (*(buf + 17) << 24);
+
+        if (ifd_offset > fsize)
+          return EINA_FALSE;
+
         byte_align = EXIF_BYTE_ALIGN_II;
         num_directory = ((*(buf + ifd_offset + 1) << 8) + *(buf + ifd_offset));
         orientation[0] = 0x12;
@@ -1356,7 +1388,7 @@ _emile_jpeg_head(Emile_Image *image,
                  unsigned int property_size,
                  Emile_Image_Load_Error *error)
 {
-   Emile_Image_Load_Opts *opts = NULL;
+   volatile Emile_Image_Load_Opts *opts = (image->load_opts) ? &image->opts : NULL;
    const unsigned char *m;
    unsigned int scalew, scaleh;
    struct jpeg_decompress_struct cinfo;
@@ -1364,9 +1396,9 @@ _emile_jpeg_head(Emile_Image *image,
    unsigned int length;
 
    /* for rotation decoding */
-   int degree = 0;
-   Eina_Bool change_wh = EINA_FALSE;
-   unsigned int load_opts_w = 0, load_opts_h = 0;
+   volatile int degree = 0;
+   volatile Eina_Bool change_wh = EINA_FALSE;
+   volatile unsigned int load_opts_w = 0, load_opts_h = 0;
 
    if (sizeof(Emile_Image_Property) != property_size)
      return EINA_FALSE;
@@ -1374,9 +1406,6 @@ _emile_jpeg_head(Emile_Image *image,
    m = _emile_image_file_source_map(image, &length);
    if (!m)
      return EINA_FALSE;
-
-   if (image->load_opts)
-     opts = &image->opts;
 
    memset(&cinfo, 0, sizeof(cinfo));
    cinfo.err = jpeg_std_error(&(jerr.pub));
@@ -1562,6 +1591,13 @@ _emile_jpeg_head(Emile_Image *image,
                             prop->w, prop->h,
                             degree, prop->flipped);
           }
+        if (prop->scale > 1)
+          {
+             load_region_x /= prop->scale;
+             load_region_y /= prop->scale;
+             load_region_w /= prop->scale;
+             load_region_h /= prop->scale;
+          }
         RECTS_CLIP_TO_RECT(load_region_x, load_region_y,
                            load_region_w, load_region_h,
                            0, 0, prop->w, prop->h);
@@ -1590,6 +1626,129 @@ _emile_jpeg_head(Emile_Image *image,
    return EINA_TRUE;
 }
 
+static inline void
+_jpeg_convert_copy(volatile uint32_t **dst, uint8_t **src, unsigned int w, Eina_Bool adobe_marker)
+{
+   uint32_t *ptr2 = (uint32_t*) *dst;
+   uint8_t *ptr = *src;
+   unsigned int x;
+
+   if (adobe_marker)
+     {
+        for (x = 0; x < w; x++)
+          {
+             /* According to libjpeg doc, Photoshop inverse the values of C, M, Y and K, */
+             /* that is C is replaces by 255 - C, etc... */
+             /* See the comment below for the computation of RGB values from CMYK ones. */
+             *ptr2 = (0xff000000) |
+               ((ptr[0] * ptr[3] / 255) << 16) |
+               ((ptr[1] * ptr[3] / 255) << 8) |
+               ((ptr[2] * ptr[3] / 255));
+             ptr += 4;
+             ptr2++;
+          }
+     }
+   else
+     {
+        for (x = 0; x < w; x++)
+          {
+             /* Conversion from CMYK to RGB is done in 2 steps: */
+             /* CMYK => CMY => RGB (see http://www.easyrgb.com/index.php?X=MATH) */
+             /* after computation, if C, M, Y and K are between 0 and 1, we have: */
+             /* R = (1 - C) * (1 - K) * 255 */
+             /* G = (1 - M) * (1 - K) * 255 */
+             /* B = (1 - Y) * (1 - K) * 255 */
+             /* libjpeg stores CMYK values between 0 and 255, */
+             /* so we replace C by C * 255 / 255, etc... and we obtain: */
+             /* R = (255 - C) * (255 - K) / 255 */
+             /* G = (255 - M) * (255 - K) / 255 */
+             /* B = (255 - Y) * (255 - K) / 255 */
+             /* with C, M, Y and K between 0 and 255. */
+             *ptr2 = (0xff000000) |
+               (((255 - ptr[0]) * (255 - ptr[3]) / 255) << 16) |
+               (((255 - ptr[1]) * (255 - ptr[3]) / 255) << 8) |
+               (((255 - ptr[2]) * (255 - ptr[3]) / 255));
+             ptr += 4;
+             ptr2++;
+          }
+     }
+
+   *dst = ptr2;
+   *src = ptr;
+}
+
+static inline void
+_jpeg_gry8_convert_copy(uint8_t **dst, uint8_t **src, unsigned int w)
+{
+   uint8_t *ptrg = (uint8_t*) *dst;
+   uint8_t *ptr = *src;
+   unsigned int x;
+
+   for (x = 0; x < w; x++)
+     {
+        *ptrg = ptr[0];
+        ptrg++;
+        ptr++;
+     }
+
+   *dst = ptrg;
+   *src = ptr;
+}
+
+static inline void
+_jpeg_agry88_convert_copy(uint16_t **dst, uint8_t **src, unsigned int w)
+{
+   uint16_t *ptrag = (uint16_t*) *dst;
+   uint8_t *ptr = *src;
+   unsigned int x;
+
+   for (x = 0; x < w; x++)
+     {
+        *ptrag = 0xFF00 | ptr[0];
+        ptrag++;
+        ptr++;
+     }
+
+   *dst = ptrag;
+   *src = ptr;
+}
+
+static inline void
+_jpeg_argb8888_convert_copy(volatile uint32_t **dst, uint8_t **src, unsigned int w)
+{
+   uint32_t *ptr2 = (uint32_t*) *dst;
+   uint8_t *ptr = *src;
+   unsigned int x;
+
+   for (x = 0; x < w; x++)
+     {
+        *ptr2 = ARGB_JOIN(0xff, ptr[0], ptr[0], ptr[0]);
+        ptr2++;
+        ptr++;
+     }
+
+   *dst = ptr2;
+   *src = ptr;
+}
+
+static inline void
+_jpeg_copy(volatile uint32_t **dst, uint8_t **src, unsigned int w)
+{
+   uint32_t *ptr2 = (uint32_t*) *dst;
+   uint8_t *ptr = *src;
+   unsigned int x;
+
+   for (x = 0; x < w; x++)
+     {
+        *ptr2 = ARGB_JOIN(0xff, ptr[0], ptr[1], ptr[2]);
+        ptr += 3;
+        ptr2++;
+     }
+
+   *dst = ptr2;
+   *src = ptr;
+}
+
 static Eina_Bool
 _emile_jpeg_data(Emile_Image *image,
                  Emile_Image_Property *prop,
@@ -1598,17 +1757,18 @@ _emile_jpeg_data(Emile_Image *image,
                  Emile_Image_Load_Error *error)
 {
    /* Handle RGB, ARGB, GRY and AGRY */
-   Emile_Image_Load_Opts *opts = NULL;
+   volatile Emile_Image_Load_Opts *opts = (image->load_opts) ? &image->opts : NULL;
    unsigned int w, h;
    struct jpeg_decompress_struct cinfo;
    struct _JPEG_error_mgr jerr;
    const unsigned char *m = NULL;
    uint8_t *ptr, *line[16], *data;
-   uint32_t *ptr2 = NULL, *ptr_rotate = NULL;
+   volatile uint32_t *ptr2 = NULL;
+   uint32_t *ptr_rotate = NULL;
    uint16_t *ptrag = NULL, *ptrag_rotate = NULL;
    uint8_t *ptrg = NULL, *ptrg_rotate = NULL;
-   unsigned int x, y, l, i, scans;
-   int region = 0;
+   unsigned int y, l, i, scans;
+   volatile int region = 0;
    /* rotation setting */
    unsigned int ie_w = 0, ie_h = 0;
    struct
@@ -1617,11 +1777,12 @@ _emile_jpeg_data(Emile_Image *image,
    } opts_region = {0, 0, 0, 0};
    volatile int degree = 0;
    volatile Eina_Bool change_wh = EINA_FALSE;
-   Eina_Bool line_done = EINA_FALSE;
-   Eina_Bool ptrg_free = EINA_FALSE;
-   Eina_Bool ptrag_free = EINA_FALSE;
-   Eina_Bool r = EINA_FALSE;
+   volatile Eina_Bool line_done = EINA_FALSE;
+   volatile Eina_Bool ptrg_free = EINA_FALSE;
+   volatile Eina_Bool ptrag_free = EINA_FALSE;
+   volatile Eina_Bool r = EINA_FALSE;
    unsigned int length;
+   volatile unsigned short count = 0;
 
    if (sizeof(Emile_Image_Property) != property_size)
      return EINA_FALSE;
@@ -1629,9 +1790,6 @@ _emile_jpeg_data(Emile_Image *image,
    m = _emile_image_file_source_map(image, &length);
    if (!m)
      return EINA_FALSE;
-
-   if (image->load_opts)
-     opts = &image->opts;
 
    memset(&cinfo, 0, sizeof(cinfo));
    if (prop->rotated)
@@ -1724,33 +1882,41 @@ _emile_jpeg_data(Emile_Image *image,
      {
         region = 1;
 
-        opts_region.x = opts->region.x;
-        opts_region.y = opts->region.y;
-        opts_region.w = opts->region.w;
-        opts_region.h = opts->region.h;
+         /* scale value already applied when decompress.
+            When access to decoded image, have to apply scale value to region value */
+        if (prop->scale > 1)
+          {
+             opts_region.x = opts->region.x / prop->scale;
+             opts_region.y = opts->region.y / prop->scale;
+             opts_region.w = opts->region.w / prop->scale;
+             opts_region.h = opts->region.h / prop->scale;
+
+          }
+        else
+          {
+             opts_region.x = opts->region.x;
+             opts_region.y = opts->region.y;
+             opts_region.w = opts->region.w;
+             opts_region.h = opts->region.h;
+          }
+
 
         if (prop->rotated)
           {
              unsigned int load_region_x = 0, load_region_y = 0;
              unsigned int load_region_w = 0, load_region_h = 0;
 
-             load_region_x = opts->region.x;
-             load_region_y = opts->region.y;
-             load_region_w = opts->region.w;
-             load_region_h = opts->region.h;
-
+             load_region_x = opts_region.x;
+             load_region_y = opts_region.y;
+             load_region_w = opts_region.w;
+             load_region_h = opts_region.h;
              _rotate_region(&opts_region.x, &opts_region.y,
                             &opts_region.w, &opts_region.h,
                             load_region_x, load_region_y,
                             load_region_w, load_region_h,
                             w, h, degree, prop->flipped);
           }
-#ifdef BUILD_LOADER_JPEG_REGION
-        cinfo.region_x = opts_region.x;
-        cinfo.region_y = opts_region.y;
-        cinfo.region_w = opts_region.w;
-        cinfo.region_h = opts_region.h;
-#endif
+
      }
    if ((!region) && ((w != ie_w) || (h != ie_h)))
      {
@@ -1814,16 +1980,17 @@ _emile_jpeg_data(Emile_Image *image,
         else
           {
              ptr2 = malloc(w * h * sizeof(uint32_t));
-             ptr_rotate = ptr2;
+             ptr_rotate = (uint32_t*) ptr2;
           }
      }
    else
      {
         ptr2 = pixels;
+        ptrag = pixels;
         ptrg = pixels;
      }
 
-   if (!ptr2 && !ptrg)
+   if (!ptr2 && !ptrag && !ptrg)
      {
         *error = EMILE_IMAGE_LOAD_ERROR_RESOURCE_ALLOCATION_FAILED;
         goto on_error;
@@ -1837,6 +2004,9 @@ _emile_jpeg_data(Emile_Image *image,
           line[i] = data + (i * w * 4);
         for (l = 0; l < h; l += cinfo.rec_outbuf_height)
           {
+             // Check for continuing every 16 scanlines fetch
+             EMILE_IMAGE_TASK_CHECK(image, count, 0xF, error, on_error);
+
              jpeg_read_scanlines(&cinfo, line, cinfo.rec_outbuf_height);
              scans = cinfo.rec_outbuf_height;
              if ((h - l) < scans)
@@ -1846,47 +2016,7 @@ _emile_jpeg_data(Emile_Image *image,
                {
                   for (y = 0; y < scans; y++)
                     {
-                       if (cinfo.saw_Adobe_marker)
-                         {
-                            for (x = 0; x < w; x++)
-                              {
-                                 /* According to libjpeg doc, Photoshop inverse the values of C, M, Y and K, */
-                                 /* that is C is replaces by 255 - C, etc... */
-                                 /* See the comment below for the computation of RGB values from CMYK ones. */
-                                 *ptr2 =
-                                   (0xff000000) |
-                                   ((ptr[0] * ptr[3] / 255) << 16) |
-                                   ((ptr[1] * ptr[3] / 255) << 8) |
-                                   ((ptr[2] * ptr[3] / 255));
-                                 ptr += 4;
-                                 ptr2++;
-                              }
-                         }
-                       else
-                         {
-                            for (x = 0; x < w; x++)
-                              {
-                                 /* Conversion from CMYK to RGB is done in 2 steps: */
-                                 /* CMYK => CMY => RGB (see http://www.easyrgb.com/index.php?X=MATH) */
-                                 /* after computation, if C, M, Y and K are between 0 and 1, we have: */
-                                 /* R = (1 - C) * (1 - K) * 255 */
-                                 /* G = (1 - M) * (1 - K) * 255 */
-                                 /* B = (1 - Y) * (1 - K) * 255 */
-                                 /* libjpeg stores CMYK values between 0 and 255, */
-                                 /* so we replace C by C * 255 / 255, etc... and we obtain: */
-                                 /* R = (255 - C) * (255 - K) / 255 */
-                                 /* G = (255 - M) * (255 - K) / 255 */
-                                 /* B = (255 - Y) * (255 - K) / 255 */
-                                 /* with C, M, Y and K between 0 and 255. */
-                                 *ptr2 =
-                                   (0xff000000) |
-                                   (((255 - ptr[0]) * (255 - ptr[3]) / 255) << 16) |
-                                   (((255 - ptr[1]) * (255 - ptr[3]) / 255) << 8) |
-                                   (((255 - ptr[2]) * (255 - ptr[3]) / 255));
-                                 ptr += 4;
-                                 ptr2++;
-                              }
-                         }
+                       _jpeg_convert_copy(&ptr2, &ptr, w, cinfo.saw_Adobe_marker);
                     }
                }
              else
@@ -1910,47 +2040,7 @@ _emile_jpeg_data(Emile_Image *image,
                             if (((y + l) >= opts_region.y) && ((y + l) < (opts_region.y + opts_region.h)))
                               {
                                  ptr += opts_region.x;
-                                 if (cinfo.saw_Adobe_marker)
-                                   {
-                                      for (x = 0; x < opts_region.w; x++)
-                                        {
-                                           /* According to libjpeg doc, Photoshop inverse the values of C, M, Y and K, */
-                                           /* that is C is replaces by 255 - C, etc... */
-                                           /* See the comment below for the computation of RGB values from CMYK ones. */
-                                           *ptr2 =
-                                             (0xff000000) |
-                                             ((ptr[0] * ptr[3] / 255) << 16) |
-                                             ((ptr[1] * ptr[3] / 255) << 8) |
-                                             ((ptr[2] * ptr[3] / 255));
-                                           ptr += 4;
-                                           ptr2++;
-                                        }
-                                   }
-                                 else
-                                   {
-                                      for (x = 0; x < opts_region.w; x++)
-                                        {
-                                           /* Conversion from CMYK to RGB is done in 2 steps: */
-                                           /* CMYK => CMY => RGB (see http://www.easyrgb.com/index.php?X=MATH) */
-                                           /* after computation, if C, M, Y and K are between 0 and 1, we have: */
-                                           /* R = (1 - C) * (1 - K) * 255 */
-                                           /* G = (1 - M) * (1 - K) * 255 */
-                                           /* B = (1 - Y) * (1 - K) * 255 */
-                                           /* libjpeg stores CMYK values between 0 and 255, */
-                                           /* so we replace C by C * 255 / 255, etc... and we obtain: */
-                                           /* R = (255 - C) * (255 - K) / 255 */
-                                           /* G = (255 - M) * (255 - K) / 255 */
-                                           /* B = (255 - Y) * (255 - K) / 255 */
-                                           /* with C, M, Y and K between 0 and 255. */
-                                           *ptr2 =
-                                             (0xff000000) |
-                                             (((255 - ptr[0]) * (255 - ptr[3]) / 255) << 16) |
-                                             (((255 - ptr[1]) * (255 - ptr[3]) / 255) << 8) |
-                                             (((255 - ptr[2]) * (255 - ptr[3]) / 255));
-                                           ptr += 4;
-                                           ptr2++;
-                                        }
-                                   }
+                                 _jpeg_convert_copy(&ptr2, &ptr, opts_region.w, cinfo.saw_Adobe_marker);
                                  ptr += (4 * (w - (opts_region.x + opts_region.w)));
                               }
                             else
@@ -1983,6 +2073,9 @@ _emile_jpeg_data(Emile_Image *image,
           line[i] = data + (i * w * 3);
         for (l = 0; l < h; l += cinfo.rec_outbuf_height)
           {
+             // Check for continuing every 16 scanlines fetch
+             EMILE_IMAGE_TASK_CHECK(image, count, 0xF, error, on_error);
+
              jpeg_read_scanlines(&cinfo, line, cinfo.rec_outbuf_height);
              scans = cinfo.rec_outbuf_height;
              if ((h - l) < scans)
@@ -1992,12 +2085,7 @@ _emile_jpeg_data(Emile_Image *image,
                {
                   for (y = 0; y < scans; y++)
                     {
-                       for (x = 0; x < w; x++)
-                         {
-                            *ptr2 = ARGB_JOIN(0xff, ptr[0], ptr[1], ptr[2]);
-                            ptr += 3;
-                            ptr2++;
-                         }
+                       _jpeg_copy(&ptr2, &ptr, w);
                     }
                }
              else
@@ -2019,12 +2107,7 @@ _emile_jpeg_data(Emile_Image *image,
                                 ((y + l) < (opts_region.y + opts_region.h)))
                               {
                                  ptr += (3 * opts_region.x);
-                                 for (x = 0; x < opts_region.w; x++)
-                                   {
-                                      *ptr2 = ARGB_JOIN(0xff, ptr[0], ptr[1], ptr[2]);
-                                      ptr += 3;
-                                      ptr2++;
-                                   }
+                                 _jpeg_copy(&ptr2, &ptr, opts_region.w);
                                  ptr += (3 * (w - (opts_region.x + opts_region.w)));
                               }
                             else
@@ -2045,6 +2128,9 @@ _emile_jpeg_data(Emile_Image *image,
           line[i] = data + (i * w);
         for (l = 0; l < h; l += cinfo.rec_outbuf_height)
           {
+             // Check for continuing every 16 scanlines fetch
+             EMILE_IMAGE_TASK_CHECK(image, count, 0xF, error, on_error);
+
              jpeg_read_scanlines(&cinfo, line, cinfo.rec_outbuf_height);
              scans = cinfo.rec_outbuf_height;
              if ((h - l) < scans)
@@ -2054,24 +2140,17 @@ _emile_jpeg_data(Emile_Image *image,
                {
                   for (y = 0; y < scans; y++)
                     {
-                       for (x = 0; x < w; x++)
+                       switch (prop->cspace)
                          {
-                            if (prop->cspace == EMILE_COLORSPACE_GRY8)
-                              {
-                                 *ptrg = ptr[0];
-                                 ptrg++;
-                              }
-                            else if (prop->cspace == EMILE_COLORSPACE_AGRY88)
-                              {
-                                 *ptrag = 0xFF00 | ptr[0];
-                                 ptrag++;
-                              }
-                            else
-                              {
-                                 *ptr2 = ARGB_JOIN(0xff, ptr[0], ptr[0], ptr[0]);
-                                 ptr2++;
-                              }
-                            ptr++;
+                          case EMILE_COLORSPACE_GRY8:
+                             _jpeg_gry8_convert_copy(&ptrg, &ptr, w);
+                             break;
+                          case EMILE_COLORSPACE_AGRY88:
+                             _jpeg_agry88_convert_copy(&ptrag, &ptr, w);
+                             break;
+                          default:
+                             _jpeg_argb8888_convert_copy(&ptr2, &ptr, w);
+                             break;
                          }
                     }
                }
@@ -2097,24 +2176,17 @@ _emile_jpeg_data(Emile_Image *image,
                                 ((y + l) < (opts_region.y + opts_region.h)))
                               {
                                  ptr += opts_region.x;
-                                 for (x = 0; x < opts_region.w; x++)
+                                 switch (prop->cspace)
                                    {
-                                      if (prop->cspace == EMILE_COLORSPACE_GRY8)
-                                        {
-                                           *ptrg = ptr[0];
-                                           ptrg++;
-                                        }
-                                      else if (prop->cspace == EMILE_COLORSPACE_AGRY88)
-                                        {
-                                           *ptrag = 0xFF00 | ptr[0];
-                                           ptrag++;
-                                        }
-                                      else
-                                        {
-                                           *ptr2 = ARGB_JOIN(0xff, ptr[0], ptr[0], ptr[0]);
-                                           ptr2++;
-                                        }
-                                      ptr++;
+                                    case EMILE_COLORSPACE_GRY8:
+                                       _jpeg_gry8_convert_copy(&ptrg, &ptr, opts_region.w);
+                                       break;
+                                    case EMILE_COLORSPACE_AGRY88:
+                                       _jpeg_agry88_convert_copy(&ptrag, &ptr, opts_region.w);
+                                       break;
+                                    default:
+                                       _jpeg_argb8888_convert_copy(&ptr2, &ptr, opts_region.w);
+                                       break;
                                    }
                                  ptr += w - (opts_region.x + opts_region.w);
                               }
@@ -2396,6 +2468,17 @@ emile_image_jpeg_file_open(Eina_File *source,
 }
 
 EAPI void
+emile_image_callback_set(Emile_Image *image, Emile_Action_Cb callback, Emile_Action action, const void *data)
+{
+   if (!image) return ;
+   // We only handle one type of callback for now
+   if (action != EMILE_ACTION_CANCELLED) return ;
+
+   image->cancelled_data = data;
+   image->cancelled = callback;
+}
+
+EAPI void
 emile_image_close(Emile_Image *image)
 {
    if (!image)
@@ -2461,6 +2544,9 @@ emile_load_error_str(Emile_Image *source EINA_UNUSED,
 
       case EMILE_IMAGE_LOAD_ERROR_UNKNOWN_FORMAT:
         return "Unexpected file format.";
+
+      case EMILE_IMAGE_LOAD_ERROR_CANCELLED:
+        return "Loading was stopped by an external request.";
      }
    return NULL;
 }
