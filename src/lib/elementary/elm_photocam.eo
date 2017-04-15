@@ -7,7 +7,7 @@ enum Elm.Photocam.Zoom_Mode
    auto_fit, [[Zoom until photo fits in photocam]]
    auto_fill, [[Zoom until photo fills photocam]]
    auto_fit_in, [[Zoom in until photo fits in photocam]]
-   last
+   last [[Sentinel value to indicate last enum field during iteration]]
 }
 
 class Elm.Photocam (Elm.Widget, Elm.Interface_Scrollable,
@@ -15,6 +15,7 @@ class Elm.Photocam (Elm.Widget, Elm.Interface_Scrollable,
                     Efl.Ui.Clickable, Efl.Ui.Scrollable,
                     Efl.Ui.Zoomable)
 {
+   [[Elementary photocam class]]
    legacy_prefix: elm_photocam;
    eo_prefix: elm_obj_photocam;
    event_prefix: elm_photocam;
@@ -188,30 +189,28 @@ class Elm.Photocam (Elm.Widget, Elm.Interface_Scrollable,
    }
    implements {
       class.constructor;
-      Eo.Base.constructor;
-      Efl.Canvas.Group.group_move;
+      Efl.Object.constructor;
+      Efl.Gfx.position { set; }
+      Efl.Gfx.size { set; }
       Efl.Canvas.Group.group_add;
       Efl.Canvas.Group.group_del;
       Efl.Canvas.Group.group_member_add;
-      Efl.Canvas.Group.group_resize;
       Elm.Widget.theme_apply;
       Elm.Widget.on_focus;
-      Elm.Widget.event;
+      Elm.Widget.widget_event;
       Elm.Interface_Scrollable.region_bring_in;
-      Elm.Interface.Atspi_Widget_Action.elm_actions.get;
-      Efl.File.file.set;
-      Efl.File.file.get;
+      Elm.Interface.Atspi_Widget_Action.elm_actions { get; }
+      Efl.File.file { get; set; }
    }
    events {
-      press;
-      load;
-      loaded;
-      load,detail;
-      loaded,detail;
-      download,start;
-      download,progress;
-      download,done;
-      download,error;
+      press; [[Called when photocam got pressed]]
+      load; [[Called when photocam loading started]]
+      loaded; [[Called when photocam loading finished]]
+      load,detail; [[Called when photocal detail loading started]]
+      loaded,detail; [[Called when photocam detail loading finished]]
+      download,start; [[Called when photocam download started]]
+      download,progress; [[Called when photocam download progress updated]]
+      download,done; [[Called when photocam download finished]]
+      download,error; [[Called when photocam download failed]]
    }
-
 }

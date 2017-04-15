@@ -1,6 +1,7 @@
 class Elm.Progressbar (Elm.Layout, Efl.Ui.Progress,
                        Efl.Orientation)
 {
+   [[Elementary progressbar class]]
    legacy_prefix: elm_progressbar;
    eo_prefix: elm_obj_progressbar;
    event_prefix: elm_progressbar;
@@ -53,27 +54,33 @@ class Elm.Progressbar (Elm.Layout, Efl.Ui.Progress,
             @in state: bool; [[$true, to start the pulsing animation, $false to stop it]]
          }
       }
+      is_pulsing_get @const {
+         [[Get the pulsing state on a given progressbar widget.
+
+           @since 1.19]]
+
+         return: bool; [[$true if the $obj is currently pulsing ]]
+      }
    }
    implements {
       class.constructor;
-      Eo.Base.constructor;
+      Efl.Object.constructor;
       Efl.Canvas.Group.group_add;
       Efl.Canvas.Group.group_del;
       Elm.Widget.theme_apply;
       Elm.Widget.focus_next_manager_is;
       Elm.Widget.focus_direction_manager_is;
       Elm.Widget.sub_object_del;
-      Elm.Layout.text_aliases.get;
-      Elm.Layout.content_aliases.get;
+      Elm.Layout.text_aliases { get; }
+      Elm.Layout.content_aliases { get; }
       Elm.Layout.sizing_eval;
-      Efl.Ui.Progress.span_size;
-      Efl.Ui.Progress.progress_value;
-      Efl.Ui.Progress.unit_format;
-      Efl.Orientation.orientation;
+      Efl.Ui.Progress.span_size { get; set; }
+      Efl.Ui.Progress.progress_value { get; set; }
+      Efl.Ui.Progress.unit_format { get; set; }
+      Efl.Orientation.orientation { get; set; }
       Efl.Part.part;
    }
    events {
-      changed;
+      changed; [[Called when progressbar changed]]
    }
-
 }

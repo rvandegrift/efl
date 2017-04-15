@@ -10,6 +10,9 @@
 #include "elm_priv.h"
 #include "elm_widget_flipselector.h"
 
+#include "elm_flipselector.eo.h"
+#include "elm_flipselector_item.eo.h"
+
 #define MY_CLASS ELM_FLIPSELECTOR_CLASS
 
 #define MY_CLASS_NAME "Elm_Flipselector"
@@ -230,7 +233,7 @@ _on_item_changed(Elm_Flipselector_Data *sd)
 
    if (item->func)
      item->func((void *)WIDGET_ITEM_DATA_GET(eo_item), WIDGET(item), eo_item);
-   eo_event_callback_call
+   efl_event_callback_legacy_call
      (sd->obj, EFL_UI_EVENT_SELECTED, eo_item);
 }
 
@@ -250,54 +253,71 @@ _send_msg(Elm_Flipselector_Data *sd,
    _on_item_changed(sd);
 }
 
-EOLIAN static void
-_elm_flipselector_item_eo_base_destructor(Eo *eo_item, Elm_Flipselector_Item_Data *item)
+static void
+_view_update(void *data)
 {
-   Elm_Object_Item *eo_item2;
-   Eina_List *l;
+   Evas_Object *obj = data;
+   ELM_FLIPSELECTOR_DATA_GET(obj, sd);
+   Elm_Object_Item *eo_item;
 
+   sd->view_update = NULL;
+   sd->need_update = EINA_FALSE;
+
+   if (sd->current)
+     {
+        eo_item = sd->current->data;
+        ELM_FLIPSELECTOR_ITEM_DATA_GET(eo_item, item);
+        _send_msg(sd, MSG_FLIP_DOWN, (char *)item->label);
+     }
+   else
+     {
+        _send_msg(sd, MSG_FLIP_DOWN, "");
+        elm_layout_signal_emit(obj, "elm,state,button,hidden", "elm");
+     }
+}
+
+EOLIAN static void
+_elm_flipselector_item_efl_object_destructor(Eo *eo_item, Elm_Flipselector_Item_Data *item)
+{
+   Eina_List *l;
    ELM_FLIPSELECTOR_DATA_GET(WIDGET(item), sd);
 
-   EINA_LIST_FOREACH(sd->items, l, eo_item2)
+   if (sd->deleting)
      {
-        if (eo_item2 == eo_item)
-          {
-             if (sd->current == l)
-               {
-                  sd->current = l->prev;
-                  if (!sd->current) sd->current = l->next;
-                  if (sd->current)
-                    {
-                       eo_item2 = sd->current->data;
-                       ELM_FLIPSELECTOR_ITEM_DATA_GET(eo_item2, item2);
-                       _send_msg(sd, MSG_FLIP_DOWN, (char *)item2->label);
-                    }
-                  else _send_msg(sd, MSG_FLIP_DOWN, "");
-               }
-             sd->items = eina_list_remove_list(sd->items, l);
-             break;
-          }
+        eina_stringshare_del(item->label);
+        sd->items = eina_list_remove(sd->items, eo_item);
+        efl_destructor(efl_super(eo_item, ELM_FLIPSELECTOR_ITEM_CLASS));
+
+        return;
      }
 
-   if (eina_list_count(sd->items) <= 1)
-      elm_layout_signal_emit
-         (sd->obj, "elm,state,button,hidden", "elm");
-   else
-      elm_layout_signal_emit
-         (sd->obj, "elm,state,button,visible", "elm");
+   if ((sd->current) && (sd->current->data == eo_item))
+     {
+        sd->need_update = EINA_TRUE;
+        l = sd->current->prev;
+        if (!l) l = sd->current->next;
+        if (!l) sd->current = NULL;
+        else sd->current = l;
+     }
 
    eina_stringshare_del(item->label);
-   _sentinel_eval(sd);
-   _update_view(sd->obj);
+   sd->items = eina_list_remove(sd->items, eo_item);
+   efl_destructor(efl_super(eo_item, ELM_FLIPSELECTOR_ITEM_CLASS));
 
-   eo_destructor(eo_super(eo_item, ELM_FLIPSELECTOR_ITEM_CLASS));
+   _sentinel_eval(sd);
+
+   if (sd->need_update)
+     {
+        if (sd->view_update) ecore_job_del(sd->view_update);
+        sd->view_update = ecore_job_add(_view_update, WIDGET(item));
+     }
 }
 
 EOLIAN static Eo *
-_elm_flipselector_item_eo_base_constructor(Eo *obj, Elm_Flipselector_Item_Data *it)
+_elm_flipselector_item_efl_object_constructor(Eo *obj, Elm_Flipselector_Item_Data *it)
 {
-   obj = eo_constructor(eo_super(obj, ELM_FLIPSELECTOR_ITEM_CLASS));
-   it->base = eo_data_scope_get(obj, ELM_WIDGET_ITEM_CLASS);
+   obj = efl_constructor(efl_super(obj, ELM_FLIPSELECTOR_ITEM_CLASS));
+   it->base = efl_data_scope_get(obj, ELM_WIDGET_ITEM_CLASS);
 
    return obj;
 }
@@ -313,7 +333,7 @@ _item_new(Evas_Object *obj,
 
    ELM_FLIPSELECTOR_DATA_GET(obj, sd);
 
-   eo_item = eo_add(ELM_FLIPSELECTOR_ITEM_CLASS, obj);
+   eo_item = efl_add(ELM_FLIPSELECTOR_ITEM_CLASS, obj);
    if (!eo_item) return NULL;
 
    ELM_FLIPSELECTOR_ITEM_DATA_GET(eo_item, it);
@@ -338,7 +358,7 @@ _elm_flipselector_elm_widget_theme_apply(Eo *obj, Elm_Flipselector_Data *sd)
    Elm_Theme_Apply int_ret = ELM_THEME_APPLY_FAILED;
    ELM_WIDGET_DATA_GET_OR_RETURN(obj, wd, ELM_THEME_APPLY_FAILED);
 
-   int_ret = elm_obj_widget_theme_apply(eo_super(obj, MY_CLASS));
+   int_ret = elm_obj_widget_theme_apply(efl_super(obj, MY_CLASS));
    if (!int_ret) return ELM_THEME_APPLY_FAILED;
 
    max_len = edje_object_data_get(wd->resize_obj, "max_len");
@@ -367,7 +387,7 @@ _flip_up(Elm_Flipselector_Data *sd)
    if (sd->current == sd->items)
      {
         sd->current = eina_list_last(sd->items);
-        eo_event_callback_call
+        efl_event_callback_legacy_call
           (sd->obj, ELM_FLIPSELECTOR_EVENT_UNDERFLOWED, NULL);
      }
    else
@@ -392,7 +412,7 @@ _flip_down(Elm_Flipselector_Data *sd)
    if (!sd->current)
      {
         sd->current = sd->items;
-        eo_event_callback_call
+        efl_event_callback_legacy_call
           (sd->obj, ELM_FLIPSELECTOR_EVENT_OVERFLOWED, NULL);
      }
 
@@ -510,7 +530,7 @@ _elm_flipselector_efl_ui_spin_value_set(Eo *obj EINA_UNUSED, Elm_Flipselector_Da
 }
 
 EOLIAN static Eina_Bool
-_elm_flipselector_elm_widget_event(Eo *obj EINA_UNUSED, Elm_Flipselector_Data *sd EINA_UNUSED, Evas_Object *src, Evas_Callback_Type type, void *event_info)
+_elm_flipselector_elm_widget_widget_event(Eo *obj EINA_UNUSED, Elm_Flipselector_Data *sd EINA_UNUSED, Evas_Object *src, Evas_Callback_Type type, void *event_info)
 {
    Evas_Event_Key_Down *ev = event_info;
    (void) src;
@@ -606,7 +626,7 @@ _signal_val_change_stop(void *data,
 EOLIAN static void
 _elm_flipselector_efl_canvas_group_group_add(Eo *obj, Elm_Flipselector_Data *priv)
 {
-   efl_canvas_group_add(eo_super(obj, MY_CLASS));
+   efl_canvas_group_add(efl_super(obj, MY_CLASS));
    elm_widget_sub_object_parent_add(obj);
 
    if (!elm_layout_theme_set
@@ -641,15 +661,16 @@ _elm_flipselector_efl_canvas_group_group_del(Eo *obj, Elm_Flipselector_Data *sd)
      elm_wdg_item_del(DATA_GET(sd->items));
 
    ecore_timer_del(sd->spin);
+   ecore_job_del(sd->view_update);
 
-   efl_canvas_group_del(eo_super(obj, MY_CLASS));
+   efl_canvas_group_del(efl_super(obj, MY_CLASS));
 }
 
 EAPI Evas_Object *
 elm_flipselector_add(Evas_Object *parent)
 {
    EINA_SAFETY_ON_NULL_RETURN_VAL(parent, NULL);
-   Evas_Object *obj = eo_add(MY_CLASS, parent);
+   Evas_Object *obj = efl_add(MY_CLASS, parent);
    return obj;
 }
 
@@ -666,9 +687,9 @@ elm_flipselector_first_interval_get(const Evas_Object *obj)
 }
 
 EOLIAN static Eo *
-_elm_flipselector_eo_base_constructor(Eo *obj, Elm_Flipselector_Data *sd)
+_elm_flipselector_efl_object_constructor(Eo *obj, Elm_Flipselector_Data *sd)
 {
-   obj = eo_constructor(eo_super(obj, MY_CLASS));
+   obj = efl_constructor(efl_super(obj, MY_CLASS));
    sd->obj = obj;
    efl_canvas_object_type_set(obj, MY_CLASS_NAME_LEGACY);
    evas_object_smart_callbacks_descriptions_set(obj, _smart_callbacks);
@@ -890,7 +911,7 @@ _elm_flipselector_elm_widget_focus_direction_manager_is(Eo *obj EINA_UNUSED, Elm
 }
 
 EOLIAN static void
-_elm_flipselector_class_constructor(Eo_Class *klass)
+_elm_flipselector_class_constructor(Efl_Class *klass)
 {
    evas_smart_legacy_type_register(MY_CLASS_NAME_LEGACY, klass);
 }

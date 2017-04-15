@@ -2,7 +2,6 @@
 #include "config.h"
 #endif
 
-#include <Ector.h>
 #include "draw_private.h"
 
 int _draw_log_dom = -1;
@@ -278,7 +277,7 @@ efl_draw_func_span_get(Efl_Gfx_Render_Op op, uint32_t color, Eina_Bool src_alpha
 }
 
 int
-efl_draw_init()
+efl_draw_init(void)
 {
    static int i = 0;
    if (!(i++))

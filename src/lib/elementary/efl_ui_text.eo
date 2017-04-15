@@ -1,11 +1,60 @@
 import elm_general;
-import elm_icon;
 import elm_entry;
+
+struct Efl.Ui.Text.Anchor_Info
+{
+   [[EFL UI text anchor information]]
+   name: string; [[The name of the anchor, as stated in its href.]]
+   button: int; [[The mouse button used to click on it.]]
+   x: Evas.Coord; [[Anchor geometry, relative to canvas.]]
+   y: Evas.Coord; [[Anchor geometry, relative to canvas.]]
+   w: Evas.Coord; [[Anchor geometry, relative to canvas.]]
+   h: Evas.Coord; [[Anchor geometry, relative to canvas.]]
+}
+
+struct Efl.Ui.Text.Hover_Parent
+{
+   [[EFL text hover parent]]
+   x: Evas.Coord; [[Hover parent X coordinate]]
+   y: Evas.Coord; [[Hover parent Y coordinate]]
+   w: Evas.Coord; [[Hover parent width]]
+   h: Evas.Coord; [[Hover parent height]]
+}
+
+struct Efl.Ui.Text.Anchor_Hover_Info
+{
+   [[EFL text anchor hover information]]
+   anchor_info: ptr(const(Efl.Ui.Text.Anchor_Info)); [[The actual anchor info.]]
+   hover: Elm.Hover; [[The hover object to use for the popup.]]
+   hover_parent: Efl.Ui.Text.Hover_Parent; [[Hover parent widget]]
+   hover_left : bool; [[Hint indicating if there's space
+                     for content on the left side of
+                     the hover. Before calling the
+                     callback, the widget will make the
+                     necessary calculations to check
+                     which sides are fit to be set with
+                     content, based on the position the
+                     hover is activated and its distance
+                     to the edges of its parent object
+                   ]]
+   hover_right : bool; [[Hint indicating content fits on
+                      the right side of the hover.
+                      See @.hover_left.
+                    ]]
+   hover_top : bool; [[Hint indicating content fits on top
+                    of the hover. @.hover_left.
+                  ]]
+   hover_bottom : bool; [[Hint indicating content fits
+                                   below the hover. See
+                                   @.hover_left.
+                                  ]]
+}
 
 class Efl.Ui.Text (Elm.Layout, Elm.Interface_Scrollable, Efl.Ui.Clickable,
                  Elm.Interface.Atspi.Text, Elm.Interface.Atspi.Text.Editable, Efl.File,
                  Efl.Ui.Selectable, Efl.Ui.Scrollable, Efl.Ui.Text.Interactive)
 {
+   [[Efl UI text class]]
    methods {
       @property scrollable {
          set {
@@ -40,7 +89,7 @@ class Efl.Ui.Text (Elm.Layout, Elm.Interface_Scrollable, Efl.Ui.Clickable,
             ]]
          }
          values {
-            ondemand: bool; [[If true, the input panel will be shown in case of only Mouse up event.
+            ondemand: bool; [[If $true, the input panel will be shown in case of only Mouse up event.
             (Focus event will be ignored.)
             ]]
          }
@@ -91,7 +140,7 @@ class Efl.Ui.Text (Elm.Layout, Elm.Interface_Scrollable, Efl.Ui.Clickable,
             [[Get the language mode of the input panel.]]
          }
          values {
-            lang: Elm.Input.Panel.Lang; [[language to be set to the input panel.]]
+            lang: Elm.Input.Panel.Lang; [[Language to be set to the input panel.]]
          }
       }
       @property selection_handler_disabled {
@@ -120,7 +169,7 @@ class Efl.Ui.Text (Elm.Layout, Elm.Interface_Scrollable, Efl.Ui.Clickable,
             ]]
          }
          values {
-            variation: int; [[layout variation type.]]
+            variation: int; [[Layout variation type.]]
          }
       }
       @property autocapital_type {
@@ -191,7 +240,7 @@ class Efl.Ui.Text (Elm.Layout, Elm.Interface_Scrollable, Efl.Ui.Clickable,
             [[Get the input panel layout of the entry.]]
          }
          values {
-            layout: Elm.Input.Panel.Layout(Elm.Input.Panel.Layout.invalid); [[layout type.]]
+            layout: Elm.Input.Panel.Layout(Elm.Input.Panel.Layout.invalid); [[Layout type.]]
          }
       }
       @property input_panel_return_key_type {
@@ -216,7 +265,7 @@ class Efl.Ui.Text (Elm.Layout, Elm.Interface_Scrollable, Efl.Ui.Clickable,
             [[Get the attribute to show the input panel automatically.]]
          }
          values {
-            enabled: bool; [[If true, the input panel is appeared when entry is clicked or has a focus.]]
+            enabled: bool; [[If $true, the input panel is appeared when entry is clicked or has a focus.]]
          }
       }
       @property input_panel_return_key_autoenabled {
@@ -229,19 +278,7 @@ class Efl.Ui.Text (Elm.Layout, Elm.Interface_Scrollable, Efl.Ui.Clickable,
             ]]
          }
          values {
-            enabled: bool; [[If $enabled is true, the return key is automatically disabled when the entry has no text.]]
-         }
-      }
-      @property imf_context {
-         get {
-            [[Returns the input method context of the entry.
-
-              This function exposes the internal input method context.
-
-              IMPORTANT: Many functions may change (i.e delete and create a new one)
-              the internal input method context. Do NOT cache the returned object.
-            ]]
-            return: void_ptr;
+            enabled: bool; [[If $enabled is $true, the return key is automatically disabled when the entry has no text.]]
          }
       }
       item_provider_prepend {
@@ -258,13 +295,6 @@ class Efl.Ui.Text (Elm.Layout, Elm.Interface_Scrollable, Efl.Ui.Clickable,
 
            Note that input panel is shown or hidden automatically according to the focus state of entry widget.
            This API can be used in the case of manually controlling by using @.input_panel_enabled.set(en, $false).
-         ]]
-      }
-      imf_context_reset {
-         [[Reset the input method context of the entry if needed.
-
-           This can be necessary in the case where modifying the buffer would confuse on-going input method behavior.
-           This will typically cause the Input Method Context to clear the preedit state.
          ]]
       }
       selection_copy {
@@ -363,20 +393,19 @@ class Efl.Ui.Text (Elm.Layout, Elm.Interface_Scrollable, Efl.Ui.Clickable,
       }
       cursor_new {
          [[Creates and returns a new cursor for the text.]]
-         return: Efl.Canvas.Text.Cursor;
+         return: Efl.Canvas.Text.Cursor; [[Text cursor]]
       }
    }
    implements {
       class.constructor;
-      Eo.Base.constructor;
-      Eo.Base.destructor;
-      Efl.Canvas.Group.group_move;
+      Efl.Object.constructor;
+      Efl.Object.destructor;
+      Efl.Gfx.visible { set; }
+      Efl.Gfx.position { set; }
+      Efl.Gfx.size { set; }
       Efl.Canvas.Group.group_member_add;
       Efl.Canvas.Group.group_add;
-      Efl.Canvas.Group.group_resize;
       Efl.Canvas.Group.group_del;
-      Efl.Canvas.Group.group_show;
-      Efl.Canvas.Group.group_hide;
       Elm.Widget.activate;
       Elm.Widget.focus_direction_manager_is;
       Elm.Widget.theme_apply;
@@ -387,66 +416,61 @@ class Efl.Ui.Text (Elm.Layout, Elm.Interface_Scrollable, Efl.Ui.Clickable,
       Elm.Widget.focus_next_manager_is;
       Elm.Layout.theme_enable;
       Elm.Layout.sizing_eval;
-      Elm.Layout.text.get;
+      Elm.Layout.text { get; set; }
       Elm.Layout.signal_callback_add;
       Elm.Layout.signal_callback_del;
       Elm.Layout.signal_emit;
-      Elm.Layout.text.set;
-      Elm.Layout.content_aliases.get;
-      Elm.Interface_Scrollable.policy.set;
-      Elm.Interface_Scrollable.bounce_allow.set;
-      Elm.Interface.Atspi_Accessible.state_set.get;
-      Elm.Interface.Atspi_Accessible.name.get;
-      Elm.Interface.Atspi.Text.text.get;
-      Elm.Interface.Atspi.Text.string.get;
-      Elm.Interface.Atspi.Text.attribute.get;
-      Elm.Interface.Atspi.Text.attributes.get;
-      Elm.Interface.Atspi.Text.default_attributes.get;
-      Elm.Interface.Atspi.Text.caret_offset.get;
-      Elm.Interface.Atspi.Text.caret_offset.set;
-      Elm.Interface.Atspi.Text.character.get;
-      Elm.Interface.Atspi.Text.character_extents.get;
-      Elm.Interface.Atspi.Text.character_count.get;
-      Elm.Interface.Atspi.Text.offset_at_point.get;
-      Elm.Interface.Atspi.Text.bounded_ranges.get;
-      Elm.Interface.Atspi.Text.range_extents.get;
-      Elm.Interface.Atspi.Text.selection.get;
-      Elm.Interface.Atspi.Text.selections_count.get;
+      Elm.Layout.content_aliases { get; }
+      Elm.Interface_Scrollable.policy { set; }
+      Elm.Interface_Scrollable.bounce_allow { set; }
+      Elm.Interface.Atspi_Accessible.state_set { get; }
+      Elm.Interface.Atspi_Accessible.name { get; }
+      Elm.Interface.Atspi.Text.text { get; }
+      Elm.Interface.Atspi.Text.string { get; }
+      Elm.Interface.Atspi.Text.attribute { get; }
+      Elm.Interface.Atspi.Text.attributes { get; }
+      Elm.Interface.Atspi.Text.default_attributes { get; }
+      Elm.Interface.Atspi.Text.caret_offset { get; set; }
+      Elm.Interface.Atspi.Text.character { get; }
+      Elm.Interface.Atspi.Text.character_extents { get; }
+      Elm.Interface.Atspi.Text.character_count { get; }
+      Elm.Interface.Atspi.Text.offset_at_point { get; }
+      Elm.Interface.Atspi.Text.bounded_ranges { get; }
+      Elm.Interface.Atspi.Text.range_extents { get; }
+      Elm.Interface.Atspi.Text.selection { get; set; }
+      Elm.Interface.Atspi.Text.selections_count { get; }
       Elm.Interface.Atspi.Text.selection_add;
       Elm.Interface.Atspi.Text.selection_remove;
-      Elm.Interface.Atspi.Text.selection.set;
-      Elm.Interface.Atspi.Text.Editable.content.set;
+      Elm.Interface.Atspi.Text.Editable.content { set; }
       Elm.Interface.Atspi.Text.Editable.insert;
       Elm.Interface.Atspi.Text.Editable.copy;
       Elm.Interface.Atspi.Text.Editable.cut;
       Elm.Interface.Atspi.Text.Editable.delete;
       Elm.Interface.Atspi.Text.Editable.paste;
-      Efl.File.file.set;
-      Efl.File.file.get;
-      Efl.Ui.Text.Interactive.editable.set;
+      Efl.File.file { get; set; }
+      Efl.Ui.Text.Interactive.editable { set; }
    }
    events {
-      activated;
-      changed;
-      changed,user;
-      validate;
-      context,open;
-      anchor,clicked;
-      rejected;
-      maxlength,reached;
-      preedit,changed;
-      press;
-      redo,request;
-      undo,request;
-      text,set,done;
-      aborted;
-      anchor,down;
-      anchor,hover,opened;
-      anchor,in;
-      anchor,out;
-      anchor,up;
-      cursor,changed;
-      cursor,changed,manual;
+      activated; [[Called when entry got activated]]
+      changed; [[Called when entry changed]]
+      changed,user; [[Called when object changed due to user interaction]]
+      validate; [[Called when validating]]
+      context,open; [[Called when context menu was opened]]
+      anchor,clicked; [[Called when anchor was clicked]]
+      rejected; [[Called when entry was rejected]]
+      maxlength,reached; [[Called when maximum entry length has been reached]]
+      preedit,changed; [[Called when entry preedit changed]]
+      press; [[Called when entry pressed]]
+      redo,request; [[Called when redo was requested]]
+      undo,request; [[Called when undo was requested]]
+      text,set,done; [[Called when text set finished]]
+      aborted; [[Called when entry was aborted]]
+      anchor,down; [[Called on anchor down]]
+      anchor,hover,opened; [[Called when hover opened]]
+      anchor,in; [[Called on anchor in]]
+      anchor,out; [[Called on anchor out]]
+      anchor,up; [[called on anchor up]]
+      cursor,changed; [[Called on cursor changed]]
+      cursor,changed,manual; [[Called on manual cursor change]]
    }
-
 }

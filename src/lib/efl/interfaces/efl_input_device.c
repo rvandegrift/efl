@@ -9,16 +9,16 @@
 
 /* Efl Input Device = Evas Device */
 
-EOLIAN static Eo_Base *
-_efl_input_device_eo_base_constructor(Eo *obj, Efl_Input_Device_Data *pd)
+EOLIAN static Efl_Object *
+_efl_input_device_efl_object_constructor(Eo *obj, Efl_Input_Device_Data *pd)
 {
-   obj = eo_constructor(eo_super(obj, EFL_INPUT_DEVICE_CLASS));
+   obj = efl_constructor(efl_super(obj, EFL_INPUT_DEVICE_CLASS));
    pd->eo = obj;
    return obj;
 }
 
 EOLIAN static void
-_efl_input_device_eo_base_destructor(Eo *obj, Efl_Input_Device_Data *pd)
+_efl_input_device_efl_object_destructor(Eo *obj, Efl_Input_Device_Data *pd)
 {
    Eo *eo_child;
 
@@ -26,13 +26,17 @@ _efl_input_device_eo_base_destructor(Eo *obj, Efl_Input_Device_Data *pd)
    eina_stringshare_del(pd->desc);
    EINA_LIST_FREE(pd->children, eo_child)
      {
-        Efl_Input_Device_Data *child = eo_data_scope_get(eo_child, EFL_INPUT_DEVICE_CLASS);
+        Efl_Input_Device_Data *child = efl_data_scope_get(eo_child, EFL_INPUT_DEVICE_CLASS);
         child->parent = NULL;
-        eo_unref(eo_child);
      }
-   eo_unref(pd->source);
+   if (pd->parent)
+     {
+        Efl_Input_Device_Data *p = efl_data_scope_get(pd->parent, EFL_INPUT_DEVICE_CLASS);
+        p->children = eina_list_remove(p->children, obj);
+     }
+   efl_unref(pd->source);
 
-   return eo_destructor(eo_super(obj, EFL_INPUT_DEVICE_CLASS));
+   return efl_destructor(efl_super(obj, EFL_INPUT_DEVICE_CLASS));
 }
 
 EOLIAN static void
@@ -63,8 +67,8 @@ EOLIAN static void
 _efl_input_device_source_set(Eo *obj EINA_UNUSED, Efl_Input_Device_Data *pd, Efl_Input_Device *src)
 {
    if (pd->source == src) return;
-   eo_unref(pd->source);
-   pd->source = eo_ref(src);
+   efl_unref(pd->source);
+   pd->source = efl_ref(src);
 }
 
 EOLIAN static Efl_Input_Device *
@@ -98,9 +102,43 @@ _efl_input_device_description_get(Eo *obj EINA_UNUSED, Efl_Input_Device_Data *pd
 }
 
 EOLIAN static Efl_Input_Device *
+_efl_input_device_seat_get(Eo *obj EINA_UNUSED, Efl_Input_Device_Data *pd)
+{
+   while (1)
+     {
+        if (pd->klass == EFL_INPUT_DEVICE_CLASS_SEAT)
+          return pd->eo;
+
+        if (!pd->parent)
+          break;
+
+        pd = efl_data_scope_get(pd->parent, EFL_INPUT_DEVICE_CLASS);
+     }
+
+   return NULL;
+}
+
+EOLIAN static Efl_Input_Device *
 _efl_input_device_parent_get(Eo *obj EINA_UNUSED, Efl_Input_Device_Data *pd)
 {
    return pd->parent;
+}
+
+EOLIAN static void
+_efl_input_device_parent_set(Eo *obj, Efl_Input_Device_Data *pd, Efl_Input_Device *parent)
+{
+   if (pd->parent == parent) return;
+   if (pd->parent)
+     {
+        Efl_Input_Device_Data *p = efl_data_scope_get(pd->parent, EFL_INPUT_DEVICE_CLASS);
+        p->children = eina_list_remove(p->children, obj);
+     }
+   pd->parent = parent;
+   if (parent)
+     {
+        Efl_Input_Device_Data *p = efl_data_scope_get(parent, EFL_INPUT_DEVICE_CLASS);
+        p->children = eina_list_append(p->children, obj);
+     }
 }
 
 #include "interfaces/efl_input_device.eo.c"

@@ -797,7 +797,7 @@ _ecore_imf_xim_shutdown(void)
 
    ecore_x_shutdown();
 
-   if (_ecore_imf_xim_log_dom > 0)
+   if (_ecore_imf_xim_log_dom >= 0)
      {
         eina_log_domain_unregister(_ecore_imf_xim_log_dom);
         _ecore_imf_xim_log_dom = -1;
@@ -1382,6 +1382,9 @@ _ecore_imf_xim_info_im_shutdown(Ecore_X_Display *display EINA_UNUSED,
      }
 
    free(info->locale);
+
+   if (info->xim_styles)
+     XFree(info->xim_styles);
 
    if (info->im)
      XCloseIM(info->im);

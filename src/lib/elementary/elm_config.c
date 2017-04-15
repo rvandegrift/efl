@@ -506,6 +506,7 @@ _desc_init(void)
    ELM_CONFIG_VAL(D, T, popup_scrollable, T_UCHAR);
    ELM_CONFIG_VAL(D, T, spinner_min_max_filter_enable, T_UCHAR);
    ELM_CONFIG_VAL(D, T, icon_theme, T_STRING);
+   ELM_CONFIG_VAL(D, T, entry_select_allow, T_UCHAR);
 #undef T
 #undef D
 #undef T_INT
@@ -610,75 +611,33 @@ _elm_config_user_dir_snprintf(char       *dst,
                               const char *fmt,
                               ...)
 {
-   const char *home = NULL;
    size_t user_dir_len = 0, off = 0;
    va_list ap;
+   Efl_Vpath_File *file_obj;
+   static int use_xdg_config = -1;
 
-#if defined(HAVE_GETUID) && defined(HAVE_GETEUID)
-   if (getuid() == geteuid())
-#endif
+   if (use_xdg_config == -1)
      {
-#ifdef DOXDG
-        home = getenv("XDG_CONFIG_HOME");
-        if (home)
-          {
-             user_dir_len = eina_str_join_len
-             (dst, size, '/', home, strlen(home),
-                 "elementary", sizeof("elementary") - 1);
-          }
-        else
-#endif
-          {
-             home = eina_environment_home_get();
-             if (!home) home = "/";
-#ifdef DOXDG
-             user_dir_len = eina_str_join_len
-             (dst, size, '/', home, strlen(home),
-                 ".config", sizeof(".config") - 1,
-                 "elementary", sizeof("elementary") - 1);
-#else
-             user_dir_len = eina_str_join_len
-             (dst, size, '/', home, strlen(home),
-                 ELEMENTARY_BASE_DIR, sizeof(ELEMENTARY_BASE_DIR) - 1);
-#endif
-          }
-        off = user_dir_len + 1;
-        if (off >= size) return off;
-        dst[user_dir_len] = '/';
-        va_start(ap, fmt);
-        off = off + vsnprintf(dst + off, size - off, fmt, ap);
-        va_end(ap);
-        return off;
+        if (getenv("ELM_CONFIG_DIR_XDG")) use_xdg_config = 1;
+        else use_xdg_config = 0;
      }
-#if defined(HAVE_GETUID) && defined(HAVE_GETEUID)
+   if (use_xdg_config)
+     file_obj = efl_vpath_manager_fetch(EFL_VPATH_MANAGER_CLASS,
+                                        "(:config:)/elementary");
    else
-#else
-     {
-# if HAVE_GETPWENT
-        struct passwd *pw = getpwent();
+     file_obj = efl_vpath_manager_fetch(EFL_VPATH_MANAGER_CLASS,
+                                        "(:home:)/.elementary");
+   eina_strlcpy(dst, efl_vpath_file_result_get(file_obj), size);
+   efl_del(file_obj);
 
-        if ((!pw) || (!pw->pw_dir)) goto end;
-#  ifdef DOXDG
-        user_dir_len = eina_str_join_len
-          (dst, size, '/', pw->pw_dir, strlen(pw->pw_dir),
-           ".config", sizeof(".config") - 1,
-           "elementary", sizeof("elementary") - 1);
-#  else
-        user_dir_len = eina_str_join_len
-          (dst, size, '/', pw->pw_dir, strlen(pw->pw_dir),
-           ELEMENTARY_BASE_DIR, sizeof(ELEMENTARY_BASE_DIR) - 1);
-#  endif
-# endif /* HAVE_GETPWENT */
-        off = user_dir_len + 1;
-        if (off >= size) return off;
-        dst[user_dir_len] = '/';
-        va_start(ap, fmt);
-        off = off + vsnprintf(dst + off, size - off, fmt, ap);
-        va_end(ap);
-        return off;
-     }
-#endif
-   return 0;
+   user_dir_len = strlen(dst);
+   off = user_dir_len + 1;
+   if (off >= size) return off;
+   dst[user_dir_len] = '/';
+   va_start(ap, fmt);
+   off = off + vsnprintf(dst + off, size - off, fmt, ap);
+   va_end(ap);
+   return off;
 }
 
 typedef struct _Elm_Config_Derived          Elm_Config_Derived;
@@ -1455,8 +1414,15 @@ _profile_fetch_from_conf(void)
           {
              p = strchr(_elm_profile, '/');
              if (p) *p = 0;
+             p = strchr(_elm_profile, '\\');
+             if (p) *p = 0;
+             if (!strcmp(_elm_profile, ".."))
+               {
+                  free(_elm_profile);
+                  _elm_profile = NULL;
+               }
+             else return;
           }
-        return;
      }
 
    for (i = 0; i < 2; i++)
@@ -1688,10 +1654,10 @@ _efl_config_obj_del(Eo *obj EINA_UNUSED)
 static void
 _config_load(void)
 {
-   _efl_config_obj = eo_add(EFL_CONFIG_GLOBAL_CLASS, NULL);
+   _efl_config_obj = efl_add(EFL_CONFIG_GLOBAL_CLASS, NULL);
    efl_loop_register(ecore_main_loop_get(), EFL_CONFIG_INTERFACE, _efl_config_obj);
    efl_loop_register(ecore_main_loop_get(), EFL_CONFIG_GLOBAL_CLASS, _efl_config_obj);
-   eo_del_intercept_set(_efl_config_obj, _efl_config_obj_del);
+   efl_del_intercept_set(_efl_config_obj, _efl_config_obj_del);
    _elm_config = _config_user_load();
    if (_elm_config)
      {
@@ -1705,6 +1671,7 @@ _config_load(void)
           {
              if (_elm_config->config_version < ELM_CONFIG_VERSION)
                _config_update();
+             _env_get();
              return;
           }
      }
@@ -1713,7 +1680,11 @@ _config_load(void)
     * this one, if it's not the right one, someone screwed up at the time
     * of installing it */
    _elm_config = _config_system_load();
-   if (_elm_config) return;
+   if (_elm_config)
+     {
+        _env_get();
+        return;
+     }
    /* FIXME: config load could have failed because of a non-existent
     * profile. Fallback to default before moving on */
 
@@ -1805,7 +1776,7 @@ _config_load(void)
    _elm_config->week_start = 1; /* monday */
    _elm_config->weekend_start = 6; /* saturday */
    _elm_config->weekend_len = 2;
-   _elm_config->year_min = 2;
+   _elm_config->year_min = 70;
    _elm_config->year_max = 137;
    _elm_config->softcursor_mode = 0; /* 0 = auto, 1 = on, 2 = off */
    _elm_config->color_palette = NULL;
@@ -1843,6 +1814,8 @@ _config_load(void)
    _elm_config->popup_vertical_align = 0.5;
    _elm_config->icon_theme = eina_stringshare_add(ELM_CONFIG_ICON_THEME_ELEMENTARY);
    _elm_config->popup_scrollable = EINA_FALSE;
+   _elm_config->entry_select_allow = EINA_TRUE;
+   _env_get();
 }
 
 static void
@@ -1877,7 +1850,7 @@ _config_flush_get(void)
    _elm_recache();
    _elm_clouseau_reload();
    _elm_config_key_binding_hash();
-   if (_elm_config) _elm_win_access(_elm_config->access_mode);
+   _elm_win_access(_elm_config->access_mode);
    ecore_event_add(ELM_EVENT_CONFIG_ALL_CHANGED, NULL, NULL, NULL);
 }
 
@@ -2193,6 +2166,14 @@ _config_update(void)
 
    IFCFG(0x000a)
    _elm_config->icon_theme = eina_stringshare_add(ELM_CONFIG_ICON_THEME_ELEMENTARY);
+   IFCFGEND
+
+   IFCFG(0x000b)
+   eina_stringshare_refplace(&_elm_config->modules, tcfg->modules);
+   IFCFGEND
+
+   IFCFG(0x000e)
+   _elm_config->entry_select_allow = EINA_TRUE;
    IFCFGEND
    /**
     * Fix user config for current ELM_CONFIG_EPOCH here.
@@ -3772,9 +3753,10 @@ _translation_init(void)
     * en_/C where translating only parts of the interface make some
     * sense).
     */
-   _elm_config->translate = !(strcmp (cur_dom, "messages") &&
-         !*trans_comment && strncmp (msg_locale, "en_", 3) &&
-         strcmp (msg_locale, "C"));
+   if (msg_locale)
+     _elm_config->translate = !(strcmp (cur_dom, "messages") &&
+           !*trans_comment && strncmp (msg_locale, "en_", 3) &&
+           strcmp (msg_locale, "C"));
    /* Get RTL orientation from system */
    if (_elm_config->translate)
      {
@@ -3809,6 +3791,8 @@ _elm_config_init(void)
 void
 _elm_config_sub_shutdown(void)
 {
+   ecore_event_type_flush(ELM_EVENT_CONFIG_ALL_CHANGED);
+
 #ifdef HAVE_ELEMENTARY_X
    if (ecore_x_display_get()) ecore_x_shutdown();
 #endif
@@ -3951,7 +3935,7 @@ _elm_config_sub_init(void)
 
    if (ev) /* If ELM_DISPLAY is specified */
      {
-        if (!strcmp(ev, "wl")) /* and it is X11 */
+        if (!strcmp(ev, "wl")) /* and it is WL */
           {
              /* always try to connect to wl when it is enforced */
              init_wl = EINA_TRUE;
@@ -3961,7 +3945,8 @@ _elm_config_sub_init(void)
      }
    else /* ELM_DISPLAY not specified */
      {
-        if (have_wl_display) /* If there is a $WAYLAND_DISPLAY */
+        /* If there is a $WAYLAND_DISPLAY */
+        if ((have_wl_display) && (!getenv("DISPLAY")))
           init_wl = EINA_TRUE;
         else /* No $WAYLAND_DISPLAY */
           init_wl = EINA_FALSE;
@@ -4186,8 +4171,11 @@ _elm_config_accel_preference_parse(const char *pref, Eina_Stringshare **accel,
    DBG("gl depth: %d", *gl_depth);
    DBG("gl stencil: %d", *gl_stencil);
    DBG("gl msaa: %d", *gl_msaa);
-   free(arr[0]);
-   free(arr);
+   if (arr)
+     {
+        free(arr[0]);
+        free(arr);
+     }
 
    return is_hw_accel;
 }
@@ -4313,13 +4301,14 @@ _elm_config_profile_set(const char *profile)
 void
 _elm_config_shutdown(void)
 {
-   eo_del_intercept_set(_efl_config_obj, NULL);
+   efl_del_intercept_set(_efl_config_obj, NULL);
    efl_loop_register(ecore_main_loop_get(), EFL_CONFIG_INTERFACE, NULL);
    efl_loop_register(ecore_main_loop_get(), EFL_CONFIG_GLOBAL_CLASS, NULL);
-   ELM_SAFE_FREE(_efl_config_obj, eo_del);
+   ELM_SAFE_FREE(_efl_config_obj, efl_del);
    ELM_SAFE_FREE(_elm_config, _config_free);
    ELM_SAFE_FREE(_elm_preferred_engine, eina_stringshare_del);
    ELM_SAFE_FREE(_elm_accel_preference, eina_stringshare_del);
+   ELM_SAFE_FREE(_elm_cache_flush_poller, ecore_poller_del);
    ELM_SAFE_FREE(_elm_profile, free);
    _elm_font_overlays_del_free();
 
@@ -4342,8 +4331,7 @@ _eina_value_to_int(const Eina_Value *val, int *i)
 
    if (eina_value_type_get(val) == EINA_VALUE_TYPE_INT)
      {
-        eina_value_get(val, i);
-        return EINA_TRUE;
+        return eina_value_get(val, i);
      }
 
    ival = eina_value_new(EINA_VALUE_TYPE_INT);
@@ -4808,7 +4796,7 @@ _efl_config_global_profile_iterate(Eo *obj EINA_UNUSED, void *_pd EINA_UNUSED, E
    it->iterator.next = FUNC_ITERATOR_NEXT(_profile_iterator_next);
    it->iterator.get_container = FUNC_ITERATOR_GET_CONTAINER(_profile_iterator_get_container);
    it->iterator.free = FUNC_ITERATOR_FREE(_profile_iterator_free);
-   eo_wref_add(obj, &it->object);
+   efl_wref_add(obj, &it->object);
 
    return &it->iterator;
 }

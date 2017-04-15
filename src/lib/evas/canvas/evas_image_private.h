@@ -107,6 +107,7 @@ struct _Evas_Image_Data
    const Evas_Object_Image_Pixels *pixels;
 
    void             *engine_data;
+   void             *engine_data_prep;
    Efl_Vpath_File   *file_obj;
 
    int               pixels_checked_out;
@@ -140,6 +141,7 @@ struct _Evas_Image_Data
       Eina_Bool      video_hide : 1;
    } delayed;
    Eina_Bool         legacy_type : 1;
+   Eina_Bool         skip_head : 1;
 };
 
 /* shared functions between legacy and new eo classes */
@@ -158,6 +160,7 @@ void _evas_image_file_get(const Eo *eo_obj, const char **file, const char **key)
 
 /* Efl.Image.Load */
 Efl_Image_Load_Error _evas_image_load_error_get(const Eo *eo_obj);
+void _evas_image_load_post_update(Evas_Object *eo_obj, Evas_Object_Protected_Data *obj);
 void _evas_image_load_async_start(Eo *eo_obj);
 void _evas_image_load_async_cancel(Eo *eo_obj);
 void _evas_image_load_dpi_set(Eo *eo_obj, double dpi);
@@ -168,6 +171,8 @@ void _evas_image_load_scale_down_set(Eo *eo_obj, int scale_down);
 int _evas_image_load_scale_down_get(const Eo *eo_obj);
 void _evas_image_load_region_set(Eo *eo_obj, int x, int y, int w, int h);
 void _evas_image_load_region_get(const Eo *eo_obj, int *x, int *y, int *w, int *h);
+void _evas_image_load_head_skip_set(const Eo *eo_obj, Eina_Bool skip);
+Eina_Bool _evas_image_load_head_skip_get(const Eo *eo_obj);
 void _evas_image_load_orientation_set(Eo *eo_obj, Eina_Bool enable);
 Eina_Bool _evas_image_load_orientation_get(const Eo *eo_obj);
 Eina_Bool _evas_image_load_region_support_get(const Eo *eo_obj);

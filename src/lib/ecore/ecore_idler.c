@@ -14,20 +14,20 @@ struct _Ecore_Factorized_Idle
    Ecore_Task_Cb func;
    void         *data;
 
-   const Eo_Callback_Array_Item *desc;
+   const Efl_Callback_Array_Item *desc;
 
    short         references;
    Eina_Bool     delete_me : 1;
 };
 
 void
-_ecore_factorized_idle_event_del(void *data, const Eo_Event *event EINA_UNUSED)
+_ecore_factorized_idle_event_del(void *data, const Efl_Event *event EINA_UNUSED)
 {
    _ecore_factorized_idle_del(data);
 }
 
 void
-_ecore_factorized_idle_process(void *data, const Eo_Event *event EINA_UNUSED)
+_ecore_factorized_idle_process(void *data, const Efl_Event *event EINA_UNUSED)
 {
    Ecore_Factorized_Idle *idler = data;
 
@@ -40,6 +40,8 @@ _ecore_factorized_idle_process(void *data, const Eo_Event *event EINA_UNUSED)
        idler->references == 0)
      _ecore_factorized_idle_del(idler);
 }
+
+static Eina_Mempool *idler_mp = NULL;
 
 void *
 _ecore_factorized_idle_del(Ecore_Idler *idler)
@@ -55,24 +57,21 @@ _ecore_factorized_idle_del(Ecore_Idler *idler)
         return idler->data;
      }
 
-   eo_event_callback_array_del(_mainloop_singleton, idler->desc, idler);
+   efl_event_callback_array_del(_mainloop_singleton, idler->desc, idler);
 
    data = idler->data;
-   free(idler);
+   eina_mempool_free(idler_mp, idler);
    return data;
 }
 
 Ecore_Factorized_Idle *
-_ecore_factorized_idle_add(const Eo_Callback_Array_Item *desc,
+_ecore_factorized_idle_add(const Efl_Callback_Array_Item *desc,
                            Ecore_Task_Cb func,
                            const void   *data)
 {
    Ecore_Factorized_Idle *ret;
 
-   if (EINA_UNLIKELY(!eina_main_loop_is()))
-     {
-        EINA_MAIN_LOOP_CHECK_RETURN;
-     }
+   EINA_MAIN_LOOP_CHECK_RETURN_VAL(NULL);
 
    if (!func)
      {
@@ -80,7 +79,13 @@ _ecore_factorized_idle_add(const Eo_Callback_Array_Item *desc,
         return NULL;
      }
 
-   ret = malloc(sizeof (Ecore_Idler));
+   if (!idler_mp)
+     {
+        idler_mp = eina_mempool_add("chained_mempool", "Ecore_Idle*", NULL, sizeof (Ecore_Factorized_Idle), 23);
+        if (!idler_mp) return NULL;
+     }
+
+   ret = eina_mempool_malloc(idler_mp, sizeof (Ecore_Factorized_Idle));
    if (!ret) return NULL;
 
    ret->func = func;
@@ -89,16 +94,16 @@ _ecore_factorized_idle_add(const Eo_Callback_Array_Item *desc,
    ret->references = 0;
    ret->delete_me = EINA_FALSE;
 
-   eo_event_callback_array_add(_mainloop_singleton, desc, ret);
+   efl_event_callback_array_add(_mainloop_singleton, desc, ret);
 
    return ret;
 }
 
 /* Specific to Ecore_Idler implementation */
 
-EO_CALLBACKS_ARRAY_DEFINE(ecore_idler_callbacks,
+EFL_CALLBACKS_ARRAY_DEFINE(ecore_idler_callbacks,
                           { EFL_LOOP_EVENT_IDLE, _ecore_factorized_idle_process },
-                          { EO_EVENT_DEL, _ecore_factorized_idle_event_del });
+                          { EFL_EVENT_DEL, _ecore_factorized_idle_event_del });
 
 EAPI Ecore_Idler *
 ecore_idler_add(Ecore_Task_Cb func,
@@ -116,13 +121,18 @@ ecore_idler_del(Ecore_Idler *idler)
 void
 _ecore_idler_all_call(Eo *loop)
 {
-   eo_event_callback_call(loop, EFL_LOOP_EVENT_IDLE, NULL);
+   efl_event_callback_call(loop, EFL_LOOP_EVENT_IDLE, NULL);
+   // just spin in an idler until the free queue is empty freeing 84 items
+   // from the free queue each time.for now this seems like an ok balance
+   // between going in and out of a reduce func with mutexes around it
+   // vs blocking mainloop for too long. this number is up for discussion
+   eina_freeq_reduce(eina_freeq_main_get(), 84);
 }
 
 int
 _ecore_idler_exist(Eo *loop)
 {
-   Efl_Loop_Data *dt = eo_data_scope_get(loop, EFL_LOOP_CLASS);
+   Efl_Loop_Data *dt = efl_data_scope_get(loop, EFL_LOOP_CLASS);
 
-   return dt->idlers;
+   return dt->idlers || eina_freeq_ptr_pending(eina_freeq_main_get());
 }

@@ -1,10 +1,11 @@
 import eina_types;
 
-type Elm_Prefs_Data: __undefined_type;
-type Elm_Prefs_Reset_Mode: __undefined_type;
+type Elm_Prefs_Data: __undefined_type; [[Elementary preferences data type]]
+type Elm_Prefs_Reset_Mode: __undefined_type; [[Elementary preferences reset mode type]]
 
 class Elm.Prefs (Elm.Widget, Efl.File)
 {
+   [[Elementary preferences class]]
    legacy_prefix: elm_prefs;
    eo_prefix: elm_obj_prefs;
    event_prefix: elm_prefs;
@@ -41,7 +42,7 @@ class Elm.Prefs (Elm.Widget, Efl.File)
          get {
          }
          values {
-            data: Elm_Prefs_Data * @nullable; [[A valid prefs_data handle]]
+            data: ptr(Elm_Prefs_Data) @nullable; [[A valid prefs_data handle]]
          }
       }
       @property autosave {
@@ -92,7 +93,7 @@ class Elm.Prefs (Elm.Widget, Efl.File)
          return: bool; [[$true, on success, $false otherwise]]
          params {
             @in name: string; [[The name of the item (as declared in the prefs collection)]]
-            @in value: const(generic_value)*; [[The value to set on the item. It should be typed as the item expects, preferably, or a conversion will take place]]
+            @in value: ptr(const(generic_value)); [[The value to set on the item. It should be typed as the item expects, preferably, or a conversion will take place]]
          }
       }
       item_value_get @const {
@@ -150,7 +151,7 @@ class Elm.Prefs (Elm.Widget, Efl.File)
 
          return: bool; [[$true, on success, $false otherwise]]
          params {
-            @in name: string; [[the name of the SWALLOW item (as declared in the prefs collection)]]
+            @in name: string; [[The name of the SWALLOW item (as declared in the prefs collection)]]
             @in child: Efl.Canvas.Object; [[The object to occupy the item]]
          }
       }
@@ -184,7 +185,7 @@ class Elm.Prefs (Elm.Widget, Efl.File)
 
          return: Efl.Canvas.Object; [[The unswallowed object, or NULL on errors]]
          params {
-            @in name: string; [[the name of the SWALLOW item (as declared in the prefs collection)]]
+            @in name: string; [[The name of the SWALLOW item (as declared in the prefs collection)]]
          }
       }
       item_visible_set {
@@ -213,20 +214,18 @@ class Elm.Prefs (Elm.Widget, Efl.File)
    }
    implements {
       class.constructor;
-      Eo.Base.constructor;
-      Efl.File.file.set;
-      Efl.File.file.get;
+      Efl.Object.constructor;
+      Efl.File.file { get; set; }
       Efl.Canvas.Group.group_del;
       Efl.Canvas.Group.group_add;
       Elm.Widget.focus_next;
    }
    events {
-      page,changed; [[s]]
-      page,saved; [[s]]
-      page,reset; [[s]]
-      page,loaded; [[s]]
-      item,changed; [[s]]
-      action; [[ss]]
+      page,changed; [[Called when page changed]]
+      page,saved; [[Called when page was saved]]
+      page,reset; [[Called when page was reset]]
+      page,loaded; [[Called when page got loaded]]
+      item,changed; [[Called when item changed]]
+      action; [[Called when action was done]]
    }
-
 }

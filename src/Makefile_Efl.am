@@ -20,6 +20,7 @@ efl_eolian_files = \
       lib/efl/interfaces/efl_gfx_stack.eo \
       lib/efl/interfaces/efl_gfx_view.eo \
       lib/efl/interfaces/efl_gfx_buffer.eo \
+      lib/efl/interfaces/efl_gfx_path.eo \
       lib/efl/interfaces/efl_gfx_shape.eo \
       lib/efl/interfaces/efl_gfx_gradient.eo \
       lib/efl/interfaces/efl_gfx_gradient_linear.eo \
@@ -42,16 +43,28 @@ efl_eolian_files = \
       lib/efl/interfaces/efl_vpath_file_core.eo \
       lib/efl/interfaces/efl_ui_spin.eo \
       lib/efl/interfaces/efl_ui_progress.eo \
-      lib/efl/interfaces/efl_event.eo \
-      lib/efl/interfaces/efl_input_interface.eo \
-      lib/efl/interfaces/efl_input_state.eo \
+      lib/efl/interfaces/efl_ui_view.eo \
+      lib/efl/interfaces/efl_ui_model_connect.eo \
+      lib/efl/interfaces/efl_ui_factory.eo \
+      lib/efl/interfaces/efl_ui_model_factory_connect.eo \
       lib/efl/interfaces/efl_screen.eo \
+      lib/efl/interfaces/efl_io_closer.eo \
+      lib/efl/interfaces/efl_io_positioner.eo \
+      lib/efl/interfaces/efl_io_reader.eo \
+      lib/efl/interfaces/efl_io_sizer.eo \
+      lib/efl/interfaces/efl_io_writer.eo \
+      lib/efl/interfaces/efl_io_buffer.eo \
+      lib/efl/interfaces/efl_io_queue.eo \
+      lib/efl/interfaces/efl_observer.eo \
+      lib/efl/interfaces/efl_observable.eo \
+      lib/efl/interfaces/efl_ui_item.eo \
+      lib/efl/interfaces/efl_ui_menu.eo \
       $(efl_eolian_legacy_files) \
       $(NULL)
 
 efl_eolian_type_files = \
 	lib/efl/interfaces/efl_gfx_types.eot \
-	lib/efl/interfaces/efl_event_types.eot \
+	lib/efl/interfaces/efl_input_types.eot \
 	lib/efl/interfaces/efl_types.eot \
 	lib/efl/interfaces/efl_text_types.eot \
 	$(NULL)
@@ -82,12 +95,21 @@ lib_LTLIBRARIES += lib/efl/libefl.la
 lib_efl_libefl_la_SOURCES = \
 lib/efl/interfaces/efl_interfaces_main.c \
 lib/efl/interfaces/efl_model_common.c \
+lib/efl/interfaces/efl_gfx_path.c \
 lib/efl/interfaces/efl_gfx_shape.c \
 lib/efl/interfaces/efl_vpath_file.c \
 lib/efl/interfaces/efl_vpath_manager.c \
 lib/efl/interfaces/efl_vpath_core.c \
 lib/efl/interfaces/efl_vpath_file_core.c \
 lib/efl/interfaces/efl_input_device.c \
+lib/efl/interfaces/efl_io_closer.c \
+lib/efl/interfaces/efl_io_positioner.c \
+lib/efl/interfaces/efl_io_reader.c \
+lib/efl/interfaces/efl_io_sizer.c \
+lib/efl/interfaces/efl_io_writer.c \
+lib/efl/interfaces/efl_io_buffer.c \
+lib/efl/interfaces/efl_io_queue.c \
+lib/efl/interfaces/efl_observer.c \
 $(NULL)
 
 lib_efl_libefl_la_CPPFLAGS = -I$(top_builddir)/src/lib/efl -I$(top_srcdir)/src/lib/efl @EFL_CFLAGS@ -DEFL_GFX_FILTER_BETA
@@ -128,7 +150,7 @@ endif
 
 if HAVE_CXX11
 efl_eolian_cxx_hh = $(efl_eolian_files:%.eo=%.eo.hh)
-efl_eolian_cxx_impl = $(efl_eolian_files:%.eo=%.eo.impl.hh)
+efl_eolian_cxx_impl_hh = $(efl_eolian_files:%.eo=%.eo.impl.hh)
 endif
 
 ### Binary
@@ -152,4 +174,35 @@ bin/efl/efl_debug_common.h
 bin_efl_efl_debug_CPPFLAGS = -I$(top_builddir)/src/bin/efl @EINA_CFLAGS@ @ECORE_CFLAGS@ @ECORE_CON_CFLAGS@
 bin_efl_efl_debug_LDADD = @EFL_LIBS@ @USE_EINA_INTERNAL_LIBS@ @USE_ECORE_INTERNAL_LIBS@ @USE_ECORE_CON_INTERNAL_LIBS@
 bin_efl_efl_debug_DEPENDENCIES = @USE_EINA_INTERNAL_LIBS@ @USE_ECORE_INTERNAL_LIBS@ @USE_ECORE_CON_INTERNAL_LIBS@
+
+
+if EFL_ENABLE_TESTS
+
+check_PROGRAMS += tests/efl/efl_suite
+TESTS += tests/efl/efl_suite
+
+tests_efl_efl_suite_SOURCES = \
+tests/efl/efl_suite.c \
+tests/efl/efl_test_model_container.c \
+tests/efl/efl_test_model_composite_boolean.c \
+tests/efl/efl_suite.h
+
+tests_efl_efl_suite_CPPFLAGS = -I$(top_builddir)/src/lib/efl \
+-DTESTS_SRC_DIR=\"$(top_srcdir)/src/tests/efl\" \
+-DTESTS_BUILD_DIR=\"$(top_builddir)/src/tests/efl\" \
+@CHECK_CFLAGS@ \
+@ECORE_CFLAGS@ \
+@EFL_CFLAGS@
+
+
+tests_efl_efl_suite_LDADD = @CHECK_LIBS@ \
+@EFL_LIBS@ \
+@USE_EFL_LIBS@ \
+@USE_ECORE_LIBS@ -lecore
+
+tests_efl_efl_suite_DEPENDENCIES = \
+@USE_EFL_INTERNAL_LIBS@ \
+@USE_ECORE_INTERNAL_LIBS@
+
+endif
 

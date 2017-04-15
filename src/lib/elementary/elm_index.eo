@@ -1,6 +1,7 @@
 class Elm.Index (Elm.Layout, Efl.Orientation,
                  Efl.Ui.Clickable, Efl.Ui.Selectable)
 {
+   [[elementary index class]]
    legacy_prefix: elm_index;
    eo_prefix: elm_obj_index;
    event_prefix: elm_index;
@@ -219,7 +220,7 @@ class Elm.Index (Elm.Layout, Efl.Orientation,
    }
    implements {
       class.constructor;
-      Eo.Base.constructor;
+      Efl.Object.constructor;
       Efl.Canvas.Group.group_add;
       Efl.Canvas.Group.group_del;
       Elm.Widget.theme_apply;
@@ -227,15 +228,14 @@ class Elm.Index (Elm.Layout, Efl.Orientation,
       Elm.Widget.focus_direction_manager_is;
       Elm.Widget.access;
       Elm.Widget.focus_next;
-      Efl.Orientation.orientation;
+      Efl.Orientation.orientation { get; set; }
       Elm.Layout.sizing_eval;
-      Elm.Interface.Atspi_Accessible.children.get;
+      Elm.Interface.Atspi_Accessible.children { get; }
    }
    events {
-      changed;
-      delay,changed;
-      level,up;
-      level,down;
+      changed; [[Called when index changed]]
+      delay,changed; [[Called when delay changed]]
+      level,up; [[Called when level increased]]
+      level,down; [[Called when level decreased]]
    }
-
 }

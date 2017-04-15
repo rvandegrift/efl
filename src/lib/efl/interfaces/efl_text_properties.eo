@@ -1,6 +1,8 @@
-type Efl_Font_Size: int;
+type Efl_Font_Size: int; [[Efl font size type]]
 
-interface Efl.Text.Properties {
+interface Efl.Text.Properties
+{
+   [[Efl text properties interface]]
    methods {
       @property font {
          set {

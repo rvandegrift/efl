@@ -288,7 +288,7 @@ eolian_typedecl_base_type_get(const Eolian_Typedecl *tp)
 EAPI const Eolian_Type *
 eolian_type_aliased_base_get(const Eolian_Type *tp)
 {
-   if (!tp || tp->type != EOLIAN_TYPE_REGULAR)
+   if (!tp || tp->type != EOLIAN_TYPE_REGULAR || tp->is_ptr)
      return tp;
    const Eolian_Typedecl *btp = eolian_type_typedecl_get(tp);
    if (btp && (btp->type == EOLIAN_TYPEDECL_ALIAS))
@@ -335,10 +335,10 @@ eolian_type_is_const(const Eolian_Type *tp)
 }
 
 EAPI Eina_Bool
-eolian_type_is_ref(const Eolian_Type *tp)
+eolian_type_is_ptr(const Eolian_Type *tp)
 {
    EINA_SAFETY_ON_NULL_RETURN_VAL(tp, EINA_FALSE);
-   return tp->is_ref;
+   return tp->is_ptr;
 }
 
 EAPI Eina_Bool

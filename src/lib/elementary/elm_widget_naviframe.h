@@ -2,6 +2,8 @@
 #define ELM_WIDGET_NAVIFRAME_H
 
 #include "Elementary.h"
+#include "elm_naviframe.eo.h"
+#include "elm_naviframe_item.eo.h"
 
 /* DO NOT USE THIS HEADER UNLESS YOU ARE PREPARED FOR BREAKING OF YOUR
  * CODE. THIS IS ELEMENTARY'S INTERNAL WIDGET API (for now) AND IS NOT
@@ -98,7 +100,7 @@ struct _Elm_Naviframe_Text_Item_Pair
  */
 
 #define ELM_NAVIFRAME_DATA_GET(o, sd) \
-  Elm_Naviframe_Data * sd = eo_data_scope_get(o, ELM_NAVIFRAME_CLASS)
+  Elm_Naviframe_Data * sd = efl_data_scope_get(o, ELM_NAVIFRAME_CLASS)
 
 #define ELM_NAVIFRAME_DATA_GET_OR_RETURN(o, ptr)     \
   ELM_NAVIFRAME_DATA_GET(o, ptr);                    \
@@ -119,18 +121,18 @@ struct _Elm_Naviframe_Text_Item_Pair
     }
 
 #define ELM_NAVIFRAME_CHECK(obj)                                 \
-  if (EINA_UNLIKELY(!eo_isa((obj), ELM_NAVIFRAME_CLASS)))    \
+  if (EINA_UNLIKELY(!efl_isa((obj), ELM_NAVIFRAME_CLASS)))    \
     return
 
 #define ELM_NAVIFRAME_ITEM_CHECK(it)                        \
-  if (EINA_UNLIKELY(!eo_isa((it->base->eo_obj), ELM_NAVIFRAME_ITEM_CLASS))) \
+  if (EINA_UNLIKELY(!efl_isa((it->base->eo_obj), ELM_NAVIFRAME_ITEM_CLASS))) \
     return
 
 #define ELM_NAVIFRAME_ITEM_CHECK_OR_RETURN(it, ...)        \
-  if (EINA_UNLIKELY(!eo_isa((it->base->eo_obj), ELM_NAVIFRAME_ITEM_CLASS))) \
+  if (EINA_UNLIKELY(!efl_isa((it->base->eo_obj), ELM_NAVIFRAME_ITEM_CLASS))) \
     return __VA_ARGS__;
 
 #define ELM_NAVIFRAME_ITEM_DATA_GET(o, sd) \
-  Elm_Naviframe_Item_Data *sd = eo_data_scope_get(o, ELM_NAVIFRAME_ITEM_CLASS)
+  Elm_Naviframe_Item_Data *sd = efl_data_scope_get(o, ELM_NAVIFRAME_ITEM_CLASS)
 
 #endif

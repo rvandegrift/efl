@@ -280,7 +280,7 @@ evas_resize_cb(void *data, Evas *e EINA_UNUSED, Evas_Object *obj EINA_UNUSED,
 
    evas_object_image_size_get(ev->evas_obj, &w, &h);
    _emotion_frame_resize(ev->obj, w, h, w / (double) h);
-   eo_event_callback_call(ev->obj, EMOTION_OBJECT_EVENT_FRAME_DECODE, NULL);
+   efl_event_callback_call(ev->obj, EFL_CANVAS_VIDEO_EVENT_FRAME_DECODE, NULL);
 }
 
 /* Fetch all libvlc tracks. */
@@ -803,7 +803,7 @@ em_format_get(void *video EINA_UNUSED)
 }
 
 static void
-em_video_data_size_get(void *video EINA_UNUSED, int *w EINA_UNUSED, int *h EINA_UNUSED)
+em_videfl_data_size_get(void *video EINA_UNUSED, int *w EINA_UNUSED, int *h EINA_UNUSED)
 {
 }
 
@@ -1345,7 +1345,7 @@ static const Emotion_Engine em_engine =
    em_seekable, /* seekable */
    em_frame_done, /* frame_done */
    em_format_get, /* format_get */
-   em_video_data_size_get, /* video_data_size_get */
+   em_videfl_data_size_get, /* videfl_data_size_get */
    em_yuv_rows_get, /* yuv_rows_get */
    em_bgra_data_get, /* bgra_data_get */
    em_event_feed, /* event_feed */
@@ -1382,7 +1382,8 @@ static const Emotion_Engine em_engine =
    em_eject, /* eject */
    em_meta_get, /* meta_get */
    NULL, /* priority_set */
-   NULL /* priority_get */
+   NULL, /* priority_get */
+   NULL /* em_meta_artwork_get */
 };
 
 static void

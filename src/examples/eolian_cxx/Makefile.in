@@ -105,8 +105,8 @@ am__aclocal_m4_deps = $(top_srcdir)/m4/ac_define_if.m4 \
 	$(top_srcdir)/m4/efl_check_funcs.m4 \
 	$(top_srcdir)/m4/efl_check_libs.m4 \
 	$(top_srcdir)/m4/efl_compiler.m4 \
-	$(top_srcdir)/m4/efl_doxygen.m4 $(top_srcdir)/m4/efl_eo.m4 \
-	$(top_srcdir)/m4/efl_find_x.m4 \
+	$(top_srcdir)/m4/efl_define.m4 $(top_srcdir)/m4/efl_doxygen.m4 \
+	$(top_srcdir)/m4/efl_eo.m4 $(top_srcdir)/m4/efl_find_x.m4 \
 	$(top_srcdir)/m4/efl_libunwind.m4 \
 	$(top_srcdir)/m4/efl_lua_old.m4 \
 	$(top_srcdir)/m4/efl_path_max.m4 \
@@ -528,6 +528,7 @@ EFL_LDFLAGS = @EFL_LDFLAGS@
 EFL_LIBS = @EFL_LIBS@
 EFL_LTLIBRARY_FLAGS = @EFL_LTLIBRARY_FLAGS@
 EFL_LTMODULE_FLAGS = @EFL_LTMODULE_FLAGS@
+EFL_NET_CONTROL_BACKEND = @EFL_NET_CONTROL_BACKEND@
 EFL_PTHREAD_CFLAGS = @EFL_PTHREAD_CFLAGS@
 EFL_PTHREAD_LIBS = @EFL_PTHREAD_LIBS@
 EFL_SUBBUILD_INTERNAL_LIBS = @EFL_SUBBUILD_INTERNAL_LIBS@
@@ -786,7 +787,6 @@ GREP = @GREP@
 GSTREAMER_CFLAGS = @GSTREAMER_CFLAGS@
 GSTREAMER_LIBS = @GSTREAMER_LIBS@
 HAVE_CXX11 = @HAVE_CXX11@
-HAVE_ECORE_X_BACKEND = @HAVE_ECORE_X_BACKEND@
 HAVE_JS = @HAVE_JS@
 HAVE_LIBUV = @HAVE_LIBUV@
 HAVE_NODEJS = @HAVE_NODEJS@
@@ -803,7 +803,6 @@ INTLLIBS = @INTLLIBS@
 INTL_MACOSX_LIBS = @INTL_MACOSX_LIBS@
 JP2K_CFLAGS = @JP2K_CFLAGS@
 JP2K_LIBS = @JP2K_LIBS@
-KEYSYMDEFS = @KEYSYMDEFS@
 LD = @LD@
 LDFLAGS = @LDFLAGS@
 LIBGCRYPT_CFLAGS = @LIBGCRYPT_CFLAGS@
@@ -822,6 +821,8 @@ LIBRAW_LIBS = @LIBRAW_LIBS@
 LIBS = @LIBS@
 LIBTHREAD = @LIBTHREAD@
 LIBTOOL = @LIBTOOL@
+LIBVNCSERVER_CFLAGS = @LIBVNCSERVER_CFLAGS@
+LIBVNCSERVER_LIBS = @LIBVNCSERVER_LIBS@
 LIPO = @LIPO@
 LN_S = @LN_S@
 LOCALE_DIR = @LOCALE_DIR@
@@ -1097,6 +1098,9 @@ WAYLAND_CFLAGS = @WAYLAND_CFLAGS@
 WAYLAND_EGL_CFLAGS = @WAYLAND_EGL_CFLAGS@
 WAYLAND_EGL_LIBS = @WAYLAND_EGL_LIBS@
 WAYLAND_LIBS = @WAYLAND_LIBS@
+WAYLAND_PROTOCOLS_DATADIR = @WAYLAND_PROTOCOLS_DATADIR@
+WAYLAND_SCANNER_CFLAGS = @WAYLAND_SCANNER_CFLAGS@
+WAYLAND_SCANNER_LIBS = @WAYLAND_SCANNER_LIBS@
 WAYLAND_SHM_CFLAGS = @WAYLAND_SHM_CFLAGS@
 WAYLAND_SHM_LIBS = @WAYLAND_SHM_LIBS@
 X11_DRI2_CFLAGS = @X11_DRI2_CFLAGS@
@@ -1105,12 +1109,6 @@ X11_DRI3_CFLAGS = @X11_DRI3_CFLAGS@
 X11_DRI3_LIBS = @X11_DRI3_LIBS@
 X11_DRI_COMMON_CFLAGS = @X11_DRI_COMMON_CFLAGS@
 X11_DRI_COMMON_LIBS = @X11_DRI_COMMON_LIBS@
-XCB_CFLAGS = @XCB_CFLAGS@
-XCB_GL_CFLAGS = @XCB_GL_CFLAGS@
-XCB_GL_LIBS = @XCB_GL_LIBS@
-XCB_LIBS = @XCB_LIBS@
-XCB_X11_CFLAGS = @XCB_X11_CFLAGS@
-XCB_X11_LIBS = @XCB_X11_LIBS@
 XDG_DATA_HOME = @XDG_DATA_HOME@
 XGETTEXT = @XGETTEXT@
 XGETTEXT_015 = @XGETTEXT_015@
@@ -1144,7 +1142,6 @@ build_vendor = @build_vendor@
 builddir = @builddir@
 cocoa_coreservices_ldflags = @cocoa_coreservices_ldflags@
 cocoa_ldflags = @cocoa_ldflags@
-coreaudio_ldflags = @coreaudio_ldflags@
 datadir = @datadir@
 datarootdir = @datarootdir@
 dbusservicedir = @dbusservicedir@
@@ -1212,11 +1209,6 @@ evas_engine_gl_drm_cflags = @evas_engine_gl_drm_cflags@
 evas_engine_gl_drm_libs = @evas_engine_gl_drm_libs@
 evas_engine_gl_sdl_cflags = @evas_engine_gl_sdl_cflags@
 evas_engine_gl_sdl_libs = @evas_engine_gl_sdl_libs@
-evas_engine_gl_xcb_CFLAGS = @evas_engine_gl_xcb_CFLAGS@
-evas_engine_gl_xcb_LIBS = @evas_engine_gl_xcb_LIBS@
-evas_engine_gl_xcb_cflags = @evas_engine_gl_xcb_cflags@
-evas_engine_gl_xcb_libdirs = @evas_engine_gl_xcb_libdirs@
-evas_engine_gl_xcb_libs = @evas_engine_gl_xcb_libs@
 evas_engine_gl_xlib_CFLAGS = @evas_engine_gl_xlib_CFLAGS@
 evas_engine_gl_xlib_LIBS = @evas_engine_gl_xlib_LIBS@
 evas_engine_gl_xlib_cflags = @evas_engine_gl_xlib_cflags@
@@ -1228,8 +1220,6 @@ evas_engine_software_ddraw_cflags = @evas_engine_software_ddraw_cflags@
 evas_engine_software_ddraw_libs = @evas_engine_software_ddraw_libs@
 evas_engine_software_gdi_cflags = @evas_engine_software_gdi_cflags@
 evas_engine_software_gdi_libs = @evas_engine_software_gdi_libs@
-evas_engine_software_xcb_cflags = @evas_engine_software_xcb_cflags@
-evas_engine_software_xcb_libs = @evas_engine_software_xcb_libs@
 evas_engine_software_xlib_CFLAGS = @evas_engine_software_xlib_CFLAGS@
 evas_engine_software_xlib_LIBS = @evas_engine_software_xlib_LIBS@
 evas_engine_software_xlib_cflags = @evas_engine_software_xlib_cflags@
@@ -1273,10 +1263,12 @@ evas_image_loader_webp_cflags = @evas_image_loader_webp_cflags@
 evas_image_loader_webp_libs = @evas_image_loader_webp_libs@
 evas_image_loader_xpm_cflags = @evas_image_loader_xpm_cflags@
 evas_image_loader_xpm_libs = @evas_image_loader_xpm_libs@
+evas_vg_loader_eet_cflags = @evas_vg_loader_eet_cflags@
+evas_vg_loader_eet_libs = @evas_vg_loader_eet_libs@
+evas_vg_loader_svg_cflags = @evas_vg_loader_svg_cflags@
+evas_vg_loader_svg_libs = @evas_vg_loader_svg_libs@
 exec_prefix = @exec_prefix@
-have_evas_engine_gl_xcb = @have_evas_engine_gl_xcb@
 have_evas_engine_gl_xlib = @have_evas_engine_gl_xlib@
-have_evas_engine_software_xcb = @have_evas_engine_software_xcb@
 have_evas_engine_software_xlib = @have_evas_engine_software_xlib@
 have_lcov = @have_lcov@
 host = @host@
@@ -1570,6 +1562,7 @@ want_liblz4 = @want_liblz4@
 want_lua_old = @want_lua_old@
 want_multisense = @want_multisense@
 want_physics = @want_physics@
+wayland_scanner = @wayland_scanner@
 with_eeze_eject = @with_eeze_eject@
 with_eeze_mount = @with_eeze_mount@
 with_eeze_umount = @with_eeze_umount@
@@ -2027,22 +2020,22 @@ uninstall-am: uninstall-local
 %.eo.c: %.eo ${_EOLIAN_GEN_DEP}
 	$(AM_V_EOL) \
 	$(MKDIR_P) $(dir $@); \
-	$(EOLIAN_GEN) --legacy $(EOLIAN_FLAGS) --gc -o $@ $<
+	$(EOLIAN_GEN) $(EOLIAN_FLAGS) -gc -o c:$@ $<
 
 %.eo.h: %.eo ${_EOLIAN_GEN_DEP}
 	$(AM_V_EOL) \
 	$(MKDIR_P) $(dir $@); \
-	$(EOLIAN_GEN) $(EOLIAN_FLAGS) --gh -o $@ $<
+	$(EOLIAN_GEN) $(EOLIAN_FLAGS) -gh -o h:$@ $<
 
 %.eot.h: %.eot ${_EOLIAN_GEN_DEP}
 	$(AM_V_EOL) \
 	$(MKDIR_P) $(dir $@); \
-	$(EOLIAN_GEN) $(EOLIAN_FLAGS) --gh -o $@ $<
+	$(EOLIAN_GEN) $(EOLIAN_FLAGS) -gh -o h:$@ $<
 
 %.eo.legacy.h: %.eo ${_EOLIAN_GEN_DEP}
 	$(AM_V_EOL) \
 	$(MKDIR_P) $(dir $@); \
-	$(EOLIAN_GEN) --legacy $(EOLIAN_FLAGS) --gh -o $@ $<
+	$(EOLIAN_GEN) $(EOLIAN_FLAGS) -gl -o l:$@ $<
 
 %.eo.impl.hh %.eo.hh: %.eo $(_EOLIAN_CXX_DEP)
 	$(AM_V_EOLCXX) \
@@ -2058,10 +2051,10 @@ eolian_cxx_simple_01_cxx_impl.$(OBJEXT): $(GENERATED)
 	true $<
 
 %.eo.c: %.eo
-	$(AM_V_EOL)$(EOLIAN_GEN) --legacy $(EOLIAN_FLAGS) --gc -o $@ $<
+	$(AM_V_EOL)$(EOLIAN_GEN) $(EOLIAN_FLAGS) -gc -o c:$@ $<
 
 %.eo.h: %.eo
-	$(AM_V_EOL)$(EOLIAN_GEN) $(EOLIAN_FLAGS) --gh -o $@ $<
+	$(AM_V_EOL)$(EOLIAN_GEN) $(EOLIAN_FLAGS) -gh -o h:$@ $<
 
 examples: $(ECXX_EXAMPLE_EOS) $(GENERATED) $(EXTRA_PROGRAMS)
 

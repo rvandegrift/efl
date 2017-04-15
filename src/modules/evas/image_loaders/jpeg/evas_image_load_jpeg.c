@@ -24,7 +24,8 @@ evas_image_load_file_open_jpeg(Eina_File *f, Eina_Stringshare *key EINA_UNUSED,
    Emile_Image *image;
    Emile_Image_Load_Error image_error;
 
-   image = emile_image_jpeg_file_open(f, opts, NULL, &image_error);
+   image = emile_image_jpeg_file_open(f, opts ? &(opts->emile) : NULL,
+                                      NULL, &image_error);
    if (!image)
      {
         *error = image_error;
@@ -39,13 +40,13 @@ evas_image_load_file_open_jpeg(Eina_File *f, Eina_Stringshare *key EINA_UNUSED,
      }
 
    loader->image = image;
-   if (opts && (opts->region.w > 0) && (opts->region.h > 0))
+   if (opts && (opts->emile.region.w > 0) && (opts->emile.region.h > 0))
      {
         EINA_RECTANGLE_SET(&loader->region,
-                           opts->region.x,
-                           opts->region.y,
-                           opts->region.w,
-                           opts->region.h);
+                           opts->emile.region.x,
+                           opts->emile.region.y,
+                           opts->emile.region.w,
+                           opts->emile.region.h);
      }
    else
      {
@@ -84,6 +85,14 @@ evas_image_load_file_head_jpeg(void *loader_data,
    return ret;
 }
 
+static Eina_Bool
+_evas_image_load_jpeg_cancelled(void *data EINA_UNUSED,
+                                Emile_Image *image EINA_UNUSED,
+                                Emile_Action action EINA_UNUSED)
+{
+   return evas_module_task_cancelled();
+}
+
 Eina_Bool
 evas_image_load_file_data_jpeg(void *loader_data,
                               Evas_Image_Property *prop,
@@ -94,6 +103,9 @@ evas_image_load_file_data_jpeg(void *loader_data,
    Emile_Image_Load_Error image_error;
    Eina_Bool ret;
 
+   emile_image_callback_set(loader->image,
+                            _evas_image_load_jpeg_cancelled,
+                            EMILE_ACTION_CANCELLED, NULL);
    ret = emile_image_data(loader->image,
                           prop, sizeof (*prop),
                           pixels,
@@ -142,4 +154,3 @@ EVAS_MODULE_DEFINE(EVAS_MODULE_TYPE_IMAGE_LOADER, image_loader, jpeg);
 #ifndef EVAS_STATIC_BUILD_JPEG
 EVAS_EINA_MODULE_DEFINE(image_loader, jpeg);
 #endif
-

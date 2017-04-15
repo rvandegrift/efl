@@ -39,52 +39,73 @@ enum Efl.Input.Device.Sub_Class
 
 
 /* This represents Evas_Device */
-/* FIXME: no parent, no children and no Evas */
+/* FIXME: no children and no Evas */
 
-class Efl.Input.Device (Eo.Base)
+class Efl.Input.Device (Efl.Object)
 {
    [[Represents a pointing device, such as a touch finger, a pen or a mouse.
 
      @since 1.18
    ]]
-   legacy_prefix: null;
    methods {
       /* FIXME: device_class makes compilation error because of class_get() */
       @property device_type {
+      	 [[Device type property]]
          values {
-            klass: Efl.Input.Device.Class;
+            klass: Efl.Input.Device.Class; [[Input device class]]
          }
       }
       @property device_subtype {
+      	 [[Device subtype property]]
          values {
-            klass: Efl.Input.Device.Sub_Class;
+            klass: Efl.Input.Device.Sub_Class; [[Input device sub-class]]
          }
       }
       @property source {
+      	 [[Device source property]]
          values {
-            src: Efl.Input.Device;
+            src: Efl.Input.Device; [[Input device]]
          }
       }
       @property name {
+      	 [[device name property]]
          values {
-            name: string;
+            name: string; [[Input device name]]
          }
       }
       @property description {
+      	 [[device description property]]
          values {
-            desc: string;
+            desc: string; [[Input device description]]
          }
       }
       @property parent {
-         /* set {} */
+      	 [[Device parent property]]
+         set {}
          get {}
          values {
-            parent: Efl.Input.Device;
+            parent: Efl.Input.Device; [[Parent input device]]
+         }
+      }
+      @property seat {
+         [[Get the @Efl.Input.Device that represents a seat.
+
+           This method will find the seat the device belongs to.
+
+           For this, it walk through device's parents looking for a device
+           with @Efl.Input.Device.Class.seat. It may be
+           the device itself.
+
+           In case no seat is found, $null is returned.
+         ]]
+         get {}
+         values {
+            seat: Efl.Input.Device; [[The seat this device belongs to.]]
          }
       }
    }
    implements {
-      Eo.Base.constructor;
-      Eo.Base.destructor;
+      Efl.Object.constructor;
+      Efl.Object.destructor;
    }
 }

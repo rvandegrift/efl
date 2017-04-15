@@ -15,6 +15,7 @@ elementary_images_files = \
 	elementary/images/logo.png \
 	elementary/images/logo_small.png \
 	elementary/images/animated_logo.gif \
+	elementary/images/fire.gif \
 	elementary/images/parking.png \
 	elementary/images/icon_00.png \
 	elementary/images/icon_01.png \
@@ -46,6 +47,7 @@ elementary_images_files = \
 	elementary/images/mystrale.jpg \
 	elementary/images/mystrale_2.jpg \
 	elementary/images/twofish.jpg \
+	elementary/images/pm_fill.png \
 	elementary/images/pt.png \
 	elementary/images/earth_normal.png \
 	elementary/images/space.png

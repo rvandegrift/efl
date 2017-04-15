@@ -69,7 +69,7 @@ _activate(Evas_Object *obj)
           _elm_access_say(E_("Clicked"));
         if (!elm_widget_disabled_get(obj) &&
             !evas_object_freeze_events_get(obj))
-          eo_event_callback_call
+          efl_event_callback_legacy_call
             (obj, EFL_UI_EVENT_CLICKED, NULL);
      }
 }
@@ -93,7 +93,7 @@ _elm_button_elm_widget_activate(Eo *obj, Elm_Button_Data *_pd EINA_UNUSED, Elm_A
    if (act != ELM_ACTIVATE_DEFAULT) return EINA_FALSE;
    if (evas_object_freeze_events_get(obj)) return EINA_FALSE;
 
-   eo_event_callback_call
+   efl_event_callback_legacy_call
      (obj, EFL_UI_EVENT_CLICKED, NULL);
    elm_layout_signal_emit(obj, "elm,anim,activate", "elm");
 
@@ -124,7 +124,7 @@ _elm_button_elm_widget_theme_apply(Eo *obj, Elm_Button_Data *_pd EINA_UNUSED)
 {
    Elm_Theme_Apply int_ret = ELM_THEME_APPLY_FAILED;
 
-   int_ret = elm_obj_widget_theme_apply(eo_super(obj, MY_CLASS));
+   int_ret = elm_obj_widget_theme_apply(efl_super(obj, MY_CLASS));
    if (!int_ret) return ELM_THEME_APPLY_FAILED;
    _icon_signal_emit(obj);
 
@@ -139,7 +139,7 @@ _elm_button_elm_widget_sub_object_del(Eo *obj, Elm_Button_Data *_pd EINA_UNUSED,
 {
    Eina_Bool int_ret = EINA_FALSE;
 
-   int_ret = elm_obj_widget_sub_object_del(eo_super(obj, MY_CLASS), sobj);
+   int_ret = elm_obj_widget_sub_object_del(efl_super(obj, MY_CLASS), sobj);
    if (!int_ret) return EINA_FALSE;
 
    _icon_signal_emit(obj);
@@ -155,7 +155,7 @@ _elm_button_content_set(Eo *obj, Elm_Button_Data *_pd EINA_UNUSED, const char *p
 {
    Eina_Bool int_ret = EINA_FALSE;
 
-   int_ret = efl_content_set(efl_part(eo_super(obj, MY_CLASS), part), content);
+   int_ret = efl_content_set(efl_part(efl_super(obj, MY_CLASS), part), content);
    if (!int_ret) return EINA_FALSE;
 
    _icon_signal_emit(obj);
@@ -172,7 +172,7 @@ _key_action_activate(Evas_Object *obj, const char *params EINA_UNUSED)
 }
 
 EOLIAN static Eina_Bool
-_elm_button_elm_widget_event(Eo *obj, Elm_Button_Data *_pd EINA_UNUSED, Evas_Object *src, Evas_Callback_Type type, void *event_info)
+_elm_button_elm_widget_widget_event(Eo *obj, Elm_Button_Data *_pd EINA_UNUSED, Evas_Object *src, Evas_Callback_Type type, void *event_info)
 {
    (void) src;
    Evas_Event_Key_Down *ev = event_info;
@@ -201,7 +201,7 @@ _autorepeat_send(void *data)
 {
    ELM_BUTTON_DATA_GET_OR_RETURN_VAL(data, sd, ECORE_CALLBACK_CANCEL);
 
-   eo_event_callback_call
+   efl_event_callback_legacy_call
      (data, EFL_UI_EVENT_REPEATED, NULL);
    if (!sd->repeating)
      {
@@ -242,7 +242,7 @@ _on_pressed_signal(void *data,
               (sd->ar_initial_timeout, _autorepeat_initial_send, data);
      }
 
-   eo_event_callback_call
+   efl_event_callback_legacy_call
      (data, EFL_UI_EVENT_PRESSED, NULL);
 }
 
@@ -256,7 +256,7 @@ _on_unpressed_signal(void *data,
 
    ELM_SAFE_FREE(sd->timer, ecore_timer_del);
    sd->repeating = EINA_FALSE;
-   eo_event_callback_call
+   efl_event_callback_legacy_call
      (data, EFL_UI_EVENT_UNPRESSED, NULL);
 }
 
@@ -285,7 +285,7 @@ _elm_button_efl_canvas_group_group_add(Eo *obj, Elm_Button_Data *_pd EINA_UNUSED
 {
    ELM_WIDGET_DATA_GET_OR_RETURN(obj, wd);
 
-   efl_canvas_group_add(eo_super(obj, MY_CLASS));
+   efl_canvas_group_add(efl_super(obj, MY_CLASS));
    elm_widget_sub_object_parent_add(obj);
 
    edje_object_signal_callback_add
@@ -327,14 +327,14 @@ EAPI Evas_Object *
 elm_button_add(Evas_Object *parent)
 {
    EINA_SAFETY_ON_NULL_RETURN_VAL(parent, NULL);
-   Evas_Object *obj = eo_add(MY_CLASS, parent);
+   Evas_Object *obj = efl_add(MY_CLASS, parent);
    return obj;
 }
 
 EOLIAN static Eo *
-_elm_button_eo_base_constructor(Eo *obj, Elm_Button_Data *_pd EINA_UNUSED)
+_elm_button_efl_object_constructor(Eo *obj, Elm_Button_Data *_pd EINA_UNUSED)
 {
-   obj = eo_constructor(eo_super(obj, MY_CLASS));
+   obj = efl_constructor(efl_super(obj, MY_CLASS));
    efl_canvas_object_type_set(obj, MY_CLASS_NAME_LEGACY);
    evas_object_smart_callbacks_descriptions_set(obj, _smart_callbacks);
    elm_interface_atspi_accessible_role_set(obj, ELM_ATSPI_ROLE_PUSH_BUTTON);
@@ -382,7 +382,7 @@ _elm_button_autorepeat_initial_timeout_set(Eo *obj, Elm_Button_Data *sd, double 
         return;
      }
 
-   if (sd->ar_initial_timeout == t) return;
+   if (EINA_DBL_EQ(sd->ar_initial_timeout, t)) return;
    ELM_SAFE_FREE(sd->timer, ecore_timer_del);
    sd->ar_initial_timeout = t;
 }
@@ -405,7 +405,7 @@ _elm_button_autorepeat_gap_timeout_set(Eo *obj, Elm_Button_Data *sd, double t)
         return;
      }
 
-   if (sd->ar_gap_timeout == t) return;
+   if (EINA_DBL_EQ(sd->ar_gap_timeout, t)) return;
 
    sd->ar_gap_timeout = t;
    if ((sd->repeating) && (sd->timer)) ecore_timer_interval_set(sd->timer, t);
@@ -440,10 +440,12 @@ _elm_button_elm_interface_atspi_widget_action_elm_actions_get(Eo *obj EINA_UNUSE
 }
 
 static void
-_elm_button_class_constructor(Eo_Class *klass)
+_elm_button_class_constructor(Efl_Class *klass)
 {
    evas_smart_legacy_type_register(MY_CLASS_NAME_LEGACY, klass);
 }
+
+EFL_TEXT_DEFAULT_IMPLEMENT(elm_button, Elm_Button_Data)
 
 /* Efl.Part begin */
 

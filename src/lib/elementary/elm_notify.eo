@@ -1,5 +1,6 @@
 class Elm.Notify (Elm.Widget, Efl.Container, Efl.Part)
 {
+   [[Elementary notification class]]
    legacy_prefix: elm_notify;
    eo_prefix: elm_obj_notify;
    event_prefix: elm_notify;
@@ -42,7 +43,7 @@ class Elm.Notify (Elm.Widget, Efl.Container, Efl.Part)
             [[Return true if events are allowed below the notify object.]]
          }
          values {
-            allow: bool; [[true if events are allowed, otherwise false]]
+            allow: bool; [[$true if events are allowed, $false otherwise]]
          }
       }
       @property timeout {
@@ -78,31 +79,27 @@ class Elm.Notify (Elm.Widget, Efl.Container, Efl.Part)
    }
    implements {
       class.constructor;
-      Eo.Base.constructor;
-      Efl.Canvas.Group.group_hide;
-      Efl.Canvas.Group.group_show;
-      Efl.Canvas.Group.group_move;
+      Efl.Object.constructor;
+      Efl.Gfx.visible { set; }
+      Efl.Gfx.position { set; }
+      Efl.Gfx.size { set; }
       Efl.Canvas.Group.group_add;
       Efl.Canvas.Group.group_del;
-      Efl.Canvas.Group.group_resize;
       Elm.Widget.focus_direction;
-      Elm.Widget.widget_parent;
+      Elm.Widget.widget_parent { get; set; }
       Elm.Widget.theme_apply;
       Elm.Widget.focus_direction_manager_is;
       Elm.Widget.focus_next_manager_is;
       Elm.Widget.focus_next;
       Elm.Widget.sub_object_del;
-      Elm.Widget.part_text.set;
-      Elm.Widget.part_text.get;
-      Efl.Container.content.get;
-      Efl.Container.content.set;
+      Elm.Widget.part_text { get; set; }
+      Efl.Container.content { get; set; }
       Efl.Container.content_unset;
       Efl.Part.part;
    }
    events {
-      block,clicked;
-      timeout;
-      dismissed;
+      block,clicked; [[Called when block was clicked]]
+      timeout; [[Called when notify timed out]]
+      dismissed; [[Called when notify was dismissed]]
    }
-
 }

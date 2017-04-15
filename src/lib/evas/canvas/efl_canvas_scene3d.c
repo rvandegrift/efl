@@ -6,8 +6,8 @@
 EOLIAN static void
 _efl_canvas_scene3d_scene3d_set(Eo *eo_obj, void *pd EINA_UNUSED, Evas_Canvas3D_Scene *scene)
 {
-   Evas_Object_Protected_Data *obj = eo_data_scope_get(eo_obj, EFL_CANVAS_OBJECT_CLASS);
-   Evas_Image_Data *o = eo_data_scope_get(eo_obj, EFL_CANVAS_IMAGE_INTERNAL_CLASS);
+   Evas_Object_Protected_Data *obj = efl_data_scope_get(eo_obj, EFL_CANVAS_OBJECT_CLASS);
+   Evas_Image_Data *o = efl_data_scope_get(eo_obj, EFL_CANVAS_IMAGE_INTERNAL_CLASS);
    Evas_Image_Load_Opts lo;
 
    if (o->cur->scene == scene) return;
@@ -24,7 +24,7 @@ _efl_canvas_scene3d_scene3d_set(Eo *eo_obj, void *pd EINA_UNUSED, Evas_Canvas3D_
 EOLIAN static Evas_Canvas3D_Scene *
 _efl_canvas_scene3d_scene3d_get(Eo *eo_obj, void *pd EINA_UNUSED)
 {
-   Evas_Image_Data *o = eo_data_scope_get(eo_obj, EFL_CANVAS_IMAGE_INTERNAL_CLASS);
+   Evas_Image_Data *o = efl_data_scope_get(eo_obj, EFL_CANVAS_IMAGE_INTERNAL_CLASS);
    return o->cur->scene;
 }
 
@@ -38,7 +38,7 @@ _evas_image_3d_render(Evas *eo_e, Evas_Object *eo_obj,
    Evas_Canvas3D_Scene_Public_Data scene_data;
    Evas_Canvas3D_Scene_Data *pd_scene = NULL;
 
-   pd_scene = eo_data_scope_get(scene, EVAS_CANVAS3D_SCENE_CLASS);
+   pd_scene = efl_data_scope_get(scene, EVAS_CANVAS3D_SCENE_CLASS);
 
    if ((pd_scene->w == 0) || (pd_scene->h == 0)) return;
    if (!pd_scene->camera_node)
@@ -47,7 +47,7 @@ _evas_image_3d_render(Evas *eo_e, Evas_Object *eo_obj,
         return;
      }
 
-   e = eo_data_scope_get(eo_e, EVAS_CANVAS_CLASS);
+   e = efl_data_scope_get(eo_e, EVAS_CANVAS_CLASS);
 
    if (pd_scene->surface)
      {
@@ -141,9 +141,9 @@ _evas_image_3d_render(Evas *eo_e, Evas_Object *eo_obj,
 void
 _evas_image_3d_set(Evas_Object *eo_obj, Evas_Canvas3D_Scene *scene)
 {
-   Evas_Object_Protected_Data *obj = eo_data_scope_get(eo_obj, EFL_CANVAS_OBJECT_CLASS);
-   Evas_Image_Data *o = eo_data_scope_get(eo_obj, EFL_CANVAS_IMAGE_INTERNAL_CLASS);
-   Evas_Canvas3D_Scene_Data *pd_scene = eo_data_scope_get(scene,
+   Evas_Object_Protected_Data *obj = efl_data_scope_get(eo_obj, EFL_CANVAS_OBJECT_CLASS);
+   Evas_Image_Data *o = efl_data_scope_get(eo_obj, EFL_CANVAS_IMAGE_INTERNAL_CLASS);
+   Evas_Canvas3D_Scene_Data *pd_scene = efl_data_scope_get(scene,
                                                     EVAS_CANVAS3D_SCENE_CLASS);
    EINA_COW_WRITE_BEGIN(evas_object_3d_cow, obj->data_3d, Evas_Object_3D_Data,
                         data)
@@ -151,7 +151,7 @@ _evas_image_3d_set(Evas_Object *eo_obj, Evas_Canvas3D_Scene *scene)
         data->surface = NULL;
         data->w = 0;
         data->h = 0;
-        eo_ref(scene);
+        efl_ref(scene);
      }
    EINA_COW_WRITE_END(evas_object_3d_cow, obj->data_3d, data);
 
@@ -173,12 +173,12 @@ _evas_image_3d_unset(Evas_Object *eo_obj EINA_UNUSED, Evas_Object_Protected_Data
    if (!o->cur->scene) return;
 
    Evas_Canvas3D_Scene_Data *pd_scene =
-      eo_data_scope_get(o->cur->scene, EVAS_CANVAS3D_SCENE_CLASS);
+      efl_data_scope_get(o->cur->scene, EVAS_CANVAS3D_SCENE_CLASS);
 
    EINA_COW_IMAGE_STATE_WRITE_BEGIN(o, state_write)
      {
         pd_scene->images = eina_list_remove(pd_scene->images, eo_obj);
-        eo_unref(state_write->scene);
+        efl_unref(state_write->scene);
         state_write->scene = NULL;
      }
    EINA_COW_IMAGE_STATE_WRITE_END(o, state_write);
@@ -208,39 +208,46 @@ _evas_image_3d_unset(Evas_Object *eo_obj EINA_UNUSED, Evas_Object_Protected_Data
    EINA_COW_WRITE_END(evas_object_3d_cow, obj->data_3d, data);
 }
 
-EOLIAN static void *
+EOLIAN static Eina_Bool
 _efl_canvas_scene3d_efl_gfx_buffer_buffer_map(Eo *eo_obj, void *_pd EINA_UNUSED,
-                                            int *length EINA_UNUSED,
-                                            Efl_Gfx_Buffer_Access_Mode mode,
-                                            int x, int y, int w, int h,
-                                            Efl_Gfx_Colorspace cspace, int *stride EINA_UNUSED)
+                                              Eina_Rw_Slice *slice,
+                                              Efl_Gfx_Buffer_Access_Mode mode,
+                                              int x, int y, int w, int h,
+                                              Efl_Gfx_Colorspace cspace, int plane,
+                                              int *stride)
 {
-   Evas_Image_Data *o = eo_data_scope_get(eo_obj, EFL_CANVAS_IMAGE_INTERNAL_CLASS);
+   Evas_Image_Data *o = efl_data_scope_get(eo_obj, EFL_CANVAS_IMAGE_INTERNAL_CLASS);
    Evas_Public_Data *e;
    Evas_Canvas3D_Object_Data *pd_parent;
    Evas_Canvas3D_Scene_Data *pd_scene;
    int width = -1, height = -1, ntex = -1;
    unsigned char *pixels = NULL;
+   size_t len = 0;
+
+   EINA_SAFETY_ON_NULL_RETURN_VAL(slice, EINA_FALSE);
+
+   slice->len = 0;
+   slice->mem = NULL;
 
    if (!o->cur->scene)
      {
         ERR("invalid scene data");
-        return NULL;
+        return EINA_FALSE;
      }
    if (mode & EFL_GFX_BUFFER_ACCESS_MODE_WRITE)
      {
         ERR("invalid map access mode");
-        return NULL;
+        return EINA_FALSE;
      }
    if (cspace != EFL_GFX_COLORSPACE_ARGB8888)
      {
         ERR("invalid map colorspace. Only ARGB is supported");
-        return NULL;
+        return EINA_FALSE;
      }
 
-   pd_parent = eo_data_scope_get(o->cur->scene, EVAS_CANVAS3D_OBJECT_CLASS);
-   e = eo_data_scope_get(pd_parent->evas, EVAS_CANVAS_CLASS);
-   pd_scene = eo_data_scope_get(o->cur->scene, EVAS_CANVAS3D_SCENE_CLASS);
+   pd_parent = efl_data_scope_get(o->cur->scene, EVAS_CANVAS3D_OBJECT_CLASS);
+   e = efl_data_scope_get(pd_parent->evas, EVAS_CANVAS_CLASS);
+   pd_scene = efl_data_scope_get(o->cur->scene, EVAS_CANVAS3D_SCENE_CLASS);
 
    if (e->engine.func->drawable_size_get)
       {
@@ -252,7 +259,7 @@ _efl_canvas_scene3d_efl_gfx_buffer_buffer_map(Eo *eo_obj, void *_pd EINA_UNUSED,
      {
         ERR("Invalid map dimensions : %dx%d +%d,%d. Image is %dx%d.",
             w, h, x, y, width, height);
-        return NULL;
+        return EINA_FALSE;
      }
 
    if (e->engine.func->drawable_texture_target_id_get)
@@ -261,23 +268,30 @@ _efl_canvas_scene3d_efl_gfx_buffer_buffer_map(Eo *eo_obj, void *_pd EINA_UNUSED,
 
         if (e->engine.func->drawable_texture_rendered_pixels_get)
           {
-             pixels = malloc(w * h * sizeof(DATA32)); //four component texture
+             len = w * h * sizeof(DATA32); //four component texture
+             pixels = malloc(len + sizeof(*slice) + 8);
              e->engine.func->drawable_texture_rendered_pixels_get(ntex, x, y, w, h,
                                                                   pd_scene->surface, pixels);
           }
         else
-          return NULL;
+          return EINA_FALSE;
      }
    else
-     return NULL;
+     return EINA_FALSE;
 
-   return pixels;
+   if (stride) *stride = w * sizeof(DATA32);
+   slice->mem = pixels;
+   slice->len = len;
+   DBG("map(%p, %d,%d %dx%d plane:%d) -> " EINA_SLICE_FMT,
+       eo_obj, x, y, w, h, plane, EINA_SLICE_PRINT(*slice));
+
+   return EINA_TRUE;
 }
 EOLIAN static Eina_Bool
 _efl_canvas_scene3d_efl_gfx_buffer_buffer_unmap(Eo *eo_obj EINA_UNUSED, void *_pd EINA_UNUSED,
-                                                void *data, int length EINA_UNUSED)
+                                                const Eina_Rw_Slice *slice)
 {
-   free(data);
+   free(slice->mem);
    return EINA_TRUE;
 }
 

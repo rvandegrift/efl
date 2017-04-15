@@ -347,6 +347,7 @@ elm_init(int argc, char **argv)
      _elm_config->web_backend = "none";
    if (!_elm_web_init(_elm_config->web_backend))
      _elm_config->web_backend = "none";
+   _elm_code_parse_setup();
 
    return _elm_init_count;
 }
@@ -671,11 +672,11 @@ elm_quicklaunch_init(int    argc,
 
    memset(_elm_policies, 0, sizeof(_elm_policies));
    if (!ELM_EVENT_POLICY_CHANGED)
-     ELM_EVENT_POLICY_CHANGED = ecore_event_type_new();
-   if (!ELM_EVENT_PROCESS_BACKGROUND)
-     ELM_EVENT_PROCESS_BACKGROUND = ecore_event_type_new();
-   if (!ELM_EVENT_PROCESS_FOREGROUND)
-     ELM_EVENT_PROCESS_FOREGROUND = ecore_event_type_new();
+     {
+        ELM_EVENT_POLICY_CHANGED = ecore_event_type_new();
+        ELM_EVENT_PROCESS_BACKGROUND = ecore_event_type_new();
+        ELM_EVENT_PROCESS_FOREGROUND = ecore_event_type_new();
+     }
 
    if (!ecore_file_init())
      ERR("Elementary cannot init ecore_file");
@@ -779,6 +780,10 @@ elm_quicklaunch_shutdown(void)
 
    eina_log_timing(_elm_log_dom, EINA_LOG_STATE_STOP, EINA_LOG_STATE_SHUTDOWN);
 
+   ecore_event_type_flush(ELM_EVENT_POLICY_CHANGED,
+                          ELM_EVENT_PROCESS_BACKGROUND,
+                          ELM_EVENT_PROCESS_FOREGROUND);
+
    if (pfx) eina_prefix_free(pfx);
    pfx = NULL;
    ELM_SAFE_FREE(_elm_data_dir, eina_stringshare_del);
@@ -853,7 +858,7 @@ static void *qr_handle = NULL;
 static int (*qr_main)(int    argc,
                       char **argv) = NULL;
 static void (*qre_main)(void *data,
-                        const Eo_Event *ev) = NULL;
+                        const Efl_Event *ev) = NULL;
 
 EAPI Eina_Bool
 elm_quicklaunch_prepare(int    argc,
@@ -1134,7 +1139,7 @@ elm_quicklaunch_fork(int    argc,
 
    if (qre_main)
      {
-        eo_event_callback_add(ecore_main_loop_get(), EFL_LOOP_EVENT_ARGUMENTS, qre_main, NULL);
+        efl_event_callback_add(ecore_main_loop_get(), EFL_LOOP_EVENT_ARGUMENTS, qre_main, NULL);
         ret = efl_loop_begin(ecore_main_loop_get());
         elm_shutdown();
         exit(ret);
@@ -1192,7 +1197,7 @@ efl_quicklaunch_fallback(int    argc,
    elm_quicklaunch_sub_init(argc, argv);
    if (efl_quicklaunch_prepare(argc, argv, getcwd(cwd, sizeof(cwd))))
      {
-        eo_event_callback_add(ecore_main_loop_get(), EFL_LOOP_EVENT_ARGUMENTS, qre_main, NULL);
+        efl_event_callback_add(ecore_main_loop_get(), EFL_LOOP_EVENT_ARGUMENTS, qre_main, NULL);
         return efl_loop_begin(ecore_main_loop_get());
      }
 
@@ -1494,7 +1499,8 @@ elm_cache_all_flush(void)
         Evas *e = evas_object_evas_get(obj);
         evas_image_cache_flush(e);
         evas_font_cache_flush(e);
-        evas_render_dump(e);
+// this is up for debate if we should dump as well
+//        evas_render_dump(e);
      }
 }
 
@@ -1516,7 +1522,7 @@ elm_object_focus_set(Evas_Object *obj,
         if (focus == elm_widget_focus_get(obj)) return;
 
         // ugly, but, special case for inlined windows
-        if (eo_isa(obj, EFL_UI_WIN_CLASS))
+        if (efl_isa(obj, EFL_UI_WIN_CLASS))
           {
              Evas_Object *inlined = elm_win_inlined_image_object_get(obj);
 

@@ -1,5 +1,5 @@
-#ifndef _TYPES_OUTPUT_C_STUBS
-#define _TYPES_OUTPUT_C_STUBS
+#ifndef _EOLIAN_TYPEDEF_STUB_H_STUBS
+#define _EOLIAN_TYPEDEF_STUB_H_STUBS
 
 typedef Eo Typedef;
 
@@ -11,7 +11,9 @@ typedef Evas_Coord Evas_Coord2;
 
 typedef Evas_Coord2 Evas_Coord3;
 
-typedef void (*Event)(void *data, const Eo_Event *event);
+typedef void (*Event)(void *data, const Efl_Event *event);
+
+typedef void (*Free)(void *data);
 
 
 #endif

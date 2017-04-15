@@ -4,6 +4,8 @@
 #include "evas_common_private.h"
 #include "evas_private.h"
 
+#include "efl_canvas_filter_internal.eo.h"
+
 #ifdef EAPI
 # undef EAPI
 #endif
@@ -35,7 +37,6 @@ typedef struct _Evas_Filter_Command Evas_Filter_Command;
 typedef struct _Evas_Filter_Instruction Evas_Filter_Instruction;
 typedef struct _Evas_Filter_Buffer Evas_Filter_Buffer;
 typedef struct _Evas_Filter_Proxy_Binding Evas_Filter_Proxy_Binding;
-typedef struct _Evas_Filter_Program_State  Evas_Filter_Program_State;
 typedef enum _Evas_Filter_Mode Evas_Filter_Mode;
 typedef enum _Evas_Filter_Blur_Type Evas_Filter_Blur_Type;
 typedef enum _Evas_Filter_Channel Evas_Filter_Channel;
@@ -124,20 +125,24 @@ enum _Evas_Filter_Transform_Flags
    EVAS_FILTER_TRANSFORM_VFLIP = 1
 };
 
+#define EFL_CANVAS_FILTER_STATE_DEFAULT { {}, { 255, 255, 255, 255 }, { "default", 0.0 }, {}, 0, 0, 1.0, 0.0 }
+
 /* Parser stuff (high level API) */
 EAPI Evas_Filter_Program *evas_filter_program_new(const char *name, Eina_Bool input_alpha);
-EAPI Eina_Bool           evas_filter_program_state_set(Evas_Filter_Program *pgm, Evas_Object *eo_obj, Evas_Object_Protected_Data *obj, const char *cur_state, double cur_val, const char *next_state, double next_val, double pos);
+EAPI Eina_Bool           evas_filter_program_state_set(Evas_Filter_Program *pgm, const Efl_Canvas_Filter_State *state);
 EAPI Eina_Bool           evas_filter_program_parse(Evas_Filter_Program *pgm, const char *str);
 EAPI void                evas_filter_program_del(Evas_Filter_Program *pgm);
-Eina_Bool                evas_filter_context_program_use(Evas_Filter_Context *ctx, Evas_Filter_Program *pgm);
 EAPI Eina_Bool           evas_filter_program_padding_get(Evas_Filter_Program *pgm, int *l, int *r, int *t, int *b);
 EAPI void                evas_filter_program_source_set_all(Evas_Filter_Program *pgm, Eina_Hash *sources);
-void                     evas_filter_context_proxy_render_all(Evas_Filter_Context *ctx, Eo *eo_obj, Eina_Bool do_async);
 void                     evas_filter_program_data_set_all(Evas_Filter_Program *pgm, Eina_Inlist *data);
 
 /* Filter context (low level) */
-Evas_Filter_Context     *evas_filter_context_new(Evas_Public_Data *evas, Eina_Bool async);
+Evas_Filter_Context     *evas_filter_context_new(Evas_Public_Data *evas, Eina_Bool async, void *user_data);
+void                    *evas_filter_context_data_get(Evas_Filter_Context *ctx);
+Eina_Bool                evas_filter_context_async_get(Evas_Filter_Context *ctx);
 void                     evas_filter_context_destroy(Evas_Filter_Context *ctx);
+Eina_Bool                evas_filter_context_program_use(Evas_Filter_Context *ctx, Evas_Filter_Program *pgm);
+void                     evas_filter_context_proxy_render_all(Evas_Filter_Context *ctx, Eo *eo_obj, Eina_Bool do_async);
 void                     evas_filter_context_post_run_callback_set(Evas_Filter_Context *ctx, Evas_Filter_Cb cb, void *data);
 #define                  evas_filter_context_autodestroy(ctx) evas_filter_context_post_run_callback_set(ctx, ((Evas_Filter_Cb) evas_filter_context_destroy), ctx)
 Eina_Bool                evas_filter_context_buffers_allocate_all(Evas_Filter_Context *ctx);
@@ -152,6 +157,9 @@ Eina_Bool                evas_filter_run(Evas_Filter_Context *ctx);
 Eina_Bool                evas_filter_font_draw(Evas_Filter_Context *ctx, void *draw_context, int bufid, Evas_Font_Set *font, int x, int y, Evas_Text_Props *text_props, Eina_Bool do_async);
 Eina_Bool                evas_filter_image_draw(Evas_Filter_Context *ctx, void *draw_context, int bufid, void *image, Eina_Bool do_async);
 Eina_Bool                evas_filter_target_set(Evas_Filter_Context *ctx, void *draw_context, void *surface, int x, int y);
+
+// utility function
+void                     _evas_filter_source_hash_free_cb(void *data);
 
 /**
  * @brief Blend a source buffer into a destination buffer, allowing X,Y offsets, Alpha to RGBA conversion with color

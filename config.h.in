@@ -44,9 +44,6 @@
 /* Support for opengl-x11 Engine in Ecore_Evas */
 #undef BUILD_ECORE_EVAS_OPENGL_X11
 
-/* OpenGL XCB rendering backend */
-#undef BUILD_ECORE_EVAS_OPENGL_XCB
-
 /* OpenGL Xlib rendering backend */
 #undef BUILD_ECORE_EVAS_OPENGL_XLIB
 
@@ -68,11 +65,11 @@
 /* Support for software-x11 Engine in Ecore_Evas */
 #undef BUILD_ECORE_EVAS_SOFTWARE_X11
 
-/* Evas Software XCB Engine Support */
-#undef BUILD_ECORE_EVAS_SOFTWARE_XCB
-
 /* Evas Software Xlib Engine Support */
 #undef BUILD_ECORE_EVAS_SOFTWARE_XLIB
+
+/* Build Ecore_Evas VNC module */
+#undef BUILD_ECORE_EVAS_VNC_SERVER
 
 /* Support for Wayland Engine in Ecore_Evas */
 #undef BUILD_ECORE_EVAS_WAYLAND
@@ -97,9 +94,6 @@
 
 /* Ecore Imf Wayland Support */
 #undef BUILD_ECORE_IMF_WAYLAND
-
-/* Build support for XCB-based OpenGL */
-#undef BUILD_ECORE_X_OPENGL_XCB
 
 /* Use Fixed Point instead of FPU */
 #undef BUILD_EDJE_FP
@@ -131,9 +125,6 @@
 /* Build OpenGL X11 engine */
 #undef BUILD_ENGINE_GL_X11
 
-/* OpenGL XCB rendering backend */
-#undef BUILD_ENGINE_GL_XCB
-
 /* OpenGL XLib rendering backend */
 #undef BUILD_ENGINE_GL_XLIB
 
@@ -149,11 +140,11 @@
 /* Build software X11 engine */
 #undef BUILD_ENGINE_SOFTWARE_X11
 
-/* Software XCB rendering backend */
-#undef BUILD_ENGINE_SOFTWARE_XCB
-
 /* Software Xlib rendering backend */
 #undef BUILD_ENGINE_SOFTWARE_XLIB
+
+/* Building any wayland evas engine */
+#undef BUILD_ENGINE_WAYLAND_COMMON
 
 /* Wayland Egl rendering backend */
 #undef BUILD_ENGINE_WAYLAND_EGL
@@ -236,6 +227,12 @@
 /* Build SSE3 Code */
 #undef BUILD_SSE3
 
+/* UP Image Loader Support */
+#undef BUILD_VG_LOADER_EET
+
+/* UP Image Loader Support */
+#undef BUILD_VG_LOADER_SVG
+
 /* Define to one of `_getb67', `GETB67', `getb67' for Cray-2 and Cray-YMP
    systems. This function is required for `alloca.c' support on those systems.
    */
@@ -249,48 +246,6 @@
 
 /* Http url for testing */
 #undef ECORE_CON_HTTP_TEST_URL
-
-/* Build support for XCB composite */
-#undef ECORE_XCB_COMPOSITE
-
-/* Build support for XCB cursor */
-#undef ECORE_XCB_CURSOR
-
-/* Build support for XCB damage */
-#undef ECORE_XCB_DAMAGE
-
-/* Build support for XCB dpms */
-#undef ECORE_XCB_DPMS
-
-/* Build support for XCB randr */
-#undef ECORE_XCB_RANDR
-
-/* Build support for XCB render */
-#undef ECORE_XCB_RENDER
-
-/* Build support for XCB screensaver */
-#undef ECORE_XCB_SCREENSAVER
-
-/* Build support for XCB shape */
-#undef ECORE_XCB_SHAPE
-
-/* Build support for XCB sync */
-#undef ECORE_XCB_SYNC
-
-/* Build support for XCB xfixes */
-#undef ECORE_XCB_XFIXES
-
-/* Build support for XCB xgesture */
-#undef ECORE_XCB_XGESTURE
-
-/* Build support for XCB xinerama */
-#undef ECORE_XCB_XINERAMA
-
-/* Build support for XCB Present */
-#undef ECORE_XCB_XPRESENT
-
-/* Build support for XCB xtest */
-#undef ECORE_XCB_XTEST
 
 /* Build support for Xcomposite */
 #undef ECORE_XCOMPOSITE
@@ -360,6 +315,9 @@
 
 /* Enable access to unstable EFL Eo API */
 #undef EFL_EO_API_SUPPORT
+
+/* Extra run time sanity checks */
+#undef EFL_EXTRA_SANITY_CHECKS
 
 /* Define to mention that OSX spinlocks are supported */
 #undef EFL_HAVE_OSX_SPINLOCK
@@ -500,9 +458,6 @@
 /* Build OpenGL X11 engine as part of libevas */
 #undef EVAS_STATIC_BUILD_GL_X11
 
-/* Build gl-xcb engine inside libevas */
-#undef EVAS_STATIC_BUILD_GL_XCB
-
 /* Build gl-xlib engine inside libevas */
 #undef EVAS_STATIC_BUILD_GL_XLIB
 
@@ -539,9 +494,6 @@
 /* Build software X11 engine as part of libevas */
 #undef EVAS_STATIC_BUILD_SOFTWARE_X11
 
-/* Build software-xcb engine inside libevas */
-#undef EVAS_STATIC_BUILD_SOFTWARE_XCB
-
 /* Build software-xlib engine inside libevas */
 #undef EVAS_STATIC_BUILD_SOFTWARE_XLIB
 
@@ -553,6 +505,12 @@
 
 /* Build Tiff image loader inside libevas */
 #undef EVAS_STATIC_BUILD_TIFF
+
+/* Build EET vg loader inside libevas */
+#undef EVAS_STATIC_BUILD_VG_EET
+
+/* Build SVG vg loader inside libevas */
+#undef EVAS_STATIC_BUILD_VG_SVG
 
 /* Build wayland-egl engine inside libevas */
 #undef EVAS_STATIC_BUILD_WAYLAND_EGL
@@ -584,6 +542,9 @@
 /* Have abstract sockets namespace */
 #undef HAVE_ABSTRACT_SOCKETS
 
+/* Define to 1 if you have the `accept4' function. */
+#undef HAVE_ACCEPT4
+
 /* Define to 1 if you have `alloca', as a function or macro. */
 #undef HAVE_ALLOCA
 
@@ -602,6 +563,9 @@
 
 /* Define to 1 if you have the <arpa/nameser.h> header file. */
 #undef HAVE_ARPA_NAMESER_H
+
+/* Define to 1 if you have the <asm/hwcap.h> header file. */
+#undef HAVE_ASM_HWCAP_H
 
 /* Use fstatat and other -at file functions */
 #undef HAVE_ATFILE_SOURCE
@@ -647,9 +611,6 @@
 /* Have clock_gettime() */
 #undef HAVE_CLOCK_GETTIME
 
-/* CoreAudio support disabled */
-#undef HAVE_COREAUDIO
-
 /* Define to 1 if you have the <crt_externs.h> header file. */
 #undef HAVE_CRT_EXTERNS_H
 
@@ -662,6 +623,10 @@
 /* Define if the GNU dcgettext() function is already present or preinstalled.
    */
 #undef HAVE_DCGETTEXT
+
+/* Define to 1 if you have the declaration of `strerror_r', and to 0 if you
+   don't. */
+#undef HAVE_DECL_STRERROR_R
 
 /* Define to 1 if you have a valid <dirent.h> header file. */
 #undef HAVE_DIRENT_H
@@ -725,18 +690,6 @@
 
 /* optional EFL Ecore_X is enabled */
 #undef HAVE_ECORE_X
-
-/* Have `ecore_xcb_gesture' pkg-config installed. */
-#undef HAVE_ECORE_XCB_GESTURE
-
-/* Have `ecore_xcb_xpresent' pkg-config installed. */
-#undef HAVE_ECORE_XCB_XPRESENT
-
-/* Have `ecore_x_xcb' pkg-config installed. */
-#undef HAVE_ECORE_X_XCB
-
-/* Defined to 1 if Xlib is enabled. */
-#undef HAVE_ECORE_X_XLIB
 
 /* optional EFL Eeze is enabled */
 #undef HAVE_EEZE
@@ -891,6 +844,9 @@
 /* Have `glib' pkg-config installed. */
 #undef HAVE_GLIB
 
+/* Define to 1 if you have the `gmtime_r' function. */
+#undef HAVE_GMTIME_R
+
 /* Have `gnutls' pkg-config installed. */
 #undef HAVE_GNUTLS
 
@@ -984,6 +940,9 @@
 /* Define to 1 if you have the <netinet/tcp.h> header file. */
 #undef HAVE_NETINET_TCP_H
 
+/* Define to 1 if you have the <netinet/udp.h> header file. */
+#undef HAVE_NETINET_UDP_H
+
 /* Define to 1 if you have the <net/if.h> header file. */
 #undef HAVE_NET_IF_H
 
@@ -1048,6 +1007,9 @@
 /* Have `pixman' pkg-config installed. */
 #undef HAVE_PIXMAN
 
+/* Define to 1 if you have the `prctl' function. */
+#undef HAVE_PRCTL
+
 /* Define if the <pthread.h> defines PTHREAD_MUTEX_RECURSIVE. */
 #undef HAVE_PTHREAD_MUTEX_RECURSIVE
 
@@ -1099,6 +1061,9 @@
 /* Define to 1 if you have the <stdlib.h> header file. */
 #undef HAVE_STDLIB_H
 
+/* Define to 1 if you have the `strerror_r' function. */
+#undef HAVE_STRERROR_R
+
 /* Define to 1 if you have the <strings.h> header file. */
 #undef HAVE_STRINGS_H
 
@@ -1123,6 +1088,9 @@
 /* Defined if systemd >= 209 */
 #undef HAVE_SYSTEMD_LOGIN_209
 
+/* Define to 1 if you have the <sys/auxv.h> header file. */
+#undef HAVE_SYS_AUXV_H
+
 /* Define to 1 if you have the <sys/dir.h> header file, and it defines `DIR'.
    */
 #undef HAVE_SYS_DIR_H
@@ -1130,8 +1098,14 @@
 /* Define to 1 if you have the <sys/epoll.h> header file. */
 #undef HAVE_SYS_EPOLL_H
 
+/* Define to 1 if you have the <sys/filio.h> header file. */
+#undef HAVE_SYS_FILIO_H
+
 /* Define to 1 if you have the <sys/inotify.h> header file. */
 #undef HAVE_SYS_INOTIFY_H
+
+/* Define to 1 if you have the <sys/ioctl.h> header file. */
+#undef HAVE_SYS_IOCTL_H
 
 /* Define to 1 if you have the <sys/mman.h> header file. */
 #undef HAVE_SYS_MMAN_H
@@ -1173,6 +1147,12 @@
 /* Define to 1 if you have the <sys/wait.h> header file. */
 #undef HAVE_SYS_WAIT_H
 
+/* Define if TCP_CORK is defined in netinet/tcp.h */
+#undef HAVE_TCP_CORK
+
+/* Define if TCP_NOPUSH is defined in netinet/tcp.h */
+#undef HAVE_TCP_NOPUSH
+
 /* Have the __thread specifier */
 #undef HAVE_THREAD_SPECIFIER
 
@@ -1187,6 +1167,9 @@
 
 /* Have `udev' pkg-config installed. */
 #undef HAVE_UDEV
+
+/* Define if UDP_CORK is defined in netinet/udp.h */
+#undef HAVE_UDP_CORK
 
 /* Define to 1 if you have the <unistd.h> header file. */
 #undef HAVE_UNISTD_H
@@ -1241,11 +1224,8 @@
 /* "Module architecture" */
 #undef MODULE_ARCH
 
-/* Define to 1 if you need <netdb.h> to define MAXHOSTNAMELEN */
-#undef NEED_NETDB_H
-
-/* Define to 1 if you need <sys/param.h> to define MAXHOSTNAMELEN */
-#undef NEED_SYS_PARAM_H
+/* Need EFL_RUN_IN_TREE=1 trick */
+#undef NEED_RUN_IN_TREE
 
 /* Valgrind support disabled */
 #undef NVALGRIND
@@ -1335,6 +1315,9 @@
 
 /* Define to 1 if you have the ANSI C header files. */
 #undef STDC_HEADERS
+
+/* Define to 1 if strerror_r returns char *. */
+#undef STRERROR_R_CHAR_P
 
 /* Enable tiled rotate algorithm */
 #undef TILE_ROTATE

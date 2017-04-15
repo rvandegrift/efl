@@ -34,11 +34,11 @@ extern "C" {
 #endif /* ! _WIN32 */
 
 #define EFL_VERSION_1_18 1
+#define EFL_VERSION_1_19 1
 
 /* Add here all the required ifdef for any @protected method */
 #ifdef EFL_EFL_BUILD
 # define EFL_PACK_LAYOUT_PROTECTED
-# define EFL_EVENT_PROTECTED
 # define EFL_GFX_SIZE_HINT_PROTECTED
 #endif
 
@@ -52,6 +52,9 @@ extern "C" {
 typedef struct tm Efl_Time;
 
 #ifdef EFL_BETA_API_SUPPORT
+
+#include "interfaces/efl_observer.eo.h"
+#include "interfaces/efl_observable.eo.h"
 
 #include "interfaces/efl_types.eot.h"
 
@@ -83,6 +86,8 @@ typedef Efl_Gfx_Path_Command_Type Efl_Gfx_Path_Command;
 #include "interfaces/efl_flipable.eo.h"
 #include "interfaces/efl_ui_spin.eo.h"
 #include "interfaces/efl_ui_progress.eo.h"
+#include "interfaces/efl_ui_item.eo.h"
+#include "interfaces/efl_ui_menu.eo.h"
 
 #include "interfaces/efl_screen.eo.h"
 
@@ -94,8 +99,8 @@ typedef Efl_Gfx_Path_Command_Type Efl_Gfx_Path_Command;
 /* Core interface */
 #include "interfaces/efl_animator.eo.h"
 
-EAPI extern const Eo_Event_Description _EFL_GFX_CHANGED;
-EAPI extern const Eo_Event_Description _EFL_GFX_PATH_CHANGED;
+EAPI extern const Efl_Event_Description _EFL_GFX_CHANGED;
+EAPI extern const Efl_Event_Description _EFL_GFX_PATH_CHANGED;
 
 #define EFL_GFX_CHANGED (&(_EFL_GFX_CHANGED))
 #define EFL_GFX_PATH_CHANGED (&(_EFL_GFX_PATH_CHANGED))
@@ -105,6 +110,7 @@ EAPI extern const Eo_Event_Description _EFL_GFX_PATH_CHANGED;
 #include "interfaces/efl_gfx_stack.eo.h"
 #include "interfaces/efl_gfx_fill.eo.h"
 #include "interfaces/efl_gfx_view.eo.h"
+#include "interfaces/efl_gfx_path.eo.h"
 #include "interfaces/efl_gfx_shape.eo.h"
 #include "interfaces/efl_gfx_gradient.eo.h"
 #include "interfaces/efl_gfx_gradient_linear.eo.h"
@@ -114,6 +120,11 @@ EAPI extern const Eo_Event_Description _EFL_GFX_PATH_CHANGED;
 
 #include "interfaces/efl_canvas.eo.h"
 
+#include "interfaces/efl_ui_view.eo.h"
+#include "interfaces/efl_ui_model_connect.eo.h"
+#include "interfaces/efl_ui_factory.eo.h"
+#include "interfaces/efl_ui_model_factory_connect.eo.h"
+
 /* Packing & containers */
 #include "interfaces/efl_container.eo.h"
 #include "interfaces/efl_pack.eo.h"
@@ -122,17 +133,24 @@ EAPI extern const Eo_Event_Description _EFL_GFX_PATH_CHANGED;
 #include "interfaces/efl_pack_grid.eo.h"
 
 /* Input events */
-#include "interfaces/efl_event_types.eot.h"
+#include "interfaces/efl_input_types.eot.h"
 #include "interfaces/efl_input_device.eo.h"
-#include "interfaces/efl_input_state.eo.h"
-#include "interfaces/efl_input_interface.eo.h"
-#include "interfaces/efl_event.eo.h"
+
+/* Input and Output */
+#include "interfaces/efl_io_closer.eo.h"
+#include "interfaces/efl_io_reader.eo.h"
+#include "interfaces/efl_io_writer.eo.h"
+#include "interfaces/efl_io_sizer.eo.h"
+#include "interfaces/efl_io_positioner.eo.h"
+
+#include "interfaces/efl_io_buffer.eo.h"
+#include "interfaces/efl_io_queue.eo.h"
 
 #else
 
 #ifndef EFL_NOLEGACY_API_SUPPORT
 #include "interfaces/efl_gfx_types.eot.h"
-#include "interfaces/efl_event_types.eot.h"
+#include "interfaces/efl_input_types.eot.h"
 #include "interfaces/efl_gfx_fill.eo.legacy.h"
 #include "interfaces/efl_gfx.eo.legacy.h"
 #include "interfaces/efl_image.eo.legacy.h"

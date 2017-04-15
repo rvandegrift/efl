@@ -22,6 +22,7 @@ elementary/themes/edc/appmenu.edc \
 elementary/themes/edc/background.edc \
 elementary/themes/edc/backlight.edc \
 elementary/themes/edc/battery.edc \
+elementary/themes/edc/batman.edc \
 elementary/themes/edc/bluez4.edc \
 elementary/themes/edc/border.edc \
 elementary/themes/edc/border-icons.edc \
@@ -38,6 +39,7 @@ elementary/themes/edc/comp_effects.edc \
 elementary/themes/edc/conf.edc \
 elementary/themes/edc/connman.edc \
 elementary/themes/edc/cpufreq.edc \
+elementary/themes/edc/cpumonitor.edc \
 elementary/themes/edc/cslider.edc \
 elementary/themes/edc/desklock.edc \
 elementary/themes/edc/deskmirror.edc \
@@ -56,9 +58,12 @@ elementary/themes/edc/ilist.edc \
 elementary/themes/edc/illume.edc \
 elementary/themes/edc/init.edc \
 elementary/themes/edc/label.edc \
+elementary/themes/edc/luncher.edc \
+elementary/themes/edc/memusage.edc \
 elementary/themes/edc/menu.edc \
 elementary/themes/edc/mixer.edc \
 elementary/themes/edc/music_control.edc \
+elementary/themes/edc/netstatus.edc \
 elementary/themes/edc/notification.edc \
 elementary/themes/edc/packagekit.edc \
 elementary/themes/edc/pager.edc \
@@ -102,10 +107,10 @@ elementary/themes/edc/elm/colorclass.edc \
 elementary/themes/edc/elm/conform.edc \
 elementary/themes/edc/elm/ctxpopup.edc \
 elementary/themes/edc/elm/cursor.edc \
-elementary/themes/edc/elm/datetime.edc \
 elementary/themes/edc/elm/dayselector.edc \
 elementary/themes/edc/elm/diskselector.edc \
 elementary/themes/edc/elm/entry.edc \
+elementary/themes/edc/elm/ews.edc \
 elementary/themes/edc/elm/fileselector.edc \
 elementary/themes/edc/elm/flipselector.edc \
 elementary/themes/edc/elm/focus.edc \
@@ -144,6 +149,7 @@ elementary/themes/edc/elm/spinner.edc \
 elementary/themes/edc/elm/thumb.edc \
 elementary/themes/edc/elm/toolbar.edc \
 elementary/themes/edc/elm/tooltip.edc \
+elementary/themes/edc/elm/uiclock.edc \
 elementary/themes/edc/elm/video.edc \
 elementary/themes/edc/elm/win.edc \
 \
@@ -216,6 +222,14 @@ elementary/themes/img/col_sel_end_bottom.png \
 elementary/themes/img/col_sel_end_left.png \
 elementary/themes/img/col_sel_end_right.png \
 elementary/themes/img/col_sel_end_top.png \
+elementary/themes/img/cpu_bar.png \
+elementary/themes/img/cpu_green_on.png \
+elementary/themes/img/cpu_red_on.png \
+elementary/themes/img/cpu_yellow_on.png \
+elementary/themes/img/cpu_bar_vert.png \
+elementary/themes/img/cpu_green_on_vert.png \
+elementary/themes/img/cpu_red_on_vert.png \
+elementary/themes/img/cpu_yellow_on_vert.png \
 elementary/themes/img/darken_rounded_square_half_h.png \
 elementary/themes/img/darken_rounded_square_half.png \
 elementary/themes/img/darken_rounded_square.png \
@@ -549,6 +563,10 @@ elementary/themes/img/map_circle.png \
 elementary/themes/img/map_marker.png \
 elementary/themes/img/map_scale.png \
 elementary/themes/img/media_busy_progress.png \
+elementary/themes/img/mem_bar.png \
+elementary/themes/img/mem_on.png \
+elementary/themes/img/mem_bar_vert.png \
+elementary/themes/img/mem_on_vert.png \
 elementary/themes/img/mini_blue_glow_arrow_0.png \
 elementary/themes/img/mini_blue_glow_arrow_1.png \
 elementary/themes/img/mini_blue_glow_arrow_2.png \
@@ -556,6 +574,10 @@ elementary/themes/img/mini_blue_glow_arrow_3.png \
 elementary/themes/img/mini_box_bevel_shadow.png \
 elementary/themes/img/mini_box_glow.png \
 elementary/themes/img/music_control_icon.png \
+elementary/themes/img/netstatus_base.png \
+elementary/themes/img/netstatus_over.png \
+elementary/themes/img/netstatus_tx.png \
+elementary/themes/img/netstatus_rx.png \
 elementary/themes/img/outline_glow.png \
 elementary/themes/img/packagekit_base.png \
 elementary/themes/img/pointer_entry_bar.png \

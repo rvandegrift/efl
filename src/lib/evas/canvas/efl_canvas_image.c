@@ -2,12 +2,13 @@
 #include "efl_canvas_image.eo.h"
 
 #define MY_CLASS EFL_CANVAS_IMAGE_CLASS
+#define MY_CLASS_NAME efl_class_name_get(MY_CLASS)
 
 Eina_Bool
 _evas_image_mmap_set(Eo *eo_obj, const Eina_File *f, const char *key)
 {
-   Evas_Object_Protected_Data *obj = eo_data_scope_get(eo_obj, EFL_CANVAS_OBJECT_CLASS);
-   Evas_Image_Data *o = eo_data_scope_get(eo_obj, EFL_CANVAS_IMAGE_INTERNAL_CLASS);
+   Evas_Object_Protected_Data *obj = efl_data_scope_get(eo_obj, EFL_CANVAS_OBJECT_CLASS);
+   Evas_Image_Data *o = efl_data_scope_get(eo_obj, EFL_CANVAS_IMAGE_INTERNAL_CLASS);
    Evas_Image_Load_Opts lo;
 
    if (o->cur->u.f == f)
@@ -36,7 +37,7 @@ _efl_canvas_image_efl_file_mmap_set(Eo *eo_obj, void *_pd EINA_UNUSED EINA_UNUSE
 void
 _evas_image_mmap_get(const Eo *eo_obj, const Eina_File **f, const char **key)
 {
-   Evas_Image_Data *o = eo_data_scope_get(eo_obj, EFL_CANVAS_IMAGE_INTERNAL_CLASS);
+   Evas_Image_Data *o = efl_data_scope_get(eo_obj, EFL_CANVAS_IMAGE_INTERNAL_CLASS);
 
    if (f)
      *f = o->cur->mmaped_source ? o->cur->u.f : NULL;
@@ -54,8 +55,8 @@ _efl_canvas_image_efl_file_mmap_get(Eo *eo_obj, void *_pd EINA_UNUSED EINA_UNUSE
 Eina_Bool
 _evas_image_file_set(Eo *eo_obj, const char *file, const char *key)
 {
-   Evas_Object_Protected_Data *obj = eo_data_scope_get(eo_obj, EFL_CANVAS_OBJECT_CLASS);
-   Evas_Image_Data *o = eo_data_scope_get(eo_obj, EFL_CANVAS_IMAGE_INTERNAL_CLASS);
+   Evas_Object_Protected_Data *obj = efl_data_scope_get(eo_obj, EFL_CANVAS_OBJECT_CLASS);
+   Evas_Image_Data *o = efl_data_scope_get(eo_obj, EFL_CANVAS_IMAGE_INTERNAL_CLASS);
    Evas_Image_Load_Opts lo;
    const char *file2;
 
@@ -69,6 +70,8 @@ _evas_image_file_set(Eo *eo_obj, const char *file, const char *key)
 
    evas_object_async_block(obj);
    _evas_image_init_set(NULL, file, key, eo_obj, obj, o, &lo);
+   if (o->file_obj) efl_del(o->file_obj);
+   o->file_obj = NULL;
    file2 = o->cur->u.file;
    if (file2)
      {
@@ -81,7 +84,11 @@ _evas_image_file_set(Eo *eo_obj, const char *file, const char *key)
    o->engine_data = ENFN->image_load(ENDT, file2, o->cur->key, &o->load_error, &lo);
    o->buffer_data_set = EINA_FALSE;
    _evas_image_done_set(eo_obj, obj, o);
-
+   if ((o->file_obj) && (!efl_vpath_file_keep_get(o->file_obj)))
+     {
+        efl_del(o->file_obj);
+        o->file_obj = NULL;
+     }
    return EINA_TRUE;
 }
 
@@ -95,7 +102,7 @@ _efl_canvas_image_efl_file_file_set(Eo *eo_obj, void *_pd EINA_UNUSED EINA_UNUSE
 void
 _evas_image_file_get(const Eo *eo_obj, const char **file, const char **key)
 {
-   Evas_Image_Data *o = eo_data_scope_get(eo_obj, EFL_CANVAS_IMAGE_INTERNAL_CLASS);
+   Evas_Image_Data *o = efl_data_scope_get(eo_obj, EFL_CANVAS_IMAGE_INTERNAL_CLASS);
 
    if (file)
      {
@@ -117,7 +124,7 @@ _efl_canvas_image_efl_file_file_get(Eo *eo_obj, void *_pd EINA_UNUSED EINA_UNUSE
 Efl_Image_Load_Error
 _evas_image_load_error_get(const Eo *eo_obj)
 {
-   Evas_Image_Data *o = eo_data_scope_get(eo_obj, EFL_CANVAS_IMAGE_INTERNAL_CLASS);
+   Evas_Image_Data *o = efl_data_scope_get(eo_obj, EFL_CANVAS_IMAGE_INTERNAL_CLASS);
 
    return o->load_error;
 }
@@ -139,7 +146,7 @@ _image_preload_internal(Eo *eo_obj, Evas_Image_Data *o, Eina_Bool cancel)
      }
    // FIXME: if already busy preloading, then dont request again until
    // preload done
-   Evas_Object_Protected_Data *obj = eo_data_scope_get(eo_obj, EFL_CANVAS_OBJECT_CLASS);
+   Evas_Object_Protected_Data *obj = efl_data_scope_get(eo_obj, EFL_CANVAS_OBJECT_CLASS);
    if (cancel)
      {
         if (o->preloading)
@@ -161,8 +168,8 @@ _image_preload_internal(Eo *eo_obj, Evas_Image_Data *o, Eina_Bool cancel)
 void
 _evas_image_load_async_start(Eo *eo_obj)
 {
-   Evas_Object_Protected_Data *obj = eo_data_scope_get(eo_obj, EFL_CANVAS_OBJECT_CLASS);
-   Evas_Image_Data *o = eo_data_scope_get(eo_obj, EFL_CANVAS_IMAGE_INTERNAL_CLASS);
+   Evas_Object_Protected_Data *obj = efl_data_scope_get(eo_obj, EFL_CANVAS_OBJECT_CLASS);
+   Evas_Image_Data *o = efl_data_scope_get(eo_obj, EFL_CANVAS_IMAGE_INTERNAL_CLASS);
 
    evas_object_async_block(obj);
    _image_preload_internal(eo_obj, o, EINA_FALSE);
@@ -177,8 +184,8 @@ _efl_canvas_image_efl_image_load_load_async_start(Eo *eo_obj, void *_pd EINA_UNU
 void
 _evas_image_load_async_cancel(Eo *eo_obj)
 {
-   Evas_Object_Protected_Data *obj = eo_data_scope_get(eo_obj, EFL_CANVAS_OBJECT_CLASS);
-   Evas_Image_Data *o = eo_data_scope_get(eo_obj, EFL_CANVAS_IMAGE_INTERNAL_CLASS);
+   Evas_Object_Protected_Data *obj = efl_data_scope_get(eo_obj, EFL_CANVAS_OBJECT_CLASS);
+   Evas_Image_Data *o = efl_data_scope_get(eo_obj, EFL_CANVAS_IMAGE_INTERNAL_CLASS);
 
    evas_object_async_block(obj);
    _image_preload_internal(eo_obj, o, EINA_TRUE);
@@ -193,10 +200,10 @@ _efl_canvas_image_efl_image_load_load_async_cancel(Eo *eo_obj, void *_pd EINA_UN
 void
 _evas_image_load_dpi_set(Eo *eo_obj, double dpi)
 {
-   Evas_Object_Protected_Data *obj = eo_data_scope_get(eo_obj, EFL_CANVAS_OBJECT_CLASS);
-   Evas_Image_Data *o = eo_data_scope_get(eo_obj, EFL_CANVAS_IMAGE_INTERNAL_CLASS);
+   Evas_Object_Protected_Data *obj = efl_data_scope_get(eo_obj, EFL_CANVAS_OBJECT_CLASS);
+   Evas_Image_Data *o = efl_data_scope_get(eo_obj, EFL_CANVAS_IMAGE_INTERNAL_CLASS);
 
-   if (dpi == o->load_opts->dpi) return;
+   if (EINA_DBL_EQ(dpi, o->load_opts->dpi)) return;
    evas_object_async_block(obj);
    EINA_COW_LOAD_OPTS_WRITE_BEGIN(o, low)
      low->dpi = dpi;
@@ -221,7 +228,7 @@ _efl_canvas_image_efl_image_load_load_dpi_set(Eo *eo_obj, void *_pd EINA_UNUSED 
 double
 _evas_image_load_dpi_get(const Eo *eo_obj)
 {
-   Evas_Image_Data *o = eo_data_scope_get(eo_obj, EFL_CANVAS_IMAGE_INTERNAL_CLASS);
+   Evas_Image_Data *o = efl_data_scope_get(eo_obj, EFL_CANVAS_IMAGE_INTERNAL_CLASS);
 
    return o->load_opts->dpi;
 }
@@ -235,8 +242,8 @@ _efl_canvas_image_efl_image_load_load_dpi_get(Eo *eo_obj, void *_pd EINA_UNUSED 
 void
 _evas_image_load_size_set(Eo *eo_obj, int w, int h)
 {
-   Evas_Object_Protected_Data *obj = eo_data_scope_get(eo_obj, EFL_CANVAS_OBJECT_CLASS);
-   Evas_Image_Data *o = eo_data_scope_get(eo_obj, EFL_CANVAS_IMAGE_INTERNAL_CLASS);
+   Evas_Object_Protected_Data *obj = efl_data_scope_get(eo_obj, EFL_CANVAS_OBJECT_CLASS);
+   Evas_Image_Data *o = efl_data_scope_get(eo_obj, EFL_CANVAS_IMAGE_INTERNAL_CLASS);
 
    if ((o->load_opts->w == w) && (o->load_opts->h == h)) return;
    evas_object_async_block(obj);
@@ -267,7 +274,7 @@ _efl_canvas_image_efl_image_load_load_size_set(Eo *eo_obj, void *_pd EINA_UNUSED
 void
 _evas_image_load_size_get(const Eo *eo_obj, int *w, int *h)
 {
-   Evas_Image_Data *o = eo_data_scope_get(eo_obj, EFL_CANVAS_IMAGE_INTERNAL_CLASS);
+   Evas_Image_Data *o = efl_data_scope_get(eo_obj, EFL_CANVAS_IMAGE_INTERNAL_CLASS);
 
    if (w) *w = o->load_opts->w;
    if (h) *h = o->load_opts->h;
@@ -282,8 +289,8 @@ _efl_canvas_image_efl_image_load_load_size_get(Eo *eo_obj, void *_pd EINA_UNUSED
 void
 _evas_image_load_scale_down_set(Eo *eo_obj, int scale_down)
 {
-   Evas_Object_Protected_Data *obj = eo_data_scope_get(eo_obj, EFL_CANVAS_OBJECT_CLASS);
-   Evas_Image_Data *o = eo_data_scope_get(eo_obj, EFL_CANVAS_IMAGE_INTERNAL_CLASS);
+   Evas_Object_Protected_Data *obj = efl_data_scope_get(eo_obj, EFL_CANVAS_OBJECT_CLASS);
+   Evas_Image_Data *o = efl_data_scope_get(eo_obj, EFL_CANVAS_IMAGE_INTERNAL_CLASS);
 
    if (o->load_opts->scale_down_by == scale_down) return;
    evas_object_async_block(obj);
@@ -310,7 +317,7 @@ _efl_canvas_image_efl_image_load_load_scale_down_set(Eo *eo_obj, void *_pd EINA_
 int
 _evas_image_load_scale_down_get(const Eo *eo_obj)
 {
-   Evas_Image_Data *o = eo_data_scope_get(eo_obj, EFL_CANVAS_IMAGE_INTERNAL_CLASS);
+   Evas_Image_Data *o = efl_data_scope_get(eo_obj, EFL_CANVAS_IMAGE_INTERNAL_CLASS);
 
    return o->load_opts->scale_down_by;
 }
@@ -322,10 +329,36 @@ _efl_canvas_image_efl_image_load_load_scale_down_get(Eo *eo_obj, void *_pd EINA_
 }
 
 void
+_evas_image_load_head_skip_set(const Eo *eo_obj, Eina_Bool skip)
+{
+   Evas_Image_Data *o = efl_data_scope_get(eo_obj, EFL_CANVAS_IMAGE_INTERNAL_CLASS);
+   o->skip_head = skip;
+}
+
+EOLIAN static void
+_efl_canvas_image_efl_image_load_load_skip_header_set(Eo *eo_obj, void *_pd EINA_UNUSED, Eina_Bool skip)
+{
+   _evas_image_load_head_skip_set(eo_obj, skip);
+}
+
+Eina_Bool
+_evas_image_load_head_skip_get(const Eo *eo_obj)
+{
+   Evas_Image_Data *o = efl_data_scope_get(eo_obj, EFL_CANVAS_IMAGE_INTERNAL_CLASS);
+   return o->skip_head;
+}
+
+EOLIAN static Eina_Bool
+_efl_canvas_image_efl_image_load_load_skip_header_get(Eo *eo_obj, void *_pd EINA_UNUSED)
+{
+   return _evas_image_load_head_skip_get(eo_obj);
+}
+
+void
 _evas_image_load_region_set(Eo *eo_obj, int x, int y, int w, int h)
 {
-   Evas_Object_Protected_Data *obj = eo_data_scope_get(eo_obj, EFL_CANVAS_OBJECT_CLASS);
-   Evas_Image_Data *o = eo_data_scope_get(eo_obj, EFL_CANVAS_IMAGE_INTERNAL_CLASS);
+   Evas_Object_Protected_Data *obj = efl_data_scope_get(eo_obj, EFL_CANVAS_OBJECT_CLASS);
+   Evas_Image_Data *o = efl_data_scope_get(eo_obj, EFL_CANVAS_IMAGE_INTERNAL_CLASS);
 
    if ((o->load_opts->region.x == x) && (o->load_opts->region.y == y) &&
        (o->load_opts->region.w == w) && (o->load_opts->region.h == h)) return;
@@ -358,7 +391,7 @@ _efl_canvas_image_efl_image_load_load_region_set(Eo *eo_obj, void *_pd EINA_UNUS
 void
 _evas_image_load_region_get(const Eo *eo_obj, int *x, int *y, int *w, int *h)
 {
-   Evas_Image_Data *o = eo_data_scope_get(eo_obj, EFL_CANVAS_IMAGE_INTERNAL_CLASS);
+   Evas_Image_Data *o = efl_data_scope_get(eo_obj, EFL_CANVAS_IMAGE_INTERNAL_CLASS);
 
    if (x) *x = o->load_opts->region.x;
    if (y) *y = o->load_opts->region.y;
@@ -375,8 +408,8 @@ _efl_canvas_image_efl_image_load_load_region_get(Eo *eo_obj, void *_pd EINA_UNUS
 void
 _evas_image_load_orientation_set(Eo *eo_obj, Eina_Bool enable)
 {
-   Evas_Object_Protected_Data *obj = eo_data_scope_get(eo_obj, EFL_CANVAS_OBJECT_CLASS);
-   Evas_Image_Data *o = eo_data_scope_get(eo_obj, EFL_CANVAS_IMAGE_INTERNAL_CLASS);
+   Evas_Object_Protected_Data *obj = efl_data_scope_get(eo_obj, EFL_CANVAS_OBJECT_CLASS);
+   Evas_Image_Data *o = efl_data_scope_get(eo_obj, EFL_CANVAS_IMAGE_INTERNAL_CLASS);
 
    if (o->load_opts->orientation == !!enable) return;
    evas_object_async_block(obj);
@@ -395,7 +428,7 @@ _efl_canvas_image_efl_image_load_load_orientation_set(Eo *eo_obj, void *_pd EINA
 Eina_Bool
 _evas_image_load_orientation_get(const Eo *eo_obj)
 {
-   Evas_Image_Data *o = eo_data_scope_get(eo_obj, EFL_CANVAS_IMAGE_INTERNAL_CLASS);
+   Evas_Image_Data *o = efl_data_scope_get(eo_obj, EFL_CANVAS_IMAGE_INTERNAL_CLASS);
 
    return o->load_opts->orientation;
 }
@@ -409,8 +442,8 @@ _efl_canvas_image_efl_image_load_load_orientation_get(Eo *eo_obj, void *_pd EINA
 Eina_Bool
 _evas_image_load_region_support_get(const Eo *eo_obj)
 {
-   Evas_Object_Protected_Data *obj = eo_data_scope_get(eo_obj, EFL_CANVAS_OBJECT_CLASS);
-   Evas_Image_Data *o = eo_data_scope_get(eo_obj, EFL_CANVAS_IMAGE_INTERNAL_CLASS);
+   Evas_Object_Protected_Data *obj = efl_data_scope_get(eo_obj, EFL_CANVAS_OBJECT_CLASS);
+   Evas_Image_Data *o = efl_data_scope_get(eo_obj, EFL_CANVAS_IMAGE_INTERNAL_CLASS);
 
    return ENFN->image_can_region_get(ENDT, o->engine_data);
 }
@@ -425,8 +458,8 @@ _efl_canvas_image_efl_image_load_load_region_support_get(Eo *eo_obj, void *_pd E
 Eina_Bool
 _evas_image_animated_get(const Eo *eo_obj)
 {
-   Evas_Object_Protected_Data *obj = eo_data_scope_get(eo_obj, EFL_CANVAS_OBJECT_CLASS);
-   Evas_Image_Data *o = eo_data_scope_get(eo_obj, EFL_CANVAS_IMAGE_INTERNAL_CLASS);
+   Evas_Object_Protected_Data *obj = efl_data_scope_get(eo_obj, EFL_CANVAS_OBJECT_CLASS);
+   Evas_Image_Data *o = efl_data_scope_get(eo_obj, EFL_CANVAS_IMAGE_INTERNAL_CLASS);
 
    if (!ENFN->image_animated_get)
      return EINA_FALSE;
@@ -443,14 +476,14 @@ _efl_canvas_image_efl_image_animated_animated_get(Eo *eo_obj, void *_pd EINA_UNU
 int
 _evas_image_animated_frame_count_get(const Eo *eo_obj)
 {
-   Evas_Object_Protected_Data *obj = eo_data_scope_get(eo_obj, EFL_CANVAS_OBJECT_CLASS);
-   Evas_Image_Data *o = eo_data_scope_get(eo_obj, EFL_CANVAS_IMAGE_INTERNAL_CLASS);
+   Evas_Object_Protected_Data *obj = efl_data_scope_get(eo_obj, EFL_CANVAS_OBJECT_CLASS);
+   Evas_Image_Data *o = efl_data_scope_get(eo_obj, EFL_CANVAS_IMAGE_INTERNAL_CLASS);
 
    if (!ENFN->image_animated_frame_count_get ||
        !evas_object_image_animated_get(eo_obj))
      return -1;
 
-   obj = eo_data_scope_get(eo_obj, EFL_CANVAS_OBJECT_CLASS);
+   obj = efl_data_scope_get(eo_obj, EFL_CANVAS_OBJECT_CLASS);
    return ENFN->image_animated_frame_count_get(ENDT, o->engine_data);
 }
 
@@ -463,8 +496,8 @@ _efl_canvas_image_efl_image_animated_animated_frame_count_get(Eo *eo_obj, void *
 Efl_Image_Animated_Loop_Hint
 _evas_image_animated_loop_type_get(const Eo *eo_obj)
 {
-   Evas_Object_Protected_Data *obj = eo_data_scope_get(eo_obj, EFL_CANVAS_OBJECT_CLASS);
-   Evas_Image_Data *o = eo_data_scope_get(eo_obj, EFL_CANVAS_IMAGE_INTERNAL_CLASS);
+   Evas_Object_Protected_Data *obj = efl_data_scope_get(eo_obj, EFL_CANVAS_OBJECT_CLASS);
+   Evas_Image_Data *o = efl_data_scope_get(eo_obj, EFL_CANVAS_IMAGE_INTERNAL_CLASS);
 
    if (!ENFN->image_animated_loop_type_get ||
        !evas_object_image_animated_get(eo_obj))
@@ -482,8 +515,8 @@ _efl_canvas_image_efl_image_animated_animated_loop_type_get(Eo *eo_obj, void *_p
 int
 _evas_image_animated_loop_count_get(const Eo *eo_obj)
 {
-   Evas_Object_Protected_Data *obj = eo_data_scope_get(eo_obj, EFL_CANVAS_OBJECT_CLASS);
-   Evas_Image_Data *o = eo_data_scope_get(eo_obj, EFL_CANVAS_IMAGE_INTERNAL_CLASS);
+   Evas_Object_Protected_Data *obj = efl_data_scope_get(eo_obj, EFL_CANVAS_OBJECT_CLASS);
+   Evas_Image_Data *o = efl_data_scope_get(eo_obj, EFL_CANVAS_IMAGE_INTERNAL_CLASS);
 
    if (!ENFN->image_animated_loop_count_get ||
        !evas_object_image_animated_get(eo_obj))
@@ -501,8 +534,8 @@ _efl_canvas_image_efl_image_animated_animated_loop_count_get(Eo *eo_obj, void *_
 double
 _evas_image_animated_frame_duration_get(const Eo *eo_obj, int start_frame, int frame_num)
 {
-   Evas_Object_Protected_Data *obj = eo_data_scope_get(eo_obj, EFL_CANVAS_OBJECT_CLASS);
-   Evas_Image_Data *o = eo_data_scope_get(eo_obj, EFL_CANVAS_IMAGE_INTERNAL_CLASS);
+   Evas_Object_Protected_Data *obj = efl_data_scope_get(eo_obj, EFL_CANVAS_OBJECT_CLASS);
+   Evas_Image_Data *o = efl_data_scope_get(eo_obj, EFL_CANVAS_IMAGE_INTERNAL_CLASS);
    int frame_count = 0;
 
    if (!ENFN->image_animated_frame_count_get ||
@@ -525,8 +558,8 @@ _efl_canvas_image_efl_image_animated_animated_frame_duration_get(Eo *eo_obj, voi
 Eina_Bool
 _evas_image_animated_frame_set(Eo *eo_obj, int frame_index)
 {
-   Evas_Object_Protected_Data *obj = eo_data_scope_get(eo_obj, EFL_CANVAS_OBJECT_CLASS);
-   Evas_Image_Data *o = eo_data_scope_get(eo_obj, EFL_CANVAS_IMAGE_INTERNAL_CLASS);
+   Evas_Object_Protected_Data *obj = efl_data_scope_get(eo_obj, EFL_CANVAS_OBJECT_CLASS);
+   Evas_Image_Data *o = efl_data_scope_get(eo_obj, EFL_CANVAS_IMAGE_INTERNAL_CLASS);
    int frame_count = 0;
 
    if (!o->cur->u.file) return EINA_FALSE;
@@ -567,7 +600,7 @@ _efl_canvas_image_efl_image_animated_animated_frame_set(Eo *eo_obj, void *_pd EI
 int
 _evas_image_animated_frame_get(const Eo *eo_obj)
 {
-   Evas_Image_Data *o = eo_data_scope_get(eo_obj, EFL_CANVAS_IMAGE_INTERNAL_CLASS);
+   Evas_Image_Data *o = efl_data_scope_get(eo_obj, EFL_CANVAS_IMAGE_INTERNAL_CLASS);
 
    if (!o->cur->u.file) return EINA_FALSE;
    if (!evas_object_image_animated_get(eo_obj)) return EINA_FALSE;
@@ -583,7 +616,7 @@ _efl_canvas_image_efl_image_animated_animated_frame_get(Eo *eo_obj, void *_pd EI
 EOLIAN static void
 _efl_canvas_image_efl_gfx_buffer_buffer_size_get(Eo *eo_obj, void *_pd EINA_UNUSED EINA_UNUSED, int *w, int *h)
 {
-   Evas_Image_Data *o = eo_data_scope_get(eo_obj, EFL_CANVAS_IMAGE_INTERNAL_CLASS);
+   Evas_Image_Data *o = efl_data_scope_get(eo_obj, EFL_CANVAS_IMAGE_INTERNAL_CLASS);
 
    if (w) *w = o->cur->image.w;
    if (h) *h = o->cur->image.h;
@@ -591,17 +624,18 @@ _efl_canvas_image_efl_gfx_buffer_buffer_size_get(Eo *eo_obj, void *_pd EINA_UNUS
 
 static Eina_Bool
 _image_pixels_set(Evas_Object_Protected_Data *obj,
-                  Evas_Image_Data *o, void *pixels, int w, int h, int stride,
-                  Efl_Gfx_Colorspace cspace, Eina_Bool copy)
+                  Evas_Image_Data *o, const Eina_Slice *slice,
+                  int w, int h, int stride, Efl_Gfx_Colorspace cspace, int plane,
+                  Eina_Bool copy)
 {
-   Eina_Bool resized = EINA_FALSE, ret = EINA_FALSE, easy_copy = EINA_FALSE;
+   Eina_Bool resized = EINA_FALSE, ret = EINA_FALSE;
    int int_stride = 0;
 
    // FIXME: buffer border support is not implemented
 
    if (ENFN->image_data_maps_get)
      {
-        if (ENFN->image_data_maps_get(ENDT, o->engine_data, NULL, NULL) > 0)
+        if (ENFN->image_data_maps_get(ENDT, o->engine_data, NULL) > 0)
           {
              ERR("can not set pixels when there are open memory maps");
              return EINA_FALSE;
@@ -611,97 +645,56 @@ _image_pixels_set(Evas_Object_Protected_Data *obj,
    if (o->pixels_checked_out)
      {
         // is there anything to do?
-        ERR("Calling buffer_data_set after evas_object_image_data_get is not "
-            "valid. Discarding previous data pointer.");
-        o->pixels_checked_out = 0;
+        ERR("Calling efl_gfx_buffer_%s_set after evas_object_image_data_get is "
+            "not valid.", copy ? "copy" : "managed");
+        return EINA_FALSE;
+     }
+
+   if (o->file_obj)
+     {
+        efl_del(o->file_obj);
+        o->file_obj = NULL;
      }
 
    if (o->engine_data)
      {
-        ENFN->image_free(ENDT, o->engine_data);
-        o->engine_data = NULL;
-     }
-   if (o->file_obj)
-     {
-        eo_del(o->file_obj);
-        o->file_obj = NULL;
-     }
+        Evas_Colorspace ics;
+        int iw = 0, ih = 0;
+        Eina_Bool alpha;
 
-   switch (cspace)
-     {
-      case EVAS_COLORSPACE_ARGB8888:
-      case EVAS_COLORSPACE_AGRY88:
-      case EVAS_COLORSPACE_GRY8:
-        easy_copy = EINA_TRUE;
-        break;
-      default:
-        break;
-     }
-
-   int_stride = _evas_common_rgba_image_surface_size(w, 1, cspace, NULL, NULL, NULL, NULL);
-   if (!stride) stride = int_stride;
-
-   if (!copy && (int_stride != stride))
-     {
-        // FIXME: Add proper support for stride inside the engines
-        ERR("Unable to create an image with stride %d, got %d", stride, int_stride);
-        return EINA_FALSE;
-     }
-
-   if ((o->cur->image.w != w) || (o->cur->image.h != h))
-     resized = EINA_TRUE;
-
-   o->buffer_data_set = EINA_FALSE;
-   if (pixels && !copy)
-     {
-        // direct use
-        o->engine_data = ENFN->image_new_from_data(ENDT, w, h, pixels, o->cur->has_alpha, cspace);
-        o->buffer_data_set = (o->engine_data != NULL);
-     }
-   else if (stride == int_stride)
-     {
-        // simple copy
-        o->engine_data = ENFN->image_new_from_copied_data(ENDT, w, h, pixels, o->cur->has_alpha, cspace);
-     }
-   else if (easy_copy)
-     {
-        // copy each line. ouch.
-        o->engine_data = ENFN->image_new_from_copied_data(ENDT, w, h, NULL, o->cur->has_alpha, cspace);
-        if (o->engine_data)
+        ENFN->image_size_get(ENDT, o->engine_data, &iw, &ih);
+        ics = ENFN->image_colorspace_get(ENDT, o->engine_data);
+        alpha = ENFN->image_alpha_get(ENDT, o->engine_data);
+        if ((w != iw) || (h != ih) || (ics != cspace) || (alpha != o->cur->has_alpha))
           {
-             uint8_t *data = NULL, *pixels_iter = pixels;
-             void *engine_data;
-             int y;
-
-             engine_data = ENFN->image_data_get(ENDT, o->engine_data, 0, (DATA32 **) &data, &o->load_error, NULL);
-             if (!engine_data || !data)
-               {
-                  ERR("Failed to copy image!");
-                  goto end;
-               }
-             o->engine_data = engine_data;
-             for (y = 0; y < h; y++)
-               {
-                  memcpy(data + (y * int_stride), pixels_iter, int_stride);
-                  pixels_iter += stride;
-               }
-             o->engine_data = ENFN->image_data_put(ENDT, o->engine_data, (DATA32 *) data);
+             ENFN->image_free(ENDT, o->engine_data);
+             o->engine_data = NULL;
           }
+     }
+
+   if (!slice || !slice->mem)
+     {
+        // note: we release all planes at once
+        if (o->engine_data)
+          ENFN->image_free(ENDT, o->engine_data);
+        o->engine_data = ENFN->image_new_from_copied_data(ENDT, w, h, NULL, o->cur->has_alpha, cspace);
      }
    else
      {
-        // quite unlikely: non-standard cspace + stride
-        ERR("Can not copy colorspace %d with stride %d", cspace, stride);
-        goto end;
+        o->buffer_data_set = EINA_TRUE;
+        o->engine_data = ENFN->image_data_slice_add(ENDT, o->engine_data,
+                                                    slice, copy, w, h, stride,
+                                                    cspace, plane, o->cur->has_alpha);
      }
 
    if (!o->engine_data)
      {
-        ERR("Failed to create internal image (%dx%d, cspace: %d, pixels: %p)",
-            w, h, cspace, pixels);
+        ERR("Failed to create internal image");
         goto end;
      }
 
+   if ((o->cur->image.w != w) || (o->cur->image.h != h))
+     resized = EINA_TRUE;
 
    if (ENFN->image_scale_hint_set)
      ENFN->image_scale_hint_set(ENDT, o->engine_data, o->scale_hint);
@@ -734,54 +727,70 @@ end:
    if (resized)
      evas_object_inform_call_image_resize(obj->object);
 
+   efl_gfx_buffer_update_add(obj->object, 0, 0, w, h);
    return ret;
 }
 
 EOLIAN static Eina_Bool
-_efl_canvas_image_efl_gfx_buffer_buffer_data_set(Eo *eo_obj, void *_pd EINA_UNUSED,
-                                                 void *pixels, int w, int h, int stride,
-                                                 Efl_Gfx_Colorspace cspace)
+_efl_canvas_image_efl_gfx_buffer_buffer_managed_set(Eo *eo_obj, void *_pd EINA_UNUSED,
+                                                    const Eina_Slice *slice,
+                                                    int w, int h, int stride,
+                                                    Efl_Gfx_Colorspace cspace,
+                                                    int plane)
 {
-   Evas_Object_Protected_Data *obj = eo_data_scope_get(eo_obj, EFL_CANVAS_OBJECT_CLASS);
-   Evas_Image_Data *o = eo_data_scope_get(eo_obj, EFL_CANVAS_IMAGE_INTERNAL_CLASS);
+   Evas_Object_Protected_Data *obj = efl_data_scope_get(eo_obj, EFL_CANVAS_OBJECT_CLASS);
+   Evas_Image_Data *o = efl_data_scope_get(eo_obj, EFL_CANVAS_IMAGE_INTERNAL_CLASS);
 
-   return _image_pixels_set(obj, o, pixels, w, h, stride, cspace, EINA_FALSE);
+   return _image_pixels_set(obj, o, slice, w, h, stride, cspace, plane, EINA_FALSE);
 }
 
 EOLIAN static Eina_Bool
 _efl_canvas_image_efl_gfx_buffer_buffer_copy_set(Eo *eo_obj, void *_pd EINA_UNUSED,
-                                                 const void *pixels, int w, int h, int stride,
-                                                 Efl_Gfx_Colorspace cspace)
+                                                 const Eina_Slice *slice, int w, int h, int stride,
+                                                 Efl_Gfx_Colorspace cspace, int plane)
 {
-   Evas_Object_Protected_Data *obj = eo_data_scope_get(eo_obj, EFL_CANVAS_OBJECT_CLASS);
-   Evas_Image_Data *o = eo_data_scope_get(eo_obj, EFL_CANVAS_IMAGE_INTERNAL_CLASS);
+   Evas_Object_Protected_Data *obj = efl_data_scope_get(eo_obj, EFL_CANVAS_OBJECT_CLASS);
+   Evas_Image_Data *o = efl_data_scope_get(eo_obj, EFL_CANVAS_IMAGE_INTERNAL_CLASS);
 
-   return _image_pixels_set(obj, o, (void *) pixels, w, h, stride, cspace, EINA_TRUE);
+   return _image_pixels_set(obj, o, slice, w, h, stride, cspace, plane, EINA_TRUE);
 }
 
-EOLIAN static void *
-_efl_canvas_image_efl_gfx_buffer_buffer_data_get(Eo *eo_obj, void *_pd EINA_UNUSED EINA_UNUSED)
+EOLIAN static Eina_Bool
+_efl_canvas_image_efl_gfx_buffer_buffer_managed_get(Eo *eo_obj, void *_pd EINA_UNUSED EINA_UNUSED,
+                                                    Eina_Slice *slice, int plane)
 {
-   Evas_Object_Protected_Data *obj = eo_data_scope_get(eo_obj, EFL_CANVAS_OBJECT_CLASS);
-   Evas_Image_Data *o = eo_data_scope_get(eo_obj, EFL_CANVAS_IMAGE_INTERNAL_CLASS);
+   Evas_Object_Protected_Data *obj = efl_data_scope_get(eo_obj, EFL_CANVAS_OBJECT_CLASS);
+   Evas_Image_Data *o = efl_data_scope_get(eo_obj, EFL_CANVAS_IMAGE_INTERNAL_CLASS);
+   Evas_Colorspace cspace = EVAS_COLORSPACE_ARGB8888;
 
-   if (!o->buffer_data_set || !o->engine_data || !ENFN->image_data_direct)
-     return NULL;
+   EINA_SAFETY_ON_NULL_RETURN_VAL(slice, EINA_FALSE);
 
-   return ENFN->image_data_direct(ENDT, o->engine_data, NULL);
+   slice->len = 0;
+   slice->mem = NULL;
+
+   if (!o->buffer_data_set || !o->engine_data || !ENFN->image_data_direct_get)
+     return EINA_FALSE;
+
+   return ENFN->image_data_direct_get(ENDT, o->engine_data, plane, slice, &cspace, EINA_FALSE);
 }
 
-EOLIAN static void *
+EOLIAN static Eina_Bool
 _efl_canvas_image_efl_gfx_buffer_buffer_map(Eo *eo_obj, void *_pd EINA_UNUSED,
-                                            int *length,
+                                            Eina_Rw_Slice *slice,
                                             Efl_Gfx_Buffer_Access_Mode mode,
                                             int x, int y, int w, int h,
-                                            Efl_Gfx_Colorspace cspace, int *stride)
+                                            Efl_Gfx_Colorspace cspace,
+                                            int plane, int *stride)
 {
-   Evas_Object_Protected_Data *obj = eo_data_scope_get(eo_obj, EFL_CANVAS_OBJECT_CLASS);
-   Evas_Image_Data *o = eo_data_scope_get(eo_obj, EFL_CANVAS_IMAGE_INTERNAL_CLASS);
-   int len = 0, s = 0, width = 0, height = 0;
-   void *data = NULL;
+   Evas_Object_Protected_Data *obj = efl_data_scope_get(eo_obj, EFL_CANVAS_OBJECT_CLASS);
+   Evas_Image_Data *o = efl_data_scope_get(eo_obj, EFL_CANVAS_IMAGE_INTERNAL_CLASS);
+   int s = 0, width = 0, height = 0;
+   Eina_Bool ret = EINA_FALSE;
+
+   EINA_SAFETY_ON_NULL_RETURN_VAL(slice, EINA_FALSE);
+
+   slice->len = 0;
+   slice->mem = NULL;
 
    if (!ENFN->image_data_map)
      goto end; // not implemented
@@ -807,29 +816,50 @@ _efl_canvas_image_efl_gfx_buffer_buffer_map(Eo *eo_obj, void *_pd EINA_UNUSED,
         goto end;
      }
 
-   data = ENFN->image_data_map(ENDT, &o->engine_data, &len, &s, x, y, w, h, cspace, mode);
-   DBG("map(%p, %d,%d %dx%d) -> %p (%d bytes)", eo_obj, x, y, w, h, data, len);
+   if (ENFN->image_data_map(ENDT, &o->engine_data, slice, &s, x, y, w, h, cspace, mode, plane))
+     {
+        DBG("map(%p, %d,%d %dx%d plane:%d) -> " EINA_SLICE_FMT,
+            eo_obj, x, y, w, h, plane, EINA_SLICE_PRINT(*slice));
+        ret = EINA_TRUE;
+     }
+   else DBG("map(%p, %d,%d %dx%d plane:%d) -> (null)", eo_obj, x, y, w, h, plane);
 
 end:
-   if (length) *length = len;
    if (stride) *stride = s;
-   return data;
+   return ret;
 }
 
 EOLIAN static Eina_Bool
 _efl_canvas_image_efl_gfx_buffer_buffer_unmap(Eo *eo_obj, void *_pd EINA_UNUSED,
-                                              void *data, int length)
+                                              const Eina_Rw_Slice *slice)
 {
-   Evas_Object_Protected_Data *obj = eo_data_scope_get(eo_obj, EFL_CANVAS_OBJECT_CLASS);
-   Evas_Image_Data *o = eo_data_scope_get(eo_obj, EFL_CANVAS_IMAGE_INTERNAL_CLASS);
+   Evas_Object_Protected_Data *obj = efl_data_scope_get(eo_obj, EFL_CANVAS_OBJECT_CLASS);
+   Evas_Image_Data *o = efl_data_scope_get(eo_obj, EFL_CANVAS_IMAGE_INTERNAL_CLASS);
 
-   if (!ENFN->image_data_unmap || !o->engine_data)
+   if (!slice || !ENFN->image_data_unmap || !o->engine_data)
      return EINA_FALSE;
 
-   if (!ENFN->image_data_unmap(ENDT, o->engine_data, data, length))
+   if (!ENFN->image_data_unmap(ENDT, o->engine_data, slice))
      return EINA_FALSE;
 
    return EINA_TRUE;
 }
+
+EOLIAN static void
+_efl_canvas_image_efl_object_dbg_info_get(Eo *obj, void *pd EINA_UNUSED, Efl_Dbg_Info *root)
+{
+   efl_dbg_info_get(efl_super(obj, MY_CLASS), root);
+
+   if (efl_image_load_error_get(obj) != EFL_IMAGE_LOAD_ERROR_NONE)
+     {
+        Efl_Dbg_Info *group = EFL_DBG_INFO_LIST_APPEND(root, MY_CLASS_NAME);
+        Evas_Load_Error error = EVAS_LOAD_ERROR_GENERIC;
+
+        error = (Evas_Load_Error) _evas_image_load_error_get(obj);
+        EFL_DBG_INFO_APPEND(group, "Load Error", EINA_VALUE_TYPE_STRING,
+                            evas_load_error_str(error));
+     }
+}
+
 
 #include "efl_canvas_image.eo.c"

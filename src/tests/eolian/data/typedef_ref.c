@@ -1,5 +1,5 @@
-#ifndef _TYPES_OUTPUT_C_
-#define _TYPES_OUTPUT_C_
+#ifndef _EOLIAN_TYPEDEF_H_
+#define _EOLIAN_TYPEDEF_H_
 
 #ifndef _TYPEDEF_EO_CLASS_TYPE
 #define _TYPEDEF_EO_CLASS_TYPE
@@ -19,7 +19,9 @@ typedef Evas_Coord Evas_Coord2;
 
 typedef Evas_Coord2 Evas_Coord3;
 
-typedef void (*Event)(void *data, const Eo_Event *event);
+typedef void (*Event)(void *data, const Efl_Event *event);
+
+typedef void (*Free)(void *data);
 
 typedef enum
 {
@@ -41,9 +43,8 @@ typedef enum
 #endif
 #define TYPEDEF_CLASS typedef_class_get()
 
-EWAPI const Eo_Class *typedef_class_get(void);
+EWAPI const Efl_Class *typedef_class_get(void);
 
 EOAPI char *typedef_foo(Eo *obj, int idx);
-
 
 #endif

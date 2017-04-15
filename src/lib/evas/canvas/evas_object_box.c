@@ -1,3 +1,6 @@
+#define EFL_CANVAS_GROUP_PROTECTED
+#define EFL_CANVAS_GROUP_BETA
+
 #include "evas_common_private.h"
 #include "evas_private.h"
 
@@ -39,7 +42,7 @@ static const Evas_Smart_Cb_Description _signals[] =
 static void _sizing_eval(Evas_Object *obj);
 
 #define EVAS_OBJECT_BOX_DATA_GET(o, ptr) \
-   Evas_Object_Box_Data *ptr = eo_data_scope_get(o, MY_CLASS)
+   Evas_Object_Box_Data *ptr = efl_data_scope_get(o, MY_CLASS)
 
 #define EVAS_OBJECT_BOX_DATA_GET_OR_RETURN(o, ptr)                      \
    EVAS_OBJECT_BOX_DATA_GET(o, ptr);                                    \
@@ -110,7 +113,7 @@ _evas_object_box_accessor_free(Evas_Object_Box_Accessor *it)
 }
 
 static void
-_on_child_resize(void *data, const Eo_Event *event EINA_UNUSED)
+_on_child_resize(void *data, const Efl_Event *event EINA_UNUSED)
 {
    Evas_Object *box = data;
    EVAS_OBJECT_BOX_DATA_GET_OR_RETURN(box, priv);
@@ -118,7 +121,7 @@ _on_child_resize(void *data, const Eo_Event *event EINA_UNUSED)
 }
 
 static void
-_on_child_del(void *data, const Eo_Event *event)
+_on_child_del(void *data, const Efl_Event *event)
 {
    Evas_Object *box = data;
 
@@ -130,7 +133,7 @@ _on_child_del(void *data, const Eo_Event *event)
 }
 
 static void
-_on_child_hints_changed(void *data, const Eo_Event *event EINA_UNUSED)
+_on_child_hints_changed(void *data, const Efl_Event *event EINA_UNUSED)
 {
    Evas_Object *box = data;
    EVAS_OBJECT_BOX_DATA_GET_OR_RETURN(box, priv);
@@ -161,16 +164,16 @@ _evas_object_box_option_new(Evas_Object *o, Evas_Object_Box_Data *priv EINA_UNUS
    return opt;
 }
 
-EO_CALLBACKS_ARRAY_DEFINE(evas_object_box_callbacks,
+EFL_CALLBACKS_ARRAY_DEFINE(evas_object_box_callbacks,
   { EFL_GFX_EVENT_RESIZE, _on_child_resize },
-  { EO_EVENT_DEL, _on_child_del },
+  { EFL_EVENT_DEL, _on_child_del },
   { EFL_GFX_EVENT_CHANGE_SIZE_HINTS, _on_child_hints_changed }
 );
 
 static void
 _evas_object_box_child_callbacks_unregister(Evas_Object *obj, Evas_Object *parent)
 {
-   eo_event_callback_array_del(obj, evas_object_box_callbacks(), parent);
+   efl_event_callback_array_del(obj, evas_object_box_callbacks(), parent);
 }
 
 static Evas_Object_Box_Option *
@@ -178,7 +181,7 @@ _evas_object_box_option_callbacks_register(Evas_Object *o, Evas_Object_Box_Data 
 {
    Evas_Object *obj = opt->obj;
 
-   eo_event_callback_array_add(obj, evas_object_box_callbacks(), o);
+   efl_event_callback_array_add(obj, evas_object_box_callbacks(), o);
 
    return opt;
 }
@@ -214,7 +217,7 @@ _evas_box_internal_append(Eo *o, Evas_Object_Box_Data *priv, Evas_Object *child)
 
    priv->children = eina_list_append(priv->children, opt);
    priv->children_changed = EINA_TRUE;
-   eo_event_callback_call(o, EVAS_BOX_EVENT_CHILD_ADDED, opt);
+   efl_event_callback_legacy_call(o, EVAS_BOX_EVENT_CHILD_ADDED, opt);
 
    return opt;
 }
@@ -230,7 +233,7 @@ _evas_box_internal_prepend(Eo *o, Evas_Object_Box_Data *priv, Evas_Object *child
 
    priv->children = eina_list_prepend(priv->children, opt);
    priv->children_changed = EINA_TRUE;
-   eo_event_callback_call(o, EVAS_BOX_EVENT_CHILD_ADDED, opt);
+   efl_event_callback_legacy_call(o, EVAS_BOX_EVENT_CHILD_ADDED, opt);
 
    return opt;
 }
@@ -254,7 +257,7 @@ _evas_box_internal_insert_before(Eo *o, Evas_Object_Box_Data *priv, Evas_Object 
              priv->children = eina_list_prepend_relative
                 (priv->children, new_opt, opt);
              priv->children_changed = EINA_TRUE;
-             eo_event_callback_call(o, EVAS_BOX_EVENT_CHILD_ADDED, new_opt);
+             efl_event_callback_legacy_call(o, EVAS_BOX_EVENT_CHILD_ADDED, new_opt);
              return new_opt;
           }
      }
@@ -281,7 +284,7 @@ _evas_box_internal_insert_after(Eo *o, Evas_Object_Box_Data *priv, Evas_Object *
              priv->children = eina_list_append_relative
                 (priv->children, new_opt, opt);
              priv->children_changed = EINA_TRUE;
-             eo_event_callback_call(o, EVAS_BOX_EVENT_CHILD_ADDED, new_opt);
+             efl_event_callback_legacy_call(o, EVAS_BOX_EVENT_CHILD_ADDED, new_opt);
              return new_opt;
           }
      }
@@ -304,7 +307,7 @@ _evas_box_internal_insert_at(Eo *o, Evas_Object_Box_Data *priv, Evas_Object *chi
 
         priv->children = eina_list_prepend(priv->children, new_opt);
         priv->children_changed = EINA_TRUE;
-        eo_event_callback_call(o, EVAS_BOX_EVENT_CHILD_ADDED, new_opt);
+        efl_event_callback_legacy_call(o, EVAS_BOX_EVENT_CHILD_ADDED, new_opt);
         return new_opt;
      }
 
@@ -323,7 +326,7 @@ _evas_box_internal_insert_at(Eo *o, Evas_Object_Box_Data *priv, Evas_Object *chi
              priv->children = eina_list_prepend_relative
                 (priv->children, new_opt, opt);
              priv->children_changed = EINA_TRUE;
-             eo_event_callback_call(o, EVAS_BOX_EVENT_CHILD_ADDED, new_opt);
+             efl_event_callback_legacy_call(o, EVAS_BOX_EVENT_CHILD_ADDED, new_opt);
              return new_opt;
           }
      }
@@ -345,7 +348,7 @@ _evas_box_internal_remove(Eo *o, Evas_Object_Box_Data *priv, Evas_Object *child)
              priv->children = eina_list_remove(priv->children, opt);
              evas_obj_box_internal_option_free(o, opt);
              priv->children_changed = EINA_TRUE;
-             eo_event_callback_call(o, EVAS_BOX_EVENT_CHILD_REMOVED, obj);
+             efl_event_callback_legacy_call(o, EVAS_BOX_EVENT_CHILD_REMOVED, obj);
 
              return obj;
           }
@@ -373,7 +376,7 @@ _evas_box_internal_remove_at(Eo *o, Evas_Object_Box_Data *priv, unsigned int pos
    priv->children = eina_list_remove_list(priv->children, node);
    evas_obj_box_internal_option_free(o, opt);
    priv->children_changed = EINA_TRUE;
-   eo_event_callback_call(o, EVAS_BOX_EVENT_CHILD_REMOVED, obj);
+   efl_event_callback_legacy_call(o, EVAS_BOX_EVENT_CHILD_REMOVED, obj);
    return obj;
 }
 
@@ -382,7 +385,7 @@ _evas_box_efl_canvas_group_group_add(Eo *eo_obj, Evas_Object_Box_Data *priv)
 {
    Evas_Object_Smart_Clipped_Data *cso;
 
-   efl_canvas_group_add(eo_super(eo_obj, MY_CLASS));
+   efl_canvas_group_add(efl_super(eo_obj, MY_CLASS));
    
    evas_object_event_callback_add
      (eo_obj, EVAS_CALLBACK_CHANGED_SIZE_HINTS, _on_hints_changed, eo_obj);
@@ -397,7 +400,7 @@ _evas_box_efl_canvas_group_group_add(Eo *eo_obj, Evas_Object_Box_Data *priv)
 
    // make sure evas box smart data is fully initialized and set (for legacy)
    // this assumes only box and smart clipped access the smart data
-   cso = eo_data_scope_get(eo_obj, EFL_CANVAS_GROUP_CLIPPED_CLASS);
+   cso = efl_data_scope_get(eo_obj, EFL_CANVAS_GROUP_CLIPPED_CLASS);
    priv->base = *cso;
    evas_object_smart_data_set(eo_obj, priv);
 }
@@ -420,15 +423,26 @@ _evas_box_efl_canvas_group_group_del(Eo *o, Evas_Object_Box_Data *priv)
    if (priv->layout.data && priv->layout.free_data)
      priv->layout.free_data(priv->layout.data);
 
-   efl_canvas_group_del(eo_super(o, MY_CLASS));
+   efl_canvas_group_del(efl_super(o, MY_CLASS));
 }
 
 EOLIAN static void
-_evas_box_efl_canvas_group_group_resize(Eo *o, Evas_Object_Box_Data *_pd EINA_UNUSED, Evas_Coord w, Evas_Coord h)
+_evas_box_efl_gfx_size_set(Eo *o, Evas_Object_Box_Data *_pd EINA_UNUSED, Evas_Coord w, Evas_Coord h)
 {
-   Evas_Coord ow, oh;
-   evas_object_geometry_get(o, NULL, NULL, &ow, &oh);
-   if ((ow == w) && (oh == h)) return;
+   if (_evas_object_intercept_call(o, EVAS_OBJECT_INTERCEPT_CB_RESIZE, 0, w, h))
+     return;
+
+   efl_gfx_size_set(efl_super(o, MY_CLASS), w, h);
+   evas_object_smart_changed(o);
+}
+
+EOLIAN static void
+_evas_box_efl_gfx_position_set(Eo *o, Evas_Object_Box_Data *_pd EINA_UNUSED, Evas_Coord x, Evas_Coord y)
+{
+   if (_evas_object_intercept_call(o, EVAS_OBJECT_INTERCEPT_CB_MOVE , 0, x, y))
+     return;
+
+   efl_gfx_position_set(efl_super(o, MY_CLASS), x, y);
    evas_object_smart_changed(o);
 }
 
@@ -459,14 +473,14 @@ evas_object_box_add(Evas *evas)
    MAGIC_CHECK(evas, Evas, MAGIC_EVAS);
    return NULL;
    MAGIC_CHECK_END();
-   Evas_Object *obj = eo_add(MY_CLASS, evas);
+   Evas_Object *obj = efl_add(MY_CLASS, evas);
    return obj;
 }
 
 EOLIAN static Eo *
-_evas_box_eo_base_constructor(Eo *obj, Evas_Object_Box_Data *class_data EINA_UNUSED)
+_evas_box_efl_object_constructor(Eo *obj, Evas_Object_Box_Data *class_data EINA_UNUSED)
 {
-   obj = eo_constructor(eo_super(obj, MY_CLASS));
+   obj = efl_constructor(efl_super(obj, MY_CLASS));
    evas_object_smart_callbacks_descriptions_set(obj, _signals);
    efl_canvas_object_type_set(obj, MY_CLASS_NAME_LEGACY);
 
@@ -697,7 +711,7 @@ _evas_box_layout_horizontal(Eo *o, Evas_Object_Box_Data *priv, Evas_Object_Box_D
            (opt->obj, &padding_l, &padding_r, NULL, NULL);
         req_w += padding_l + padding_r;
 
-        if (!weight_x)
+        if (EINA_DBL_EQ(weight_x, 0.0))
           {
              int child_w;
 
@@ -861,7 +875,7 @@ _evas_box_layout_vertical(Eo *o, Evas_Object_Box_Data *priv, Evas_Object_Box_Dat
            (opt->obj, NULL, NULL, &padding_t, &padding_b);
         req_h += padding_t + padding_b;
 
-        if (!weight_y)
+        if (EINA_DBL_EQ(weight_y, 0.0))
           {
              int child_h;
 
@@ -1628,6 +1642,11 @@ _evas_box_layout_stack(Eo *o, Evas_Object_Box_Data *priv, Evas_Object_Box_Data *
 
         if ((new_w != child_w) || (new_h != child_h))
           evas_object_resize(child, new_w, new_h);
+
+        if ((align_x < 0) && (priv->align.h >= 0.0))
+          off_x += (ow - new_w) * priv->align.h;
+        if ((align_y < 0) && (priv->align.v >= 0.0))
+          off_y += (oh - new_h) * priv->align.v;
         evas_object_move(child, ox + off_x, oy + off_y);
 
         if (old_child)
@@ -1641,7 +1660,8 @@ _evas_box_layout_stack(Eo *o, Evas_Object_Box_Data *priv, Evas_Object_Box_Data *
 EOLIAN static void
 _evas_box_align_set(Eo *o, Evas_Object_Box_Data *priv, double horizontal, double vertical)
 {
-   if (priv->align.h == horizontal && priv->align.v == vertical)
+   if ((EINA_DBL_EQ(priv->align.h, horizontal)) &&
+       (EINA_DBL_EQ(priv->align.v, vertical)))
      return;
    priv->align.h = horizontal;
    priv->align.v = vertical;
@@ -1972,7 +1992,7 @@ _evas_box_option_property_vget(const Eo *o EINA_UNUSED, Evas_Object_Box_Data *_p
 }
 
 EOLIAN static void
-_evas_box_class_constructor(Eo_Class *klass)
+_evas_box_class_constructor(Efl_Class *klass)
 {
    evas_smart_legacy_type_register(MY_CLASS_NAME_LEGACY, klass);
 }

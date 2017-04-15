@@ -3,8 +3,7 @@
 
 typedef enum
 {
-   EVAS_ENGINE_INFO_SOFTWARE_X11_BACKEND_XLIB,
-   EVAS_ENGINE_INFO_SOFTWARE_X11_BACKEND_XCB
+   EVAS_ENGINE_INFO_SOFTWARE_X11_BACKEND_XLIB
 } Evas_Engine_Info_Software_X11_Backend;
 
 typedef struct _Evas_Engine_Info_Software_X11 Evas_Engine_Info_Software_X11;
@@ -36,12 +35,15 @@ struct _Evas_Engine_Info_Software_X11
      } info;
 
    /* engine specific function calls to query stuff about the destination */
-   struct 
+   struct
      {
         void *(*best_visual_get) (int backend, void *connection, int screen);
         unsigned int (*best_colormap_get) (int backend, void *connection, int screen);
         int (*best_depth_get) (int backend, void *connection, int screen);
+        void (*region_push_hook)(Evas *push_to, int x, int y, int w, int h, const void *pixels);
      } func;
+
+   Evas *push_to;
 
    unsigned char mask_changed : 1;
 

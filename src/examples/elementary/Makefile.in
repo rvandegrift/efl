@@ -98,11 +98,7 @@ host_triplet = @host@
 @HAVE_CXX11_TRUE@calendar_cxx_example_04.cc \
 @HAVE_CXX11_TRUE@calendar_cxx_example_05.cc \
 @HAVE_CXX11_TRUE@clock_cxx_example.cc \
-@HAVE_CXX11_TRUE@datetime_cxx_example.cc \
 @HAVE_CXX11_TRUE@icon_cxx_example_01.cc \
-@HAVE_CXX11_TRUE@separator_cxx_example_01.cc \
-@HAVE_CXX11_TRUE@thumb_cxx_example_01.cc \
-@HAVE_CXX11_TRUE@bubble_cxx_example_01.cc \
 @HAVE_CXX11_TRUE@button_cxx_example_00.cc
 
 examples_PROGRAMS = actionslider_example_01$(EXEEXT) \
@@ -134,29 +130,30 @@ examples_PROGRAMS = actionslider_example_01$(EXEEXT) \
 	index_example_01$(EXEEXT) index_example_02$(EXEEXT) \
 	inwin_example$(EXEEXT) label_example_01$(EXEEXT) \
 	layout_example_01$(EXEEXT) layout_example_02$(EXEEXT) \
-	layout_example_03$(EXEEXT) list_example_01$(EXEEXT) \
-	list_example_02$(EXEEXT) list_example_03$(EXEEXT) \
-	location_example_01$(EXEEXT) map_example_01$(EXEEXT) \
-	map_example_02$(EXEEXT) map_example_03$(EXEEXT) \
-	mapbuf_example$(EXEEXT) menu_example_01$(EXEEXT) \
-	naviframe_example$(EXEEXT) notify_example_01$(EXEEXT) \
-	panes_example$(EXEEXT) panel_example_01$(EXEEXT) \
-	photocam_example_01$(EXEEXT) prefs_example_01$(EXEEXT) \
-	prefs_example_02$(EXEEXT) prefs_example_03$(EXEEXT) \
-	popup_example_01$(EXEEXT) popup_example_02$(EXEEXT) \
-	popup_example_03$(EXEEXT) progressbar_example$(EXEEXT) \
-	radio_example_01$(EXEEXT) radio_example_02$(EXEEXT) \
-	segment_control_example$(EXEEXT) separator_example_01$(EXEEXT) \
-	slider_example$(EXEEXT) slideshow_example$(EXEEXT) \
-	spinner_example$(EXEEXT) scroller_example_01$(EXEEXT) \
-	table_example_01$(EXEEXT) table_example_02$(EXEEXT) \
-	theme_example_01$(EXEEXT) theme_example_02$(EXEEXT) \
-	thumb_example_01$(EXEEXT) toolbar_example_01$(EXEEXT) \
-	toolbar_example_02$(EXEEXT) toolbar_example_03$(EXEEXT) \
-	transit_example_01$(EXEEXT) transit_example_02$(EXEEXT) \
-	transit_example_03$(EXEEXT) transit_example_04$(EXEEXT) \
-	web_example_01$(EXEEXT) web_example_02$(EXEEXT) \
-	win_example$(EXEEXT) track_example_01$(EXEEXT) \
+	layout_example_03$(EXEEXT) layout_model_connect$(EXEEXT) \
+	list_example_01$(EXEEXT) list_example_02$(EXEEXT) \
+	list_example_03$(EXEEXT) location_example_01$(EXEEXT) \
+	map_example_01$(EXEEXT) map_example_02$(EXEEXT) \
+	map_example_03$(EXEEXT) mapbuf_example$(EXEEXT) \
+	menu_example_01$(EXEEXT) naviframe_example$(EXEEXT) \
+	notify_example_01$(EXEEXT) panes_example$(EXEEXT) \
+	panel_example_01$(EXEEXT) photocam_example_01$(EXEEXT) \
+	prefs_example_01$(EXEEXT) prefs_example_02$(EXEEXT) \
+	prefs_example_03$(EXEEXT) popup_example_01$(EXEEXT) \
+	popup_example_02$(EXEEXT) popup_example_03$(EXEEXT) \
+	progressbar_example$(EXEEXT) radio_example_01$(EXEEXT) \
+	radio_example_02$(EXEEXT) segment_control_example$(EXEEXT) \
+	separator_example_01$(EXEEXT) slider_example$(EXEEXT) \
+	slideshow_example$(EXEEXT) spinner_example$(EXEEXT) \
+	scroller_example_01$(EXEEXT) table_example_01$(EXEEXT) \
+	table_example_02$(EXEEXT) theme_example_01$(EXEEXT) \
+	theme_example_02$(EXEEXT) thumb_example_01$(EXEEXT) \
+	toolbar_example_01$(EXEEXT) toolbar_example_02$(EXEEXT) \
+	toolbar_example_03$(EXEEXT) transit_example_01$(EXEEXT) \
+	transit_example_02$(EXEEXT) transit_example_03$(EXEEXT) \
+	transit_example_04$(EXEEXT) web_example_01$(EXEEXT) \
+	web_example_02$(EXEEXT) win_example$(EXEEXT) \
+	track_example_01$(EXEEXT) \
 	evas3d_object_on_button_example$(EXEEXT) \
 	evas3d_scene_on_button_example$(EXEEXT) \
 	evas3d_map_example$(EXEEXT) efl_thread_1$(EXEEXT) \
@@ -197,17 +194,12 @@ examples_PROGRAMS = actionslider_example_01$(EXEEXT) \
 @HAVE_CXX11_TRUE@calendar_cxx_example_04 \
 @HAVE_CXX11_TRUE@calendar_cxx_example_05 \
 @HAVE_CXX11_TRUE@clock_cxx_example \
-@HAVE_CXX11_TRUE@datetime_cxx_example \
 @HAVE_CXX11_TRUE@icon_cxx_example_01 \
-@HAVE_CXX11_TRUE@thumb_cxx_example_01 \
-@HAVE_CXX11_TRUE@separator_cxx_example_01 \
-@HAVE_CXX11_TRUE@bubble_cxx_example_01 \
 @HAVE_CXX11_TRUE@button_cxx_example_00
 
 @HAVE_CXX11_TRUE@am__append_3 = \
 @HAVE_CXX11_TRUE@ bg_cxx_example_02:bg_cxx_example_02.png:0.0 \
 @HAVE_CXX11_TRUE@ box_cxx_example_02:box_cxx_example_02.png:1.3 \
-@HAVE_CXX11_TRUE@ bubble_cxx_example_01:bubble_cxx_example_01.png:0.0 \
 @HAVE_CXX11_TRUE@ button_cxx_example_00:button_cxx_example_00.png:0.0 \
 @HAVE_CXX11_TRUE@ button_cxx_example_01:button_cxx_example_01.png:0.0 \
 @HAVE_CXX11_TRUE@ calendar_cxx_example_01:calendar_cxx_example_01.png:0.0 \
@@ -223,12 +215,10 @@ examples_PROGRAMS = actionslider_example_01$(EXEEXT) \
 @HAVE_CXX11_TRUE@ popup_cxx_example_01:popup_cxx_example_01.png:1.0 \
 @HAVE_CXX11_TRUE@ popup_cxx_example_01:popup_cxx_example_01_a.png:6.0 \
 @HAVE_CXX11_TRUE@ radio_cxx_example_01:radio_cxx_example_01.png:0.0 \
-@HAVE_CXX11_TRUE@ separator_cxx_example_01:separator_cxx_example_01.png:0.0 \
 @HAVE_CXX11_TRUE@ slider_cxx_example:slider_cxx_example.png:0.0 \
 @HAVE_CXX11_TRUE@ spinner_cxx_example:spinner_cxx_example.png:0.0 \
 @HAVE_CXX11_TRUE@ table_cxx_example_01:table_cxx_example_01.png:0.0 \
-@HAVE_CXX11_TRUE@ table_cxx_example_02:table_cxx_example_02.png:0.0 \
-@HAVE_CXX11_TRUE@ thumb_cxx_example_01:thumb_cxx_example_01.png:0.5
+@HAVE_CXX11_TRUE@ table_cxx_example_02:table_cxx_example_02.png:0.0
 
 subdir = src/examples/elementary
 ACLOCAL_M4 = $(top_srcdir)/aclocal.m4
@@ -240,8 +230,8 @@ am__aclocal_m4_deps = $(top_srcdir)/m4/ac_define_if.m4 \
 	$(top_srcdir)/m4/efl_check_funcs.m4 \
 	$(top_srcdir)/m4/efl_check_libs.m4 \
 	$(top_srcdir)/m4/efl_compiler.m4 \
-	$(top_srcdir)/m4/efl_doxygen.m4 $(top_srcdir)/m4/efl_eo.m4 \
-	$(top_srcdir)/m4/efl_find_x.m4 \
+	$(top_srcdir)/m4/efl_define.m4 $(top_srcdir)/m4/efl_doxygen.m4 \
+	$(top_srcdir)/m4/efl_eo.m4 $(top_srcdir)/m4/efl_find_x.m4 \
 	$(top_srcdir)/m4/efl_libunwind.m4 \
 	$(top_srcdir)/m4/efl_lua_old.m4 \
 	$(top_srcdir)/m4/efl_path_max.m4 \
@@ -282,11 +272,7 @@ CONFIG_CLEAN_VPATH_FILES =
 @HAVE_CXX11_TRUE@	calendar_cxx_example_04$(EXEEXT) \
 @HAVE_CXX11_TRUE@	calendar_cxx_example_05$(EXEEXT) \
 @HAVE_CXX11_TRUE@	clock_cxx_example$(EXEEXT) \
-@HAVE_CXX11_TRUE@	datetime_cxx_example$(EXEEXT) \
 @HAVE_CXX11_TRUE@	icon_cxx_example_01$(EXEEXT) \
-@HAVE_CXX11_TRUE@	thumb_cxx_example_01$(EXEEXT) \
-@HAVE_CXX11_TRUE@	separator_cxx_example_01$(EXEEXT) \
-@HAVE_CXX11_TRUE@	bubble_cxx_example_01$(EXEEXT) \
 @HAVE_CXX11_TRUE@	button_cxx_example_00$(EXEEXT)
 am__installdirs = "$(DESTDIR)$(examplesdir)" "$(DESTDIR)$(filesdir)"
 PROGRAMS = $(examples_PROGRAMS)
@@ -306,7 +292,8 @@ actionslider_example_01_DEPENDENCIES =  \
 	$(top_builddir)/src/lib/ecore_imf_evas/libecore_imf_evas.la \
 	$(top_builddir)/src/lib/embryo/libembryo.la \
 	$(top_builddir)/src/lib/edje/libedje.la \
-	$(top_builddir)/src/lib/elementary/libelementary.la
+	$(top_builddir)/src/lib/elementary/libelementary.la \
+	$(top_builddir)/src/lib/ethumb_client/libethumb_client.la
 AM_V_lt = $(am__v_lt_@AM_V@)
 am__v_lt_ = $(am__v_lt_@AM_DEFAULT_V@)
 am__v_lt_0 = --silent
@@ -329,7 +316,8 @@ bg_cxx_example_01_DEPENDENCIES =  \
 	$(top_builddir)/src/lib/ecore_imf_evas/libecore_imf_evas.la \
 	$(top_builddir)/src/lib/embryo/libembryo.la \
 	$(top_builddir)/src/lib/edje/libedje.la \
-	$(top_builddir)/src/lib/elementary/libelementary.la
+	$(top_builddir)/src/lib/elementary/libelementary.la \
+	$(top_builddir)/src/lib/ethumb_client/libethumb_client.la
 am__bg_cxx_example_02_SOURCES_DIST = bg_cxx_example_02.cc
 @HAVE_CXX11_TRUE@am_bg_cxx_example_02_OBJECTS =  \
 @HAVE_CXX11_TRUE@	bg_cxx_example_02.$(OBJEXT)
@@ -348,7 +336,8 @@ bg_cxx_example_02_DEPENDENCIES =  \
 	$(top_builddir)/src/lib/ecore_imf_evas/libecore_imf_evas.la \
 	$(top_builddir)/src/lib/embryo/libembryo.la \
 	$(top_builddir)/src/lib/edje/libedje.la \
-	$(top_builddir)/src/lib/elementary/libelementary.la
+	$(top_builddir)/src/lib/elementary/libelementary.la \
+	$(top_builddir)/src/lib/ethumb_client/libethumb_client.la
 bg_example_01_SOURCES = bg_example_01.c
 bg_example_01_OBJECTS = bg_example_01.$(OBJEXT)
 bg_example_01_LDADD = $(LDADD)
@@ -364,7 +353,8 @@ bg_example_01_DEPENDENCIES = $(top_builddir)/src/lib/eina/libeina.la \
 	$(top_builddir)/src/lib/ecore_imf_evas/libecore_imf_evas.la \
 	$(top_builddir)/src/lib/embryo/libembryo.la \
 	$(top_builddir)/src/lib/edje/libedje.la \
-	$(top_builddir)/src/lib/elementary/libelementary.la
+	$(top_builddir)/src/lib/elementary/libelementary.la \
+	$(top_builddir)/src/lib/ethumb_client/libethumb_client.la
 bg_example_02_SOURCES = bg_example_02.c
 bg_example_02_OBJECTS = bg_example_02.$(OBJEXT)
 bg_example_02_LDADD = $(LDADD)
@@ -380,7 +370,8 @@ bg_example_02_DEPENDENCIES = $(top_builddir)/src/lib/eina/libeina.la \
 	$(top_builddir)/src/lib/ecore_imf_evas/libecore_imf_evas.la \
 	$(top_builddir)/src/lib/embryo/libembryo.la \
 	$(top_builddir)/src/lib/edje/libedje.la \
-	$(top_builddir)/src/lib/elementary/libelementary.la
+	$(top_builddir)/src/lib/elementary/libelementary.la \
+	$(top_builddir)/src/lib/ethumb_client/libethumb_client.la
 bg_example_03_SOURCES = bg_example_03.c
 bg_example_03_OBJECTS = bg_example_03.$(OBJEXT)
 bg_example_03_LDADD = $(LDADD)
@@ -396,7 +387,8 @@ bg_example_03_DEPENDENCIES = $(top_builddir)/src/lib/eina/libeina.la \
 	$(top_builddir)/src/lib/ecore_imf_evas/libecore_imf_evas.la \
 	$(top_builddir)/src/lib/embryo/libembryo.la \
 	$(top_builddir)/src/lib/edje/libedje.la \
-	$(top_builddir)/src/lib/elementary/libelementary.la
+	$(top_builddir)/src/lib/elementary/libelementary.la \
+	$(top_builddir)/src/lib/ethumb_client/libethumb_client.la
 box_example_02_SOURCES = box_example_02.c
 box_example_02_OBJECTS = box_example_02.$(OBJEXT)
 box_example_02_LDADD = $(LDADD)
@@ -412,26 +404,8 @@ box_example_02_DEPENDENCIES = $(top_builddir)/src/lib/eina/libeina.la \
 	$(top_builddir)/src/lib/ecore_imf_evas/libecore_imf_evas.la \
 	$(top_builddir)/src/lib/embryo/libembryo.la \
 	$(top_builddir)/src/lib/edje/libedje.la \
-	$(top_builddir)/src/lib/elementary/libelementary.la
-am__bubble_cxx_example_01_SOURCES_DIST = bubble_cxx_example_01.cc
-@HAVE_CXX11_TRUE@am_bubble_cxx_example_01_OBJECTS =  \
-@HAVE_CXX11_TRUE@	bubble_cxx_example_01.$(OBJEXT)
-bubble_cxx_example_01_OBJECTS = $(am_bubble_cxx_example_01_OBJECTS)
-bubble_cxx_example_01_LDADD = $(LDADD)
-bubble_cxx_example_01_DEPENDENCIES =  \
-	$(top_builddir)/src/lib/eina/libeina.la \
-	$(top_builddir)/src/lib/eo/libeo.la \
-	$(top_builddir)/src/lib/eet/libeet.la \
-	$(top_builddir)/src/lib/evas/libevas.la \
-	$(top_builddir)/src/lib/ecore/libecore.la \
-	$(top_builddir)/src/lib/ecore_evas/libecore_evas.la \
-	$(top_builddir)/src/lib/ecore_file/libecore_file.la \
-	$(top_builddir)/src/lib/ecore_input/libecore_input.la \
-	$(top_builddir)/src/lib/ecore_imf/libecore_imf.la \
-	$(top_builddir)/src/lib/ecore_imf_evas/libecore_imf_evas.la \
-	$(top_builddir)/src/lib/embryo/libembryo.la \
-	$(top_builddir)/src/lib/edje/libedje.la \
-	$(top_builddir)/src/lib/elementary/libelementary.la
+	$(top_builddir)/src/lib/elementary/libelementary.la \
+	$(top_builddir)/src/lib/ethumb_client/libethumb_client.la
 bubble_example_01_SOURCES = bubble_example_01.c
 bubble_example_01_OBJECTS = bubble_example_01.$(OBJEXT)
 bubble_example_01_LDADD = $(LDADD)
@@ -448,7 +422,8 @@ bubble_example_01_DEPENDENCIES =  \
 	$(top_builddir)/src/lib/ecore_imf_evas/libecore_imf_evas.la \
 	$(top_builddir)/src/lib/embryo/libembryo.la \
 	$(top_builddir)/src/lib/edje/libedje.la \
-	$(top_builddir)/src/lib/elementary/libelementary.la
+	$(top_builddir)/src/lib/elementary/libelementary.la \
+	$(top_builddir)/src/lib/ethumb_client/libethumb_client.la
 am__button_cxx_example_00_SOURCES_DIST = button_cxx_example_00.cc
 @HAVE_CXX11_TRUE@am_button_cxx_example_00_OBJECTS =  \
 @HAVE_CXX11_TRUE@	button_cxx_example_00.$(OBJEXT)
@@ -467,7 +442,8 @@ button_cxx_example_00_DEPENDENCIES =  \
 	$(top_builddir)/src/lib/ecore_imf_evas/libecore_imf_evas.la \
 	$(top_builddir)/src/lib/embryo/libembryo.la \
 	$(top_builddir)/src/lib/edje/libedje.la \
-	$(top_builddir)/src/lib/elementary/libelementary.la
+	$(top_builddir)/src/lib/elementary/libelementary.la \
+	$(top_builddir)/src/lib/ethumb_client/libethumb_client.la
 button_example_00_SOURCES = button_example_00.c
 button_example_00_OBJECTS = button_example_00.$(OBJEXT)
 button_example_00_LDADD = $(LDADD)
@@ -484,7 +460,8 @@ button_example_00_DEPENDENCIES =  \
 	$(top_builddir)/src/lib/ecore_imf_evas/libecore_imf_evas.la \
 	$(top_builddir)/src/lib/embryo/libembryo.la \
 	$(top_builddir)/src/lib/edje/libedje.la \
-	$(top_builddir)/src/lib/elementary/libelementary.la
+	$(top_builddir)/src/lib/elementary/libelementary.la \
+	$(top_builddir)/src/lib/ethumb_client/libethumb_client.la
 button_example_01_SOURCES = button_example_01.c
 button_example_01_OBJECTS = button_example_01.$(OBJEXT)
 button_example_01_LDADD = $(LDADD)
@@ -501,7 +478,8 @@ button_example_01_DEPENDENCIES =  \
 	$(top_builddir)/src/lib/ecore_imf_evas/libecore_imf_evas.la \
 	$(top_builddir)/src/lib/embryo/libembryo.la \
 	$(top_builddir)/src/lib/edje/libedje.la \
-	$(top_builddir)/src/lib/elementary/libelementary.la
+	$(top_builddir)/src/lib/elementary/libelementary.la \
+	$(top_builddir)/src/lib/ethumb_client/libethumb_client.la
 am__calendar_cxx_example_01_SOURCES_DIST = calendar_cxx_example_01.cc
 @HAVE_CXX11_TRUE@am_calendar_cxx_example_01_OBJECTS =  \
 @HAVE_CXX11_TRUE@	calendar_cxx_example_01.$(OBJEXT)
@@ -521,7 +499,8 @@ calendar_cxx_example_01_DEPENDENCIES =  \
 	$(top_builddir)/src/lib/ecore_imf_evas/libecore_imf_evas.la \
 	$(top_builddir)/src/lib/embryo/libembryo.la \
 	$(top_builddir)/src/lib/edje/libedje.la \
-	$(top_builddir)/src/lib/elementary/libelementary.la
+	$(top_builddir)/src/lib/elementary/libelementary.la \
+	$(top_builddir)/src/lib/ethumb_client/libethumb_client.la
 am__calendar_cxx_example_02_SOURCES_DIST = calendar_cxx_example_02.cc
 @HAVE_CXX11_TRUE@am_calendar_cxx_example_02_OBJECTS =  \
 @HAVE_CXX11_TRUE@	calendar_cxx_example_02.$(OBJEXT)
@@ -541,7 +520,8 @@ calendar_cxx_example_02_DEPENDENCIES =  \
 	$(top_builddir)/src/lib/ecore_imf_evas/libecore_imf_evas.la \
 	$(top_builddir)/src/lib/embryo/libembryo.la \
 	$(top_builddir)/src/lib/edje/libedje.la \
-	$(top_builddir)/src/lib/elementary/libelementary.la
+	$(top_builddir)/src/lib/elementary/libelementary.la \
+	$(top_builddir)/src/lib/ethumb_client/libethumb_client.la
 am__calendar_cxx_example_03_SOURCES_DIST = calendar_cxx_example_03.cc
 @HAVE_CXX11_TRUE@am_calendar_cxx_example_03_OBJECTS =  \
 @HAVE_CXX11_TRUE@	calendar_cxx_example_03.$(OBJEXT)
@@ -561,7 +541,8 @@ calendar_cxx_example_03_DEPENDENCIES =  \
 	$(top_builddir)/src/lib/ecore_imf_evas/libecore_imf_evas.la \
 	$(top_builddir)/src/lib/embryo/libembryo.la \
 	$(top_builddir)/src/lib/edje/libedje.la \
-	$(top_builddir)/src/lib/elementary/libelementary.la
+	$(top_builddir)/src/lib/elementary/libelementary.la \
+	$(top_builddir)/src/lib/ethumb_client/libethumb_client.la
 am__calendar_cxx_example_04_SOURCES_DIST = calendar_cxx_example_04.cc
 @HAVE_CXX11_TRUE@am_calendar_cxx_example_04_OBJECTS =  \
 @HAVE_CXX11_TRUE@	calendar_cxx_example_04.$(OBJEXT)
@@ -581,7 +562,8 @@ calendar_cxx_example_04_DEPENDENCIES =  \
 	$(top_builddir)/src/lib/ecore_imf_evas/libecore_imf_evas.la \
 	$(top_builddir)/src/lib/embryo/libembryo.la \
 	$(top_builddir)/src/lib/edje/libedje.la \
-	$(top_builddir)/src/lib/elementary/libelementary.la
+	$(top_builddir)/src/lib/elementary/libelementary.la \
+	$(top_builddir)/src/lib/ethumb_client/libethumb_client.la
 am__calendar_cxx_example_05_SOURCES_DIST = calendar_cxx_example_05.cc
 @HAVE_CXX11_TRUE@am_calendar_cxx_example_05_OBJECTS =  \
 @HAVE_CXX11_TRUE@	calendar_cxx_example_05.$(OBJEXT)
@@ -601,7 +583,8 @@ calendar_cxx_example_05_DEPENDENCIES =  \
 	$(top_builddir)/src/lib/ecore_imf_evas/libecore_imf_evas.la \
 	$(top_builddir)/src/lib/embryo/libembryo.la \
 	$(top_builddir)/src/lib/edje/libedje.la \
-	$(top_builddir)/src/lib/elementary/libelementary.la
+	$(top_builddir)/src/lib/elementary/libelementary.la \
+	$(top_builddir)/src/lib/ethumb_client/libethumb_client.la
 calendar_example_01_SOURCES = calendar_example_01.c
 calendar_example_01_OBJECTS = calendar_example_01.$(OBJEXT)
 calendar_example_01_LDADD = $(LDADD)
@@ -618,7 +601,8 @@ calendar_example_01_DEPENDENCIES =  \
 	$(top_builddir)/src/lib/ecore_imf_evas/libecore_imf_evas.la \
 	$(top_builddir)/src/lib/embryo/libembryo.la \
 	$(top_builddir)/src/lib/edje/libedje.la \
-	$(top_builddir)/src/lib/elementary/libelementary.la
+	$(top_builddir)/src/lib/elementary/libelementary.la \
+	$(top_builddir)/src/lib/ethumb_client/libethumb_client.la
 calendar_example_02_SOURCES = calendar_example_02.c
 calendar_example_02_OBJECTS = calendar_example_02.$(OBJEXT)
 calendar_example_02_LDADD = $(LDADD)
@@ -635,7 +619,8 @@ calendar_example_02_DEPENDENCIES =  \
 	$(top_builddir)/src/lib/ecore_imf_evas/libecore_imf_evas.la \
 	$(top_builddir)/src/lib/embryo/libembryo.la \
 	$(top_builddir)/src/lib/edje/libedje.la \
-	$(top_builddir)/src/lib/elementary/libelementary.la
+	$(top_builddir)/src/lib/elementary/libelementary.la \
+	$(top_builddir)/src/lib/ethumb_client/libethumb_client.la
 calendar_example_03_SOURCES = calendar_example_03.c
 calendar_example_03_OBJECTS = calendar_example_03.$(OBJEXT)
 calendar_example_03_LDADD = $(LDADD)
@@ -652,7 +637,8 @@ calendar_example_03_DEPENDENCIES =  \
 	$(top_builddir)/src/lib/ecore_imf_evas/libecore_imf_evas.la \
 	$(top_builddir)/src/lib/embryo/libembryo.la \
 	$(top_builddir)/src/lib/edje/libedje.la \
-	$(top_builddir)/src/lib/elementary/libelementary.la
+	$(top_builddir)/src/lib/elementary/libelementary.la \
+	$(top_builddir)/src/lib/ethumb_client/libethumb_client.la
 calendar_example_04_SOURCES = calendar_example_04.c
 calendar_example_04_OBJECTS = calendar_example_04.$(OBJEXT)
 calendar_example_04_LDADD = $(LDADD)
@@ -669,7 +655,8 @@ calendar_example_04_DEPENDENCIES =  \
 	$(top_builddir)/src/lib/ecore_imf_evas/libecore_imf_evas.la \
 	$(top_builddir)/src/lib/embryo/libembryo.la \
 	$(top_builddir)/src/lib/edje/libedje.la \
-	$(top_builddir)/src/lib/elementary/libelementary.la
+	$(top_builddir)/src/lib/elementary/libelementary.la \
+	$(top_builddir)/src/lib/ethumb_client/libethumb_client.la
 calendar_example_05_SOURCES = calendar_example_05.c
 calendar_example_05_OBJECTS = calendar_example_05.$(OBJEXT)
 calendar_example_05_LDADD = $(LDADD)
@@ -686,7 +673,8 @@ calendar_example_05_DEPENDENCIES =  \
 	$(top_builddir)/src/lib/ecore_imf_evas/libecore_imf_evas.la \
 	$(top_builddir)/src/lib/embryo/libembryo.la \
 	$(top_builddir)/src/lib/edje/libedje.la \
-	$(top_builddir)/src/lib/elementary/libelementary.la
+	$(top_builddir)/src/lib/elementary/libelementary.la \
+	$(top_builddir)/src/lib/ethumb_client/libethumb_client.la
 calendar_example_06_SOURCES = calendar_example_06.c
 calendar_example_06_OBJECTS = calendar_example_06.$(OBJEXT)
 calendar_example_06_LDADD = $(LDADD)
@@ -703,7 +691,8 @@ calendar_example_06_DEPENDENCIES =  \
 	$(top_builddir)/src/lib/ecore_imf_evas/libecore_imf_evas.la \
 	$(top_builddir)/src/lib/embryo/libembryo.la \
 	$(top_builddir)/src/lib/edje/libedje.la \
-	$(top_builddir)/src/lib/elementary/libelementary.la
+	$(top_builddir)/src/lib/elementary/libelementary.la \
+	$(top_builddir)/src/lib/ethumb_client/libethumb_client.la
 check_example_01_SOURCES = check_example_01.c
 check_example_01_OBJECTS = check_example_01.$(OBJEXT)
 check_example_01_LDADD = $(LDADD)
@@ -720,7 +709,8 @@ check_example_01_DEPENDENCIES =  \
 	$(top_builddir)/src/lib/ecore_imf_evas/libecore_imf_evas.la \
 	$(top_builddir)/src/lib/embryo/libembryo.la \
 	$(top_builddir)/src/lib/edje/libedje.la \
-	$(top_builddir)/src/lib/elementary/libelementary.la
+	$(top_builddir)/src/lib/elementary/libelementary.la \
+	$(top_builddir)/src/lib/ethumb_client/libethumb_client.la
 am__clock_cxx_example_SOURCES_DIST = clock_cxx_example.cc
 @HAVE_CXX11_TRUE@am_clock_cxx_example_OBJECTS =  \
 @HAVE_CXX11_TRUE@	clock_cxx_example.$(OBJEXT)
@@ -739,7 +729,8 @@ clock_cxx_example_DEPENDENCIES =  \
 	$(top_builddir)/src/lib/ecore_imf_evas/libecore_imf_evas.la \
 	$(top_builddir)/src/lib/embryo/libembryo.la \
 	$(top_builddir)/src/lib/edje/libedje.la \
-	$(top_builddir)/src/lib/elementary/libelementary.la
+	$(top_builddir)/src/lib/elementary/libelementary.la \
+	$(top_builddir)/src/lib/ethumb_client/libethumb_client.la
 clock_example_SOURCES = clock_example.c
 clock_example_OBJECTS = clock_example.$(OBJEXT)
 clock_example_LDADD = $(LDADD)
@@ -755,7 +746,8 @@ clock_example_DEPENDENCIES = $(top_builddir)/src/lib/eina/libeina.la \
 	$(top_builddir)/src/lib/ecore_imf_evas/libecore_imf_evas.la \
 	$(top_builddir)/src/lib/embryo/libembryo.la \
 	$(top_builddir)/src/lib/edje/libedje.la \
-	$(top_builddir)/src/lib/elementary/libelementary.la
+	$(top_builddir)/src/lib/elementary/libelementary.la \
+	$(top_builddir)/src/lib/ethumb_client/libethumb_client.la
 am_codegen_example_OBJECTS = codegen_example.$(OBJEXT)
 nodist_codegen_example_OBJECTS = codegen_example_generated.$(OBJEXT)
 codegen_example_OBJECTS = $(am_codegen_example_OBJECTS) \
@@ -774,7 +766,8 @@ codegen_example_DEPENDENCIES =  \
 	$(top_builddir)/src/lib/ecore_imf_evas/libecore_imf_evas.la \
 	$(top_builddir)/src/lib/embryo/libembryo.la \
 	$(top_builddir)/src/lib/edje/libedje.la \
-	$(top_builddir)/src/lib/elementary/libelementary.la
+	$(top_builddir)/src/lib/elementary/libelementary.la \
+	$(top_builddir)/src/lib/ethumb_client/libethumb_client.la
 colorselector_example_01_SOURCES = colorselector_example_01.c
 colorselector_example_01_OBJECTS = colorselector_example_01.$(OBJEXT)
 colorselector_example_01_LDADD = $(LDADD)
@@ -791,7 +784,8 @@ colorselector_example_01_DEPENDENCIES =  \
 	$(top_builddir)/src/lib/ecore_imf_evas/libecore_imf_evas.la \
 	$(top_builddir)/src/lib/embryo/libembryo.la \
 	$(top_builddir)/src/lib/edje/libedje.la \
-	$(top_builddir)/src/lib/elementary/libelementary.la
+	$(top_builddir)/src/lib/elementary/libelementary.la \
+	$(top_builddir)/src/lib/ethumb_client/libethumb_client.la
 combobox_example_01_SOURCES = combobox_example_01.c
 combobox_example_01_OBJECTS = combobox_example_01.$(OBJEXT)
 combobox_example_01_LDADD = $(LDADD)
@@ -808,7 +802,8 @@ combobox_example_01_DEPENDENCIES =  \
 	$(top_builddir)/src/lib/ecore_imf_evas/libecore_imf_evas.la \
 	$(top_builddir)/src/lib/embryo/libembryo.la \
 	$(top_builddir)/src/lib/edje/libedje.la \
-	$(top_builddir)/src/lib/elementary/libelementary.la
+	$(top_builddir)/src/lib/elementary/libelementary.la \
+	$(top_builddir)/src/lib/ethumb_client/libethumb_client.la
 conformant_example_01_SOURCES = conformant_example_01.c
 conformant_example_01_OBJECTS = conformant_example_01.$(OBJEXT)
 conformant_example_01_LDADD = $(LDADD)
@@ -825,7 +820,8 @@ conformant_example_01_DEPENDENCIES =  \
 	$(top_builddir)/src/lib/ecore_imf_evas/libecore_imf_evas.la \
 	$(top_builddir)/src/lib/embryo/libembryo.la \
 	$(top_builddir)/src/lib/edje/libedje.la \
-	$(top_builddir)/src/lib/elementary/libelementary.la
+	$(top_builddir)/src/lib/elementary/libelementary.la \
+	$(top_builddir)/src/lib/ethumb_client/libethumb_client.la
 conformant_example_02_SOURCES = conformant_example_02.c
 conformant_example_02_OBJECTS = conformant_example_02.$(OBJEXT)
 conformant_example_02_LDADD = $(LDADD)
@@ -842,7 +838,8 @@ conformant_example_02_DEPENDENCIES =  \
 	$(top_builddir)/src/lib/ecore_imf_evas/libecore_imf_evas.la \
 	$(top_builddir)/src/lib/embryo/libembryo.la \
 	$(top_builddir)/src/lib/edje/libedje.la \
-	$(top_builddir)/src/lib/elementary/libelementary.la
+	$(top_builddir)/src/lib/elementary/libelementary.la \
+	$(top_builddir)/src/lib/ethumb_client/libethumb_client.la
 ctxpopup_example_01_SOURCES = ctxpopup_example_01.c
 ctxpopup_example_01_OBJECTS = ctxpopup_example_01.$(OBJEXT)
 ctxpopup_example_01_LDADD = $(LDADD)
@@ -859,26 +856,8 @@ ctxpopup_example_01_DEPENDENCIES =  \
 	$(top_builddir)/src/lib/ecore_imf_evas/libecore_imf_evas.la \
 	$(top_builddir)/src/lib/embryo/libembryo.la \
 	$(top_builddir)/src/lib/edje/libedje.la \
-	$(top_builddir)/src/lib/elementary/libelementary.la
-am__datetime_cxx_example_SOURCES_DIST = datetime_cxx_example.cc
-@HAVE_CXX11_TRUE@am_datetime_cxx_example_OBJECTS =  \
-@HAVE_CXX11_TRUE@	datetime_cxx_example.$(OBJEXT)
-datetime_cxx_example_OBJECTS = $(am_datetime_cxx_example_OBJECTS)
-datetime_cxx_example_LDADD = $(LDADD)
-datetime_cxx_example_DEPENDENCIES =  \
-	$(top_builddir)/src/lib/eina/libeina.la \
-	$(top_builddir)/src/lib/eo/libeo.la \
-	$(top_builddir)/src/lib/eet/libeet.la \
-	$(top_builddir)/src/lib/evas/libevas.la \
-	$(top_builddir)/src/lib/ecore/libecore.la \
-	$(top_builddir)/src/lib/ecore_evas/libecore_evas.la \
-	$(top_builddir)/src/lib/ecore_file/libecore_file.la \
-	$(top_builddir)/src/lib/ecore_input/libecore_input.la \
-	$(top_builddir)/src/lib/ecore_imf/libecore_imf.la \
-	$(top_builddir)/src/lib/ecore_imf_evas/libecore_imf_evas.la \
-	$(top_builddir)/src/lib/embryo/libembryo.la \
-	$(top_builddir)/src/lib/edje/libedje.la \
-	$(top_builddir)/src/lib/elementary/libelementary.la
+	$(top_builddir)/src/lib/elementary/libelementary.la \
+	$(top_builddir)/src/lib/ethumb_client/libethumb_client.la
 datetime_example_SOURCES = datetime_example.c
 datetime_example_OBJECTS = datetime_example.$(OBJEXT)
 datetime_example_LDADD = $(LDADD)
@@ -895,7 +874,8 @@ datetime_example_DEPENDENCIES =  \
 	$(top_builddir)/src/lib/ecore_imf_evas/libecore_imf_evas.la \
 	$(top_builddir)/src/lib/embryo/libembryo.la \
 	$(top_builddir)/src/lib/edje/libedje.la \
-	$(top_builddir)/src/lib/elementary/libelementary.la
+	$(top_builddir)/src/lib/elementary/libelementary.la \
+	$(top_builddir)/src/lib/ethumb_client/libethumb_client.la
 dayselector_example_SOURCES = dayselector_example.c
 dayselector_example_OBJECTS = dayselector_example.$(OBJEXT)
 dayselector_example_LDADD = $(LDADD)
@@ -912,7 +892,8 @@ dayselector_example_DEPENDENCIES =  \
 	$(top_builddir)/src/lib/ecore_imf_evas/libecore_imf_evas.la \
 	$(top_builddir)/src/lib/embryo/libembryo.la \
 	$(top_builddir)/src/lib/edje/libedje.la \
-	$(top_builddir)/src/lib/elementary/libelementary.la
+	$(top_builddir)/src/lib/elementary/libelementary.la \
+	$(top_builddir)/src/lib/ethumb_client/libethumb_client.la
 diskselector_example_01_SOURCES = diskselector_example_01.c
 diskselector_example_01_OBJECTS = diskselector_example_01.$(OBJEXT)
 diskselector_example_01_LDADD = $(LDADD)
@@ -929,7 +910,8 @@ diskselector_example_01_DEPENDENCIES =  \
 	$(top_builddir)/src/lib/ecore_imf_evas/libecore_imf_evas.la \
 	$(top_builddir)/src/lib/embryo/libembryo.la \
 	$(top_builddir)/src/lib/edje/libedje.la \
-	$(top_builddir)/src/lib/elementary/libelementary.la
+	$(top_builddir)/src/lib/elementary/libelementary.la \
+	$(top_builddir)/src/lib/ethumb_client/libethumb_client.la
 diskselector_example_02_SOURCES = diskselector_example_02.c
 diskselector_example_02_OBJECTS = diskselector_example_02.$(OBJEXT)
 diskselector_example_02_LDADD = $(LDADD)
@@ -946,7 +928,8 @@ diskselector_example_02_DEPENDENCIES =  \
 	$(top_builddir)/src/lib/ecore_imf_evas/libecore_imf_evas.la \
 	$(top_builddir)/src/lib/embryo/libembryo.la \
 	$(top_builddir)/src/lib/edje/libedje.la \
-	$(top_builddir)/src/lib/elementary/libelementary.la
+	$(top_builddir)/src/lib/elementary/libelementary.la \
+	$(top_builddir)/src/lib/ethumb_client/libethumb_client.la
 am__efl_thread_1_SOURCES_DIST = efl_thread_1.c efl_thread_win32_1.c
 @HAVE_WINDOWS_FALSE@am_efl_thread_1_OBJECTS = efl_thread_1.$(OBJEXT)
 @HAVE_WINDOWS_TRUE@am_efl_thread_1_OBJECTS =  \
@@ -965,7 +948,8 @@ efl_thread_1_DEPENDENCIES = $(top_builddir)/src/lib/eina/libeina.la \
 	$(top_builddir)/src/lib/ecore_imf_evas/libecore_imf_evas.la \
 	$(top_builddir)/src/lib/embryo/libembryo.la \
 	$(top_builddir)/src/lib/edje/libedje.la \
-	$(top_builddir)/src/lib/elementary/libelementary.la
+	$(top_builddir)/src/lib/elementary/libelementary.la \
+	$(top_builddir)/src/lib/ethumb_client/libethumb_client.la
 am__efl_thread_2_SOURCES_DIST = efl_thread_2.c efl_thread_win32_2.c
 @HAVE_WINDOWS_FALSE@am_efl_thread_2_OBJECTS = efl_thread_2.$(OBJEXT)
 @HAVE_WINDOWS_TRUE@am_efl_thread_2_OBJECTS =  \
@@ -984,7 +968,8 @@ efl_thread_2_DEPENDENCIES = $(top_builddir)/src/lib/eina/libeina.la \
 	$(top_builddir)/src/lib/ecore_imf_evas/libecore_imf_evas.la \
 	$(top_builddir)/src/lib/embryo/libembryo.la \
 	$(top_builddir)/src/lib/edje/libedje.la \
-	$(top_builddir)/src/lib/elementary/libelementary.la
+	$(top_builddir)/src/lib/elementary/libelementary.la \
+	$(top_builddir)/src/lib/ethumb_client/libethumb_client.la
 am__efl_thread_3_SOURCES_DIST = efl_thread_3.c efl_thread_win32_3.c
 @HAVE_WINDOWS_FALSE@am_efl_thread_3_OBJECTS = efl_thread_3.$(OBJEXT)
 @HAVE_WINDOWS_TRUE@am_efl_thread_3_OBJECTS =  \
@@ -1003,7 +988,8 @@ efl_thread_3_DEPENDENCIES = $(top_builddir)/src/lib/eina/libeina.la \
 	$(top_builddir)/src/lib/ecore_imf_evas/libecore_imf_evas.la \
 	$(top_builddir)/src/lib/embryo/libembryo.la \
 	$(top_builddir)/src/lib/edje/libedje.la \
-	$(top_builddir)/src/lib/elementary/libelementary.la
+	$(top_builddir)/src/lib/elementary/libelementary.la \
+	$(top_builddir)/src/lib/ethumb_client/libethumb_client.la
 am__efl_thread_4_SOURCES_DIST = efl_thread_4.c efl_thread_win32_4.c
 @HAVE_WINDOWS_FALSE@am_efl_thread_4_OBJECTS = efl_thread_4.$(OBJEXT)
 @HAVE_WINDOWS_TRUE@am_efl_thread_4_OBJECTS =  \
@@ -1022,7 +1008,8 @@ efl_thread_4_DEPENDENCIES = $(top_builddir)/src/lib/eina/libeina.la \
 	$(top_builddir)/src/lib/ecore_imf_evas/libecore_imf_evas.la \
 	$(top_builddir)/src/lib/embryo/libembryo.la \
 	$(top_builddir)/src/lib/edje/libedje.la \
-	$(top_builddir)/src/lib/elementary/libelementary.la
+	$(top_builddir)/src/lib/elementary/libelementary.la \
+	$(top_builddir)/src/lib/ethumb_client/libethumb_client.la
 efl_thread_5_SOURCES = efl_thread_5.c
 efl_thread_5_OBJECTS = efl_thread_5.$(OBJEXT)
 efl_thread_5_LDADD = $(LDADD)
@@ -1038,7 +1025,8 @@ efl_thread_5_DEPENDENCIES = $(top_builddir)/src/lib/eina/libeina.la \
 	$(top_builddir)/src/lib/ecore_imf_evas/libecore_imf_evas.la \
 	$(top_builddir)/src/lib/embryo/libembryo.la \
 	$(top_builddir)/src/lib/edje/libedje.la \
-	$(top_builddir)/src/lib/elementary/libelementary.la
+	$(top_builddir)/src/lib/elementary/libelementary.la \
+	$(top_builddir)/src/lib/ethumb_client/libethumb_client.la
 efl_thread_6_SOURCES = efl_thread_6.c
 efl_thread_6_OBJECTS = efl_thread_6.$(OBJEXT)
 efl_thread_6_LDADD = $(LDADD)
@@ -1054,7 +1042,8 @@ efl_thread_6_DEPENDENCIES = $(top_builddir)/src/lib/eina/libeina.la \
 	$(top_builddir)/src/lib/ecore_imf_evas/libecore_imf_evas.la \
 	$(top_builddir)/src/lib/embryo/libembryo.la \
 	$(top_builddir)/src/lib/edje/libedje.la \
-	$(top_builddir)/src/lib/elementary/libelementary.la
+	$(top_builddir)/src/lib/elementary/libelementary.la \
+	$(top_builddir)/src/lib/ethumb_client/libethumb_client.la
 entry_example_SOURCES = entry_example.c
 entry_example_OBJECTS = entry_example.$(OBJEXT)
 entry_example_LDADD = $(LDADD)
@@ -1070,7 +1059,8 @@ entry_example_DEPENDENCIES = $(top_builddir)/src/lib/eina/libeina.la \
 	$(top_builddir)/src/lib/ecore_imf_evas/libecore_imf_evas.la \
 	$(top_builddir)/src/lib/embryo/libembryo.la \
 	$(top_builddir)/src/lib/edje/libedje.la \
-	$(top_builddir)/src/lib/elementary/libelementary.la
+	$(top_builddir)/src/lib/elementary/libelementary.la \
+	$(top_builddir)/src/lib/ethumb_client/libethumb_client.la
 evas3d_map_example_SOURCES = evas3d_map_example.c
 evas3d_map_example_OBJECTS = evas3d_map_example.$(OBJEXT)
 evas3d_map_example_LDADD = $(LDADD)
@@ -1087,7 +1077,8 @@ evas3d_map_example_DEPENDENCIES =  \
 	$(top_builddir)/src/lib/ecore_imf_evas/libecore_imf_evas.la \
 	$(top_builddir)/src/lib/embryo/libembryo.la \
 	$(top_builddir)/src/lib/edje/libedje.la \
-	$(top_builddir)/src/lib/elementary/libelementary.la
+	$(top_builddir)/src/lib/elementary/libelementary.la \
+	$(top_builddir)/src/lib/ethumb_client/libethumb_client.la
 evas3d_object_on_button_example_SOURCES =  \
 	evas3d_object_on_button_example.c
 evas3d_object_on_button_example_OBJECTS =  \
@@ -1106,7 +1097,8 @@ evas3d_object_on_button_example_DEPENDENCIES =  \
 	$(top_builddir)/src/lib/ecore_imf_evas/libecore_imf_evas.la \
 	$(top_builddir)/src/lib/embryo/libembryo.la \
 	$(top_builddir)/src/lib/edje/libedje.la \
-	$(top_builddir)/src/lib/elementary/libelementary.la
+	$(top_builddir)/src/lib/elementary/libelementary.la \
+	$(top_builddir)/src/lib/ethumb_client/libethumb_client.la
 evas3d_scene_on_button_example_SOURCES =  \
 	evas3d_scene_on_button_example.c
 evas3d_scene_on_button_example_OBJECTS =  \
@@ -1125,7 +1117,8 @@ evas3d_scene_on_button_example_DEPENDENCIES =  \
 	$(top_builddir)/src/lib/ecore_imf_evas/libecore_imf_evas.la \
 	$(top_builddir)/src/lib/embryo/libembryo.la \
 	$(top_builddir)/src/lib/edje/libedje.la \
-	$(top_builddir)/src/lib/elementary/libelementary.la
+	$(top_builddir)/src/lib/elementary/libelementary.la \
+	$(top_builddir)/src/lib/ethumb_client/libethumb_client.la
 filemvc_SOURCES = filemvc.c
 filemvc_OBJECTS = filemvc.$(OBJEXT)
 filemvc_LDADD = $(LDADD)
@@ -1141,7 +1134,8 @@ filemvc_DEPENDENCIES = $(top_builddir)/src/lib/eina/libeina.la \
 	$(top_builddir)/src/lib/ecore_imf_evas/libecore_imf_evas.la \
 	$(top_builddir)/src/lib/embryo/libembryo.la \
 	$(top_builddir)/src/lib/edje/libedje.la \
-	$(top_builddir)/src/lib/elementary/libelementary.la
+	$(top_builddir)/src/lib/elementary/libelementary.la \
+	$(top_builddir)/src/lib/ethumb_client/libethumb_client.la
 fileselector_button_example_SOURCES = fileselector_button_example.c
 fileselector_button_example_OBJECTS =  \
 	fileselector_button_example.$(OBJEXT)
@@ -1159,7 +1153,8 @@ fileselector_button_example_DEPENDENCIES =  \
 	$(top_builddir)/src/lib/ecore_imf_evas/libecore_imf_evas.la \
 	$(top_builddir)/src/lib/embryo/libembryo.la \
 	$(top_builddir)/src/lib/edje/libedje.la \
-	$(top_builddir)/src/lib/elementary/libelementary.la
+	$(top_builddir)/src/lib/elementary/libelementary.la \
+	$(top_builddir)/src/lib/ethumb_client/libethumb_client.la
 fileselector_entry_example_SOURCES = fileselector_entry_example.c
 fileselector_entry_example_OBJECTS =  \
 	fileselector_entry_example.$(OBJEXT)
@@ -1177,7 +1172,8 @@ fileselector_entry_example_DEPENDENCIES =  \
 	$(top_builddir)/src/lib/ecore_imf_evas/libecore_imf_evas.la \
 	$(top_builddir)/src/lib/embryo/libembryo.la \
 	$(top_builddir)/src/lib/edje/libedje.la \
-	$(top_builddir)/src/lib/elementary/libelementary.la
+	$(top_builddir)/src/lib/elementary/libelementary.la \
+	$(top_builddir)/src/lib/ethumb_client/libethumb_client.la
 fileselector_example_SOURCES = fileselector_example.c
 fileselector_example_OBJECTS = fileselector_example.$(OBJEXT)
 fileselector_example_LDADD = $(LDADD)
@@ -1194,7 +1190,8 @@ fileselector_example_DEPENDENCIES =  \
 	$(top_builddir)/src/lib/ecore_imf_evas/libecore_imf_evas.la \
 	$(top_builddir)/src/lib/embryo/libembryo.la \
 	$(top_builddir)/src/lib/edje/libedje.la \
-	$(top_builddir)/src/lib/elementary/libelementary.la
+	$(top_builddir)/src/lib/elementary/libelementary.la \
+	$(top_builddir)/src/lib/ethumb_client/libethumb_client.la
 fileviewlist_SOURCES = fileviewlist.c
 fileviewlist_OBJECTS = fileviewlist.$(OBJEXT)
 fileviewlist_LDADD = $(LDADD)
@@ -1210,7 +1207,8 @@ fileviewlist_DEPENDENCIES = $(top_builddir)/src/lib/eina/libeina.la \
 	$(top_builddir)/src/lib/ecore_imf_evas/libecore_imf_evas.la \
 	$(top_builddir)/src/lib/embryo/libembryo.la \
 	$(top_builddir)/src/lib/edje/libedje.la \
-	$(top_builddir)/src/lib/elementary/libelementary.la
+	$(top_builddir)/src/lib/elementary/libelementary.la \
+	$(top_builddir)/src/lib/ethumb_client/libethumb_client.la
 flip_example_01_SOURCES = flip_example_01.c
 flip_example_01_OBJECTS = flip_example_01.$(OBJEXT)
 flip_example_01_LDADD = $(LDADD)
@@ -1227,7 +1225,8 @@ flip_example_01_DEPENDENCIES =  \
 	$(top_builddir)/src/lib/ecore_imf_evas/libecore_imf_evas.la \
 	$(top_builddir)/src/lib/embryo/libembryo.la \
 	$(top_builddir)/src/lib/edje/libedje.la \
-	$(top_builddir)/src/lib/elementary/libelementary.la
+	$(top_builddir)/src/lib/elementary/libelementary.la \
+	$(top_builddir)/src/lib/ethumb_client/libethumb_client.la
 flipselector_example_SOURCES = flipselector_example.c
 flipselector_example_OBJECTS = flipselector_example.$(OBJEXT)
 flipselector_example_LDADD = $(LDADD)
@@ -1244,7 +1243,8 @@ flipselector_example_DEPENDENCIES =  \
 	$(top_builddir)/src/lib/ecore_imf_evas/libecore_imf_evas.la \
 	$(top_builddir)/src/lib/embryo/libembryo.la \
 	$(top_builddir)/src/lib/edje/libedje.la \
-	$(top_builddir)/src/lib/elementary/libelementary.la
+	$(top_builddir)/src/lib/elementary/libelementary.la \
+	$(top_builddir)/src/lib/ethumb_client/libethumb_client.la
 frame_example_01_SOURCES = frame_example_01.c
 frame_example_01_OBJECTS = frame_example_01.$(OBJEXT)
 frame_example_01_LDADD = $(LDADD)
@@ -1261,7 +1261,8 @@ frame_example_01_DEPENDENCIES =  \
 	$(top_builddir)/src/lib/ecore_imf_evas/libecore_imf_evas.la \
 	$(top_builddir)/src/lib/embryo/libembryo.la \
 	$(top_builddir)/src/lib/edje/libedje.la \
-	$(top_builddir)/src/lib/elementary/libelementary.la
+	$(top_builddir)/src/lib/elementary/libelementary.la \
+	$(top_builddir)/src/lib/ethumb_client/libethumb_client.la
 general_funcs_example_SOURCES = general_funcs_example.c
 general_funcs_example_OBJECTS = general_funcs_example.$(OBJEXT)
 general_funcs_example_LDADD = $(LDADD)
@@ -1278,7 +1279,8 @@ general_funcs_example_DEPENDENCIES =  \
 	$(top_builddir)/src/lib/ecore_imf_evas/libecore_imf_evas.la \
 	$(top_builddir)/src/lib/embryo/libembryo.la \
 	$(top_builddir)/src/lib/edje/libedje.la \
-	$(top_builddir)/src/lib/elementary/libelementary.la
+	$(top_builddir)/src/lib/elementary/libelementary.la \
+	$(top_builddir)/src/lib/ethumb_client/libethumb_client.la
 gengrid_example_SOURCES = gengrid_example.c
 gengrid_example_OBJECTS = gengrid_example.$(OBJEXT)
 gengrid_example_LDADD = $(LDADD)
@@ -1295,7 +1297,8 @@ gengrid_example_DEPENDENCIES =  \
 	$(top_builddir)/src/lib/ecore_imf_evas/libecore_imf_evas.la \
 	$(top_builddir)/src/lib/embryo/libembryo.la \
 	$(top_builddir)/src/lib/edje/libedje.la \
-	$(top_builddir)/src/lib/elementary/libelementary.la
+	$(top_builddir)/src/lib/elementary/libelementary.la \
+	$(top_builddir)/src/lib/ethumb_client/libethumb_client.la
 genlist_example_01_SOURCES = genlist_example_01.c
 genlist_example_01_OBJECTS = genlist_example_01.$(OBJEXT)
 genlist_example_01_LDADD = $(LDADD)
@@ -1312,7 +1315,8 @@ genlist_example_01_DEPENDENCIES =  \
 	$(top_builddir)/src/lib/ecore_imf_evas/libecore_imf_evas.la \
 	$(top_builddir)/src/lib/embryo/libembryo.la \
 	$(top_builddir)/src/lib/edje/libedje.la \
-	$(top_builddir)/src/lib/elementary/libelementary.la
+	$(top_builddir)/src/lib/elementary/libelementary.la \
+	$(top_builddir)/src/lib/ethumb_client/libethumb_client.la
 genlist_example_02_SOURCES = genlist_example_02.c
 genlist_example_02_OBJECTS = genlist_example_02.$(OBJEXT)
 genlist_example_02_LDADD = $(LDADD)
@@ -1329,7 +1333,8 @@ genlist_example_02_DEPENDENCIES =  \
 	$(top_builddir)/src/lib/ecore_imf_evas/libecore_imf_evas.la \
 	$(top_builddir)/src/lib/embryo/libembryo.la \
 	$(top_builddir)/src/lib/edje/libedje.la \
-	$(top_builddir)/src/lib/elementary/libelementary.la
+	$(top_builddir)/src/lib/elementary/libelementary.la \
+	$(top_builddir)/src/lib/ethumb_client/libethumb_client.la
 genlist_example_03_SOURCES = genlist_example_03.c
 genlist_example_03_OBJECTS = genlist_example_03.$(OBJEXT)
 genlist_example_03_LDADD = $(LDADD)
@@ -1346,7 +1351,8 @@ genlist_example_03_DEPENDENCIES =  \
 	$(top_builddir)/src/lib/ecore_imf_evas/libecore_imf_evas.la \
 	$(top_builddir)/src/lib/embryo/libembryo.la \
 	$(top_builddir)/src/lib/edje/libedje.la \
-	$(top_builddir)/src/lib/elementary/libelementary.la
+	$(top_builddir)/src/lib/elementary/libelementary.la \
+	$(top_builddir)/src/lib/ethumb_client/libethumb_client.la
 genlist_example_04_SOURCES = genlist_example_04.c
 genlist_example_04_OBJECTS = genlist_example_04.$(OBJEXT)
 genlist_example_04_LDADD = $(LDADD)
@@ -1363,7 +1369,8 @@ genlist_example_04_DEPENDENCIES =  \
 	$(top_builddir)/src/lib/ecore_imf_evas/libecore_imf_evas.la \
 	$(top_builddir)/src/lib/embryo/libembryo.la \
 	$(top_builddir)/src/lib/edje/libedje.la \
-	$(top_builddir)/src/lib/elementary/libelementary.la
+	$(top_builddir)/src/lib/elementary/libelementary.la \
+	$(top_builddir)/src/lib/ethumb_client/libethumb_client.la
 genlist_example_05_SOURCES = genlist_example_05.c
 genlist_example_05_OBJECTS = genlist_example_05.$(OBJEXT)
 genlist_example_05_LDADD = $(LDADD)
@@ -1380,7 +1387,8 @@ genlist_example_05_DEPENDENCIES =  \
 	$(top_builddir)/src/lib/ecore_imf_evas/libecore_imf_evas.la \
 	$(top_builddir)/src/lib/embryo/libembryo.la \
 	$(top_builddir)/src/lib/edje/libedje.la \
-	$(top_builddir)/src/lib/elementary/libelementary.la
+	$(top_builddir)/src/lib/elementary/libelementary.la \
+	$(top_builddir)/src/lib/ethumb_client/libethumb_client.la
 glview_example_01_SOURCES = glview_example_01.c
 glview_example_01_OBJECTS = glview_example_01.$(OBJEXT)
 glview_example_01_LDADD = $(LDADD)
@@ -1397,7 +1405,8 @@ glview_example_01_DEPENDENCIES =  \
 	$(top_builddir)/src/lib/ecore_imf_evas/libecore_imf_evas.la \
 	$(top_builddir)/src/lib/embryo/libembryo.la \
 	$(top_builddir)/src/lib/edje/libedje.la \
-	$(top_builddir)/src/lib/elementary/libelementary.la
+	$(top_builddir)/src/lib/elementary/libelementary.la \
+	$(top_builddir)/src/lib/ethumb_client/libethumb_client.la
 hover_example_01_SOURCES = hover_example_01.c
 hover_example_01_OBJECTS = hover_example_01.$(OBJEXT)
 hover_example_01_LDADD = $(LDADD)
@@ -1414,7 +1423,8 @@ hover_example_01_DEPENDENCIES =  \
 	$(top_builddir)/src/lib/ecore_imf_evas/libecore_imf_evas.la \
 	$(top_builddir)/src/lib/embryo/libembryo.la \
 	$(top_builddir)/src/lib/edje/libedje.la \
-	$(top_builddir)/src/lib/elementary/libelementary.la
+	$(top_builddir)/src/lib/elementary/libelementary.la \
+	$(top_builddir)/src/lib/ethumb_client/libethumb_client.la
 hoversel_example_01_SOURCES = hoversel_example_01.c
 hoversel_example_01_OBJECTS = hoversel_example_01.$(OBJEXT)
 hoversel_example_01_LDADD = $(LDADD)
@@ -1431,7 +1441,8 @@ hoversel_example_01_DEPENDENCIES =  \
 	$(top_builddir)/src/lib/ecore_imf_evas/libecore_imf_evas.la \
 	$(top_builddir)/src/lib/embryo/libembryo.la \
 	$(top_builddir)/src/lib/edje/libedje.la \
-	$(top_builddir)/src/lib/elementary/libelementary.la
+	$(top_builddir)/src/lib/elementary/libelementary.la \
+	$(top_builddir)/src/lib/ethumb_client/libethumb_client.la
 am__icon_cxx_example_01_SOURCES_DIST = icon_cxx_example_01.cc
 @HAVE_CXX11_TRUE@am_icon_cxx_example_01_OBJECTS =  \
 @HAVE_CXX11_TRUE@	icon_cxx_example_01.$(OBJEXT)
@@ -1450,7 +1461,8 @@ icon_cxx_example_01_DEPENDENCIES =  \
 	$(top_builddir)/src/lib/ecore_imf_evas/libecore_imf_evas.la \
 	$(top_builddir)/src/lib/embryo/libembryo.la \
 	$(top_builddir)/src/lib/edje/libedje.la \
-	$(top_builddir)/src/lib/elementary/libelementary.la
+	$(top_builddir)/src/lib/elementary/libelementary.la \
+	$(top_builddir)/src/lib/ethumb_client/libethumb_client.la
 icon_example_01_SOURCES = icon_example_01.c
 icon_example_01_OBJECTS = icon_example_01.$(OBJEXT)
 icon_example_01_LDADD = $(LDADD)
@@ -1467,7 +1479,8 @@ icon_example_01_DEPENDENCIES =  \
 	$(top_builddir)/src/lib/ecore_imf_evas/libecore_imf_evas.la \
 	$(top_builddir)/src/lib/embryo/libembryo.la \
 	$(top_builddir)/src/lib/edje/libedje.la \
-	$(top_builddir)/src/lib/elementary/libelementary.la
+	$(top_builddir)/src/lib/elementary/libelementary.la \
+	$(top_builddir)/src/lib/ethumb_client/libethumb_client.la
 image_example_01_SOURCES = image_example_01.c
 image_example_01_OBJECTS = image_example_01.$(OBJEXT)
 image_example_01_LDADD = $(LDADD)
@@ -1484,7 +1497,8 @@ image_example_01_DEPENDENCIES =  \
 	$(top_builddir)/src/lib/ecore_imf_evas/libecore_imf_evas.la \
 	$(top_builddir)/src/lib/embryo/libembryo.la \
 	$(top_builddir)/src/lib/edje/libedje.la \
-	$(top_builddir)/src/lib/elementary/libelementary.la
+	$(top_builddir)/src/lib/elementary/libelementary.la \
+	$(top_builddir)/src/lib/ethumb_client/libethumb_client.la
 index_example_01_SOURCES = index_example_01.c
 index_example_01_OBJECTS = index_example_01.$(OBJEXT)
 index_example_01_LDADD = $(LDADD)
@@ -1501,7 +1515,8 @@ index_example_01_DEPENDENCIES =  \
 	$(top_builddir)/src/lib/ecore_imf_evas/libecore_imf_evas.la \
 	$(top_builddir)/src/lib/embryo/libembryo.la \
 	$(top_builddir)/src/lib/edje/libedje.la \
-	$(top_builddir)/src/lib/elementary/libelementary.la
+	$(top_builddir)/src/lib/elementary/libelementary.la \
+	$(top_builddir)/src/lib/ethumb_client/libethumb_client.la
 index_example_02_SOURCES = index_example_02.c
 index_example_02_OBJECTS = index_example_02.$(OBJEXT)
 index_example_02_LDADD = $(LDADD)
@@ -1518,7 +1533,8 @@ index_example_02_DEPENDENCIES =  \
 	$(top_builddir)/src/lib/ecore_imf_evas/libecore_imf_evas.la \
 	$(top_builddir)/src/lib/embryo/libembryo.la \
 	$(top_builddir)/src/lib/edje/libedje.la \
-	$(top_builddir)/src/lib/elementary/libelementary.la
+	$(top_builddir)/src/lib/elementary/libelementary.la \
+	$(top_builddir)/src/lib/ethumb_client/libethumb_client.la
 inwin_example_SOURCES = inwin_example.c
 inwin_example_OBJECTS = inwin_example.$(OBJEXT)
 inwin_example_LDADD = $(LDADD)
@@ -1534,7 +1550,8 @@ inwin_example_DEPENDENCIES = $(top_builddir)/src/lib/eina/libeina.la \
 	$(top_builddir)/src/lib/ecore_imf_evas/libecore_imf_evas.la \
 	$(top_builddir)/src/lib/embryo/libembryo.la \
 	$(top_builddir)/src/lib/edje/libedje.la \
-	$(top_builddir)/src/lib/elementary/libelementary.la
+	$(top_builddir)/src/lib/elementary/libelementary.la \
+	$(top_builddir)/src/lib/ethumb_client/libethumb_client.la
 label_example_01_SOURCES = label_example_01.c
 label_example_01_OBJECTS = label_example_01.$(OBJEXT)
 label_example_01_LDADD = $(LDADD)
@@ -1551,7 +1568,8 @@ label_example_01_DEPENDENCIES =  \
 	$(top_builddir)/src/lib/ecore_imf_evas/libecore_imf_evas.la \
 	$(top_builddir)/src/lib/embryo/libembryo.la \
 	$(top_builddir)/src/lib/edje/libedje.la \
-	$(top_builddir)/src/lib/elementary/libelementary.la
+	$(top_builddir)/src/lib/elementary/libelementary.la \
+	$(top_builddir)/src/lib/ethumb_client/libethumb_client.la
 layout_example_01_SOURCES = layout_example_01.c
 layout_example_01_OBJECTS = layout_example_01.$(OBJEXT)
 layout_example_01_LDADD = $(LDADD)
@@ -1568,7 +1586,8 @@ layout_example_01_DEPENDENCIES =  \
 	$(top_builddir)/src/lib/ecore_imf_evas/libecore_imf_evas.la \
 	$(top_builddir)/src/lib/embryo/libembryo.la \
 	$(top_builddir)/src/lib/edje/libedje.la \
-	$(top_builddir)/src/lib/elementary/libelementary.la
+	$(top_builddir)/src/lib/elementary/libelementary.la \
+	$(top_builddir)/src/lib/ethumb_client/libethumb_client.la
 layout_example_02_SOURCES = layout_example_02.c
 layout_example_02_OBJECTS = layout_example_02.$(OBJEXT)
 layout_example_02_LDADD = $(LDADD)
@@ -1585,7 +1604,8 @@ layout_example_02_DEPENDENCIES =  \
 	$(top_builddir)/src/lib/ecore_imf_evas/libecore_imf_evas.la \
 	$(top_builddir)/src/lib/embryo/libembryo.la \
 	$(top_builddir)/src/lib/edje/libedje.la \
-	$(top_builddir)/src/lib/elementary/libelementary.la
+	$(top_builddir)/src/lib/elementary/libelementary.la \
+	$(top_builddir)/src/lib/ethumb_client/libethumb_client.la
 layout_example_03_SOURCES = layout_example_03.c
 layout_example_03_OBJECTS = layout_example_03.$(OBJEXT)
 layout_example_03_LDADD = $(LDADD)
@@ -1602,7 +1622,26 @@ layout_example_03_DEPENDENCIES =  \
 	$(top_builddir)/src/lib/ecore_imf_evas/libecore_imf_evas.la \
 	$(top_builddir)/src/lib/embryo/libembryo.la \
 	$(top_builddir)/src/lib/edje/libedje.la \
-	$(top_builddir)/src/lib/elementary/libelementary.la
+	$(top_builddir)/src/lib/elementary/libelementary.la \
+	$(top_builddir)/src/lib/ethumb_client/libethumb_client.la
+layout_model_connect_SOURCES = layout_model_connect.c
+layout_model_connect_OBJECTS = layout_model_connect.$(OBJEXT)
+layout_model_connect_LDADD = $(LDADD)
+layout_model_connect_DEPENDENCIES =  \
+	$(top_builddir)/src/lib/eina/libeina.la \
+	$(top_builddir)/src/lib/eo/libeo.la \
+	$(top_builddir)/src/lib/eet/libeet.la \
+	$(top_builddir)/src/lib/evas/libevas.la \
+	$(top_builddir)/src/lib/ecore/libecore.la \
+	$(top_builddir)/src/lib/ecore_evas/libecore_evas.la \
+	$(top_builddir)/src/lib/ecore_file/libecore_file.la \
+	$(top_builddir)/src/lib/ecore_input/libecore_input.la \
+	$(top_builddir)/src/lib/ecore_imf/libecore_imf.la \
+	$(top_builddir)/src/lib/ecore_imf_evas/libecore_imf_evas.la \
+	$(top_builddir)/src/lib/embryo/libembryo.la \
+	$(top_builddir)/src/lib/edje/libedje.la \
+	$(top_builddir)/src/lib/elementary/libelementary.la \
+	$(top_builddir)/src/lib/ethumb_client/libethumb_client.la
 list_example_01_SOURCES = list_example_01.c
 list_example_01_OBJECTS = list_example_01.$(OBJEXT)
 list_example_01_LDADD = $(LDADD)
@@ -1619,7 +1658,8 @@ list_example_01_DEPENDENCIES =  \
 	$(top_builddir)/src/lib/ecore_imf_evas/libecore_imf_evas.la \
 	$(top_builddir)/src/lib/embryo/libembryo.la \
 	$(top_builddir)/src/lib/edje/libedje.la \
-	$(top_builddir)/src/lib/elementary/libelementary.la
+	$(top_builddir)/src/lib/elementary/libelementary.la \
+	$(top_builddir)/src/lib/ethumb_client/libethumb_client.la
 list_example_02_SOURCES = list_example_02.c
 list_example_02_OBJECTS = list_example_02.$(OBJEXT)
 list_example_02_LDADD = $(LDADD)
@@ -1636,7 +1676,8 @@ list_example_02_DEPENDENCIES =  \
 	$(top_builddir)/src/lib/ecore_imf_evas/libecore_imf_evas.la \
 	$(top_builddir)/src/lib/embryo/libembryo.la \
 	$(top_builddir)/src/lib/edje/libedje.la \
-	$(top_builddir)/src/lib/elementary/libelementary.la
+	$(top_builddir)/src/lib/elementary/libelementary.la \
+	$(top_builddir)/src/lib/ethumb_client/libethumb_client.la
 list_example_03_SOURCES = list_example_03.c
 list_example_03_OBJECTS = list_example_03.$(OBJEXT)
 list_example_03_LDADD = $(LDADD)
@@ -1653,7 +1694,8 @@ list_example_03_DEPENDENCIES =  \
 	$(top_builddir)/src/lib/ecore_imf_evas/libecore_imf_evas.la \
 	$(top_builddir)/src/lib/embryo/libembryo.la \
 	$(top_builddir)/src/lib/edje/libedje.la \
-	$(top_builddir)/src/lib/elementary/libelementary.la
+	$(top_builddir)/src/lib/elementary/libelementary.la \
+	$(top_builddir)/src/lib/ethumb_client/libethumb_client.la
 location_example_01_SOURCES = location_example_01.c
 location_example_01_OBJECTS = location_example_01.$(OBJEXT)
 location_example_01_LDADD = $(LDADD)
@@ -1670,7 +1712,8 @@ location_example_01_DEPENDENCIES =  \
 	$(top_builddir)/src/lib/ecore_imf_evas/libecore_imf_evas.la \
 	$(top_builddir)/src/lib/embryo/libembryo.la \
 	$(top_builddir)/src/lib/edje/libedje.la \
-	$(top_builddir)/src/lib/elementary/libelementary.la
+	$(top_builddir)/src/lib/elementary/libelementary.la \
+	$(top_builddir)/src/lib/ethumb_client/libethumb_client.la
 map_example_01_SOURCES = map_example_01.c
 map_example_01_OBJECTS = map_example_01.$(OBJEXT)
 map_example_01_LDADD = $(LDADD)
@@ -1686,7 +1729,8 @@ map_example_01_DEPENDENCIES = $(top_builddir)/src/lib/eina/libeina.la \
 	$(top_builddir)/src/lib/ecore_imf_evas/libecore_imf_evas.la \
 	$(top_builddir)/src/lib/embryo/libembryo.la \
 	$(top_builddir)/src/lib/edje/libedje.la \
-	$(top_builddir)/src/lib/elementary/libelementary.la
+	$(top_builddir)/src/lib/elementary/libelementary.la \
+	$(top_builddir)/src/lib/ethumb_client/libethumb_client.la
 map_example_02_SOURCES = map_example_02.c
 map_example_02_OBJECTS = map_example_02.$(OBJEXT)
 map_example_02_LDADD = $(LDADD)
@@ -1702,7 +1746,8 @@ map_example_02_DEPENDENCIES = $(top_builddir)/src/lib/eina/libeina.la \
 	$(top_builddir)/src/lib/ecore_imf_evas/libecore_imf_evas.la \
 	$(top_builddir)/src/lib/embryo/libembryo.la \
 	$(top_builddir)/src/lib/edje/libedje.la \
-	$(top_builddir)/src/lib/elementary/libelementary.la
+	$(top_builddir)/src/lib/elementary/libelementary.la \
+	$(top_builddir)/src/lib/ethumb_client/libethumb_client.la
 map_example_03_SOURCES = map_example_03.c
 map_example_03_OBJECTS = map_example_03.$(OBJEXT)
 map_example_03_LDADD = $(LDADD)
@@ -1718,7 +1763,8 @@ map_example_03_DEPENDENCIES = $(top_builddir)/src/lib/eina/libeina.la \
 	$(top_builddir)/src/lib/ecore_imf_evas/libecore_imf_evas.la \
 	$(top_builddir)/src/lib/embryo/libembryo.la \
 	$(top_builddir)/src/lib/edje/libedje.la \
-	$(top_builddir)/src/lib/elementary/libelementary.la
+	$(top_builddir)/src/lib/elementary/libelementary.la \
+	$(top_builddir)/src/lib/ethumb_client/libethumb_client.la
 mapbuf_example_SOURCES = mapbuf_example.c
 mapbuf_example_OBJECTS = mapbuf_example.$(OBJEXT)
 mapbuf_example_LDADD = $(LDADD)
@@ -1734,7 +1780,8 @@ mapbuf_example_DEPENDENCIES = $(top_builddir)/src/lib/eina/libeina.la \
 	$(top_builddir)/src/lib/ecore_imf_evas/libecore_imf_evas.la \
 	$(top_builddir)/src/lib/embryo/libembryo.la \
 	$(top_builddir)/src/lib/edje/libedje.la \
-	$(top_builddir)/src/lib/elementary/libelementary.la
+	$(top_builddir)/src/lib/elementary/libelementary.la \
+	$(top_builddir)/src/lib/ethumb_client/libethumb_client.la
 menu_example_01_SOURCES = menu_example_01.c
 menu_example_01_OBJECTS = menu_example_01.$(OBJEXT)
 menu_example_01_LDADD = $(LDADD)
@@ -1751,7 +1798,8 @@ menu_example_01_DEPENDENCIES =  \
 	$(top_builddir)/src/lib/ecore_imf_evas/libecore_imf_evas.la \
 	$(top_builddir)/src/lib/embryo/libembryo.la \
 	$(top_builddir)/src/lib/edje/libedje.la \
-	$(top_builddir)/src/lib/elementary/libelementary.la
+	$(top_builddir)/src/lib/elementary/libelementary.la \
+	$(top_builddir)/src/lib/ethumb_client/libethumb_client.la
 naviframe_example_SOURCES = naviframe_example.c
 naviframe_example_OBJECTS = naviframe_example.$(OBJEXT)
 naviframe_example_LDADD = $(LDADD)
@@ -1768,7 +1816,8 @@ naviframe_example_DEPENDENCIES =  \
 	$(top_builddir)/src/lib/ecore_imf_evas/libecore_imf_evas.la \
 	$(top_builddir)/src/lib/embryo/libembryo.la \
 	$(top_builddir)/src/lib/edje/libedje.la \
-	$(top_builddir)/src/lib/elementary/libelementary.la
+	$(top_builddir)/src/lib/elementary/libelementary.la \
+	$(top_builddir)/src/lib/ethumb_client/libethumb_client.la
 notify_example_01_SOURCES = notify_example_01.c
 notify_example_01_OBJECTS = notify_example_01.$(OBJEXT)
 notify_example_01_LDADD = $(LDADD)
@@ -1785,7 +1834,8 @@ notify_example_01_DEPENDENCIES =  \
 	$(top_builddir)/src/lib/ecore_imf_evas/libecore_imf_evas.la \
 	$(top_builddir)/src/lib/embryo/libembryo.la \
 	$(top_builddir)/src/lib/edje/libedje.la \
-	$(top_builddir)/src/lib/elementary/libelementary.la
+	$(top_builddir)/src/lib/elementary/libelementary.la \
+	$(top_builddir)/src/lib/ethumb_client/libethumb_client.la
 panel_example_01_SOURCES = panel_example_01.c
 panel_example_01_OBJECTS = panel_example_01.$(OBJEXT)
 panel_example_01_LDADD = $(LDADD)
@@ -1802,7 +1852,8 @@ panel_example_01_DEPENDENCIES =  \
 	$(top_builddir)/src/lib/ecore_imf_evas/libecore_imf_evas.la \
 	$(top_builddir)/src/lib/embryo/libembryo.la \
 	$(top_builddir)/src/lib/edje/libedje.la \
-	$(top_builddir)/src/lib/elementary/libelementary.la
+	$(top_builddir)/src/lib/elementary/libelementary.la \
+	$(top_builddir)/src/lib/ethumb_client/libethumb_client.la
 panes_example_SOURCES = panes_example.c
 panes_example_OBJECTS = panes_example.$(OBJEXT)
 panes_example_LDADD = $(LDADD)
@@ -1818,7 +1869,8 @@ panes_example_DEPENDENCIES = $(top_builddir)/src/lib/eina/libeina.la \
 	$(top_builddir)/src/lib/ecore_imf_evas/libecore_imf_evas.la \
 	$(top_builddir)/src/lib/embryo/libembryo.la \
 	$(top_builddir)/src/lib/edje/libedje.la \
-	$(top_builddir)/src/lib/elementary/libelementary.la
+	$(top_builddir)/src/lib/elementary/libelementary.la \
+	$(top_builddir)/src/lib/ethumb_client/libethumb_client.la
 photocam_example_01_SOURCES = photocam_example_01.c
 photocam_example_01_OBJECTS = photocam_example_01.$(OBJEXT)
 photocam_example_01_LDADD = $(LDADD)
@@ -1835,7 +1887,8 @@ photocam_example_01_DEPENDENCIES =  \
 	$(top_builddir)/src/lib/ecore_imf_evas/libecore_imf_evas.la \
 	$(top_builddir)/src/lib/embryo/libembryo.la \
 	$(top_builddir)/src/lib/edje/libedje.la \
-	$(top_builddir)/src/lib/elementary/libelementary.la
+	$(top_builddir)/src/lib/elementary/libelementary.la \
+	$(top_builddir)/src/lib/ethumb_client/libethumb_client.la
 popup_example_01_SOURCES = popup_example_01.c
 popup_example_01_OBJECTS = popup_example_01.$(OBJEXT)
 popup_example_01_LDADD = $(LDADD)
@@ -1852,7 +1905,8 @@ popup_example_01_DEPENDENCIES =  \
 	$(top_builddir)/src/lib/ecore_imf_evas/libecore_imf_evas.la \
 	$(top_builddir)/src/lib/embryo/libembryo.la \
 	$(top_builddir)/src/lib/edje/libedje.la \
-	$(top_builddir)/src/lib/elementary/libelementary.la
+	$(top_builddir)/src/lib/elementary/libelementary.la \
+	$(top_builddir)/src/lib/ethumb_client/libethumb_client.la
 popup_example_02_SOURCES = popup_example_02.c
 popup_example_02_OBJECTS = popup_example_02.$(OBJEXT)
 popup_example_02_LDADD = $(LDADD)
@@ -1869,7 +1923,8 @@ popup_example_02_DEPENDENCIES =  \
 	$(top_builddir)/src/lib/ecore_imf_evas/libecore_imf_evas.la \
 	$(top_builddir)/src/lib/embryo/libembryo.la \
 	$(top_builddir)/src/lib/edje/libedje.la \
-	$(top_builddir)/src/lib/elementary/libelementary.la
+	$(top_builddir)/src/lib/elementary/libelementary.la \
+	$(top_builddir)/src/lib/ethumb_client/libethumb_client.la
 popup_example_03_SOURCES = popup_example_03.c
 popup_example_03_OBJECTS = popup_example_03.$(OBJEXT)
 popup_example_03_LDADD = $(LDADD)
@@ -1886,7 +1941,8 @@ popup_example_03_DEPENDENCIES =  \
 	$(top_builddir)/src/lib/ecore_imf_evas/libecore_imf_evas.la \
 	$(top_builddir)/src/lib/embryo/libembryo.la \
 	$(top_builddir)/src/lib/edje/libedje.la \
-	$(top_builddir)/src/lib/elementary/libelementary.la
+	$(top_builddir)/src/lib/elementary/libelementary.la \
+	$(top_builddir)/src/lib/ethumb_client/libethumb_client.la
 prefs_example_01_SOURCES = prefs_example_01.c
 prefs_example_01_OBJECTS = prefs_example_01.$(OBJEXT)
 prefs_example_01_LDADD = $(LDADD)
@@ -1903,7 +1959,8 @@ prefs_example_01_DEPENDENCIES =  \
 	$(top_builddir)/src/lib/ecore_imf_evas/libecore_imf_evas.la \
 	$(top_builddir)/src/lib/embryo/libembryo.la \
 	$(top_builddir)/src/lib/edje/libedje.la \
-	$(top_builddir)/src/lib/elementary/libelementary.la
+	$(top_builddir)/src/lib/elementary/libelementary.la \
+	$(top_builddir)/src/lib/ethumb_client/libethumb_client.la
 prefs_example_02_SOURCES = prefs_example_02.c
 prefs_example_02_OBJECTS = prefs_example_02.$(OBJEXT)
 prefs_example_02_LDADD = $(LDADD)
@@ -1920,7 +1977,8 @@ prefs_example_02_DEPENDENCIES =  \
 	$(top_builddir)/src/lib/ecore_imf_evas/libecore_imf_evas.la \
 	$(top_builddir)/src/lib/embryo/libembryo.la \
 	$(top_builddir)/src/lib/edje/libedje.la \
-	$(top_builddir)/src/lib/elementary/libelementary.la
+	$(top_builddir)/src/lib/elementary/libelementary.la \
+	$(top_builddir)/src/lib/ethumb_client/libethumb_client.la
 prefs_example_03_SOURCES = prefs_example_03.c
 prefs_example_03_OBJECTS = prefs_example_03.$(OBJEXT)
 prefs_example_03_LDADD = $(LDADD)
@@ -1937,7 +1995,8 @@ prefs_example_03_DEPENDENCIES =  \
 	$(top_builddir)/src/lib/ecore_imf_evas/libecore_imf_evas.la \
 	$(top_builddir)/src/lib/embryo/libembryo.la \
 	$(top_builddir)/src/lib/edje/libedje.la \
-	$(top_builddir)/src/lib/elementary/libelementary.la
+	$(top_builddir)/src/lib/elementary/libelementary.la \
+	$(top_builddir)/src/lib/ethumb_client/libethumb_client.la
 progressbar_example_SOURCES = progressbar_example.c
 progressbar_example_OBJECTS = progressbar_example.$(OBJEXT)
 progressbar_example_LDADD = $(LDADD)
@@ -1954,7 +2013,8 @@ progressbar_example_DEPENDENCIES =  \
 	$(top_builddir)/src/lib/ecore_imf_evas/libecore_imf_evas.la \
 	$(top_builddir)/src/lib/embryo/libembryo.la \
 	$(top_builddir)/src/lib/edje/libedje.la \
-	$(top_builddir)/src/lib/elementary/libelementary.la
+	$(top_builddir)/src/lib/elementary/libelementary.la \
+	$(top_builddir)/src/lib/ethumb_client/libethumb_client.la
 radio_example_01_SOURCES = radio_example_01.c
 radio_example_01_OBJECTS = radio_example_01.$(OBJEXT)
 radio_example_01_LDADD = $(LDADD)
@@ -1971,7 +2031,8 @@ radio_example_01_DEPENDENCIES =  \
 	$(top_builddir)/src/lib/ecore_imf_evas/libecore_imf_evas.la \
 	$(top_builddir)/src/lib/embryo/libembryo.la \
 	$(top_builddir)/src/lib/edje/libedje.la \
-	$(top_builddir)/src/lib/elementary/libelementary.la
+	$(top_builddir)/src/lib/elementary/libelementary.la \
+	$(top_builddir)/src/lib/ethumb_client/libethumb_client.la
 radio_example_02_SOURCES = radio_example_02.c
 radio_example_02_OBJECTS = radio_example_02.$(OBJEXT)
 radio_example_02_LDADD = $(LDADD)
@@ -1988,7 +2049,8 @@ radio_example_02_DEPENDENCIES =  \
 	$(top_builddir)/src/lib/ecore_imf_evas/libecore_imf_evas.la \
 	$(top_builddir)/src/lib/embryo/libembryo.la \
 	$(top_builddir)/src/lib/edje/libedje.la \
-	$(top_builddir)/src/lib/elementary/libelementary.la
+	$(top_builddir)/src/lib/elementary/libelementary.la \
+	$(top_builddir)/src/lib/ethumb_client/libethumb_client.la
 scroller_example_01_SOURCES = scroller_example_01.c
 scroller_example_01_OBJECTS = scroller_example_01.$(OBJEXT)
 scroller_example_01_LDADD = $(LDADD)
@@ -2005,7 +2067,8 @@ scroller_example_01_DEPENDENCIES =  \
 	$(top_builddir)/src/lib/ecore_imf_evas/libecore_imf_evas.la \
 	$(top_builddir)/src/lib/embryo/libembryo.la \
 	$(top_builddir)/src/lib/edje/libedje.la \
-	$(top_builddir)/src/lib/elementary/libelementary.la
+	$(top_builddir)/src/lib/elementary/libelementary.la \
+	$(top_builddir)/src/lib/ethumb_client/libethumb_client.la
 segment_control_example_SOURCES = segment_control_example.c
 segment_control_example_OBJECTS = segment_control_example.$(OBJEXT)
 segment_control_example_LDADD = $(LDADD)
@@ -2022,28 +2085,8 @@ segment_control_example_DEPENDENCIES =  \
 	$(top_builddir)/src/lib/ecore_imf_evas/libecore_imf_evas.la \
 	$(top_builddir)/src/lib/embryo/libembryo.la \
 	$(top_builddir)/src/lib/edje/libedje.la \
-	$(top_builddir)/src/lib/elementary/libelementary.la
-am__separator_cxx_example_01_SOURCES_DIST =  \
-	separator_cxx_example_01.cc
-@HAVE_CXX11_TRUE@am_separator_cxx_example_01_OBJECTS =  \
-@HAVE_CXX11_TRUE@	separator_cxx_example_01.$(OBJEXT)
-separator_cxx_example_01_OBJECTS =  \
-	$(am_separator_cxx_example_01_OBJECTS)
-separator_cxx_example_01_LDADD = $(LDADD)
-separator_cxx_example_01_DEPENDENCIES =  \
-	$(top_builddir)/src/lib/eina/libeina.la \
-	$(top_builddir)/src/lib/eo/libeo.la \
-	$(top_builddir)/src/lib/eet/libeet.la \
-	$(top_builddir)/src/lib/evas/libevas.la \
-	$(top_builddir)/src/lib/ecore/libecore.la \
-	$(top_builddir)/src/lib/ecore_evas/libecore_evas.la \
-	$(top_builddir)/src/lib/ecore_file/libecore_file.la \
-	$(top_builddir)/src/lib/ecore_input/libecore_input.la \
-	$(top_builddir)/src/lib/ecore_imf/libecore_imf.la \
-	$(top_builddir)/src/lib/ecore_imf_evas/libecore_imf_evas.la \
-	$(top_builddir)/src/lib/embryo/libembryo.la \
-	$(top_builddir)/src/lib/edje/libedje.la \
-	$(top_builddir)/src/lib/elementary/libelementary.la
+	$(top_builddir)/src/lib/elementary/libelementary.la \
+	$(top_builddir)/src/lib/ethumb_client/libethumb_client.la
 separator_example_01_SOURCES = separator_example_01.c
 separator_example_01_OBJECTS = separator_example_01.$(OBJEXT)
 separator_example_01_LDADD = $(LDADD)
@@ -2060,7 +2103,8 @@ separator_example_01_DEPENDENCIES =  \
 	$(top_builddir)/src/lib/ecore_imf_evas/libecore_imf_evas.la \
 	$(top_builddir)/src/lib/embryo/libembryo.la \
 	$(top_builddir)/src/lib/edje/libedje.la \
-	$(top_builddir)/src/lib/elementary/libelementary.la
+	$(top_builddir)/src/lib/elementary/libelementary.la \
+	$(top_builddir)/src/lib/ethumb_client/libethumb_client.la
 slider_example_SOURCES = slider_example.c
 slider_example_OBJECTS = slider_example.$(OBJEXT)
 slider_example_LDADD = $(LDADD)
@@ -2076,7 +2120,8 @@ slider_example_DEPENDENCIES = $(top_builddir)/src/lib/eina/libeina.la \
 	$(top_builddir)/src/lib/ecore_imf_evas/libecore_imf_evas.la \
 	$(top_builddir)/src/lib/embryo/libembryo.la \
 	$(top_builddir)/src/lib/edje/libedje.la \
-	$(top_builddir)/src/lib/elementary/libelementary.la
+	$(top_builddir)/src/lib/elementary/libelementary.la \
+	$(top_builddir)/src/lib/ethumb_client/libethumb_client.la
 slideshow_example_SOURCES = slideshow_example.c
 slideshow_example_OBJECTS = slideshow_example.$(OBJEXT)
 slideshow_example_LDADD = $(LDADD)
@@ -2093,7 +2138,8 @@ slideshow_example_DEPENDENCIES =  \
 	$(top_builddir)/src/lib/ecore_imf_evas/libecore_imf_evas.la \
 	$(top_builddir)/src/lib/embryo/libembryo.la \
 	$(top_builddir)/src/lib/edje/libedje.la \
-	$(top_builddir)/src/lib/elementary/libelementary.la
+	$(top_builddir)/src/lib/elementary/libelementary.la \
+	$(top_builddir)/src/lib/ethumb_client/libethumb_client.la
 spinner_example_SOURCES = spinner_example.c
 spinner_example_OBJECTS = spinner_example.$(OBJEXT)
 spinner_example_LDADD = $(LDADD)
@@ -2110,7 +2156,8 @@ spinner_example_DEPENDENCIES =  \
 	$(top_builddir)/src/lib/ecore_imf_evas/libecore_imf_evas.la \
 	$(top_builddir)/src/lib/embryo/libembryo.la \
 	$(top_builddir)/src/lib/edje/libedje.la \
-	$(top_builddir)/src/lib/elementary/libelementary.la
+	$(top_builddir)/src/lib/elementary/libelementary.la \
+	$(top_builddir)/src/lib/ethumb_client/libethumb_client.la
 table_example_01_SOURCES = table_example_01.c
 table_example_01_OBJECTS = table_example_01.$(OBJEXT)
 table_example_01_LDADD = $(LDADD)
@@ -2127,7 +2174,8 @@ table_example_01_DEPENDENCIES =  \
 	$(top_builddir)/src/lib/ecore_imf_evas/libecore_imf_evas.la \
 	$(top_builddir)/src/lib/embryo/libembryo.la \
 	$(top_builddir)/src/lib/edje/libedje.la \
-	$(top_builddir)/src/lib/elementary/libelementary.la
+	$(top_builddir)/src/lib/elementary/libelementary.la \
+	$(top_builddir)/src/lib/ethumb_client/libethumb_client.la
 table_example_02_SOURCES = table_example_02.c
 table_example_02_OBJECTS = table_example_02.$(OBJEXT)
 table_example_02_LDADD = $(LDADD)
@@ -2144,7 +2192,8 @@ table_example_02_DEPENDENCIES =  \
 	$(top_builddir)/src/lib/ecore_imf_evas/libecore_imf_evas.la \
 	$(top_builddir)/src/lib/embryo/libembryo.la \
 	$(top_builddir)/src/lib/edje/libedje.la \
-	$(top_builddir)/src/lib/elementary/libelementary.la
+	$(top_builddir)/src/lib/elementary/libelementary.la \
+	$(top_builddir)/src/lib/ethumb_client/libethumb_client.la
 theme_example_01_SOURCES = theme_example_01.c
 theme_example_01_OBJECTS = theme_example_01.$(OBJEXT)
 theme_example_01_LDADD = $(LDADD)
@@ -2161,7 +2210,8 @@ theme_example_01_DEPENDENCIES =  \
 	$(top_builddir)/src/lib/ecore_imf_evas/libecore_imf_evas.la \
 	$(top_builddir)/src/lib/embryo/libembryo.la \
 	$(top_builddir)/src/lib/edje/libedje.la \
-	$(top_builddir)/src/lib/elementary/libelementary.la
+	$(top_builddir)/src/lib/elementary/libelementary.la \
+	$(top_builddir)/src/lib/ethumb_client/libethumb_client.la
 theme_example_02_SOURCES = theme_example_02.c
 theme_example_02_OBJECTS = theme_example_02.$(OBJEXT)
 theme_example_02_LDADD = $(LDADD)
@@ -2178,26 +2228,8 @@ theme_example_02_DEPENDENCIES =  \
 	$(top_builddir)/src/lib/ecore_imf_evas/libecore_imf_evas.la \
 	$(top_builddir)/src/lib/embryo/libembryo.la \
 	$(top_builddir)/src/lib/edje/libedje.la \
-	$(top_builddir)/src/lib/elementary/libelementary.la
-am__thumb_cxx_example_01_SOURCES_DIST = thumb_cxx_example_01.cc
-@HAVE_CXX11_TRUE@am_thumb_cxx_example_01_OBJECTS =  \
-@HAVE_CXX11_TRUE@	thumb_cxx_example_01.$(OBJEXT)
-thumb_cxx_example_01_OBJECTS = $(am_thumb_cxx_example_01_OBJECTS)
-thumb_cxx_example_01_LDADD = $(LDADD)
-thumb_cxx_example_01_DEPENDENCIES =  \
-	$(top_builddir)/src/lib/eina/libeina.la \
-	$(top_builddir)/src/lib/eo/libeo.la \
-	$(top_builddir)/src/lib/eet/libeet.la \
-	$(top_builddir)/src/lib/evas/libevas.la \
-	$(top_builddir)/src/lib/ecore/libecore.la \
-	$(top_builddir)/src/lib/ecore_evas/libecore_evas.la \
-	$(top_builddir)/src/lib/ecore_file/libecore_file.la \
-	$(top_builddir)/src/lib/ecore_input/libecore_input.la \
-	$(top_builddir)/src/lib/ecore_imf/libecore_imf.la \
-	$(top_builddir)/src/lib/ecore_imf_evas/libecore_imf_evas.la \
-	$(top_builddir)/src/lib/embryo/libembryo.la \
-	$(top_builddir)/src/lib/edje/libedje.la \
-	$(top_builddir)/src/lib/elementary/libelementary.la
+	$(top_builddir)/src/lib/elementary/libelementary.la \
+	$(top_builddir)/src/lib/ethumb_client/libethumb_client.la
 thumb_example_01_SOURCES = thumb_example_01.c
 thumb_example_01_OBJECTS = thumb_example_01.$(OBJEXT)
 thumb_example_01_LDADD = $(LDADD)
@@ -2214,7 +2246,8 @@ thumb_example_01_DEPENDENCIES =  \
 	$(top_builddir)/src/lib/ecore_imf_evas/libecore_imf_evas.la \
 	$(top_builddir)/src/lib/embryo/libembryo.la \
 	$(top_builddir)/src/lib/edje/libedje.la \
-	$(top_builddir)/src/lib/elementary/libelementary.la
+	$(top_builddir)/src/lib/elementary/libelementary.la \
+	$(top_builddir)/src/lib/ethumb_client/libethumb_client.la
 toolbar_example_01_SOURCES = toolbar_example_01.c
 toolbar_example_01_OBJECTS = toolbar_example_01.$(OBJEXT)
 toolbar_example_01_LDADD = $(LDADD)
@@ -2231,7 +2264,8 @@ toolbar_example_01_DEPENDENCIES =  \
 	$(top_builddir)/src/lib/ecore_imf_evas/libecore_imf_evas.la \
 	$(top_builddir)/src/lib/embryo/libembryo.la \
 	$(top_builddir)/src/lib/edje/libedje.la \
-	$(top_builddir)/src/lib/elementary/libelementary.la
+	$(top_builddir)/src/lib/elementary/libelementary.la \
+	$(top_builddir)/src/lib/ethumb_client/libethumb_client.la
 toolbar_example_02_SOURCES = toolbar_example_02.c
 toolbar_example_02_OBJECTS = toolbar_example_02.$(OBJEXT)
 toolbar_example_02_LDADD = $(LDADD)
@@ -2248,7 +2282,8 @@ toolbar_example_02_DEPENDENCIES =  \
 	$(top_builddir)/src/lib/ecore_imf_evas/libecore_imf_evas.la \
 	$(top_builddir)/src/lib/embryo/libembryo.la \
 	$(top_builddir)/src/lib/edje/libedje.la \
-	$(top_builddir)/src/lib/elementary/libelementary.la
+	$(top_builddir)/src/lib/elementary/libelementary.la \
+	$(top_builddir)/src/lib/ethumb_client/libethumb_client.la
 toolbar_example_03_SOURCES = toolbar_example_03.c
 toolbar_example_03_OBJECTS = toolbar_example_03.$(OBJEXT)
 toolbar_example_03_LDADD = $(LDADD)
@@ -2265,7 +2300,8 @@ toolbar_example_03_DEPENDENCIES =  \
 	$(top_builddir)/src/lib/ecore_imf_evas/libecore_imf_evas.la \
 	$(top_builddir)/src/lib/embryo/libembryo.la \
 	$(top_builddir)/src/lib/edje/libedje.la \
-	$(top_builddir)/src/lib/elementary/libelementary.la
+	$(top_builddir)/src/lib/elementary/libelementary.la \
+	$(top_builddir)/src/lib/ethumb_client/libethumb_client.la
 track_example_01_SOURCES = track_example_01.c
 track_example_01_OBJECTS = track_example_01.$(OBJEXT)
 track_example_01_LDADD = $(LDADD)
@@ -2282,7 +2318,8 @@ track_example_01_DEPENDENCIES =  \
 	$(top_builddir)/src/lib/ecore_imf_evas/libecore_imf_evas.la \
 	$(top_builddir)/src/lib/embryo/libembryo.la \
 	$(top_builddir)/src/lib/edje/libedje.la \
-	$(top_builddir)/src/lib/elementary/libelementary.la
+	$(top_builddir)/src/lib/elementary/libelementary.la \
+	$(top_builddir)/src/lib/ethumb_client/libethumb_client.la
 transit_example_01_SOURCES = transit_example_01.c
 transit_example_01_OBJECTS = transit_example_01.$(OBJEXT)
 transit_example_01_LDADD = $(LDADD)
@@ -2299,7 +2336,8 @@ transit_example_01_DEPENDENCIES =  \
 	$(top_builddir)/src/lib/ecore_imf_evas/libecore_imf_evas.la \
 	$(top_builddir)/src/lib/embryo/libembryo.la \
 	$(top_builddir)/src/lib/edje/libedje.la \
-	$(top_builddir)/src/lib/elementary/libelementary.la
+	$(top_builddir)/src/lib/elementary/libelementary.la \
+	$(top_builddir)/src/lib/ethumb_client/libethumb_client.la
 transit_example_02_SOURCES = transit_example_02.c
 transit_example_02_OBJECTS = transit_example_02.$(OBJEXT)
 transit_example_02_LDADD = $(LDADD)
@@ -2316,7 +2354,8 @@ transit_example_02_DEPENDENCIES =  \
 	$(top_builddir)/src/lib/ecore_imf_evas/libecore_imf_evas.la \
 	$(top_builddir)/src/lib/embryo/libembryo.la \
 	$(top_builddir)/src/lib/edje/libedje.la \
-	$(top_builddir)/src/lib/elementary/libelementary.la
+	$(top_builddir)/src/lib/elementary/libelementary.la \
+	$(top_builddir)/src/lib/ethumb_client/libethumb_client.la
 transit_example_03_SOURCES = transit_example_03.c
 transit_example_03_OBJECTS = transit_example_03.$(OBJEXT)
 transit_example_03_LDADD = $(LDADD)
@@ -2333,7 +2372,8 @@ transit_example_03_DEPENDENCIES =  \
 	$(top_builddir)/src/lib/ecore_imf_evas/libecore_imf_evas.la \
 	$(top_builddir)/src/lib/embryo/libembryo.la \
 	$(top_builddir)/src/lib/edje/libedje.la \
-	$(top_builddir)/src/lib/elementary/libelementary.la
+	$(top_builddir)/src/lib/elementary/libelementary.la \
+	$(top_builddir)/src/lib/ethumb_client/libethumb_client.la
 transit_example_04_SOURCES = transit_example_04.c
 transit_example_04_OBJECTS = transit_example_04.$(OBJEXT)
 transit_example_04_LDADD = $(LDADD)
@@ -2350,7 +2390,8 @@ transit_example_04_DEPENDENCIES =  \
 	$(top_builddir)/src/lib/ecore_imf_evas/libecore_imf_evas.la \
 	$(top_builddir)/src/lib/embryo/libembryo.la \
 	$(top_builddir)/src/lib/edje/libedje.la \
-	$(top_builddir)/src/lib/elementary/libelementary.la
+	$(top_builddir)/src/lib/elementary/libelementary.la \
+	$(top_builddir)/src/lib/ethumb_client/libethumb_client.la
 web_example_01_SOURCES = web_example_01.c
 web_example_01_OBJECTS = web_example_01.$(OBJEXT)
 web_example_01_LDADD = $(LDADD)
@@ -2366,7 +2407,8 @@ web_example_01_DEPENDENCIES = $(top_builddir)/src/lib/eina/libeina.la \
 	$(top_builddir)/src/lib/ecore_imf_evas/libecore_imf_evas.la \
 	$(top_builddir)/src/lib/embryo/libembryo.la \
 	$(top_builddir)/src/lib/edje/libedje.la \
-	$(top_builddir)/src/lib/elementary/libelementary.la
+	$(top_builddir)/src/lib/elementary/libelementary.la \
+	$(top_builddir)/src/lib/ethumb_client/libethumb_client.la
 web_example_02_SOURCES = web_example_02.c
 web_example_02_OBJECTS = web_example_02.$(OBJEXT)
 web_example_02_LDADD = $(LDADD)
@@ -2382,7 +2424,8 @@ web_example_02_DEPENDENCIES = $(top_builddir)/src/lib/eina/libeina.la \
 	$(top_builddir)/src/lib/ecore_imf_evas/libecore_imf_evas.la \
 	$(top_builddir)/src/lib/embryo/libembryo.la \
 	$(top_builddir)/src/lib/edje/libedje.la \
-	$(top_builddir)/src/lib/elementary/libelementary.la
+	$(top_builddir)/src/lib/elementary/libelementary.la \
+	$(top_builddir)/src/lib/ethumb_client/libethumb_client.la
 win_example_SOURCES = win_example.c
 win_example_OBJECTS = win_example.$(OBJEXT)
 win_example_LDADD = $(LDADD)
@@ -2398,7 +2441,8 @@ win_example_DEPENDENCIES = $(top_builddir)/src/lib/eina/libeina.la \
 	$(top_builddir)/src/lib/ecore_imf_evas/libecore_imf_evas.la \
 	$(top_builddir)/src/lib/embryo/libembryo.la \
 	$(top_builddir)/src/lib/edje/libedje.la \
-	$(top_builddir)/src/lib/elementary/libelementary.la
+	$(top_builddir)/src/lib/elementary/libelementary.la \
+	$(top_builddir)/src/lib/ethumb_client/libethumb_client.la
 AM_V_P = $(am__v_P_@AM_V@)
 am__v_P_ = $(am__v_P_@AM_DEFAULT_V@)
 am__v_P_0 = false
@@ -2453,8 +2497,7 @@ am__v_CXXLD_0 = @echo "  CXXLD   " $@;
 am__v_CXXLD_1 = 
 SOURCES = actionslider_example_01.c $(bg_cxx_example_01_SOURCES) \
 	$(bg_cxx_example_02_SOURCES) bg_example_01.c bg_example_02.c \
-	bg_example_03.c box_example_02.c \
-	$(bubble_cxx_example_01_SOURCES) bubble_example_01.c \
+	bg_example_03.c box_example_02.c bubble_example_01.c \
 	$(button_cxx_example_00_SOURCES) button_example_00.c \
 	button_example_01.c $(calendar_cxx_example_01_SOURCES) \
 	$(calendar_cxx_example_02_SOURCES) \
@@ -2468,8 +2511,7 @@ SOURCES = actionslider_example_01.c $(bg_cxx_example_01_SOURCES) \
 	$(codegen_example_SOURCES) $(nodist_codegen_example_SOURCES) \
 	colorselector_example_01.c combobox_example_01.c \
 	conformant_example_01.c conformant_example_02.c \
-	ctxpopup_example_01.c $(datetime_cxx_example_SOURCES) \
-	datetime_example.c dayselector_example.c \
+	ctxpopup_example_01.c datetime_example.c dayselector_example.c \
 	diskselector_example_01.c diskselector_example_02.c \
 	$(efl_thread_1_SOURCES) $(efl_thread_2_SOURCES) \
 	$(efl_thread_3_SOURCES) $(efl_thread_4_SOURCES) efl_thread_5.c \
@@ -2486,19 +2528,18 @@ SOURCES = actionslider_example_01.c $(bg_cxx_example_01_SOURCES) \
 	icon_example_01.c image_example_01.c index_example_01.c \
 	index_example_02.c inwin_example.c label_example_01.c \
 	layout_example_01.c layout_example_02.c layout_example_03.c \
-	list_example_01.c list_example_02.c list_example_03.c \
-	location_example_01.c map_example_01.c map_example_02.c \
-	map_example_03.c mapbuf_example.c menu_example_01.c \
-	naviframe_example.c notify_example_01.c panel_example_01.c \
-	panes_example.c photocam_example_01.c popup_example_01.c \
-	popup_example_02.c popup_example_03.c prefs_example_01.c \
-	prefs_example_02.c prefs_example_03.c progressbar_example.c \
-	radio_example_01.c radio_example_02.c scroller_example_01.c \
-	segment_control_example.c $(separator_cxx_example_01_SOURCES) \
+	layout_model_connect.c list_example_01.c list_example_02.c \
+	list_example_03.c location_example_01.c map_example_01.c \
+	map_example_02.c map_example_03.c mapbuf_example.c \
+	menu_example_01.c naviframe_example.c notify_example_01.c \
+	panel_example_01.c panes_example.c photocam_example_01.c \
+	popup_example_01.c popup_example_02.c popup_example_03.c \
+	prefs_example_01.c prefs_example_02.c prefs_example_03.c \
+	progressbar_example.c radio_example_01.c radio_example_02.c \
+	scroller_example_01.c segment_control_example.c \
 	separator_example_01.c slider_example.c slideshow_example.c \
 	spinner_example.c table_example_01.c table_example_02.c \
-	theme_example_01.c theme_example_02.c \
-	$(thumb_cxx_example_01_SOURCES) thumb_example_01.c \
+	theme_example_01.c theme_example_02.c thumb_example_01.c \
 	toolbar_example_01.c toolbar_example_02.c toolbar_example_03.c \
 	track_example_01.c transit_example_01.c transit_example_02.c \
 	transit_example_03.c transit_example_04.c web_example_01.c \
@@ -2507,9 +2548,8 @@ DIST_SOURCES = actionslider_example_01.c \
 	$(am__bg_cxx_example_01_SOURCES_DIST) \
 	$(am__bg_cxx_example_02_SOURCES_DIST) bg_example_01.c \
 	bg_example_02.c bg_example_03.c box_example_02.c \
-	$(am__bubble_cxx_example_01_SOURCES_DIST) bubble_example_01.c \
-	$(am__button_cxx_example_00_SOURCES_DIST) button_example_00.c \
-	button_example_01.c \
+	bubble_example_01.c $(am__button_cxx_example_00_SOURCES_DIST) \
+	button_example_00.c button_example_01.c \
 	$(am__calendar_cxx_example_01_SOURCES_DIST) \
 	$(am__calendar_cxx_example_02_SOURCES_DIST) \
 	$(am__calendar_cxx_example_03_SOURCES_DIST) \
@@ -2522,9 +2562,9 @@ DIST_SOURCES = actionslider_example_01.c \
 	$(codegen_example_SOURCES) colorselector_example_01.c \
 	combobox_example_01.c conformant_example_01.c \
 	conformant_example_02.c ctxpopup_example_01.c \
-	$(am__datetime_cxx_example_SOURCES_DIST) datetime_example.c \
-	dayselector_example.c diskselector_example_01.c \
-	diskselector_example_02.c $(am__efl_thread_1_SOURCES_DIST) \
+	datetime_example.c dayselector_example.c \
+	diskselector_example_01.c diskselector_example_02.c \
+	$(am__efl_thread_1_SOURCES_DIST) \
 	$(am__efl_thread_2_SOURCES_DIST) \
 	$(am__efl_thread_3_SOURCES_DIST) \
 	$(am__efl_thread_4_SOURCES_DIST) efl_thread_5.c efl_thread_6.c \
@@ -2541,20 +2581,18 @@ DIST_SOURCES = actionslider_example_01.c \
 	icon_example_01.c image_example_01.c index_example_01.c \
 	index_example_02.c inwin_example.c label_example_01.c \
 	layout_example_01.c layout_example_02.c layout_example_03.c \
-	list_example_01.c list_example_02.c list_example_03.c \
-	location_example_01.c map_example_01.c map_example_02.c \
-	map_example_03.c mapbuf_example.c menu_example_01.c \
-	naviframe_example.c notify_example_01.c panel_example_01.c \
-	panes_example.c photocam_example_01.c popup_example_01.c \
-	popup_example_02.c popup_example_03.c prefs_example_01.c \
-	prefs_example_02.c prefs_example_03.c progressbar_example.c \
-	radio_example_01.c radio_example_02.c scroller_example_01.c \
-	segment_control_example.c \
-	$(am__separator_cxx_example_01_SOURCES_DIST) \
+	layout_model_connect.c list_example_01.c list_example_02.c \
+	list_example_03.c location_example_01.c map_example_01.c \
+	map_example_02.c map_example_03.c mapbuf_example.c \
+	menu_example_01.c naviframe_example.c notify_example_01.c \
+	panel_example_01.c panes_example.c photocam_example_01.c \
+	popup_example_01.c popup_example_02.c popup_example_03.c \
+	prefs_example_01.c prefs_example_02.c prefs_example_03.c \
+	progressbar_example.c radio_example_01.c radio_example_02.c \
+	scroller_example_01.c segment_control_example.c \
 	separator_example_01.c slider_example.c slideshow_example.c \
 	spinner_example.c table_example_01.c table_example_02.c \
-	theme_example_01.c theme_example_02.c \
-	$(am__thumb_cxx_example_01_SOURCES_DIST) thumb_example_01.c \
+	theme_example_01.c theme_example_02.c thumb_example_01.c \
 	toolbar_example_01.c toolbar_example_02.c toolbar_example_03.c \
 	track_example_01.c transit_example_01.c transit_example_02.c \
 	transit_example_03.c transit_example_04.c web_example_01.c \
@@ -2875,6 +2913,7 @@ EFL_LDFLAGS = @EFL_LDFLAGS@
 EFL_LIBS = @EFL_LIBS@
 EFL_LTLIBRARY_FLAGS = @EFL_LTLIBRARY_FLAGS@
 EFL_LTMODULE_FLAGS = @EFL_LTMODULE_FLAGS@
+EFL_NET_CONTROL_BACKEND = @EFL_NET_CONTROL_BACKEND@
 EFL_PTHREAD_CFLAGS = @EFL_PTHREAD_CFLAGS@
 EFL_PTHREAD_LIBS = @EFL_PTHREAD_LIBS@
 EFL_SUBBUILD_INTERNAL_LIBS = @EFL_SUBBUILD_INTERNAL_LIBS@
@@ -3133,7 +3172,6 @@ GREP = @GREP@
 GSTREAMER_CFLAGS = @GSTREAMER_CFLAGS@
 GSTREAMER_LIBS = @GSTREAMER_LIBS@
 HAVE_CXX11 = @HAVE_CXX11@
-HAVE_ECORE_X_BACKEND = @HAVE_ECORE_X_BACKEND@
 HAVE_JS = @HAVE_JS@
 HAVE_LIBUV = @HAVE_LIBUV@
 HAVE_NODEJS = @HAVE_NODEJS@
@@ -3150,7 +3188,6 @@ INTLLIBS = @INTLLIBS@
 INTL_MACOSX_LIBS = @INTL_MACOSX_LIBS@
 JP2K_CFLAGS = @JP2K_CFLAGS@
 JP2K_LIBS = @JP2K_LIBS@
-KEYSYMDEFS = @KEYSYMDEFS@
 LD = @LD@
 LDFLAGS = @LDFLAGS@
 LIBGCRYPT_CFLAGS = @LIBGCRYPT_CFLAGS@
@@ -3169,6 +3206,8 @@ LIBRAW_LIBS = @LIBRAW_LIBS@
 LIBS = @LIBS@
 LIBTHREAD = @LIBTHREAD@
 LIBTOOL = @LIBTOOL@
+LIBVNCSERVER_CFLAGS = @LIBVNCSERVER_CFLAGS@
+LIBVNCSERVER_LIBS = @LIBVNCSERVER_LIBS@
 LIPO = @LIPO@
 LN_S = @LN_S@
 LOCALE_DIR = @LOCALE_DIR@
@@ -3444,6 +3483,9 @@ WAYLAND_CFLAGS = @WAYLAND_CFLAGS@
 WAYLAND_EGL_CFLAGS = @WAYLAND_EGL_CFLAGS@
 WAYLAND_EGL_LIBS = @WAYLAND_EGL_LIBS@
 WAYLAND_LIBS = @WAYLAND_LIBS@
+WAYLAND_PROTOCOLS_DATADIR = @WAYLAND_PROTOCOLS_DATADIR@
+WAYLAND_SCANNER_CFLAGS = @WAYLAND_SCANNER_CFLAGS@
+WAYLAND_SCANNER_LIBS = @WAYLAND_SCANNER_LIBS@
 WAYLAND_SHM_CFLAGS = @WAYLAND_SHM_CFLAGS@
 WAYLAND_SHM_LIBS = @WAYLAND_SHM_LIBS@
 X11_DRI2_CFLAGS = @X11_DRI2_CFLAGS@
@@ -3452,12 +3494,6 @@ X11_DRI3_CFLAGS = @X11_DRI3_CFLAGS@
 X11_DRI3_LIBS = @X11_DRI3_LIBS@
 X11_DRI_COMMON_CFLAGS = @X11_DRI_COMMON_CFLAGS@
 X11_DRI_COMMON_LIBS = @X11_DRI_COMMON_LIBS@
-XCB_CFLAGS = @XCB_CFLAGS@
-XCB_GL_CFLAGS = @XCB_GL_CFLAGS@
-XCB_GL_LIBS = @XCB_GL_LIBS@
-XCB_LIBS = @XCB_LIBS@
-XCB_X11_CFLAGS = @XCB_X11_CFLAGS@
-XCB_X11_LIBS = @XCB_X11_LIBS@
 XDG_DATA_HOME = @XDG_DATA_HOME@
 XGETTEXT = @XGETTEXT@
 XGETTEXT_015 = @XGETTEXT_015@
@@ -3491,7 +3527,6 @@ build_vendor = @build_vendor@
 builddir = @builddir@
 cocoa_coreservices_ldflags = @cocoa_coreservices_ldflags@
 cocoa_ldflags = @cocoa_ldflags@
-coreaudio_ldflags = @coreaudio_ldflags@
 datadir = @datadir@
 datarootdir = @datarootdir@
 dbusservicedir = @dbusservicedir@
@@ -3559,11 +3594,6 @@ evas_engine_gl_drm_cflags = @evas_engine_gl_drm_cflags@
 evas_engine_gl_drm_libs = @evas_engine_gl_drm_libs@
 evas_engine_gl_sdl_cflags = @evas_engine_gl_sdl_cflags@
 evas_engine_gl_sdl_libs = @evas_engine_gl_sdl_libs@
-evas_engine_gl_xcb_CFLAGS = @evas_engine_gl_xcb_CFLAGS@
-evas_engine_gl_xcb_LIBS = @evas_engine_gl_xcb_LIBS@
-evas_engine_gl_xcb_cflags = @evas_engine_gl_xcb_cflags@
-evas_engine_gl_xcb_libdirs = @evas_engine_gl_xcb_libdirs@
-evas_engine_gl_xcb_libs = @evas_engine_gl_xcb_libs@
 evas_engine_gl_xlib_CFLAGS = @evas_engine_gl_xlib_CFLAGS@
 evas_engine_gl_xlib_LIBS = @evas_engine_gl_xlib_LIBS@
 evas_engine_gl_xlib_cflags = @evas_engine_gl_xlib_cflags@
@@ -3575,8 +3605,6 @@ evas_engine_software_ddraw_cflags = @evas_engine_software_ddraw_cflags@
 evas_engine_software_ddraw_libs = @evas_engine_software_ddraw_libs@
 evas_engine_software_gdi_cflags = @evas_engine_software_gdi_cflags@
 evas_engine_software_gdi_libs = @evas_engine_software_gdi_libs@
-evas_engine_software_xcb_cflags = @evas_engine_software_xcb_cflags@
-evas_engine_software_xcb_libs = @evas_engine_software_xcb_libs@
 evas_engine_software_xlib_CFLAGS = @evas_engine_software_xlib_CFLAGS@
 evas_engine_software_xlib_LIBS = @evas_engine_software_xlib_LIBS@
 evas_engine_software_xlib_cflags = @evas_engine_software_xlib_cflags@
@@ -3620,10 +3648,12 @@ evas_image_loader_webp_cflags = @evas_image_loader_webp_cflags@
 evas_image_loader_webp_libs = @evas_image_loader_webp_libs@
 evas_image_loader_xpm_cflags = @evas_image_loader_xpm_cflags@
 evas_image_loader_xpm_libs = @evas_image_loader_xpm_libs@
+evas_vg_loader_eet_cflags = @evas_vg_loader_eet_cflags@
+evas_vg_loader_eet_libs = @evas_vg_loader_eet_libs@
+evas_vg_loader_svg_cflags = @evas_vg_loader_svg_cflags@
+evas_vg_loader_svg_libs = @evas_vg_loader_svg_libs@
 exec_prefix = @exec_prefix@
-have_evas_engine_gl_xcb = @have_evas_engine_gl_xcb@
 have_evas_engine_gl_xlib = @have_evas_engine_gl_xlib@
-have_evas_engine_software_xcb = @have_evas_engine_software_xcb@
 have_evas_engine_software_xlib = @have_evas_engine_software_xlib@
 have_lcov = @have_lcov@
 host = @host@
@@ -3917,6 +3947,7 @@ want_liblz4 = @want_liblz4@
 want_lua_old = @want_lua_old@
 want_multisense = @want_multisense@
 want_physics = @want_physics@
+wayland_scanner = @wayland_scanner@
 with_eeze_eject = @with_eeze_eject@
 with_eeze_mount = @with_eeze_mount@
 with_eeze_umount = @with_eeze_umount@
@@ -3963,6 +3994,8 @@ AM_CPPFLAGS = \
 -I$(top_builddir)/src/bindings/cxx/eo_cxx \
 -I$(top_srcdir)/src/bindings/cxx/eldbus_cxx \
 -I$(top_builddir)/src/bindings/cxx/eldbus_cxx \
+-I$(top_srcdir)/src/bindings/cxx/ecore_cxx \
+-I$(top_builddir)/src/bindings/cxx/ecore_cxx \
 -I$(top_srcdir)/src/lib/ector \
 -I$(top_builddir)/src/lib/ector \
 -I$(top_srcdir)/src/lib/evas \
@@ -3995,7 +4028,8 @@ $(top_builddir)/src/lib/ecore_imf/libecore_imf.la \
 $(top_builddir)/src/lib/ecore_imf_evas/libecore_imf_evas.la \
 $(top_builddir)/src/lib/embryo/libembryo.la \
 $(top_builddir)/src/lib/edje/libedje.la \
-$(top_builddir)/src/lib/elementary/libelementary.la
+$(top_builddir)/src/lib/elementary/libelementary.la \
+$(top_builddir)/src/lib/ethumb_client/libethumb_client.la
 
 SRCS = actionslider_example_01.c bg_example_01.c bg_example_02.c \
 	bg_example_03.c box_example_02.c bubble_example_01.c \
@@ -4017,22 +4051,22 @@ SRCS = actionslider_example_01.c bg_example_01.c bg_example_02.c \
 	hoversel_example_01.c icon_example_01.c image_example_01.c \
 	index_example_01.c index_example_02.c inwin_example.c \
 	label_example_01.c layout_example_01.c layout_example_02.c \
-	layout_example_03.c list_example_01.c list_example_02.c \
-	list_example_03.c location_example_01.c map_example_01.c \
-	map_example_02.c map_example_03.c mapbuf_example.c \
-	menu_example_01.c naviframe_example.c notify_example_01.c \
-	panes_example.c panel_example_01.c photocam_example_01.c \
-	prefs_example_01.c prefs_example_02.c prefs_example_03.c \
-	popup_example_01.c popup_example_02.c popup_example_03.c \
-	progressbar_example.c radio_example_01.c radio_example_02.c \
-	segment_control_example.c separator_example_01.c \
-	slider_example.c slideshow_example.c spinner_example.c \
-	scroller_example_01.c table_example_01.c table_example_02.c \
-	theme_example_01.c theme_example_02.c thumb_example_01.c \
-	toolbar_example_01.c toolbar_example_02.c toolbar_example_03.c \
-	transit_example_01.c transit_example_02.c transit_example_03.c \
-	transit_example_04.c web_example_01.c web_example_02.c \
-	win_example.c track_example_01.c \
+	layout_example_03.c layout_model_connect.c list_example_01.c \
+	list_example_02.c list_example_03.c location_example_01.c \
+	map_example_01.c map_example_02.c map_example_03.c \
+	mapbuf_example.c menu_example_01.c naviframe_example.c \
+	notify_example_01.c panes_example.c panel_example_01.c \
+	photocam_example_01.c prefs_example_01.c prefs_example_02.c \
+	prefs_example_03.c popup_example_01.c popup_example_02.c \
+	popup_example_03.c progressbar_example.c radio_example_01.c \
+	radio_example_02.c segment_control_example.c \
+	separator_example_01.c slider_example.c slideshow_example.c \
+	spinner_example.c scroller_example_01.c table_example_01.c \
+	table_example_02.c theme_example_01.c theme_example_02.c \
+	thumb_example_01.c toolbar_example_01.c toolbar_example_02.c \
+	toolbar_example_03.c transit_example_01.c transit_example_02.c \
+	transit_example_03.c transit_example_04.c web_example_01.c \
+	web_example_02.c win_example.c track_example_01.c \
 	evas3d_object_on_button_example.c \
 	evas3d_scene_on_button_example.c evas3d_map_example.c \
 	efl_thread_1.c efl_thread_2.c efl_thread_3.c efl_thread_4.c \
@@ -4075,7 +4109,6 @@ CLEANFILES = \
 ELEMENTARY_CODEGEN_FLAGS = --prefix=codegen_example
 BUILT_SOURCES = codegen_example_generated.c codegen_example_generated.h
 codegen_example_SOURCES = \
-	codegen_example_generated.h \
 	codegen_example.c
 
 nodist_codegen_example_SOURCES = \
@@ -4084,12 +4117,10 @@ codegen_example_generated.h
 
 @HAVE_WINDOWS_FALSE@efl_thread_1_SOURCES = efl_thread_1.c
 # examples_PROGRAMS += \
-# thumb_cxx_example_01 \
 # table_cxx_example_02 \
 # table_cxx_example_01 \
 # spinner_cxx_example \
 # slider_cxx_example \
-# separator_cxx_example_01 \
 # radio_cxx_example_01 \
 # popup_cxx_example_01 \
 # menu_cxx_example_01 \
@@ -4097,7 +4128,6 @@ codegen_example_generated.h
 # icon_cxx_example_01 \
 # hoversel_cxx_example_01 \
 # glview_cxx_example_01 \
-# datetime_cxx_example \
 # clock_cxx_example \
 # calendar_cxx_example_05 \
 # calendar_cxx_example_04 \
@@ -4106,7 +4136,6 @@ codegen_example_generated.h
 # calendar_cxx_example_01 \
 # button_cxx_example_01 \
 # button_cxx_example_00 \
-# bubble_cxx_example_01 \
 # box_cxx_example_02 \
 # bg_cxx_example_02 \
 # bg_cxx_example_01
@@ -4118,7 +4147,6 @@ codegen_example_generated.h
 @HAVE_WINDOWS_FALSE@efl_thread_4_SOURCES = efl_thread_4.c
 @HAVE_WINDOWS_TRUE@efl_thread_4_SOURCES = efl_thread_win32_4.c
 @HAVE_CXX11_TRUE@icon_cxx_example_01_SOURCES = icon_cxx_example_01.cc
-@HAVE_CXX11_TRUE@datetime_cxx_example_SOURCES = datetime_cxx_example.cc
 @HAVE_CXX11_TRUE@clock_cxx_example_SOURCES = clock_cxx_example.cc
 @HAVE_CXX11_TRUE@calendar_cxx_example_05_SOURCES = calendar_cxx_example_05.cc
 @HAVE_CXX11_TRUE@calendar_cxx_example_04_SOURCES = calendar_cxx_example_04.cc
@@ -4127,15 +4155,11 @@ codegen_example_generated.h
 @HAVE_CXX11_TRUE@calendar_cxx_example_01_SOURCES = calendar_cxx_example_01.cc
 @HAVE_CXX11_TRUE@bg_cxx_example_02_SOURCES = bg_cxx_example_02.cc
 @HAVE_CXX11_TRUE@bg_cxx_example_01_SOURCES = bg_cxx_example_01.cc
-@HAVE_CXX11_TRUE@thumb_cxx_example_01_SOURCES = thumb_cxx_example_01.cc
-@HAVE_CXX11_TRUE@separator_cxx_example_01_SOURCES = separator_cxx_example_01.cc
-@HAVE_CXX11_TRUE@bubble_cxx_example_01_SOURCES = bubble_cxx_example_01.cc
 @HAVE_CXX11_TRUE@button_cxx_example_00_SOURCES = button_cxx_example_00.cc
 # table_cxx_example_02_SOURCES = table_cxx_example_02.cc
 # table_cxx_example_01_SOURCES = table_cxx_example_01.cc
 # spinner_cxx_example_SOURCES = spinner_cxx_example.cc
 # slider_cxx_example_SOURCES = slider_cxx_example.cc
-# separator_cxx_example_01_SOURCES = separator_cxx_example_01.cc
 # radio_cxx_example_01_SOURCES = radio_cxx_example_01.cc
 # popup_cxx_example_01_SOURCES = popup_cxx_example_01.cc
 # menu_cxx_example_01_SOURCES = menu_cxx_example_01.cc
@@ -4143,7 +4167,6 @@ codegen_example_generated.h
 # icon_cxx_example_01_SOURCES = icon_cxx_example_01.cc
 # hoversel_cxx_example_01_SOURCES = hoversel_cxx_example_01.cc
 # glview_cxx_example_01_SOURCES = glview_cxx_example_01.cc
-# datetime_cxx_example_SOURCES = datetime_cxx_example.cc
 # clock_cxx_example_SOURCES = clock_cxx_example.cc
 # calendar_cxx_example_05_SOURCES = calendar_cxx_example_05.cc
 # calendar_cxx_example_04_SOURCES = calendar_cxx_example_04.cc
@@ -4152,7 +4175,6 @@ codegen_example_generated.h
 # calendar_cxx_example_01_SOURCES = calendar_cxx_example_01.cc
 # button_cxx_example_01_SOURCES = button_cxx_example_01.cc
 # button_cxx_example_00_SOURCES = button_cxx_example_00.cc
-# bubble_cxx_example_01_SOURCES = bubble_cxx_example_01.cc
 # box_cxx_example_02_SOURCES = box_cxx_example_02.cc
 # bg_cxx_example_02_SOURCES = bg_cxx_example_02.cc
 # bg_cxx_example_01_SOURCES = bg_cxx_example_01.cc
@@ -4357,10 +4379,6 @@ box_example_02$(EXEEXT): $(box_example_02_OBJECTS) $(box_example_02_DEPENDENCIES
 	@rm -f box_example_02$(EXEEXT)
 	$(AM_V_CCLD)$(LINK) $(box_example_02_OBJECTS) $(box_example_02_LDADD) $(LIBS)
 
-bubble_cxx_example_01$(EXEEXT): $(bubble_cxx_example_01_OBJECTS) $(bubble_cxx_example_01_DEPENDENCIES) $(EXTRA_bubble_cxx_example_01_DEPENDENCIES) 
-	@rm -f bubble_cxx_example_01$(EXEEXT)
-	$(AM_V_CXXLD)$(CXXLINK) $(bubble_cxx_example_01_OBJECTS) $(bubble_cxx_example_01_LDADD) $(LIBS)
-
 bubble_example_01$(EXEEXT): $(bubble_example_01_OBJECTS) $(bubble_example_01_DEPENDENCIES) $(EXTRA_bubble_example_01_DEPENDENCIES) 
 	@rm -f bubble_example_01$(EXEEXT)
 	$(AM_V_CCLD)$(LINK) $(bubble_example_01_OBJECTS) $(bubble_example_01_LDADD) $(LIBS)
@@ -4456,10 +4474,6 @@ conformant_example_02$(EXEEXT): $(conformant_example_02_OBJECTS) $(conformant_ex
 ctxpopup_example_01$(EXEEXT): $(ctxpopup_example_01_OBJECTS) $(ctxpopup_example_01_DEPENDENCIES) $(EXTRA_ctxpopup_example_01_DEPENDENCIES) 
 	@rm -f ctxpopup_example_01$(EXEEXT)
 	$(AM_V_CCLD)$(LINK) $(ctxpopup_example_01_OBJECTS) $(ctxpopup_example_01_LDADD) $(LIBS)
-
-datetime_cxx_example$(EXEEXT): $(datetime_cxx_example_OBJECTS) $(datetime_cxx_example_DEPENDENCIES) $(EXTRA_datetime_cxx_example_DEPENDENCIES) 
-	@rm -f datetime_cxx_example$(EXEEXT)
-	$(AM_V_CXXLD)$(CXXLINK) $(datetime_cxx_example_OBJECTS) $(datetime_cxx_example_LDADD) $(LIBS)
 
 datetime_example$(EXEEXT): $(datetime_example_OBJECTS) $(datetime_example_DEPENDENCIES) $(EXTRA_datetime_example_DEPENDENCIES) 
 	@rm -f datetime_example$(EXEEXT)
@@ -4629,6 +4643,10 @@ layout_example_03$(EXEEXT): $(layout_example_03_OBJECTS) $(layout_example_03_DEP
 	@rm -f layout_example_03$(EXEEXT)
 	$(AM_V_CCLD)$(LINK) $(layout_example_03_OBJECTS) $(layout_example_03_LDADD) $(LIBS)
 
+layout_model_connect$(EXEEXT): $(layout_model_connect_OBJECTS) $(layout_model_connect_DEPENDENCIES) $(EXTRA_layout_model_connect_DEPENDENCIES) 
+	@rm -f layout_model_connect$(EXEEXT)
+	$(AM_V_CCLD)$(LINK) $(layout_model_connect_OBJECTS) $(layout_model_connect_LDADD) $(LIBS)
+
 list_example_01$(EXEEXT): $(list_example_01_OBJECTS) $(list_example_01_DEPENDENCIES) $(EXTRA_list_example_01_DEPENDENCIES) 
 	@rm -f list_example_01$(EXEEXT)
 	$(AM_V_CCLD)$(LINK) $(list_example_01_OBJECTS) $(list_example_01_LDADD) $(LIBS)
@@ -4729,10 +4747,6 @@ segment_control_example$(EXEEXT): $(segment_control_example_OBJECTS) $(segment_c
 	@rm -f segment_control_example$(EXEEXT)
 	$(AM_V_CCLD)$(LINK) $(segment_control_example_OBJECTS) $(segment_control_example_LDADD) $(LIBS)
 
-separator_cxx_example_01$(EXEEXT): $(separator_cxx_example_01_OBJECTS) $(separator_cxx_example_01_DEPENDENCIES) $(EXTRA_separator_cxx_example_01_DEPENDENCIES) 
-	@rm -f separator_cxx_example_01$(EXEEXT)
-	$(AM_V_CXXLD)$(CXXLINK) $(separator_cxx_example_01_OBJECTS) $(separator_cxx_example_01_LDADD) $(LIBS)
-
 separator_example_01$(EXEEXT): $(separator_example_01_OBJECTS) $(separator_example_01_DEPENDENCIES) $(EXTRA_separator_example_01_DEPENDENCIES) 
 	@rm -f separator_example_01$(EXEEXT)
 	$(AM_V_CCLD)$(LINK) $(separator_example_01_OBJECTS) $(separator_example_01_LDADD) $(LIBS)
@@ -4764,10 +4778,6 @@ theme_example_01$(EXEEXT): $(theme_example_01_OBJECTS) $(theme_example_01_DEPEND
 theme_example_02$(EXEEXT): $(theme_example_02_OBJECTS) $(theme_example_02_DEPENDENCIES) $(EXTRA_theme_example_02_DEPENDENCIES) 
 	@rm -f theme_example_02$(EXEEXT)
 	$(AM_V_CCLD)$(LINK) $(theme_example_02_OBJECTS) $(theme_example_02_LDADD) $(LIBS)
-
-thumb_cxx_example_01$(EXEEXT): $(thumb_cxx_example_01_OBJECTS) $(thumb_cxx_example_01_DEPENDENCIES) $(EXTRA_thumb_cxx_example_01_DEPENDENCIES) 
-	@rm -f thumb_cxx_example_01$(EXEEXT)
-	$(AM_V_CXXLD)$(CXXLINK) $(thumb_cxx_example_01_OBJECTS) $(thumb_cxx_example_01_LDADD) $(LIBS)
 
 thumb_example_01$(EXEEXT): $(thumb_example_01_OBJECTS) $(thumb_example_01_DEPENDENCIES) $(EXTRA_thumb_example_01_DEPENDENCIES) 
 	@rm -f thumb_example_01$(EXEEXT)
@@ -4830,7 +4840,6 @@ distclean-compile:
 @AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/bg_example_02.Po@am__quote@
 @AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/bg_example_03.Po@am__quote@
 @AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/box_example_02.Po@am__quote@
-@AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/bubble_cxx_example_01.Po@am__quote@
 @AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/bubble_example_01.Po@am__quote@
 @AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/button_cxx_example_00.Po@am__quote@
 @AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/button_example_00.Po@am__quote@
@@ -4856,7 +4865,6 @@ distclean-compile:
 @AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/conformant_example_01.Po@am__quote@
 @AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/conformant_example_02.Po@am__quote@
 @AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/ctxpopup_example_01.Po@am__quote@
-@AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/datetime_cxx_example.Po@am__quote@
 @AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/datetime_example.Po@am__quote@
 @AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/dayselector_example.Po@am__quote@
 @AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/diskselector_example_01.Po@am__quote@
@@ -4903,6 +4911,7 @@ distclean-compile:
 @AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/layout_example_01.Po@am__quote@
 @AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/layout_example_02.Po@am__quote@
 @AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/layout_example_03.Po@am__quote@
+@AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/layout_model_connect.Po@am__quote@
 @AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/list_example_01.Po@am__quote@
 @AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/list_example_02.Po@am__quote@
 @AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/list_example_03.Po@am__quote@
@@ -4928,7 +4937,6 @@ distclean-compile:
 @AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/radio_example_02.Po@am__quote@
 @AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/scroller_example_01.Po@am__quote@
 @AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/segment_control_example.Po@am__quote@
-@AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/separator_cxx_example_01.Po@am__quote@
 @AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/separator_example_01.Po@am__quote@
 @AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/slider_example.Po@am__quote@
 @AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/slideshow_example.Po@am__quote@
@@ -4937,7 +4945,6 @@ distclean-compile:
 @AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/table_example_02.Po@am__quote@
 @AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/theme_example_01.Po@am__quote@
 @AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/theme_example_02.Po@am__quote@
-@AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/thumb_cxx_example_01.Po@am__quote@
 @AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/thumb_example_01.Po@am__quote@
 @AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/toolbar_example_01.Po@am__quote@
 @AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/toolbar_example_02.Po@am__quote@
@@ -5257,6 +5264,8 @@ clean-local:
 
 codegen_example_generated.c codegen_example_generated.h: codegen_example.edj
 	$(AM_V_CODEGEN)$(ELEMENTARY_CODEGEN) $(ELEMENTARY_CODEGEN_FLAGS) $(<) elm/example/mylayout/default codegen_example_generated.c codegen_example_generated.h
+
+codegen_example.c: codegen_example_generated.h
 screenshots: examples
 	@mkdir -p $(HTML_SS_DIR)
 	@mkdir -p $(LATEX_SS_DIR)

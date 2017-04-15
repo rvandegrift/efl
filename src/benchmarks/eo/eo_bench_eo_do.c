@@ -10,81 +10,86 @@ static void
 bench_eo_do_simple(int request)
 {
    int i;
-   Eo *obj = eo_add(SIMPLE_CLASS, NULL);
+   Eo *obj = efl_add(SIMPLE_CLASS, NULL);
    for (i = 0 ; i < request ; i++)
      {
         simple_a_set(obj, i);
      }
 
-   eo_unref(obj);
+   efl_unref(obj);
 }
 
 static void
 bench_eo_do_two_objs(int request)
 {
    int i;
-   Eo *obj = eo_add(SIMPLE_CLASS, NULL);
-   Eo *obj2 = eo_add(SIMPLE_CLASS, NULL);
+   Eo *obj = efl_add(SIMPLE_CLASS, NULL);
+   Eo *obj2 = efl_add(SIMPLE_CLASS, NULL);
    for (i = 0 ; i < request ; i++)
      {
         simple_a_set(obj, i);
         simple_a_set(obj2, i);
      }
 
-   eo_unref(obj);
-   eo_unref(obj2);
+   efl_unref(obj);
+   efl_unref(obj2);
 }
 
 static void
 bench_eo_do_two_objs_growing_stack(int request)
 {
    int i;
-   Eo *obj = eo_add(SIMPLE_CLASS, NULL);
-   Eo *obj2 = eo_add(SIMPLE_CLASS, NULL);
+   Eo *obj = efl_add(SIMPLE_CLASS, NULL);
+   Eo *obj2 = efl_add(SIMPLE_CLASS, NULL);
    for (i = 0 ; i < request ; i++)
      {
         simple_other_call(obj, obj2, 20);
      }
 
-   eo_unref(obj);
-   eo_unref(obj2);
+   efl_unref(obj);
+   efl_unref(obj2);
 }
 
-static const Eo_Class *cur_klass;
+static const Efl_Class *cur_klass;
 
 static void
 _a_set(Eo *obj, void *class_data EINA_UNUSED, int a)
 {
-   simple_a_set(eo_super(obj, cur_klass), a);
+   simple_a_set(efl_super(obj, cur_klass), a);
 }
 
-static Eo_Op_Description op_desc[] = {
-     EO_OP_FUNC_OVERRIDE(simple_a_set, _a_set),
-};
+static Eina_Bool
+_class_initializer(Efl_Class *klass)
+{
+   EFL_OPS_DEFINE(ops,
+         EFL_OBJECT_OP_FUNC(simple_a_set, _a_set),
+   );
+
+   return efl_class_functions_set(klass, &ops, NULL);
+}
 
 static void
 bench_eo_do_super(int request)
 {
-   static Eo_Class_Description class_desc = {
+   static Efl_Class_Description class_desc = {
         EO_VERSION,
         "Simple2",
-        EO_CLASS_TYPE_REGULAR,
-        EO_CLASS_DESCRIPTION_OPS(op_desc),
-        NULL,
+        EFL_CLASS_TYPE_REGULAR,
         0,
+        _class_initializer,
         NULL,
         NULL
    };
-   cur_klass = eo_class_new(&class_desc, SIMPLE_CLASS, NULL);
+   cur_klass = efl_class_new(&class_desc, SIMPLE_CLASS, NULL);
 
    int i;
-   Eo *obj = eo_add(cur_klass, NULL);
+   Eo *obj = efl_add(cur_klass, NULL);
    for (i = 0 ; i < request ; i++)
      {
         simple_a_set(obj, i);
      }
 
-   eo_unref(obj);
+   efl_unref(obj);
 }
 
 void eo_bench_eo_do(Eina_Benchmark *bench)

@@ -4,7 +4,7 @@
    do                                  \
    {                                   \
       eina_array_push(array, obj);     \
-      eo_data_ref(obj->object, NULL);  \
+      efl_data_ref(obj->object, EFL_CANVAS_OBJECT_CLASS);  \
    } while (0)
 
 #define OBJS_ARRAY_CLEAN(array)                          \
@@ -14,7 +14,7 @@
       Eina_Array_Iterator iterator;                      \
       unsigned int idx;                                  \
       EINA_ARRAY_ITER_NEXT(array, idx, item, iterator)   \
-      eo_data_unref(item->object, item);                 \
+      efl_data_unref(item->object, item);                 \
       eina_array_clean(array);                           \
    } while (0)
 
@@ -123,9 +123,9 @@ _evas_render2_th_main_obj_basic_walk_process(Evas_Public_Data *e,
                              updates, offx, offy);
    if (obj->changed)
      {
-        evas_object_clip_changes_clean(eo_obj);
-        evas_object_cur_prev(eo_obj);
-        evas_object_change_reset(eo_obj);
+        evas_object_clip_changes_clean(obj);
+        evas_object_cur_prev(obj);
+        evas_object_change_reset(obj);
      }
 }
 
@@ -142,7 +142,7 @@ _evas_render2_th_main_obj_walk_process(Evas_Public_Data *e,
    Evas_Object *eo_obj = obj->object;
    const Eina_Inlist *il;
 
-   il = evas_object_smart_members_get_direct(eo_obj);
+   il = obj->is_smart ? evas_object_smart_members_get_direct(eo_obj) : NULL;
    if (il)
      {
         if (!_evas_render2_th_main_obj_del_handle(e, obj)) return;
@@ -158,9 +158,9 @@ _evas_render2_th_main_obj_walk_process(Evas_Public_Data *e,
                                                  offx, offy, l + 1);
         if (obj->changed)
           {
-             evas_object_clip_changes_clean(eo_obj);
-             evas_object_cur_prev(eo_obj);
-             evas_object_change_reset(eo_obj);
+             evas_object_clip_changes_clean(obj);
+             evas_object_cur_prev(obj);
+             evas_object_change_reset(obj);
           }
      }
    else _evas_render2_th_main_obj_basic_walk_process(e, obj, updates,
@@ -297,7 +297,7 @@ _evas_render2_th_main_do(Eo *eo_e, Evas_Public_Data *e)
      {
         EINA_LIST_FREE(updates_list, rect) free(rect);
      }
-   eo_unref(eo_e);
+   efl_unref(eo_e);
 }
 
 static void *

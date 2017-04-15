@@ -8,142 +8,17 @@
 #define GREEN_MASK 0x00ff00
 #define BLUE_MASK 0x0000ff
 
-static void _outbuf_tick_schedule(int fd, void *data);
-
-static Eina_Bool ticking = EINA_FALSE;
-
-static void
-_outbuf_tick_begin(void *data)
-{
-   Outbuf *ob;
-
-   ob = data;
-   ticking = EINA_TRUE;
-   if (ob) _outbuf_tick_schedule(ob->fd, ob);
-}
-
-static void
-_outbuf_tick_end(void *data EINA_UNUSED)
-{
-   ticking = EINA_FALSE;
-}
-
-static void
-_outbuf_tick_source_set(Outbuf *ob)
-{
-   if (ob)
-     {
-        ecore_animator_custom_source_tick_begin_callback_set
-          (_outbuf_tick_begin, ob);
-        ecore_animator_custom_source_tick_end_callback_set
-          (_outbuf_tick_end, ob);
-        ecore_animator_source_set(ECORE_ANIMATOR_SOURCE_CUSTOM);
-     }
-   else
-     {
-        ecore_animator_custom_source_tick_begin_callback_set(NULL, NULL);
-        ecore_animator_custom_source_tick_end_callback_set(NULL, NULL);
-        ecore_animator_source_set(ECORE_ANIMATOR_SOURCE_TIMER);
-     }
-}
-
-static void
-_outbuf_tick_schedule(int fd, void *data)
-{
-   if (!ticking) return;
-
-   drmVBlank vbl =
-     {
-        .request.type = DRM_VBLANK_RELATIVE | DRM_VBLANK_EVENT,
-        .request.sequence = 1,
-        .request.signal = (unsigned long)data,
-     };
-
-   if (drmWaitVBlank(fd, &vbl) < 0)
-     _outbuf_tick_source_set(NULL);
-}
-
-static void
-_cb_vblank(int fd, unsigned int frame EINA_UNUSED, unsigned int sec EINA_UNUSED, unsigned int usec EINA_UNUSED, void *data)
-{
-   ecore_animator_custom_tick();
-   if (ticking) _outbuf_tick_schedule(fd, data);
-}
-
-Outbuf_Fb *
-_outbuf_fb_find(Outbuf *ob, Ecore_Drm2_Fb *key)
-{
-   int i;
-
-   for (i = 0; i < ob->priv.num; i++)
-     if (key == ob->priv.ofb[i].fb) return &ob->priv.ofb[i];
-
-   return NULL;
-}
-
-static void
-_cb_pageflip(int fd EINA_UNUSED, unsigned int frame EINA_UNUSED, unsigned int sec EINA_UNUSED, unsigned int usec EINA_UNUSED, void *data)
-{
-   Outbuf *ob;
-   Outbuf_Fb *ofb;
-   Ecore_Drm2_Fb *next;
-
-   ob = data;
-
-   ofb = ob->priv.display;
-   if (ofb) ofb->busy = EINA_FALSE;
-
-   next = ecore_drm2_output_next_fb_get(ob->priv.output);
-   if (next)
-     {
-        ecore_drm2_output_next_fb_set(ob->priv.output, NULL);
-        ecore_drm2_fb_flip(next, ob->priv.output, ob);
-     }
-}
-
-static Eina_Bool
-_cb_drm_event(void *data, Ecore_Fd_Handler *hdlr EINA_UNUSED)
-{
-   Outbuf *ob;
-   int ret;
-
-   ob = data;
-   ret = drmHandleEvent(ob->fd, &ob->ctx);
-   if (ret)
-     {
-        WRN("drmHandleEvent failed to read an event");
-        return EINA_FALSE;
-     }
-
-   return EINA_TRUE;
-}
-
 static void
 _outbuf_buffer_swap(Outbuf *ob, Eina_Rectangle *rects, unsigned int count)
 {
    /* Ecore_Drm2_Plane *plane; */
-   Outbuf_Fb *ofb, *next_ofb;
-   Ecore_Drm2_Fb *next;
+   Outbuf_Fb *ofb;
 
    ofb = ob->priv.draw;
    if (!ofb) return;
 
-   /* If there's a next buffer set, we just dump it back into
-    * the available buffers and it becomes a dropped frame
-    */
-   next = ecore_drm2_output_next_fb_get(ob->priv.output);
-   if (next)
-     {
-        next_ofb = _outbuf_fb_find(ob, next);
-        next_ofb->busy = EINA_FALSE;
-        ecore_drm2_output_next_fb_set(ob->priv.output, NULL);
-     }
-
    ecore_drm2_fb_dirty(ofb->fb, rects, count);
-   if (ecore_drm2_fb_flip(ofb->fb, ob->priv.output, ob) == 0)
-     ob->priv.display = ofb;
-
-   ofb->busy = EINA_TRUE;
+   ecore_drm2_fb_flip(ofb->fb, ob->priv.output);
    ofb->drawn = EINA_TRUE;
    ofb->age = 0;
 
@@ -192,7 +67,6 @@ _outbuf_fb_create(Outbuf *ob, Outbuf_Fb *ofb)
    if (!ofb->fb) return EINA_FALSE;
 
    ofb->age = 0;
-   ofb->busy = EINA_FALSE;
    ofb->drawn = EINA_FALSE;
    ofb->valid = EINA_TRUE;
 
@@ -206,7 +80,6 @@ _outbuf_fb_destroy(Outbuf_Fb *ofb)
 
    memset(ofb, 0, sizeof(*ofb));
    ofb->valid = EINA_FALSE;
-   ofb->busy = EINA_FALSE;
    ofb->drawn = EINA_FALSE;
    ofb->age = 0;
 }
@@ -252,18 +125,6 @@ _outbuf_setup(Evas_Engine_Info_Drm *info, int w, int h)
           }
      }
 
-   /* setup vblank handler */
-   memset(&ob->ctx, 0, sizeof(ob->ctx));
-   ob->ctx.version = DRM_EVENT_CONTEXT_VERSION;
-   ob->ctx.vblank_handler = _cb_vblank;
-   ob->ctx.page_flip_handler = _cb_pageflip;
-
-   ob->hdlr =
-     ecore_main_fd_handler_add(ob->fd, ECORE_FD_READ, _cb_drm_event, ob,
-                               NULL, NULL);
-
-   _outbuf_tick_source_set(ob);
-
    return ob;
 }
 
@@ -274,8 +135,6 @@ _outbuf_free(Outbuf *ob)
 
    for (i = 0; i < ob->priv.num; i++)
      _outbuf_fb_destroy(&ob->priv.ofb[i]);
-
-   ecore_main_fd_handler_del(ob->hdlr);
 
    free(ob);
 }
@@ -363,20 +222,22 @@ _outbuf_reconfigure(Outbuf *ob, int w, int h, int rotation, Outbuf_Depth depth)
 static Outbuf_Fb *
 _outbuf_fb_wait(Outbuf *ob)
 {
-   int iter = 0, i = 0;
+   int i = 0, best = -1, best_age = -1;
 
-   while (iter++ < 10)
+   /* We pick the oldest available buffer to avoid using the same two
+    * repeatedly and then having the third be stale when we need it
+    */
+   for (i = 0; i < ob->priv.num; i++)
      {
-        for (i = 0; i < ob->priv.num; i++)
+        if (ecore_drm2_fb_busy_get(ob->priv.ofb[i].fb)) continue;
+        if (ob->priv.ofb[i].valid && (ob->priv.ofb[i].age > best_age))
           {
-             if (&ob->priv.ofb[i] == ob->priv.display) continue;
-             if (ob->priv.ofb[i].busy) continue;
-             if (ob->priv.ofb[i].valid) return &(ob->priv.ofb[i]);
+             best = i;
+             best_age = ob->priv.ofb[i].age;
           }
-
-        drmHandleEvent(ob->fd, &ob->ctx);
      }
 
+   if (best >= 0) return &(ob->priv.ofb[best]);
    return NULL;
 }
 
@@ -386,21 +247,10 @@ _outbuf_fb_assign(Outbuf *ob)
    int i;
 
    ob->priv.draw = _outbuf_fb_wait(ob);
-
-   if (!ob->priv.draw)
+   while (!ob->priv.draw)
      {
-        WRN("No Free Buffers. Dropping a frame");
-        for (i = 0; i < ob->priv.num; i++)
-          {
-             if (ob->priv.ofb[i].valid)
-               {
-                  ob->priv.ofb[i].busy = 0;
-                  ob->priv.ofb[i].age = 0;
-                  ob->priv.ofb[i].drawn = EINA_FALSE;
-               }
-          }
-
-        return EINA_FALSE;
+        ecore_drm2_fb_release(ob->priv.output, EINA_TRUE);
+        ob->priv.draw = _outbuf_fb_wait(ob);
      }
 
    for (i = 0; i < ob->priv.num; i++)
@@ -408,7 +258,7 @@ _outbuf_fb_assign(Outbuf *ob)
         if ((ob->priv.ofb[i].valid) && (ob->priv.ofb[i].drawn))
           {
              ob->priv.ofb[i].age++;
-             if (ob->priv.ofb[i].age > ob->priv.num)
+             if (ob->priv.ofb[i].age > 4)
                {
                   ob->priv.ofb[i].age = 0;
                   ob->priv.ofb[i].drawn = EINA_FALSE;
@@ -445,7 +295,7 @@ _outbuf_update_region_new(Outbuf *ob, int x, int y, int w, int h, int *cx, int *
 
    RECTS_CLIP_TO_RECT(x, y, w, h, 0, 0, ob->w, ob->h);
 
-   if ((ob->rotation == 0))// && (ob->depth == 32))
+   if (ob->rotation == 0) // && (ob->depth == 32))
      {
         Eina_Rectangle *rect;
 
@@ -626,21 +476,24 @@ _outbuf_update_region_free(Outbuf *ob EINA_UNUSED, RGBA_Image *update EINA_UNUSE
 }
 
 void
-_outbuf_flush(Outbuf *ob, Tilebuf_Rect *rects EINA_UNUSED, Evas_Render_Mode render_mode)
+_outbuf_flush(Outbuf *ob, Tilebuf_Rect *surface_damage EINA_UNUSED, Tilebuf_Rect *buffer_damage EINA_UNUSED, Evas_Render_Mode render_mode)
 {
    Eina_Rectangle *r;
    RGBA_Image *img;
-   unsigned int n = 0, i = 0;
+   unsigned int i = 0;
 
    if (render_mode == EVAS_RENDER_MODE_ASYNC_INIT) return;
 
+   if (ob->priv.rect_count) free(ob->priv.rects);
+
    /* get number of pending writes */
-   n = eina_list_count(ob->priv.pending);
-   if (n == 0) return;
+   ob->priv.rect_count = eina_list_count(ob->priv.pending);
+   if (ob->priv.rect_count == 0) return;
 
    /* allocate rectangles */
-   r = alloca(n * sizeof(Eina_Rectangle));
-   if (!r) return;
+   ob->priv.rects = malloc(ob->priv.rect_count * sizeof(Eina_Rectangle));
+   if (!ob->priv.rects) return;
+   r = ob->priv.rects;
 
    /* loop the pending writes */
    EINA_LIST_FREE(ob->priv.pending, img)
@@ -698,7 +551,14 @@ _outbuf_flush(Outbuf *ob, Tilebuf_Rect *rects EINA_UNUSED, Evas_Render_Mode rend
 
         i++;
      }
+}
 
-   /* force a buffer swap */
-   _outbuf_buffer_swap(ob, r, n);
+void
+_outbuf_redraws_clear(Outbuf *ob)
+{
+   if (!ob->priv.rect_count) return;
+
+   _outbuf_buffer_swap(ob, ob->priv.rects, ob->priv.rect_count);
+   free(ob->priv.rects);
+   ob->priv.rect_count = 0;
 }

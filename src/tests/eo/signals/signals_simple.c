@@ -11,10 +11,10 @@ typedef struct
    int a;
 } Private_Data;
 
-EAPI const Eo_Event_Description _EV_A_CHANGED =
-        EO_EVENT_DESCRIPTION("a,changed");
-EAPI const Eo_Event_Description _EV_RESTART =
-        EO_EVENT_DESCRIPTION_RESTART("restart");
+EAPI const Efl_Event_Description _EV_A_CHANGED =
+        EFL_EVENT_DESCRIPTION("a,changed");
+EAPI const Efl_Event_Description _EV_RESTART =
+        EFL_EVENT_DESCRIPTION_RESTART("restart");
 
 #define MY_CLASS SIMPLE_CLASS
 
@@ -25,14 +25,14 @@ _a_set(Eo *obj, void *class_data, int a)
    pd->a = a;
    printf("%s %d\n", __func__, pd->a);
 
-   eo_event_callback_call(obj, EV_A_CHANGED, &pd->a);
+   efl_event_callback_legacy_call(obj, EV_A_CHANGED, &pd->a);
 }
 
 void
-_cb_added(void *data EINA_UNUSED, const Eo_Event *event)
+_cb_added(void *data EINA_UNUSED, const Efl_Event *event)
 {
-   Simple_Public_Data *pd = eo_data_scope_get(event->object, MY_CLASS);
-   const Eo_Callback_Array_Item *callback_array = event->info;
+   Simple_Public_Data *pd = efl_data_scope_get(event->object, MY_CLASS);
+   const Efl_Callback_Array_Item *callback_array = event->info;
 
    if (callback_array->desc != EV_A_CHANGED)
       return;
@@ -43,10 +43,10 @@ _cb_added(void *data EINA_UNUSED, const Eo_Event *event)
 }
 
 void
-_cb_deled(void *data EINA_UNUSED, const Eo_Event *event)
+_cb_deled(void *data EINA_UNUSED, const Efl_Event *event)
 {
-   Simple_Public_Data *pd = eo_data_scope_get(event->object, MY_CLASS);
-   const Eo_Callback_Array_Item *callback_array = event->info;
+   Simple_Public_Data *pd = efl_data_scope_get(event->object, MY_CLASS);
+   const Efl_Callback_Array_Item *callback_array = event->info;
 
    if (callback_array->desc != EV_A_CHANGED)
       return;
@@ -59,39 +59,37 @@ _cb_deled(void *data EINA_UNUSED, const Eo_Event *event)
 static Eo *
 _constructor(Eo *obj, void *class_data EINA_UNUSED)
 {
-   obj = eo_constructor(eo_super(obj, MY_CLASS));
+   obj = efl_constructor(efl_super(obj, MY_CLASS));
 
-   eo_event_callback_add(obj, EO_EVENT_CALLBACK_ADD, _cb_added, NULL);
-   eo_event_callback_add(obj, EO_EVENT_CALLBACK_DEL, _cb_deled, NULL);
+   efl_event_callback_add(obj, EFL_EVENT_CALLBACK_ADD, _cb_added, NULL);
+   efl_event_callback_add(obj, EFL_EVENT_CALLBACK_DEL, _cb_deled, NULL);
 
-   eo_key_data_set(obj, "cb_count", NULL);
+   efl_key_data_set(obj, "cb_count", NULL);
 
    return obj;
 }
 
-EAPI EO_VOID_FUNC_BODYV(simple_a_set, EO_FUNC_CALL(a), int a);
+EAPI EFL_VOID_FUNC_BODYV(simple_a_set, EFL_FUNC_CALL(a), int a);
 
-static Eo_Op_Description op_descs[] = {
-     EO_OP_FUNC_OVERRIDE(eo_constructor, _constructor),
-     EO_OP_FUNC(simple_a_set, _a_set),
-};
+static Eina_Bool
+_class_initializer(Efl_Class *klass)
+{
+   EFL_OPS_DEFINE(ops,
+         EFL_OBJECT_OP_FUNC(efl_constructor, _constructor),
+         EFL_OBJECT_OP_FUNC(simple_a_set, _a_set),
+   );
 
+   return efl_class_functions_set(klass, &ops, NULL);
+}
 
-static const Eo_Event_Description *event_desc[] = {
-     EV_A_CHANGED,
-     EV_RESTART,
-     NULL
-};
-
-static const Eo_Class_Description class_desc = {
+static const Efl_Class_Description class_desc = {
      EO_VERSION,
      "Simple",
-     EO_CLASS_TYPE_REGULAR,
-     EO_CLASS_DESCRIPTION_OPS(op_descs),
-     event_desc,
+     EFL_CLASS_TYPE_REGULAR,
      sizeof(Private_Data),
+     _class_initializer,
      NULL,
      NULL
 };
 
-EO_DEFINE_CLASS(simple_class_get, &class_desc, EO_CLASS, NULL);
+EFL_DEFINE_CLASS(simple_class_get, &class_desc, EO_CLASS, NULL);

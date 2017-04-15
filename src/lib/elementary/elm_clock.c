@@ -73,7 +73,7 @@ _on_clock_val_up(void *data)
    sd->interval = sd->interval / 1.05;
    ecore_timer_interval_set(sd->spin, sd->interval);
    _time_update(data, EINA_FALSE);
-   eo_event_callback_call(data, ELM_CLOCK_EVENT_CHANGED, NULL);
+   efl_event_callback_legacy_call(data, ELM_CLOCK_EVENT_CHANGED, NULL);
    return ECORE_CALLBACK_RENEW;
 
 clock_val_up_cancel:
@@ -128,7 +128,7 @@ _on_clock_val_down(void *data)
    sd->interval = sd->interval / 1.05;
    ecore_timer_interval_set(sd->spin, sd->interval);
    _time_update(data, EINA_FALSE);
-   eo_event_callback_call(data, ELM_CLOCK_EVENT_CHANGED, NULL);
+   efl_event_callback_legacy_call(data, ELM_CLOCK_EVENT_CHANGED, NULL);
    return ECORE_CALLBACK_RENEW;
 
 clock_val_down_cancel:
@@ -565,7 +565,7 @@ _elm_clock_elm_widget_theme_apply(Eo *obj, Elm_Clock_Data *sd EINA_UNUSED)
 {
    Elm_Theme_Apply int_ret = ELM_THEME_APPLY_FAILED;
 
-   int_ret = elm_obj_widget_theme_apply(eo_super(obj, MY_CLASS));
+   int_ret = elm_obj_widget_theme_apply(efl_super(obj, MY_CLASS));
    if (!int_ret) return ELM_THEME_APPLY_FAILED;
 
    _time_update(obj, EINA_TRUE);
@@ -654,7 +654,7 @@ _elm_clock_efl_canvas_group_group_add(Eo *obj, Elm_Clock_Data *priv)
 {
    ELM_WIDGET_DATA_GET_OR_RETURN(obj, wd);
 
-   efl_canvas_group_add(eo_super(obj, MY_CLASS));
+   efl_canvas_group_add(efl_super(obj, MY_CLASS));
    elm_widget_sub_object_parent_add(obj);
 
    priv->cur.ampm = -1;
@@ -696,7 +696,7 @@ _elm_clock_efl_canvas_group_group_del(Eo *obj, Elm_Clock_Data *sd)
 
    /* NB: digits are killed for being sub objects, automatically */
 
-   efl_canvas_group_del(eo_super(obj, MY_CLASS));
+   efl_canvas_group_del(efl_super(obj, MY_CLASS));
 }
 
 static Eina_Bool _elm_clock_smart_focus_next_enable = EINA_FALSE;
@@ -790,14 +790,14 @@ EAPI Evas_Object *
 elm_clock_add(Evas_Object *parent)
 {
    EINA_SAFETY_ON_NULL_RETURN_VAL(parent, NULL);
-   Evas_Object *obj = eo_add(MY_CLASS, parent);
+   Evas_Object *obj = efl_add(MY_CLASS, parent);
    return obj;
 }
 
 EOLIAN static Eo *
-_elm_clock_eo_base_constructor(Eo *obj, Elm_Clock_Data *_pd EINA_UNUSED)
+_elm_clock_efl_object_constructor(Eo *obj, Elm_Clock_Data *_pd EINA_UNUSED)
 {
-   obj = eo_constructor(eo_super(obj, MY_CLASS));
+   obj = efl_constructor(efl_super(obj, MY_CLASS));
    efl_canvas_object_type_set(obj, MY_CLASS_NAME_LEGACY);
    evas_object_smart_callbacks_descriptions_set(obj, _smart_callbacks);
    elm_interface_atspi_accessible_role_set(obj, ELM_ATSPI_ROLE_TEXT);
@@ -949,7 +949,7 @@ _elm_clock_elm_widget_focus_direction_manager_is(Eo *obj EINA_UNUSED, Elm_Clock_
 }
 
 static void
-_elm_clock_class_constructor(Eo_Class *klass)
+_elm_clock_class_constructor(Efl_Class *klass)
 {
    evas_smart_legacy_type_register(MY_CLASS_NAME_LEGACY, klass);
 

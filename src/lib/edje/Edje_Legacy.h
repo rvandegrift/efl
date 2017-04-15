@@ -1,9 +1,9 @@
 /**
- * @brief Instantiate a new Edje object
+ * @brief Instantiates a new Edje object.
  *
  * @param evas A valid Evas handle, the canvas to place the new object
  * in
- * @return A handle to the new object created or @c NULL, on errors.
+ * @return A handle to the new object created, or @c NULL on errors.
  *
  * This function creates a new Edje smart object, returning its @c
  * Evas_Object handle. An Edje object is useless without a (source)
@@ -37,7 +37,7 @@
  * in-line just after the recalculation has occurred. It is a good idea not
  * to go and delete or alter the object inside this callbacks, simply make
  * a note that the recalculation has taken place and then do something about
- * it outside the callback. to register a callback use code like:
+ * it outside the callback. To register a callback use code like:
  *
  * @code
  *    evas_object_smart_callback_add(edje_obj, "recalc", my_cb, my_cb_data);
@@ -52,7 +52,7 @@
 EAPI Evas_Object *edje_object_add                 (Evas *evas);
 
 /**
- * @brief Remove a signal-triggered callback from an object.
+ * @brief Removes a signal-triggered callback from an object.
  *
  * @param obj A valid Evas_Object handle.
  * @param emission The emission string.
@@ -73,7 +73,7 @@ EAPI Evas_Object *edje_object_add                 (Evas *evas);
 EAPI void        *edje_object_signal_callback_del (Evas_Object *obj, const char *emission, const char *source, Edje_Signal_Cb func);
 
 /**
- * @brief Unregister/delete a callback set for an arriving Edje
+ * @brief Unregisters/deletes a callback set for an arriving Edje
  * signal, emitted by a given Edje object.
  *
  * @param obj A handle to an Edje object
@@ -82,7 +82,7 @@ EAPI void        *edje_object_signal_callback_del (Evas_Object *obj, const char 
  * @param func The callback function passed on the callback's
  * registration
  * @param data The pointer given to be passed as data to @p func
- * @return @p data, on success or @c NULL, on errors (or if @p data
+ * @return @p data on success, or @c NULL on errors (or if @p data
  * had this value)
  *
  * This function removes a callback, previously attached to the
@@ -98,7 +98,8 @@ EAPI void        *edje_object_signal_callback_del (Evas_Object *obj, const char 
 EAPI void        *edje_object_signal_callback_del_full(Evas_Object *obj, const char *emission, const char *source, Edje_Signal_Cb func, void *data);
 
  /**
- * @brief Set the object minimum size.
+ * @deprecated use evas_object_size_hint_min_set() instead.
+ * @brief Sets the object minimum size.
  *
  * @param obj A valid Evas_Object handle
  * @param minw The minimum width
@@ -106,12 +107,12 @@ EAPI void        *edje_object_signal_callback_del_full(Evas_Object *obj, const c
  *
  * This sets the minimum size restriction for the object.
  *
- * @deprecated use evas_object_size_hint_min_set() instead.
  */
 EINA_DEPRECATED EAPI void         edje_extern_object_min_size_set (Evas_Object *obj, Evas_Coord minw, Evas_Coord minh);
 
 /**
- * @brief Set the object maximum size.
+ * @deprecated use evas_object_size_hint_max_set() instead.
+ * @brief Sets the object maximum size.
  *
  * @param obj A valid Evas_Object handle
  * @param maxw The maximum width
@@ -119,12 +120,12 @@ EINA_DEPRECATED EAPI void         edje_extern_object_min_size_set (Evas_Object *
  *
  * This sets the maximum size restriction for the object.
  *
- * @deprecated use evas_object_size_hint_max_set() instead.
  */
 EAPI void         edje_extern_object_max_size_set (Evas_Object *obj, Evas_Coord maxw, Evas_Coord maxh);
 
 /**
- * @brief Set the object aspect size.
+ * @deprecated use evas_object_size_hint_aspect_set() instead.
+ * @brief Sets the object aspect size.
  *
  * @param obj A valid Evas_Object handle
  * @param aspect The aspect control axes
@@ -136,7 +137,6 @@ EAPI void         edje_extern_object_max_size_set (Evas_Object *obj, Evas_Coord 
  * ASPECT and the object may be scaled to be larger or smaller, but
  * retaining the relative scale of both aspect width and height.
  *
- * @deprecated use evas_object_size_hint_aspect_set() instead.
  */
 EAPI void         edje_extern_object_aspect_set   (Evas_Object *obj, Edje_Aspect_Control aspect, Evas_Coord aw, Evas_Coord ah);
 
@@ -144,7 +144,7 @@ EAPI void         edje_extern_object_aspect_set   (Evas_Object *obj, Edje_Aspect
  * @brief Sets the @b EDJ file (and group within it) to load an Edje
  * object's contents from
  *
- * @return @c EINA_TRUE, on success or @c EINA_FALSE, on errors (check
+ * @return @c EINA_TRUE on success, or @c EINA_FALSE on errors (check
  * edje_object_load_error_get() after this call to get errors causes)
  *
  * Edje expects EDJ files, which are theming objects' descriptions and
@@ -174,7 +174,7 @@ Edje object
 EAPI Eina_Bool edje_object_file_set(Edje_Object *obj, const char *file, const char *group);
 
 /**
- * @brief Get the file and group name that a given Edje object is bound to
+ * @brief Gets the file and group name that a given Edje object is bound to.
  *
  * This gets the EDJ file's path, with the respective group set for
  * the given Edje object. If @a obj is either not an Edje file, or has
@@ -196,9 +196,9 @@ EAPI void edje_object_file_get(const Edje_Object *obj, const char **file, const 
 
 /**
  * @brief Sets the @b EDJ file (and group within it) to load an Edje
- * object's contents from
+ * object's contents from.
  *
- * @return @c EINA_TRUE, on success or @c EINA_FALSE, on errors (check
+ * @return @c EINA_TRUE on success, or @c EINA_FALSE on errors (check
  * edje_object_load_error_get() after this call to get errors causes)
  *
  * Edje expects EDJ files, which are theming objects' descriptions and
@@ -264,7 +264,7 @@ EAPI Eina_Bool edje_object_mmap_set(Edje_Object *obj, const Eina_File *file, con
 EAPI Eina_Bool edje_object_part_swallow(Edje_Object *obj, const char *part, Evas_Object *obj_swallow);
 
 /**
- * @brief Get the object currently swallowed by a part.
+ * @brief Gets the object currently swallowed by a part.
  *
  * @param[in] part The part name
  *
@@ -275,7 +275,7 @@ EAPI Eina_Bool edje_object_part_swallow(Edje_Object *obj, const char *part, Evas
 EAPI Evas_Object *edje_object_part_swallow_get(const Edje_Object *obj, const char *part);
 
 /**
- * @brief Unswallow an object.
+ * @brief Unswallows an object.
  *
  * Causes the edje to regurgitate a previously swallowed object. :)
  *
@@ -290,7 +290,7 @@ EAPI Evas_Object *edje_object_part_swallow_get(const Edje_Object *obj, const cha
 EAPI void edje_object_part_unswallow(Edje_Object *obj, Evas_Object *obj_swallow);
 
 /**
- * @brief Retrieve a list all accessibility part names
+ * @brief Retrieves a list all accessibility part names
  *
  * @return A list all accessibility part names on obj
  *
@@ -488,7 +488,7 @@ EAPI Eina_Bool edje_object_part_table_unpack(Edje_Object *obj, const char *part,
 EAPI Eina_Bool edje_object_part_table_col_row_size_get(const Edje_Object *obj, const char *part, int *cols, int *rows);
 
 /**
- * @brief Retrieve a child from a table
+ * @brief Retrieves a child from a table
  *
  * @param[in] col The column of the child to get
  * @param[in] row The row of the child to get
@@ -578,6 +578,20 @@ EAPI Eina_Bool edje_object_color_class_set(Evas_Object *obj, const char * color_
  * @ingroup Edje_Object
  */
 EAPI Eina_Bool edje_object_color_class_get(const Evas_Object *obj, const char * color_class, int *r, int *g, int *b, int *a, int *r2, int *g2, int *b2, int *a2, int *r3, int *g3, int *b3, int *a3);
+
+/**
+ * @brief Enables selection if the entry is an EXPLICIT selection mode type.
+ *
+ * The default is to  not allow selection. This function only affects user
+ * selection, functions such as edje_object_part_text_select_all() and
+ * edje_object_part_text_select_none() are not affected.
+ *
+ * @param[in] part The part name
+ * @param[in] allow true to enable, false otherwise
+ *
+ * @ingroup Edje_Object
+ */
+EAPI void edje_object_part_text_select_allow_set(const Edje_Object *obj, const char *part, Eina_Bool allow);
 
 #include "edje_object.eo.legacy.h"
 #include "edje_edit.eo.legacy.h"

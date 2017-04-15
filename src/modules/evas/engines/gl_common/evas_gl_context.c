@@ -9,9 +9,7 @@
 
 #define PRG_INVALID NULL
 #define GLPIPES 1
-#define FREE(a) do { if (a) { free(a); } a = NULL; } while(0)
 
-static int sym_done = 0;
 static int tbm_sym_done = 0;
 int _evas_engine_GL_common_log_dom = -1;
 Cutout_Rects *_evas_gl_common_cutout_rects = NULL;
@@ -33,6 +31,9 @@ void      *(*glsym_glMapBuffer)            (GLenum a, GLenum b) = NULL;
 GLboolean  (*glsym_glUnmapBuffer)          (GLenum a) = NULL;
 void       (*glsym_glStartTiling)          (GLuint a, GLuint b, GLuint c, GLuint d, GLuint e) = NULL;
 void       (*glsym_glEndTiling)            (GLuint a) = NULL;
+void       (*glsym_glRenderbufferStorageMultisample)(GLenum target, GLsizei samples, GLenum internalformat, GLsizei width, GLsizei height) = NULL;
+
+const char *(*glsym_glGetStringi) (GLenum name, GLuint index) = NULL;
 
 #ifdef GL_GLES
 
@@ -48,12 +49,16 @@ typedef int  (*secsym_func_int) ();
 typedef unsigned int  (*secsym_func_uint) ();
 typedef void         *(*secsym_func_void_ptr) ();
 
-void          *(*secsym_eglCreateImage)               (void *a, void *b, GLenum c, void *d, const int *e) = NULL;
 unsigned int   (*secsym_eglDestroyImage)              (void *a, void *b) = NULL;
 void           (*secsym_glEGLImageTargetTexture2DOES) (int a, void *b) = NULL;
 void          *(*secsym_eglMapImageSEC)               (void *a, void *b, int c, int d) = NULL;
 unsigned int   (*secsym_eglUnmapImageSEC)             (void *a, void *b, int c) = NULL;
 unsigned int   (*secsym_eglGetImageAttribSEC)         (void *a, void *b, int c, int *d) = NULL;
+
+/* This one is now a local wrapper to avoid type mixups */
+void *        evas_gl_common_eglCreateImage           (EGLDisplay dpy, EGLContext ctx, EGLenum target, EGLClientBuffer buffer, const EGLAttrib *attrib_list);
+static void * (*eglsym_eglCreateImage)                (EGLDisplay dpy, EGLContext ctx, EGLenum target, EGLClientBuffer buffer, const EGLAttrib *attrib_list) = NULL;
+static void * (*eglsym_eglCreateImageKHR)             (EGLDisplay dpy, EGLContext ctx, EGLenum target, EGLClientBuffer buffer, const EGLint *e) = NULL;
 
 ////////////////////////////////////
 //libtbm.so.1
@@ -79,107 +84,213 @@ sym_missing(void)
    ERR("GL symbols missing!");
 }
 
+static int
+_has_ext(const char *ext, const char **pexts, int *pnum)
+{
+   if (!ext) return EINA_FALSE;
+
+   if (glsym_glGetStringi)
+     {
+        GLint num = *pnum, k;
+        if (!num)
+          {
+             glGetIntegerv(GL_NUM_EXTENSIONS, &num);
+             *pnum = num;
+          }
+        for (k = 0; k < num; k++)
+          {
+             const char *support = glsym_glGetStringi(GL_EXTENSIONS, k);
+             if (support && !strcmp(support, ext))
+               return EINA_TRUE;
+          }
+        return EINA_FALSE;
+     }
+   else
+     {
+        const char *exts = *pexts;
+        if (!exts)
+          {
+             exts = (const char *) glGetString(GL_EXTENSIONS);
+             if (!exts) return EINA_FALSE;
+             *pexts = exts;
+          }
+        return strstr(exts, ext) != NULL;
+     }
+}
+
+#ifdef GL_GLES
+void *
+evas_gl_common_eglCreateImage(EGLDisplay dpy, EGLContext ctx, EGLenum target, EGLClientBuffer buffer, const EGLAttrib *attrib_list)
+{
+   if (eglsym_eglCreateImage)
+     return eglsym_eglCreateImage(dpy, ctx, target, buffer, attrib_list);
+   if (eglsym_eglCreateImageKHR)
+     {
+        int count, i;
+        EGLint *ints = NULL;
+
+        if (attrib_list)
+          {
+             for (count = 0; attrib_list[count] != EGL_NONE; count += 2);
+             count++;
+             ints = alloca(count * sizeof(EGLint));
+             for (i = 0; i < count; i++)
+               ints[i] = attrib_list[i];
+          }
+        return eglsym_eglCreateImageKHR(dpy, ctx, target, buffer, ints);
+     }
+   return NULL;
+}
+
+#endif
+
+/* FIXME: return error if a required symbol was not found */
 EAPI void
 evas_gl_symbols(void *(*GetProcAddress)(const char *name))
 {
-   if (sym_done) return;
-   sym_done = 1;
+   int failed = 0, num = 0;
+   const char *exts = NULL;
 
-#define FINDSYM(dst, sym, typ) \
-   if (GetProcAddress) { \
-      if (!dst) dst = (typ)GetProcAddress(sym); \
-   } else { \
-      if (!dst) dst = (typ)dlsym(RTLD_DEFAULT, sym); \
-   }
-#define FINDSYM2(dst, sym, typ) if (!dst) dst = (typ)dlsym(RTLD_DEFAULT, sym)
-#define FALLBAK(dst, typ) if (!dst) dst = (typ)sym_missing
+   static int done = 0;
+   if (done) return;
 
-#define SWAP(a, b, tmp) \
-   tmp = *a; \
-   *a = *b; \
-   *b = tmp;
+   /* For all extension functions, we need to match with the extension itself
+    * since GetProcAddress() can return a non-NULL value even when the function
+    * does not exist. Drivers can do a runtime mapping depending on the
+    * context. So, we only trust the return value of GetProcAddress() when
+    * we know for sure that the extension exists.
+    *
+    * Thus, if a symbol exists we will always prefer it rather than relying
+    * on GetProcAddress().
+    *
+    * -- jpeg, 2016/08/04
+    */
+
+   glsym_glGetStringi = dlsym(RTLD_DEFAULT, "glGetStringi");
+
+#define FINDSYM(dst, sym, ext, typ) do { \
+   if (!dst) { \
+      if (_has_ext(ext, &exts, &num) && GetProcAddress) \
+        dst = (typ) GetProcAddress(sym); \
+      if (!dst) \
+        dst = (typ) dlsym(RTLD_DEFAULT, sym); \
+   }} while (0)
+#define FALLBAK(dst, typ) do { \
+   if (!dst) { \
+      ERR("Symbol '%s' could not be found!", (#dst) + 6); \
+      dst = (typ) sym_missing; \
+      failed = EINA_TRUE; \
+   }} while (0)
 
 #ifdef GL_GLES
-   FINDSYM(glsym_glGenFramebuffers, "glGenFramebuffers", glsym_func_void);
-   FINDSYM2(glsym_glGenFramebuffers, "glGenFramebuffers", glsym_func_void);
+
+   FINDSYM(glsym_glGenFramebuffers, "glGenFramebuffers", NULL, glsym_func_void);
    FALLBAK(glsym_glGenFramebuffers, glsym_func_void);
+
+   FINDSYM(glsym_glBindFramebuffer, "glBindFramebuffer", NULL, glsym_func_void);
+   FALLBAK(glsym_glBindFramebuffer, glsym_func_void);
+
 #else
-   FINDSYM(glsym_glGenFramebuffers, "glGenFramebuffersEXT", glsym_func_void);
-   FINDSYM(glsym_glGenFramebuffers, "glGenFramebuffersARB", glsym_func_void);
-   FINDSYM(glsym_glGenFramebuffers, "glGenFramebuffers", glsym_func_void);
-   // nvidia tegra3 drivers seem to not expose via getprocaddress, but dlsym finds it
-   FINDSYM2(glsym_glGenFramebuffers, "glGenFramebuffers", glsym_func_void);
+
+   /*
+   Note about FBO APIs (from ARB_framebuffer_object):
+
+   Framebuffer objects created with the commands defined by the
+   GL_EXT_framebuffer_object extension are defined to be shared, while
+   FBOs created with commands defined by the OpenGL core or
+   GL_ARB_framebuffer_object extension are defined *not* to be shared.
+
+   [...]
+
+   Since the above pairs are aliases, the functions of a pair are
+   equivalent.  Note that the functions BindFramebuffer and
+   BindFramebufferEXT are not aliases and neither are the functions
+   BindRenderbuffer and BindRenderbufferEXT.  Because object creation
+   occurs when the framebuffer object is bound for the first time, a
+   framebuffer object can be shared across contexts only if it was first
+   bound with BindFramebufferEXT.  Framebuffers first bound with
+   BindFramebuffer may not be shared across contexts.  Framebuffer
+   objects created with BindFramebufferEXT may subsequently be bound
+   using BindFramebuffer.  Framebuffer objects created with
+   BindFramebuffer may be bound with BindFramebufferEXT provided they are
+   bound to the same context they were created on.
+
+   Undefined behavior results when using FBOs created by EXT commands
+   through non-EXT interfaces, or vice-versa.
+
+   Thus, I believe core should come first, then ARB and use EXT as fallback.
+   -- jpeg, 2016/08/04
+
+   Old note:
+   nvidia tegra3 drivers seem to not expose via getprocaddress, but dlsym finds it:
+   glGenFramebuffers, glBindFramebuffer, glFramebufferTexture2D, glDeleteFramebuffers
+   */
+
+   FINDSYM(glsym_glGenFramebuffers, "glGenFramebuffers", NULL, glsym_func_void);
+   FINDSYM(glsym_glGenFramebuffers, "glGenFramebuffersARB", "GL_ARB_framebuffer_object", glsym_func_void);
+   FINDSYM(glsym_glGenFramebuffers, "glGenFramebuffersEXT", "GL_EXT_framebuffer_object", glsym_func_void);
    FALLBAK(glsym_glGenFramebuffers, glsym_func_void);
+
+   FINDSYM(glsym_glBindFramebuffer, "glBindFramebuffer", NULL, glsym_func_void);
+   FINDSYM(glsym_glBindFramebuffer, "glBindFramebufferARB", "GL_ARB_framebuffer_object", glsym_func_void);
+   FINDSYM(glsym_glBindFramebuffer, "glBindFramebufferEXT", "GL_EXT_framebuffer_object", glsym_func_void);
+   FALLBAK(glsym_glBindFramebuffer, glsym_func_void);
+
 #endif
 
-#ifdef GL_GLES
-   FINDSYM(glsym_glBindFramebuffer, "glBindFramebuffer", glsym_func_void);
-   FINDSYM2(glsym_glBindFramebuffer, "glBindFramebuffer", glsym_func_void);
-   FALLBAK(glsym_glBindFramebuffer, glsym_func_void);
-#else
-   FINDSYM(glsym_glBindFramebuffer, "glBindFramebufferEXT", glsym_func_void);
-   FINDSYM(glsym_glBindFramebuffer, "glBindFramebufferARB", glsym_func_void);
-   FINDSYM(glsym_glBindFramebuffer, "glBindFramebuffer", glsym_func_void);
-   // nvidia tegra3 drivers seem to not expose via getprocaddress, but dlsym finds it
-   FINDSYM2(glsym_glBindFramebuffer, "glBindFramebuffer", glsym_func_void);
-   FALLBAK(glsym_glBindFramebuffer, glsym_func_void);
-#endif
-
-   FINDSYM(glsym_glFramebufferTexture2D, "glFramebufferTexture2DEXT", glsym_func_void);
-   FINDSYM(glsym_glFramebufferTexture2D, "glFramebufferTexture2DARB", glsym_func_void);
-   FINDSYM(glsym_glFramebufferTexture2D, "glFramebufferTexture2D", glsym_func_void);
-   // nvidia tegra3 drivers seem to not expose via getprocaddress, but dlsym finds it
-   FINDSYM2(glsym_glFramebufferTexture2D, "glFramebufferTexture2D", glsym_func_void);
+   FINDSYM(glsym_glFramebufferTexture2D, "glFramebufferTexture2D", NULL, glsym_func_void);
+   FINDSYM(glsym_glFramebufferTexture2D, "glFramebufferTexture2DARB", "GL_ARB_framebuffer_object", glsym_func_void);
+   FINDSYM(glsym_glFramebufferTexture2D, "glFramebufferTexture2DEXT", "GL_EXT_framebuffer_object", glsym_func_void);
    FALLBAK(glsym_glFramebufferTexture2D, glsym_func_void);
 
-   FINDSYM(glsym_glDeleteFramebuffers, "glDeleteFramebuffersEXT", glsym_func_void);
-   FINDSYM(glsym_glDeleteFramebuffers, "glDeleteFramebuffersARB", glsym_func_void);
-   FINDSYM(glsym_glDeleteFramebuffers, "glDeleteFramebuffers", glsym_func_void);
-   // nvidia tegra3 drivers seem to not expose via getprocaddress, but dlsym finds it
-   FINDSYM2(glsym_glDeleteFramebuffers, "glDeleteFramebuffers", glsym_func_void);
+   FINDSYM(glsym_glDeleteFramebuffers, "glDeleteFramebuffers", NULL, glsym_func_void);
+   FINDSYM(glsym_glDeleteFramebuffers, "glDeleteFramebuffersARB", "GL_ARB_framebuffer_object", glsym_func_void);
+   FINDSYM(glsym_glDeleteFramebuffers, "glDeleteFramebuffersEXT", "GL_EXT_framebuffer_object", glsym_func_void);
    FALLBAK(glsym_glDeleteFramebuffers, glsym_func_void);
 
-   FINDSYM(glsym_glGetProgramBinary, "glGetProgramBinaryOES", glsym_func_void);
-   FINDSYM(glsym_glGetProgramBinary, "glGetProgramBinaryKHR", glsym_func_void);
-   FINDSYM(glsym_glGetProgramBinary, "glGetProgramBinaryEXT", glsym_func_void);
-   FINDSYM(glsym_glGetProgramBinary, "glGetProgramBinaryARB", glsym_func_void);
-   FINDSYM(glsym_glGetProgramBinary, "glGetProgramBinary", glsym_func_void);
+   // Not sure there's an EXT variant
+   FINDSYM(glsym_glGetProgramBinary, "glGetProgramBinary", NULL, glsym_func_void);
+   FINDSYM(glsym_glGetProgramBinary, "glGetProgramBinaryOES", "GL_OES_get_program_binary", glsym_func_void);
+   FINDSYM(glsym_glGetProgramBinary, "glGetProgramBinaryEXT", "GL_EXT_get_program_binary", glsym_func_void);
 
-   FINDSYM(glsym_glProgramBinary, "glProgramBinaryOES", glsym_func_void);
-   FINDSYM(glsym_glProgramBinary, "glProgramBinaryKHR", glsym_func_void);
-   FINDSYM(glsym_glProgramBinary, "glProgramBinaryEXT", glsym_func_void);
-   FINDSYM(glsym_glProgramBinary, "glProgramBinaryARB", glsym_func_void);
-   FINDSYM(glsym_glProgramBinary, "glProgramBinary", glsym_func_void);
+   // Not sure there's an EXT variant
+   FINDSYM(glsym_glProgramBinary, "glProgramBinary", NULL, glsym_func_void);
+   FINDSYM(glsym_glProgramBinary, "glProgramBinaryOES", "GL_OES_get_program_binary", glsym_func_void);
+   FINDSYM(glsym_glProgramBinary, "glProgramBinaryEXT", "GL_EXT_get_program_binary", glsym_func_void);
 
-   FINDSYM(glsym_glProgramParameteri, "glProgramParameteriEXT", glsym_func_void);
-   FINDSYM(glsym_glProgramParameteri, "glProgramParameteriARB", glsym_func_void);
-   FINDSYM(glsym_glProgramParameteri, "glProgramParameteri", glsym_func_void);
+   FINDSYM(glsym_glProgramParameteri, "glProgramParameteri", NULL, glsym_func_void);
+   FINDSYM(glsym_glProgramParameteri, "glProgramParameteriEXT", "GL_EXT_separate_shader_objects", glsym_func_void);
+   FINDSYM(glsym_glProgramParameteri, "glProgramParameteriARB", "GL_ARB_geometry_shader4", glsym_func_void);
 
-   FINDSYM(glsym_glReleaseShaderCompiler, "glReleaseShaderCompilerEXT", glsym_func_void);
-   FINDSYM(glsym_glReleaseShaderCompiler, "glReleaseShaderCompilerARB", glsym_func_void);
-   FINDSYM(glsym_glReleaseShaderCompiler, "glReleaseShaderCompiler", glsym_func_void);
+   FINDSYM(glsym_glReleaseShaderCompiler, "glReleaseShaderCompiler", NULL, glsym_func_void);
+#ifndef GL_GLES
+   FINDSYM(glsym_glReleaseShaderCompiler, "glReleaseShaderCompiler", "GL_ARB_ES2_compatibility", glsym_func_void);
+#endif
 
-   FINDSYM(glsym_glStartTiling, "glStartTilingQCOM", glsym_func_void);
-   FINDSYM(glsym_glStartTiling, "glStartTiling", glsym_func_void);
-   FINDSYM(glsym_glStartTiling, "glActivateTileQCOM", glsym_func_void);
-
-   FINDSYM(glsym_glEndTiling, "glEndTilingQCOM", glsym_func_void);
-   FINDSYM(glsym_glEndTiling, "glEndTiling", glsym_func_void);
+   // Not sure there's a core variant, glActivateTileQCOM is strange as well
+   FINDSYM(glsym_glStartTiling, "glStartTilingQCOM", "GL_QCOM_tiled_rendering", glsym_func_void);
+   FINDSYM(glsym_glStartTiling, "glStartTiling", NULL, glsym_func_void);
+   FINDSYM(glsym_glStartTiling, "glActivateTileQCOM", NULL, glsym_func_void);
+   FINDSYM(glsym_glEndTiling, "glEndTilingQCOM", "GL_QCOM_tiled_rendering", glsym_func_void);
+   FINDSYM(glsym_glEndTiling, "glEndTiling", NULL, glsym_func_void);
    
    if (!getenv("EVAS_GL_MAPBUFFER_DISABLE"))
      {
-        FINDSYM(glsym_glMapBuffer, "glMapBufferOES", glsym_func_void_ptr);
-        FINDSYM(glsym_glMapBuffer, "glMapBufferEXT", glsym_func_void_ptr);
-        FINDSYM(glsym_glMapBuffer, "glMapBufferARB", glsym_func_void_ptr);
-        FINDSYM(glsym_glMapBuffer, "glMapBufferKHR", glsym_func_void_ptr);
-        FINDSYM(glsym_glMapBuffer, "glMapBuffer", glsym_func_void_ptr);
+        // Not sure there's an EXT variant. (probably no KHR variant)
+        FINDSYM(glsym_glMapBuffer, "glMapBuffer", NULL, glsym_func_void_ptr);
+        FINDSYM(glsym_glMapBuffer, "glMapBufferOES", "GL_OES_mapbuffer", glsym_func_void_ptr);
+        FINDSYM(glsym_glMapBuffer, "glMapBufferARB", "GL_ARB_vertex_buffer_object", glsym_func_void_ptr);
+        FINDSYM(glsym_glMapBuffer, "glMapBufferARB", "GLX_ARB_vertex_buffer_object", glsym_func_void_ptr);
+        FINDSYM(glsym_glMapBuffer, "glMapBufferEXT", NULL, glsym_func_void_ptr);
 
-        FINDSYM(glsym_glUnmapBuffer, "glUnmapBufferOES", glsym_func_boolean);
-        FINDSYM(glsym_glUnmapBuffer, "glUnmapBufferEXT", glsym_func_boolean); 
-        FINDSYM(glsym_glUnmapBuffer, "glUnmapBufferARB", glsym_func_boolean);
-        FINDSYM(glsym_glUnmapBuffer, "glUnmapBufferKHR", glsym_func_boolean);
-        FINDSYM(glsym_glUnmapBuffer, "glUnmapBuffer", glsym_func_boolean);
+        FINDSYM(glsym_glUnmapBuffer, "glUnmapBuffer", NULL, glsym_func_boolean);
+        FINDSYM(glsym_glUnmapBuffer, "glUnmapBufferOES", "GL_OES_mapbuffer", glsym_func_boolean);
+        FINDSYM(glsym_glUnmapBuffer, "glUnmapBufferARB", "GL_ARB_vertex_buffer_object", glsym_func_boolean);
+        FINDSYM(glsym_glUnmapBuffer, "glUnmapBufferARB", "GLX_ARB_vertex_buffer_object", glsym_func_boolean);
+        FINDSYM(glsym_glUnmapBuffer, "glUnmapBufferEXT", NULL, glsym_func_boolean);
      }
+
+   FINDSYM(glsym_glRenderbufferStorageMultisample, "glRenderbufferStorageMultisample", NULL, glsym_func_void);
 
 #ifdef GL_GLES
 // yes - gl core looking for egl stuff. i know it's odd. a reverse-layer thing
@@ -188,36 +299,41 @@ evas_gl_symbols(void *(*GetProcAddress)(const char *name))
 // wrong as this is not x11 (output) layer specific like the native surface
 // stuff. this is generic zero-copy textures for gl
 
-   FINDSYM(secsym_eglCreateImage, "eglCreateImageOES", secsym_func_void_ptr);
-   FINDSYM(secsym_eglCreateImage, "eglCreateImageKHR", secsym_func_void_ptr);
-   FINDSYM(secsym_eglCreateImage, "eglCreateImageEXT", secsym_func_void_ptr);
-   FINDSYM(secsym_eglCreateImage, "eglCreateImageARB", secsym_func_void_ptr);
-   FINDSYM(secsym_eglCreateImage, "eglCreateImage", secsym_func_void_ptr);
+   FINDSYM(eglsym_eglCreateImage, "eglCreateImage", NULL, secsym_func_void_ptr);
+   FINDSYM(eglsym_eglCreateImageKHR, "eglCreateImageKHR", "EGL_KHR_image_base", secsym_func_void_ptr);
+   FINDSYM(eglsym_eglCreateImageKHR, "eglCreateImageKHR", "EGL_KHR_image", secsym_func_void_ptr);
+   FINDSYM(eglsym_eglCreateImageKHR, "eglCreateImageOES", "GL_OES_EGL_image_base", secsym_func_void_ptr);
+   FINDSYM(eglsym_eglCreateImageKHR, "eglCreateImageOES", "GL_OES_EGL_image", secsym_func_void_ptr);
 
-   FINDSYM(secsym_eglDestroyImage, "eglDestroyImageOES", secsym_func_uint);
-   FINDSYM(secsym_eglDestroyImage, "eglDestroyImageKHR", secsym_func_uint);
-   FINDSYM(secsym_eglDestroyImage, "eglDestroyImageEXT", secsym_func_uint);
-   FINDSYM(secsym_eglDestroyImage, "eglDestroyImageARB", secsym_func_uint);
-   FINDSYM(secsym_eglDestroyImage, "eglDestroyImage", secsym_func_uint);
+   FINDSYM(secsym_eglDestroyImage, "eglDestroyImage", NULL, secsym_func_uint);
+   FINDSYM(secsym_eglDestroyImage, "eglDestroyImageKHR", "EGL_KHR_image_base", secsym_func_uint);
+   FINDSYM(secsym_eglDestroyImage, "eglDestroyImageKHR", "EGL_KHR_image", secsym_func_uint);
+   FINDSYM(secsym_eglDestroyImage, "eglDestroyImageOES", "GL_OES_EGL_image_base", secsym_func_uint);
+   FINDSYM(secsym_eglDestroyImage, "eglDestroyImageOES", "GL_OES_EGL_image", secsym_func_uint);
 
-   FINDSYM(glsym_glProgramParameteri, "glProgramParameteriOES", glsym_func_void);
-   FINDSYM(glsym_glProgramParameteri, "glProgramParameteriKHR", glsym_func_void);
-   FINDSYM(glsym_glProgramParameteri, "glProgramParameteriEXT", glsym_func_void);
-   FINDSYM(glsym_glProgramParameteri, "glProgramParameteriARB", glsym_func_void);
-   FINDSYM(glsym_glProgramParameteri, "glProgramParameteri", glsym_func_void);
+   FINDSYM(glsym_glProgramParameteri, "glProgramParameteri", NULL, glsym_func_void);
+   FINDSYM(glsym_glProgramParameteri, "glProgramParameteriEXT", "GL_EXT_geometry_shader4", glsym_func_void);
+   FINDSYM(glsym_glProgramParameteri, "glProgramParameteriARB", "GL_ARB_geometry_shader4", glsym_func_void);
 
-   FINDSYM(secsym_glEGLImageTargetTexture2DOES, "glEGLImageTargetTexture2DOES", glsym_func_void);
+   FINDSYM(secsym_glEGLImageTargetTexture2DOES, "glEGLImageTargetTexture2DOES", "GL_OES_EGL_image_external", glsym_func_void);
 
-   FINDSYM(secsym_eglMapImageSEC, "eglMapImageSEC", secsym_func_void_ptr);
+   // Old SEC extensions
+   FINDSYM(secsym_eglMapImageSEC, "eglMapImageSEC", NULL, secsym_func_void_ptr);
+   FINDSYM(secsym_eglUnmapImageSEC, "eglUnmapImageSEC", NULL, secsym_func_uint);
+   FINDSYM(secsym_eglGetImageAttribSEC, "eglGetImageAttribSEC", NULL, secsym_func_uint);
 
-   FINDSYM(secsym_eglUnmapImageSEC, "eglUnmapImageSEC", secsym_func_uint);
-
-   FINDSYM(secsym_eglGetImageAttribSEC, "eglGetImageAttribSEC", secsym_func_uint);
 #endif
 
 #undef FINDSYM
-#undef FINDSYM2
 #undef FALLBAK
+
+   if (failed)
+     {
+        ERR("Some core GL symbols could not be found, the GL engine will not "
+            "work properly.");
+     }
+
+   done = 1;
 }
 
 static void
@@ -376,20 +492,21 @@ matrix_ortho(GLfloat *m,
    m[15] = (m[3] * tx) + (m[7] * ty) + orth;
 }
 
-static int
-_evas_gl_common_version_check(int *gles_ver)
+int
+evas_gl_common_version_check(int *minor_version)
 {
    char *version;
    char *tmp;
    char *tmp2;
    int major = 0;
    int minor = 0;
-   *gles_ver = 0;
 
   /*
    * glGetString returns a string describing the current GL connection.
    * GL_VERSION is used to get the version of the connection
    */
+
+   if (minor_version) *minor_version = 0;
 
    version = (char *)glGetString(GL_VERSION);
    if (!version)
@@ -426,8 +543,13 @@ _evas_gl_common_version_check(int *gles_ver)
    if (strstr(version, "OpenGL ES 3"))
      {
         /* Supported */
-        *gles_ver = 3;
-        return 1;
+        if (minor_version)
+          {
+             if ((version[11] == '.') && isdigit(version[12]))
+               *minor_version = atoi(&version[12]);
+             else *minor_version = 0;
+          }
+        return 3;
      }
 
    /* OpenGL ES 2.* ? */
@@ -435,8 +557,14 @@ _evas_gl_common_version_check(int *gles_ver)
    if (strstr(version, "OpenGL ES "))
      {
         /* Supported */
-        *gles_ver = 2;
-        return 1;
+        if (minor_version)
+          {
+             if ((version[10] == '2') &&
+                 (version[11] == '.') && isdigit(version[12]))
+               *minor_version = atoi(&version[12]);
+             else *minor_version = 0;
+          }
+        return 2;
      }
 
   /*
@@ -477,23 +605,31 @@ _evas_gl_common_version_check(int *gles_ver)
  fail:
    free(version);
 
-   if (((major == 1) && (minor >= 4)) || (major >= 2))
+   // OpenGL 4.5 is supposed to be a superset of GLES 3.1
+   if ((major == 4) && (minor >= 5))
      {
-        /* Map GL to GLES version: Refer http://en.wikipedia.org/wiki/OpenGL_ES */
-        if ((major >= 4) && (minor >= 3))
-          *gles_ver = 3;
-        else if ((major > 3) || ((major == 3) && (minor >= 3))) /* >= 3.3 */
-          {
-             const char *exts = (const char *) glGetString(GL_EXTENSIONS);
-             if (exts && strstr(exts, "GL_ARB_ES3_compatibility"))
-               *gles_ver = 3;
-             else
-               *gles_ver = 2;
-          }
-        else
-          *gles_ver = 2; /* emulated support */
-        return 1;
+        if (minor_version) *minor_version = 1;
+        return 3;
      }
+
+   // OpenGL 4.3 is supposed to be a superset of GLES 3.0
+   if ((major == 4) && (minor >= 3))
+     return 3;
+
+   // Extension GL_ARB_ES3_compatibility means OpenGL is a superset of GLES 3.0
+   if ((major > 3) || ((major == 3) && (minor >= 3)))
+     {
+        const char *exts = NULL;
+        int num = 0;
+
+        if (_has_ext("GL_ARB_ES3_compatibility", &exts, &num))
+          return 3;
+     }
+
+   // OpenGL >= 1.4 is a superset of the features of GLES 2 (albeit not an
+   // exact function match)
+   if (((major == 1) && (minor >= 4)) || (major >= 2))
+     return 2; /* emulated support */
 
    return 0;
 }
@@ -502,6 +638,7 @@ static void
 _evas_gl_common_viewport_set(Evas_Engine_GL_Context *gc)
 {
    int w = 1, h = 1, m = 1, rot = 1, foc = 0;
+   int offx = 0, offy = 0;
    Evas_GL_Program *prog;
    Eina_Iterator *it;
 
@@ -521,17 +658,21 @@ _evas_gl_common_viewport_set(Evas_Engine_GL_Context *gc)
         h = gc->pipe[0].shader.surface->h;
         rot = 0;
         m = -1;
+        offx = gc->pipe[0].shader.surface->tex->x;
+        offy = gc->pipe[0].shader.surface->tex->y;
      }
 
 #ifdef GL_GLES
    if (gc->shared->eglctxt == gc->eglctxt)
-#endif     
+#endif
      {
-        if ((!gc->change.size) ||
-            (
+        if (((offx == gc->shared->offx) && (offy == gc->shared->offy)) &&
+            ((!gc->change.size) ||
+             (
                 (gc->shared->w == w) && (gc->shared->h == h) &&
                 (gc->shared->rot == rot) && (gc->shared->foc == gc->foc) &&
                 (gc->shared->mflip == m)
+             )
             )
            )
           return;
@@ -539,7 +680,7 @@ _evas_gl_common_viewport_set(Evas_Engine_GL_Context *gc)
 #ifdef GL_GLES
    gc->shared->eglctxt = gc->eglctxt;
 #endif
-   
+
    gc->shared->w = w;
    gc->shared->h = h;
    gc->shared->rot = rot;
@@ -549,13 +690,15 @@ _evas_gl_common_viewport_set(Evas_Engine_GL_Context *gc)
    gc->shared->px = gc->px;
    gc->shared->py = gc->py;
    gc->change.size = 0;
+   gc->shared->offx = offx;
+   gc->shared->offy = offy;
 
    if (foc == 0)
      {
         if ((rot == 0) || (rot == 180))
-           glViewport(0, 0, w, h);
+           glViewport(offx, offy, w, h);
         else
-           glViewport(0, 0, h, w);
+           glViewport(offx, offy, h, w);
         // std matrix
         if (m == 1)
            matrix_ortho(gc->shared->proj,
@@ -617,16 +760,18 @@ _evas_gl_common_viewport_set(Evas_Engine_GL_Context *gc)
         if (m == -1) ay = vy * 2;
 
         if ((rot == 0) || (rot == 180))
-           glViewport(-2 * vx, -2 * vy, vw, vh);
+           glViewport(offx + (-2 * vx), offy + (-2 * vy), vw, vh);
         else
-           glViewport(-2 * vy, -2 * vx, vh, vw);
+           glViewport(offx + (-2 * vy), offy + (-2 * vx), vh, vw);
         if (m == 1)
-           matrix_ortho(gc->shared->proj, 0, vw, 0, vh,
+           matrix_ortho(gc->shared->proj,
+                        0, vw, 0, vh,
                         -1000000.0, 1000000.0,
                         rot, vw, vh,
                         foc, 0.0);
         else
-           matrix_ortho(gc->shared->proj, 0, vw, vh, 0,
+           matrix_ortho(gc->shared->proj,
+                        0, vw, vh, 0,
                         -1000000.0, 1000000.0,
                         rot, vw, vh,
                         foc, 0.0);
@@ -641,17 +786,11 @@ _evas_gl_common_viewport_set(Evas_Engine_GL_Context *gc)
    eina_iterator_free(it);
 
    if (gc->state.current.prog != PRG_INVALID)
-     /*
      {
-        glUseProgram(gc->shared->shader[0].prog);
-        glUniformMatrix4fv(glGetUniformLocation(gc->shared->shader[0].prog, "mvp"), 1, GL_FALSE, gc->shared->proj);
-        gc->shared->shader[0].reset = EINA_FALSE;
-     }
-   else
-   */
-     {
-        glUseProgram(gc->state.current.prog->prog);
-        glUniformMatrix4fv(glGetUniformLocation(gc->state.current.prog->prog, "mvp"), 1, GL_FALSE, gc->shared->proj);
+        prog = gc->state.current.prog;
+        glUseProgram(prog->prog);
+        glUniform1i(prog->uniform.rotation_id, gc->rot / 90);
+        glUniformMatrix4fv(prog->uniform.mvp, 1, GL_FALSE, gc->shared->proj);
      }
 }
 
@@ -669,8 +808,13 @@ evas_gl_common_context_new(void)
         return _evas_gl_common_context;
      }
 #endif
-   if (!_evas_gl_common_version_check(&gles_version))
-     return NULL;
+
+   if (!glsym_glGetStringi)
+     glsym_glGetStringi = dlsym(RTLD_DEFAULT, "glGetStringi");
+
+   gles_version = evas_gl_common_version_check(NULL);
+   if (!gles_version) return NULL;
+
    gc = calloc(1, sizeof(Evas_Engine_GL_Context));
    if (!gc) return NULL;
 
@@ -750,8 +894,7 @@ evas_gl_common_context_new(void)
                {
                   // test for all needed symbols - be "conservative" and
                   // need all of it
-                  if ((secsym_eglCreateImage) &&
-                      (secsym_eglDestroyImage) &&
+                  if ((secsym_eglDestroyImage) &&
                       (secsym_glEGLImageTargetTexture2DOES) &&
                       (secsym_eglMapImageSEC) &&
                       (secsym_eglUnmapImageSEC) &&
@@ -967,13 +1110,240 @@ evas_gl_common_context_new(void)
    gc->shared->references++;
    _evas_gl_common_viewport_set(gc);
 
-   gc->def_surface = evas_gl_common_image_surface_new(gc, 1, 1, 1);
+   gc->def_surface = evas_gl_common_image_surface_new(gc, 1, 1, 1, EINA_FALSE);
 
    return gc;
 
 error:
    evas_gl_common_context_free(gc);
    return NULL;
+}
+
+#define VERTEX_CNT 3
+#define COLOR_CNT  4
+#define TEX_CNT    2
+#define SAM_CNT    2
+#define MASK_CNT   4
+
+#define PUSH_VERTEX(n, x, y, z) do { \
+   gc->pipe[n].array.vertex[nv++] = x; \
+   gc->pipe[n].array.vertex[nv++] = y; \
+   gc->pipe[n].array.vertex[nv++] = z; } while(0)
+#define PUSH_COLOR(n, r, g, b, a) do { \
+   gc->pipe[n].array.color[nc++] = r; \
+   gc->pipe[n].array.color[nc++] = g; \
+   gc->pipe[n].array.color[nc++] = b; \
+   gc->pipe[n].array.color[nc++] = a; } while(0)
+#define PUSH_TEXUV(n, u, v) do { \
+   gc->pipe[n].array.texuv[nu++] = u; \
+   gc->pipe[n].array.texuv[nu++] = v; } while(0)
+#define PUSH_TEXUV2(n, u, v) do { \
+   gc->pipe[n].array.texuv2[nu2++] = u; \
+   gc->pipe[n].array.texuv2[nu2++] = v; } while(0)
+#define PUSH_TEXUV3(n, u, v) do { \
+   gc->pipe[n].array.texuv3[nu3++] = u; \
+   gc->pipe[n].array.texuv3[nu3++] = v; } while(0)
+#define PUSH_TEXA(n, u, v) do { \
+   gc->pipe[n].array.texa[na++] = u; \
+   gc->pipe[n].array.texa[na++] = v; } while(0)
+#define PUSH_TEXM(n, u, v, w, z) do { \
+   gc->pipe[n].array.mask[nm++] = u; \
+   gc->pipe[n].array.mask[nm++] = v; \
+   gc->pipe[n].array.mask[nm++] = w; \
+   gc->pipe[n].array.mask[nm++] = z; } while(0)
+#define PUSH_TEXSAM(n, x, y) do { \
+   gc->pipe[n].array.texsam[ns++] = x; \
+   gc->pipe[n].array.texsam[ns++] = y; } while(0)
+
+#define PUSH_6_VERTICES(pn, x, y, w, h) do { \
+   PUSH_VERTEX(pn, x    , y    , 0); PUSH_VERTEX(pn, x + w, y    , 0); \
+   PUSH_VERTEX(pn, x    , y + h, 0); PUSH_VERTEX(pn, x + w, y    , 0); \
+   PUSH_VERTEX(pn, x + w, y + h, 0); PUSH_VERTEX(pn, x    , y + h, 0); \
+   } while (0)
+#define PUSH_6_QUAD(pn, x1, y1, x2, y2, x3, y3, x4, y4)                 \
+  PUSH_TEXUV(pn, x1, y1); PUSH_TEXUV(pn, x2, y2); PUSH_TEXUV(pn, x4, y4);\
+  PUSH_TEXUV(pn, x2, y2); PUSH_TEXUV(pn, x3, y3); PUSH_TEXUV(pn, x4, y4);
+
+#define PUSH_6_TEXUV(pn, x1, y1, x2, y2)                \
+  PUSH_6_QUAD(pn, x1, y1, x2, y1, x2, y2, x1, y2);
+
+#define PUSH_6_TEXUV2(pn, x1, y1, x2, y2) do { \
+   PUSH_TEXUV2(pn, x1, y1); PUSH_TEXUV2(pn, x2, y1); PUSH_TEXUV2(pn, x1, y2); \
+   PUSH_TEXUV2(pn, x2, y1); PUSH_TEXUV2(pn, x2, y2); PUSH_TEXUV2(pn, x1, y2); \
+   } while (0)
+#define PUSH_6_TEXUV3(pn, x1, y1, x2, y2) do { \
+   PUSH_TEXUV3(pn, x1, y1); PUSH_TEXUV3(pn, x2, y1); PUSH_TEXUV3(pn, x1, y2); \
+   PUSH_TEXUV3(pn, x2, y1); PUSH_TEXUV3(pn, x2, y2); PUSH_TEXUV3(pn, x1, y2); \
+   } while (0)
+#define PUSH_6_TEXA(pn, x1, y1, x2, y2) do { \
+   PUSH_TEXA(pn, x1, y1); PUSH_TEXA(pn, x2, y1); PUSH_TEXA(pn, x1, y2); \
+   PUSH_TEXA(pn, x2, y1); PUSH_TEXA(pn, x2, y2); PUSH_TEXA(pn, x1, y2); \
+   } while (0)
+#define PUSH_SAMPLES(pn, dx, dy) do { \
+   PUSH_TEXSAM(pn, dx, dy); PUSH_TEXSAM(pn, dx, dy); PUSH_TEXSAM(pn, dx, dy); \
+   PUSH_TEXSAM(pn, dx, dy); PUSH_TEXSAM(pn, dx, dy); PUSH_TEXSAM(pn, dx, dy); \
+   } while (0)
+#define PUSH_MASKSAM(pn, x, y, cnt) do { int _i; for (_i = 0; _i < cnt; _i++) { \
+   gc->pipe[pn].array.masksam[nms++] = x; gc->pipe[pn].array.masksam[nms++] = y; \
+   } } while (0)
+#define PUSH_6_COLORS(pn, r, g, b, a) \
+   do { int i; for (i = 0; i < 6; i++) PUSH_COLOR(pn, r, g, b, a); } while(0)
+
+#define PIPE_GROW(gc, pn, inc) \
+   int nv = gc->pipe[pn].array.num * VERTEX_CNT; (void) nv; \
+   int nc = gc->pipe[pn].array.num * COLOR_CNT; (void) nc; \
+   int nu = gc->pipe[pn].array.num * TEX_CNT; (void) nu; \
+   int nu2 = gc->pipe[pn].array.num * TEX_CNT; (void) nu2; \
+   int nu3 = gc->pipe[pn].array.num * TEX_CNT; (void) nu3; \
+   int na = gc->pipe[pn].array.num * TEX_CNT; (void) na; \
+   int ns = gc->pipe[pn].array.num * SAM_CNT; (void) ns; \
+   int nm = gc->pipe[pn].array.num * MASK_CNT; (void) nm; \
+   int nms = gc->pipe[pn].array.num * SAM_CNT; (void) nms; \
+   gc->pipe[pn].array.num += inc; \
+   array_alloc(gc, pn);
+
+#define PIPE_FREE(x) \
+   do { _pipebuf_free(x); (x) = NULL; } while (0)
+
+typedef struct _Pipebuf
+{
+   int skipped, alloc;
+} Pipebuf;
+
+static int        _pipe_bufs_max = 0;
+static int        _pipe_bufs_skipped = 0;
+static Eina_List *_pipe_bufs = NULL;
+
+/*
+static int _used = 0, _alloced = 0, _realloced = 0;
+static int _searches = 0, _looks = 0;
+*/
+
+static void *
+_pipebuf_resize(void *pb, int size)
+{
+   Pipebuf *buf, *buf2;
+   Eina_List *l, *ll;
+
+   if (size > _pipe_bufs_max) _pipe_bufs_max = size;
+
+   if (!pb)
+     {
+        if (_pipe_bufs)
+          {
+//             _searches++;
+             EINA_LIST_FOREACH(_pipe_bufs, l, buf)
+               {
+//                  _looks++;
+                  if (buf->alloc >= size) break;
+                  buf->skipped++;
+                  _pipe_bufs_skipped++;
+               }
+             if (l)
+               {
+//                  _used++;
+                  _pipe_bufs = eina_list_remove_list(_pipe_bufs, l);
+                  _pipe_bufs_skipped -= buf->skipped;
+                  buf->skipped = 0;
+                  goto done;
+               }
+          }
+        buf = malloc(size + sizeof(Pipebuf));
+        if (!buf) return NULL;
+        buf->skipped = 0;
+        buf->alloc = size;
+//        _alloced++;
+        goto done;
+     }
+   buf = (Pipebuf *)(((unsigned char *)pb) - sizeof(Pipebuf));
+   if (buf->alloc < size)
+     {
+        buf2 = realloc(buf, size + sizeof(Pipebuf));
+        if (!buf2) return NULL;
+//        _realloced++;
+        buf = buf2;
+        buf->alloc = size;
+     }
+done:
+   if (_pipe_bufs_skipped > 100)
+     {
+        EINA_LIST_REVERSE_FOREACH_SAFE(_pipe_bufs, l, ll, buf2)
+          {
+             if (buf2->skipped > 5)
+               {
+                  _pipe_bufs = eina_list_remove_list(_pipe_bufs, l);
+                  _pipe_bufs_skipped -= buf2->skipped;
+                  free(buf2);
+                  if (_pipe_bufs_skipped == 0) break;
+               }
+          }
+     }
+//   if ((_used + _alloced + _realloced) % 1000 == 0)
+//     printf("MAX=%i/%i skipped=%i searching=%i/%i    -   %i | %i | %i\n",
+//            _pipe_bufs_max, eina_list_count(_pipe_bufs), _pipe_bufs_skipped,
+//            _looks, _searches,
+//            _used, _alloced, _realloced);
+   return ((unsigned char *)buf) +  sizeof(Pipebuf);
+}
+
+static void
+_pipebuf_free(void *pb)
+{
+   Pipebuf *buf;
+
+   if (!pb) return;
+   buf = (Pipebuf *)(((unsigned char *)pb) - sizeof(Pipebuf));
+   _pipe_bufs_max = (_pipe_bufs_max * 19) / 20;
+   if (buf->alloc > (_pipe_bufs_max * 4))
+     {
+        free(buf);
+        return;
+     }
+   if ((!_pipe_bufs) || (eina_list_count(_pipe_bufs) < 20))
+     {
+        _pipe_bufs = eina_list_prepend(_pipe_bufs, buf);
+        return;
+     }
+   free(buf);
+}
+
+static void
+_pipebuf_clear(void)
+{
+   Pipebuf *buf;
+
+   _pipe_bufs_max = 0;
+   EINA_LIST_FREE(_pipe_bufs, buf)
+     {
+        free(buf);
+     }
+}
+
+static void
+array_alloc(Evas_Engine_GL_Context *gc, int n)
+{
+   gc->havestuff = EINA_TRUE;
+   if (gc->pipe[n].array.num <= gc->pipe[n].array.alloc) return;
+
+   gc->pipe[n].array.alloc += 6 * 256;
+
+#define RALOC(field, type, size) \
+   if (gc->pipe[n].array.use_##field) \
+      gc->pipe[n].array.field = _pipebuf_resize(gc->pipe[n].array.field, \
+                                                gc->pipe[n].array.alloc * sizeof(type) * size)
+
+   RALOC(vertex, GLshort, VERTEX_CNT);
+   RALOC(color,  GLubyte, COLOR_CNT);
+   RALOC(texuv,  GLfloat, TEX_CNT);
+   RALOC(texa,   GLfloat, TEX_CNT);
+   RALOC(texuv2, GLfloat, TEX_CNT);
+   RALOC(texuv3, GLfloat, TEX_CNT);
+   RALOC(texsam, GLfloat, SAM_CNT);
+   RALOC(mask,   GLfloat, MASK_CNT);
+   RALOC(masksam, GLfloat, SAM_CNT);
+
+#undef ALOC
+#undef RALOC
 }
 
 EAPI void
@@ -1001,20 +1371,23 @@ evas_gl_common_context_free(Evas_Engine_GL_Context *gc)
      {
         for (i = 0; i < gc->shared->info.tune.pipes.max; i++)
           {
-             FREE(gc->pipe[i].array.vertex);
-             FREE(gc->pipe[i].array.color);
-             FREE(gc->pipe[i].array.texuv);
-             FREE(gc->pipe[i].array.texuv2);
-             FREE(gc->pipe[i].array.texuv3);
-             FREE(gc->pipe[i].array.texa);
-             FREE(gc->pipe[i].array.texsam);
-             FREE(gc->pipe[i].array.mask);
-             FREE(gc->pipe[i].array.masksam);
+             PIPE_FREE(gc->pipe[i].array.vertex);
+             PIPE_FREE(gc->pipe[i].array.color);
+             PIPE_FREE(gc->pipe[i].array.texuv);
+             PIPE_FREE(gc->pipe[i].array.texuv2);
+             PIPE_FREE(gc->pipe[i].array.texuv3);
+             PIPE_FREE(gc->pipe[i].array.texa);
+             PIPE_FREE(gc->pipe[i].array.texsam);
+             PIPE_FREE(gc->pipe[i].array.mask);
+             PIPE_FREE(gc->pipe[i].array.masksam);
           }
      }
 
    while (gc->font_glyph_textures)
      evas_gl_common_texture_free(gc->font_glyph_textures->data, EINA_TRUE);
+
+   while (gc->font_glyph_images)
+     evas_gl_common_image_free(gc->font_glyph_images->data);
 
    if ((gc->shared) && (gc->shared->references == 0))
      {
@@ -1046,7 +1419,11 @@ evas_gl_common_context_free(Evas_Engine_GL_Context *gc)
         free(gc->shared);
         shared = NULL;
      }
-   if (gc == _evas_gl_common_context) _evas_gl_common_context = NULL;
+   if (gc == _evas_gl_common_context)
+     {
+        _pipebuf_clear();
+        _evas_gl_common_context = NULL;
+     }
    free(gc);
    if (_evas_gl_common_cutout_rects)
      {
@@ -1089,7 +1466,7 @@ evas_gl_common_context_newframe(Evas_Engine_GL_Context *gc)
    gc->state.current.cur_texa = 0;
    gc->state.current.cur_texm = 0;
    gc->state.current.tex_target = GL_TEXTURE_2D;
-   gc->state.current.render_op = 0;
+   gc->state.current.render_op = EVAS_RENDER_COPY;
    gc->state.current.smooth = 0;
    gc->state.current.blend = 0;
    gc->state.current.clip = 0;
@@ -1105,7 +1482,7 @@ evas_gl_common_context_newframe(Evas_Engine_GL_Context *gc)
         gc->pipe[i].region.w = 0;
         gc->pipe[i].region.h = 0;
         gc->pipe[i].region.type = 0;
-        gc->pipe[i].shader.surface = NULL;
+        //gc->pipe[i].shader.surface = NULL;
         gc->pipe[i].shader.prog = NULL;
         gc->pipe[i].shader.cur_tex = 0;
         gc->pipe[i].shader.cur_texu = 0;
@@ -1113,7 +1490,7 @@ evas_gl_common_context_newframe(Evas_Engine_GL_Context *gc)
         gc->pipe[i].shader.cur_texa = 0;
         gc->pipe[i].shader.cur_texm = 0;
         gc->pipe[i].shader.tex_target = GL_TEXTURE_2D;
-        gc->pipe[i].shader.render_op = EVAS_RENDER_BLEND;
+        gc->pipe[i].shader.render_op = EVAS_RENDER_COPY;
         gc->pipe[i].shader.smooth = 0;
         gc->pipe[i].shader.blend = 0;
         gc->pipe[i].shader.clip = 0;
@@ -1245,6 +1622,7 @@ evas_gl_common_context_target_surface_set(Evas_Engine_GL_Context *gc,
    gc->state.current.cy = -1;
    gc->state.current.cw = -1;
    gc->state.current.ch = -1;
+   gc->state.current.anti_alias = -1;
 
    gc->pipe[0].shader.surface = surface;
    gc->change.size = 1;
@@ -1263,76 +1641,6 @@ evas_gl_common_context_target_surface_set(Evas_Engine_GL_Context *gc,
       glsym_glBindFramebuffer(GL_FRAMEBUFFER, surface->tex->pt->fb);
    _evas_gl_common_viewport_set(gc);
 }
-
-#define VERTEX_CNT 3
-#define COLOR_CNT  4
-#define TEX_CNT    2
-#define SAM_CNT    2
-#define MASK_CNT   4
-
-#define PUSH_VERTEX(n, x, y, z) do { \
-   gc->pipe[n].array.vertex[nv++] = x; \
-   gc->pipe[n].array.vertex[nv++] = y; \
-   gc->pipe[n].array.vertex[nv++] = z; } while(0)
-#define PUSH_COLOR(n, r, g, b, a) do { \
-   gc->pipe[n].array.color[nc++] = r; \
-   gc->pipe[n].array.color[nc++] = g; \
-   gc->pipe[n].array.color[nc++] = b; \
-   gc->pipe[n].array.color[nc++] = a; } while(0)
-#define PUSH_TEXUV(n, u, v) do { \
-   gc->pipe[n].array.texuv[nu++] = u; \
-   gc->pipe[n].array.texuv[nu++] = v; } while(0)
-#define PUSH_TEXUV2(n, u, v) do { \
-   gc->pipe[n].array.texuv2[nu2++] = u; \
-   gc->pipe[n].array.texuv2[nu2++] = v; } while(0)
-#define PUSH_TEXUV3(n, u, v) do { \
-   gc->pipe[n].array.texuv3[nu3++] = u; \
-   gc->pipe[n].array.texuv3[nu3++] = v; } while(0)
-#define PUSH_TEXA(n, u, v) do { \
-   gc->pipe[n].array.texa[na++] = u; \
-   gc->pipe[n].array.texa[na++] = v; } while(0)
-#define PUSH_TEXM(n, u, v, w, z) do { \
-   gc->pipe[n].array.mask[nm++] = u; \
-   gc->pipe[n].array.mask[nm++] = v; \
-   gc->pipe[n].array.mask[nm++] = w; \
-   gc->pipe[n].array.mask[nm++] = z; } while(0)
-#define PUSH_TEXSAM(n, x, y) do { \
-   gc->pipe[n].array.texsam[ns++] = x; \
-   gc->pipe[n].array.texsam[ns++] = y; } while(0)
-
-#define PUSH_6_VERTICES(pn, x, y, w, h) do { \
-   PUSH_VERTEX(pn, x    , y    , 0); PUSH_VERTEX(pn, x + w, y    , 0); \
-   PUSH_VERTEX(pn, x    , y + h, 0); PUSH_VERTEX(pn, x + w, y    , 0); \
-   PUSH_VERTEX(pn, x + w, y + h, 0); PUSH_VERTEX(pn, x    , y + h, 0); \
-   } while (0)
-#define PUSH_6_QUAD(pn, x1, y1, x2, y2, x3, y3, x4, y4)                 \
-  PUSH_TEXUV(pn, x1, y1); PUSH_TEXUV(pn, x2, y2); PUSH_TEXUV(pn, x4, y4);\
-  PUSH_TEXUV(pn, x2, y2); PUSH_TEXUV(pn, x3, y3); PUSH_TEXUV(pn, x4, y4);
-
-#define PUSH_6_TEXUV(pn, x1, y1, x2, y2)                \
-  PUSH_6_QUAD(pn, x1, y1, x2, y1, x2, y2, x1, y2);
-
-#define PUSH_6_TEXUV2(pn, x1, y1, x2, y2) do { \
-   PUSH_TEXUV2(pn, x1, y1); PUSH_TEXUV2(pn, x2, y1); PUSH_TEXUV2(pn, x1, y2); \
-   PUSH_TEXUV2(pn, x2, y1); PUSH_TEXUV2(pn, x2, y2); PUSH_TEXUV2(pn, x1, y2); \
-   } while (0)
-#define PUSH_6_TEXUV3(pn, x1, y1, x2, y2) do { \
-   PUSH_TEXUV3(pn, x1, y1); PUSH_TEXUV3(pn, x2, y1); PUSH_TEXUV3(pn, x1, y2); \
-   PUSH_TEXUV3(pn, x2, y1); PUSH_TEXUV3(pn, x2, y2); PUSH_TEXUV3(pn, x1, y2); \
-   } while (0)
-#define PUSH_6_TEXA(pn, x1, y1, x2, y2) do { \
-   PUSH_TEXA(pn, x1, y1); PUSH_TEXA(pn, x2, y1); PUSH_TEXA(pn, x1, y2); \
-   PUSH_TEXA(pn, x2, y1); PUSH_TEXA(pn, x2, y2); PUSH_TEXA(pn, x1, y2); \
-   } while (0)
-#define PUSH_SAMPLES(pn, dx, dy) do { \
-   PUSH_TEXSAM(pn, dx, dy); PUSH_TEXSAM(pn, dx, dy); PUSH_TEXSAM(pn, dx, dy); \
-   PUSH_TEXSAM(pn, dx, dy); PUSH_TEXSAM(pn, dx, dy); PUSH_TEXSAM(pn, dx, dy); \
-   } while (0)
-#define PUSH_MASKSAM(pn, x, y, cnt) do { int _i; for (_i = 0; _i < cnt; _i++) { \
-   gc->pipe[pn].array.masksam[nms++] = x; gc->pipe[pn].array.masksam[nms++] = y; \
-   } } while (0)
-#define PUSH_6_COLORS(pn, r, g, b, a) \
-   do { int i; for (i = 0; i < 6; i++) PUSH_COLOR(pn, r, g, b, a); } while(0)
 
 static inline Eina_Bool
 _push_mask(Evas_Engine_GL_Context *gc, const int pn, int nm, Evas_GL_Texture *mtex,
@@ -1353,9 +1661,20 @@ _push_mask(Evas_Engine_GL_Context *gc, const int pn, int nm, Evas_GL_Texture *mt
    if (!gw || !gh || !mw || !mh || !mtex->pt->w || !mtex->pt->h)
      return EINA_FALSE;
 
-   /* vertex shader:
-    * vec4 mask_Position = mvp * vertex * vec4(0.5, sign(mask_coord.w) * 0.5, 0.5, 0.5) + vec4(0.5, 0.5, 0, 0);
-    * tex_m = mask_Position.xy * abs(mask_coord.zw) + mask_coord.xy;
+   /* Vertex shader:
+    *
+    * INPUTS:
+    *   vec4 mask_coord = vec4(glmx, glmy, glmw, glmh);
+    *   int rotation_id = gc->rot / 90;
+    *
+    * CODE:
+    *   vec4 mask_Position = mvp * vertex * vec4(0.5, sign(mask_coord.w) * 0.5, 0.5, 0.5) + vec4(0.5, 0.5, 0, 0);
+    *   vec2 pos[4]; // no ctor-style init because of GLSL-ES (version 100)
+    *   pos[0] = vec2(mask_Position.xy);
+    *   pos[1] = vec2(1.0 - mask_Position.y, mask_Position.x);
+    *   pos[2] = vec2(1.0 - mask_Position.xy);
+    *   pos[3] = vec2(mask_Position.y, 1.0 - mask_Position.x);
+    *   tex_m = pos[rotation_id].xy * abs(mask_coord.zw) + mask_coord.xy;
     */
    glmx = (double)((mtex->x * mw) - (mtex->w * mx)) / (double)(mw * mtex->pt->w);
    glmy = (double)((mtex->y * mh) - (mtex->h * my)) / (double)(mh * mtex->pt->h);
@@ -1376,74 +1695,12 @@ _push_mask(Evas_Engine_GL_Context *gc, const int pn, int nm, Evas_GL_Texture *mt
         PUSH_MASKSAM(pn, samx, samy, cnt);
      }
 
-   /*
-   DBG("%d,%d %dx%d --> %f , %f - %f x %f [gc %dx%d, tex %d,%d %dx%d, pt %dx%d]",
-       mx, my, mw, mh,
-       glmx, glmy, glmw, glmh,
-       gc->w, gc->h, mtex->x, mtex->y, mtex->w, mtex->h, mtex->pt->w, mtex->pt->h);
-   */
-
    return EINA_TRUE;
 }
 
 #define PUSH_MASK(pn, mtex, mx, my, mw, mh, msam) if (mtex) do { \
    _push_mask(gc, pn, nm, mtex, mx, my, mw, mh, msam, nms); \
    } while(0)
-
-#define PIPE_GROW(gc, pn, inc) \
-   int nv = gc->pipe[pn].array.num * VERTEX_CNT; (void) nv; \
-   int nc = gc->pipe[pn].array.num * COLOR_CNT; (void) nc; \
-   int nu = gc->pipe[pn].array.num * TEX_CNT; (void) nu; \
-   int nu2 = gc->pipe[pn].array.num * TEX_CNT; (void) nu2; \
-   int nu3 = gc->pipe[pn].array.num * TEX_CNT; (void) nu3; \
-   int na = gc->pipe[pn].array.num * TEX_CNT; (void) na; \
-   int ns = gc->pipe[pn].array.num * SAM_CNT; (void) ns; \
-   int nm = gc->pipe[pn].array.num * MASK_CNT; (void) nm; \
-   int nms = gc->pipe[pn].array.num * SAM_CNT; (void) nms; \
-   gc->pipe[pn].array.num += inc; \
-   array_alloc(gc, pn);
-
-static inline void
-array_alloc(Evas_Engine_GL_Context *gc, int n)
-{
-   gc->havestuff = EINA_TRUE;
-   if (gc->pipe[n].array.num <= gc->pipe[n].array.alloc)
-     {
-#define ALOC(field, type, size) \
-        if ((gc->pipe[n].array.use_##field) && (!gc->pipe[n].array.field)) \
-          gc->pipe[n].array.field = malloc(gc->pipe[n].array.alloc * sizeof(type) * size)
-
-        ALOC(vertex, GLshort, VERTEX_CNT);
-        ALOC(color,  GLubyte, COLOR_CNT);
-        ALOC(texuv,  GLfloat, TEX_CNT);
-        ALOC(texa,   GLfloat, TEX_CNT);
-        ALOC(texuv2, GLfloat, TEX_CNT);
-        ALOC(texuv3, GLfloat, TEX_CNT);
-        ALOC(texsam, GLfloat, SAM_CNT);
-        ALOC(mask,   GLfloat, MASK_CNT);
-        ALOC(masksam, GLfloat, SAM_CNT);
-        return;
-     }
-   gc->pipe[n].array.alloc += 6 * 1024;
-
-#define RALOC(field, type, size) \
-   if (gc->pipe[n].array.use_##field) \
-     gc->pipe[n].array.field = realloc(gc->pipe[n].array.field, \
-                                       gc->pipe[n].array.alloc * sizeof(type) * size)
-
-   RALOC(vertex, GLshort, VERTEX_CNT);
-   RALOC(color,  GLubyte, COLOR_CNT);
-   RALOC(texuv,  GLfloat, TEX_CNT);
-   RALOC(texa,   GLfloat, TEX_CNT);
-   RALOC(texuv2, GLfloat, TEX_CNT);
-   RALOC(texuv3, GLfloat, TEX_CNT);
-   RALOC(texsam, GLfloat, SAM_CNT);
-   RALOC(mask,   GLfloat, MASK_CNT);
-   RALOC(masksam, GLfloat, SAM_CNT);
-
-#undef ALOC
-#undef RALOC
-}
 
 #ifdef GLPIPES
 static int
@@ -1755,6 +2012,11 @@ evas_gl_common_context_rectangle_push(Evas_Engine_GL_Context *gc,
    PUSH_MASK(pn, mtex, mx, my, mw, mh, masksam);
    PUSH_6_COLORS(pn, r, g, b, a);
 }
+
+#define SWAP(a, b, tmp) \
+   tmp = *a; \
+   *a = *b; \
+   *b = tmp;
 
 // 1-2      4-1
 // | |  =>  | |
@@ -2906,7 +3168,7 @@ start_tiling(Evas_Engine_GL_Context *gc EINA_UNUSED,
 static void
 shader_array_flush(Evas_Engine_GL_Context *gc)
 {
-   int i, gw, gh;
+   int i, gw, gh, offx = 0, offy = 0;
    unsigned int pipe_done = 0;  //count pipe iteration for debugging
    Eina_Bool setclip;
    Eina_Bool fbo = EINA_FALSE;
@@ -2920,6 +3182,8 @@ shader_array_flush(Evas_Engine_GL_Context *gc)
         gw = gc->pipe[0].shader.surface->w;
         gh = gc->pipe[0].shader.surface->h;
         fbo = EINA_TRUE;
+        offx = gc->pipe[0].shader.surface->tex->x;
+        offy = gc->pipe[0].shader.surface->tex->y;
      }
    for (i = 0; i < gc->shared->info.tune.pipes.max; i++)
      {
@@ -2938,7 +3202,8 @@ shader_array_flush(Evas_Engine_GL_Context *gc)
              glUseProgram(prog->prog);
              if (prog->reset)
                {
-                  glUniformMatrix4fv(glGetUniformLocation(prog->prog, "mvp"), 1, GL_FALSE, gc->shared->proj);
+                  glUniform1i(prog->uniform.rotation_id, fbo ? 0 : gc->rot / 90);
+                  glUniformMatrix4fv(prog->uniform.mvp, 1, GL_FALSE, gc->shared->proj);
                   prog->reset = EINA_FALSE;
                }
           }
@@ -3055,7 +3320,7 @@ shader_array_flush(Evas_Engine_GL_Context *gc)
         if (gc->pipe[i].shader.clip != gc->state.current.clip)
           {
              int cx, cy, cw, ch;
-             
+
              cx = gc->pipe[i].shader.cx;
              cy = gc->pipe[i].shader.cy;
              cw = gc->pipe[i].shader.cw;
@@ -3085,17 +3350,17 @@ shader_array_flush(Evas_Engine_GL_Context *gc)
                        if (!fbo)
                          {
                             start_tiling(gc, gc->rot, gw, gh,
-                                         gc->master_clip.x,
-                                         gh - gc->master_clip.y - gc->master_clip.h,
+                                         gc->master_clip.x + offx,
+                                         gh - gc->master_clip.y - offy - gc->master_clip.h,
                                          gc->master_clip.w, gc->master_clip.h,
                                          gc->preserve_bit);
-
                             if (!gc->preserve_bit)
                               gc->preserve_bit = GL_COLOR_BUFFER_BIT0_QCOM;
                          }
                        else
                          start_tiling(gc, 0, gw, gh,
-                                      gc->master_clip.x, gc->master_clip.y,
+                                      gc->master_clip.x + offx,
+                                      gc->master_clip.y + offy,
                                       gc->master_clip.w, gc->master_clip.h, 0);
                        gc->master_clip.used = EINA_TRUE;
                     }
@@ -3105,9 +3370,12 @@ shader_array_flush(Evas_Engine_GL_Context *gc)
                {
                   glEnable(GL_SCISSOR_TEST);
                   if (!fbo)
-                    scissor_rot(gc, gc->rot, gw, gh, cx, gh - cy - ch, cw, ch);
+                    scissor_rot(gc, gc->rot, gw, gh,
+                                cx + offx,
+                                gh - cy - offy - ch,
+                                cw, ch);
                   else
-                     glScissor(cx, cy, cw, ch);
+                     glScissor(cx + offx, cy + offy, cw, ch);
                   setclip = EINA_TRUE;
                   gc->state.current.cx = cx;
                   gc->state.current.cy = cy;
@@ -3128,7 +3396,7 @@ shader_array_flush(Evas_Engine_GL_Context *gc)
             ((gc->master_clip.enabled) && (!fbo)))
           {
              int cx, cy, cw, ch;
-             
+
              cx = gc->pipe[i].shader.cx;
              cy = gc->pipe[i].shader.cy;
              cw = gc->pipe[i].shader.cw;
@@ -3155,7 +3423,10 @@ shader_array_flush(Evas_Engine_GL_Context *gc)
                  (ch != gc->state.current.ch))
                {
                   if (!fbo)
-                    scissor_rot(gc, gc->rot, gw, gh, cx, gh - cy - ch, cw, ch);
+                    scissor_rot(gc, gc->rot, gw, gh,
+                                cx + offx,
+                                gh - cy - offy - ch,
+                                cw, ch);
                   else
                     glScissor(cx, cy, cw, ch);
                   gc->state.current.cx = cx;
@@ -3550,15 +3821,15 @@ shader_array_flush(Evas_Engine_GL_Context *gc)
         gc->pipe[i].array.use_masksam = 0;
         gc->pipe[i].array.anti_alias = 0;
 
-        FREE(gc->pipe[i].array.vertex);
-        FREE(gc->pipe[i].array.color);
-        FREE(gc->pipe[i].array.texuv);
-        FREE(gc->pipe[i].array.texuv2);
-        FREE(gc->pipe[i].array.texuv3);
-        FREE(gc->pipe[i].array.texa);
-        FREE(gc->pipe[i].array.texsam);
-        FREE(gc->pipe[i].array.mask);
-        FREE(gc->pipe[i].array.masksam);
+        PIPE_FREE(gc->pipe[i].array.vertex);
+        PIPE_FREE(gc->pipe[i].array.color);
+        PIPE_FREE(gc->pipe[i].array.texuv);
+        PIPE_FREE(gc->pipe[i].array.texuv2);
+        PIPE_FREE(gc->pipe[i].array.texuv3);
+        PIPE_FREE(gc->pipe[i].array.texa);
+        PIPE_FREE(gc->pipe[i].array.texsam);
+        PIPE_FREE(gc->pipe[i].array.mask);
+        PIPE_FREE(gc->pipe[i].array.masksam);
 
         gc->pipe[i].array.num = 0;
         gc->pipe[i].array.alloc = 0;

@@ -369,7 +369,7 @@ _end_hide_cb(void *data, Evas_Object *obj EINA_UNUSED, void *event_info EINA_UNU
 }
 
 static void
-_context_menu_show_cb(void *data EINA_UNUSED, const Eo_Event *event)
+_context_menu_show_cb(void *data EINA_UNUSED, const Efl_Event *event)
 {
    elm_entry_context_menu_clear(event->object);
    elm_entry_context_menu_item_add(event->object, "MenuD1", NULL, ELM_ICON_NONE, _item_cb, NULL);
@@ -608,7 +608,7 @@ test_entry_scrolled(void *data EINA_UNUSED, Evas_Object *obj EINA_UNUSED, void *
    evas_object_smart_callback_add(en, "anchor,clicked", scrolled_anchor_test, en);
    evas_object_show(en);
    elm_box_pack_end(bx, en);
-   eo_event_callback_add(en, ELM_ENTRY_EVENT_CONTEXT_OPEN, _context_menu_show_cb, NULL);
+   efl_event_callback_add(en, ELM_ENTRY_EVENT_CONTEXT_OPEN, _context_menu_show_cb, NULL);
 
    bx2 = elm_box_add(win);
    elm_box_horizontal_set(bx2, EINA_TRUE);
@@ -695,9 +695,9 @@ test_entry_scrolled(void *data EINA_UNUSED, Evas_Object *obj EINA_UNUSED, void *
 }
 
 static void
-my_pop_dismissed(void *data EINA_UNUSED, const Eo_Event *ev)
+my_pop_dismissed(void *data EINA_UNUSED, const Efl_Event *ev)
 {
-   eo_del(ev->object);
+   efl_del(ev->object);
 }
 
 static void
@@ -705,7 +705,7 @@ my_pop_close_cb(void *data, Evas_Object *obj EINA_UNUSED, void *event_info EINA_
 {
   Evas_Object *pop, *en;
   pop = data;
-  en = eo_parent_get(pop);
+  en = efl_parent_get(pop);
   elm_object_text_set(en, "This is very long text,"
                       " it is longer than width of this page."
                       " So if scroller is moved to next page,"
@@ -713,7 +713,7 @@ my_pop_close_cb(void *data, Evas_Object *obj EINA_UNUSED, void *event_info EINA_
                       " and then click this entry text");
   elm_entry_cursor_end_set(en);
 
-  eo_event_callback_add(pop, ELM_POPUP_EVENT_DISMISSED, my_pop_dismissed, NULL);
+  efl_event_callback_add(pop, ELM_POPUP_EVENT_DISMISSED, my_pop_dismissed, NULL);
   elm_popup_dismiss(pop);
 }
 
@@ -724,8 +724,8 @@ my_pop_bt_clr(void *data, Evas_Object *obj EINA_UNUSED, void *event_info EINA_UN
    elm_object_text_set(en, "");
    elm_entry_cursor_end_set(en);
 
-   pop = elm_popup_add(eo_key_data_get(en, "win"));
-   eo_parent_set(pop, en);
+   pop = elm_popup_add(efl_key_data_get(en, "win"));
+   efl_parent_set(pop, en);
    elm_object_text_set(pop, "If you click confirm, "
                        "set long text to entry "
                        "and delete popup obj");
@@ -785,7 +785,7 @@ test_entry_on_page_scroll(void *data EINA_UNUSED, Evas_Object *obj EINA_UNUSED, 
    elm_object_part_content_set(ly, "element1", en);
    elm_entry_scrollable_set(en, EINA_TRUE);
    elm_entry_single_line_set(en, EINA_TRUE);
-   eo_key_data_set(en, "win", win); // no ref
+   efl_key_data_set(en, "win", win); // no ref
    evas_object_show(en);
 
    btn = elm_button_add(ly);
@@ -1024,6 +1024,14 @@ static char *user_style =
    "ul='+ underline=on underline_color=#AAA'";
 
 static void
+ent_tg_singleline_mode_state_changed_cb(void *data, Evas_Object *obj, void *event_info EINA_UNUSED)
+{
+   Evas_Object *en = data;
+
+   elm_entry_single_line_set(en, elm_check_state_get(obj));
+}
+
+static void
 ent_bt_style_user_peek(void *data, Evas_Object *obj EINA_UNUSED, void *event_info EINA_UNUSED)
 {
    Evas_Object *en = data;
@@ -1053,7 +1061,7 @@ ent_bt_style_user_push(void *data, Evas_Object *obj EINA_UNUSED, void *event_inf
 void
 test_entry_style_user(void *data EINA_UNUSED, Evas_Object *obj EINA_UNUSED, void *event_info EINA_UNUSED)
 {
-   Evas_Object *win, *bx, *hbx, *en, *bt, *bt2;
+   Evas_Object *win, *bx, *hbx, *en, *bt, *bt2, *tg;
 
    win = elm_win_util_standard_add("entry-user-style", "Entry User Style");
    elm_win_autodel_set(win, EINA_TRUE);
@@ -1078,6 +1086,15 @@ test_entry_style_user(void *data EINA_UNUSED, Evas_Object *obj EINA_UNUSED, void
    elm_box_pack_end(bx, en);
    evas_object_show(en);
    elm_object_focus_set(en, EINA_TRUE);
+
+   tg = elm_check_add(bx);
+   elm_object_style_set(tg, "toggle");
+   elm_object_text_set(tg, "Singleline Mode");
+   elm_object_part_text_set(tg, "on", "ON");
+   elm_object_part_text_set(tg, "off", "OFF");
+   evas_object_smart_callback_add(tg, "changed", ent_tg_singleline_mode_state_changed_cb, en);
+   elm_box_pack_end(bx, tg);
+   evas_object_show(tg);
 
    hbx = elm_box_add(bx);
    elm_box_horizontal_set(hbx, EINA_TRUE);
@@ -1782,7 +1799,6 @@ test_entry4(void *data EINA_UNUSED, Evas_Object *obj EINA_UNUSED, void *event_in
    elm_object_text_set(en, "This is a single line");
    elm_entry_single_line_set(en, EINA_TRUE);
    elm_object_part_content_set(ly, "element1", en);
-   evas_object_show(en);
 
    en = elm_entry_add(win);
    elm_entry_line_wrap_set(en, ELM_WRAP_NONE);
@@ -1795,7 +1811,6 @@ test_entry4(void *data EINA_UNUSED, Evas_Object *obj EINA_UNUSED, void *event_in
    evas_object_size_hint_weight_set(en, EVAS_HINT_EXPAND, EVAS_HINT_EXPAND);
    evas_object_size_hint_align_set(en, EVAS_HINT_FILL, EVAS_HINT_FILL);
    elm_object_part_content_set(ly, "element2", en);
-   evas_object_show(en);
 
    en = elm_entry_add(win);
    elm_entry_scrollable_set(en, EINA_TRUE);
@@ -1816,7 +1831,6 @@ test_entry4(void *data EINA_UNUSED, Evas_Object *obj EINA_UNUSED, void *event_in
                       );
    evas_object_smart_callback_add(en, "anchor,clicked", scrolled_anchor_test, en);
    elm_object_part_content_set(ly, "element3", en);
-   evas_object_show(en);
 
    evas_object_show(win);
 }
@@ -2548,7 +2562,7 @@ test_entry8(void *data EINA_UNUSED, Evas_Object *obj EINA_UNUSED, void *event_in
    elm_object_part_text_set(en4, "guide", "Type in here");
    elm_entry_scrollable_set(en4, EINA_TRUE);
    elm_scroller_bounce_set(en4, EINA_TRUE, EINA_TRUE);
-   elm_entry_autocapital_type_set(en4, EINA_TRUE);
+   elm_entry_autocapital_type_set(en4, ELM_AUTOCAPITAL_TYPE_WORD);
    evas_object_size_hint_weight_set(en4, EVAS_HINT_EXPAND, EVAS_HINT_EXPAND);
    evas_object_size_hint_align_set(en4, EVAS_HINT_FILL, EVAS_HINT_FILL);
    elm_grid_pack(gd, en4, 5, 65, 90, 20);
@@ -2606,8 +2620,8 @@ _test_regex_bt_cb(void *data,
 
    if (test_data->re)
      {
-        eo_event_callback_del(test_data->en_single, ELM_ENTRY_EVENT_VALIDATE, elm_validator_regexp_helper, test_data->re);
-        eo_event_callback_del(test_data->en_multi, ELM_ENTRY_EVENT_VALIDATE, elm_validator_regexp_helper, test_data->re);
+        efl_event_callback_del(test_data->en_single, ELM_ENTRY_EVENT_VALIDATE, elm_validator_regexp_helper, test_data->re);
+        efl_event_callback_del(test_data->en_multi, ELM_ENTRY_EVENT_VALIDATE, elm_validator_regexp_helper, test_data->re);
         elm_validator_regexp_free(test_data->re);
      }
    test_data->re = elm_validator_regexp_new(elm_entry_entry_get(test_data->en_regex), NULL);
@@ -2631,8 +2645,8 @@ _test_regex_bt_cb(void *data,
      }
    if (!status)
      {
-        eo_event_callback_add(test_data->en_single, ELM_ENTRY_EVENT_VALIDATE, elm_validator_regexp_helper, test_data->re);
-        eo_event_callback_add(test_data->en_multi, ELM_ENTRY_EVENT_VALIDATE, elm_validator_regexp_helper, test_data->re);
+        efl_event_callback_add(test_data->en_single, ELM_ENTRY_EVENT_VALIDATE, elm_validator_regexp_helper, test_data->re);
+        efl_event_callback_add(test_data->en_multi, ELM_ENTRY_EVENT_VALIDATE, elm_validator_regexp_helper, test_data->re);
      }
 
    elm_object_text_set(test_data->lb_regex, eina_strbuf_string_get(tmp));
@@ -2731,8 +2745,8 @@ test_entry_regex(void *data EINA_UNUSED, Evas_Object *obj EINA_UNUSED, void *eve
 
    test_data->re = elm_validator_regexp_new(REGEX, NULL);
    elm_entry_entry_set(test_data->en_regex, REGEX);
-   eo_event_callback_add(test_data->en_single, ELM_ENTRY_EVENT_VALIDATE, elm_validator_regexp_helper, test_data->re);
-   eo_event_callback_add(test_data->en_multi, ELM_ENTRY_EVENT_VALIDATE, elm_validator_regexp_helper, test_data->re);
+   efl_event_callback_add(test_data->en_single, ELM_ENTRY_EVENT_VALIDATE, elm_validator_regexp_helper, test_data->re);
+   efl_event_callback_add(test_data->en_multi, ELM_ENTRY_EVENT_VALIDATE, elm_validator_regexp_helper, test_data->re);
 
    evas_object_resize(win, 400, 400);
    evas_object_show(win);
@@ -2947,151 +2961,3 @@ test_entry_password(void *data EINA_UNUSED, Evas_Object *obj EINA_UNUSED, void *
    evas_object_show(win);
 }
 
-static void
-my_efl_ui_text_bt_3(void *data, Evas_Object *obj EINA_UNUSED, void *event_info EINA_UNUSED)
-{
-   Eo *sel_start, *sel_end;
-
-   efl_ui_text_interactive_selection_cursors_get(data, &sel_start, &sel_end);
-   const char *s = efl_canvas_text_range_text_get(data, sel_start, sel_end);
-
-   printf("SELECTION REGION: %d - %d\n",
-         efl_canvas_text_cursor_position_get(sel_start),
-         efl_canvas_text_cursor_position_get(sel_end));
-   printf("SELECTION:\n");
-   if (s) printf("%s\n", s);
-}
-
-static void
-my_efl_ui_text_bt_4(void *data, Evas_Object *obj EINA_UNUSED, void *event_info EINA_UNUSED)
-{
-   Evas_Object *en = data;
-   efl_canvas_text_cursor_object_item_insert(efl_canvas_text_cursor_get(en),
-         "size=32x32 href=emoticon");
-}
-
-static void
-my_efl_ui_text_bt_5(void *data, Evas_Object *obj EINA_UNUSED, void *event_info EINA_UNUSED)
-{
-   Evas_Object *en = data;
-   efl_ui_text_scrollable_set(en, !efl_ui_text_scrollable_get(en));
-}
-
-void
-test_efl_ui_text(void *data EINA_UNUSED, Evas_Object *obj EINA_UNUSED, void *event_info EINA_UNUSED)
-{
-   Evas_Object *win, *bx, *bx2, *bx3, *bt, *en, *ck;
-   Efl_Canvas_Text_Cursor *cur;
-
-   win = elm_win_util_standard_add("entry", "Entry");
-   elm_win_autodel_set(win, EINA_TRUE);
-
-   bx = elm_box_add(win);
-   evas_object_size_hint_weight_set(bx, EVAS_HINT_EXPAND, EVAS_HINT_EXPAND);
-   elm_win_resize_object_add(win, bx);
-   evas_object_show(bx);
-
-   en = eo_add(EFL_UI_TEXT_CLASS, win);
-   printf("Added Efl.Ui.Text object\n");
-   efl_text_set(en, "Hello world! Goodbye world! This is a test text for the"
-         " new UI Text widget.\xE2\x80\xA9This is the next paragraph.\nThis"
-         " is the next line.\nThis is Yet another line! Line and paragraph"
-         " separators are actually different!");
-   cur = efl_ui_text_cursor_new(en);
-   efl_canvas_text_cursor_position_set(cur, 2);
-   efl_canvas_text_cursor_object_item_insert(cur, "size=32x32 href=emoticon");
-   efl_canvas_text_cursor_position_set(cur, 10);
-   efl_canvas_text_cursor_object_item_insert(cur, "size=32x32 href=emoticon");
-   efl_ui_text_interactive_editable_set(en, EINA_TRUE);
-   efl_ui_text_selection_handler_disabled_set(en, EINA_FALSE);
-   efl_ui_text_scrollable_set(en, EINA_TRUE);
-   evas_object_size_hint_weight_set(en, EVAS_HINT_EXPAND, EVAS_HINT_EXPAND);
-   evas_object_size_hint_align_set(en, EVAS_HINT_FILL, EVAS_HINT_FILL);
-   elm_box_pack_end(bx, en);
-   evas_object_show(en);
-   elm_object_focus_set(en, EINA_TRUE);
-
-   bx2 = elm_box_add(win);
-   elm_box_horizontal_set(bx2, EINA_TRUE);
-   evas_object_size_hint_weight_set(bx2, EVAS_HINT_EXPAND, 0.0);
-   evas_object_size_hint_align_set(bx2, EVAS_HINT_FILL, EVAS_HINT_FILL);
-
-   bt = elm_button_add(win);
-   elm_object_text_set(bt, "Prnt");
-   evas_object_smart_callback_add(bt, "clicked", my_entry_bt_2, en);
-   evas_object_size_hint_align_set(bt, EVAS_HINT_FILL, EVAS_HINT_FILL);
-   evas_object_size_hint_weight_set(bt, EVAS_HINT_EXPAND, 0.0);
-   elm_box_pack_end(bx2, bt);
-   elm_object_focus_allow_set(bt, EINA_FALSE);
-   evas_object_show(bt);
-
-   bt = elm_button_add(win);
-   elm_object_text_set(bt, "Sel");
-   evas_object_smart_callback_add(bt, "clicked", my_efl_ui_text_bt_3, en);
-   evas_object_size_hint_align_set(bt, EVAS_HINT_FILL, EVAS_HINT_FILL);
-   evas_object_size_hint_weight_set(bt, EVAS_HINT_EXPAND, 0.0);
-   elm_box_pack_end(bx2, bt);
-   elm_object_focus_allow_set(bt, EINA_FALSE);
-   evas_object_show(bt);
-
-   bt = elm_button_add(win);
-   elm_object_text_set(bt, "Ins");
-   evas_object_smart_callback_add(bt, "clicked", my_efl_ui_text_bt_4, en);
-   evas_object_size_hint_align_set(bt, EVAS_HINT_FILL, EVAS_HINT_FILL);
-   evas_object_size_hint_weight_set(bt, EVAS_HINT_EXPAND, 0.0);
-   elm_box_pack_end(bx2, bt);
-   elm_object_focus_allow_set(bt, EINA_FALSE);
-   evas_object_show(bt);
-
-   bt = elm_button_add(win);
-   elm_object_text_set(bt, "Scrl");
-   evas_object_smart_callback_add(bt, "clicked", my_efl_ui_text_bt_5, en);
-   evas_object_size_hint_align_set(bt, EVAS_HINT_FILL, EVAS_HINT_FILL);
-   evas_object_size_hint_weight_set(bt, EVAS_HINT_EXPAND, 0.0);
-   elm_box_pack_end(bx2, bt);
-   elm_object_focus_allow_set(bt, EINA_FALSE);
-   evas_object_show(bt);
-
-   bt = elm_button_add(win);
-   elm_object_text_set(bt, "Wr");
-   evas_object_smart_callback_add(bt, "clicked", my_entry_bt_6, en);
-   evas_object_size_hint_align_set(bt, EVAS_HINT_FILL, EVAS_HINT_FILL);
-   evas_object_size_hint_weight_set(bt, EVAS_HINT_EXPAND, 0.0);
-   elm_box_pack_end(bx2, bt);
-   elm_object_focus_allow_set(bt, EINA_FALSE);
-   evas_object_show(bt);
-
-   bt = elm_button_add(win);
-   elm_object_text_set(bt, "Edit");
-   evas_object_smart_callback_add(bt, "clicked", my_entry_bt_7, en);
-   evas_object_size_hint_align_set(bt, EVAS_HINT_FILL, EVAS_HINT_FILL);
-   evas_object_size_hint_weight_set(bt, EVAS_HINT_EXPAND, 0.0);
-   elm_box_pack_end(bx2, bt);
-   elm_object_focus_allow_set(bt, EINA_FALSE);
-   evas_object_show(bt);
-
-   bx3 = elm_box_add(win);
-   elm_box_horizontal_set(bx3, EINA_TRUE);
-   evas_object_size_hint_weight_set(bx3, EVAS_HINT_EXPAND, 0.0);
-   evas_object_size_hint_align_set(bx3, EVAS_HINT_FILL, EVAS_HINT_FILL);
-
-   ck = elm_check_add(win);
-   elm_object_text_set(ck, "Context Menu Disable");
-   evas_object_smart_callback_add(ck, "changed", changed_cb1, ck);
-   elm_box_pack_end(bx3, ck);
-   evas_object_show(ck);
-
-   ck = elm_check_add(win);
-   elm_object_text_set(ck, "Select Allow");
-//   elm_check_state_set(ck, elm_entry_select_allow_get(en));
-   evas_object_smart_callback_add(ck, "changed", select_allow_check_changed_cb, en);
-   elm_box_pack_end(bx3, ck);
-   evas_object_show(ck);
-
-   elm_box_pack_end(bx, bx3);
-   elm_box_pack_end(bx, bx2);
-   evas_object_show(bx3);
-   evas_object_show(bx2);
-
-   evas_object_show(win);
-}

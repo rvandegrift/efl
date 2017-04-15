@@ -89,8 +89,8 @@ EAPI extern Evas_Version * evas_version;
  * @since 1.1
  */
 // Support not having eo available
-#ifdef EFL_BETA_API_SUPPORT
-typedef Eo_Callback_Priority Evas_Callback_Priority;
+#if defined (EFL_BETA_API_SUPPORT) && defined(EFL_EO_API_SUPPORT)
+typedef Efl_Callback_Priority Evas_Callback_Priority;
 #else
 typedef short Evas_Callback_Priority;
 #endif
@@ -356,11 +356,11 @@ typedef Efl_Pointer_Flags                  Evas_Button_Flags;
 #define EVAS_BUTTON_DOUBLE_CLICK           EFL_POINTER_FLAGS_DOUBLE_CLICK
 #define EVAS_BUTTON_TRIPLE_CLICK           EFL_POINTER_FLAGS_TRIPLE_CLICK
 
-typedef Efl_Event_Flags                    Evas_Event_Flags;
+typedef Efl_Input_Flags                    Evas_Event_Flags;
 
-#define EVAS_EVENT_FLAG_NONE               EFL_EVENT_FLAGS_NONE
-#define EVAS_EVENT_FLAG_ON_HOLD            EFL_EVENT_FLAGS_PROCESSED
-#define EVAS_EVENT_FLAG_ON_SCROLL          EFL_EVENT_FLAGS_SCROLLING
+#define EVAS_EVENT_FLAG_NONE               EFL_INPUT_FLAGS_NONE
+#define EVAS_EVENT_FLAG_ON_HOLD            EFL_INPUT_FLAGS_PROCESSED
+#define EVAS_EVENT_FLAG_ON_SCROLL          EFL_INPUT_FLAGS_SCROLLING
 
 typedef Efl_Gfx_Size_Hint_Aspect           Evas_Aspect_Control; /**< Aspect types/policies for scaling size hints, used for evas_object_size_hint_aspect_set */
 
@@ -385,11 +385,11 @@ typedef Efl_Text_Bidirectional_Type        Evas_BiDi_Direction;
 #define EVAS_BIDI_DIRECTION_RTL            EFL_TEXT_BIDIRECTIONAL_TYPE_RTL
 #define EVAS_BIDI_DIRECTION_INHERIT        EFL_TEXT_BIDIRECTIONAL_TYPE_INHERIT
 
-typedef Efl_Event_Object_Pointer_Mode      Evas_Object_Pointer_Mode;
+typedef Efl_Input_Object_Pointer_Mode      Evas_Object_Pointer_Mode;
 
-#define EVAS_OBJECT_POINTER_MODE_AUTOGRAB EFL_EVENT_OBJECT_POINTER_MODE_AUTO_GRAB
-#define EVAS_OBJECT_POINTER_MODE_NOGRAB   EFL_EVENT_OBJECT_POINTER_MODE_NO_GRAB
-#define EVAS_OBJECT_POINTER_MODE_NOGRAB_NO_REPEAT_UPDOWN EFL_EVENT_OBJECT_POINTER_MODE_NO_GRAB_NO_REPEAT_UPDOWN
+#define EVAS_OBJECT_POINTER_MODE_AUTOGRAB  EFL_INPUT_OBJECT_POINTER_MODE_AUTO_GRAB
+#define EVAS_OBJECT_POINTER_MODE_NOGRAB    EFL_INPUT_OBJECT_POINTER_MODE_NO_GRAB
+#define EVAS_OBJECT_POINTER_MODE_NOGRAB_NO_REPEAT_UPDOWN EFL_INPUT_OBJECT_POINTER_MODE_NO_GRAB_NO_REPEAT_UPDOWN
 
 struct _Evas_Engine_Info /** Generic engine information. Generic info is useless */
 {
@@ -607,7 +607,11 @@ typedef enum _Evas_Axis_Label
    EVAS_AXIS_LABEL_TOUCH_WIDTH_MAJOR,   /**< Length of contact ellipse along AZIMUTH. Range: Unbounded: Unit: Same as EVAS_AXIS_LABEL_{X,Y}. @since 1.13 */
    EVAS_AXIS_LABEL_TOUCH_WIDTH_MINOR,   /**< Length of contact ellipse perpendicular to AZIMUTH. Range: Unbounded. Unit: Same as EVAS_AXIS_LABEL_{X,Y}. @since 1.13 */
    EVAS_AXIS_LABEL_TOOL_WIDTH_MAJOR,    /**< Length of tool ellipse along AZIMUTH. Range: Unbounded. Unit: Same as EVAS_AXIS_LABEL_{X,Y}. @since 1.13 */
-   EVAS_AXIS_LABEL_TOOL_WIDTH_MINOR     /**< Length of tool ellipse perpendicular to AZIMUTH. Range: Unbounded. Unit: Same as EVAS_AXIS_LABEL_{X,Y}. @since 1.13 */
+   EVAS_AXIS_LABEL_TOOL_WIDTH_MINOR,    /**< Length of tool ellipse perpendicular to AZIMUTH. Range: Unbounded. Unit: Same as EVAS_AXIS_LABEL_{X,Y}. @since 1.13 */
+   EVAS_AXIS_LABEL_WINDOW_X,      /**< X coordinate mapped to the window. @since 1.19 */
+   EVAS_AXIS_LABEL_WINDOW_Y,      /**< Y coordinate mapped to the window. @since 1.19 */
+   EVAS_AXIS_LABEL_NORMAL_X,      /**< X normalized to the [0, 1] range. @since 1.19 */
+   EVAS_AXIS_LABEL_NORMAL_Y,      /**< Y normalized to the [0, 1] range. @since 1.19 */
 } Evas_Axis_Label; /**< Types of recognized device axes @since 1.13 */
 
 struct _Evas_Axis
@@ -1122,9 +1126,37 @@ EAPI void              evas_render_updates_free(Eina_List *updates);
  * @return the device node created or NULL if an error occurred.
  *
  * @see evas_device_del
+ * @see evas_device_add_full
  * @since 1.8
  */
 EAPI Evas_Device *evas_device_add(Evas *e);
+
+/**
+ * Add a new device type
+ *
+ * @param e The canvas to create the device node for.
+ * @param name The name of the device.
+ * @param desc The description of the device.
+ * @param parent_dev The parent device.
+ * @param emulation_dev The source device.
+ * @param clas The device class.
+ * @param sub_class  The device subclass.
+ *
+ * Adds a new device node to the given canvas @p e. All devices created as
+ * part of the canvas @p e will automatically be deleted when the canvas
+ * is freed.
+ *
+ * @return the device node created or NULL if an error occurred.
+ *
+ * @see evas_device_del
+ * @since 1.19
+ */
+EAPI Evas_Device *evas_device_add_full(Evas *e, const char *name,
+                                       const char *desc,
+                                       Evas_Device *parent_dev,
+                                       Evas_Device *emulation_dev,
+                                       Evas_Device_Class clas,
+                                       Evas_Device_Subclass sub_clas);
 
 /**
  * Delete a new device type
@@ -1206,6 +1238,22 @@ EAPI void evas_device_pop(Evas *e);
  * @since 1.8
  */
 EAPI const Eina_List *evas_device_list(Evas *e, const Evas_Device *dev);
+
+/**
+ * Get a device by its name
+ *
+ * @param e The canvas to create the device node for.
+ * @param name The name of the device.
+ *
+ * Gets the first ocurrence of a device named as @p name
+ * on Evas @p e list of devices.
+ *
+ * @return the device or NULL if an error occurred, no name was provided,
+ * or no device with a matching name was found.
+ *
+ * @since 1.19
+ */
+EAPI Evas_Device *evas_device_get(Evas *e, const char *name);
 
 /**
  * Set the name of a device as a string
@@ -1315,7 +1363,7 @@ EAPI void evas_device_class_set(Evas_Device *dev, Evas_Device_Class clas);
  * @param dev The devise to query
  * @return The device class to set
  *
- * This sets the device class set by evas_device_class_set().
+ * This gets the device class set by evas_device_class_set().
  *
  * @since 1.8
  */
@@ -1352,7 +1400,7 @@ EAPI Evas_Device_Subclass evas_device_subclass_get(const Evas_Device *dev);
  *
  * Devices may not be real, but may be emulated by listening to input on other
  * devices and modifying or interpeting it to generate output on an emulated
- * device (example a fingeron a touchscreen will often emulate a mouse when
+ * device (example a finger on a touchscreen will often emulate a mouse when
  * it presses). This allows you to set which device primarily emulates @p dev
  * so the user can choose to ignore events from emulated devices if they also
  * pay attention to source device events for example.
@@ -1378,7 +1426,7 @@ EAPI const Evas_Device *evas_device_emulation_source_get(const Evas_Device *dev)
 /**
  * @defgroup Evas_Image_Group Image Functions
  *
- * Functions that deals with images at canvas level.
+ * Functions that deal with images at canvas level.
  *
  * @ingroup Evas_Canvas
  */
@@ -1386,7 +1434,7 @@ EAPI const Evas_Device *evas_device_emulation_source_get(const Evas_Device *dev)
 /**
  * @defgroup Evas_Font_Group Font Functions
  *
- * Functions that deals with fonts.
+ * Functions that deal with fonts.
  *
  * @ingroup Evas_Canvas
  */
@@ -1411,11 +1459,11 @@ EAPI const Evas_Device *evas_device_emulation_source_get(const Evas_Device *dev)
  *   - textgrid and
  *   - image.
  *
- * These functions apply to @b any Evas object, whichever type that
+ * These functions apply to @b any Evas object, whichever type they
  * may have.
  *
  * @note The built-in types which are most used are rectangles, text
- * and images. In fact, with these ones one can create 2D interfaces
+ * and images. In fact, with these one can create 2D interfaces
  * of arbitrary complexity and EFL makes it easy.
  */
 
@@ -1433,7 +1481,7 @@ EAPI const Evas_Device *evas_device_emulation_source_get(const Evas_Device *dev)
  * @li Clipping
  * @li Reference counting
  *
- * All of this issues are handled through the functions here grouped. Examples
+ * All of these issues are handled through the functions grouped here. Examples
  * of these function can be seen in @ref Example_Evas_Object_Manipulation(which
  * deals with the most common ones) and in @ref Example_Evas_Stacking(which
  * deals with stacking functions).
@@ -1496,7 +1544,7 @@ EAPI const Evas_Device *evas_device_emulation_source_get(const Evas_Device *dev)
  * Miscellaneous functions that also apply to any object, but are less
  * used or not implemented by all objects.
  *
- * Examples on this group of functions can be found @ref
+ * Examples of this group of functions can be found @ref
  * Example_Evas_Stacking "here" and @ref Example_Evas_Events "here".
  *
  * @ingroup Evas_Object_Group
@@ -1509,196 +1557,6 @@ EAPI const Evas_Device *evas_device_emulation_source_get(const Evas_Device *dev)
  * other properties.
  *
  * @ingroup Evas_Object_Group
- */
-
-/**
- * @defgroup Evas_Object_Group_Interceptors Object Method Interceptors
- *
- * Evas provides a way to intercept method calls. The interceptor
- * callback may opt to completely deny the call, or may check and
- * change the parameters before continuing. The continuation of an
- * intercepted call is done by calling the intercepted call again,
- * from inside the interceptor callback.
- *
- * @ingroup Evas_Object_Group
- */
-
-/**
- * @addtogroup Evas_Object_Group_Interceptors
- * @{
- */
-
-/**
- * Function signature for the resize event of an evas object
- *
- * @param data is the pointer passed through the callback.
- * @param obj the object being shown.
- *
- * @see evas_object_intercept_show_callback_add()
- * @see evas_object_intercept_show_callback_del()
- *
- */
-typedef void (*Evas_Object_Intercept_Show_Cb)(void *data, Evas_Object *obj);
-
-/**
- * Function signature for the hide event of an evas object
- *
- * @param data is the pointer passed through the callback.
- * @param obj the object being hidden.
- *
- * @see  evas_object_intercept_hide_callback_add()
- * @see  evas_object_intercept_hide_callback_del()
- *
- */
-typedef void (*Evas_Object_Intercept_Hide_Cb)(void *data, Evas_Object *obj);
-
-/**
- * Function signature for the move event of an evas object
- *
- * @param data the pointer passed through the callback.
- * @param obj the object being moved.
- * @param x move x position
- * @param y move y position
- *
- * @see  evas_object_intercept_move_callback_add()
- * @see  evas_object_intercept_move_callback_del()
- *
- */
-typedef void (*Evas_Object_Intercept_Move_Cb)(void *data, Evas_Object *obj, Evas_Coord x, Evas_Coord y);
-
-/**
- * Function signature for the resize event of an evas object
- *
- * @param data the pointer passed through the callback.
- * @param obj the object being resized.
- * @param width of the object
- * @param height of the object
- *
- * @see  evas_object_intercept_resize_callback_add()
- * @see  evas_object_intercept_resize_callback_del()
- *
- */
-typedef void (*Evas_Object_Intercept_Resize_Cb)(void *data, Evas_Object *obj, Evas_Coord w, Evas_Coord h);
-
-/**
- * Function signature for the raise event of an evas object
- *
- * @param data the pointer passed through the callback.
- * @param obj the object being raised.
- *
- * @see  evas_object_intercept_raise_callback_add()
- * @see  evas_object_intercept_raise_callback_del()
- *
- */
-typedef void (*Evas_Object_Intercept_Raise_Cb)(void *data, Evas_Object *obj);
-
-/**
- * Function signature for the lower event of an evas object
- *
- * @param data the pointer passed through the callback.
- * @param obj the object being lowered.
- *
- * @see  evas_object_intercept_lower_callback_add()
- * @see  evas_object_intercept_lower_callback_del()
- *
- */
-typedef void (*Evas_Object_Intercept_Lower_Cb)(void *data, Evas_Object *obj);
-
-/**
- * Function signature for the stack above event of an evas object
- *
- * @param data the pointer passed through the callback.
- * @param obj the object being stacked above.
- * @param above the object above which the object is stacked
- *
- * @see  evas_object_intercept_stack_above_callback_add()
- * @see  evas_object_intercept_stack_above_callback_del()
- *
- */
-typedef void (*Evas_Object_Intercept_Stack_Above_Cb)(void *data, Evas_Object *obj, Evas_Object *above);
-
-/**
- * Function signature for the stack below event of an evas object
- *
- * @param data the pointer passed through the callback.
- * @param obj the object being stacked below.
- * @param above the object below which the object is stacked
- *
- * @see  evas_object_intercept_stack_below_callback_add()
- * @see  evas_object_intercept_stack_below_callback_del()
- *
- */
-typedef void (*Evas_Object_Intercept_Stack_Below_Cb)(void *data, Evas_Object *obj, Evas_Object *above);
-
-/**
- * Function signature for the layer event of an evas object
- *
- * @param data the pointer passed through the callback.
- * @param obj the object being layered
- * @param l the layer value
- *
- * @see  evas_object_intercept_layer_callback_add()
- * @see  evas_object_intercept_layer_callback_del()
- *
- */
-typedef void (*Evas_Object_Intercept_Layer_Set_Cb)(void *data, Evas_Object *obj, int l);
-
-/**
- * Function signature for the focus set event of an evas object
- *
- * @param data the pointer passed through the callback.
- * @param obj the object being focused
- * @param focus the focus value, EINA_TRUE if the object is focused, EINA_FALSE otherwise
- *
- * @see  evas_object_intercept_focus_set_callback_add()
- * @see  evas_object_intercept_focus_set_callback_del()
- *
- */
-typedef void (*Evas_Object_Intercept_Focus_Set_Cb)(void *data, Evas_Object *obj, Eina_Bool focus);
-
-/**
- * Function signature for the color set event of an evas object
- *
- * @param data the pointer passed through the callback.
- * @param obj the object changing color
- * @param r the red component of the color
- * @param g the green component of the color
- * @param b the blue component of the color
- * @param a the alpha component of the color
- *
- * @see  evas_object_intercept_color_set_callback_add()
- * @see  evas_object_intercept_color_set_callback_del()
- *
- */
-typedef void (*Evas_Object_Intercept_Color_Set_Cb)(void *data, Evas_Object *obj, int r, int g, int b, int a);
-
-/**
- * Function signature for the clip set event of an evas object
- *
- * @param data the pointer passed through the callback.
- * @param obj the object being clipped
- * @param clip the evas object on which the object is clipped
- *
- * @see  evas_object_intercept_clip_set_callback_add()
- * @see  evas_object_intercept_clip_set_callback_del()
- *
- */
-typedef void (*Evas_Object_Intercept_Clip_Set_Cb)(void *data, Evas_Object *obj, Evas_Object *clip);
-
-/**
- * Function signature for the clip unset event of an evas object
- *
- * @param data the pointer passed through the callback.
- * @param obj the object being unclipped
- *
- * @see  evas_object_intercept_clip_unset_callback_add()
- * @see  evas_object_intercept_clip_unset_callback_del()
- *
- */
-typedef void (*Evas_Object_Intercept_Clip_Unset_Cb)(void *data, Evas_Object *obj);
-
-/**
- * @}
  */
 
 /**
@@ -1737,7 +1595,7 @@ typedef void (*Evas_Object_Intercept_Clip_Unset_Cb)(void *data, Evas_Object *obj
  * evas_object_show(bg);
  * @endcode
  *
- * This however will have issues if the @c evas_canvas is resized, however most
+ * This will have issues if the @c evas_canvas is resized, however most
  * windows are created using ecore evas and that has a solution to using the
  * rectangle as a background:
  * @code
@@ -1792,7 +1650,7 @@ typedef void (*Evas_Object_Intercept_Clip_Unset_Cb)(void *data, Evas_Object *obj
  *
  * In the @ref clipping section we used a solid white clipper, which produced no
  * change in the color of the clipped object, it just hid what was outside the
- * clippers area. It is however sometimes desirable to change the of color an
+ * clippers area. It is however sometimes desirable to change the color of an
  * object, this can be accomplished using a clipper that has a non-white color.
  * Clippers with color work by multiplying the colors of clipped object. The
  * following code will show how to remove all the red from an object:
@@ -1837,7 +1695,7 @@ typedef void (*Evas_Object_Intercept_Clip_Unset_Cb)(void *data, Evas_Object *obj
  * evas_object_image_fill_set(img, 0, 0, w, h);
  * @endcode
  * The first function, naturally, is creating the image object. Then,
- * one must set an source file on it, so that it knows where to fetch
+ * one must set a source file on it, so that it knows where to fetch
  * image data from. Next, one must set <b>how to fill the image
  * object's area</b> with that given pixel data. One could use just a
  * sub-region of the original image or even have it tiled repeatedly
@@ -1877,9 +1735,9 @@ typedef void (*Evas_Object_Intercept_Clip_Unset_Cb)(void *data, Evas_Object *obj
  * In image viewer applications, for example, the user will be looking
  * at a given image, at full size, and will desire that the navigation
  * to the adjacent images on his/her album be fluid and fast. Thus,
- * while displaying a given image, the program can be on the
+ * while displaying a given image, the program can be in the
  * background loading the next and previous images already, so that
- * displaying them on the sequence is just a matter of repainting the
+ * displaying them in sequence is just a matter of repainting the
  * screen (and not decoding image data).
  *
  * Evas addresses this issue with <b>image pre-loading</b>. The code
@@ -2041,13 +1899,13 @@ typedef void (*Evas_Object_Intercept_Clip_Unset_Cb)(void *data, Evas_Object *obj
  *   R = (r * a) / 32; G = (g * a) / 32; B = (b * a) / 32;
  * .
  * - #EVAS_COLORSPACE_GRY8:
- *   The image is just a alpha mask (8 bit's per pixel). This is used
+ *   The image is just an alpha mask (8 bit's per pixel). This is used
  *   for alpha masking.
  *
- * @warning We don't guarantee any proper results if you create a Image object
+ * @warning We don't guarantee any proper results if you create an Image object
  * without setting the evas engine.
  *
- * Some examples on this group of functions can be found @ref
+ * Some examples of this group of functions can be found @ref
  * Example_Evas_Images "here".
  *
  * @ingroup Evas_Object_Specific
@@ -2072,7 +1930,7 @@ typedef void (*Evas_Object_Image_Pixels_Get_Cb)(void *data, Evas_Object *o);
  * unlikely.
  * @since 1.1
  *
- * If file is a Eina_Stringshare, use directly @ref evas_object_image_extension_can_load_fast_get.
+ * If file is an Eina_Stringshare, use directly @ref evas_object_image_extension_can_load_fast_get.
  *
  * This functions is threadsafe.
  */
@@ -2331,7 +2189,7 @@ struct _Evas_Smart_Cb_Description
 
 /**
  * @def EVAS_SMART_CLASS_INIT_NULL
- * Initializer to zero a whole Evas_Smart_Class structure.
+ * Initialize to zero a whole Evas_Smart_Class structure.
  *
  * @see EVAS_SMART_CLASS_INIT_VERSION
  * @see EVAS_SMART_CLASS_INIT_NAME_VERSION
@@ -2343,7 +2201,7 @@ struct _Evas_Smart_Cb_Description
 
 /**
  * @def EVAS_SMART_CLASS_INIT_VERSION
- * Initializer to zero a whole Evas_Smart_Class structure and set version.
+ * Initialize to zero a whole Evas_Smart_Class structure and set version.
  *
  * Similar to EVAS_SMART_CLASS_INIT_NULL, but will set version field to
  * latest EVAS_SMART_CLASS_VERSION.
@@ -2358,7 +2216,7 @@ struct _Evas_Smart_Cb_Description
 
 /**
  * @def EVAS_SMART_CLASS_INIT_NAME_VERSION
- * Initializer to zero a whole Evas_Smart_Class structure and set name
+ * Initialize to zero a whole Evas_Smart_Class structure and set name
  * and version.
  *
  * Similar to EVAS_SMART_CLASS_INIT_NULL, but will set version field to
@@ -2378,7 +2236,7 @@ struct _Evas_Smart_Cb_Description
 
 /**
  * @def EVAS_SMART_CLASS_INIT_NAME_VERSION_PARENT
- * Initializer to zero a whole Evas_Smart_Class structure and set name,
+ * Initialize to zero a whole Evas_Smart_Class structure and set name,
  * version and parent class.
  *
  * Similar to EVAS_SMART_CLASS_INIT_NULL, but will set version field to
@@ -2399,7 +2257,7 @@ struct _Evas_Smart_Cb_Description
 
 /**
  * @def EVAS_SMART_CLASS_INIT_NAME_VERSION_PARENT_CALLBACKS
- * Initializer to zero a whole Evas_Smart_Class structure and set name,
+ * Initialize to zero a whole Evas_Smart_Class structure and set name,
  * version, parent class and callbacks definition.
  *
  * Similar to EVAS_SMART_CLASS_INIT_NULL, but will set version field to
@@ -2436,7 +2294,7 @@ struct _Evas_Smart_Cb_Description
  * @param cb_desc Array of callback descriptions for this smart class.
  *
  * This macro saves some typing when writing a smart class derived
- * from another one. In order to work, the user @b must provide some
+ * from another one. In order for this to work, the user @b must provide some
  * functions adhering to the following guidelines:
  *  - @<prefix@>_smart_set_user(): the @b internal @c _smart_set
  *    function (defined by this macro) will call this one, provided by
@@ -2519,7 +2377,7 @@ struct _Evas_Smart_Cb_Description
  *               class.
  *
  * This macro saves some typing when writing a smart class derived
- * from another one. In order to work, the user @b must provide some
+ * from another one. In order for this to work, the user @b must provide some
  * functions adhering to the following guidelines:
  *  - @<prefix@>_smart_set_user(): the @b internal @c _smart_set
  *    function (defined by this macro) will call this one, provided by
@@ -2738,7 +2596,7 @@ EAPI const Evas_Smart_Cb_Description  *evas_smart_callback_description_find(cons
 EAPI Eina_Bool                         evas_smart_class_inherit_full(Evas_Smart_Class *sc, const Evas_Smart_Class *parent_sc, unsigned int parent_sc_size) EINA_ARG_NONNULL(1, 2);
 
 /**
- * Get the number of users of the smart instance
+ * Get the number of uses of the smart instance
  *
  * @param s The Evas_Smart to get the usage count of
  * @return The number of uses of the smart instance
@@ -2825,16 +2683,16 @@ EAPI int                               evas_smart_usage_get(const Evas_Smart *s)
  * This function has been implemented to support legacy mechanism that checks
  * objects types by name.
  * USE IT ONLY FOR LEGACY SUPPORT.
- * Otherwise, it is HIGHLY recommended to use eo_isa.
+ * Otherwise, it is HIGHLY recommended to use efl_isa.
  *
  * @param type The type (name string) to add.
  * @param klass The class to associate to the type.
  *
- * @see eo_isa
+ * @see efl_isa
  *
  * @ingroup Evas_Smart_Object_Group
  */
-EAPI void evas_smart_legacy_type_register(const char *type, const Eo_Class *klass) EINA_ARG_NONNULL(1, 2);
+EAPI void evas_smart_legacy_type_register(const char *type, const Efl_Class *klass) EINA_ARG_NONNULL(1, 2);
 
 /**
  * @}
@@ -2848,7 +2706,7 @@ EAPI void evas_smart_legacy_type_register(const char *type, const Eo_Class *klas
  * to all children objects. This clipper will control the visibility,
  * clipping and color of sibling objects (remember that the clipping
  * is recursive, and clipper color modulates the color of its
- * clippees). By default, this base will also move children relatively
+ * clippees). By default, this base will also move children relative
  * to the parent, and delete them when parent is deleted. In other
  * words, it is the base for simple object grouping.
  *
@@ -3078,7 +2936,7 @@ struct _Evas_Object_Box_Api
 /**
  * @def EVAS_OBJECT_BOX_API_INIT_NULL
  *
- * Initializer to zero out a whole #Evas_Object_Box_Api structure.
+ * Initialize to zero out a whole #Evas_Object_Box_Api structure.
  *
  * @see EVAS_OBJECT_BOX_API_INIT_VERSION
  * @see EVAS_OBJECT_BOX_API_INIT_NAME_VERSION
@@ -3090,7 +2948,7 @@ struct _Evas_Object_Box_Api
 /**
  * @def EVAS_OBJECT_BOX_API_INIT_VERSION
  *
- * Initializer to zero out a whole #Evas_Object_Box_Api structure and
+ * Initialize to zero out a whole #Evas_Object_Box_Api structure and
  * set a specific version on it.
  *
  * This is similar to #EVAS_OBJECT_BOX_API_INIT_NULL, but it will set
@@ -3107,7 +2965,7 @@ struct _Evas_Object_Box_Api
 /**
  * @def EVAS_OBJECT_BOX_API_INIT_NAME_VERSION
  *
- * Initializer to zero out a whole #Evas_Object_Box_Api structure and
+ * Initialize to zero out a whole #Evas_Object_Box_Api structure and
  * set its name and version.
  *
  * This is similar to #EVAS_OBJECT_BOX_API_INIT_NULL, but it will also
@@ -3607,7 +3465,7 @@ EAPI void                    evas_language_reinit(void);
  * @{
  */
 /**
- * Checks the state of a given modifier key, at the time of the
+ * Checks the state of a given modifier of the default seat, at the time of the
  * call. If the modifier is set, such as shift being pressed, this
  * function returns @c Eina_True.
  *
@@ -3623,11 +3481,35 @@ EAPI void                    evas_language_reinit(void);
  * @see evas_key_modifier_get
  * @see evas_key_modifier_on
  * @see evas_key_modifier_off
+ * @see evas_seat_key_modifier_is_set
  */
 EAPI Eina_Bool            evas_key_modifier_is_set(const Evas_Modifier *m, const char *keyname) EINA_WARN_UNUSED_RESULT EINA_ARG_NONNULL(1, 2);
-
 /**
- * Checks the state of a given lock key, at the time of the call. If
+ * Checks the state of a given modifier key of a given seat, at the time of the
+ * call. If the modifier is set, such as shift being pressed, this
+ * function returns @c Eina_True.
+ *
+ * @param m The current modifiers set, as returned by
+ *        evas_key_modifier_get().
+ * @param keyname The name of the modifier key to check status for.
+ * @param seat The seat to check if the lock is set. Use @c NULL for the default seat.
+ *
+ * @return @c Eina_True if the modifier key named @p keyname is on, @c
+ *         Eina_False otherwise.
+ *
+ * @see evas_key_modifier_add
+ * @see evas_key_modifier_del
+ * @see evas_key_modifier_get
+ * @see evas_key_modifier_on
+ * @see evas_key_modifier_off
+ * @see evas_seat_key_modifier_on
+ * @see evas_seat_key_modifier_off
+ * @see evas_key_modifier_is_set
+ * @since 1.19
+ */
+EAPI Eina_Bool            evas_seat_key_modifier_is_set(const Evas_Modifier *m, const char *keyname, const Evas_Device *seat) EINA_WARN_UNUSED_RESULT EINA_ARG_NONNULL(1, 2);
+/**
+ * Checks the state of a given lock key of the default seat, at the time of the call. If
  * the lock is set, such as caps lock, this function returns @c
  * Eina_True.
  *
@@ -3642,8 +3524,33 @@ EAPI Eina_Bool            evas_key_modifier_is_set(const Evas_Modifier *m, const
  * @see evas_key_lock_del
  * @see evas_key_lock_on
  * @see evas_key_lock_off
+ * @see evas_seat_key_lock_on
+ * @see evas_seat_key_lock_off
+ * @see evas_seat_key_lock_is_set
  */
 EAPI Eina_Bool            evas_key_lock_is_set(const Evas_Lock *l, const char *keyname) EINA_WARN_UNUSED_RESULT EINA_ARG_NONNULL(1, 2);
+
+/**
+ * Checks the state of a given lock key of a given seat, at the time of the call. If
+ * the lock is set, such as caps lock, this function returns @c
+ * Eina_True.
+ *
+ * @param l The current locks set, as returned by evas_key_lock_get().
+ * @param keyname The name of the lock key to check status for.
+ * @param seat The seat to check if the lock is set. Use @c NULL for the default seat.
+ *
+ * @return @c Eina_True if the @p keyname lock key is set, @c
+ *        Eina_False otherwise.
+ *
+ * @see evas_key_lock_get
+ * @see evas_key_lock_add
+ * @see evas_key_lock_del
+ * @see evas_key_lock_on
+ * @see evas_key_lock_off
+ * @see evas_key_lock_is_set
+ * @since 1.19
+ */
+EAPI Eina_Bool            evas_seat_key_lock_is_set(const Evas_Lock *l, const char *keyname, const Evas_Device *seat) EINA_WARN_UNUSED_RESULT EINA_ARG_NONNULL(1, 2);
 
 /**
  * @}

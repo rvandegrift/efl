@@ -32,10 +32,10 @@ static void
 _cleanup_cb(void *data, Evas *e EINA_UNUSED, Evas_Object *obj EINA_UNUSED, void *event_info EINA_UNUSED)
 {
    Efl_Model_Test_Filemvc_Data *priv = (Efl_Model_Test_Filemvc_Data *)data;
-   eo_unref(priv->fileview);
-   eo_unref(priv->treeview);
-   eo_unref(priv->formview);
-   eo_unref(priv->treemodel);
+   efl_unref(priv->fileview);
+   efl_unref(priv->treeview);
+   efl_unref(priv->formview);
+   efl_unref(priv->treemodel);
 }
 
 static Eina_Bool
@@ -47,44 +47,49 @@ _filter_cb(void *data EINA_UNUSED, Eio_File *handler EINA_UNUSED, const Eina_Fil
 }
 
 static void
-_list_selected_cb(void *data EINA_UNUSED, const Eo_Event *event)
+_list_selected_cb(void *data EINA_UNUSED, const Efl_Event *event)
 {
    Efl_Model_Test_Filemvc_Data *priv = data;
    Eo *child = event->info;
-//   ethumb_client_file_free(elm_thumb_ethumb_client_get());
+  ethumb_client_file_free(elm_thumb_ethumb_client_get());
 
    printf("LIST selected model\n");
    elm_view_form_model_set(priv->formview, child);
 }
 
 static void
-_promise_then(void *data, void *value)
+_promise_then(void *data, const Efl_Event *event)
 {
    Efl_Model_Test_Filemvc_Data *priv = data;
    char *path;
    Eo *model;
+   Efl_Future_Event_Success* info = event->info;
+   Eina_Value* value = info->value;
 
    eina_value_get(value, &path);
-   model = eo_add(EIO_MODEL_CLASS, NULL, eio_model_path_set(eo_self, path));
+   model = efl_add(EIO_MODEL_CLASS, NULL, eio_model_path_set(efl_added, path));
    elm_view_list_model_set(priv->fileview, model);
 }
 
 static void
-_promise_error(void *data, const Eina_Error err)
+_promise_error(void *data, const Efl_Event* err)
 {
 }
 
 static void
-_tree_selected_cb(void *data, const Eo_Event *event)
+_tree_selected_cb(void *data, const Efl_Event *event)
 {
    Efl_Model_Test_Filemvc_Data *priv = data;
    Eo *child = event->info;
-   Eina_Promise *promise;
+   Efl_Future *f;
 
    printf("TREE selected model\n");
 
-   promise= efl_model_property_get(child, "path");
-   eina_promise_then(promise, &_promise_then, &_promise_error, priv);
+   f = efl_model_property_get(child, "path");
+   efl_ref(f);
+   efl_future_then(f, &_promise_then, &_promise_error, NULL, priv);
+   efl_future_link(event->object, f);
+   efl_unref(f);
 }
 
 static void
@@ -144,12 +149,12 @@ elm_main(int argc, char **argv)
    else dirname = EFL_MODEL_TEST_FILENAME_PATH;
 
    //treemodel
-   priv.treemodel = eo_add(EIO_MODEL_CLASS, NULL, eio_model_path_set(eo_self, dirname));
+   priv.treemodel = efl_add(EIO_MODEL_CLASS, NULL, eio_model_path_set(efl_added, dirname));
    eio_model_children_filter_set(priv.treemodel, _filter_cb, NULL);
 
    //treeview
    genlist = elm_genlist_add(win);
-   priv.treeview = eo_add(ELM_VIEW_LIST_CLASS, NULL, elm_view_list_genlist_set(eo_self, genlist, ELM_GENLIST_ITEM_TREE, NULL));
+   priv.treeview = efl_add(ELM_VIEW_LIST_CLASS, NULL, elm_view_list_genlist_set(efl_added, genlist, ELM_GENLIST_ITEM_TREE, NULL));
    elm_view_list_property_connect(priv.treeview, "filename", "elm.text");
    elm_view_list_property_connect(priv.treeview, "icon", "elm.swallow.icon");
    elm_view_list_model_set(priv.treeview, priv.treemodel);
@@ -160,11 +165,11 @@ elm_main(int argc, char **argv)
    vpanes = elm_panes_add(win);
    _widget_init(vpanes);
    elm_object_part_content_set(panes, "right", vpanes);
-   eo_event_callback_add(priv.treeview, ELM_VIEW_LIST_EVENT_MODEL_SELECTED, _tree_selected_cb, &priv);
+   efl_event_callback_add(priv.treeview, ELM_VIEW_LIST_EVENT_MODEL_SELECTED, _tree_selected_cb, &priv);
 
    //listview
    genlist = elm_genlist_add(win);
-   priv.fileview = eo_add(ELM_VIEW_LIST_CLASS, NULL, elm_view_list_genlist_set(eo_self, genlist, ELM_GENLIST_ITEM_NONE, "double_label"));
+   priv.fileview = efl_add(ELM_VIEW_LIST_CLASS, NULL, elm_view_list_genlist_set(efl_added, genlist, ELM_GENLIST_ITEM_NONE, "double_label"));
    elm_view_list_property_connect(priv.fileview, "filename", "elm.text");
    elm_view_list_property_connect(priv.fileview, "mime_type", "elm.text.sub");
 
@@ -172,13 +177,13 @@ elm_main(int argc, char **argv)
    _widget_init(genlist);
    elm_object_part_content_set(vpanes, "left", genlist);
 
-   eo_event_callback_add(priv.fileview, ELM_VIEW_LIST_EVENT_MODEL_SELECTED, _list_selected_cb, &priv);
+   efl_event_callback_add(priv.fileview, ELM_VIEW_LIST_EVENT_MODEL_SELECTED, _list_selected_cb, &priv);
 
    //formview
    bxr = elm_box_add(win);
    _widget_init(bxr);
    elm_object_part_content_set(vpanes, "right", bxr);
-   priv.formview = eo_add(ELM_VIEW_FORM_CLASS, NULL);
+   priv.formview = efl_add(ELM_VIEW_FORM_CLASS, NULL);
 
    /*Label widget */
    elm_view_form_widget_add(priv.formview, "filename", _label_init(win, bxr, "File Name"));

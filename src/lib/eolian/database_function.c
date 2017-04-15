@@ -27,9 +27,6 @@ database_function_del(Eolian_Function *fid)
    database_expr_del(fid->set_ret_val);
    if (fid->get_legacy) eina_stringshare_del(fid->get_legacy);
    if (fid->set_legacy) eina_stringshare_del(fid->set_legacy);
-   database_doc_del(fid->common_doc);
-   database_doc_del(fid->get_doc);
-   database_doc_del(fid->set_doc);
    database_doc_del(fid->get_return_doc);
    database_doc_del(fid->set_return_doc);
    free(fid);
@@ -59,4 +56,16 @@ database_function_constructor_add(Eolian_Function *func, const Eolian_Class *cls
    func->ctor_of = _list_sorted_insert_no_dup
      (func->ctor_of, EINA_COMPARE_CB(strcmp),
       eina_stringshare_ref(cls->full_name));
+}
+
+Eina_Bool
+database_function_is_type(Eolian_Function *fid, Eolian_Function_Type ftype)
+{
+   if (ftype == EOLIAN_UNRESOLVED)
+     return EINA_TRUE;
+   else if (ftype == EOLIAN_PROP_GET)
+     return (fid->type == EOLIAN_PROP_GET) || (fid->type == EOLIAN_PROPERTY);
+   else if (ftype == EOLIAN_PROP_SET)
+     return (fid->type == EOLIAN_PROP_SET) || (fid->type == EOLIAN_PROPERTY);
+   return (fid->type == ftype);
 }

@@ -553,7 +553,6 @@ scale_rgba_in_to_out_clip_sample_internal(RGBA_Image *src, RGBA_Image *dst,
      }
    if (dst_region_w <= 0) return EINA_FALSE;
    if (src_region_w <= 0) return EINA_FALSE;
-   if (dst_clip_w <= 0) return EINA_FALSE;
    if (dst_clip_x >= dst_w) return EINA_FALSE;
    if (dst_clip_x < dst_region_x)
      {
@@ -582,7 +581,6 @@ scale_rgba_in_to_out_clip_sample_internal(RGBA_Image *src, RGBA_Image *dst,
      }
    if (dst_region_h <= 0) return EINA_FALSE;
    if (src_region_h <= 0) return EINA_FALSE;
-   if (dst_clip_h <= 0) return EINA_FALSE;
    if (dst_clip_y >= dst_h) return EINA_FALSE;
    if (dst_clip_y < dst_region_y)
      {
@@ -819,7 +817,7 @@ _evas_common_scale_sample_thread(void *data EINA_UNUSED,
    Evas_Scale_Msg *msg;
    Evas_Scale_Thread *todo = NULL;
 
-   eina_thread_name_set(eina_thread_self(), "Eevas-scale-sam");
+   eina_thread_name_set(eina_thread_self(), "Evas-scale-sam");
    do
      {
         void *ref;
@@ -870,16 +868,36 @@ evas_common_scale_sample_init(void)
 {
    if (eina_cpu_count() <= 2) return ;
 
+//Eina_Thread_Queue doesn't work on WIN32.
+#ifdef _WIN32
+   return;
+#endif
+
    thread_queue = eina_thread_queue_new();
+   if (EINA_UNLIKELY(!thread_queue))
+     {
+        ERR("Failed to create thread queue");
+        goto cleanup;
+     }
    main_queue = eina_thread_queue_new();
+   if (EINA_UNLIKELY(!thread_queue))
+     {
+        ERR("Failed to create thread queue");
+        goto cleanup;
+     }
 
    if (!eina_thread_create(&scaling_thread, EINA_THREAD_NORMAL, -1,
                            _evas_common_scale_sample_thread, NULL))
      {
-        return;
+        goto cleanup;
      }
 
    use_thread = EINA_TRUE;
+   return;
+
+cleanup:
+   if (thread_queue) eina_thread_queue_free(thread_queue);
+   if (main_queue) eina_thread_queue_free(main_queue);
 }
 
 EAPI void

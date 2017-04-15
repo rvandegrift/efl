@@ -52,18 +52,13 @@ _recalc(void *data)
      resw = w;
    edje_object_size_min_restricted_calc(wd->resize_obj, &minw, &minh, resw, 0);
 
-   /* This is a hack to workaround the way min size hints are treated.
-    * If the minimum width is smaller than the restricted width, it means
-    * the minimum doesn't matter. */
-   if ((minw <= resw) && (minw != sd->wrap_w))
-     {
-        Evas_Coord ominw = -1;
+   /* If wrap_w is not set, label's width has to be controlled
+      by outside of label. So, we don't need to set minimum width. */
+   if (sd->wrap_w == -1)
+     evas_object_size_hint_min_set(data, 0, minh);
+   else
+     evas_object_size_hint_min_set(data, minw, minh);
 
-        efl_gfx_size_hint_combined_min_get(data, &ominw, NULL);
-        minw = ominw;
-     }
-
-   evas_object_size_hint_min_set(data, minw, minh);
    evas_event_thaw(evas_object_evas_get(data));
    evas_event_thaw_eval(evas_object_evas_get(data));
 }
@@ -141,8 +136,12 @@ _label_slide_change(Evas_Object *obj)
         // calculate speed or duration
         if (!strcmp(elm_object_style_get(obj), "slide_long"))
           w = tb_w + w;
-        else // slide_short or slide_bounce
+        else if (!strcmp(elm_object_style_get(obj), "slide_short") ||
+                 !strcmp(elm_object_style_get(obj), "slide_bounce")) // slide_short or slide_bounce
           w = tb_w - w;
+        else
+          w = tb_w;
+
         if (sd->use_slide_speed)
           {
              if (sd->slide_speed <= 0) sd->slide_speed = 1;
@@ -174,6 +173,18 @@ _label_slide_change(Evas_Object *obj)
      }
 }
 
+static void
+_elm_label_horizontal_size_policy_update(Eo *obj, Elm_Label_Data *sd)
+{
+   ELM_WIDGET_DATA_GET_OR_RETURN(obj, wd);
+
+   if (!sd->ellipsis && (sd->linewrap == ELM_WRAP_NONE))
+     edje_object_signal_emit(wd->resize_obj, "elm,state,horizontal,expandable", "elm");
+   else
+     edje_object_signal_emit(wd->resize_obj, "elm,state,horizontal,fixed", "elm");
+   edje_object_message_signal_process(wd->resize_obj);
+}
+
 EOLIAN static Elm_Theme_Apply
 _elm_label_elm_widget_theme_apply(Eo *obj, Elm_Label_Data *sd)
 {
@@ -183,8 +194,10 @@ _elm_label_elm_widget_theme_apply(Eo *obj, Elm_Label_Data *sd)
 
    evas_event_freeze(evas_object_evas_get(obj));
 
-   int_ret = elm_obj_widget_theme_apply(eo_super(obj, MY_CLASS));
+   int_ret = elm_obj_widget_theme_apply(efl_super(obj, MY_CLASS));
    if (!int_ret) return ELM_THEME_APPLY_FAILED;
+
+   _elm_label_horizontal_size_policy_update(obj, sd);
 
    _label_format_set(wd->resize_obj, sd->format);
    _label_slide_change(obj);
@@ -333,7 +346,7 @@ _elm_label_elm_layout_text_set(Eo *obj, Elm_Label_Data *sd, const char *part, co
    if (!label) label = "";
    _label_format_set(wd->resize_obj, sd->format);
 
-   int_ret = elm_obj_layout_text_set(eo_super(obj, MY_CLASS), part, label);
+   int_ret = elm_obj_layout_text_set(efl_super(obj, MY_CLASS), part, label);
    if (int_ret)
      {
         sd->lastw = -1;
@@ -362,7 +375,7 @@ _on_slide_end(void *data, Evas_Object *obj EINA_UNUSED,
    if (sd->slide_ellipsis)
      elm_obj_label_ellipsis_set(data, EINA_TRUE);
 
-   eo_event_callback_call(data, ELM_LABEL_EVENT_SLIDE_END, NULL);
+   efl_event_callback_legacy_call(data, ELM_LABEL_EVENT_SLIDE_END, NULL);
 }
 
 EOLIAN static void
@@ -370,7 +383,7 @@ _elm_label_efl_canvas_group_group_add(Eo *obj, Elm_Label_Data *priv)
 {
    ELM_WIDGET_DATA_GET_OR_RETURN(obj, wd);
 
-   efl_canvas_group_add(eo_super(obj, MY_CLASS));
+   efl_canvas_group_add(efl_super(obj, MY_CLASS));
 
    elm_widget_sub_object_parent_add(obj);
 
@@ -407,14 +420,14 @@ EAPI Evas_Object *
 elm_label_add(Evas_Object *parent)
 {
    EINA_SAFETY_ON_NULL_RETURN_VAL(parent, NULL);
-   Evas_Object *obj = eo_add(MY_CLASS, parent);
+   Evas_Object *obj = efl_add(MY_CLASS, parent);
    return obj;
 }
 
 EOLIAN static Eo *
-_elm_label_eo_base_constructor(Eo *obj, Elm_Label_Data *_pd EINA_UNUSED)
+_elm_label_efl_object_constructor(Eo *obj, Elm_Label_Data *_pd EINA_UNUSED)
 {
-   obj = eo_constructor(eo_super(obj, MY_CLASS));
+   obj = efl_constructor(efl_super(obj, MY_CLASS));
    efl_canvas_object_type_set(obj, MY_CLASS_NAME_LEGACY);
    evas_object_smart_callbacks_descriptions_set(obj, _smart_callbacks);
    elm_interface_atspi_accessible_role_set(obj, ELM_ATSPI_ROLE_LABEL);
@@ -433,6 +446,10 @@ _elm_label_line_wrap_set(Eo *obj, Elm_Label_Data *sd, Elm_Wrap_Type wrap)
    if (sd->linewrap == wrap) return;
 
    sd->linewrap = wrap;
+   sd->lastw = -1;
+
+   _elm_label_horizontal_size_policy_update(obj, sd);
+
    text = elm_layout_text_get(obj, NULL);
    if (!text) return;
 
@@ -506,6 +523,9 @@ _elm_label_ellipsis_set(Eo *obj, Elm_Label_Data *sd, Eina_Bool ellipsis)
 
    if (sd->ellipsis == ellipsis) return;
    sd->ellipsis = ellipsis;
+   sd->lastw = -1;
+
+   _elm_label_horizontal_size_policy_update(obj, sd);
 
    text = elm_layout_text_get(obj, NULL);
    if (!text) return;
@@ -618,7 +638,7 @@ _elm_label_elm_widget_focus_direction_manager_is(Eo *obj EINA_UNUSED, Elm_Label_
 }
 
 EOLIAN static void
-_elm_label_class_constructor(Eo_Class *klass)
+_elm_label_class_constructor(Efl_Class *klass)
 {
    evas_smart_legacy_type_register(MY_CLASS_NAME_LEGACY, klass);
 }

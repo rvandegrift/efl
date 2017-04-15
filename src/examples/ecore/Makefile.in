@@ -100,14 +100,19 @@ EXTRA_PROGRAMS = ecore_animator_example$(EXEEXT) \
 	ecore_con_url_cookies_example$(EXEEXT) \
 	ecore_con_url_download_example$(EXEEXT) \
 	ecore_con_url_headers_example$(EXEEXT) \
+	ecore_con_url_ftp_example$(EXEEXT) \
 	ecore_evas_basics_example$(EXEEXT) \
 	ecore_evas_buffer_example_01$(EXEEXT) \
 	ecore_evas_buffer_example_02$(EXEEXT) \
+	ecore_evas_callbacks$(EXEEXT) \
+	ecore_evas_cursor_example$(EXEEXT) \
 	ecore_evas_extn_socket_example$(EXEEXT) \
 	ecore_evas_extn_plug_example$(EXEEXT) \
-	ecore_evas_callbacks$(EXEEXT) ecore_evas_ews_example$(EXEEXT) \
+	ecore_evas_ews_example$(EXEEXT) \
 	ecore_evas_object_example$(EXEEXT) \
+	ecore_evas_wayland_multiseat_example$(EXEEXT) \
 	ecore_evas_window_sizes_example$(EXEEXT) \
+	ecore_evas_vnc_example$(EXEEXT) \
 	ecore_event_example_01$(EXEEXT) \
 	ecore_event_example_02$(EXEEXT) ecore_exe_example$(EXEEXT) \
 	ecore_exe_example_child$(EXEEXT) \
@@ -119,8 +124,27 @@ EXTRA_PROGRAMS = ecore_animator_example$(EXEEXT) \
 	ecore_time_functions_example$(EXEEXT) \
 	ecore_timer_example$(EXEEXT) ecore_getopt_example$(EXEEXT) \
 	ecore_con_eet_client_example$(EXEEXT) \
-	ecore_con_eet_server_example$(EXEEXT) $(am__EXEEXT_1) \
-	$(am__EXEEXT_2) $(am__EXEEXT_3) $(am__EXEEXT_4)
+	ecore_con_eet_server_example$(EXEEXT) \
+	efl_io_copier_example$(EXEEXT) \
+	efl_io_copier_simple_example$(EXEEXT) \
+	efl_io_queue_example$(EXEEXT) \
+	efl_io_buffered_stream_example$(EXEEXT) \
+	efl_net_server_example$(EXEEXT) \
+	efl_net_server_simple_example$(EXEEXT) \
+	efl_net_dialer_http_example$(EXEEXT) \
+	efl_net_dialer_websocket_example$(EXEEXT) \
+	efl_net_dialer_websocket_autobahntestee$(EXEEXT) \
+	efl_net_dialer_udp_example$(EXEEXT) \
+	efl_net_dialer_simple_example$(EXEEXT) \
+	efl_net_socket_ssl_dialer_example$(EXEEXT) \
+	efl_net_socket_ssl_server_example$(EXEEXT) \
+	efl_net_session_example$(EXEEXT) \
+	efl_net_control_example$(EXEEXT) \
+	efl_net_ip_address_example$(EXEEXT) \
+	ecore_ipc_server_example$(EXEEXT) \
+	ecore_ipc_client_example$(EXEEXT) $(am__EXEEXT_1) \
+	$(am__EXEEXT_2) $(am__EXEEXT_3) $(am__EXEEXT_4) \
+	$(am__EXEEXT_5) $(am__EXEEXT_6)
 @HAVE_ECORE_BUFFER_TRUE@am__append_2 = ecore_buffer_example \
 @HAVE_ECORE_BUFFER_TRUE@ecore_buffer_consumer_example \
 @HAVE_ECORE_BUFFER_TRUE@ecore_buffer_provider_example
@@ -128,6 +152,8 @@ EXTRA_PROGRAMS = ecore_animator_example$(EXEEXT) \
 @HAVE_CRYPTO_GNUTLS_TRUE@am__append_3 = ecore_fd_handler_gnutls_example
 @HAVE_GSTREAMER_TRUE@am__append_4 = ecore_pipe_gstreamer_example
 @HAVE_WINDOWS_FALSE@am__append_5 = ecore_pipe_simple_example
+@HAVE_WINDOWS_TRUE@am__append_6 = efl_net_dialer_windows_example
+@HAVE_WINDOWS_FALSE@am__append_7 = efl_net_dialer_unix_example
 subdir = src/examples/ecore
 ACLOCAL_M4 = $(top_srcdir)/aclocal.m4
 am__aclocal_m4_deps = $(top_srcdir)/m4/ac_define_if.m4 \
@@ -138,8 +164,8 @@ am__aclocal_m4_deps = $(top_srcdir)/m4/ac_define_if.m4 \
 	$(top_srcdir)/m4/efl_check_funcs.m4 \
 	$(top_srcdir)/m4/efl_check_libs.m4 \
 	$(top_srcdir)/m4/efl_compiler.m4 \
-	$(top_srcdir)/m4/efl_doxygen.m4 $(top_srcdir)/m4/efl_eo.m4 \
-	$(top_srcdir)/m4/efl_find_x.m4 \
+	$(top_srcdir)/m4/efl_define.m4 $(top_srcdir)/m4/efl_doxygen.m4 \
+	$(top_srcdir)/m4/efl_eo.m4 $(top_srcdir)/m4/efl_find_x.m4 \
 	$(top_srcdir)/m4/efl_libunwind.m4 \
 	$(top_srcdir)/m4/efl_lua_old.m4 \
 	$(top_srcdir)/m4/efl_path_max.m4 \
@@ -179,6 +205,10 @@ CONFIG_CLEAN_VPATH_FILES =
 @HAVE_GSTREAMER_TRUE@am__EXEEXT_3 =  \
 @HAVE_GSTREAMER_TRUE@	ecore_pipe_gstreamer_example$(EXEEXT)
 @HAVE_WINDOWS_FALSE@am__EXEEXT_4 = ecore_pipe_simple_example$(EXEEXT)
+@HAVE_WINDOWS_TRUE@am__EXEEXT_5 =  \
+@HAVE_WINDOWS_TRUE@	efl_net_dialer_windows_example$(EXEEXT)
+@HAVE_WINDOWS_FALSE@am__EXEEXT_6 =  \
+@HAVE_WINDOWS_FALSE@	efl_net_dialer_unix_example$(EXEEXT)
 PROGRAMS = $(noinst_PROGRAMS)
 am_ecore_animator_example_OBJECTS = ecore_animator_example.$(OBJEXT)
 ecore_animator_example_OBJECTS = $(am_ecore_animator_example_OBJECTS)
@@ -283,6 +313,11 @@ am_ecore_con_url_download_example_OBJECTS =  \
 ecore_con_url_download_example_OBJECTS =  \
 	$(am_ecore_con_url_download_example_OBJECTS)
 ecore_con_url_download_example_DEPENDENCIES = $(am__DEPENDENCIES_3)
+am_ecore_con_url_ftp_example_OBJECTS =  \
+	ecore_con_url_ftp_example.$(OBJEXT)
+ecore_con_url_ftp_example_OBJECTS =  \
+	$(am_ecore_con_url_ftp_example_OBJECTS)
+ecore_con_url_ftp_example_DEPENDENCIES = $(am__DEPENDENCIES_3)
 am_ecore_con_url_headers_example_OBJECTS =  \
 	ecore_con_url_headers_example.$(OBJEXT)
 ecore_con_url_headers_example_OBJECTS =  \
@@ -306,6 +341,11 @@ ecore_evas_buffer_example_02_DEPENDENCIES = $(am__DEPENDENCIES_2)
 am_ecore_evas_callbacks_OBJECTS = ecore_evas_callbacks.$(OBJEXT)
 ecore_evas_callbacks_OBJECTS = $(am_ecore_evas_callbacks_OBJECTS)
 ecore_evas_callbacks_DEPENDENCIES = $(am__DEPENDENCIES_2)
+am_ecore_evas_cursor_example_OBJECTS =  \
+	ecore_evas_cursor_example.$(OBJEXT)
+ecore_evas_cursor_example_OBJECTS =  \
+	$(am_ecore_evas_cursor_example_OBJECTS)
+ecore_evas_cursor_example_DEPENDENCIES = $(am__DEPENDENCIES_2)
 am_ecore_evas_ews_example_OBJECTS = ecore_evas_ews_example.$(OBJEXT)
 ecore_evas_ews_example_OBJECTS = $(am_ecore_evas_ews_example_OBJECTS)
 ecore_evas_ews_example_DEPENDENCIES = $(am__DEPENDENCIES_2)
@@ -324,6 +364,17 @@ am_ecore_evas_object_example_OBJECTS =  \
 ecore_evas_object_example_OBJECTS =  \
 	$(am_ecore_evas_object_example_OBJECTS)
 ecore_evas_object_example_DEPENDENCIES = $(am__DEPENDENCIES_2)
+am_ecore_evas_vnc_example_OBJECTS = ecore_evas_vnc_example.$(OBJEXT)
+ecore_evas_vnc_example_OBJECTS = $(am_ecore_evas_vnc_example_OBJECTS)
+ecore_evas_vnc_example_DEPENDENCIES = $(am__DEPENDENCIES_2) \
+	$(top_builddir)/src/lib/ecore_input/libecore_input.la
+am_ecore_evas_wayland_multiseat_example_OBJECTS =  \
+	ecore_evas_wayland_multiseat_example.$(OBJEXT)
+ecore_evas_wayland_multiseat_example_OBJECTS =  \
+	$(am_ecore_evas_wayland_multiseat_example_OBJECTS)
+ecore_evas_wayland_multiseat_example_DEPENDENCIES =  \
+	$(am__DEPENDENCIES_2) \
+	$(top_builddir)/src/lib/ecore_input/libecore_input.la
 am_ecore_evas_window_sizes_example_OBJECTS =  \
 	ecore_evas_window_sizes_example.$(OBJEXT)
 ecore_evas_window_sizes_example_OBJECTS =  \
@@ -372,6 +423,19 @@ ecore_imf_example_OBJECTS = $(am_ecore_imf_example_OBJECTS)
 ecore_imf_example_DEPENDENCIES = $(am__DEPENDENCIES_2) \
 	$(top_builddir)/src/lib/ecore_imf/libecore_imf.la \
 	$(top_builddir)/src/lib/ecore_imf_evas/libecore_imf_evas.la
+am_ecore_ipc_client_example_OBJECTS =  \
+	ecore_ipc_client_example.$(OBJEXT)
+ecore_ipc_client_example_OBJECTS =  \
+	$(am_ecore_ipc_client_example_OBJECTS)
+am__DEPENDENCIES_4 =  \
+	$(top_builddir)/src/lib/ecore_ipc/libecore_ipc.la \
+	$(am__DEPENDENCIES_3)
+ecore_ipc_client_example_DEPENDENCIES = $(am__DEPENDENCIES_4)
+am_ecore_ipc_server_example_OBJECTS =  \
+	ecore_ipc_server_example.$(OBJEXT)
+ecore_ipc_server_example_OBJECTS =  \
+	$(am_ecore_ipc_server_example_OBJECTS)
+ecore_ipc_server_example_DEPENDENCIES = $(am__DEPENDENCIES_4)
 am_ecore_job_example_OBJECTS = ecore_job_example.$(OBJEXT)
 ecore_job_example_OBJECTS = $(am_ecore_job_example_OBJECTS)
 ecore_job_example_DEPENDENCIES = $(am__DEPENDENCIES_1)
@@ -411,6 +475,99 @@ ecore_time_functions_example_DEPENDENCIES = $(am__DEPENDENCIES_1)
 am_ecore_timer_example_OBJECTS = ecore_timer_example.$(OBJEXT)
 ecore_timer_example_OBJECTS = $(am_ecore_timer_example_OBJECTS)
 ecore_timer_example_DEPENDENCIES = $(am__DEPENDENCIES_1)
+am_efl_io_buffered_stream_example_OBJECTS =  \
+	efl_io_buffered_stream_example.$(OBJEXT)
+efl_io_buffered_stream_example_OBJECTS =  \
+	$(am_efl_io_buffered_stream_example_OBJECTS)
+efl_io_buffered_stream_example_DEPENDENCIES = $(am__DEPENDENCIES_3)
+am_efl_io_copier_example_OBJECTS = efl_io_copier_example.$(OBJEXT)
+efl_io_copier_example_OBJECTS = $(am_efl_io_copier_example_OBJECTS)
+efl_io_copier_example_DEPENDENCIES = $(am__DEPENDENCIES_3)
+am_efl_io_copier_simple_example_OBJECTS =  \
+	efl_io_copier_simple_example.$(OBJEXT)
+efl_io_copier_simple_example_OBJECTS =  \
+	$(am_efl_io_copier_simple_example_OBJECTS)
+efl_io_copier_simple_example_DEPENDENCIES = $(am__DEPENDENCIES_1)
+am_efl_io_queue_example_OBJECTS = efl_io_queue_example.$(OBJEXT)
+efl_io_queue_example_OBJECTS = $(am_efl_io_queue_example_OBJECTS)
+efl_io_queue_example_DEPENDENCIES = $(am__DEPENDENCIES_3)
+am_efl_net_control_example_OBJECTS =  \
+	efl_net_control_example.$(OBJEXT)
+efl_net_control_example_OBJECTS =  \
+	$(am_efl_net_control_example_OBJECTS)
+efl_net_control_example_DEPENDENCIES = $(am__DEPENDENCIES_3)
+am_efl_net_dialer_http_example_OBJECTS =  \
+	efl_net_dialer_http_example.$(OBJEXT)
+efl_net_dialer_http_example_OBJECTS =  \
+	$(am_efl_net_dialer_http_example_OBJECTS)
+efl_net_dialer_http_example_DEPENDENCIES = $(am__DEPENDENCIES_3)
+am_efl_net_dialer_simple_example_OBJECTS =  \
+	efl_net_dialer_simple_example.$(OBJEXT)
+efl_net_dialer_simple_example_OBJECTS =  \
+	$(am_efl_net_dialer_simple_example_OBJECTS)
+efl_net_dialer_simple_example_DEPENDENCIES = $(am__DEPENDENCIES_3)
+am_efl_net_dialer_udp_example_OBJECTS =  \
+	efl_net_dialer_udp_example.$(OBJEXT)
+efl_net_dialer_udp_example_OBJECTS =  \
+	$(am_efl_net_dialer_udp_example_OBJECTS)
+efl_net_dialer_udp_example_DEPENDENCIES = $(am__DEPENDENCIES_3)
+am__efl_net_dialer_unix_example_SOURCES_DIST =  \
+	efl_net_dialer_unix_example.c
+@HAVE_WINDOWS_FALSE@am_efl_net_dialer_unix_example_OBJECTS =  \
+@HAVE_WINDOWS_FALSE@	efl_net_dialer_unix_example.$(OBJEXT)
+efl_net_dialer_unix_example_OBJECTS =  \
+	$(am_efl_net_dialer_unix_example_OBJECTS)
+@HAVE_WINDOWS_FALSE@efl_net_dialer_unix_example_DEPENDENCIES =  \
+@HAVE_WINDOWS_FALSE@	$(am__DEPENDENCIES_3)
+am_efl_net_dialer_websocket_autobahntestee_OBJECTS =  \
+	efl_net_dialer_websocket_autobahntestee.$(OBJEXT)
+efl_net_dialer_websocket_autobahntestee_OBJECTS =  \
+	$(am_efl_net_dialer_websocket_autobahntestee_OBJECTS)
+efl_net_dialer_websocket_autobahntestee_DEPENDENCIES =  \
+	$(am__DEPENDENCIES_3)
+am_efl_net_dialer_websocket_example_OBJECTS =  \
+	efl_net_dialer_websocket_example.$(OBJEXT)
+efl_net_dialer_websocket_example_OBJECTS =  \
+	$(am_efl_net_dialer_websocket_example_OBJECTS)
+efl_net_dialer_websocket_example_DEPENDENCIES = $(am__DEPENDENCIES_3)
+am__efl_net_dialer_windows_example_SOURCES_DIST =  \
+	efl_net_dialer_windows_example.c
+@HAVE_WINDOWS_TRUE@am_efl_net_dialer_windows_example_OBJECTS =  \
+@HAVE_WINDOWS_TRUE@	efl_net_dialer_windows_example.$(OBJEXT)
+efl_net_dialer_windows_example_OBJECTS =  \
+	$(am_efl_net_dialer_windows_example_OBJECTS)
+@HAVE_WINDOWS_TRUE@efl_net_dialer_windows_example_DEPENDENCIES =  \
+@HAVE_WINDOWS_TRUE@	$(am__DEPENDENCIES_3)
+am_efl_net_ip_address_example_OBJECTS =  \
+	efl_net_ip_address_example.$(OBJEXT)
+efl_net_ip_address_example_OBJECTS =  \
+	$(am_efl_net_ip_address_example_OBJECTS)
+efl_net_ip_address_example_DEPENDENCIES = $(am__DEPENDENCIES_3)
+am_efl_net_server_example_OBJECTS = efl_net_server_example.$(OBJEXT)
+efl_net_server_example_OBJECTS = $(am_efl_net_server_example_OBJECTS)
+efl_net_server_example_DEPENDENCIES = $(am__DEPENDENCIES_3)
+am_efl_net_server_simple_example_OBJECTS =  \
+	efl_net_server_simple_example.$(OBJEXT)
+efl_net_server_simple_example_OBJECTS =  \
+	$(am_efl_net_server_simple_example_OBJECTS)
+efl_net_server_simple_example_DEPENDENCIES = $(am__DEPENDENCIES_3)
+am_efl_net_session_example_OBJECTS =  \
+	efl_net_session_example.$(OBJEXT)
+efl_net_session_example_OBJECTS =  \
+	$(am_efl_net_session_example_OBJECTS)
+efl_net_session_example_DEPENDENCIES = $(am__DEPENDENCIES_3)
+am_efl_net_socket_ssl_dialer_example_OBJECTS =  \
+	efl_net_socket_ssl_dialer_example.$(OBJEXT)
+efl_net_socket_ssl_dialer_example_OBJECTS =  \
+	$(am_efl_net_socket_ssl_dialer_example_OBJECTS)
+efl_net_socket_ssl_dialer_example_DEPENDENCIES =  \
+	$(am__DEPENDENCIES_3)
+am_efl_net_socket_ssl_server_example_OBJECTS =  \
+	efl_net_socket_ssl_server_example.$(OBJEXT)
+efl_net_socket_ssl_server_example_OBJECTS =  \
+	$(am_efl_net_socket_ssl_server_example_OBJECTS)
+efl_net_socket_ssl_server_example_DEPENDENCIES =  \
+	$(am__DEPENDENCIES_3)
 AM_V_P = $(am__v_P_@AM_V@)
 am__v_P_ = $(am__v_P_@AM_DEFAULT_V@)
 am__v_P_0 = false
@@ -461,15 +618,19 @@ SOURCES = $(ecore_animator_example_SOURCES) \
 	$(ecore_con_server_simple_example_SOURCES) \
 	$(ecore_con_url_cookies_example_SOURCES) \
 	$(ecore_con_url_download_example_SOURCES) \
+	$(ecore_con_url_ftp_example_SOURCES) \
 	$(ecore_con_url_headers_example_SOURCES) \
 	$(ecore_evas_basics_example_SOURCES) \
 	$(ecore_evas_buffer_example_01_SOURCES) \
 	$(ecore_evas_buffer_example_02_SOURCES) \
 	$(ecore_evas_callbacks_SOURCES) \
+	$(ecore_evas_cursor_example_SOURCES) \
 	$(ecore_evas_ews_example_SOURCES) \
 	$(ecore_evas_extn_plug_example_SOURCES) \
 	$(ecore_evas_extn_socket_example_SOURCES) \
 	$(ecore_evas_object_example_SOURCES) \
+	$(ecore_evas_vnc_example_SOURCES) \
+	$(ecore_evas_wayland_multiseat_example_SOURCES) \
 	$(ecore_evas_window_sizes_example_SOURCES) \
 	$(ecore_event_example_01_SOURCES) \
 	$(ecore_event_example_02_SOURCES) $(ecore_exe_example_SOURCES) \
@@ -478,13 +639,34 @@ SOURCES = $(ecore_animator_example_SOURCES) \
 	$(ecore_fd_handler_gnutls_example_SOURCES) \
 	$(ecore_file_download_example_SOURCES) \
 	$(ecore_getopt_example_SOURCES) $(ecore_idler_example_SOURCES) \
-	$(ecore_imf_example_SOURCES) $(ecore_job_example_SOURCES) \
+	$(ecore_imf_example_SOURCES) \
+	$(ecore_ipc_client_example_SOURCES) \
+	$(ecore_ipc_server_example_SOURCES) \
+	$(ecore_job_example_SOURCES) \
 	$(ecore_pipe_gstreamer_example_SOURCES) \
 	$(ecore_pipe_simple_example_SOURCES) \
 	$(ecore_poller_example_SOURCES) $(ecore_server_bench_SOURCES) \
 	$(ecore_thread_example_SOURCES) \
 	$(ecore_time_functions_example_SOURCES) \
-	$(ecore_timer_example_SOURCES)
+	$(ecore_timer_example_SOURCES) \
+	$(efl_io_buffered_stream_example_SOURCES) \
+	$(efl_io_copier_example_SOURCES) \
+	$(efl_io_copier_simple_example_SOURCES) \
+	$(efl_io_queue_example_SOURCES) \
+	$(efl_net_control_example_SOURCES) \
+	$(efl_net_dialer_http_example_SOURCES) \
+	$(efl_net_dialer_simple_example_SOURCES) \
+	$(efl_net_dialer_udp_example_SOURCES) \
+	$(efl_net_dialer_unix_example_SOURCES) \
+	$(efl_net_dialer_websocket_autobahntestee_SOURCES) \
+	$(efl_net_dialer_websocket_example_SOURCES) \
+	$(efl_net_dialer_windows_example_SOURCES) \
+	$(efl_net_ip_address_example_SOURCES) \
+	$(efl_net_server_example_SOURCES) \
+	$(efl_net_server_simple_example_SOURCES) \
+	$(efl_net_session_example_SOURCES) \
+	$(efl_net_socket_ssl_dialer_example_SOURCES) \
+	$(efl_net_socket_ssl_server_example_SOURCES)
 DIST_SOURCES = $(ecore_animator_example_SOURCES) \
 	$(am__ecore_buffer_consumer_example_SOURCES_DIST) \
 	$(am__ecore_buffer_example_SOURCES_DIST) \
@@ -501,15 +683,19 @@ DIST_SOURCES = $(ecore_animator_example_SOURCES) \
 	$(ecore_con_server_simple_example_SOURCES) \
 	$(ecore_con_url_cookies_example_SOURCES) \
 	$(ecore_con_url_download_example_SOURCES) \
+	$(ecore_con_url_ftp_example_SOURCES) \
 	$(ecore_con_url_headers_example_SOURCES) \
 	$(ecore_evas_basics_example_SOURCES) \
 	$(ecore_evas_buffer_example_01_SOURCES) \
 	$(ecore_evas_buffer_example_02_SOURCES) \
 	$(ecore_evas_callbacks_SOURCES) \
+	$(ecore_evas_cursor_example_SOURCES) \
 	$(ecore_evas_ews_example_SOURCES) \
 	$(ecore_evas_extn_plug_example_SOURCES) \
 	$(ecore_evas_extn_socket_example_SOURCES) \
 	$(ecore_evas_object_example_SOURCES) \
+	$(ecore_evas_vnc_example_SOURCES) \
+	$(ecore_evas_wayland_multiseat_example_SOURCES) \
 	$(ecore_evas_window_sizes_example_SOURCES) \
 	$(ecore_event_example_01_SOURCES) \
 	$(ecore_event_example_02_SOURCES) $(ecore_exe_example_SOURCES) \
@@ -518,13 +704,34 @@ DIST_SOURCES = $(ecore_animator_example_SOURCES) \
 	$(am__ecore_fd_handler_gnutls_example_SOURCES_DIST) \
 	$(ecore_file_download_example_SOURCES) \
 	$(ecore_getopt_example_SOURCES) $(ecore_idler_example_SOURCES) \
-	$(ecore_imf_example_SOURCES) $(ecore_job_example_SOURCES) \
+	$(ecore_imf_example_SOURCES) \
+	$(ecore_ipc_client_example_SOURCES) \
+	$(ecore_ipc_server_example_SOURCES) \
+	$(ecore_job_example_SOURCES) \
 	$(am__ecore_pipe_gstreamer_example_SOURCES_DIST) \
 	$(am__ecore_pipe_simple_example_SOURCES_DIST) \
 	$(ecore_poller_example_SOURCES) $(ecore_server_bench_SOURCES) \
 	$(ecore_thread_example_SOURCES) \
 	$(ecore_time_functions_example_SOURCES) \
-	$(ecore_timer_example_SOURCES)
+	$(ecore_timer_example_SOURCES) \
+	$(efl_io_buffered_stream_example_SOURCES) \
+	$(efl_io_copier_example_SOURCES) \
+	$(efl_io_copier_simple_example_SOURCES) \
+	$(efl_io_queue_example_SOURCES) \
+	$(efl_net_control_example_SOURCES) \
+	$(efl_net_dialer_http_example_SOURCES) \
+	$(efl_net_dialer_simple_example_SOURCES) \
+	$(efl_net_dialer_udp_example_SOURCES) \
+	$(am__efl_net_dialer_unix_example_SOURCES_DIST) \
+	$(efl_net_dialer_websocket_autobahntestee_SOURCES) \
+	$(efl_net_dialer_websocket_example_SOURCES) \
+	$(am__efl_net_dialer_windows_example_SOURCES_DIST) \
+	$(efl_net_ip_address_example_SOURCES) \
+	$(efl_net_server_example_SOURCES) \
+	$(efl_net_server_simple_example_SOURCES) \
+	$(efl_net_session_example_SOURCES) \
+	$(efl_net_socket_ssl_dialer_example_SOURCES) \
+	$(efl_net_socket_ssl_server_example_SOURCES)
 am__can_run_installinfo = \
   case $$AM_UPDATE_INFO_DIR in \
     n|no|NO) false;; \
@@ -811,6 +1018,7 @@ EFL_LDFLAGS = @EFL_LDFLAGS@
 EFL_LIBS = @EFL_LIBS@
 EFL_LTLIBRARY_FLAGS = @EFL_LTLIBRARY_FLAGS@
 EFL_LTMODULE_FLAGS = @EFL_LTMODULE_FLAGS@
+EFL_NET_CONTROL_BACKEND = @EFL_NET_CONTROL_BACKEND@
 EFL_PTHREAD_CFLAGS = @EFL_PTHREAD_CFLAGS@
 EFL_PTHREAD_LIBS = @EFL_PTHREAD_LIBS@
 EFL_SUBBUILD_INTERNAL_LIBS = @EFL_SUBBUILD_INTERNAL_LIBS@
@@ -1069,7 +1277,6 @@ GREP = @GREP@
 GSTREAMER_CFLAGS = @GSTREAMER_CFLAGS@
 GSTREAMER_LIBS = @GSTREAMER_LIBS@
 HAVE_CXX11 = @HAVE_CXX11@
-HAVE_ECORE_X_BACKEND = @HAVE_ECORE_X_BACKEND@
 HAVE_JS = @HAVE_JS@
 HAVE_LIBUV = @HAVE_LIBUV@
 HAVE_NODEJS = @HAVE_NODEJS@
@@ -1086,7 +1293,6 @@ INTLLIBS = @INTLLIBS@
 INTL_MACOSX_LIBS = @INTL_MACOSX_LIBS@
 JP2K_CFLAGS = @JP2K_CFLAGS@
 JP2K_LIBS = @JP2K_LIBS@
-KEYSYMDEFS = @KEYSYMDEFS@
 LD = @LD@
 LDFLAGS = @LDFLAGS@
 LIBGCRYPT_CFLAGS = @LIBGCRYPT_CFLAGS@
@@ -1105,6 +1311,8 @@ LIBRAW_LIBS = @LIBRAW_LIBS@
 LIBS = @LIBS@
 LIBTHREAD = @LIBTHREAD@
 LIBTOOL = @LIBTOOL@
+LIBVNCSERVER_CFLAGS = @LIBVNCSERVER_CFLAGS@
+LIBVNCSERVER_LIBS = @LIBVNCSERVER_LIBS@
 LIPO = @LIPO@
 LN_S = @LN_S@
 LOCALE_DIR = @LOCALE_DIR@
@@ -1380,6 +1588,9 @@ WAYLAND_CFLAGS = @WAYLAND_CFLAGS@
 WAYLAND_EGL_CFLAGS = @WAYLAND_EGL_CFLAGS@
 WAYLAND_EGL_LIBS = @WAYLAND_EGL_LIBS@
 WAYLAND_LIBS = @WAYLAND_LIBS@
+WAYLAND_PROTOCOLS_DATADIR = @WAYLAND_PROTOCOLS_DATADIR@
+WAYLAND_SCANNER_CFLAGS = @WAYLAND_SCANNER_CFLAGS@
+WAYLAND_SCANNER_LIBS = @WAYLAND_SCANNER_LIBS@
 WAYLAND_SHM_CFLAGS = @WAYLAND_SHM_CFLAGS@
 WAYLAND_SHM_LIBS = @WAYLAND_SHM_LIBS@
 X11_DRI2_CFLAGS = @X11_DRI2_CFLAGS@
@@ -1388,12 +1599,6 @@ X11_DRI3_CFLAGS = @X11_DRI3_CFLAGS@
 X11_DRI3_LIBS = @X11_DRI3_LIBS@
 X11_DRI_COMMON_CFLAGS = @X11_DRI_COMMON_CFLAGS@
 X11_DRI_COMMON_LIBS = @X11_DRI_COMMON_LIBS@
-XCB_CFLAGS = @XCB_CFLAGS@
-XCB_GL_CFLAGS = @XCB_GL_CFLAGS@
-XCB_GL_LIBS = @XCB_GL_LIBS@
-XCB_LIBS = @XCB_LIBS@
-XCB_X11_CFLAGS = @XCB_X11_CFLAGS@
-XCB_X11_LIBS = @XCB_X11_LIBS@
 XDG_DATA_HOME = @XDG_DATA_HOME@
 XGETTEXT = @XGETTEXT@
 XGETTEXT_015 = @XGETTEXT_015@
@@ -1427,7 +1632,6 @@ build_vendor = @build_vendor@
 builddir = @builddir@
 cocoa_coreservices_ldflags = @cocoa_coreservices_ldflags@
 cocoa_ldflags = @cocoa_ldflags@
-coreaudio_ldflags = @coreaudio_ldflags@
 datadir = @datadir@
 datarootdir = @datarootdir@
 dbusservicedir = @dbusservicedir@
@@ -1495,11 +1699,6 @@ evas_engine_gl_drm_cflags = @evas_engine_gl_drm_cflags@
 evas_engine_gl_drm_libs = @evas_engine_gl_drm_libs@
 evas_engine_gl_sdl_cflags = @evas_engine_gl_sdl_cflags@
 evas_engine_gl_sdl_libs = @evas_engine_gl_sdl_libs@
-evas_engine_gl_xcb_CFLAGS = @evas_engine_gl_xcb_CFLAGS@
-evas_engine_gl_xcb_LIBS = @evas_engine_gl_xcb_LIBS@
-evas_engine_gl_xcb_cflags = @evas_engine_gl_xcb_cflags@
-evas_engine_gl_xcb_libdirs = @evas_engine_gl_xcb_libdirs@
-evas_engine_gl_xcb_libs = @evas_engine_gl_xcb_libs@
 evas_engine_gl_xlib_CFLAGS = @evas_engine_gl_xlib_CFLAGS@
 evas_engine_gl_xlib_LIBS = @evas_engine_gl_xlib_LIBS@
 evas_engine_gl_xlib_cflags = @evas_engine_gl_xlib_cflags@
@@ -1511,8 +1710,6 @@ evas_engine_software_ddraw_cflags = @evas_engine_software_ddraw_cflags@
 evas_engine_software_ddraw_libs = @evas_engine_software_ddraw_libs@
 evas_engine_software_gdi_cflags = @evas_engine_software_gdi_cflags@
 evas_engine_software_gdi_libs = @evas_engine_software_gdi_libs@
-evas_engine_software_xcb_cflags = @evas_engine_software_xcb_cflags@
-evas_engine_software_xcb_libs = @evas_engine_software_xcb_libs@
 evas_engine_software_xlib_CFLAGS = @evas_engine_software_xlib_CFLAGS@
 evas_engine_software_xlib_LIBS = @evas_engine_software_xlib_LIBS@
 evas_engine_software_xlib_cflags = @evas_engine_software_xlib_cflags@
@@ -1556,10 +1753,12 @@ evas_image_loader_webp_cflags = @evas_image_loader_webp_cflags@
 evas_image_loader_webp_libs = @evas_image_loader_webp_libs@
 evas_image_loader_xpm_cflags = @evas_image_loader_xpm_cflags@
 evas_image_loader_xpm_libs = @evas_image_loader_xpm_libs@
+evas_vg_loader_eet_cflags = @evas_vg_loader_eet_cflags@
+evas_vg_loader_eet_libs = @evas_vg_loader_eet_libs@
+evas_vg_loader_svg_cflags = @evas_vg_loader_svg_cflags@
+evas_vg_loader_svg_libs = @evas_vg_loader_svg_libs@
 exec_prefix = @exec_prefix@
-have_evas_engine_gl_xcb = @have_evas_engine_gl_xcb@
 have_evas_engine_gl_xlib = @have_evas_engine_gl_xlib@
-have_evas_engine_software_xcb = @have_evas_engine_software_xcb@
 have_evas_engine_software_xlib = @have_evas_engine_software_xlib@
 have_lcov = @have_lcov@
 host = @host@
@@ -1853,6 +2052,7 @@ want_liblz4 = @want_liblz4@
 want_lua_old = @want_lua_old@
 want_multisense = @want_multisense@
 want_physics = @want_physics@
+wayland_scanner = @wayland_scanner@
 with_eeze_eject = @with_eeze_eject@
 with_eeze_mount = @with_eeze_mount@
 with_eeze_umount = @with_eeze_umount@
@@ -1867,6 +2067,7 @@ AM_CPPFLAGS = -I$(top_srcdir)/src/lib/eina -I$(top_srcdir)/src/lib/eet \
 	-I$(top_srcdir)/src/lib/ecore_imf \
 	-I$(top_srcdir)/src/lib/ecore_imf_evas \
 	-I$(top_srcdir)/src/lib/ecore_con \
+	-I$(top_srcdir)/src/lib/ecore_ipc \
 	-I$(top_srcdir)/src/lib/ecore_evas \
 	-I$(top_srcdir)/src/lib/ecore_audio \
 	-I$(top_builddir)/src/lib/eina -I$(top_builddir)/src/lib/eet \
@@ -1879,6 +2080,7 @@ AM_CPPFLAGS = -I$(top_srcdir)/src/lib/eina -I$(top_srcdir)/src/lib/eet \
 	-I$(top_builddir)/src/lib/ecore_imf \
 	-I$(top_builddir)/src/lib/ecore_imf_evas \
 	-I$(top_builddir)/src/lib/ecore_con \
+	-I$(top_builddir)/src/lib/ecore_ipc \
 	-I$(top_builddir)/src/lib/ecore_evas \
 	-I$(top_builddir)/src/lib/ecore_audio \
 	-DPACKAGE_EXAMPLES_DIR=\".\" @ECORE_CFLAGS@ $(am__append_1)
@@ -1915,6 +2117,10 @@ $(ECORE_COMMON_LDADD)
 ECORE_CON_COMMON_LDADD = \
 $(top_builddir)/src/lib/ecore_con/libecore_con.la \
 $(ECORE_COMMON_LDADD)
+
+ECORE_IPC_COMMON_LDADD = \
+$(top_builddir)/src/lib/ecore_ipc/libecore_ipc.la \
+$(ECORE_CON_COMMON_LDADD)
 
 ecore_animator_example_SOURCES = ecore_animator_example.c
 ecore_animator_example_LDADD = $(ECORE_EVAS_COMMON_LDADD)
@@ -1954,24 +2160,36 @@ ecore_con_url_download_example_SOURCES = ecore_con_url_download_example.c
 ecore_con_url_download_example_LDADD = $(ECORE_CON_COMMON_LDADD)
 ecore_con_url_headers_example_SOURCES = ecore_con_url_headers_example.c
 ecore_con_url_headers_example_LDADD = $(ECORE_CON_COMMON_LDADD)
+ecore_con_url_ftp_example_SOURCES = ecore_con_url_ftp_example.c
+ecore_con_url_ftp_example_LDADD = $(ECORE_CON_COMMON_LDADD)
 ecore_evas_basics_example_SOURCES = ecore_evas_basics_example.c
 ecore_evas_basics_example_LDADD = $(ECORE_EVAS_COMMON_LDADD)
 ecore_evas_buffer_example_01_SOURCES = ecore_evas_buffer_example_01.c
 ecore_evas_buffer_example_01_LDADD = $(ECORE_EVAS_COMMON_LDADD)
 ecore_evas_buffer_example_02_SOURCES = ecore_evas_buffer_example_02.c
 ecore_evas_buffer_example_02_LDADD = $(ECORE_EVAS_COMMON_LDADD)
+ecore_evas_callbacks_SOURCES = ecore_evas_callbacks.c
+ecore_evas_callbacks_LDADD = $(ECORE_EVAS_COMMON_LDADD)
+ecore_evas_cursor_example_SOURCES = ecore_evas_cursor_example.c
+ecore_evas_cursor_example_LDADD = $(ECORE_EVAS_COMMON_LDADD)
 ecore_evas_extn_socket_example_SOURCES = ecore_evas_extn_socket_example.c
 ecore_evas_extn_socket_example_LDADD = $(ECORE_EVAS_COMMON_LDADD)
 ecore_evas_extn_plug_example_SOURCES = ecore_evas_extn_plug_example.c
 ecore_evas_extn_plug_example_LDADD = $(ECORE_EVAS_COMMON_LDADD)
-ecore_evas_callbacks_SOURCES = ecore_evas_callbacks.c
-ecore_evas_callbacks_LDADD = $(ECORE_EVAS_COMMON_LDADD)
 ecore_evas_ews_example_SOURCES = ecore_evas_ews_example.c
 ecore_evas_ews_example_LDADD = $(ECORE_EVAS_COMMON_LDADD)
 ecore_evas_object_example_SOURCES = ecore_evas_object_example.c
 ecore_evas_object_example_LDADD = $(ECORE_EVAS_COMMON_LDADD)
+ecore_evas_wayland_multiseat_example_SOURCES = ecore_evas_wayland_multiseat_example.c
+ecore_evas_wayland_multiseat_example_LDADD = $(ECORE_EVAS_COMMON_LDADD) \
+$(top_builddir)/src/lib/ecore_input/libecore_input.la
+
 ecore_evas_window_sizes_example_SOURCES = ecore_evas_window_sizes_example.c
 ecore_evas_window_sizes_example_LDADD = $(ECORE_EVAS_COMMON_LDADD)
+ecore_evas_vnc_example_SOURCES = ecore_evas_vnc_example.c
+ecore_evas_vnc_example_LDADD = $(ECORE_EVAS_COMMON_LDADD) \
+$(top_builddir)/src/lib/ecore_input/libecore_input.la
+
 ecore_event_example_01_SOURCES = ecore_event_example_01.c
 ecore_event_example_01_LDADD = $(ECORE_COMMON_LDADD)
 ecore_event_example_02_SOURCES = ecore_event_example_02.c
@@ -2028,6 +2246,46 @@ ecore_con_eet_server_example_SOURCES = ecore_con_eet_server_example.c \
 ecore_con_eet_server_example_LDADD = $(ECORE_CON_COMMON_LDADD) \
 $(top_builddir)/src/lib/eet/libeet.la
 
+efl_io_copier_example_SOURCES = efl_io_copier_example.c
+efl_io_copier_example_LDADD = $(ECORE_CON_COMMON_LDADD)
+efl_io_copier_simple_example_SOURCES = efl_io_copier_simple_example.c
+efl_io_copier_simple_example_LDADD = $(ECORE_COMMON_LDADD)
+efl_io_queue_example_SOURCES = efl_io_queue_example.c
+efl_io_queue_example_LDADD = $(ECORE_CON_COMMON_LDADD)
+efl_io_buffered_stream_example_SOURCES = efl_io_buffered_stream_example.c
+efl_io_buffered_stream_example_LDADD = $(ECORE_CON_COMMON_LDADD)
+efl_net_server_example_SOURCES = efl_net_server_example.c
+efl_net_server_example_LDADD = $(ECORE_CON_COMMON_LDADD)
+efl_net_server_simple_example_SOURCES = efl_net_server_simple_example.c
+efl_net_server_simple_example_LDADD = $(ECORE_CON_COMMON_LDADD)
+efl_net_dialer_http_example_SOURCES = efl_net_dialer_http_example.c
+efl_net_dialer_http_example_LDADD = $(ECORE_CON_COMMON_LDADD)
+efl_net_dialer_websocket_example_SOURCES = efl_net_dialer_websocket_example.c
+efl_net_dialer_websocket_example_LDADD = $(ECORE_CON_COMMON_LDADD)
+efl_net_dialer_websocket_autobahntestee_SOURCES = efl_net_dialer_websocket_autobahntestee.c
+efl_net_dialer_websocket_autobahntestee_LDADD = $(ECORE_CON_COMMON_LDADD)
+efl_net_dialer_udp_example_SOURCES = efl_net_dialer_udp_example.c
+efl_net_dialer_udp_example_LDADD = $(ECORE_CON_COMMON_LDADD)
+efl_net_dialer_simple_example_SOURCES = efl_net_dialer_simple_example.c
+efl_net_dialer_simple_example_LDADD = $(ECORE_CON_COMMON_LDADD)
+@HAVE_WINDOWS_TRUE@efl_net_dialer_windows_example_SOURCES = efl_net_dialer_windows_example.c
+@HAVE_WINDOWS_TRUE@efl_net_dialer_windows_example_LDADD = $(ECORE_CON_COMMON_LDADD)
+@HAVE_WINDOWS_FALSE@efl_net_dialer_unix_example_SOURCES = efl_net_dialer_unix_example.c
+@HAVE_WINDOWS_FALSE@efl_net_dialer_unix_example_LDADD = $(ECORE_CON_COMMON_LDADD)
+efl_net_socket_ssl_dialer_example_SOURCES = efl_net_socket_ssl_dialer_example.c
+efl_net_socket_ssl_dialer_example_LDADD = $(ECORE_CON_COMMON_LDADD)
+efl_net_socket_ssl_server_example_SOURCES = efl_net_socket_ssl_server_example.c
+efl_net_socket_ssl_server_example_LDADD = $(ECORE_CON_COMMON_LDADD)
+efl_net_session_example_SOURCES = efl_net_session_example.c
+efl_net_session_example_LDADD = $(ECORE_CON_COMMON_LDADD)
+efl_net_control_example_SOURCES = efl_net_control_example.c
+efl_net_control_example_LDADD = $(ECORE_CON_COMMON_LDADD)
+efl_net_ip_address_example_SOURCES = efl_net_ip_address_example.c
+efl_net_ip_address_example_LDADD = $(ECORE_CON_COMMON_LDADD)
+ecore_ipc_server_example_SOURCES = ecore_ipc_server_example.c
+ecore_ipc_server_example_LDADD = $(ECORE_IPC_COMMON_LDADD)
+ecore_ipc_client_example_SOURCES = ecore_ipc_client_example.c
+ecore_ipc_client_example_LDADD = $(ECORE_IPC_COMMON_LDADD)
 SRCS = \
 ecore_animator_example.c \
 ecore_buffer_example.c \
@@ -2044,6 +2302,7 @@ ecore_con_server_simple_example.c \
 ecore_con_url_cookies_example.c \
 ecore_con_url_download_example.c \
 ecore_con_url_headers_example.c \
+ecore_con_url_ftp_example.c \
 ecore_evas_basics_example.c \
 ecore_evas_buffer_example_01.c \
 ecore_evas_buffer_example_02.c \
@@ -2052,7 +2311,9 @@ ecore_evas_extn_plug_example.c \
 ecore_evas_callbacks.c \
 ecore_evas_ews_example.c \
 ecore_evas_object_example.c \
+ecore_evas_wayland_multiseat_example.c \
 ecore_evas_window_sizes_example.c \
+ecore_evas_vnc_example.c \
 ecore_event_example_01.c \
 ecore_event_example_02.c \
 ecore_exe_example.c \
@@ -2073,7 +2334,24 @@ ecore_timer_example.c \
 ecore_getopt_example.c \
 ecore_con_eet_client_example.c \
 ecore_con_eet_server_example.c \
-ecore_con_eet_descriptor_example.c 
+ecore_con_eet_descriptor_example.c \
+efl_io_copier_example.c \
+efl_io_copier_simple_example.c \
+efl_io_queue_example.c \
+efl_io_buffered_stream_example.c \
+efl_net_server_example.c \
+efl_net_server_simple_example.c \
+efl_net_dialer_http_example.c \
+efl_net_dialer_websocket_example.c \
+efl_net_dialer_websocket_autobahntestee.c \
+efl_net_dialer_udp_example.c \
+efl_net_dialer_simple_example.c \
+efl_net_socket_ssl_dialer_example.c \
+efl_net_socket_ssl_server_example.c \
+efl_net_session_example.c \
+efl_net_control_example.c \
+ecore_ipc_server_example.c \
+ecore_ipc_client_example.c
 
 DATA_FILES = red.png Makefile.examples
 EXTRA_DIST = $(DATA_FILES)
@@ -2185,6 +2463,10 @@ ecore_con_url_download_example$(EXEEXT): $(ecore_con_url_download_example_OBJECT
 	@rm -f ecore_con_url_download_example$(EXEEXT)
 	$(AM_V_CCLD)$(LINK) $(ecore_con_url_download_example_OBJECTS) $(ecore_con_url_download_example_LDADD) $(LIBS)
 
+ecore_con_url_ftp_example$(EXEEXT): $(ecore_con_url_ftp_example_OBJECTS) $(ecore_con_url_ftp_example_DEPENDENCIES) $(EXTRA_ecore_con_url_ftp_example_DEPENDENCIES) 
+	@rm -f ecore_con_url_ftp_example$(EXEEXT)
+	$(AM_V_CCLD)$(LINK) $(ecore_con_url_ftp_example_OBJECTS) $(ecore_con_url_ftp_example_LDADD) $(LIBS)
+
 ecore_con_url_headers_example$(EXEEXT): $(ecore_con_url_headers_example_OBJECTS) $(ecore_con_url_headers_example_DEPENDENCIES) $(EXTRA_ecore_con_url_headers_example_DEPENDENCIES) 
 	@rm -f ecore_con_url_headers_example$(EXEEXT)
 	$(AM_V_CCLD)$(LINK) $(ecore_con_url_headers_example_OBJECTS) $(ecore_con_url_headers_example_LDADD) $(LIBS)
@@ -2205,6 +2487,10 @@ ecore_evas_callbacks$(EXEEXT): $(ecore_evas_callbacks_OBJECTS) $(ecore_evas_call
 	@rm -f ecore_evas_callbacks$(EXEEXT)
 	$(AM_V_CCLD)$(LINK) $(ecore_evas_callbacks_OBJECTS) $(ecore_evas_callbacks_LDADD) $(LIBS)
 
+ecore_evas_cursor_example$(EXEEXT): $(ecore_evas_cursor_example_OBJECTS) $(ecore_evas_cursor_example_DEPENDENCIES) $(EXTRA_ecore_evas_cursor_example_DEPENDENCIES) 
+	@rm -f ecore_evas_cursor_example$(EXEEXT)
+	$(AM_V_CCLD)$(LINK) $(ecore_evas_cursor_example_OBJECTS) $(ecore_evas_cursor_example_LDADD) $(LIBS)
+
 ecore_evas_ews_example$(EXEEXT): $(ecore_evas_ews_example_OBJECTS) $(ecore_evas_ews_example_DEPENDENCIES) $(EXTRA_ecore_evas_ews_example_DEPENDENCIES) 
 	@rm -f ecore_evas_ews_example$(EXEEXT)
 	$(AM_V_CCLD)$(LINK) $(ecore_evas_ews_example_OBJECTS) $(ecore_evas_ews_example_LDADD) $(LIBS)
@@ -2220,6 +2506,14 @@ ecore_evas_extn_socket_example$(EXEEXT): $(ecore_evas_extn_socket_example_OBJECT
 ecore_evas_object_example$(EXEEXT): $(ecore_evas_object_example_OBJECTS) $(ecore_evas_object_example_DEPENDENCIES) $(EXTRA_ecore_evas_object_example_DEPENDENCIES) 
 	@rm -f ecore_evas_object_example$(EXEEXT)
 	$(AM_V_CCLD)$(LINK) $(ecore_evas_object_example_OBJECTS) $(ecore_evas_object_example_LDADD) $(LIBS)
+
+ecore_evas_vnc_example$(EXEEXT): $(ecore_evas_vnc_example_OBJECTS) $(ecore_evas_vnc_example_DEPENDENCIES) $(EXTRA_ecore_evas_vnc_example_DEPENDENCIES) 
+	@rm -f ecore_evas_vnc_example$(EXEEXT)
+	$(AM_V_CCLD)$(LINK) $(ecore_evas_vnc_example_OBJECTS) $(ecore_evas_vnc_example_LDADD) $(LIBS)
+
+ecore_evas_wayland_multiseat_example$(EXEEXT): $(ecore_evas_wayland_multiseat_example_OBJECTS) $(ecore_evas_wayland_multiseat_example_DEPENDENCIES) $(EXTRA_ecore_evas_wayland_multiseat_example_DEPENDENCIES) 
+	@rm -f ecore_evas_wayland_multiseat_example$(EXEEXT)
+	$(AM_V_CCLD)$(LINK) $(ecore_evas_wayland_multiseat_example_OBJECTS) $(ecore_evas_wayland_multiseat_example_LDADD) $(LIBS)
 
 ecore_evas_window_sizes_example$(EXEEXT): $(ecore_evas_window_sizes_example_OBJECTS) $(ecore_evas_window_sizes_example_DEPENDENCIES) $(EXTRA_ecore_evas_window_sizes_example_DEPENDENCIES) 
 	@rm -f ecore_evas_window_sizes_example$(EXEEXT)
@@ -2265,6 +2559,14 @@ ecore_imf_example$(EXEEXT): $(ecore_imf_example_OBJECTS) $(ecore_imf_example_DEP
 	@rm -f ecore_imf_example$(EXEEXT)
 	$(AM_V_CCLD)$(LINK) $(ecore_imf_example_OBJECTS) $(ecore_imf_example_LDADD) $(LIBS)
 
+ecore_ipc_client_example$(EXEEXT): $(ecore_ipc_client_example_OBJECTS) $(ecore_ipc_client_example_DEPENDENCIES) $(EXTRA_ecore_ipc_client_example_DEPENDENCIES) 
+	@rm -f ecore_ipc_client_example$(EXEEXT)
+	$(AM_V_CCLD)$(LINK) $(ecore_ipc_client_example_OBJECTS) $(ecore_ipc_client_example_LDADD) $(LIBS)
+
+ecore_ipc_server_example$(EXEEXT): $(ecore_ipc_server_example_OBJECTS) $(ecore_ipc_server_example_DEPENDENCIES) $(EXTRA_ecore_ipc_server_example_DEPENDENCIES) 
+	@rm -f ecore_ipc_server_example$(EXEEXT)
+	$(AM_V_CCLD)$(LINK) $(ecore_ipc_server_example_OBJECTS) $(ecore_ipc_server_example_LDADD) $(LIBS)
+
 ecore_job_example$(EXEEXT): $(ecore_job_example_OBJECTS) $(ecore_job_example_DEPENDENCIES) $(EXTRA_ecore_job_example_DEPENDENCIES) 
 	@rm -f ecore_job_example$(EXEEXT)
 	$(AM_V_CCLD)$(LINK) $(ecore_job_example_OBJECTS) $(ecore_job_example_LDADD) $(LIBS)
@@ -2297,6 +2599,78 @@ ecore_timer_example$(EXEEXT): $(ecore_timer_example_OBJECTS) $(ecore_timer_examp
 	@rm -f ecore_timer_example$(EXEEXT)
 	$(AM_V_CCLD)$(LINK) $(ecore_timer_example_OBJECTS) $(ecore_timer_example_LDADD) $(LIBS)
 
+efl_io_buffered_stream_example$(EXEEXT): $(efl_io_buffered_stream_example_OBJECTS) $(efl_io_buffered_stream_example_DEPENDENCIES) $(EXTRA_efl_io_buffered_stream_example_DEPENDENCIES) 
+	@rm -f efl_io_buffered_stream_example$(EXEEXT)
+	$(AM_V_CCLD)$(LINK) $(efl_io_buffered_stream_example_OBJECTS) $(efl_io_buffered_stream_example_LDADD) $(LIBS)
+
+efl_io_copier_example$(EXEEXT): $(efl_io_copier_example_OBJECTS) $(efl_io_copier_example_DEPENDENCIES) $(EXTRA_efl_io_copier_example_DEPENDENCIES) 
+	@rm -f efl_io_copier_example$(EXEEXT)
+	$(AM_V_CCLD)$(LINK) $(efl_io_copier_example_OBJECTS) $(efl_io_copier_example_LDADD) $(LIBS)
+
+efl_io_copier_simple_example$(EXEEXT): $(efl_io_copier_simple_example_OBJECTS) $(efl_io_copier_simple_example_DEPENDENCIES) $(EXTRA_efl_io_copier_simple_example_DEPENDENCIES) 
+	@rm -f efl_io_copier_simple_example$(EXEEXT)
+	$(AM_V_CCLD)$(LINK) $(efl_io_copier_simple_example_OBJECTS) $(efl_io_copier_simple_example_LDADD) $(LIBS)
+
+efl_io_queue_example$(EXEEXT): $(efl_io_queue_example_OBJECTS) $(efl_io_queue_example_DEPENDENCIES) $(EXTRA_efl_io_queue_example_DEPENDENCIES) 
+	@rm -f efl_io_queue_example$(EXEEXT)
+	$(AM_V_CCLD)$(LINK) $(efl_io_queue_example_OBJECTS) $(efl_io_queue_example_LDADD) $(LIBS)
+
+efl_net_control_example$(EXEEXT): $(efl_net_control_example_OBJECTS) $(efl_net_control_example_DEPENDENCIES) $(EXTRA_efl_net_control_example_DEPENDENCIES) 
+	@rm -f efl_net_control_example$(EXEEXT)
+	$(AM_V_CCLD)$(LINK) $(efl_net_control_example_OBJECTS) $(efl_net_control_example_LDADD) $(LIBS)
+
+efl_net_dialer_http_example$(EXEEXT): $(efl_net_dialer_http_example_OBJECTS) $(efl_net_dialer_http_example_DEPENDENCIES) $(EXTRA_efl_net_dialer_http_example_DEPENDENCIES) 
+	@rm -f efl_net_dialer_http_example$(EXEEXT)
+	$(AM_V_CCLD)$(LINK) $(efl_net_dialer_http_example_OBJECTS) $(efl_net_dialer_http_example_LDADD) $(LIBS)
+
+efl_net_dialer_simple_example$(EXEEXT): $(efl_net_dialer_simple_example_OBJECTS) $(efl_net_dialer_simple_example_DEPENDENCIES) $(EXTRA_efl_net_dialer_simple_example_DEPENDENCIES) 
+	@rm -f efl_net_dialer_simple_example$(EXEEXT)
+	$(AM_V_CCLD)$(LINK) $(efl_net_dialer_simple_example_OBJECTS) $(efl_net_dialer_simple_example_LDADD) $(LIBS)
+
+efl_net_dialer_udp_example$(EXEEXT): $(efl_net_dialer_udp_example_OBJECTS) $(efl_net_dialer_udp_example_DEPENDENCIES) $(EXTRA_efl_net_dialer_udp_example_DEPENDENCIES) 
+	@rm -f efl_net_dialer_udp_example$(EXEEXT)
+	$(AM_V_CCLD)$(LINK) $(efl_net_dialer_udp_example_OBJECTS) $(efl_net_dialer_udp_example_LDADD) $(LIBS)
+
+efl_net_dialer_unix_example$(EXEEXT): $(efl_net_dialer_unix_example_OBJECTS) $(efl_net_dialer_unix_example_DEPENDENCIES) $(EXTRA_efl_net_dialer_unix_example_DEPENDENCIES) 
+	@rm -f efl_net_dialer_unix_example$(EXEEXT)
+	$(AM_V_CCLD)$(LINK) $(efl_net_dialer_unix_example_OBJECTS) $(efl_net_dialer_unix_example_LDADD) $(LIBS)
+
+efl_net_dialer_websocket_autobahntestee$(EXEEXT): $(efl_net_dialer_websocket_autobahntestee_OBJECTS) $(efl_net_dialer_websocket_autobahntestee_DEPENDENCIES) $(EXTRA_efl_net_dialer_websocket_autobahntestee_DEPENDENCIES) 
+	@rm -f efl_net_dialer_websocket_autobahntestee$(EXEEXT)
+	$(AM_V_CCLD)$(LINK) $(efl_net_dialer_websocket_autobahntestee_OBJECTS) $(efl_net_dialer_websocket_autobahntestee_LDADD) $(LIBS)
+
+efl_net_dialer_websocket_example$(EXEEXT): $(efl_net_dialer_websocket_example_OBJECTS) $(efl_net_dialer_websocket_example_DEPENDENCIES) $(EXTRA_efl_net_dialer_websocket_example_DEPENDENCIES) 
+	@rm -f efl_net_dialer_websocket_example$(EXEEXT)
+	$(AM_V_CCLD)$(LINK) $(efl_net_dialer_websocket_example_OBJECTS) $(efl_net_dialer_websocket_example_LDADD) $(LIBS)
+
+efl_net_dialer_windows_example$(EXEEXT): $(efl_net_dialer_windows_example_OBJECTS) $(efl_net_dialer_windows_example_DEPENDENCIES) $(EXTRA_efl_net_dialer_windows_example_DEPENDENCIES) 
+	@rm -f efl_net_dialer_windows_example$(EXEEXT)
+	$(AM_V_CCLD)$(LINK) $(efl_net_dialer_windows_example_OBJECTS) $(efl_net_dialer_windows_example_LDADD) $(LIBS)
+
+efl_net_ip_address_example$(EXEEXT): $(efl_net_ip_address_example_OBJECTS) $(efl_net_ip_address_example_DEPENDENCIES) $(EXTRA_efl_net_ip_address_example_DEPENDENCIES) 
+	@rm -f efl_net_ip_address_example$(EXEEXT)
+	$(AM_V_CCLD)$(LINK) $(efl_net_ip_address_example_OBJECTS) $(efl_net_ip_address_example_LDADD) $(LIBS)
+
+efl_net_server_example$(EXEEXT): $(efl_net_server_example_OBJECTS) $(efl_net_server_example_DEPENDENCIES) $(EXTRA_efl_net_server_example_DEPENDENCIES) 
+	@rm -f efl_net_server_example$(EXEEXT)
+	$(AM_V_CCLD)$(LINK) $(efl_net_server_example_OBJECTS) $(efl_net_server_example_LDADD) $(LIBS)
+
+efl_net_server_simple_example$(EXEEXT): $(efl_net_server_simple_example_OBJECTS) $(efl_net_server_simple_example_DEPENDENCIES) $(EXTRA_efl_net_server_simple_example_DEPENDENCIES) 
+	@rm -f efl_net_server_simple_example$(EXEEXT)
+	$(AM_V_CCLD)$(LINK) $(efl_net_server_simple_example_OBJECTS) $(efl_net_server_simple_example_LDADD) $(LIBS)
+
+efl_net_session_example$(EXEEXT): $(efl_net_session_example_OBJECTS) $(efl_net_session_example_DEPENDENCIES) $(EXTRA_efl_net_session_example_DEPENDENCIES) 
+	@rm -f efl_net_session_example$(EXEEXT)
+	$(AM_V_CCLD)$(LINK) $(efl_net_session_example_OBJECTS) $(efl_net_session_example_LDADD) $(LIBS)
+
+efl_net_socket_ssl_dialer_example$(EXEEXT): $(efl_net_socket_ssl_dialer_example_OBJECTS) $(efl_net_socket_ssl_dialer_example_DEPENDENCIES) $(EXTRA_efl_net_socket_ssl_dialer_example_DEPENDENCIES) 
+	@rm -f efl_net_socket_ssl_dialer_example$(EXEEXT)
+	$(AM_V_CCLD)$(LINK) $(efl_net_socket_ssl_dialer_example_OBJECTS) $(efl_net_socket_ssl_dialer_example_LDADD) $(LIBS)
+
+efl_net_socket_ssl_server_example$(EXEEXT): $(efl_net_socket_ssl_server_example_OBJECTS) $(efl_net_socket_ssl_server_example_DEPENDENCIES) $(EXTRA_efl_net_socket_ssl_server_example_DEPENDENCIES) 
+	@rm -f efl_net_socket_ssl_server_example$(EXEEXT)
+	$(AM_V_CCLD)$(LINK) $(efl_net_socket_ssl_server_example_OBJECTS) $(efl_net_socket_ssl_server_example_LDADD) $(LIBS)
+
 mostlyclean-compile:
 	-rm -f *.$(OBJEXT)
 
@@ -2320,15 +2694,19 @@ distclean-compile:
 @AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/ecore_con_server_simple_example.Po@am__quote@
 @AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/ecore_con_url_cookies_example.Po@am__quote@
 @AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/ecore_con_url_download_example.Po@am__quote@
+@AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/ecore_con_url_ftp_example.Po@am__quote@
 @AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/ecore_con_url_headers_example.Po@am__quote@
 @AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/ecore_evas_basics_example.Po@am__quote@
 @AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/ecore_evas_buffer_example_01.Po@am__quote@
 @AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/ecore_evas_buffer_example_02.Po@am__quote@
 @AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/ecore_evas_callbacks.Po@am__quote@
+@AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/ecore_evas_cursor_example.Po@am__quote@
 @AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/ecore_evas_ews_example.Po@am__quote@
 @AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/ecore_evas_extn_plug_example.Po@am__quote@
 @AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/ecore_evas_extn_socket_example.Po@am__quote@
 @AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/ecore_evas_object_example.Po@am__quote@
+@AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/ecore_evas_vnc_example.Po@am__quote@
+@AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/ecore_evas_wayland_multiseat_example.Po@am__quote@
 @AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/ecore_evas_window_sizes_example.Po@am__quote@
 @AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/ecore_event_example_01.Po@am__quote@
 @AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/ecore_event_example_02.Po@am__quote@
@@ -2340,6 +2718,8 @@ distclean-compile:
 @AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/ecore_getopt_example.Po@am__quote@
 @AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/ecore_idler_example.Po@am__quote@
 @AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/ecore_imf_example.Po@am__quote@
+@AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/ecore_ipc_client_example.Po@am__quote@
+@AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/ecore_ipc_server_example.Po@am__quote@
 @AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/ecore_job_example.Po@am__quote@
 @AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/ecore_pipe_gstreamer_example-ecore_pipe_gstreamer_example.Po@am__quote@
 @AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/ecore_pipe_simple_example.Po@am__quote@
@@ -2348,6 +2728,24 @@ distclean-compile:
 @AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/ecore_thread_example.Po@am__quote@
 @AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/ecore_time_functions_example.Po@am__quote@
 @AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/ecore_timer_example.Po@am__quote@
+@AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/efl_io_buffered_stream_example.Po@am__quote@
+@AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/efl_io_copier_example.Po@am__quote@
+@AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/efl_io_copier_simple_example.Po@am__quote@
+@AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/efl_io_queue_example.Po@am__quote@
+@AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/efl_net_control_example.Po@am__quote@
+@AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/efl_net_dialer_http_example.Po@am__quote@
+@AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/efl_net_dialer_simple_example.Po@am__quote@
+@AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/efl_net_dialer_udp_example.Po@am__quote@
+@AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/efl_net_dialer_unix_example.Po@am__quote@
+@AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/efl_net_dialer_websocket_autobahntestee.Po@am__quote@
+@AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/efl_net_dialer_websocket_example.Po@am__quote@
+@AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/efl_net_dialer_windows_example.Po@am__quote@
+@AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/efl_net_ip_address_example.Po@am__quote@
+@AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/efl_net_server_example.Po@am__quote@
+@AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/efl_net_server_simple_example.Po@am__quote@
+@AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/efl_net_session_example.Po@am__quote@
+@AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/efl_net_socket_ssl_dialer_example.Po@am__quote@
+@AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/efl_net_socket_ssl_server_example.Po@am__quote@
 
 .c.o:
 @am__fastdepCC_TRUE@	$(AM_V_CC)depbase=`echo $@ | sed 's|[^/]*$$|$(DEPDIR)/&|;s|\.o$$||'`;\
@@ -2599,6 +2997,9 @@ uninstall-am: uninstall-local
 
 .PRECIOUS: Makefile
 
+
+%.pem:
+	echo -e "US\nOR\nPortland\nXPTO Ltd\n\nlocalhost\nroot@localhost\n" | openssl req -new -x509 -days 30 -nodes -out $@ -keyout $@
 
 examples: $(EXTRA_PROGRAMS)
 

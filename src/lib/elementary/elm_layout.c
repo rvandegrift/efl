@@ -22,10 +22,13 @@
 #define MY_CLASS_NAME_LEGACY "elm_layout"
 
 Eo *_elm_layout_pack_proxy_get(Elm_Layout *obj, Edje_Part_Type type, const char *part);
+static void _efl_model_properties_changed_cb(void *, const Efl_Event *);
 
 static const char SIG_THEME_CHANGED[] = "theme,changed";
 const char SIG_LAYOUT_FOCUSED[] = "focused";
 const char SIG_LAYOUT_UNFOCUSED[] = "unfocused";
+
+const char SIGNAL_PREFIX[] = "signal/";
 
 /* smart callbacks coming from elm layout objects: */
 static const Evas_Smart_Cb_Description _smart_callbacks[] = {
@@ -93,10 +96,6 @@ struct _Elm_Layout_Sub_Object_Data
       {
          unsigned short col, row, colspan, rowspan;
       } table;
-      struct
-      {
-         const char *text;
-      } text;
    } p;
 };
 
@@ -108,6 +107,13 @@ struct _Elm_Layout_Sub_Object_Cursor
    const char  *style;
 
    Eina_Bool    engine_only : 1;
+};
+
+typedef struct _Elm_Layout_Sub_Property_Future Elm_Layout_Sub_Property_Future;
+struct _Elm_Layout_Sub_Property_Future
+{
+   Elm_Layout_Smart_Data *pd;
+   Eina_Array            *name_arr;
 };
 
 static void
@@ -233,24 +239,6 @@ _parts_signals_emit(Elm_Layout_Smart_Data *sd)
 }
 
 static void
-_parts_text_fix(Elm_Layout_Smart_Data *sd)
-{
-   const Eina_List *l;
-   Elm_Layout_Sub_Object_Data *sub_d;
-   ELM_WIDGET_DATA_GET_OR_RETURN(sd->obj, wd);
-
-   EINA_LIST_FOREACH(sd->subs, l, sub_d)
-     {
-        if (sub_d->type == TEXT)
-          {
-             edje_object_part_text_escaped_set
-               (wd->resize_obj, sub_d->part,
-               sub_d->p.text.text);
-          }
-     }
-}
-
-static void
 _part_cursor_part_apply(const Elm_Layout_Sub_Object_Cursor *pc)
 {
    elm_object_cursor_set(pc->obj, pc->cursor);
@@ -325,7 +313,6 @@ _visuals_refresh(Evas_Object *obj,
 
    ELM_WIDGET_DATA_GET_OR_RETURN(obj, wd, EINA_FALSE);
 
-   _parts_text_fix(sd);
    _parts_signals_emit(sd);
    _parts_cursors_apply(sd);
 
@@ -376,7 +363,7 @@ _elm_layout_theme_internal(Eo *obj, Elm_Layout_Smart_Data *sd)
      }
 
    if (ret)
-     eo_event_callback_call(obj, ELM_LAYOUT_EVENT_THEME_CHANGED, NULL);
+     efl_event_callback_legacy_call(obj, ELM_LAYOUT_EVENT_THEME_CHANGED, NULL);
 
    if (!_visuals_refresh(obj, sd))
      ret = ELM_THEME_APPLY_FAILED;
@@ -389,7 +376,7 @@ _elm_layout_elm_widget_theme_apply(Eo *obj, Elm_Layout_Smart_Data *sd)
 {
    Elm_Theme_Apply int_ret = ELM_THEME_APPLY_FAILED;
 
-   int_ret = elm_obj_widget_theme_apply(eo_super(obj, MY_CLASS));
+   int_ret = elm_obj_widget_theme_apply(efl_super(obj, MY_CLASS));
    if (!int_ret) return ELM_THEME_APPLY_FAILED;
    /* The following lines are here to support entry design; the _theme function
     * of entry needs to call directly the widget _theme function */
@@ -421,7 +408,7 @@ _elm_layout_elm_widget_on_focus(Eo *obj, Elm_Layout_Smart_Data *_pd EINA_UNUSED,
      {
         elm_layout_signal_emit(obj, "elm,action,focus", "elm");
         evas_object_focus_set(wd->resize_obj, EINA_TRUE);
-        eo_event_callback_call(obj, ELM_WIDGET_EVENT_FOCUSED, NULL);
+        efl_event_callback_legacy_call(obj, ELM_WIDGET_EVENT_FOCUSED, NULL);
         if (_elm_config->atspi_mode && !elm_widget_child_can_focus_get(obj))
           elm_interface_atspi_accessible_state_changed_signal_emit(obj, ELM_ATSPI_STATE_FOCUSED, EINA_TRUE);
      }
@@ -429,11 +416,11 @@ _elm_layout_elm_widget_on_focus(Eo *obj, Elm_Layout_Smart_Data *_pd EINA_UNUSED,
      {
         elm_layout_signal_emit(obj, "elm,action,unfocus", "elm");
         evas_object_focus_set(wd->resize_obj, EINA_FALSE);
-        eo_event_callback_call(obj, ELM_WIDGET_EVENT_UNFOCUSED, NULL);
+        efl_event_callback_legacy_call(obj, ELM_WIDGET_EVENT_UNFOCUSED, NULL);
         if (_elm_config->atspi_mode && !elm_widget_child_can_focus_get(obj))
           elm_interface_atspi_accessible_state_changed_signal_emit(obj, ELM_ATSPI_STATE_FOCUSED, EINA_FALSE);
      }
-   if (eo_isa(wd->resize_obj, EDJE_OBJECT_CLASS))
+   if (efl_isa(wd->resize_obj, EDJE_OBJECT_CLASS))
      edje_object_message_signal_process(wd->resize_obj);
 
    return EINA_TRUE;
@@ -513,7 +500,7 @@ _elm_layout_elm_widget_sub_object_add(Eo *obj, Elm_Layout_Smart_Data *_pd EINA_U
 
    if (evas_object_data_get(sobj, "elm-parent") == obj) return EINA_TRUE;
 
-   int_ret = elm_obj_widget_sub_object_add(eo_super(obj, MY_CLASS), sobj);
+   int_ret = elm_obj_widget_sub_object_add(efl_super(obj, MY_CLASS), sobj);
    if (!int_ret) return EINA_FALSE;
 
    Eina_Bool enable = EINA_TRUE;
@@ -541,7 +528,7 @@ _elm_layout_elm_widget_sub_object_del(Eo *obj, Elm_Layout_Smart_Data *sd, Evas_O
      (sobj, EVAS_CALLBACK_CHANGED_SIZE_HINTS,
      _on_sub_object_size_hint_change, obj);
 
-   int_ret = elm_obj_widget_sub_object_del(eo_super(obj, MY_CLASS), sobj);
+   int_ret = elm_obj_widget_sub_object_del(efl_super(obj, MY_CLASS), sobj);
    if (!int_ret) return EINA_FALSE;
    if (sd->destructed_is) return EINA_TRUE;
 
@@ -671,9 +658,9 @@ _elm_layout_part_aliasing_eval(const Evas_Object *obj EINA_UNUSED,
 static void
 _eo_unparent_helper(Eo *child, Eo *parent)
 {
-   if (eo_parent_get(child) == parent)
+   if (efl_parent_get(child) == parent)
      {
-        eo_parent_set(child, evas_object_evas_get(parent));
+        efl_parent_set(child, evas_object_evas_get(parent));
      }
 }
 
@@ -774,7 +761,7 @@ _elm_layout_efl_canvas_group_group_add(Eo *obj, Elm_Layout_Smart_Data *_pd EINA_
    edje = edje_object_add(evas_object_evas_get(obj));
    elm_widget_resize_object_set(obj, edje, EINA_TRUE);
 
-   efl_canvas_group_add(eo_super(obj, MY_CLASS));
+   efl_canvas_group_add(efl_super(obj, MY_CLASS));
 
    elm_widget_can_focus_set(obj, EINA_FALSE);
 
@@ -800,10 +787,6 @@ _elm_layout_efl_canvas_group_group_del(Eo *obj, Elm_Layout_Smart_Data *sd)
    EINA_LIST_FREE(sd->subs, sub_d)
      {
         eina_stringshare_del(sub_d->part);
-
-        if (sub_d->type == TEXT)
-          eina_stringshare_del(sub_d->p.text.text);
-
         free(sub_d);
      }
 
@@ -819,6 +802,17 @@ _elm_layout_efl_canvas_group_group_del(Eo *obj, Elm_Layout_Smart_Data *sd)
         eina_stringshare_del(esd->source);
         free(esd);
      }
+
+   if(sd->model)
+     {
+         efl_event_callback_del(sd->model, EFL_MODEL_EVENT_PROPERTIES_CHANGED, _efl_model_properties_changed_cb, sd);
+         efl_unref(sd->model);
+         sd->model = NULL;
+     }
+   eina_hash_free(sd->prop_connect);
+   sd->prop_connect = NULL;
+   eina_hash_free(sd->factories);
+   sd->factories = NULL;
 
    eina_stringshare_del(sd->klass);
    eina_stringshare_del(sd->group);
@@ -837,7 +831,7 @@ _elm_layout_efl_canvas_group_group_del(Eo *obj, Elm_Layout_Smart_Data *sd)
 
    sd->destructed_is = EINA_TRUE;
 
-   efl_canvas_group_del(eo_super(obj, MY_CLASS));
+   efl_canvas_group_del(efl_super(obj, MY_CLASS));
 }
 
 /* rewrite or extend this one on your derived class as to suit your
@@ -900,6 +894,38 @@ _elm_layout_efl_file_file_get(Eo *obj, Elm_Layout_Smart_Data *sd EINA_UNUSED, co
 {
    ELM_WIDGET_DATA_GET_OR_RETURN(obj, wd);
    edje_object_file_get(wd->resize_obj, file, group);
+}
+
+
+EOLIAN static Eina_Bool
+_elm_layout_efl_file_mmap_set(Eo *obj, Elm_Layout_Smart_Data *sd, const Eina_File *file, const char *group)
+{
+   Eina_Bool int_ret = EINA_FALSE;
+
+   ELM_WIDGET_DATA_GET_OR_RETURN(obj, wd, EINA_FALSE);
+
+   int_ret =
+     edje_object_mmap_set(wd->resize_obj, file, group);
+
+   if (int_ret)
+     {
+        sd->file_set = EINA_TRUE;
+        _visuals_refresh(obj, sd);
+     }
+   else
+     ERR("failed to set edje mmap file %p, group '%s': %s",
+         file, group,
+         edje_load_error_str
+           (edje_object_load_error_get(wd->resize_obj)));
+
+   return int_ret;
+}
+
+EOLIAN static void
+_elm_layout_efl_file_mmap_get(Eo *obj, Elm_Layout_Smart_Data *sd EINA_UNUSED, const Eina_File **file, const char **group)
+{
+   ELM_WIDGET_DATA_GET_OR_RETURN(obj, wd);
+   efl_file_mmap_get(wd->resize_obj, file, group);
 }
 
 EOLIAN static Eina_Bool
@@ -1049,7 +1075,7 @@ _elm_layout_content_set(Eo *obj, Elm_Layout_Smart_Data *sd, const char *part, Ev
         sub_d->obj = content;
         sd->subs = eina_list_append(sd->subs, sub_d);
 
-        eo_parent_set(content, obj);
+        efl_parent_set(content, obj);
         _icon_signal_emit(sd, sub_d, EINA_TRUE);
      }
 
@@ -1178,7 +1204,7 @@ elm_layout_content_swallow_list_get(const Evas_Object *obj)
    ELM_LAYOUT_CHECK(obj) NULL;
    Eina_List *ret = NULL;
    Elm_Layout_Sub_Object_Data *sub_d = NULL;
-   Elm_Layout_Smart_Data *sd = eo_data_scope_get(obj, MY_CLASS);
+   Elm_Layout_Smart_Data *sd = efl_data_scope_get(obj, MY_CLASS);
    Eina_List *l = NULL;
 
    EINA_LIST_FOREACH(sd->subs, l, sub_d)
@@ -1283,7 +1309,6 @@ _elm_layout_text_set(Eo *obj, Elm_Layout_Smart_Data *sd, const char *part, const
              if (!text)
                {
                   eina_stringshare_del(sub_d->part);
-                  eina_stringshare_del(sub_d->p.text.text);
                   free(sub_d);
                   edje_object_part_text_escaped_set
                     (wd->resize_obj, part, NULL);
@@ -1293,7 +1318,6 @@ _elm_layout_text_set(Eo *obj, Elm_Layout_Smart_Data *sd, const char *part, const
              else
                break;
           }
-        sub_d = NULL;
      }
 
    if (!text) return EINA_TRUE;
@@ -1311,8 +1335,6 @@ _elm_layout_text_set(Eo *obj, Elm_Layout_Smart_Data *sd, const char *part, const
         sd->subs = eina_list_append(sd->subs, sub_d);
      }
 
-   eina_stringshare_replace(&sub_d->p.text.text, text);
-
    _text_signal_emit(sd, sub_d, !!text);
 
    elm_obj_layout_sizing_eval(obj);
@@ -1322,6 +1344,20 @@ _elm_layout_text_set(Eo *obj, Elm_Layout_Smart_Data *sd, const char *part, const
      sub_d->obj = _elm_access_edje_object_part_object_register
          (obj, elm_layout_edje_get(obj), part);
 
+   if (sd->model && !sd->view_updated)
+     {
+        Eina_Stringshare *prop = eina_hash_find(sd->prop_connect, sub_d->part);
+        if (prop)
+          {
+             Eina_Value v;
+             eina_value_setup(&v, EINA_VALUE_TYPE_STRING);
+             eina_value_set(&v, text);
+             efl_model_property_set(sd->model, prop, &v);
+             eina_value_flush(&v);
+          }
+     }
+
+   sd->view_updated = EINA_FALSE;
    return EINA_TRUE;
 }
 
@@ -1342,7 +1378,7 @@ _layout_box_subobj_init(Elm_Layout_Smart_Data *sd, Elm_Layout_Sub_Object_Data *s
    sub_d->part = eina_stringshare_add(part);
    sub_d->obj = child;
    sd->subs = eina_list_append(sd->subs, sub_d);
-   eo_parent_set(child, sd->obj);
+   efl_parent_set(child, sd->obj);
 }
 
 Eina_Bool
@@ -1590,7 +1626,7 @@ _elm_layout_table_pack(Eo *obj, Elm_Layout_Smart_Data *sd, const char *part, Eva
    sub_d->p.table.colspan = colspan;
    sub_d->p.table.rowspan = rowspan;
    sd->subs = eina_list_append(sd->subs, sub_d);
-   eo_parent_set(child, obj);
+   efl_parent_set(child, obj);
 
    elm_obj_layout_sizing_eval(obj);
 
@@ -1870,44 +1906,329 @@ _elm_layout_edje_object_can_access_get(Eo *obj EINA_UNUSED, Elm_Layout_Smart_Dat
 }
 
 EOLIAN static void
-_elm_layout_eo_base_dbg_info_get(Eo *eo_obj, Elm_Layout_Smart_Data *_pd EINA_UNUSED, Eo_Dbg_Info *root)
+_elm_layout_efl_object_dbg_info_get(Eo *eo_obj, Elm_Layout_Smart_Data *_pd EINA_UNUSED, Efl_Dbg_Info *root)
 {
-   eo_dbg_info_get(eo_super(eo_obj, MY_CLASS), root);
+   efl_dbg_info_get(efl_super(eo_obj, MY_CLASS), root);
    ELM_WIDGET_DATA_GET_OR_RETURN(eo_obj, wd);
 
-   if (wd->resize_obj && eo_isa(wd->resize_obj, EDJE_OBJECT_CLASS))
+   if (wd->resize_obj && efl_isa(wd->resize_obj, EDJE_OBJECT_CLASS))
      {
-        Eo_Dbg_Info *group = EO_DBG_INFO_LIST_APPEND(root, MY_CLASS_NAME);
+        Efl_Dbg_Info *group = EFL_DBG_INFO_LIST_APPEND(root, MY_CLASS_NAME);
         const char *file, *edje_group;
         Evas_Object *edje_obj = wd->resize_obj;
 
         efl_file_get(edje_obj, &file, &edje_group);
-        EO_DBG_INFO_APPEND(group, "File", EINA_VALUE_TYPE_STRING, file);
-        EO_DBG_INFO_APPEND(group, "Group", EINA_VALUE_TYPE_STRING, edje_group);
+        EFL_DBG_INFO_APPEND(group, "File", EINA_VALUE_TYPE_STRING, file);
+        EFL_DBG_INFO_APPEND(group, "Group", EINA_VALUE_TYPE_STRING, edje_group);
 
         Edje_Load_Error error = EDJE_LOAD_ERROR_GENERIC;
         error = edje_obj_load_error_get(edje_obj);
         if (error != EDJE_LOAD_ERROR_NONE)
           {
-             EO_DBG_INFO_APPEND(group, "Error", EINA_VALUE_TYPE_STRING,
+             EFL_DBG_INFO_APPEND(group, "Error", EINA_VALUE_TYPE_STRING,
                                 edje_load_error_str(error));
           }
      }
+}
+
+static void
+_prop_future_error_cb(void* data, Efl_Event const*event EINA_UNUSED)
+{
+   Elm_Layout_Sub_Property_Future *sub_pp = data;
+   Eina_Array_Iterator iterator;
+   Eina_Stringshare  *name;
+   unsigned int i = 0;
+
+   EINA_ARRAY_ITER_NEXT(sub_pp->name_arr, i, name, iterator)
+     eina_stringshare_del(name);
+
+   eina_array_free(sub_pp->name_arr);
+   free(sub_pp);
+}
+
+static void
+_view_update(Elm_Layout_Smart_Data *pd, const char *name, const char *property)
+{
+   const char *source;
+   Eina_Strbuf *buf;
+
+   if (strncmp(SIGNAL_PREFIX, name, sizeof(SIGNAL_PREFIX) -1) != 0)
+     {
+         elm_layout_text_set(pd->obj, name, property);
+         return;
+     }
+
+   ELM_WIDGET_DATA_GET_OR_RETURN(pd->obj, wd);
+   source = efl_class_name_get(efl_class_get(pd->model));
+
+   buf = eina_strbuf_new();
+   eina_strbuf_append(buf, name);
+   eina_strbuf_remove(buf, 0, sizeof(SIGNAL_PREFIX)-1);
+   eina_strbuf_replace_all(buf, "%v", property);
+
+   edje_object_signal_emit(wd->resize_obj, eina_strbuf_string_get(buf), source);
+   eina_strbuf_free(buf);
+}
+
+static void
+_prop_future_then_cb(void* data, Efl_Event const*event)
+{
+   Elm_Layout_Sub_Property_Future *sub_pp = data;
+   Elm_Layout_Smart_Data *pd = sub_pp->pd;
+   Eina_Accessor *value_acc = (Eina_Accessor *)((Efl_Future_Event_Success*)event->info)->value;
+   Eina_Value *value;
+   Eina_Stringshare *name;
+   char *text;
+   unsigned int i = 0;
+   unsigned int acc_i = 0;
+
+   while (eina_accessor_data_get(value_acc, acc_i, (void **)&value))
+     {
+         const Eina_Value_Type *vtype = eina_value_type_get(value);
+         name = eina_array_data_get(sub_pp->name_arr, i);
+
+         pd->view_updated = EINA_TRUE;
+         if (vtype == EINA_VALUE_TYPE_STRING || vtype == EINA_VALUE_TYPE_STRINGSHARE)
+           {
+               eina_value_get(value, &text);
+               _view_update(pd, name, text);
+           }
+         else
+           {
+               text = eina_value_to_string(value);
+               _view_update(pd, name, text);
+               free(text);
+           }
+        eina_stringshare_del(name);
+        ++acc_i;
+     }
+   eina_array_free(sub_pp->name_arr);
+   free(sub_pp);
+}
+
+static void
+_elm_layout_view_model_update(Elm_Layout_Smart_Data *pd)
+{
+   Elm_Layout_Sub_Property_Future *sub_pp;
+   Efl_Future **future_arr, **f, *future_all;
+   Eina_Hash_Tuple *tuple;
+   Eina_Iterator *it_p;
+   int size;
+
+   if (!pd->prop_connect) return;
+
+   size = eina_hash_population(pd->prop_connect);
+   if (size == 0) return;
+
+   future_arr = alloca((size + 1) * sizeof(Efl_Future*));
+   f = future_arr;
+
+   sub_pp = ELM_NEW(Elm_Layout_Sub_Property_Future);
+   sub_pp->pd = pd;
+   sub_pp->name_arr = eina_array_new(size);
+
+   it_p = eina_hash_iterator_tuple_new(pd->prop_connect);
+   while (eina_iterator_next(it_p, (void **)&tuple))
+     {
+         *f = efl_model_property_get(pd->model, tuple->data);
+         eina_array_push(sub_pp->name_arr, eina_stringshare_ref(tuple->key));
+         f++;
+     }
+   eina_iterator_free(it_p);
+   *f = NULL;
+
+   future_all = efl_future_iterator_all(eina_carray_iterator_new((void**)future_arr));
+
+   efl_future_then(future_all, &_prop_future_then_cb, &_prop_future_error_cb, NULL, sub_pp);
+}
+
+static void
+_efl_model_properties_changed_cb(void *data, const Efl_Event *event)
+{
+   Elm_Layout_Smart_Data *pd = data;
+   Efl_Model_Property_Event *evt = event->info;
+   Eina_Stringshare *ss_prop;
+   Eina_Hash_Tuple *tuple;
+   Eina_Array *names, *futures;
+   Eina_Iterator *it_p;
+   const char *prop;
+   Eina_Array_Iterator it;
+   unsigned int i;
+
+   if (!evt->changed_properties || !pd->prop_connect) return;
+
+   names = eina_array_new(1);
+   futures = eina_array_new(1);
+
+   EINA_ARRAY_ITER_NEXT(evt->changed_properties, i, prop, it)
+     {
+         ss_prop = eina_stringshare_add(prop);
+         it_p = eina_hash_iterator_tuple_new(pd->prop_connect);
+         while (eina_iterator_next(it_p, (void **)&tuple))
+           {
+              if (tuple->data == ss_prop)
+                {
+                    eina_array_push(names, eina_stringshare_ref(tuple->key));
+                    eina_array_push(futures, efl_model_property_get(pd->model, prop));
+                }
+           }
+         eina_iterator_free(it_p);
+         eina_stringshare_del(ss_prop);
+     }
+
+   if (eina_array_count(names))
+     {
+         Elm_Layout_Sub_Property_Future *sub_pp;
+         Efl_Future *future_all;
+
+         sub_pp = ELM_NEW(Elm_Layout_Sub_Property_Future);
+         sub_pp->pd = pd;
+         sub_pp->name_arr = names;
+
+         future_all = efl_future_iterator_all(eina_array_iterator_new(futures));
+         efl_future_then(future_all, &_prop_future_then_cb, &_prop_future_error_cb, NULL, sub_pp);
+     }
+   else
+     eina_array_free(names);
+
+   eina_array_free(futures);
+}
+
+EOLIAN static void
+_elm_layout_efl_ui_view_model_set(Eo *obj EINA_UNUSED, Elm_Layout_Smart_Data *pd, Efl_Model *model)
+{
+   if (pd->model)
+     {
+         efl_event_callback_del(pd->model, EFL_MODEL_EVENT_PROPERTIES_CHANGED, _efl_model_properties_changed_cb, pd);
+         efl_unref(pd->model);
+         pd->model = NULL;
+     }
+
+   if (model)
+     {
+         pd->model = model;
+         efl_ref(pd->model);
+         efl_event_callback_add(pd->model, EFL_MODEL_EVENT_PROPERTIES_CHANGED, _efl_model_properties_changed_cb, pd);
+     }
+
+   if (pd->prop_connect)
+     _elm_layout_view_model_update(pd);
+
+   if (pd->factories)
+     {
+         Eina_Hash_Tuple *tuple;
+         Eina_Stringshare *name;
+         Efl_Ui_Factory *factory;
+         Efl_Canvas *content;
+
+         Eina_Iterator *it_p = eina_hash_iterator_tuple_new(pd->factories);
+         while (eina_iterator_next(it_p, (void **)&tuple))
+           {
+               name = tuple->key;
+               factory = tuple->data;
+               content = elm_layout_content_get(pd->obj, name);
+
+               if (content && efl_isa(content, EFL_UI_VIEW_INTERFACE))
+                 {
+                     efl_ui_view_model_set(content, pd->model);
+                 }
+               else
+                 {
+                     efl_ui_factory_release(factory, content);
+                     content = efl_ui_factory_create(factory, pd->model, pd->obj);
+                     elm_layout_content_set(pd->obj, name, content);
+                 }
+           }
+         eina_iterator_free(it_p);
+     }
+}
+
+EOLIAN static Efl_Model *
+_elm_layout_efl_ui_view_model_get(Eo *obj EINA_UNUSED, Elm_Layout_Smart_Data *pd)
+{
+   return pd->model;
+}
+
+EOLIAN static void
+_elm_layout_efl_ui_model_connect_connect(Eo *obj EINA_UNUSED, Elm_Layout_Smart_Data *pd, const char *name, const char *property)
+{
+   EINA_SAFETY_ON_NULL_RETURN(name);
+   Eina_Stringshare *ss_name, *ss_prop;
+
+   if (!_elm_layout_part_aliasing_eval(obj, pd, &name, EINA_TRUE))
+     return;
+
+   ss_name = eina_stringshare_add(name);
+   ss_prop = eina_stringshare_add(property);
+   if (!pd->prop_connect)
+     {
+         pd->prop_connect = eina_hash_stringshared_new(EINA_FREE_CB(eina_stringshare_del));
+     }
+
+   eina_stringshare_del(eina_hash_set(pd->prop_connect, ss_name, ss_prop));
+
+   if (pd->model)
+     {
+         Elm_Layout_Sub_Property_Future *sub_pp = ELM_NEW(Elm_Layout_Sub_Property_Future);
+         Efl_Future *futures[2] = {NULL,};
+         Efl_Future *future_all = NULL;
+
+         sub_pp->pd = pd;
+         sub_pp->name_arr = eina_array_new(1);
+         eina_array_push(sub_pp->name_arr, eina_stringshare_ref(ss_name));
+         futures[0] = efl_model_property_get(pd->model, ss_prop);
+
+         future_all = efl_future_iterator_all(eina_carray_iterator_new((void**)futures));
+         efl_future_then(future_all, &_prop_future_then_cb, &_prop_future_error_cb, NULL, sub_pp);
+     }
+}
+
+
+EOLIAN static void
+_elm_layout_efl_ui_model_factory_connect_connect(Eo *obj EINA_UNUSED, Elm_Layout_Smart_Data *pd,
+                const char *name, Efl_Ui_Factory *factory)
+{
+   EINA_SAFETY_ON_NULL_RETURN(name);
+   Eina_Stringshare *ss_name;
+   Efl_Ui_Factory *old_factory;
+   Evas_Object *new_ev, *old_ev;
+
+   if (!_elm_layout_part_aliasing_eval(obj, pd, &name, EINA_TRUE))
+     return;
+
+   ss_name = eina_stringshare_add(name);
+
+   if (!pd->factories)
+     pd->factories = eina_hash_stringshared_new(EINA_FREE_CB(efl_unref));
+
+   new_ev = efl_ui_factory_create(factory, pd->model, obj);
+   EINA_SAFETY_ON_NULL_RETURN(new_ev);
+
+   old_factory = eina_hash_set(pd->factories, ss_name, efl_ref(factory));
+   if (old_factory)
+     {
+         old_ev = elm_layout_content_get(obj, name);
+         if (old_ev)
+           efl_ui_factory_release(old_factory, old_ev);
+         efl_unref(old_factory);
+     }
+
+   elm_layout_content_set(obj, name, new_ev);
 }
 
 EAPI Evas_Object *
 elm_layout_add(Evas_Object *parent)
 {
    EINA_SAFETY_ON_NULL_RETURN_VAL(parent, NULL);
-   Evas_Object *obj = eo_add(MY_CLASS, parent);
+   Evas_Object *obj = efl_add(MY_CLASS, parent);
    return obj;
 }
 
 EOLIAN static Eo *
-_elm_layout_eo_base_constructor(Eo *obj, Elm_Layout_Smart_Data *sd)
+_elm_layout_efl_object_constructor(Eo *obj, Elm_Layout_Smart_Data *sd)
 {
    sd->obj = obj;
-   obj = eo_constructor(eo_super(obj, MY_CLASS));
+   obj = efl_constructor(efl_super(obj, MY_CLASS));
    efl_canvas_object_type_set(obj, MY_CLASS_NAME_LEGACY);
    evas_object_smart_callbacks_descriptions_set(obj, _smart_callbacks);
    elm_interface_atspi_accessible_role_set(obj, ELM_ATSPI_ROLE_FILLER);
@@ -1915,7 +2236,7 @@ _elm_layout_eo_base_constructor(Eo *obj, Elm_Layout_Smart_Data *sd)
    return obj;
 }
 
-EOLIAN static void _elm_layout_class_constructor(Eo_Class *klass)
+EOLIAN static void _elm_layout_class_constructor(Efl_Class *klass)
 {
    evas_smart_legacy_type_register(MY_CLASS_NAME_LEGACY, klass);
 }
@@ -1934,6 +2255,18 @@ EAPI void
 elm_layout_file_get(Eo *obj, const char **file, const char **group)
 {
    efl_file_get((Eo *) obj, file, group);
+}
+
+EAPI Eina_Bool
+elm_layout_mmap_set(Eo *obj, const Eina_File *file, const char *group)
+{
+   return efl_file_mmap_set((Eo *) obj, file, group);
+}
+
+EAPI void
+elm_layout_mmap_get(Eo *obj, const Eina_File **file, const char **group)
+{
+   efl_file_mmap_get((Eo *) obj, file, group);
 }
 
 EAPI Eina_Bool
@@ -2002,7 +2335,7 @@ elm_layout_table_clear(Elm_Layout *obj, const char *part, Eina_Bool clear)
 
 /* Efl.Part implementation */
 
-static EOLIAN Eo_Base *
+static EOLIAN Efl_Object *
 _elm_layout_efl_part_part(const Eo *obj, Elm_Layout_Smart_Data *sd,
                           const char *part)
 {
@@ -2022,12 +2355,12 @@ _elm_layout_efl_part_part(const Eo *obj, Elm_Layout_Smart_Data *sd,
      return _elm_layout_pack_proxy_get((Eo *) obj, type, part);
 
    // Generic parts (text, anything, ...)
-   proxy = eo_add(ELM_LAYOUT_INTERNAL_PART_CLASS, (Eo *) obj);
-   pd = eo_data_scope_get(proxy, ELM_LAYOUT_INTERNAL_PART_CLASS);
+   proxy = efl_add(ELM_LAYOUT_INTERNAL_PART_CLASS, (Eo *) obj);
+   pd = efl_data_scope_get(proxy, ELM_LAYOUT_INTERNAL_PART_CLASS);
    if (pd)
      {
         pd->obj = (Eo *) obj;
-        pd->sd = eo_data_xref(pd->obj, ELM_LAYOUT_CLASS, proxy);
+        pd->sd = efl_data_xref(pd->obj, ELM_LAYOUT_CLASS, proxy);
         pd->part = part ? strdup(part) : NULL;
         pd->temp = 1;
      }

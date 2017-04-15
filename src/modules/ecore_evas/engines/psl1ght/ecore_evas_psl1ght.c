@@ -67,10 +67,7 @@ _ecore_evas_psl1ght_event_got_focus(void *data EINA_UNUSED, int type EINA_UNUSED
 
    if (!ee) return ECORE_CALLBACK_PASS_ON;
    /* pass on event */
-   ee->prop.focused = EINA_TRUE;
-   evas_focus_in(ee->evas);
-   if (ee->func.fn_focus_in) ee->func.fn_focus_in(ee);
-
+   _ecore_evas_focus_device_set(ee, NULL, EINA_TRUE);
    return ECORE_CALLBACK_PASS_ON;
 }
 
@@ -83,10 +80,7 @@ _ecore_evas_psl1ght_event_lost_focus(void *data EINA_UNUSED, int type EINA_UNUSE
 
    if (!ee) return ECORE_CALLBACK_PASS_ON;
    /* pass on event */
-   evas_focus_out(ee->evas);
-   ee->prop.focused = EINA_FALSE;
-   if (ee->func.fn_focus_out) ee->func.fn_focus_out(ee);
-
+   _ecore_evas_focus_device_set(ee, NULL, EINA_FALSE);
    return ECORE_CALLBACK_PASS_ON;
 }
 
@@ -261,12 +255,18 @@ _ecore_evas_psl1ght_callback_delete_request_set(Ecore_Evas *ee, Ecore_Evas_Event
 static void
 _ecore_evas_screen_resized(Ecore_Evas *ee)
 {
+   Evas_Device *pointer;
+   Ecore_Evas_Cursor *cursor;
    int w, h;
 
    /* Do not resize if the window is not fullscreen */
    if (!ee->prop.fullscreen) return;
 
    ecore_psl1ght_screen_resolution_get (&w, &h);
+
+   pointer = evas_default_device_get(ee->evas, EFL_INPUT_DEVICE_CLASS_MOUSE);
+   cursor = eina_hash_find(ee->prop.cursors, &pointer);
+   EINA_SAFETY_ON_NULL_RETURN(cursor);
 
    if (w != ee->w || h != ee->h)
      {
@@ -277,7 +277,7 @@ _ecore_evas_screen_resized(Ecore_Evas *ee)
         ecore_psl1ght_resolution_set (w, h);
         evas_damage_rectangle_add(ee->evas, 0, 0, ee->w, ee->h);
 
-        _ecore_evas_mouse_move_process(ee, ee->mouse.x, ee->mouse.y,
+        _ecore_evas_mouse_move_process(ee, cursor->pos_x, cursor->pos_y,
                                        _ecore_evas_time_get());
         if (ee->func.fn_resize) ee->func.fn_resize(ee);
      }
@@ -313,10 +313,8 @@ _ecore_evas_show(Ecore_Evas *ee)
 {
    ee->prop.withdrawn = EINA_FALSE;
    if (ee->func.fn_state_change) ee->func.fn_state_change(ee);
-   if (ee->prop.focused) return;
-   ee->prop.focused = EINA_TRUE;
-   evas_focus_in(ee->evas);
-   if (ee->func.fn_focus_in) ee->func.fn_focus_in(ee);
+   if (ecore_evas_focus_device_get(ee, NULL)) return;
+   _ecore_evas_focus_device_set(ee, NULL, EINA_TRUE);
 }
 
 static void
@@ -325,66 +323,6 @@ _ecore_evas_screen_geometry_get(const Ecore_Evas *ee EINA_UNUSED, int *x, int *y
    if (x) *x = 0;
    if (y) *y = 0;
    ecore_psl1ght_screen_resolution_get (w, h);
-}
-
-static void
-_ecore_evas_object_cursor_del(void *data, Evas *e EINA_UNUSED, Evas_Object *obj EINA_UNUSED, void *event_info EINA_UNUSED)
-{
-   Ecore_Evas *ee;
-
-   ee = data;
-   if (ee)
-     ee->prop.cursor.object = NULL;
-}
-
-static void
-_ecore_evas_object_cursor_unset(Ecore_Evas *ee)
-{
-   evas_object_event_callback_del_full(ee->prop.cursor.object, EVAS_CALLBACK_DEL, _ecore_evas_object_cursor_del, ee);
-}
-
-static void
-_ecore_evas_object_cursor_set(Ecore_Evas *ee, Evas_Object *obj, int layer, int hot_x, int hot_y)
-{
-   int x, y;
-   Evas_Object *old;
-
-   old = ee->prop.cursor.object;
-   if (obj == NULL)
-     {
-        ee->prop.cursor.object = NULL;
-        ee->prop.cursor.layer = 0;
-        ee->prop.cursor.hot.x = 0;
-        ee->prop.cursor.hot.y = 0;
-        goto end;
-     }
-
-   ee->prop.cursor.object = obj;
-   ee->prop.cursor.layer = layer;
-   ee->prop.cursor.hot.x = hot_x;
-   ee->prop.cursor.hot.y = hot_y;
-
-   if (obj != old)
-     {
-        evas_pointer_output_xy_get(ee->evas, &x, &y);
-        evas_object_layer_set(ee->prop.cursor.object, ee->prop.cursor.layer);
-        evas_object_pass_events_set(ee->prop.cursor.object, 1);
-        if (evas_pointer_inside_get(ee->evas))
-          evas_object_show(ee->prop.cursor.object);
-        evas_object_event_callback_add(obj, EVAS_CALLBACK_DEL,
-                                       _ecore_evas_object_cursor_del, ee);
-     }
-
-   evas_object_move(ee->prop.cursor.object, x - ee->prop.cursor.hot.x,
-                    y - ee->prop.cursor.hot.y);
-
-end:
-   if ((old) && (obj != old))
-     {
-        evas_object_event_callback_del_full
-          (old, EVAS_CALLBACK_DEL, _ecore_evas_object_cursor_del, ee);
-        evas_object_del(old);
-     }
 }
 
 static Ecore_Evas_Engine_Func _ecore_psl1ght_engine_func =
@@ -421,8 +359,8 @@ static Ecore_Evas_Engine_Func _ecore_psl1ght_engine_func =
    NULL,
    NULL,
    NULL,
-   _ecore_evas_object_cursor_set,
-   _ecore_evas_object_cursor_unset,
+   NULL,
+   NULL,
    NULL,
    NULL,
    NULL,
@@ -463,7 +401,15 @@ static Ecore_Evas_Engine_Func _ecore_psl1ght_engine_func =
    NULL, // aux_hints_set
 
    NULL, // fn_animator_register
-   NULL  // fn_animator_unregister
+   NULL, // fn_animator_unregister
+
+   NULL, // fn_evas_changed
+   NULL, //fn_focus_device_set
+   NULL, //fn_callback_focus_device_in_set
+   NULL, //fn_callback_focus_device_out_set
+   NULL, //fn_callback_device_mouse_in_set
+   NULL, //fn_callback_device_mouse_out_set
+   NULL, //fn_pointer_device_xy_get
 };
 
 EAPI Ecore_Evas *
@@ -494,7 +440,6 @@ ecore_evas_psl1ght_new_internal(const char *name, int w, int h)
    ee->prop.max.w = 0;
    ee->prop.max.h = 0;
    ee->prop.layer = 0;
-   ee->prop.focused = EINA_TRUE;
    ee->prop.borderless = EINA_TRUE;
    ee->prop.override = EINA_TRUE;
    ee->prop.maximized = EINA_TRUE;
@@ -556,6 +501,7 @@ ecore_evas_psl1ght_new_internal(const char *name, int w, int h)
    if (getenv("ECORE_EVAS_PSL1GHT_CURSOR_PATH"))
      ecore_evas_cursor_set(ee, getenv("ECORE_EVAS_PSL1GHT_CURSOR_PATH"), EVAS_LAYER_MAX, 0, 0);
 
+   _ecore_evas_focus_device_set(ee, NULL, EINA_TRUE);
    evas_event_feed_mouse_in(ee->evas, (unsigned int)((unsigned long long)(ecore_time_get() * 1000.0) & 0xffffffff), NULL);
    
    return ee;

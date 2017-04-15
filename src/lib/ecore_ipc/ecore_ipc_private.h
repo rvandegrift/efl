@@ -1,9 +1,6 @@
 #ifndef _ECORE_IPC_PRIVATE_H
 #define _ECORE_IPC_PRIVATE_H
 
-
-extern int _ecore_ipc_log_dom;
-
 #ifdef ECORE_IPC_DEFAULT_LOG_COLOR
 # undef ECORE_IPC_DEFAULT_LOG_COLOR
 #endif
@@ -69,7 +66,14 @@ struct _Ecore_Ipc_Msg_Head
 struct _Ecore_Ipc_Client
 {
    ECORE_MAGIC;
-   Ecore_Con_Client  *client;
+
+   struct {
+      Eo *input;
+      Eo *socket;
+      Eo *recv_copier;
+      Eo *send_copier;
+   } socket;
+
    Ecore_Ipc_Server  *svr;
    void              *data;
    unsigned char     *buf;
@@ -87,7 +91,17 @@ struct _Ecore_Ipc_Client
 struct _Ecore_Ipc_Server
 {
    ECORE_MAGIC;
-   Ecore_Con_Server *server;
+
+   /* when used as dialer: ecore_ipc_server_connect() */
+   struct {
+      Eo *input;
+      Eo *dialer;
+      Eo *recv_copier;
+      Eo *send_copier;
+   } dialer;
+
+   Eo *server;
+
    Eina_List        *clients;
    void              *data;
    unsigned char     *buf;

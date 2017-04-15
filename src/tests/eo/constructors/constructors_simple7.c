@@ -15,23 +15,28 @@ static Eo *
 _constructor(Eo *obj, void *class_data EINA_UNUSED, va_list *list EINA_UNUSED)
 {
    /* FIXME: Actually test it. */
-   return eo_constructor(eo_super(obj, MY_CLASS));
+   return efl_constructor(efl_super(obj, MY_CLASS));
 }
 
-static Eo_Op_Description op_descs [] = {
-     EO_OP_FUNC_OVERRIDE(eo_constructor, _constructor),
-};
+static Eina_Bool
+_class_initializer(Efl_Class *klass)
+{
+   EFL_OPS_DEFINE(ops,
+         EFL_OBJECT_OP_FUNC(efl_constructor, _constructor),
+   );
 
-static const Eo_Class_Description class_desc = {
+   return efl_class_functions_set(klass, &ops, NULL);
+}
+
+static const Efl_Class_Description class_desc = {
      EO_VERSION,
      "Simple7",
-     EO_CLASS_TYPE_REGULAR,
-     EO_CLASS_DESCRIPTION_OPS(op_descs),
-     NULL,
+     EFL_CLASS_TYPE_REGULAR,
      0,
+     _class_initializer,
      NULL,
      NULL
 };
 
-EO_DEFINE_CLASS(simple7_class_get, &class_desc, SIMPLE2_CLASS, NULL);
+EFL_DEFINE_CLASS(simple7_class_get, &class_desc, SIMPLE2_CLASS, NULL);
 

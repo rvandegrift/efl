@@ -53,7 +53,7 @@ class Efl.Ui.Frame (Elm.Layout, Efl.Ui.Clickable)
       }
    }
    implements {
-      Eo.Base.constructor;
+      Efl.Object.constructor;
       class.constructor;
       Efl.Canvas.Group.group_calculate;
       Efl.Canvas.Group.group_add;
@@ -61,10 +61,7 @@ class Efl.Ui.Frame (Elm.Layout, Efl.Ui.Clickable)
       Elm.Widget.focus_next_manager_is;
       Elm.Widget.focus_next;
       Elm.Widget.focus_direction_manager_is;
-      Elm.Layout.text_aliases.get;
-      Elm.Layout.content_aliases.get;
+      Elm.Layout.text_aliases { get; }
+      Elm.Layout.content_aliases { get; }
    }
-   events {
-   }
-
 }

@@ -8,7 +8,7 @@ enum B {
 
 type C: A;
 
-var pants: B.x;
+var pants: B = B.x;
 
 class Decl {
    methods {
@@ -16,7 +16,7 @@ class Decl {
          params {
             idx: int;
          }
-         return: own(char*);
+         return: own(ptr(char));
       }
    }
 }

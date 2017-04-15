@@ -96,7 +96,7 @@ mismatch:
 }
 
 static void
-_item_changed_cb(void *data, const Eo_Event *event)
+_item_changed_cb(void *data, const Efl_Event *event)
 {
    Elm_Prefs_Item_Changed_Cb prefs_it_changed_cb = data;
 
@@ -156,9 +156,9 @@ elm_prefs_entry_add(const Elm_Prefs_Item_Iface *iface EINA_UNUSED,
 
    /* FIXME: is it worth to ERR with the item's name, too, here? */
 
-   eo_event_callback_add
+   efl_event_callback_add
      (obj, ELM_ENTRY_EVENT_ACTIVATED, _item_changed_cb, cb);
-   eo_event_callback_add
+   efl_event_callback_add
      (obj, ELM_WIDGET_EVENT_UNFOCUSED, _item_changed_cb, cb);
    if (spec.s.accept)
      {

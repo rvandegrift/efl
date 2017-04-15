@@ -3,28 +3,49 @@
 #endif
 #include <Elementary.h>
 
+
+#define PSIZE 318
+
 static void
 _my_bt_go_300_300(void *data, Evas_Object *obj EINA_UNUSED, void *event_info EINA_UNUSED)
 {
-   elm_scroller_region_bring_in((Evas_Object *)data, 300, 300, 318, 318);
+   elm_scroller_region_bring_in((Evas_Object *)data, 300, 300, PSIZE, PSIZE);
 }
 
 static void
 _my_bt_go_900_300(void *data, Evas_Object *obj EINA_UNUSED, void *event_info EINA_UNUSED)
 {
-   elm_scroller_region_bring_in((Evas_Object *)data, 900, 300, 318, 318);
+   elm_scroller_region_bring_in((Evas_Object *)data, 900, 300, PSIZE, PSIZE);
 }
 
 static void
 _my_bt_go_300_900(void *data, Evas_Object *obj EINA_UNUSED, void *event_info EINA_UNUSED)
 {
-   elm_scroller_region_bring_in((Evas_Object *)data, 300, 900, 318, 318);
+   elm_scroller_region_bring_in((Evas_Object *)data, 300, 900, PSIZE, PSIZE);
 }
 
 static void
 _my_bt_go_900_900(void *data, Evas_Object *obj EINA_UNUSED, void *event_info EINA_UNUSED)
 {
-   elm_scroller_region_bring_in((Evas_Object *)data, 900, 900, 318, 318);
+   elm_scroller_region_bring_in((Evas_Object *)data, 900, 900, PSIZE, PSIZE);
+}
+
+static void
+_my_bt_y_minus_one(void *data, Evas_Object *obj EINA_UNUSED, void *event_info EINA_UNUSED)
+{
+   int x, y, w, h;
+   elm_scroller_region_get((Evas_Object *)data, &x, &y, &w, &h);
+   printf("Current region: %d %d %d %d\n", x, y, w, h);
+   elm_scroller_region_show((Evas_Object *)data, x, y - 1, w, h);
+}
+
+static void
+_my_bt_y_plus_one(void *data, Evas_Object *obj EINA_UNUSED, void *event_info EINA_UNUSED)
+{
+   int x, y, w, h;
+   elm_scroller_region_get((Evas_Object *)data, &x, &y, &w, &h);
+   printf("Current region: %d %d %d %d\n", x, y, w, h);
+   elm_scroller_region_show((Evas_Object *)data, x, y + 1, w, h);
 }
 
 static void
@@ -190,11 +211,19 @@ _sc_resize_cb(void *data, Evas *e EINA_UNUSED, Evas_Object *obj, void *event_inf
 }
 
 static void
-_size_changed(void *data, Evas_Object *obj, void *event_info EINA_UNUSED)
+_step_size_changed(void *data, Evas_Object *obj, void *event_info EINA_UNUSED)
 {
    Evas_Object *sc = data;
    int size = elm_spinner_value_get(obj);
    elm_scroller_step_size_set(sc, ELM_SCALE_SIZE(size), ELM_SCALE_SIZE(size));
+}
+
+static void
+_page_size_changed(void *data, Evas_Object *obj, void *event_info EINA_UNUSED)
+{
+   Evas_Object *sc = data;
+   int size = elm_spinner_value_get(obj);
+   elm_scroller_page_size_set(sc, size, size);
 }
 
 void
@@ -298,7 +327,7 @@ test_scroller(void *data EINA_UNUSED, Evas_Object *obj EINA_UNUSED, void *event_
              elm_bg_file_set(bg2, buf, NULL);
              evas_object_size_hint_weight_set(bg2, EVAS_HINT_EXPAND, EVAS_HINT_EXPAND);
              evas_object_size_hint_align_set(bg2, EVAS_HINT_FILL, EVAS_HINT_FILL);
-             evas_object_size_hint_min_set(bg2, 318, 318);
+             evas_object_size_hint_min_set(bg2, PSIZE, PSIZE);
              elm_table_pack(tb, bg2, i, j, 1, 1);
              evas_object_show(bg2);
           }
@@ -307,7 +336,7 @@ test_scroller(void *data EINA_UNUSED, Evas_Object *obj EINA_UNUSED, void *event_
    elm_object_content_set(sc, tb);
    evas_object_show(tb);
 
-   elm_scroller_page_size_set(sc, 318, 318);
+   elm_scroller_page_size_set(sc, PSIZE, PSIZE);
    evas_object_show(sc);
 
    evas_object_smart_callback_add
@@ -324,14 +353,30 @@ test_scroller(void *data EINA_UNUSED, Evas_Object *obj EINA_UNUSED, void *event_
    evas_object_smart_callback_add(ck7, "changed", _my_bt_loop_y_axis, sc);
    evas_object_smart_callback_add(ck8, "changed", _my_bt_wheel_disable_cb, sc);
 
+   bx2 = elm_box_add(win);
+   elm_box_pack_end(bx, bx2);
+   elm_box_horizontal_set(bx2, EINA_TRUE);
+   elm_box_padding_set(bx2, 10, 0);
+   evas_object_show(bx2);
+
    bt = elm_spinner_add(win);
    elm_spinner_min_max_set(bt, 0, 500);
    elm_scroller_step_size_get(sc, &x, &y);
    elm_spinner_value_set(bt, x);
    elm_spinner_editable_set(bt, EINA_TRUE);
    elm_spinner_label_format_set(bt, "Step size: %.0f");
-   evas_object_smart_callback_add(bt, "changed", _size_changed, sc);
-   elm_box_pack_end(bx, bt);
+   evas_object_smart_callback_add(bt, "changed", _step_size_changed, sc);
+   elm_box_pack_end(bx2, bt);
+   evas_object_show(bt);
+
+   bt = elm_spinner_add(win);
+   elm_spinner_min_max_set(bt, 0, PSIZE * 2);
+   elm_scroller_page_size_get(sc, &x, &y);
+   elm_spinner_value_set(bt, x);
+   elm_spinner_editable_set(bt, EINA_TRUE);
+   elm_spinner_label_format_set(bt, "Page size: %.0f");
+   evas_object_smart_callback_add(bt, "changed", _page_size_changed, sc);
+   elm_box_pack_end(bx2, bt);
    evas_object_show(bt);
 
    tb2 = elm_table_add(win);
@@ -342,6 +387,14 @@ test_scroller(void *data EINA_UNUSED, Evas_Object *obj EINA_UNUSED, void *event_
    evas_object_size_hint_weight_set(bt, EVAS_HINT_EXPAND, EVAS_HINT_EXPAND);
    evas_object_size_hint_align_set(bt, 0.1, 0.1);
    elm_table_pack(tb2, bt, 0, 0, 1, 1);
+   evas_object_show(bt);
+
+   bt = elm_button_add(win);
+   elm_object_text_set(bt, "y -1 px");
+   evas_object_smart_callback_add(bt, "clicked", _my_bt_y_minus_one, sc);
+   evas_object_size_hint_weight_set(bt, EVAS_HINT_EXPAND, EVAS_HINT_EXPAND);
+   evas_object_size_hint_align_set(bt, 0.5, 0.1);
+   elm_table_pack(tb2, bt, 1, 0, 1, 1);
    evas_object_show(bt);
 
    bt = elm_button_add(win);
@@ -358,6 +411,14 @@ test_scroller(void *data EINA_UNUSED, Evas_Object *obj EINA_UNUSED, void *event_
    evas_object_size_hint_weight_set(bt, EVAS_HINT_EXPAND, EVAS_HINT_EXPAND);
    evas_object_size_hint_align_set(bt, 0.1, 0.9);
    elm_table_pack(tb2, bt, 0, 2, 1, 1);
+   evas_object_show(bt);
+
+   bt = elm_button_add(win);
+   elm_object_text_set(bt, "y +1 px");
+   evas_object_smart_callback_add(bt, "clicked", _my_bt_y_plus_one, sc);
+   evas_object_size_hint_weight_set(bt, EVAS_HINT_EXPAND, EVAS_HINT_EXPAND);
+   evas_object_size_hint_align_set(bt, 0.5, 0.9);
+   elm_table_pack(tb2, bt, 1, 2, 1, 1);
    evas_object_show(bt);
 
    bt = elm_button_add(win);
@@ -401,11 +462,99 @@ _click_through(void *data EINA_UNUSED, Evas_Object *obj, void *event_info EINA_U
    printf("click went through on %p\n", obj);
 }
 
+typedef struct
+{
+   Evas_Object *scroller;
+   Evas_Object *it1, *it2;
+   Ecore_Timer *timer;
+   int autobounce;
+   int frames;
+   int bounce_max;
+   int y1, y2;
+   int state;
+} Bounce;
+
+#ifdef CLOCK_PROCESS_CPUTIME_ID
+static void
+_bounce_cb_frame(void *data, Evas *e EINA_UNUSED, void *event_info EINA_UNUSED)
+{
+   Bounce *bounce = data;
+   bounce->frames++;
+}
+#endif
+
+static Eina_Bool
+_bounce_cb(void *data)
+{
+   Bounce *bounce = data;
+
+   if (!bounce->y1)
+     {
+        elm_interface_scrollable_bounce_allow_set(bounce->scroller, 0, 1);
+        efl_gfx_position_get(bounce->it1, NULL, &bounce->y1);
+        efl_gfx_position_get(bounce->it2, NULL, &bounce->y2);
+     }
+
+   bounce->state++;
+   if (bounce->state & 0x1)
+     elm_interface_scrollable_region_bring_in(bounce->scroller, 0, bounce->y2, 1, 1);
+   else
+     elm_interface_scrollable_region_bring_in(bounce->scroller, 0, bounce->y1, 1, 1);
+
+#ifdef CLOCK_PROCESS_CPUTIME_ID
+   static struct timespec t0;
+   if (bounce->state == 2)
+     {
+        evas_event_callback_add(evas_object_evas_get(bounce->scroller),
+                                EVAS_CALLBACK_RENDER_FLUSH_POST,
+                                _bounce_cb_frame, bounce);
+        clock_gettime(CLOCK_PROCESS_CPUTIME_ID, &t0);
+     }
+#endif
+
+   if (bounce->state > bounce->bounce_max)
+     {
+#ifdef CLOCK_PROCESS_CPUTIME_ID
+        struct timespec t;
+        unsigned long long tll, t0ll, tdll, frames;
+
+        clock_gettime(CLOCK_PROCESS_CPUTIME_ID, &t);
+        t0ll = (t0.tv_sec * 1000000000) + t0.tv_nsec;
+        tll = (t.tv_sec * 1000000000) + t.tv_nsec;
+        tdll = tll - t0ll;
+        frames = bounce->frames ?: 1;
+        printf("NS since frame 2 = %llu , %llu frames = %llu / frame\n",
+               tdll, frames, tdll / frames);
+#endif
+        if (bounce->autobounce) elm_exit();
+     }
+   return EINA_TRUE;
+}
+
+static void
+_scroll2_del_cb(void *data, Evas *e EINA_UNUSED,
+                Evas_Object *obj EINA_UNUSED, void *event_info EINA_UNUSED)
+{
+   Bounce *bounce = data;
+
+#ifdef CLOCK_PROCESS_CPUTIME_ID
+   evas_event_callback_del_full(evas_object_evas_get(bounce->scroller),
+                                EVAS_CALLBACK_RENDER_FLUSH_POST,
+                                _bounce_cb_frame, bounce);
+#endif
+
+   ecore_timer_del(bounce->timer);
+   free(bounce);
+}
+
 void
 test_scroller2(void *data EINA_UNUSED, Evas_Object *obj EINA_UNUSED, void *event_info EINA_UNUSED)
 {
    Evas_Object *win, *bt, *bx, *bx2, *sc, *tb, *tb2, *rc;
+   Bounce *bounce;
    int i, j;
+
+   bounce = calloc(1, sizeof(Bounce));
 
    win = elm_win_util_standard_add("scroller2", "Scroller 2");
    elm_win_autodel_set(win, EINA_TRUE);
@@ -424,6 +573,8 @@ test_scroller2(void *data EINA_UNUSED, Evas_Object *obj EINA_UNUSED, void *event
         evas_object_size_hint_align_set(bt, EVAS_HINT_FILL, 0.5);
         elm_box_pack_end(bx, bt);
         evas_object_show(bt);
+
+        if (i == 0) bounce->it1 = bt;
      }
    /* } */
 
@@ -509,6 +660,8 @@ test_scroller2(void *data EINA_UNUSED, Evas_Object *obj EINA_UNUSED, void *event
         evas_object_size_hint_align_set(bt, EVAS_HINT_FILL, 0.5);
         elm_box_pack_end(bx, bt);
         evas_object_show(bt);
+
+        if (i == 23) bounce->it2 = bt;
      }
 
    sc = elm_scroller_add(win);
@@ -519,8 +672,20 @@ test_scroller2(void *data EINA_UNUSED, Evas_Object *obj EINA_UNUSED, void *event
    evas_object_show(bx);
    evas_object_show(sc);
 
+   bounce->scroller = sc;
+
    evas_object_resize(win, 320, 480);
    evas_object_show(win);
+
+   evas_object_event_callback_add(win, EVAS_CALLBACK_FREE, _scroll2_del_cb, bounce);
+
+   if (getenv("ELM_TEST_AUTOBOUNCE"))
+     {
+        bounce->autobounce = 1;
+        bounce->bounce_max = atoi(getenv("ELM_TEST_AUTOBOUNCE"));
+        bounce->timer = ecore_timer_add(0.5, _bounce_cb, bounce);
+        _bounce_cb(bounce);
+     }
 }
 
 static Ecore_Timer *_timer = NULL;
@@ -593,6 +758,15 @@ _append_items(void *data, Evas_Object *obj EINA_UNUSED, void *event_info EINA_UN
 }
 
 static void
+_changed_cb(void *data, Evas_Object *obj EINA_UNUSED, void *event_info EINA_UNUSED)
+{
+	Evas_Object *sl = data;
+	double val = elm_slider_value_get(obj);
+	elm_scroller_gravity_set(sl, 0.0, val);
+	printf("Gravity change to %lf\n",val);
+}
+
+static void
 _win_del_cb(void *data EINA_UNUSED,
 		Evas *e EINA_UNUSED,
 		Evas_Object *obj EINA_UNUSED,
@@ -605,7 +779,7 @@ _win_del_cb(void *data EINA_UNUSED,
 void
 test_scroller3(void *data EINA_UNUSED, Evas_Object *obj EINA_UNUSED, void *event_info EINA_UNUSED)
 {
-   Evas_Object *win, *bt, *bt2, *bt3, *bx, *bx2, *bx3, *bx4, *sc;
+   Evas_Object *win, *bt, *bt2, *bt3, *bx, *bx2, *bx3, *bx4, *sc, *sl;
    _count = 0;
 
    win = elm_win_util_standard_add("scroller3", "Scroller 3");
@@ -639,9 +813,20 @@ test_scroller3(void *data EINA_UNUSED, Evas_Object *obj EINA_UNUSED, void *event
    elm_box_pack_end(bx2, bt3);
    evas_object_show(bt3);
 
+   sl = elm_slider_add(bx);
+   elm_object_text_set(sl, "Gravity");
+   elm_slider_unit_format_set(sl, "%1.1f");
+   elm_slider_indicator_format_set(sl, "%1.1f");
+   elm_slider_min_max_set(sl, 0, 1);
+   elm_slider_value_set(sl, 0.0);
+   evas_object_size_hint_align_set(sl, EVAS_HINT_FILL, EVAS_HINT_FILL);
+   evas_object_size_hint_weight_set(sl, EVAS_HINT_EXPAND, 0.1);
+   elm_box_pack_end(bx, sl);
+   evas_object_show(sl);
+
    bx3 = elm_box_add(bx);
    evas_object_size_hint_align_set(bx3, EVAS_HINT_FILL, EVAS_HINT_FILL);
-   evas_object_size_hint_weight_set(bx3, EVAS_HINT_EXPAND, 0.9);
+   evas_object_size_hint_weight_set(bx3, EVAS_HINT_EXPAND, 0.8);
    elm_box_pack_end(bx, bx3);
    evas_object_show(bx3);
 
@@ -660,6 +845,7 @@ test_scroller3(void *data EINA_UNUSED, Evas_Object *obj EINA_UNUSED, void *event
    evas_object_smart_callback_add(bt, "clicked", _append_item, bx4);
    evas_object_smart_callback_add(bt2, "clicked", _prepend_item, bx4);
    evas_object_smart_callback_add(bt3, "clicked", _append_items, bx4);
+   evas_object_smart_callback_add(sl, "changed", _changed_cb, sc);
 
    evas_object_resize(win, 500, 500);
    evas_object_show(win);

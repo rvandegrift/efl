@@ -76,7 +76,7 @@ struct _Ector_Renderer_Cairo_Shape_Data
 };
 
 static void
-_ector_renderer_cairo_shape_path_changed(void *data, const Eo_Event *event EINA_UNUSED)
+_ector_renderer_cairo_shape_path_changed(void *data, const Efl_Event *event EINA_UNUSED)
 {
    Ector_Renderer_Cairo_Shape_Data *pd = data;
 
@@ -90,7 +90,7 @@ _ector_renderer_cairo_shape_ector_renderer_prepare(Eo *obj, Ector_Renderer_Cairo
    const Efl_Gfx_Path_Command *cmds = NULL;
    const double *pts = NULL;
 
-   ector_renderer_prepare(eo_super(obj, ECTOR_RENDERER_CAIRO_SHAPE_CLASS));
+   ector_renderer_prepare(efl_super(obj, ECTOR_RENDERER_CAIRO_SHAPE_CLASS));
 
    if (pd->shape->fill)
      ector_renderer_prepare(pd->shape->fill);
@@ -104,11 +104,11 @@ _ector_renderer_cairo_shape_ector_renderer_prepare(Eo *obj, Ector_Renderer_Cairo
      {
         Ector_Renderer_Data *base;
 
-        base = eo_data_scope_get(obj, ECTOR_RENDERER_CLASS);
-        pd->parent = eo_data_xref(base->surface, ECTOR_CAIRO_SURFACE_CLASS, obj);
+        base = efl_data_scope_get(obj, ECTOR_RENDERER_CLASS);
+        pd->parent = efl_data_xref(base->surface, ECTOR_CAIRO_SURFACE_CLASS, obj);
      }
 
-   efl_gfx_shape_path_get(obj, &cmds, &pts);
+   efl_gfx_path_get(obj, &cmds, &pts);
    if (!pd->path && cmds)
      {
         cairo_new_path(pd->parent->cairo);
@@ -161,7 +161,7 @@ _ector_renderer_cairo_shape_ector_renderer_draw(Eo *obj, Ector_Renderer_Cairo_Sh
 
    cairo_save(pd->parent->cairo);
 
-   ector_renderer_draw(eo_super(obj, ECTOR_RENDERER_CAIRO_SHAPE_CLASS), op, clips, mul_col);
+   ector_renderer_draw(efl_super(obj, ECTOR_RENDERER_CAIRO_SHAPE_CLASS), op, clips, mul_col);
 
    cairo_new_path(pd->parent->cairo);
    cairo_append_path(pd->parent->cairo, pd->path);
@@ -205,7 +205,7 @@ _ector_renderer_cairo_shape_ector_renderer_draw(Eo *obj, Ector_Renderer_Cairo_Sh
          }
 
        // Set dash, cap and join
-       cairo_set_line_width(pd->parent->cairo, (pd->public_shape->stroke.width * pd->public_shape->stroke.scale * 2));
+       cairo_set_line_width(pd->parent->cairo, (pd->public_shape->stroke.width * pd->public_shape->stroke.scale));
        cairo_set_line_cap(pd->parent->cairo, (cairo_line_cap_t) pd->public_shape->stroke.cap);
        cairo_set_line_join(pd->parent->cairo, (cairo_line_join_t) pd->public_shape->stroke.join);
        cairo_stroke(pd->parent->cairo);
@@ -232,39 +232,39 @@ _ector_renderer_cairo_shape_ector_renderer_cairo_fill(Eo *obj EINA_UNUSED,
 
 static void
 _ector_renderer_cairo_shape_ector_renderer_bounds_get(Eo *obj,
-                                                                   Ector_Renderer_Cairo_Shape_Data *pd EINA_UNUSED,
-                                                                   Eina_Rectangle *r)
+                                                      Ector_Renderer_Cairo_Shape_Data *pd EINA_UNUSED,
+                                                      Eina_Rectangle *r)
 {
    Ector_Renderer_Cairo_Data *bd;
 
    // FIXME: It should be possible to actually ask cairo about that
-   efl_gfx_shape_bounds_get(obj, r);
+   efl_gfx_path_bounds_get(obj, r);
 
-   bd = eo_data_scope_get(obj, ECTOR_RENDERER_CAIRO_CLASS);
+   bd = efl_data_scope_get(obj, ECTOR_RENDERER_CAIRO_CLASS);
    r->x += bd->generic->origin.x;
    r->y += bd->generic->origin.y;
 }
 
 Eo *
-_ector_renderer_cairo_shape_eo_base_constructor(Eo *obj, Ector_Renderer_Cairo_Shape_Data *pd)
+_ector_renderer_cairo_shape_efl_object_constructor(Eo *obj, Ector_Renderer_Cairo_Shape_Data *pd)
 {
-   obj = eo_constructor(eo_super(obj, ECTOR_RENDERER_CAIRO_SHAPE_CLASS));
+   obj = efl_constructor(efl_super(obj, ECTOR_RENDERER_CAIRO_SHAPE_CLASS));
 
    if (!obj) return NULL;
 
-   pd->public_shape = eo_data_xref(obj, EFL_GFX_SHAPE_MIXIN, obj);
-   pd->shape = eo_data_xref(obj, ECTOR_RENDERER_SHAPE_MIXIN, obj);
-   pd->base = eo_data_xref(obj, ECTOR_RENDERER_CLASS, obj);
+   pd->public_shape = efl_data_xref(obj, EFL_GFX_SHAPE_MIXIN, obj);
+   pd->shape = efl_data_xref(obj, ECTOR_RENDERER_SHAPE_MIXIN, obj);
+   pd->base = efl_data_xref(obj, ECTOR_RENDERER_CLASS, obj);
 
-   eo_event_callback_add(obj, EFL_GFX_PATH_CHANGED, _ector_renderer_cairo_shape_path_changed, pd);
+   efl_event_callback_add(obj, EFL_GFX_PATH_CHANGED, _ector_renderer_cairo_shape_path_changed, pd);
 
     return obj;
 }
 
-static Eo_Base *
-_ector_renderer_cairo_shape_eo_base_finalize(Eo *obj, Ector_Renderer_Cairo_Shape_Data *pd)
+static Efl_Object *
+_ector_renderer_cairo_shape_efl_object_finalize(Eo *obj, Ector_Renderer_Cairo_Shape_Data *pd)
 {
-   obj = eo_finalize(eo_super(obj, ECTOR_RENDERER_CAIRO_SHAPE_CLASS));
+   obj = efl_finalize(efl_super(obj, ECTOR_RENDERER_CAIRO_SHAPE_CLASS));
    if (!obj) return NULL;
 
    USE(pd->base, cairo_path_destroy, NULL);
@@ -291,21 +291,21 @@ _ector_renderer_cairo_shape_eo_base_finalize(Eo *obj, Ector_Renderer_Cairo_Shape
 }
 
 void
-_ector_renderer_cairo_shape_eo_base_destructor(Eo *obj, Ector_Renderer_Cairo_Shape_Data *pd)
+_ector_renderer_cairo_shape_efl_object_destructor(Eo *obj, Ector_Renderer_Cairo_Shape_Data *pd)
 {
    Ector_Renderer_Data *base;
 
    //FIXME, As base class  destructor can't call destructor of mixin class.
    // call explicit API to free shape data.
-   efl_gfx_shape_reset(obj);
+   efl_gfx_path_reset(obj);
 
-   base = eo_data_scope_get(obj, ECTOR_RENDERER_CLASS);
-   eo_data_xunref(base->surface, pd->parent, obj);
+   base = efl_data_scope_get(obj, ECTOR_RENDERER_CLASS);
+   efl_data_xunref(base->surface, pd->parent, obj);
 
-   eo_data_xunref(obj, pd->shape, obj);
-   eo_data_xunref(obj, pd->base, obj);
+   efl_data_xunref(obj, pd->shape, obj);
+   efl_data_xunref(obj, pd->base, obj);
 
-   eo_destructor(eo_super(obj, ECTOR_RENDERER_CAIRO_SHAPE_CLASS));
+   efl_destructor(efl_super(obj, ECTOR_RENDERER_CAIRO_SHAPE_CLASS));
 
    if (pd->path) cairo_path_destroy(pd->path);
 }
@@ -316,7 +316,7 @@ _ector_renderer_cairo_shape_ector_renderer_crc_get(Eo *obj,
 {
    unsigned int crc;
 
-   crc = ector_renderer_crc_get(eo_super(obj, ECTOR_RENDERER_CAIRO_SHAPE_CLASS));
+   crc = ector_renderer_crc_get(efl_super(obj, ECTOR_RENDERER_CAIRO_SHAPE_CLASS));
 
    crc = eina_crc((void*) &pd->shape->stroke.marker, sizeof (pd->shape->stroke.marker), crc, EINA_FALSE);
    crc = eina_crc((void*) &pd->public_shape->stroke.scale, sizeof (pd->public_shape->stroke.scale) * 3, crc, EINA_FALSE); // scale, width, centered

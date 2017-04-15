@@ -159,7 +159,7 @@ _item_unselect(Elm_Toolbar_Item_Data *item)
    elm_layout_signal_emit(VIEW(item), "elm,state,unselected", "elm");
    if (item->icon)
      elm_widget_signal_emit(item->icon, "elm,state,unselected", "elm");
-   eo_event_callback_call(WIDGET(item), EFL_UI_EVENT_UNSELECTED, EO_OBJ(item));
+   efl_event_callback_legacy_call(WIDGET(item), EFL_UI_EVENT_UNSELECTED, EO_OBJ(item));
    if (_elm_config->atspi_mode)
     elm_interface_atspi_accessible_state_changed_signal_emit(EO_OBJ(item), ELM_ATSPI_STATE_SELECTED, EINA_FALSE);
 }
@@ -633,7 +633,7 @@ _elm_toolbar_item_focused(Elm_Object_Item *eo_it)
    focus_raise = elm_layout_data_get(VIEW(it), "focusraise");
    if ((focus_raise) && (!strcmp(focus_raise, "on")))
      evas_object_raise(VIEW(it));
-   eo_event_callback_call
+   efl_event_callback_legacy_call
      (obj, ELM_TOOLBAR_EVENT_ITEM_FOCUSED, EO_OBJ(it));
    if (_elm_config->atspi_mode)
      elm_interface_atspi_accessible_state_changed_signal_emit(EO_OBJ(it), ELM_ATSPI_STATE_FOCUSED, EINA_TRUE);
@@ -660,7 +660,7 @@ _elm_toolbar_item_unfocused(Elm_Object_Item *eo_it)
    elm_layout_signal_emit
       (VIEW(it), "elm,highlight,off", "elm");
    sd->focused_item = NULL;
-   eo_event_callback_call
+   efl_event_callback_legacy_call
      (obj, ELM_TOOLBAR_EVENT_ITEM_UNFOCUSED, eo_it);
    if (_elm_config->atspi_mode)
      elm_interface_atspi_accessible_state_changed_signal_emit(eo_it, ELM_ATSPI_STATE_FOCUSED, EINA_TRUE);
@@ -749,7 +749,7 @@ _elm_toolbar_elm_widget_on_focus(Eo *obj, Elm_Toolbar_Data *sd, Elm_Object_Item 
    Eina_Bool int_ret = EINA_FALSE;
    Elm_Object_Item *eo_it = NULL;
 
-   int_ret = elm_obj_widget_on_focus(eo_super(obj, MY_CLASS), NULL);
+   int_ret = elm_obj_widget_on_focus(efl_super(obj, MY_CLASS), NULL);
    if (!int_ret) return EINA_FALSE;
    if (!sd->items) return EINA_FALSE;
 
@@ -760,8 +760,7 @@ _elm_toolbar_elm_widget_on_focus(Eo *obj, Elm_Toolbar_Data *sd, Elm_Object_Item 
 
         if (sd->last_focused_item)
           eo_it = sd->last_focused_item;
-        else if (_elm_config->first_item_focus_on_first_focus_in &&
-                 elm_widget_focus_highlight_enabled_get(obj))
+        else if (_elm_config->first_item_focus_on_first_focus_in)
           {
              eo_it = elm_toolbar_first_item_get(obj);
           }
@@ -941,7 +940,7 @@ _key_action_move(Evas_Object *obj, const char *params)
 }
 
 EOLIAN static Eina_Bool
-_elm_toolbar_elm_widget_event(Eo *obj, Elm_Toolbar_Data *sd, Evas_Object *src, Evas_Callback_Type type, void *event_info)
+_elm_toolbar_elm_widget_widget_event(Eo *obj, Elm_Toolbar_Data *sd, Evas_Object *src, Evas_Callback_Type type, void *event_info)
 {
    (void) src;
    (void) type;
@@ -1174,7 +1173,7 @@ _item_select(Elm_Toolbar_Item_Data *it)
      {
         if (it->func) it->func((void *)(WIDGET_ITEM_DATA_GET(EO_OBJ(it))), WIDGET(it), EO_OBJ(it));
      }
-   eo_event_callback_call(obj, EFL_UI_EVENT_SELECTED, EO_OBJ(it));
+   efl_event_callback_legacy_call(obj, EFL_UI_EVENT_SELECTED, EO_OBJ(it));
    if (_elm_config->atspi_mode)
     elm_interface_atspi_accessible_state_changed_signal_emit(EO_OBJ(it), ELM_ATSPI_STATE_SELECTED, EINA_TRUE);
 }
@@ -1571,7 +1570,7 @@ _elm_toolbar_elm_widget_theme_apply(Eo *obj, Elm_Toolbar_Data *sd)
    if (sd->delete_me) return ELM_THEME_APPLY_SUCCESS;
 
    Elm_Theme_Apply int_ret = ELM_THEME_APPLY_FAILED;
-   int_ret = elm_obj_widget_theme_apply(eo_super(obj, MY_CLASS));
+   int_ret = elm_obj_widget_theme_apply(efl_super(obj, MY_CLASS));
    if (!int_ret) return ELM_THEME_APPLY_FAILED;
 
    elm_widget_theme_object_set
@@ -1772,7 +1771,7 @@ _elm_toolbar_elm_widget_translate(Eo *obj EINA_UNUSED, Elm_Toolbar_Data *sd)
    EINA_INLIST_FOREACH(sd->items, it)
      elm_wdg_item_translate(EO_OBJ(it));
 
-   elm_obj_widget_translate(eo_super(obj, MY_CLASS));
+   elm_obj_widget_translate(efl_super(obj, MY_CLASS));
 
    return EINA_TRUE;
 }
@@ -1813,7 +1812,7 @@ _mouse_clicked_cb(Elm_Toolbar_Item_Data *it,
    if (button == 1)
      {
         /* regular left click event */
-        eo_event_callback_call(WIDGET(it), EFL_UI_EVENT_CLICKED, EO_OBJ(it));
+        efl_event_callback_legacy_call(WIDGET(it), EFL_UI_EVENT_CLICKED, EO_OBJ(it));
         return;
      }
    snprintf(buf, sizeof(buf), "elm,action,click,%d", button);
@@ -2205,7 +2204,7 @@ _long_press_cb(void *data)
    if (sd->reorder_mode)
      _item_reorder_start(it);
 
-   eo_event_callback_call(WIDGET(it), EFL_UI_EVENT_LONGPRESSED, EO_OBJ(it));
+   efl_event_callback_legacy_call(WIDGET(it), EFL_UI_EVENT_LONGPRESSED, EO_OBJ(it));
 
    return ECORE_CALLBACK_CANCEL;
 }
@@ -2238,7 +2237,7 @@ _mouse_down_cb(Elm_Toolbar_Item_Data *it,
 
    if (ev->button != 1) return;
    if (ev->flags & EVAS_BUTTON_DOUBLE_CLICK)
-     eo_event_callback_call(WIDGET(it), EFL_UI_EVENT_CLICKED_DOUBLE, EO_OBJ(it));
+     efl_event_callback_legacy_call(WIDGET(it), EFL_UI_EVENT_CLICKED_DOUBLE, EO_OBJ(it));
    sd->mouse_down = EINA_TRUE;
    sd->long_press = EINA_FALSE;
    if (sd->long_timer)
@@ -2305,21 +2304,21 @@ static void
 _scroll_cb(Evas_Object *obj,
            void *data EINA_UNUSED)
 {
-   eo_event_callback_call(obj, EFL_UI_EVENT_SCROLL, NULL);
+   efl_event_callback_legacy_call(obj, EFL_UI_EVENT_SCROLL, NULL);
 }
 
 static void
 _scroll_anim_start_cb(Evas_Object *obj,
                       void *data EINA_UNUSED)
 {
-   eo_event_callback_call(obj, EFL_UI_EVENT_SCROLL_ANIM_START, NULL);
+   efl_event_callback_legacy_call(obj, EFL_UI_EVENT_SCROLL_ANIM_START, NULL);
 }
 
 static void
 _scroll_anim_stop_cb(Evas_Object *obj,
                      void *data EINA_UNUSED)
 {
-   eo_event_callback_call(obj, EFL_UI_EVENT_SCROLL_ANIM_STOP, NULL);
+   efl_event_callback_legacy_call(obj, EFL_UI_EVENT_SCROLL_ANIM_STOP, NULL);
 }
 
 static void
@@ -2329,14 +2328,14 @@ _scroll_drag_start_cb(Evas_Object *obj,
    ELM_TOOLBAR_DATA_GET(obj, sd);
    ELM_SAFE_FREE(sd->long_timer, ecore_timer_del);
 
-   eo_event_callback_call(obj, EFL_UI_EVENT_SCROLL_DRAG_START, NULL);
+   efl_event_callback_legacy_call(obj, EFL_UI_EVENT_SCROLL_DRAG_START, NULL);
 }
 
 static void
 _scroll_drag_stop_cb(Evas_Object *obj,
                      void *data EINA_UNUSED)
 {
-   eo_event_callback_call(obj, EFL_UI_EVENT_SCROLL_DRAG_STOP, NULL);
+   efl_event_callback_legacy_call(obj, EFL_UI_EVENT_SCROLL_DRAG_STOP, NULL);
 }
 
 static void
@@ -2385,7 +2384,7 @@ _access_state_cb(void *data, Evas_Object *obj EINA_UNUSED)
 }
 
 EOLIAN static void
-_elm_toolbar_item_eo_base_destructor(Eo *eo_item, Elm_Toolbar_Item_Data *item)
+_elm_toolbar_item_efl_object_destructor(Eo *eo_item, Elm_Toolbar_Item_Data *item)
 {
    Elm_Toolbar_Item_Data *next = NULL;
    Evas_Object *obj;
@@ -2413,7 +2412,7 @@ _elm_toolbar_item_eo_base_destructor(Eo *eo_item, Elm_Toolbar_Item_Data *item)
    if (item != sd->more_item)
       elm_obj_widget_theme_apply(obj);
 
-   eo_destructor(eo_super(eo_item, ELM_TOOLBAR_ITEM_CLASS));
+   efl_destructor(efl_super(eo_item, ELM_TOOLBAR_ITEM_CLASS));
 }
 
 static void
@@ -2452,10 +2451,10 @@ _access_widget_item_register(Elm_Toolbar_Item_Data *it)
 }
 
 EOLIAN static Eo *
-_elm_toolbar_item_eo_base_constructor(Eo *eo_it, Elm_Toolbar_Item_Data *it)
+_elm_toolbar_item_efl_object_constructor(Eo *eo_it, Elm_Toolbar_Item_Data *it)
 {
-   eo_it = eo_constructor(eo_super(eo_it, ELM_TOOLBAR_ITEM_CLASS));
-   it->base = eo_data_scope_get(eo_it, ELM_WIDGET_ITEM_CLASS);
+   eo_it = efl_constructor(efl_super(eo_it, ELM_TOOLBAR_ITEM_CLASS));
+   it->base = efl_data_scope_get(eo_it, ELM_WIDGET_ITEM_CLASS);
    elm_interface_atspi_accessible_role_set(eo_it, ELM_ATSPI_ROLE_MENU_ITEM);
 
    return eo_it;
@@ -2472,7 +2471,7 @@ _item_new(Evas_Object *obj,
 
    ELM_TOOLBAR_DATA_GET(obj, sd);
 
-   Eo *eo_it = eo_add(ELM_TOOLBAR_ITEM_CLASS, obj);
+   Eo *eo_it = efl_add(ELM_TOOLBAR_ITEM_CLASS, obj);
 
    if (!eo_it) return NULL;
 
@@ -2491,6 +2490,9 @@ _item_new(Evas_Object *obj,
    elm_interface_atspi_accessible_type_set(VIEW(it), ELM_ATSPI_TYPE_DISABLED);
 
    icon_obj = elm_icon_add(VIEW(it));
+
+   if (_elm_config->atspi_mode)
+       if (icon_obj) elm_interface_atspi_accessible_parent_set(icon_obj, eo_it);
 
    if (_elm_config->access_mode == ELM_ACCESS_MODE_ON)
      _access_widget_item_register(it);
@@ -2573,6 +2575,7 @@ _elm_toolbar_item_icon_update(Elm_Toolbar_Item_Data *item)
    Eina_List *l;
 
    _elm_widget_sub_object_redirect_to_top(WIDGET(item), old_icon);
+   elm_layout_content_unset(VIEW(item), "elm.swallow.icon");
    elm_layout_content_set(VIEW(item), "elm.swallow.icon", item->icon);
    if (item->icon)
        elm_layout_signal_emit(VIEW(item), "elm,state,icon,visible", "elm");
@@ -2594,8 +2597,6 @@ _elm_toolbar_item_icon_set_cb(void *data,
                               const char *source)
 {
    Elm_Toolbar_Item_Data *item = data;
-
-   elm_layout_content_unset(VIEW(item), "elm.swallow.icon");
    _elm_toolbar_item_icon_update(item);
    elm_layout_signal_callback_del
      (obj, emission, source, _elm_toolbar_item_icon_set_cb);
@@ -2620,10 +2621,6 @@ _elm_toolbar_item_icon_obj_set(Evas_Object *obj,
      {
         eina_stringshare_del(item->icon_str);
         item->icon_str = NULL;
-     }
-   if (item->icon)
-     {
-        evas_object_del(item->icon);
      }
    item->icon = icon_obj;
 
@@ -2816,7 +2813,7 @@ _elm_toolbar_efl_canvas_group_group_add(Eo *obj, Elm_Toolbar_Data *priv)
    edje = edje_object_add(evas_object_evas_get(obj));
    elm_widget_resize_object_set(obj, edje, EINA_TRUE);
 
-   efl_canvas_group_add(eo_super(obj, MY_CLASS));
+   efl_canvas_group_add(efl_super(obj, MY_CLASS));
 
    elm_widget_theme_object_set
      (obj, edje, "toolbar", "base", elm_widget_style_get(obj));
@@ -2928,21 +2925,27 @@ _elm_toolbar_efl_canvas_group_group_del(Eo *obj, Elm_Toolbar_Data *sd)
    if (sd->more_item) elm_wdg_item_del(EO_OBJ(sd->more_item));
    ecore_timer_del(sd->long_timer);
 
-   efl_canvas_group_del(eo_super(obj, MY_CLASS));
+   efl_canvas_group_del(efl_super(obj, MY_CLASS));
 }
 
 EOLIAN static void
-_elm_toolbar_efl_canvas_group_group_move(Eo *obj, Elm_Toolbar_Data *sd, Evas_Coord x, Evas_Coord y)
+_elm_toolbar_efl_gfx_position_set(Eo *obj, Elm_Toolbar_Data *sd, Evas_Coord x, Evas_Coord y)
 {
-   efl_canvas_group_move(eo_super(obj, MY_CLASS), x, y);
+   if (_evas_object_intercept_call(obj, EVAS_OBJECT_INTERCEPT_CB_MOVE, 0, x, y))
+     return;
+
+   efl_gfx_position_set(efl_super(obj, MY_CLASS), x, y);
 
    evas_object_move(sd->hit_rect, x, y);
 }
 
 EOLIAN static void
-_elm_toolbar_efl_canvas_group_group_resize(Eo *obj, Elm_Toolbar_Data *sd, Evas_Coord w, Evas_Coord h)
+_elm_toolbar_efl_gfx_size_set(Eo *obj, Elm_Toolbar_Data *sd, Evas_Coord w, Evas_Coord h)
 {
-   efl_canvas_group_resize(eo_super(obj, MY_CLASS), w, h);
+   if (_evas_object_intercept_call(obj, EVAS_OBJECT_INTERCEPT_CB_RESIZE, 0, w, h))
+     return;
+
+   efl_gfx_size_set(efl_super(obj, MY_CLASS), w, h);
 
    evas_object_resize(sd->hit_rect, w, h);
 }
@@ -2950,7 +2953,7 @@ _elm_toolbar_efl_canvas_group_group_resize(Eo *obj, Elm_Toolbar_Data *sd, Evas_C
 EOLIAN static void
 _elm_toolbar_efl_canvas_group_group_member_add(Eo *obj, Elm_Toolbar_Data *sd, Evas_Object *member)
 {
-   efl_canvas_group_member_add(eo_super(obj, MY_CLASS), member);
+   efl_canvas_group_member_add(efl_super(obj, MY_CLASS), member);
 
    if (sd->hit_rect)
      evas_object_raise(sd->hit_rect);
@@ -3086,14 +3089,14 @@ EAPI Evas_Object *
 elm_toolbar_add(Evas_Object *parent)
 {
    EINA_SAFETY_ON_NULL_RETURN_VAL(parent, NULL);
-   Evas_Object *obj = eo_add(MY_CLASS, parent);
+   Evas_Object *obj = efl_add(MY_CLASS, parent);
    return obj;
 }
 
 EOLIAN static Eo *
-_elm_toolbar_eo_base_constructor(Eo *obj, Elm_Toolbar_Data *_pd EINA_UNUSED)
+_elm_toolbar_efl_object_constructor(Eo *obj, Elm_Toolbar_Data *_pd EINA_UNUSED)
 {
-   obj = eo_constructor(eo_super(obj, MY_CLASS));
+   obj = efl_constructor(efl_super(obj, MY_CLASS));
    efl_canvas_object_type_set(obj, MY_CLASS_NAME_LEGACY);
    evas_object_smart_callbacks_descriptions_set(obj, _smart_callbacks);
    elm_interface_atspi_accessible_role_set(obj, ELM_ATSPI_ROLE_TOOL_BAR);
@@ -3229,7 +3232,7 @@ _elm_toolbar_item_insert_after(Eo *obj, Elm_Toolbar_Data *sd, Elm_Object_Item *e
 }
 
 EOLIAN static Elm_Object_Item*
-_elm_toolbar_first_item_get(Eo *obj EINA_UNUSED, Elm_Toolbar_Data *sd)
+_elm_toolbar_efl_ui_menu_first_item_get(Eo *obj EINA_UNUSED, Elm_Toolbar_Data *sd)
 {
    if (!sd->items) return NULL;
    Elm_Toolbar_Item_Data *it = ELM_TOOLBAR_ITEM_FROM_INLIST(sd->items);
@@ -3238,7 +3241,7 @@ _elm_toolbar_first_item_get(Eo *obj EINA_UNUSED, Elm_Toolbar_Data *sd)
 }
 
 EOLIAN static Elm_Object_Item*
-_elm_toolbar_last_item_get(Eo *obj EINA_UNUSED, Elm_Toolbar_Data *sd)
+_elm_toolbar_efl_ui_menu_last_item_get(Eo *obj EINA_UNUSED, Elm_Toolbar_Data *sd)
 {
    if (!sd->items) return NULL;
 
@@ -3247,8 +3250,14 @@ _elm_toolbar_last_item_get(Eo *obj EINA_UNUSED, Elm_Toolbar_Data *sd)
    return NULL;
 }
 
+EOLIAN static Eina_Iterator*
+_elm_toolbar_efl_ui_menu_items_get(Eo *obj EINA_UNUSED, Elm_Toolbar_Data *sd)
+{
+   return eina_inlist_iterator_new(sd->items);
+}
+
 EOLIAN static Elm_Object_Item *
-_elm_toolbar_item_next_get(Eo *eo_item EINA_UNUSED, Elm_Toolbar_Item_Data *it)
+_elm_toolbar_item_efl_ui_item_next_get(Eo *eo_item EINA_UNUSED, Elm_Toolbar_Item_Data *it)
 {
    ELM_TOOLBAR_ITEM_CHECK_OR_RETURN(it, NULL);
 
@@ -3259,7 +3268,7 @@ _elm_toolbar_item_next_get(Eo *eo_item EINA_UNUSED, Elm_Toolbar_Item_Data *it)
 }
 
 EOLIAN static Elm_Object_Item *
-_elm_toolbar_item_prev_get(Eo *eo_item EINA_UNUSED, Elm_Toolbar_Item_Data *it)
+_elm_toolbar_item_efl_ui_item_prev_get(Eo *eo_item EINA_UNUSED, Elm_Toolbar_Item_Data *it)
 {
    ELM_TOOLBAR_ITEM_CHECK_OR_RETURN(it, NULL);
 
@@ -3297,7 +3306,7 @@ _elm_toolbar_item_find_by_label(const Eo *obj EINA_UNUSED, Elm_Toolbar_Data *sd,
 }
 
 EOLIAN static void
-_elm_toolbar_item_selected_set(Eo *eo_item EINA_UNUSED, Elm_Toolbar_Item_Data *item, Eina_Bool selected)
+_elm_toolbar_item_efl_ui_item_selected_set(Eo *eo_item EINA_UNUSED, Elm_Toolbar_Item_Data *item, Eina_Bool selected)
 {
    if (item->selected == selected) return;
    if (selected) _item_select(item);
@@ -3305,13 +3314,13 @@ _elm_toolbar_item_selected_set(Eo *eo_item EINA_UNUSED, Elm_Toolbar_Item_Data *i
 }
 
 EOLIAN static Eina_Bool
-_elm_toolbar_item_selected_get(Eo *eo_item EINA_UNUSED, Elm_Toolbar_Item_Data *item)
+_elm_toolbar_item_efl_ui_item_selected_get(Eo *eo_item EINA_UNUSED, Elm_Toolbar_Item_Data *item)
 {
    return item->selected;
 }
 
 EOLIAN static Elm_Object_Item*
-_elm_toolbar_selected_item_get(Eo *obj EINA_UNUSED, Elm_Toolbar_Data *sd)
+_elm_toolbar_efl_ui_menu_selected_item_get(Eo *obj EINA_UNUSED, Elm_Toolbar_Data *sd)
 {
    return sd->selected_item;
 }
@@ -3542,6 +3551,48 @@ elm_toolbar_transverse_expanded_get(const Evas_Object *obj)
    ELM_TOOLBAR_DATA_GET(obj, sd);
 
    return sd->transverse_expanded;
+}
+
+EAPI Elm_Widget_Item *
+elm_toolbar_selected_item_get(const Evas_Object *obj)
+{
+   return efl_ui_menu_selected_item_get(obj);
+}
+
+EAPI Elm_Widget_Item *
+elm_toolbar_first_item_get(const Evas_Object *obj)
+{
+   return efl_ui_menu_first_item_get(obj);
+}
+
+EAPI Elm_Widget_Item *
+elm_toolbar_last_item_get(const Evas_Object *obj)
+{
+   return efl_ui_menu_last_item_get(obj);
+}
+
+EAPI void
+elm_toolbar_item_selected_set(Evas_Object *obj, Eina_Bool selected)
+{
+   efl_ui_item_selected_set(obj, selected);
+}
+
+EAPI Eina_Bool
+elm_toolbar_item_selected_get(const Evas_Object *obj)
+{
+   return efl_ui_item_selected_get(obj);
+}
+
+EAPI Elm_Widget_Item *
+elm_toolbar_item_prev_get(const Evas_Object *obj)
+{
+   return efl_ui_item_prev_get(obj);
+}
+
+EAPI Elm_Widget_Item *
+elm_toolbar_item_next_get(const Evas_Object *obj)
+{
+   return efl_ui_item_next_get(obj);
 }
 
 EOLIAN static void
@@ -3809,7 +3860,7 @@ _elm_toolbar_item_state_prev(Eo *eo_item EINA_UNUSED, Elm_Toolbar_Item_Data *ite
    if (!item->states) return NULL;
 
    prev_state = eina_list_prev(item->current_state);
-   if ((!prev_state) || (prev_state == item->states))
+   if (!prev_state)
      prev_state = eina_list_last(item->states);
    return eina_list_data_get(prev_state);
 }
@@ -3948,13 +3999,13 @@ _elm_toolbar_item_bring_in(Eo *eo_item EINA_UNUSED, Elm_Toolbar_Item_Data *item,
      (WIDGET(item), x, y, w, h);
 }
 
-EOLIAN static char*
+EOLIAN static const char*
 _elm_toolbar_item_elm_interface_atspi_accessible_name_get(Eo *eo_item, Elm_Toolbar_Item_Data *item)
 {
-   char *ret;
-   ret = elm_interface_atspi_accessible_name_get(eo_super(eo_item, ELM_TOOLBAR_ITEM_CLASS));
+   const char *ret;
+   ret = elm_interface_atspi_accessible_name_get(efl_super(eo_item, ELM_TOOLBAR_ITEM_CLASS));
    if (ret) return ret;
-   return item->label ? strdup(item->label) : NULL;
+   return item->label;
 }
 
 EOLIAN static Elm_Atspi_State_Set
@@ -3963,9 +4014,9 @@ _elm_toolbar_item_elm_interface_atspi_accessible_state_set_get(Eo *eo_it, Elm_To
    Elm_Atspi_State_Set ret;
    Eina_Bool sel;
 
-   ret = elm_interface_atspi_accessible_state_set_get(eo_super(eo_it, ELM_TOOLBAR_ITEM_CLASS));
+   ret = elm_interface_atspi_accessible_state_set_get(efl_super(eo_it, ELM_TOOLBAR_ITEM_CLASS));
 
-   sel = elm_obj_toolbar_item_selected_get(eo_it);
+   sel = efl_ui_item_selected_get(eo_it);
 
    STATE_TYPE_SET(ret, ELM_ATSPI_STATE_SELECTABLE);
 
@@ -3982,7 +4033,7 @@ _elm_toolbar_elm_widget_focused_item_get(Eo *obj EINA_UNUSED, Elm_Toolbar_Data *
 }
 
 EOLIAN static void
-_elm_toolbar_class_constructor(Eo_Class *klass)
+_elm_toolbar_class_constructor(Efl_Class *klass)
 {
    evas_smart_legacy_type_register(MY_CLASS_NAME_LEGACY, klass);
 }
@@ -4006,7 +4057,7 @@ _elm_toolbar_elm_interface_atspi_accessible_children_get(Eo *obj EINA_UNUSED, El
 {
    Eina_List *ret = NULL, *ret2 = NULL;
    Elm_Toolbar_Item_Data *it;
-   ret2 = elm_interface_atspi_accessible_children_get(eo_super(obj, ELM_TOOLBAR_CLASS));
+   ret2 = elm_interface_atspi_accessible_children_get(efl_super(obj, ELM_TOOLBAR_CLASS));
 
    EINA_INLIST_FOREACH(sd->items, it)
       ret = eina_list_append(ret, EO_OBJ(it));
@@ -4017,7 +4068,7 @@ _elm_toolbar_elm_interface_atspi_accessible_children_get(Eo *obj EINA_UNUSED, El
 EOLIAN static Elm_Atspi_State_Set
 _elm_toolbar_elm_interface_atspi_accessible_state_set_get(Eo *obj, Elm_Toolbar_Data *sd EINA_UNUSED)
 {
-   return elm_interface_atspi_accessible_state_set_get(eo_super(obj, ELM_TOOLBAR_CLASS));
+   return elm_interface_atspi_accessible_state_set_get(efl_super(obj, ELM_TOOLBAR_CLASS));
 }
 
 EOLIAN int

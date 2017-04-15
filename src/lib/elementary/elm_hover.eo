@@ -9,6 +9,7 @@ enum Elm.Hover.Axis
 
 class Elm.Hover (Elm.Layout, Efl.Ui.Clickable, Elm.Interface.Atspi_Widget_Action)
 {
+   [[Elementary hover class]]
    legacy_prefix: elm_hover;
    eo_prefix: elm_obj_hover;
    event_prefix: elm_hover;
@@ -47,7 +48,7 @@ class Elm.Hover (Elm.Layout, Efl.Ui.Clickable, Elm.Interface.Atspi_Widget_Action
 
            See also \@ref elm_object_part_content_set.
          ]]
-         return: string;
+         return: string; [[Swallow location]]
          params {
             @in pref_axis: Elm.Hover.Axis; [[The preferred orientation axis
                                              for the hover object to use]]
@@ -59,27 +60,25 @@ class Elm.Hover (Elm.Layout, Efl.Ui.Clickable, Elm.Interface.Atspi_Widget_Action
    }
    implements {
       class.constructor;
-      Eo.Base.constructor;
+      Efl.Object.constructor;
+      Efl.Gfx.visible { set; }
+      Efl.Gfx.position { set; }
+      Efl.Gfx.size { set; }
       Efl.Canvas.Group.group_del;
-      Efl.Canvas.Group.group_hide;
-      Efl.Canvas.Group.group_show;
-      Efl.Canvas.Group.group_move;
       Efl.Canvas.Group.group_add;
-      Efl.Canvas.Group.group_resize;
       Elm.Widget.theme_apply;
       Elm.Widget.sub_object_add;
-      Elm.Widget.widget_parent;
+      Elm.Widget.widget_parent { get; set; }
       Elm.Widget.focus_direction_manager_is;
       Elm.Widget.focus_next_manager_is;
       Elm.Widget.sub_object_del;
       Elm.Layout.sizing_eval;
-      Elm.Layout.content_aliases.get;
-      Elm.Interface.Atspi_Widget_Action.elm_actions.get;
+      Elm.Layout.content_aliases { get; }
+      Elm.Interface.Atspi_Widget_Action.elm_actions { get; }
       Efl.Part.part;
    }
    events {
-      smart,changed;
-      dismissed;
+      smart,changed; [[Called when hover changed]]
+      dismissed; [[Called when hover was dismissed]]
    }
-
 }

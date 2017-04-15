@@ -1,7 +1,7 @@
 class Override (Base) {
    methods {
       @property a {
-         set @virtual_pure {
+         set @pure_virtual {
          }
          get {
          }
@@ -32,22 +32,25 @@ class Override (Base) {
               c: int(50);
          }
       }
-      foo @virtual_pure {
+      foo @pure_virtual {
       }
       bar {
            params {
                 @in idx: int;
                 @out a: int (250);
-                @out str: char * (null);
+                @out str: ptr(char) (null);
            }
       }
    }
    implements {
-      Base.constructor;
-      @auto .b.set;
+      Base.constructor; [[overridden docs for constructor]]
+      @auto .b { set; }
       @empty .bar;
-      @auto .c.get;
-      @auto Base.z.get;
-      @empty Base.z.set;
+      @auto .c { get; }
+      @auto Base.z {
+         [[overridden general property docs]]
+         get; [[overridden get docs]]
+         set; [[overridden set docs]]
+      }
    }
 }

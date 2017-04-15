@@ -365,11 +365,23 @@ void ector_software_rasterizer_done(Software_Rasterizer *rasterizer)
 }
 
 void ector_software_rasterizer_stroke_set(Software_Rasterizer *rasterizer, double width,
-                                          Efl_Gfx_Cap cap_style, Efl_Gfx_Join join_style)
+                                          Efl_Gfx_Cap cap_style, Efl_Gfx_Join join_style,
+                                          Eina_Matrix3 *m)
 {
    SW_FT_Stroker_LineCap cap;
    SW_FT_Stroker_LineJoin join;
-   int stroke_width = (int)(width * 64);
+   int stroke_width;
+   double scale_factor = 1.0;
+   if (m)
+     {
+        // get the minimum scale factor from matrix
+        scale_factor =  m->xx < m->yy ? m->xx : m->yy;
+     }
+   width = width * scale_factor;
+   width = width/2.0; // as free type uses it as the radius of the
+                      // pen not the diameter.
+   // convert to freetype co-ordinate
+   stroke_width = (int)(width * 64);
 
    switch (cap_style)
      {
@@ -559,7 +571,7 @@ void ector_software_rasterizer_radial_gradient_set(Software_Rasterizer *rasteriz
 void ector_software_rasterizer_buffer_set(Software_Rasterizer *rasterizer,
                                           Ector_Software_Buffer *buffer)
 {
-   rasterizer->fill_data.buffer = eo_data_scope_get(buffer, ECTOR_SOFTWARE_BUFFER_BASE_MIXIN);
+   rasterizer->fill_data.buffer = efl_data_scope_get(buffer, ECTOR_SOFTWARE_BUFFER_BASE_MIXIN);
    rasterizer->fill_data.type = Image;
 }
 

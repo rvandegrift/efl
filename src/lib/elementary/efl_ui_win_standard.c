@@ -13,23 +13,12 @@
 #define MY_CLASS EFL_UI_WIN_STANDARD_CLASS
 
 EOLIAN static Eo *
-_efl_ui_win_standard_eo_base_finalize(Eo *obj, void *pd EINA_UNUSED)
+_efl_ui_win_standard_efl_object_finalize(Eo *obj, void *pd EINA_UNUSED)
 {
-   obj = eo_finalize(eo_super(obj, MY_CLASS));
-   if (!obj)
-     return NULL;
+   obj = efl_finalize(efl_super(obj, MY_CLASS));
+   if (!obj) return NULL;
 
-   Evas_Object *bg = eo_add(ELM_BG_CLASS, obj);
-   if (!bg)
-     {
-        ERR("Cannot create background.");
-        evas_object_del(obj);
-        return NULL;
-     }
-   efl_gfx_size_hint_weight_set(bg, EVAS_HINT_EXPAND, EVAS_HINT_EXPAND);
-   efl_pack(obj, bg);
-   efl_gfx_visible_set(bg, EINA_TRUE);
-
+   _elm_win_standard_init(obj);
    return obj;
 }
 

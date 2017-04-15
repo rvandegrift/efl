@@ -91,7 +91,7 @@ struct _Emotion_Engine
    int            (*seekable) (void *ef);
    void           (*frame_done) (void *ef);
    Emotion_Format (*format_get) (void *ef);
-   void           (*video_data_size_get) (void *ef, int *w, int *h);
+   void           (*videfl_data_size_get) (void *ef, int *w, int *h);
    int            (*yuv_rows_get) (void *ef, int w, int h, unsigned char **yrows, unsigned char **urows, unsigned char **vrows);
    int            (*bgra_data_get) (void *ef, unsigned char **bgra_data);
    void           (*event_feed) (void *ef, int event);
@@ -129,6 +129,7 @@ struct _Emotion_Engine
    const char *   (*meta_get) (void *ef, int meta);
    void           (*priority_set) (void *ef, Eina_Bool priority);
    Eina_Bool      (*priority_get) (void *ef);
+   void       *   (*meta_artwork_get)(void *ef, Evas_Object *img, const char *path, Emotion_Artwork_Info type);
 };
 
 EAPI void *_emotion_video_get(const Evas_Object *obj);

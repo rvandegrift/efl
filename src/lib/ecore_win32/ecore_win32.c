@@ -74,14 +74,14 @@ _ecore_win32_window_procedure(HWND   window,
      {
        /* Keyboard input notifications */
      case WM_KEYDOWN:
-     case WM_SYSKEYDOWN:
+     /*case WM_SYSKEYDOWN:*/
        INF("key down message");
        _ecore_win32_event_handle_key_press(data);
        return 0;
      /* case WM_CHAR: */
      /* case WM_SYSCHAR: */
      case WM_KEYUP:
-     case WM_SYSKEYUP:
+     /*case WM_SYSKEYUP:*/
        INF("key up message");
        _ecore_win32_event_handle_key_release(data);
        return 0;
@@ -613,6 +613,21 @@ ecore_win32_shutdown()
      ecore_win32_cursor_free(_ecore_win32_cursor_x[i]);
 
    ecore_win32_dnd_shutdown();
+
+   ecore_event_type_flush(ECORE_WIN32_EVENT_MOUSE_IN,
+                          ECORE_WIN32_EVENT_MOUSE_OUT,
+                          ECORE_WIN32_EVENT_WINDOW_FOCUS_IN,
+                          ECORE_WIN32_EVENT_WINDOW_FOCUS_OUT,
+                          ECORE_WIN32_EVENT_WINDOW_DAMAGE,
+                          ECORE_WIN32_EVENT_WINDOW_CREATE,
+                          ECORE_WIN32_EVENT_WINDOW_DESTROY,
+                          ECORE_WIN32_EVENT_WINDOW_SHOW,
+                          ECORE_WIN32_EVENT_WINDOW_HIDE,
+                          ECORE_WIN32_EVENT_WINDOW_CONFIGURE,
+                          ECORE_WIN32_EVENT_WINDOW_RESIZE,
+                          ECORE_WIN32_EVENT_WINDOW_DELETE_REQUEST,
+                          ECORE_WIN32_EVENT_SELECTION_CLEAR,
+                          ECORE_WIN32_EVENT_SELECTION_NOTIFY);
 
    if (!UnregisterClass(ECORE_WIN32_WINDOW_CLASS, _ecore_win32_instance))
      INF("UnregisterClass() failed");

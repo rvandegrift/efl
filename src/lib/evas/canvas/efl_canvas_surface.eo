@@ -1,4 +1,4 @@
-mixin Efl.Canvas.Surface (Eo.Interface, Efl.Canvas.Image.Internal)
+mixin Efl.Canvas.Surface (Efl.Interface, Efl.Canvas.Image.Internal)
 {
    [[Native surfaces usually bound to an externally-managed buffer.
 
@@ -15,11 +15,11 @@ mixin Efl.Canvas.Surface (Eo.Interface, Efl.Canvas.Image.Internal)
             Set to $null to detach this surface from the external buffer.
           ]]
           get {}
-          set @virtual_pure {
+          set @pure_virtual {
              [[Set the buffer. If this fails, this function returns $false,
                and the surface is left without any attached buffer.
              ]]
-             return: bool @warn_unused;
+             return: bool @warn_unused; [[$true on success, $false otherwise]]
           }
           values {
              buffer: void_ptr; [[The external buffer, depends on its type.]]
@@ -27,6 +27,6 @@ mixin Efl.Canvas.Surface (Eo.Interface, Efl.Canvas.Image.Internal)
       }
    }
    implements {
-      Eo.Base.constructor;
+      Efl.Object.constructor;
    }
 }

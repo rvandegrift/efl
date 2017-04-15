@@ -6,8 +6,8 @@
 Eina_Bool
 _evas_image_proxy_source_set(Eo *eo_obj, Evas_Object *eo_src)
 {
-   Evas_Object_Protected_Data *obj = eo_data_scope_get(eo_obj, EFL_CANVAS_OBJECT_CLASS);
-   Evas_Image_Data *o = eo_data_scope_get(eo_obj, EFL_CANVAS_IMAGE_INTERNAL_CLASS);
+   Evas_Object_Protected_Data *obj = efl_data_scope_get(eo_obj, EFL_CANVAS_OBJECT_CLASS);
+   Evas_Image_Data *o = efl_data_scope_get(eo_obj, EFL_CANVAS_IMAGE_INTERNAL_CLASS);
    if (obj->delete_me && eo_src)
      {
         WRN("Setting deleted object %p as image source %p", eo_src, eo_obj);
@@ -15,7 +15,7 @@ _evas_image_proxy_source_set(Eo *eo_obj, Evas_Object *eo_src)
      }
    if (eo_src)
      {
-        Evas_Object_Protected_Data *src = eo_data_scope_get(eo_src, EFL_CANVAS_OBJECT_CLASS);
+        Evas_Object_Protected_Data *src = efl_data_scope_get(eo_src, EFL_CANVAS_OBJECT_CLASS);
         if (src->delete_me)
           {
              WRN("Setting object %p to deleted image source %p", eo_src, eo_obj);
@@ -65,7 +65,7 @@ _efl_canvas_proxy_source_set(Eo *eo_obj, void *_pd EINA_UNUSED, Evas_Object *eo_
 Evas_Object *
 _evas_image_proxy_source_get(const Eo *eo_obj)
 {
-   Evas_Image_Data *o = eo_data_scope_get(eo_obj, EFL_CANVAS_IMAGE_INTERNAL_CLASS);
+   Evas_Image_Data *o = efl_data_scope_get(eo_obj, EFL_CANVAS_IMAGE_INTERNAL_CLASS);
    return o->cur->source;
 }
 
@@ -79,8 +79,8 @@ void
 _evas_image_proxy_source_clip_set(Eo *eo_obj, Eina_Bool source_clip)
 {
    Evas_Object_Protected_Data *src_obj;
-   Evas_Object_Protected_Data *obj = eo_data_scope_get(eo_obj, EFL_CANVAS_OBJECT_CLASS);
-   Evas_Image_Data *o = eo_data_scope_get(eo_obj, EFL_CANVAS_IMAGE_INTERNAL_CLASS);
+   Evas_Object_Protected_Data *obj = efl_data_scope_get(eo_obj, EFL_CANVAS_OBJECT_CLASS);
+   Evas_Image_Data *o = efl_data_scope_get(eo_obj, EFL_CANVAS_IMAGE_INTERNAL_CLASS);
 
    source_clip = !!source_clip;
    if (o->proxy_src_clip == source_clip) return;
@@ -89,7 +89,7 @@ _evas_image_proxy_source_clip_set(Eo *eo_obj, Eina_Bool source_clip)
 
    if (!o->cur->source) return;
 
-   src_obj = eo_data_scope_get(o->cur->source, EFL_CANVAS_OBJECT_CLASS);
+   src_obj = efl_data_scope_get(o->cur->source, EFL_CANVAS_OBJECT_CLASS);
    evas_object_change(o->cur->source, src_obj);
 }
 
@@ -102,7 +102,7 @@ _efl_canvas_proxy_source_clip_set(Eo *eo_obj, void *_pd EINA_UNUSED, Eina_Bool s
 Eina_Bool
 _evas_image_proxy_source_clip_get(const Eo *eo_obj)
 {
-   Evas_Image_Data *o = eo_data_scope_get(eo_obj, EFL_CANVAS_IMAGE_INTERNAL_CLASS);
+   Evas_Image_Data *o = efl_data_scope_get(eo_obj, EFL_CANVAS_IMAGE_INTERNAL_CLASS);
    return o->proxy_src_clip;
 }
 
@@ -115,8 +115,8 @@ _efl_canvas_proxy_source_clip_get(Eo *eo_obj, void *_pd EINA_UNUSED)
 void
 _evas_image_proxy_source_events_set(Eo *eo_obj, Eina_Bool source_events)
 {
-   Evas_Object_Protected_Data *obj = eo_data_scope_get(eo_obj, EFL_CANVAS_OBJECT_CLASS);
-   Evas_Image_Data *o = eo_data_scope_get(eo_obj, EFL_CANVAS_IMAGE_INTERNAL_CLASS);
+   Evas_Object_Protected_Data *obj = efl_data_scope_get(eo_obj, EFL_CANVAS_OBJECT_CLASS);
+   Evas_Image_Data *o = efl_data_scope_get(eo_obj, EFL_CANVAS_IMAGE_INTERNAL_CLASS);
 
    source_events = !!source_events;
    if (obj->proxy->src_events == source_events) return;
@@ -139,7 +139,7 @@ _efl_canvas_proxy_source_events_set(Eo *eo_obj, void *_pd EINA_UNUSED, Eina_Bool
 Eina_Bool
 _evas_image_proxy_source_events_get(const Eo *eo_obj)
 {
-   Evas_Object_Protected_Data *obj = eo_data_scope_get(eo_obj, EFL_CANVAS_OBJECT_CLASS);
+   Evas_Object_Protected_Data *obj = efl_data_scope_get(eo_obj, EFL_CANVAS_OBJECT_CLASS);
    return obj->proxy->src_events;
 }
 
@@ -152,7 +152,7 @@ _efl_canvas_proxy_source_events_get(Eo *eo_obj, void *_pd EINA_UNUSED)
 Evas_Object *
 _evas_object_image_source_get(Evas_Object *eo_obj)
 {
-   Evas_Image_Data *o = eo_data_scope_get(eo_obj, EFL_CANVAS_IMAGE_INTERNAL_CLASS);
+   Evas_Image_Data *o = efl_data_scope_get(eo_obj, EFL_CANVAS_IMAGE_INTERNAL_CLASS);
    return o->cur->source;
 }
 
@@ -163,7 +163,7 @@ _evas_image_proxy_unset(Evas_Object *proxy, Evas_Object_Protected_Data *cur_prox
 
    if (!o->cur->source) return;
 
-   cur_source = eo_data_scope_get(o->cur->source, EFL_CANVAS_OBJECT_CLASS);
+   cur_source = efl_data_scope_get(o->cur->source, EFL_CANVAS_OBJECT_CLASS);
 
    EINA_COW_WRITE_BEGIN(evas_object_proxy_cow, cur_source->proxy, Evas_Object_Proxy_Data, proxy_source_write)
      {
@@ -207,7 +207,7 @@ _evas_image_proxy_unset(Evas_Object *proxy, Evas_Object_Protected_Data *cur_prox
         EINA_COW_IMAGE_STATE_WRITE_END(o, state_write);
      }
 
-   EINA_COW_WRITE_BEGIN(evas_object_proxy_cow, cur_source->proxy, Evas_Object_Proxy_Data, proxy_write)
+   EINA_COW_WRITE_BEGIN(evas_object_proxy_cow, cur_proxy->proxy, Evas_Object_Proxy_Data, proxy_write)
      proxy_write->is_proxy = EINA_FALSE;
    EINA_COW_WRITE_END(evas_object_proxy_cow, cur_proxy->proxy, proxy_write);
 }
@@ -215,9 +215,9 @@ _evas_image_proxy_unset(Evas_Object *proxy, Evas_Object_Protected_Data *cur_prox
 void
 _evas_image_proxy_set(Evas_Object *eo_proxy, Evas_Object *eo_src)
 {
-   Evas_Object_Protected_Data *src = eo_data_scope_get(eo_src, EFL_CANVAS_OBJECT_CLASS);
-   Evas_Object_Protected_Data *proxy = eo_data_scope_get(eo_proxy, EFL_CANVAS_OBJECT_CLASS);
-   Evas_Image_Data *o = eo_data_scope_get(eo_proxy, EFL_CANVAS_IMAGE_INTERNAL_CLASS);
+   Evas_Object_Protected_Data *src = efl_data_scope_get(eo_src, EFL_CANVAS_OBJECT_CLASS);
+   Evas_Object_Protected_Data *proxy = efl_data_scope_get(eo_proxy, EFL_CANVAS_OBJECT_CLASS);
+   Evas_Image_Data *o = efl_data_scope_get(eo_proxy, EFL_CANVAS_IMAGE_INTERNAL_CLASS);
 
    _evas_image_file_set(eo_proxy, NULL, NULL);
 
@@ -244,14 +244,14 @@ _evas_image_proxy_set(Evas_Object *eo_proxy, Evas_Object *eo_src)
 static inline void *
 _proxy_image_get(Evas_Image_Data *o)
 {
-   Evas_Object_Protected_Data *source = eo_data_scope_get(o->cur->source, EFL_CANVAS_OBJECT_CLASS);
+   Evas_Object_Protected_Data *source = efl_data_scope_get(o->cur->source, EFL_CANVAS_OBJECT_CLASS);
    Evas_Image_Data *source_img = NULL;
 
    if (!source)
      return NULL;
 
-   if (eo_isa(o->cur->source, EFL_CANVAS_IMAGE_INTERNAL_CLASS))
-     source_img = eo_data_scope_get(o->cur->source, EFL_CANVAS_IMAGE_INTERNAL_CLASS);
+   if (efl_isa(o->cur->source, EFL_CANVAS_IMAGE_INTERNAL_CLASS))
+     source_img = efl_data_scope_get(o->cur->source, EFL_CANVAS_IMAGE_INTERNAL_CLASS);
 
    if (source_img)
      return source_img->engine_data;
@@ -259,24 +259,37 @@ _proxy_image_get(Evas_Image_Data *o)
      return source->proxy->surface;
 }
 
-EOLIAN static void *
+EOLIAN static Eina_Bool
 _efl_canvas_proxy_efl_gfx_buffer_buffer_map(Eo *eo_obj, void *_pd EINA_UNUSED,
-                                            int *length,
+                                            Eina_Rw_Slice *slice,
                                             Efl_Gfx_Buffer_Access_Mode mode,
                                             int x, int y, int w, int h,
-                                            Efl_Gfx_Colorspace cspace, int *stride)
+                                            Efl_Gfx_Colorspace cspace, int plane,
+                                            int *stride)
 {
-   Evas_Object_Protected_Data *obj = eo_data_scope_get(eo_obj, EFL_CANVAS_OBJECT_CLASS);
-   Evas_Image_Data *o = eo_data_scope_get(eo_obj, EFL_CANVAS_IMAGE_INTERNAL_CLASS);
-   int len = 0, s = 0, width = 0, height = 0;
-   void *image, *data = NULL;
+   Evas_Object_Protected_Data *obj = efl_data_scope_get(eo_obj, EFL_CANVAS_OBJECT_CLASS);
+   Evas_Image_Data *o = efl_data_scope_get(eo_obj, EFL_CANVAS_IMAGE_INTERNAL_CLASS);
+   int s = 0, width = 0, height = 0;
+   Eina_Bool ret = EINA_FALSE;
+   void *image;
+
+   EINA_SAFETY_ON_NULL_RETURN_VAL(slice, EINA_FALSE);
+
+   slice->len = 0;
+   slice->mem = NULL;
 
    if (!ENFN->image_data_map)
      goto end; // not implemented
 
+   if (plane)
+     {
+        ERR("invalid plane id for proxy object");
+        goto end;
+     }
+
    if (mode & EFL_GFX_BUFFER_ACCESS_MODE_WRITE)
      {
-        ERR("invalid map mode for Proxy object");
+        ERR("invalid map mode for proxy object");
         goto end;
      }
 
@@ -302,26 +315,30 @@ _efl_canvas_proxy_efl_gfx_buffer_buffer_map(Eo *eo_obj, void *_pd EINA_UNUSED,
         goto end;
      }
 
-   data = ENFN->image_data_map(ENDT, &image, &len, &s, x, y, w, h, cspace, mode);
-   DBG("map(%p, %d,%d %dx%d) -> %p (%d bytes)", eo_obj, x, y, w, h, data, len);
+   if (ENFN->image_data_map(ENDT, &o->engine_data, slice, &s, x, y, w, h, cspace, mode, plane))
+     {
+        DBG("map(%p, %d,%d %dx%d plane:%d) -> " EINA_SLICE_FMT,
+            eo_obj, x, y, w, h, plane, EINA_SLICE_PRINT(*slice));
+        ret = EINA_TRUE;
+     }
+   else DBG("map(%p, %d,%d %dx%d plane:%d) -> (null)", eo_obj, x, y, w, h, plane);
 
 end:
-   if (length) *length = len;
    if (stride) *stride = s;
-   return data;
+   return ret;
 }
 
 EOLIAN static Eina_Bool
 _efl_canvas_proxy_efl_gfx_buffer_buffer_unmap(Eo *eo_obj, void *_pd EINA_UNUSED,
-                                              void *data, int length)
+                                              const Eina_Rw_Slice *slice)
 {
-   Evas_Object_Protected_Data *obj = eo_data_scope_get(eo_obj, EFL_CANVAS_OBJECT_CLASS);
-   Evas_Image_Data *o = eo_data_scope_get(eo_obj, EFL_CANVAS_IMAGE_INTERNAL_CLASS);
+   Evas_Object_Protected_Data *obj = efl_data_scope_get(eo_obj, EFL_CANVAS_OBJECT_CLASS);
+   Evas_Image_Data *o = efl_data_scope_get(eo_obj, EFL_CANVAS_IMAGE_INTERNAL_CLASS);
 
-   if (!ENFN->image_data_unmap || !o->engine_data)
+   if (!slice || !ENFN->image_data_unmap || !o->engine_data)
      return EINA_FALSE;
 
-   if (!ENFN->image_data_unmap(ENDT, o->engine_data, data, length))
+   if (!ENFN->image_data_unmap(ENDT, o->engine_data, slice))
      return EINA_FALSE;
 
    return EINA_TRUE;
@@ -334,7 +351,7 @@ void
 _evas_image_proxy_error(Evas_Object *eo_proxy, void *context, void *output, void *surface,
                         int x, int y, Eina_Bool do_async)
 {
-   Evas_Image_Data *o = eo_data_scope_get(eo_proxy, EFL_CANVAS_IMAGE_INTERNAL_CLASS);
+   Evas_Image_Data *o = efl_data_scope_get(eo_proxy, EFL_CANVAS_IMAGE_INTERNAL_CLASS);
    Evas_Object_Protected_Data *proxy;
    Evas_Func *func;
 
@@ -344,7 +361,7 @@ _evas_image_proxy_error(Evas_Object *eo_proxy, void *context, void *output, void
         o->proxyerror = 1;
      }
 
-   proxy = eo_data_scope_get(eo_proxy, EFL_CANVAS_OBJECT_CLASS);
+   proxy = efl_data_scope_get(eo_proxy, EFL_CANVAS_OBJECT_CLASS);
    func = proxy->layer->evas->engine.func;
    func->context_color_set(output, context, 0, 0, 0, 255);
    func->context_multiplier_unset(output, context);

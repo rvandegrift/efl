@@ -24,9 +24,11 @@
 #endif
 
 #define EDJE_1_18_SUPPORTED " -DEFL_VERSION_1_18=1 "
+#define EDJE_1_19_SUPPORTED " -DEFL_VERSION_1_19=1 "
 
 #define EDJE_CC_EFL_VERSION_SUPPORTED \
-  EDJE_1_18_SUPPORTED
+  EDJE_1_18_SUPPORTED \
+  EDJE_1_19_SUPPORTED
 
 static void  new_object(void);
 static void  new_statement(void);
@@ -670,7 +672,7 @@ stack_push_quick(const char *str)
    eina_strbuf_append(stack_buf, s);
 }
 
-void
+char *
 stack_pop_quick(Eina_Bool check_last, Eina_Bool do_free)
 {
    char *tmp, *str;
@@ -688,7 +690,46 @@ stack_pop_quick(Eina_Bool check_last, Eina_Bool do_free)
                            eina_strbuf_length_get(stack_buf) - strlen(tmp) - 1,
                            eina_strbuf_length_get(stack_buf)); /* remove: '.tmp' */
    stack = eina_list_remove_list(stack, eina_list_last(stack));
-   if (do_free) free(str);
+   if (do_free)
+     {
+        free(str);
+        str = NULL;
+     }
+   return str;
+}
+
+/* replace the top of stack with given token */
+void
+stack_replace_quick(const char *token)
+{
+   char *str;
+
+   str = stack_pop_quick(EINA_FALSE, EINA_FALSE);
+   if ((str) && strchr(str, '.'))
+     {
+        char *end, *tmp = str;
+        Eina_Strbuf *buf;
+
+        end = strchr(tmp, '.');
+        if (end)
+          tmp = end + 1;
+
+        buf = eina_strbuf_new();
+        eina_strbuf_append(buf, str);
+        eina_strbuf_remove(buf,
+                           eina_strbuf_length_get(buf) - strlen(tmp),
+                           eina_strbuf_length_get(buf));
+        eina_strbuf_append(buf, token);
+
+        stack_push_quick(eina_strbuf_string_get(buf));
+
+        eina_strbuf_free(buf);
+        free(str);
+     }
+   else
+     {
+        stack_push_quick(token);
+     }
 }
 
 static const char *
@@ -1009,6 +1050,7 @@ compile(void)
          */
 
         buf2[0] = '\0';
+#ifdef NEED_RUN_IN_TREE
         if (getenv("EFL_RUN_IN_TREE"))
           {
              snprintf(buf2, sizeof(buf2),
@@ -1017,6 +1059,7 @@ compile(void)
              if (!ecore_file_exists(buf2))
                buf2[0] = '\0';
           }
+#endif
 
         if (buf2[0] == '\0')
           snprintf(buf2, sizeof(buf2),
@@ -1028,27 +1071,44 @@ compile(void)
 
              inc = ecore_file_dir_get(file_in);
              if (depfile)
-               snprintf(buf, sizeof(buf), "%s -MMD %s -MT %s %s -I%s %s -o %s"
+               snprintf(buf, sizeof(buf), "\"%s\" -MMD \"%s\" -MT \"%s\" \"%s\""
+                        " -I\"%s\" %s -o \"%s\""
                         " -DEFL_VERSION_MAJOR=%d -DEFL_VERSION_MINOR=%d"
                         EDJE_CC_EFL_VERSION_SUPPORTED,
                         buf2, depfile, file_out, file_in,
                         inc ? inc : "./", def, clean_file,
                         EINA_VERSION_MAJOR, EINA_VERSION_MINOR);
              else if (annotate)
-               snprintf(buf, sizeof(buf), "%s -annotate -a %s %s -I%s %s -o %s"
+               snprintf(buf, sizeof(buf), "\"%s\" -annotate -a \"%s\" \"%s\""
+                        " -I\"%s\" %s -o \"%s\""
                         " -DEFL_VERSION_MAJOR=%d -DEFL_VERSION_MINOR=%d"
                         EDJE_CC_EFL_VERSION_SUPPORTED,
                         buf2, watchfile ? watchfile : "/dev/null", file_in,
                         inc ? inc : "./", def, clean_file,
                         EINA_VERSION_MAJOR, EINA_VERSION_MINOR);
              else
-               snprintf(buf, sizeof(buf), "%s -a %s %s -I%s %s -o %s"
+               snprintf(buf, sizeof(buf), "\"%s\" -a \"%s\" \"%s\" -I\"%s\" %s"
+                        " -o \"%s\""
                         " -DEFL_VERSION_MAJOR=%d -DEFL_VERSION_MINOR=%d"
                         EDJE_CC_EFL_VERSION_SUPPORTED,
                         buf2, watchfile ? watchfile : "/dev/null", file_in,
                         inc ? inc : "./", def, clean_file,
                         EINA_VERSION_MAJOR, EINA_VERSION_MINOR);
+#ifdef _WIN32
+             /* On Windows, if command begins with double quotation marks,
+              * then the first and the last double quotation marks may be
+              * either deleted or not. (See "help cmd" on Windows.)
+              *
+              * Therefore, to preserve the string between the first and the last
+              * double quotation marks, "cmd /S /C" and additional outer double
+              * quotation marks are added.
+              */
+             char win_buf[4096];
+             snprintf(win_buf, sizeof(win_buf), "cmd /S /C \"%s\"", buf);
+             ret = system(win_buf);
+#else
              ret = system(buf);
+#endif
              if (inc)
                free(inc);
           }

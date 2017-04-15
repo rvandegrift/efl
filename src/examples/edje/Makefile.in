@@ -91,15 +91,18 @@ build_triplet = @build@
 host_triplet = @host@
 @ENABLE_MULTISENSE_TRUE@am__append_1 = $(MULTISENSE_EDCS)
 @HAVE_EPHYSICS_TRUE@am__append_2 = $(PHYSICS_EDCS)
-EXTRA_PROGRAMS = edje_example$(EXEEXT) edje-animations$(EXEEXT) \
-	edje-basic$(EXEEXT) edje-box$(EXEEXT) edje-box2$(EXEEXT) \
-	edje-codegen-example$(EXEEXT) edje-color-class$(EXEEXT) \
-	edje-drag$(EXEEXT) edje-perspective$(EXEEXT) \
+EXTRA_PROGRAMS = animations2$(EXEEXT) edje-animations$(EXEEXT) \
+	edje-basic$(EXEEXT) edje-basic2$(EXEEXT) edje-box$(EXEEXT) \
+	edje-box2$(EXEEXT) edje-codegen-example$(EXEEXT) \
+	edje-color-class$(EXEEXT) edje-drag$(EXEEXT) \
+	edje-dynamic-multiseat$(EXEEXT) edje-edit-part-box$(EXEEXT) \
+	edje-entry$(EXEEXT) edje-focus$(EXEEXT) \
+	edje-multiseat$(EXEEXT) edje-multiseat-custom-names$(EXEEXT) \
+	edje-multiseat-filter$(EXEEXT) edje-perspective$(EXEEXT) \
 	edje-signals-messages$(EXEEXT) edje-swallow$(EXEEXT) \
-	edje-table$(EXEEXT) edje-text$(EXEEXT) sigtest$(EXEEXT) \
-	animations2$(EXEEXT) edje-basic2$(EXEEXT) signals2$(EXEEXT) \
-	edje-swallow2$(EXEEXT) edje-edit-part-box$(EXEEXT) \
-	edje-textblock-hyphenation$(EXEEXT) svg-test$(EXEEXT) \
+	edje-swallow2$(EXEEXT) edje-table$(EXEEXT) edje-text$(EXEEXT) \
+	edje-textblock-hyphenation$(EXEEXT) edje_example$(EXEEXT) \
+	signals2$(EXEEXT) sigtest$(EXEEXT) svg-test$(EXEEXT) \
 	$(am__EXEEXT_1)
 @ENABLE_MULTISENSE_TRUE@am__append_3 = edje-multisense
 @HAVE_EPHYSICS_TRUE@am__append_4 = $(top_builddir)/src/lib/ephysics/libephysics.la
@@ -113,8 +116,8 @@ am__aclocal_m4_deps = $(top_srcdir)/m4/ac_define_if.m4 \
 	$(top_srcdir)/m4/efl_check_funcs.m4 \
 	$(top_srcdir)/m4/efl_check_libs.m4 \
 	$(top_srcdir)/m4/efl_compiler.m4 \
-	$(top_srcdir)/m4/efl_doxygen.m4 $(top_srcdir)/m4/efl_eo.m4 \
-	$(top_srcdir)/m4/efl_find_x.m4 \
+	$(top_srcdir)/m4/efl_define.m4 $(top_srcdir)/m4/efl_doxygen.m4 \
+	$(top_srcdir)/m4/efl_eo.m4 $(top_srcdir)/m4/efl_find_x.m4 \
 	$(top_srcdir)/m4/efl_libunwind.m4 \
 	$(top_srcdir)/m4/efl_lua_old.m4 \
 	$(top_srcdir)/m4/efl_path_max.m4 \
@@ -294,10 +297,104 @@ edje_drag_DEPENDENCIES = $(top_builddir)/src/lib/eina/libeina.la \
 	$(top_builddir)/src/lib/ecore_imf_evas/libecore_imf_evas.la \
 	$(top_builddir)/src/lib/embryo/libembryo.la \
 	$(top_builddir)/src/lib/edje/libedje.la $(am__append_4)
+edje_dynamic_multiseat_SOURCES = edje-dynamic-multiseat.c
+edje_dynamic_multiseat_OBJECTS = edje-dynamic-multiseat.$(OBJEXT)
+edje_dynamic_multiseat_LDADD = $(LDADD)
+edje_dynamic_multiseat_DEPENDENCIES =  \
+	$(top_builddir)/src/lib/eina/libeina.la \
+	$(top_builddir)/src/lib/eo/libeo.la \
+	$(top_builddir)/src/lib/eet/libeet.la \
+	$(top_builddir)/src/lib/evas/libevas.la \
+	$(top_builddir)/src/lib/ecore/libecore.la \
+	$(top_builddir)/src/lib/ecore_evas/libecore_evas.la \
+	$(top_builddir)/src/lib/ecore_file/libecore_file.la \
+	$(top_builddir)/src/lib/ecore_input/libecore_input.la \
+	$(top_builddir)/src/lib/ecore_imf/libecore_imf.la \
+	$(top_builddir)/src/lib/ecore_imf_evas/libecore_imf_evas.la \
+	$(top_builddir)/src/lib/embryo/libembryo.la \
+	$(top_builddir)/src/lib/edje/libedje.la $(am__append_4)
 edje_edit_part_box_SOURCES = edje-edit-part-box.c
 edje_edit_part_box_OBJECTS = edje-edit-part-box.$(OBJEXT)
 edje_edit_part_box_LDADD = $(LDADD)
 edje_edit_part_box_DEPENDENCIES =  \
+	$(top_builddir)/src/lib/eina/libeina.la \
+	$(top_builddir)/src/lib/eo/libeo.la \
+	$(top_builddir)/src/lib/eet/libeet.la \
+	$(top_builddir)/src/lib/evas/libevas.la \
+	$(top_builddir)/src/lib/ecore/libecore.la \
+	$(top_builddir)/src/lib/ecore_evas/libecore_evas.la \
+	$(top_builddir)/src/lib/ecore_file/libecore_file.la \
+	$(top_builddir)/src/lib/ecore_input/libecore_input.la \
+	$(top_builddir)/src/lib/ecore_imf/libecore_imf.la \
+	$(top_builddir)/src/lib/ecore_imf_evas/libecore_imf_evas.la \
+	$(top_builddir)/src/lib/embryo/libembryo.la \
+	$(top_builddir)/src/lib/edje/libedje.la $(am__append_4)
+edje_entry_SOURCES = edje-entry.c
+edje_entry_OBJECTS = edje-entry.$(OBJEXT)
+edje_entry_LDADD = $(LDADD)
+edje_entry_DEPENDENCIES = $(top_builddir)/src/lib/eina/libeina.la \
+	$(top_builddir)/src/lib/eo/libeo.la \
+	$(top_builddir)/src/lib/eet/libeet.la \
+	$(top_builddir)/src/lib/evas/libevas.la \
+	$(top_builddir)/src/lib/ecore/libecore.la \
+	$(top_builddir)/src/lib/ecore_evas/libecore_evas.la \
+	$(top_builddir)/src/lib/ecore_file/libecore_file.la \
+	$(top_builddir)/src/lib/ecore_input/libecore_input.la \
+	$(top_builddir)/src/lib/ecore_imf/libecore_imf.la \
+	$(top_builddir)/src/lib/ecore_imf_evas/libecore_imf_evas.la \
+	$(top_builddir)/src/lib/embryo/libembryo.la \
+	$(top_builddir)/src/lib/edje/libedje.la $(am__append_4)
+edje_focus_SOURCES = edje-focus.c
+edje_focus_OBJECTS = edje-focus.$(OBJEXT)
+edje_focus_LDADD = $(LDADD)
+edje_focus_DEPENDENCIES = $(top_builddir)/src/lib/eina/libeina.la \
+	$(top_builddir)/src/lib/eo/libeo.la \
+	$(top_builddir)/src/lib/eet/libeet.la \
+	$(top_builddir)/src/lib/evas/libevas.la \
+	$(top_builddir)/src/lib/ecore/libecore.la \
+	$(top_builddir)/src/lib/ecore_evas/libecore_evas.la \
+	$(top_builddir)/src/lib/ecore_file/libecore_file.la \
+	$(top_builddir)/src/lib/ecore_input/libecore_input.la \
+	$(top_builddir)/src/lib/ecore_imf/libecore_imf.la \
+	$(top_builddir)/src/lib/ecore_imf_evas/libecore_imf_evas.la \
+	$(top_builddir)/src/lib/embryo/libembryo.la \
+	$(top_builddir)/src/lib/edje/libedje.la $(am__append_4)
+edje_multiseat_SOURCES = edje-multiseat.c
+edje_multiseat_OBJECTS = edje-multiseat.$(OBJEXT)
+edje_multiseat_LDADD = $(LDADD)
+edje_multiseat_DEPENDENCIES = $(top_builddir)/src/lib/eina/libeina.la \
+	$(top_builddir)/src/lib/eo/libeo.la \
+	$(top_builddir)/src/lib/eet/libeet.la \
+	$(top_builddir)/src/lib/evas/libevas.la \
+	$(top_builddir)/src/lib/ecore/libecore.la \
+	$(top_builddir)/src/lib/ecore_evas/libecore_evas.la \
+	$(top_builddir)/src/lib/ecore_file/libecore_file.la \
+	$(top_builddir)/src/lib/ecore_input/libecore_input.la \
+	$(top_builddir)/src/lib/ecore_imf/libecore_imf.la \
+	$(top_builddir)/src/lib/ecore_imf_evas/libecore_imf_evas.la \
+	$(top_builddir)/src/lib/embryo/libembryo.la \
+	$(top_builddir)/src/lib/edje/libedje.la $(am__append_4)
+edje_multiseat_custom_names_SOURCES = edje-multiseat-custom-names.c
+edje_multiseat_custom_names_OBJECTS =  \
+	edje-multiseat-custom-names.$(OBJEXT)
+edje_multiseat_custom_names_LDADD = $(LDADD)
+edje_multiseat_custom_names_DEPENDENCIES =  \
+	$(top_builddir)/src/lib/eina/libeina.la \
+	$(top_builddir)/src/lib/eo/libeo.la \
+	$(top_builddir)/src/lib/eet/libeet.la \
+	$(top_builddir)/src/lib/evas/libevas.la \
+	$(top_builddir)/src/lib/ecore/libecore.la \
+	$(top_builddir)/src/lib/ecore_evas/libecore_evas.la \
+	$(top_builddir)/src/lib/ecore_file/libecore_file.la \
+	$(top_builddir)/src/lib/ecore_input/libecore_input.la \
+	$(top_builddir)/src/lib/ecore_imf/libecore_imf.la \
+	$(top_builddir)/src/lib/ecore_imf_evas/libecore_imf_evas.la \
+	$(top_builddir)/src/lib/embryo/libembryo.la \
+	$(top_builddir)/src/lib/edje/libedje.la $(am__append_4)
+edje_multiseat_filter_SOURCES = edje-multiseat-filter.c
+edje_multiseat_filter_OBJECTS = edje-multiseat-filter.$(OBJEXT)
+edje_multiseat_filter_LDADD = $(LDADD)
+edje_multiseat_filter_DEPENDENCIES =  \
 	$(top_builddir)/src/lib/eina/libeina.la \
 	$(top_builddir)/src/lib/eo/libeo.la \
 	$(top_builddir)/src/lib/eet/libeet.la \
@@ -532,15 +629,19 @@ am__v_CCLD_1 =
 SOURCES = animations2.c edje-animations.c edje-basic.c edje-basic2.c \
 	edje-box.c edje-box2.c $(edje_codegen_example_SOURCES) \
 	$(nodist_edje_codegen_example_SOURCES) edje-color-class.c \
-	edje-drag.c edje-edit-part-box.c edje-multisense.c \
-	edje-perspective.c edje-signals-messages.c edje-swallow.c \
-	edje-swallow2.c edje-table.c edje-text.c \
+	edje-drag.c edje-dynamic-multiseat.c edje-edit-part-box.c \
+	edje-entry.c edje-focus.c edje-multiseat.c \
+	edje-multiseat-custom-names.c edje-multiseat-filter.c \
+	edje-multisense.c edje-perspective.c edje-signals-messages.c \
+	edje-swallow.c edje-swallow2.c edje-table.c edje-text.c \
 	edje-textblock-hyphenation.c edje_example.c signals2.c \
 	sigtest.c svg-test.c
 DIST_SOURCES = animations2.c edje-animations.c edje-basic.c \
 	edje-basic2.c edje-box.c edje-box2.c \
 	$(edje_codegen_example_SOURCES) edje-color-class.c edje-drag.c \
-	edje-edit-part-box.c edje-multisense.c edje-perspective.c \
+	edje-dynamic-multiseat.c edje-edit-part-box.c edje-entry.c \
+	edje-focus.c edje-multiseat.c edje-multiseat-custom-names.c \
+	edje-multiseat-filter.c edje-multisense.c edje-perspective.c \
 	edje-signals-messages.c edje-swallow.c edje-swallow2.c \
 	edje-table.c edje-text.c edje-textblock-hyphenation.c \
 	edje_example.c signals2.c sigtest.c svg-test.c
@@ -860,6 +961,7 @@ EFL_LDFLAGS = @EFL_LDFLAGS@
 EFL_LIBS = @EFL_LIBS@
 EFL_LTLIBRARY_FLAGS = @EFL_LTLIBRARY_FLAGS@
 EFL_LTMODULE_FLAGS = @EFL_LTMODULE_FLAGS@
+EFL_NET_CONTROL_BACKEND = @EFL_NET_CONTROL_BACKEND@
 EFL_PTHREAD_CFLAGS = @EFL_PTHREAD_CFLAGS@
 EFL_PTHREAD_LIBS = @EFL_PTHREAD_LIBS@
 EFL_SUBBUILD_INTERNAL_LIBS = @EFL_SUBBUILD_INTERNAL_LIBS@
@@ -1118,7 +1220,6 @@ GREP = @GREP@
 GSTREAMER_CFLAGS = @GSTREAMER_CFLAGS@
 GSTREAMER_LIBS = @GSTREAMER_LIBS@
 HAVE_CXX11 = @HAVE_CXX11@
-HAVE_ECORE_X_BACKEND = @HAVE_ECORE_X_BACKEND@
 HAVE_JS = @HAVE_JS@
 HAVE_LIBUV = @HAVE_LIBUV@
 HAVE_NODEJS = @HAVE_NODEJS@
@@ -1135,7 +1236,6 @@ INTLLIBS = @INTLLIBS@
 INTL_MACOSX_LIBS = @INTL_MACOSX_LIBS@
 JP2K_CFLAGS = @JP2K_CFLAGS@
 JP2K_LIBS = @JP2K_LIBS@
-KEYSYMDEFS = @KEYSYMDEFS@
 LD = @LD@
 LDFLAGS = @LDFLAGS@
 LIBGCRYPT_CFLAGS = @LIBGCRYPT_CFLAGS@
@@ -1154,6 +1254,8 @@ LIBRAW_LIBS = @LIBRAW_LIBS@
 LIBS = @LIBS@
 LIBTHREAD = @LIBTHREAD@
 LIBTOOL = @LIBTOOL@
+LIBVNCSERVER_CFLAGS = @LIBVNCSERVER_CFLAGS@
+LIBVNCSERVER_LIBS = @LIBVNCSERVER_LIBS@
 LIPO = @LIPO@
 LN_S = @LN_S@
 LOCALE_DIR = @LOCALE_DIR@
@@ -1429,6 +1531,9 @@ WAYLAND_CFLAGS = @WAYLAND_CFLAGS@
 WAYLAND_EGL_CFLAGS = @WAYLAND_EGL_CFLAGS@
 WAYLAND_EGL_LIBS = @WAYLAND_EGL_LIBS@
 WAYLAND_LIBS = @WAYLAND_LIBS@
+WAYLAND_PROTOCOLS_DATADIR = @WAYLAND_PROTOCOLS_DATADIR@
+WAYLAND_SCANNER_CFLAGS = @WAYLAND_SCANNER_CFLAGS@
+WAYLAND_SCANNER_LIBS = @WAYLAND_SCANNER_LIBS@
 WAYLAND_SHM_CFLAGS = @WAYLAND_SHM_CFLAGS@
 WAYLAND_SHM_LIBS = @WAYLAND_SHM_LIBS@
 X11_DRI2_CFLAGS = @X11_DRI2_CFLAGS@
@@ -1437,12 +1542,6 @@ X11_DRI3_CFLAGS = @X11_DRI3_CFLAGS@
 X11_DRI3_LIBS = @X11_DRI3_LIBS@
 X11_DRI_COMMON_CFLAGS = @X11_DRI_COMMON_CFLAGS@
 X11_DRI_COMMON_LIBS = @X11_DRI_COMMON_LIBS@
-XCB_CFLAGS = @XCB_CFLAGS@
-XCB_GL_CFLAGS = @XCB_GL_CFLAGS@
-XCB_GL_LIBS = @XCB_GL_LIBS@
-XCB_LIBS = @XCB_LIBS@
-XCB_X11_CFLAGS = @XCB_X11_CFLAGS@
-XCB_X11_LIBS = @XCB_X11_LIBS@
 XDG_DATA_HOME = @XDG_DATA_HOME@
 XGETTEXT = @XGETTEXT@
 XGETTEXT_015 = @XGETTEXT_015@
@@ -1476,7 +1575,6 @@ build_vendor = @build_vendor@
 builddir = @builddir@
 cocoa_coreservices_ldflags = @cocoa_coreservices_ldflags@
 cocoa_ldflags = @cocoa_ldflags@
-coreaudio_ldflags = @coreaudio_ldflags@
 datadir = @datadir@
 datarootdir = @datarootdir@
 dbusservicedir = @dbusservicedir@
@@ -1544,11 +1642,6 @@ evas_engine_gl_drm_cflags = @evas_engine_gl_drm_cflags@
 evas_engine_gl_drm_libs = @evas_engine_gl_drm_libs@
 evas_engine_gl_sdl_cflags = @evas_engine_gl_sdl_cflags@
 evas_engine_gl_sdl_libs = @evas_engine_gl_sdl_libs@
-evas_engine_gl_xcb_CFLAGS = @evas_engine_gl_xcb_CFLAGS@
-evas_engine_gl_xcb_LIBS = @evas_engine_gl_xcb_LIBS@
-evas_engine_gl_xcb_cflags = @evas_engine_gl_xcb_cflags@
-evas_engine_gl_xcb_libdirs = @evas_engine_gl_xcb_libdirs@
-evas_engine_gl_xcb_libs = @evas_engine_gl_xcb_libs@
 evas_engine_gl_xlib_CFLAGS = @evas_engine_gl_xlib_CFLAGS@
 evas_engine_gl_xlib_LIBS = @evas_engine_gl_xlib_LIBS@
 evas_engine_gl_xlib_cflags = @evas_engine_gl_xlib_cflags@
@@ -1560,8 +1653,6 @@ evas_engine_software_ddraw_cflags = @evas_engine_software_ddraw_cflags@
 evas_engine_software_ddraw_libs = @evas_engine_software_ddraw_libs@
 evas_engine_software_gdi_cflags = @evas_engine_software_gdi_cflags@
 evas_engine_software_gdi_libs = @evas_engine_software_gdi_libs@
-evas_engine_software_xcb_cflags = @evas_engine_software_xcb_cflags@
-evas_engine_software_xcb_libs = @evas_engine_software_xcb_libs@
 evas_engine_software_xlib_CFLAGS = @evas_engine_software_xlib_CFLAGS@
 evas_engine_software_xlib_LIBS = @evas_engine_software_xlib_LIBS@
 evas_engine_software_xlib_cflags = @evas_engine_software_xlib_cflags@
@@ -1605,10 +1696,12 @@ evas_image_loader_webp_cflags = @evas_image_loader_webp_cflags@
 evas_image_loader_webp_libs = @evas_image_loader_webp_libs@
 evas_image_loader_xpm_cflags = @evas_image_loader_xpm_cflags@
 evas_image_loader_xpm_libs = @evas_image_loader_xpm_libs@
+evas_vg_loader_eet_cflags = @evas_vg_loader_eet_cflags@
+evas_vg_loader_eet_libs = @evas_vg_loader_eet_libs@
+evas_vg_loader_svg_cflags = @evas_vg_loader_svg_cflags@
+evas_vg_loader_svg_libs = @evas_vg_loader_svg_libs@
 exec_prefix = @exec_prefix@
-have_evas_engine_gl_xcb = @have_evas_engine_gl_xcb@
 have_evas_engine_gl_xlib = @have_evas_engine_gl_xlib@
-have_evas_engine_software_xcb = @have_evas_engine_software_xcb@
 have_evas_engine_software_xlib = @have_evas_engine_software_xlib@
 have_lcov = @have_lcov@
 host = @host@
@@ -1902,6 +1995,7 @@ want_liblz4 = @want_liblz4@
 want_lua_old = @want_lua_old@
 want_multisense = @want_multisense@
 want_physics = @want_physics@
+wayland_scanner = @wayland_scanner@
 with_eeze_eject = @with_eeze_eject@
 with_eeze_mount = @with_eeze_mount@
 with_eeze_umount = @with_eeze_umount@
@@ -1924,19 +2018,22 @@ EDJE_CODEGEN_FLAGS = --prefix=codegen_example
 MO_DIR = -md $(top_builddir)/src/examples/edje/
 
 #put here all EDCs one needs to the examples
-EDCS = edje-group.edc edje-threshold.edc animations2.edc \
-	animations.edc basic2.edc basic.edc box.edc codegen.edc \
-	color-class.edc drag.edc edje_example.edc edje-nested.edc \
-	embryo_custom_state.edc embryo_pong.edc embryo_run_program.edc \
-	embryo_set_state.edc embryo_set_text.edc embryo_timer.edc \
-	external_elm_anchorblock.edc external_elm_button.edc \
-	external_elm_check.edc external_elm_panes.edc \
-	external_emotion_elm.edc lua_script.edc messages_echo.edc \
-	perspective.edc signalsBubble.edc signals-messages.edc \
-	sigtest.edc swallow.edc table.edc text.edc \
-	toggle_using_filter.edc box_example.edc embryo_tween_anim.edc \
-	embryo_set_state_anim.edc bezier-transition-example.edc \
-	textblock-hyphen.edc svg.edc $(am__append_1) $(am__append_2)
+EDCS = animations.edc animations2.edc basic.edc basic2.edc \
+	bezier-transition-example.edc box.edc box_example.edc \
+	codegen.edc color-class.edc drag.edc dynamic_multiseat.edc \
+	edje-group.edc edje-nested.edc edje-threshold.edc \
+	edje_example.edc embryo_custom_state.edc embryo_pong.edc \
+	embryo_run_program.edc embryo_set_state.edc \
+	embryo_set_state_anim.edc embryo_set_text.edc embryo_timer.edc \
+	embryo_tween_anim.edc entry.edc external_elm_anchorblock.edc \
+	external_elm_button.edc external_elm_check.edc \
+	external_elm_panes.edc external_emotion_elm.edc focus.edc \
+	lua_script.edc messages_echo.edc multiseat.edc \
+	multiseat_custom_names.edc multiseat_filter.edc \
+	perspective.edc signals-messages.edc signalsBubble.edc \
+	sigtest.edc svg.edc swallow.edc table.edc text.edc \
+	textblock-hyphen.edc toggle_using_filter.edc $(am__append_1) \
+	$(am__append_2)
 DIST_EDCS = $(EDCS) $(MULTISENSE_EDCS) $(PHYSICS_EDCS)
 MULTISENSE_EDCS = multisense.edc
 PHYSICS_EDCS = \
@@ -1986,27 +2083,33 @@ ta_IN/domain_name.mo \
 Makefile.examples
 
 SRCS = \
-edje-codegen-example.c \
-edje_example.c \
+animations2.c \
+edje-animations.c \
 edje-basic.c \
-edje-swallow.c \
-edje-text.c \
-edje-table.c \
+edje-basic2.c \
 edje-box.c \
 edje-box2.c \
-edje-drag.c \
-edje-signals-messages.c \
+edje-codegen-example.c \
 edje-color-class.c \
-edje-perspective.c \
-edje-animations.c \
-sigtest.c \
-animations2.c \
-edje-basic2.c \
-signals2.c \
-edje-swallow2.c \
-edje-multisense.c \
+edje-drag.c \
+edje-dynamic-multiseat.c \
 edje-edit-part-box.c \
+edje-entry.c \
+edje-focus.c \
+edje-multiseat.c \
+edje-multiseat-custom-names.c \
+edje-multiseat-filter.c \
+edje-multisense.c \
+edje-perspective.c \
+edje-signals-messages.c \
+edje-swallow.c \
+edje-swallow2.c \
+edje-table.c \
+edje-text.c \
 edje-textblock-hyphenation.c \
+edje_example.c \
+signals2.c \
+sigtest.c \
 svg-test.c
 
 EXTRA_DIST = $(DIST_EDCS) $(DATA_FILES)
@@ -2147,9 +2250,33 @@ edje-drag$(EXEEXT): $(edje_drag_OBJECTS) $(edje_drag_DEPENDENCIES) $(EXTRA_edje_
 	@rm -f edje-drag$(EXEEXT)
 	$(AM_V_CCLD)$(LINK) $(edje_drag_OBJECTS) $(edje_drag_LDADD) $(LIBS)
 
+edje-dynamic-multiseat$(EXEEXT): $(edje_dynamic_multiseat_OBJECTS) $(edje_dynamic_multiseat_DEPENDENCIES) $(EXTRA_edje_dynamic_multiseat_DEPENDENCIES) 
+	@rm -f edje-dynamic-multiseat$(EXEEXT)
+	$(AM_V_CCLD)$(LINK) $(edje_dynamic_multiseat_OBJECTS) $(edje_dynamic_multiseat_LDADD) $(LIBS)
+
 edje-edit-part-box$(EXEEXT): $(edje_edit_part_box_OBJECTS) $(edje_edit_part_box_DEPENDENCIES) $(EXTRA_edje_edit_part_box_DEPENDENCIES) 
 	@rm -f edje-edit-part-box$(EXEEXT)
 	$(AM_V_CCLD)$(LINK) $(edje_edit_part_box_OBJECTS) $(edje_edit_part_box_LDADD) $(LIBS)
+
+edje-entry$(EXEEXT): $(edje_entry_OBJECTS) $(edje_entry_DEPENDENCIES) $(EXTRA_edje_entry_DEPENDENCIES) 
+	@rm -f edje-entry$(EXEEXT)
+	$(AM_V_CCLD)$(LINK) $(edje_entry_OBJECTS) $(edje_entry_LDADD) $(LIBS)
+
+edje-focus$(EXEEXT): $(edje_focus_OBJECTS) $(edje_focus_DEPENDENCIES) $(EXTRA_edje_focus_DEPENDENCIES) 
+	@rm -f edje-focus$(EXEEXT)
+	$(AM_V_CCLD)$(LINK) $(edje_focus_OBJECTS) $(edje_focus_LDADD) $(LIBS)
+
+edje-multiseat$(EXEEXT): $(edje_multiseat_OBJECTS) $(edje_multiseat_DEPENDENCIES) $(EXTRA_edje_multiseat_DEPENDENCIES) 
+	@rm -f edje-multiseat$(EXEEXT)
+	$(AM_V_CCLD)$(LINK) $(edje_multiseat_OBJECTS) $(edje_multiseat_LDADD) $(LIBS)
+
+edje-multiseat-custom-names$(EXEEXT): $(edje_multiseat_custom_names_OBJECTS) $(edje_multiseat_custom_names_DEPENDENCIES) $(EXTRA_edje_multiseat_custom_names_DEPENDENCIES) 
+	@rm -f edje-multiseat-custom-names$(EXEEXT)
+	$(AM_V_CCLD)$(LINK) $(edje_multiseat_custom_names_OBJECTS) $(edje_multiseat_custom_names_LDADD) $(LIBS)
+
+edje-multiseat-filter$(EXEEXT): $(edje_multiseat_filter_OBJECTS) $(edje_multiseat_filter_DEPENDENCIES) $(EXTRA_edje_multiseat_filter_DEPENDENCIES) 
+	@rm -f edje-multiseat-filter$(EXEEXT)
+	$(AM_V_CCLD)$(LINK) $(edje_multiseat_filter_OBJECTS) $(edje_multiseat_filter_LDADD) $(LIBS)
 
 edje-multisense$(EXEEXT): $(edje_multisense_OBJECTS) $(edje_multisense_DEPENDENCIES) $(EXTRA_edje_multisense_DEPENDENCIES) 
 	@rm -f edje-multisense$(EXEEXT)
@@ -2215,7 +2342,13 @@ distclean-compile:
 @AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/edje-codegen-example.Po@am__quote@
 @AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/edje-color-class.Po@am__quote@
 @AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/edje-drag.Po@am__quote@
+@AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/edje-dynamic-multiseat.Po@am__quote@
 @AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/edje-edit-part-box.Po@am__quote@
+@AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/edje-entry.Po@am__quote@
+@AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/edje-focus.Po@am__quote@
+@AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/edje-multiseat-custom-names.Po@am__quote@
+@AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/edje-multiseat-filter.Po@am__quote@
+@AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/edje-multiseat.Po@am__quote@
 @AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/edje-multisense.Po@am__quote@
 @AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/edje-perspective.Po@am__quote@
 @AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/edje-signals-messages.Po@am__quote@
@@ -2495,12 +2628,17 @@ uninstall-am: uninstall-local uninstall-nodist_pkgdataDATA
 	$(AM_V_EDJ)$(EDJE_CC) $(EDJE_CC_FLAGS) $(SND_DIR) $(MO_DIR) $< $(builddir)/$(@F)
 
 text.edj: text.edc
-	@cp -ua $(top_srcdir)/src/examples/edje/en_IN/ $(top_builddir)/src/examples/edje/ || true
-	@cp -ua $(top_srcdir)/src/examples/edje/hi_IN/ $(top_builddir)/src/examples/edje/ || true
-	@cp -ua $(top_srcdir)/src/examples/edje/ta_IN/ $(top_builddir)/src/examples/edje/ || true
-	@chmod -R +w $(top_builddir)/src/examples/edje/en_IN/ || true
-	@chmod -R +w $(top_builddir)/src/examples/edje/hi_IN/ || true
-	@chmod -R +w $(top_builddir)/src/examples/edje/ta_IN/ || true
+	@if [ "x$(top_builddir)" != "x$(top_srcdir)" ]; then \
+	  rm -rf $(top_builddir)/src/examples/edje/en_IN/; \
+	  rm -rf $(top_builddir)/src/examples/edje/hi_IN/; \
+	  rm -rf $(top_builddir)/src/examples/edje/ta_IN/; \
+	  cp -a $(top_srcdir)/src/examples/edje/en_IN/ $(top_builddir)/src/examples/edje/en_IN/; \
+	  cp -a $(top_srcdir)/src/examples/edje/hi_IN/ $(top_builddir)/src/examples/edje/hi_IN/; \
+	  cp -a $(top_srcdir)/src/examples/edje/ta_IN/ $(top_builddir)/src/examples/edje/ta_IN/; \
+	  chmod -R +w $(top_builddir)/src/examples/edje/en_IN/; \
+	  chmod -R +w $(top_builddir)/src/examples/edje/hi_IN/; \
+	  chmod -R +w $(top_builddir)/src/examples/edje/ta_IN/; \
+        fi
 	$(AM_V_EDJ)$(EDJE_CC) $(EDJE_CC_FLAGS) $(SND_DIR) $(MO_DIR) $(top_srcdir)/src/examples/edje/text.edc $(top_builddir)/src/examples/edje/text.edj
 
 codegen_example_generated.c codegen_example_generated.h: codegen.edj

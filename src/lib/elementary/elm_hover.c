@@ -139,7 +139,7 @@ _elm_hover_left_space_calc(Elm_Hover_Data *sd,
    if (sd->parent)
      {
         evas_object_geometry_get(sd->parent, &x, &y, &w, &h);
-        if (eo_isa(sd->parent, EFL_UI_WIN_CLASS))
+        if (efl_isa(sd->parent, EFL_UI_WIN_CLASS))
           {
              x = 0;
              y = 0;
@@ -246,7 +246,7 @@ _elm_hover_smt_sub_re_eval(Evas_Object *obj)
    sd->smt_sub->obj = sub;
 
    if (sd->smt_sub != prev)
-     eo_event_callback_call
+     efl_event_callback_legacy_call
        (obj, ELM_HOVER_EVENT_SMART_CHANGED, (void *)sd->smt_sub->swallow);
 
    if (elm_widget_mirrored_get(obj))
@@ -294,7 +294,7 @@ EOLIAN static Elm_Theme_Apply
 _elm_hover_elm_widget_theme_apply(Eo *obj, Elm_Hover_Data *sd)
 {
    Elm_Theme_Apply int_ret = ELM_THEME_APPLY_FAILED;
-   int_ret = elm_obj_widget_theme_apply(eo_super(obj, MY_CLASS));
+   int_ret = elm_obj_widget_theme_apply(efl_super(obj, MY_CLASS));
    if (!int_ret) return ELM_THEME_APPLY_FAILED;
 
    if (sd->smt_sub) _elm_hover_smt_sub_re_eval(obj);
@@ -318,16 +318,24 @@ _elm_hover_elm_layout_sizing_eval(Eo *obj, Elm_Hover_Data *sd)
    if (sd->parent)
      {
         evas_object_geometry_get(sd->parent, &x, &y, &w, &h);
-        if (eo_isa(sd->parent, EFL_UI_WIN_CLASS))
+        if (efl_isa(sd->parent, EFL_UI_WIN_CLASS))
           {
-             x = 0;
-             y = 0;
+             if (efl_canvas_object_is_frame_object_get(obj))
+               efl_gfx_position_get(obj, &x, &y);
+             else
+               {
+                  x = 0;
+                  y = 0;
+               }
           }
      }
    evas_object_geometry_get(obj, &x2, &y2, &w2, &h2);
 
    if (elm_widget_mirrored_get(obj)) ofs_x = w - (x2 - x) - w2;
    else ofs_x = x2 - x;
+
+   if (y < 0)
+     h += (-y);
 
    ELM_WIDGET_DATA_GET_OR_RETURN(obj, wd);
    evas_object_size_hint_min_set(sd->offset, ofs_x, y2 - y);
@@ -352,7 +360,7 @@ _elm_hover_elm_widget_sub_object_add(Eo *obj, Elm_Hover_Data *sd, Evas_Object *s
 
    if (evas_object_data_get(sobj, "elm-parent") == obj) return EINA_TRUE;
 
-   int_ret = elm_obj_widget_sub_object_add(eo_super(obj, MY_CLASS), sobj);
+   int_ret = elm_obj_widget_sub_object_add(efl_super(obj, MY_CLASS), sobj);
    if (!int_ret) return EINA_FALSE;
 
    if (sd->smt_sub && sd->smt_sub->obj == sobj)
@@ -367,7 +375,7 @@ _elm_hover_elm_widget_sub_object_del(Eo *obj, Elm_Hover_Data *sd, Evas_Object *s
 {
    Eina_Bool int_ret = EINA_FALSE;
 
-   int_ret = elm_obj_widget_sub_object_del(eo_super(obj, MY_CLASS), sobj);
+   int_ret = elm_obj_widget_sub_object_del(efl_super(obj, MY_CLASS), sobj);
    if (!int_ret) return EINA_FALSE;
 
    if (sd->smt_sub && sd->smt_sub->obj == sobj)
@@ -438,7 +446,7 @@ _elm_hover_content_set(Eo *obj, Elm_Hover_Data *sd, const char *swallow, Evas_Ob
           }
      }
 
-   int_ret = efl_content_set(efl_part(eo_super(obj, MY_CLASS), swallow), content);
+   int_ret = efl_content_set(efl_part(efl_super(obj, MY_CLASS), swallow), content);
    if (!int_ret) return EINA_FALSE;
 
    if (strstr(swallow, "elm.swallow.slot."))
@@ -464,9 +472,9 @@ _elm_hover_content_get(Eo *obj, Elm_Hover_Data *sd, const char *swallow)
    if (!swallow) return NULL;
 
    if (!strcmp(swallow, "smart"))
-     return efl_content_get(efl_part(eo_super(obj, MY_CLASS), sd->smt_sub->swallow));
+     return efl_content_get(efl_part(efl_super(obj, MY_CLASS), sd->smt_sub->swallow));
    else
-     return efl_content_get(efl_part(eo_super(obj, MY_CLASS), swallow));
+     return efl_content_get(efl_part(efl_super(obj, MY_CLASS), swallow));
 }
 
 static Evas_Object*
@@ -475,9 +483,9 @@ _elm_hover_content_unset(Eo *obj, Elm_Hover_Data *sd, const char *swallow)
    if (!swallow) return NULL;
 
    if (!strcmp(swallow, "smart"))
-     return efl_content_unset(efl_part(eo_super(obj, MY_CLASS), sd->smt_sub->swallow));
+     return efl_content_unset(efl_part(efl_super(obj, MY_CLASS), sd->smt_sub->swallow));
    else
-     return efl_content_unset(efl_part(eo_super(obj, MY_CLASS), swallow));
+     return efl_content_unset(efl_part(efl_super(obj, MY_CLASS), swallow));
 }
 
 static void
@@ -534,7 +542,7 @@ _hov_hide_cb(void *data,
    if (dismissstr && !strcmp(dismissstr, "on"))
      {
         evas_object_hide(data);
-        eo_event_callback_call(data, ELM_HOVER_EVENT_DISMISSED, NULL);
+        efl_event_callback_legacy_call(data, ELM_HOVER_EVENT_DISMISSED, NULL);
      }
 }
 
@@ -551,22 +559,22 @@ _hov_dismiss_cb(void *data,
    if (dismissstr && !strcmp(dismissstr, "on"))
      {
         _hide_signals_emit(data);
-        eo_event_callback_call
+        efl_event_callback_legacy_call
           (data, EFL_UI_EVENT_CLICKED, NULL);
      }
    else
      {
         evas_object_hide(data);
-        eo_event_callback_call
+        efl_event_callback_legacy_call
           (data, EFL_UI_EVENT_CLICKED, NULL);
-        eo_event_callback_call(data, ELM_HOVER_EVENT_DISMISSED, NULL);
+        efl_event_callback_legacy_call(data, ELM_HOVER_EVENT_DISMISSED, NULL);
      } // for backward compatibility
 }
 
 EOLIAN static void
 _elm_hover_efl_canvas_group_group_add(Eo *obj, Elm_Hover_Data *sd)
 {
-   efl_canvas_group_add(eo_super(obj, MY_CLASS));
+   efl_canvas_group_add(efl_super(obj, MY_CLASS));
    elm_widget_sub_object_parent_add(obj);
 
    ELM_HOVER_PARTS_FOREACH
@@ -602,9 +610,9 @@ _elm_hover_efl_canvas_group_group_del(Eo *obj, Elm_Hover_Data *sd)
 
    if (evas_object_visible_get(obj))
      {
-        eo_event_callback_call
+        efl_event_callback_legacy_call
           (obj, EFL_UI_EVENT_CLICKED, NULL);
-        eo_event_callback_call(obj, ELM_HOVER_EVENT_DISMISSED, NULL);
+        efl_event_callback_legacy_call(obj, ELM_HOVER_EVENT_DISMISSED, NULL);
      }
 
    elm_hover_target_set(obj, NULL);
@@ -612,45 +620,48 @@ _elm_hover_efl_canvas_group_group_del(Eo *obj, Elm_Hover_Data *sd)
    _elm_hover_parent_detach(obj);
    sd->parent = NULL;
 
-   efl_canvas_group_del(eo_super(obj, MY_CLASS));
+   efl_canvas_group_del(efl_super(obj, MY_CLASS));
 }
 
 EOLIAN static void
-_elm_hover_efl_canvas_group_group_move(Eo *obj, Elm_Hover_Data *_pd EINA_UNUSED, Evas_Coord x, Evas_Coord y)
+_elm_hover_efl_gfx_position_set(Eo *obj, Elm_Hover_Data *_pd EINA_UNUSED, Evas_Coord x, Evas_Coord y)
 {
-   efl_canvas_group_move(eo_super(obj, MY_CLASS), x, y);
+   if (_evas_object_intercept_call(obj, EVAS_OBJECT_INTERCEPT_CB_MOVE, 0, x, y))
+     return;
+
+   efl_gfx_position_set(efl_super(obj, MY_CLASS), x, y);
 
    elm_layout_sizing_eval(obj);
 }
 
 EOLIAN static void
-_elm_hover_efl_canvas_group_group_resize(Eo *obj, Elm_Hover_Data *_pd EINA_UNUSED, Evas_Coord w, Evas_Coord h)
+_elm_hover_efl_gfx_size_set(Eo *obj, Elm_Hover_Data *_pd EINA_UNUSED, Evas_Coord w, Evas_Coord h)
 {
-   efl_canvas_group_resize(eo_super(obj, MY_CLASS), w, h);
+   if (_evas_object_intercept_call(obj, EVAS_OBJECT_INTERCEPT_CB_RESIZE, 0, w, h))
+     return;
+
+   efl_gfx_size_set(efl_super(obj, MY_CLASS), w, h);
 
    elm_layout_sizing_eval(obj);
 }
 
 EOLIAN static void
-_elm_hover_efl_canvas_group_group_show(Eo *obj, Elm_Hover_Data *_pd EINA_UNUSED)
+_elm_hover_efl_gfx_visible_set(Eo *obj, Elm_Hover_Data *_pd EINA_UNUSED, Eina_Bool vis)
 {
-   efl_canvas_group_show(eo_super(obj, MY_CLASS));
+   if (_evas_object_intercept_call(obj, EVAS_OBJECT_INTERCEPT_CB_VISIBLE, 0, vis))
+     return;
 
-   _hov_show_do(obj);
-}
+   efl_gfx_visible_set(efl_super(obj, MY_CLASS), vis);
 
-EOLIAN static void
-_elm_hover_efl_canvas_group_group_hide(Eo *obj, Elm_Hover_Data *_pd EINA_UNUSED)
-{
-   const char *dismissstr;
+   if (vis) _hov_show_do(obj);
+   else
+     {
+        // for backward compatibility
+        const char *dismissstr = elm_layout_data_get(obj, "dismiss");
 
-   efl_canvas_group_hide(eo_super(obj, MY_CLASS));
-
-   // for backward compatibility
-   dismissstr = elm_layout_data_get(obj, "dismiss");
-
-   if (!dismissstr || strcmp(dismissstr, "on"))
-     _hide_signals_emit(obj);
+        if (!eina_streq(dismissstr, "on"))
+          _hide_signals_emit(obj);
+     }
 }
 
 EOLIAN static const Elm_Layout_Part_Alias_Description*
@@ -663,14 +674,14 @@ EAPI Evas_Object *
 elm_hover_add(Evas_Object *parent)
 {
    EINA_SAFETY_ON_NULL_RETURN_VAL(parent, NULL);
-   Evas_Object *obj = eo_add(MY_CLASS, parent);
+   Evas_Object *obj = efl_add(MY_CLASS, parent);
    return obj;
 }
 
 EOLIAN static Eo *
-_elm_hover_eo_base_constructor(Eo *obj, Elm_Hover_Data *_pd EINA_UNUSED)
+_elm_hover_efl_object_constructor(Eo *obj, Elm_Hover_Data *_pd EINA_UNUSED)
 {
-   obj = eo_constructor(eo_super(obj, MY_CLASS));
+   obj = efl_constructor(efl_super(obj, MY_CLASS));
    efl_canvas_object_type_set(obj, MY_CLASS_NAME_LEGACY);
    evas_object_smart_callbacks_descriptions_set(obj, _smart_callbacks);
    elm_interface_atspi_accessible_role_set(obj, ELM_ATSPI_ROLE_POPUP_MENU);
@@ -688,6 +699,8 @@ _elm_hover_target_set(Eo *obj, Elm_Hover_Data *sd, Evas_Object *target)
           (sd->target, EVAS_CALLBACK_DEL, _target_del_cb, obj);
         evas_object_event_callback_del_full
           (sd->target, EVAS_CALLBACK_MOVE, _target_move_cb, obj);
+        evas_object_event_callback_del_full
+          (sd->target, EVAS_CALLBACK_RESIZE, _target_move_cb, obj);
         elm_widget_hover_object_set(sd->target, NULL);
      }
 
@@ -698,6 +711,8 @@ _elm_hover_target_set(Eo *obj, Elm_Hover_Data *sd, Evas_Object *target)
           (sd->target, EVAS_CALLBACK_DEL, _target_del_cb, obj);
         evas_object_event_callback_add
           (sd->target, EVAS_CALLBACK_MOVE, _target_move_cb, obj);
+        evas_object_event_callback_add
+          (sd->target, EVAS_CALLBACK_RESIZE, _target_move_cb, obj);
         elm_widget_hover_object_set(target, obj);
         elm_layout_sizing_eval(obj);
      }
@@ -817,7 +832,7 @@ _elm_hover_elm_widget_focus_direction_manager_is(Eo *obj EINA_UNUSED, Elm_Hover_
 
 
 EOLIAN static void
-_elm_hover_class_constructor(Eo_Class *klass)
+_elm_hover_class_constructor(Efl_Class *klass)
 {
    evas_smart_legacy_type_register(MY_CLASS_NAME_LEGACY, klass);
 }

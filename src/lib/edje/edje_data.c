@@ -17,6 +17,7 @@ Eet_Data_Descriptor *_edje_edd_edje_image_directory = NULL;
 Eet_Data_Descriptor *_edje_edd_edje_image_directory_entry = NULL;
 Eet_Data_Descriptor *_edje_edd_edje_image_directory_set = NULL;
 Eet_Data_Descriptor *_edje_edd_edje_image_directory_set_entry = NULL;
+Eet_Data_Descriptor *_edje_edd_edje_vector_directory_entry = NULL;
 Eet_Data_Descriptor *_edje_edd_edje_model_directory = NULL;
 Eet_Data_Descriptor *_edje_edd_edje_model_directory_entry = NULL;
 Eet_Data_Descriptor *_edje_edd_edje_limit = NULL;
@@ -37,6 +38,8 @@ Eet_Data_Descriptor *_edje_edd_edje_pack_element = NULL;
 Eet_Data_Descriptor *_edje_edd_edje_pack_element_pointer = NULL;
 Eet_Data_Descriptor *_edje_edd_edje_part = NULL;
 Eet_Data_Descriptor *_edje_edd_edje_part_pointer = NULL;
+Eet_Data_Descriptor *_edje_edd_edje_part_allowed_seat = NULL;
+Eet_Data_Descriptor *_edje_edd_edje_part_allowed_seat_pointer = NULL;
 Eet_Data_Descriptor *_edje_edd_edje_part_description_variant = NULL;
 Eet_Data_Descriptor *_edje_edd_edje_part_description_rectangle = NULL;
 Eet_Data_Descriptor *_edje_edd_edje_part_description_snapshot = NULL;
@@ -636,6 +639,9 @@ _edje_description_variant_type_set(const char *type, void *data, Eina_Bool unkno
    return EINA_FALSE;
 }
 
+size_t  _edje_data_string_mapping_size = 0;
+void   *_edje_data_string_mapping = NULL;
+
 static Eina_Hash *
 _edje_eina_hash_add_alloc(Eina_Hash *hash,
                           const char *key,
@@ -647,7 +653,13 @@ _edje_eina_hash_add_alloc(Eina_Hash *hash,
    if (!hash)
      return NULL;
 
-   eina_hash_add(hash, key, data);
+   // XXX: ancient edje file workaround
+   if ((_edje_data_string_mapping) &&
+       ((key >=  (char *)_edje_data_string_mapping) &&
+        (key <  ((char *)_edje_data_string_mapping + _edje_data_string_mapping_size))))
+     eina_hash_direct_add(hash, key, data);
+   else
+     eina_hash_add(hash, key, data);
    return hash;
 }
 
@@ -668,6 +680,7 @@ _edje_edd_shutdown(void)
    FREED(_edje_edd_edje_image_directory_entry);
    FREED(_edje_edd_edje_image_directory_set);
    FREED(_edje_edd_edje_image_directory_set_entry);
+   FREED(_edje_edd_edje_vector_directory_entry);
    FREED(_edje_edd_edje_model_directory);
    FREED(_edje_edd_edje_model_directory_entry);
    FREED(_edje_edd_edje_limit);
@@ -690,6 +703,8 @@ _edje_edd_shutdown(void)
    FREED(_edje_edd_edje_pack_element_pointer);
    FREED(_edje_edd_edje_part);
    FREED(_edje_edd_edje_part_pointer);
+   FREED(_edje_edd_edje_part_allowed_seat);
+   FREED(_edje_edd_edje_part_allowed_seat_pointer);
    FREED(_edje_edd_edje_part_description_variant);
    FREED(_edje_edd_edje_part_description_rectangle);
    FREED(_edje_edd_edje_part_description_snapshot);
@@ -814,11 +829,19 @@ _edje_edd_init(void)
    EET_DATA_DESCRIPTOR_ADD_BASIC(_edje_edd_edje_image_directory_set, Edje_Image_Directory_Set, "id", id, EET_T_INT);
    EET_DATA_DESCRIPTOR_ADD_LIST(_edje_edd_edje_image_directory_set, Edje_Image_Directory_Set, "entries", entries, _edje_edd_edje_image_directory_set_entry);
 
+   /* vector directory */
+   EET_EINA_FILE_DATA_DESCRIPTOR_CLASS_SET(&eddc, Edje_Vector_Directory_Entry);
+   _edje_edd_edje_vector_directory_entry =
+     eet_data_descriptor_file_new(&eddc);
+   EET_DATA_DESCRIPTOR_ADD_BASIC(_edje_edd_edje_vector_directory_entry, Edje_Vector_Directory_Entry, "entry", entry, EET_T_STRING);
+   EET_DATA_DESCRIPTOR_ADD_BASIC(_edje_edd_edje_vector_directory_entry, Edje_Vector_Directory_Entry, "id", id, EET_T_INT);
+
    EET_EINA_FILE_DATA_DESCRIPTOR_CLASS_SET(&eddc, Edje_Image_Directory);
    _edje_edd_edje_image_directory =
      eet_data_descriptor_file_new(&eddc);
    EET_DATA_DESCRIPTOR_ADD_VAR_ARRAY(_edje_edd_edje_image_directory, Edje_Image_Directory, "entries", entries, _edje_edd_edje_image_directory_entry);
    EET_DATA_DESCRIPTOR_ADD_VAR_ARRAY(_edje_edd_edje_image_directory, Edje_Image_Directory, "sets", sets, _edje_edd_edje_image_directory_set);
+   EET_DATA_DESCRIPTOR_ADD_VAR_ARRAY(_edje_edd_edje_image_directory, Edje_Image_Directory, "vectors", vectors, _edje_edd_edje_vector_directory_entry);
 
    /*MO*/
 
@@ -946,6 +969,11 @@ _edje_edd_init(void)
    EET_DATA_DESCRIPTOR_ADD_BASIC(_edje_edd_edje_style_tag, Edje_Style_Tag, "key", key, EET_T_STRING);
    EET_DATA_DESCRIPTOR_ADD_BASIC(_edje_edd_edje_style_tag, Edje_Style_Tag, "value", value, EET_T_STRING);
 
+   EET_EINA_FILE_DATA_DESCRIPTOR_CLASS_SET(&eddc, Edje_Part_Allowed_Seat);
+   _edje_edd_edje_part_allowed_seat =
+     eet_data_descriptor_file_new(&eddc);
+   EET_DATA_DESCRIPTOR_ADD_BASIC(_edje_edd_edje_part_allowed_seat, Edje_Part_Allowed_Seat, "name", name, EET_T_STRING);
+
    EET_EINA_FILE_DATA_DESCRIPTOR_CLASS_SET(&eddc, Edje_Style);
    _edje_edd_edje_style =
      eet_data_descriptor_file_new(&eddc);
@@ -1062,6 +1090,8 @@ _edje_edd_init(void)
    EET_DATA_DESCRIPTOR_ADD_BASIC(_edje_edd_edje_program, Edje_Program, "vibration_name", vibration_name, EET_T_STRING);
    EET_DATA_DESCRIPTOR_ADD_BASIC(_edje_edd_edje_program, Edje_Program, "vibration_repeat", vibration_repeat, EET_T_INT);
 
+   EET_DATA_DESCRIPTOR_ADD_BASIC(_edje_edd_edje_program, Edje_Program, "seat", seat, EET_T_STRING);
+
    EET_DATA_DESCRIPTOR_ADD_BASIC(_edje_edd_edje_program, Edje_Program, "state", state, EET_T_STRING);
    EET_DATA_DESCRIPTOR_ADD_BASIC(_edje_edd_edje_program, Edje_Program, "state2", state2, EET_T_STRING);
    EET_DATA_DESCRIPTOR_ADD_BASIC(_edje_edd_edje_program, Edje_Program, "value", value, EET_T_DOUBLE);
@@ -1128,6 +1158,7 @@ _edje_edd_init(void)
   EET_DATA_DESCRIPTOR_ADD_BASIC(Edd, Type, "state.name", state.name, EET_T_STRING);                            \
   EET_DATA_DESCRIPTOR_ADD_BASIC(Edd, Type, "state.value", state.value, EET_T_DOUBLE);                          \
   EET_DATA_DESCRIPTOR_ADD_BASIC(Edd, Type, "visible", visible, EET_T_CHAR);                                    \
+  EET_DATA_DESCRIPTOR_ADD_BASIC(Edd, Type, "no_render", no_render, EET_T_UCHAR);                               \
   EET_DATA_DESCRIPTOR_ADD_BASIC(Edd, Type, "limit", limit, EET_T_CHAR);                                        \
   EET_DATA_DESCRIPTOR_ADD_BASIC(Edd, Type, "align.x", align.x, EDJE_T_FLOAT);                                  \
   EET_DATA_DESCRIPTOR_ADD_BASIC(Edd, Type, "align.y", align.y, EDJE_T_FLOAT);                                  \
@@ -1253,6 +1284,7 @@ _edje_edd_init(void)
   EET_DATA_DESCRIPTOR_ADD_BASIC(Edd, Type, "rel2.id_x", Dec.rel2.id_x, EET_T_INT);                                 \
   EET_DATA_DESCRIPTOR_ADD_BASIC(Edd, Type, "rel2.id_y", Dec.rel2.id_y, EET_T_INT);                                 \
   EET_DATA_DESCRIPTOR_ADD_BASIC(Edd, Type, "clip_to_id", Dec.clip_to_id, EET_T_INT);                               \
+  EET_DATA_DESCRIPTOR_ADD_BASIC(Edd, Type, "no_render", Dec.no_render, EET_T_UCHAR);                               \
   EET_DATA_DESCRIPTOR_ADD_BASIC(Edd, Type, "size_class", Dec.size_class, EET_T_STRING);                            \
   EET_DATA_DESCRIPTOR_ADD_BASIC(Edd, Type, "color_class", Dec.color_class, EET_T_STRING);                          \
   EET_DATA_DESCRIPTOR_ADD_BASIC(Edd, Type, "color.r", Dec.color.r, EET_T_UCHAR);                                   \
@@ -1474,8 +1506,6 @@ _edje_edd_init(void)
    EET_DATA_DESCRIPTOR_ADD_BASIC(_edje_edd_edje_part_description_image, Edje_Part_Description_Image, "image.fill.pos_abs_y", image.fill.pos_abs_y, EET_T_INT);
    EET_DATA_DESCRIPTOR_ADD_BASIC(_edje_edd_edje_part_description_image, Edje_Part_Description_Image, "image.fill.rel_y", image.fill.rel_y, EDJE_T_FLOAT);
    EET_DATA_DESCRIPTOR_ADD_BASIC(_edje_edd_edje_part_description_image, Edje_Part_Description_Image, "image.fill.abs_y", image.fill.abs_y, EET_T_INT);
-   EET_DATA_DESCRIPTOR_ADD_BASIC(_edje_edd_edje_part_description_image, Edje_Part_Description_Image, "image.fill.angle", image.fill.angle, EET_T_INT);
-   EET_DATA_DESCRIPTOR_ADD_BASIC(_edje_edd_edje_part_description_image, Edje_Part_Description_Image, "image.fill.spread", image.fill.spread, EET_T_INT);
    EET_DATA_DESCRIPTOR_ADD_BASIC(_edje_edd_edje_part_description_image, Edje_Part_Description_Image, "image.fill.type", image.fill.type, EET_T_CHAR);
    EET_DATA_DESCRIPTOR_ADD_BASIC(_edje_edd_edje_part_description_image, Edje_Part_Description_Image, "image.filter.code", filter.code, EET_T_STRING);
    EET_DATA_DESCRIPTOR_ADD_LIST_STRING(_edje_edd_edje_part_description_image, Edje_Part_Description_Image, "image.filter.sources", filter.sources); // @since 1.15
@@ -1498,8 +1528,6 @@ _edje_edd_init(void)
    EET_DATA_DESCRIPTOR_ADD_BASIC(_edje_edd_edje_part_description_proxy, Edje_Part_Description_Proxy, "proxy.fill.pos_abs_y", proxy.fill.pos_abs_y, EET_T_INT);
    EET_DATA_DESCRIPTOR_ADD_BASIC(_edje_edd_edje_part_description_proxy, Edje_Part_Description_Proxy, "proxy.fill.rel_y", proxy.fill.rel_y, EDJE_T_FLOAT);
    EET_DATA_DESCRIPTOR_ADD_BASIC(_edje_edd_edje_part_description_proxy, Edje_Part_Description_Proxy, "proxy.fill.abs_y", proxy.fill.abs_y, EET_T_INT);
-   EET_DATA_DESCRIPTOR_ADD_BASIC(_edje_edd_edje_part_description_proxy, Edje_Part_Description_Proxy, "proxy.fill.angle", proxy.fill.angle, EET_T_INT);
-   EET_DATA_DESCRIPTOR_ADD_BASIC(_edje_edd_edje_part_description_proxy, Edje_Part_Description_Proxy, "proxy.fill.spread", proxy.fill.spread, EET_T_INT);
    EET_DATA_DESCRIPTOR_ADD_BASIC(_edje_edd_edje_part_description_proxy, Edje_Part_Description_Proxy, "proxy.fill.type", proxy.fill.type, EET_T_CHAR);
    EET_DATA_DESCRIPTOR_ADD_BASIC(_edje_edd_edje_part_description_proxy, Edje_Part_Description_Proxy, "proxy.source_visible", proxy.source_visible, EET_T_CHAR);
    EET_DATA_DESCRIPTOR_ADD_BASIC(_edje_edd_edje_part_description_proxy, Edje_Part_Description_Proxy, "proxy.source_clip", proxy.source_clip, EET_T_CHAR);
@@ -1766,6 +1794,10 @@ _edje_edd_init(void)
    EET_DATA_DESCRIPTOR_ADD_BASIC(_edje_edd_edje_part, Edje_Part, "nested_children_count", nested_children_count, EET_T_UCHAR);
    EET_DATA_DESCRIPTOR_ADD_BASIC(_edje_edd_edje_part, Edje_Part, "required", required, EET_T_UCHAR);
 
+   EDJE_DEFINE_POINTER_TYPE(Part_Allowed_Seat, part_allowed_seat);
+   EET_DATA_DESCRIPTOR_ADD_VAR_ARRAY(_edje_edd_edje_part, Edje_Part, "allowed_seats", allowed_seats, _edje_edd_edje_part_allowed_seat_pointer);
+
+
    EET_EINA_FILE_DATA_DESCRIPTOR_CLASS_SET(&eddc, Edje_Part_Limit);
    _edje_edd_edje_part_limit = eet_data_descriptor_file_new(&eddc);
 
@@ -1814,6 +1846,7 @@ _edje_edd_init(void)
 #endif
    EET_DATA_DESCRIPTOR_ADD_BASIC(_edje_edd_edje_part_collection, Edje_Part_Collection, "physics_enabled", physics_enabled, EET_T_UCHAR);
    EET_DATA_DESCRIPTOR_ADD_BASIC(_edje_edd_edje_part_collection, Edje_Part_Collection, "script_recursion", script_recursion, EET_T_UCHAR);
+   EET_DATA_DESCRIPTOR_ADD_BASIC(_edje_edd_edje_part_collection, Edje_Part_Collection, "use_custom_seat_names", use_custom_seat_names, EET_T_UCHAR);
 }
 
 EAPI void

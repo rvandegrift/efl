@@ -1,9 +1,9 @@
 class Elm.Popup.Internal.Part (Elm.Layout.Internal.Part)
 {
+   [[Elementary popup internal part class]]
    data: null;
    implements {
-      Efl.Container.content.set;
-      Efl.Container.content.get;
+      Efl.Container.content { get; set; }
       Efl.Container.content_unset;
    }
 }

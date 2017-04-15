@@ -1,4 +1,4 @@
-class Efl.Vpath.File (Eo.Base)
+class Efl.Vpath.File (Efl.Object)
 {
    [[ VPath File is an actual representation of a downloaded/mapped vpath file
 
@@ -30,6 +30,14 @@ class Efl.Vpath.File (Eo.Base)
          get {}
          values {
              path: string; [[ The resulting destination file ]]
+         }
+      }
+      @property keep {
+         [[ If this object has to be kept for the usage of the result ]]
+         set {}
+         get {}
+         values {
+             keep: bool; [[ If the object neerds tobe kept around ]]
          }
       }
       do {

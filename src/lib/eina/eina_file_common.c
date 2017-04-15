@@ -60,6 +60,23 @@
 Eina_Hash *_eina_file_cache = NULL;
 Eina_Lock _eina_file_lock_cache;
 
+#if defined(EINA_SAFETY_CHECKS) && defined(EINA_MAGIC_DEBUG)
+# define EINA_FILE_MAGIC_CHECK(f, ...) do { \
+   if (EINA_UNLIKELY((f) == NULL)) \
+     { \
+       EINA_SAFETY_ERROR("safety check failed: " # f " == NULL"); \
+       return __VA_ARGS__; \
+     } \
+   if (EINA_UNLIKELY((f)->__magic != EINA_FILE_MAGIC)) \
+     { \
+        EINA_MAGIC_FAIL(f, EINA_FILE_MAGIC); \
+        return __VA_ARGS__; \
+     } \
+   } while (0)
+#else
+# define EINA_FILE_MAGIC_CHECK(f, ...) do {} while(0)
+#endif
+
 static char *
 _eina_file_escape(char *path, size_t len)
 {
@@ -402,6 +419,7 @@ eina_file_virtualize(const char *virtual_name, const void *data, unsigned long l
    if (!file) return NULL;
 
    memset(file, 0, sizeof(Eina_File));
+   EINA_MAGIC_SET(file, EINA_FILE_MAGIC);
    file->filename = (char*) (file + 1);
    if (virtual_name)
      strcpy((char*) file->filename, virtual_name);
@@ -418,8 +436,7 @@ eina_file_virtualize(const char *virtual_name, const void *data, unsigned long l
 #ifndef _WIN32
    file->fd = -1;
 #else
-   file->handle = NULL;
-   file->fm = NULL;
+   file->handle = INVALID_HANDLE_VALUE;
 #endif
    file->virtual = EINA_TRUE;
    file->map = eina_hash_new(EINA_KEY_LENGTH(eina_file_map_key_length),
@@ -446,8 +463,9 @@ eina_file_virtualize(const char *virtual_name, const void *data, unsigned long l
 EAPI Eina_Bool
 eina_file_virtual(Eina_File *file)
 {
-   if (file) return file->virtual;
-   return EINA_FALSE;
+   if (!file) return EINA_FALSE;
+   EINA_FILE_MAGIC_CHECK(file, EINA_FALSE);
+   return file->virtual;
 }
 
 EAPI Eina_File *
@@ -457,7 +475,21 @@ eina_file_dup(const Eina_File *f)
 
    if (file)
      {
+        EINA_FILE_MAGIC_CHECK(f, NULL);
         eina_lock_take(&file->lock);
+        if (file->virtual)
+          {
+             // For ease of use and safety of the API, if you dup a virtualized file, we prefer to make a copy
+             if (file->global_map != (void*)(file->filename + strlen(file->filename) + 1))
+               {
+                  Eina_File *r;
+
+                  r = eina_file_virtualize(file->filename, file->global_map, file->length, EINA_TRUE);
+                  eina_lock_release(&file->lock);
+
+                  return r;
+               }
+          }
         file->refcount++;
         eina_lock_release(&file->lock);
      }
@@ -486,7 +518,7 @@ eina_file_close(Eina_File *file)
    unsigned int length;
    unsigned int key;
 
-   EINA_SAFETY_ON_NULL_RETURN(file);
+   EINA_FILE_MAGIC_CHECK(file);
 
    eina_lock_take(&_eina_file_lock_cache);
 
@@ -513,21 +545,21 @@ eina_file_close(Eina_File *file)
 EAPI size_t
 eina_file_size_get(const Eina_File *file)
 {
-   EINA_SAFETY_ON_NULL_RETURN_VAL(file, 0);
+   EINA_FILE_MAGIC_CHECK(file, 0);
    return file->length;
 }
 
 EAPI time_t
 eina_file_mtime_get(const Eina_File *file)
 {
-   EINA_SAFETY_ON_NULL_RETURN_VAL(file, 0);
+   EINA_FILE_MAGIC_CHECK(file, 0);
    return file->mtime;
 }
 
 EAPI const char *
 eina_file_filename_get(const Eina_File *file)
 {
-   EINA_SAFETY_ON_NULL_RETURN_VAL(file, NULL);
+   EINA_FILE_MAGIC_CHECK(file, NULL);
    return file->filename;
 }
 
@@ -622,7 +654,7 @@ eina_file_map_lines(Eina_File *file)
 {
    Eina_Lines_Iterator *it;
 
-   EINA_SAFETY_ON_NULL_RETURN_VAL(file, NULL);
+   EINA_FILE_MAGIC_CHECK(file, NULL);
 
    if (file->length == 0) return NULL;
 
@@ -1032,6 +1064,7 @@ eina_file_init(void)
      }
 
    eina_lock_new(&_eina_file_lock_cache);
+   eina_magic_string_set(EINA_FILE_MAGIC, "Eina_File");
 
    return EINA_TRUE;
 }
@@ -1054,6 +1087,7 @@ eina_file_shutdown(void)
      }
 
    eina_hash_free(_eina_file_cache);
+   _eina_file_cache = NULL;
 
    eina_lock_free(&_eina_file_lock_cache);
 

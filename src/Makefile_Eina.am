@@ -93,13 +93,19 @@ lib/eina/eina_crc.h \
 lib/eina/eina_inline_crc.x \
 lib/eina/eina_evlog.h \
 lib/eina/eina_util.h \
+lib/eina/eina_inline_util.x \
 lib/eina/eina_quaternion.h \
 lib/eina/eina_vector.h \
 lib/eina/eina_inline_vector.x \
-lib/eina/eina_promise.h \
 lib/eina/eina_bezier.h \
 lib/eina/eina_safepointer.h \
-lib/eina/eina_inline_safepointer.x
+lib/eina/eina_inline_safepointer.x \
+lib/eina/eina_slice.h \
+lib/eina/eina_inline_slice.x \
+lib/eina/eina_inline_modinfo.x \
+lib/eina/eina_freeq.h \
+lib/eina/eina_slstr.h
+
 
 lib_eina_libeina_la_SOURCES = \
 lib/eina/eina_abi.c \
@@ -132,6 +138,7 @@ lib/eina/eina_inlist.c \
 lib/eina/eina_iterator.c \
 lib/eina/eina_lalloc.c \
 lib/eina/eina_list.c \
+lib/eina/eina_lock.c \
 lib/eina/eina_log.c \
 lib/eina/eina_magic.c \
 lib/eina/eina_main.c \
@@ -169,9 +176,11 @@ lib/eina/eina_private.h \
 lib/eina/eina_share_common.h \
 lib/eina/eina_strbuf_common.h \
 lib/eina/eina_quaternion.c \
-lib/eina/eina_promise.c \
 lib/eina/eina_bezier.c \
-lib/eina/eina_safepointer.c
+lib/eina/eina_safepointer.c \
+lib/eina/eina_freeq.c \
+lib/eina/eina_slstr.c
+
 
 if HAVE_WIN32
 lib_eina_libeina_la_SOURCES += lib/eina/eina_file_win32.c
@@ -254,17 +263,29 @@ lib_eina_libeina_la_LDFLAGS = @EFL_LTLIBRARY_FLAGS@
 
 ### Binaries
 
-bin_PROGRAMS += bin/eina/eina_btlog
+bin_PROGRAMS += bin/eina/eina_btlog/eina_btlog
 
-bin_eina_eina_btlog_SOURCES = bin/eina/eina_btlog.c
-bin_eina_eina_btlog_CPPFLAGS =  -I$(top_builddir)/src/lib/efl \
+bin_eina_eina_btlog_eina_btlog_SOURCES = bin/eina/eina_btlog/eina_btlog.c
+bin_eina_eina_btlog_eina_btlog_CPPFLAGS =  -I$(top_builddir)/src/lib/efl \
 -DPACKAGE_BIN_DIR=\"$(bindir)\" \
 -DPACKAGE_LIB_DIR=\"$(libdir)\" \
 -DPACKAGE_DATA_DIR=\"$(datadir)/eina\" \
 @EINA_CFLAGS@
 
-bin_eina_eina_btlog_LDADD = @USE_EINA_LIBS@
-bin_eina_eina_btlog_DEPENDENCIES = @USE_EINA_INTERNAL_LIBS@
+bin_eina_eina_btlog_eina_btlog_LDADD = @USE_EINA_LIBS@
+bin_eina_eina_btlog_eina_btlog_DEPENDENCIES = @USE_EINA_INTERNAL_LIBS@
+
+bin_PROGRAMS += bin/eina/eina_modinfo/eina_modinfo
+
+bin_eina_eina_modinfo_eina_modinfo_SOURCES = bin/eina/eina_modinfo/eina_modinfo.c
+bin_eina_eina_modinfo_eina_modinfo_CPPFLAGS =  -I$(top_builddir)/src/lib/efl \
+-DPACKAGE_BIN_DIR=\"$(bindir)\" \
+-DPACKAGE_LIB_DIR=\"$(libdir)\" \
+-DPACKAGE_DATA_DIR=\"$(datadir)/eina\" \
+@EINA_CFLAGS@
+
+bin_eina_eina_modinfo_eina_modinfo_LDADD = @USE_EINA_LIBS@
+bin_eina_eina_modinfo_eina_modinfo_DEPENDENCIES = @USE_EINA_INTERNAL_LIBS@
 
 ### Script
 
@@ -283,7 +304,6 @@ tests/eina/eina_suite.c \
 tests/eina/eina_suite.h \
 tests/eina/eina_test_abi.c \
 tests/eina/eina_test_fp.c \
-tests/eina/eina_test_stringshare.c \
 tests/eina/eina_test_ustringshare.c \
 tests/eina/eina_test_ustr.c \
 tests/eina/eina_test_binshare.c \
@@ -328,9 +348,11 @@ tests/eina/eina_test_quad.c \
 tests/eina/eina_test_matrix.c \
 tests/eina/eina_test_quaternion.c \
 tests/eina/eina_test_vector.c \
-tests/eina/eina_test_promise.c \
 tests/eina/eina_test_bezier.c \
-tests/eina/eina_test_safepointer.c
+tests/eina/eina_test_safepointer.c \
+tests/eina/eina_test_slice.c \
+tests/eina/eina_test_freeq.c \
+tests/eina/eina_test_slstr.c
 
 tests_eina_eina_suite_CPPFLAGS = -I$(top_builddir)/src/lib/efl \
 -DTESTS_WD=\"`pwd`\" \
@@ -366,5 +388,8 @@ lib/eina/eina_strbuf_template_c.x \
 lib/eina/eina_binbuf_template_c.x \
 lib/eina/eina_inline_private.h \
 tests/eina/sample.gpx \
+tests/eina/eina_suite.x \
 lib/eina/eina_config.h.in \
+tests/eina/eina_test_stringshare.c \
+tests/eina/eina_test_util.c \
 $(bin_SCRIPTS)

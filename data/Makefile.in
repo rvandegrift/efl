@@ -98,8 +98,8 @@ am__aclocal_m4_deps = $(top_srcdir)/m4/ac_define_if.m4 \
 	$(top_srcdir)/m4/efl_check_funcs.m4 \
 	$(top_srcdir)/m4/efl_check_libs.m4 \
 	$(top_srcdir)/m4/efl_compiler.m4 \
-	$(top_srcdir)/m4/efl_doxygen.m4 $(top_srcdir)/m4/efl_eo.m4 \
-	$(top_srcdir)/m4/efl_find_x.m4 \
+	$(top_srcdir)/m4/efl_define.m4 $(top_srcdir)/m4/efl_doxygen.m4 \
+	$(top_srcdir)/m4/efl_eo.m4 $(top_srcdir)/m4/efl_find_x.m4 \
 	$(top_srcdir)/m4/efl_libunwind.m4 \
 	$(top_srcdir)/m4/efl_lua_old.m4 \
 	$(top_srcdir)/m4/efl_path_max.m4 \
@@ -493,6 +493,7 @@ EFL_LDFLAGS = @EFL_LDFLAGS@
 EFL_LIBS = @EFL_LIBS@
 EFL_LTLIBRARY_FLAGS = @EFL_LTLIBRARY_FLAGS@
 EFL_LTMODULE_FLAGS = @EFL_LTMODULE_FLAGS@
+EFL_NET_CONTROL_BACKEND = @EFL_NET_CONTROL_BACKEND@
 EFL_PTHREAD_CFLAGS = @EFL_PTHREAD_CFLAGS@
 EFL_PTHREAD_LIBS = @EFL_PTHREAD_LIBS@
 EFL_SUBBUILD_INTERNAL_LIBS = @EFL_SUBBUILD_INTERNAL_LIBS@
@@ -751,7 +752,6 @@ GREP = @GREP@
 GSTREAMER_CFLAGS = @GSTREAMER_CFLAGS@
 GSTREAMER_LIBS = @GSTREAMER_LIBS@
 HAVE_CXX11 = @HAVE_CXX11@
-HAVE_ECORE_X_BACKEND = @HAVE_ECORE_X_BACKEND@
 HAVE_JS = @HAVE_JS@
 HAVE_LIBUV = @HAVE_LIBUV@
 HAVE_NODEJS = @HAVE_NODEJS@
@@ -768,7 +768,6 @@ INTLLIBS = @INTLLIBS@
 INTL_MACOSX_LIBS = @INTL_MACOSX_LIBS@
 JP2K_CFLAGS = @JP2K_CFLAGS@
 JP2K_LIBS = @JP2K_LIBS@
-KEYSYMDEFS = @KEYSYMDEFS@
 LD = @LD@
 LDFLAGS = @LDFLAGS@
 LIBGCRYPT_CFLAGS = @LIBGCRYPT_CFLAGS@
@@ -787,6 +786,8 @@ LIBRAW_LIBS = @LIBRAW_LIBS@
 LIBS = @LIBS@
 LIBTHREAD = @LIBTHREAD@
 LIBTOOL = @LIBTOOL@
+LIBVNCSERVER_CFLAGS = @LIBVNCSERVER_CFLAGS@
+LIBVNCSERVER_LIBS = @LIBVNCSERVER_LIBS@
 LIPO = @LIPO@
 LN_S = @LN_S@
 LOCALE_DIR = @LOCALE_DIR@
@@ -1062,6 +1063,9 @@ WAYLAND_CFLAGS = @WAYLAND_CFLAGS@
 WAYLAND_EGL_CFLAGS = @WAYLAND_EGL_CFLAGS@
 WAYLAND_EGL_LIBS = @WAYLAND_EGL_LIBS@
 WAYLAND_LIBS = @WAYLAND_LIBS@
+WAYLAND_PROTOCOLS_DATADIR = @WAYLAND_PROTOCOLS_DATADIR@
+WAYLAND_SCANNER_CFLAGS = @WAYLAND_SCANNER_CFLAGS@
+WAYLAND_SCANNER_LIBS = @WAYLAND_SCANNER_LIBS@
 WAYLAND_SHM_CFLAGS = @WAYLAND_SHM_CFLAGS@
 WAYLAND_SHM_LIBS = @WAYLAND_SHM_LIBS@
 X11_DRI2_CFLAGS = @X11_DRI2_CFLAGS@
@@ -1070,12 +1074,6 @@ X11_DRI3_CFLAGS = @X11_DRI3_CFLAGS@
 X11_DRI3_LIBS = @X11_DRI3_LIBS@
 X11_DRI_COMMON_CFLAGS = @X11_DRI_COMMON_CFLAGS@
 X11_DRI_COMMON_LIBS = @X11_DRI_COMMON_LIBS@
-XCB_CFLAGS = @XCB_CFLAGS@
-XCB_GL_CFLAGS = @XCB_GL_CFLAGS@
-XCB_GL_LIBS = @XCB_GL_LIBS@
-XCB_LIBS = @XCB_LIBS@
-XCB_X11_CFLAGS = @XCB_X11_CFLAGS@
-XCB_X11_LIBS = @XCB_X11_LIBS@
 XDG_DATA_HOME = @XDG_DATA_HOME@
 XGETTEXT = @XGETTEXT@
 XGETTEXT_015 = @XGETTEXT_015@
@@ -1109,7 +1107,6 @@ build_vendor = @build_vendor@
 builddir = @builddir@
 cocoa_coreservices_ldflags = @cocoa_coreservices_ldflags@
 cocoa_ldflags = @cocoa_ldflags@
-coreaudio_ldflags = @coreaudio_ldflags@
 datadir = @datadir@
 datarootdir = @datarootdir@
 dbusservicedir = @dbusservicedir@
@@ -1177,11 +1174,6 @@ evas_engine_gl_drm_cflags = @evas_engine_gl_drm_cflags@
 evas_engine_gl_drm_libs = @evas_engine_gl_drm_libs@
 evas_engine_gl_sdl_cflags = @evas_engine_gl_sdl_cflags@
 evas_engine_gl_sdl_libs = @evas_engine_gl_sdl_libs@
-evas_engine_gl_xcb_CFLAGS = @evas_engine_gl_xcb_CFLAGS@
-evas_engine_gl_xcb_LIBS = @evas_engine_gl_xcb_LIBS@
-evas_engine_gl_xcb_cflags = @evas_engine_gl_xcb_cflags@
-evas_engine_gl_xcb_libdirs = @evas_engine_gl_xcb_libdirs@
-evas_engine_gl_xcb_libs = @evas_engine_gl_xcb_libs@
 evas_engine_gl_xlib_CFLAGS = @evas_engine_gl_xlib_CFLAGS@
 evas_engine_gl_xlib_LIBS = @evas_engine_gl_xlib_LIBS@
 evas_engine_gl_xlib_cflags = @evas_engine_gl_xlib_cflags@
@@ -1193,8 +1185,6 @@ evas_engine_software_ddraw_cflags = @evas_engine_software_ddraw_cflags@
 evas_engine_software_ddraw_libs = @evas_engine_software_ddraw_libs@
 evas_engine_software_gdi_cflags = @evas_engine_software_gdi_cflags@
 evas_engine_software_gdi_libs = @evas_engine_software_gdi_libs@
-evas_engine_software_xcb_cflags = @evas_engine_software_xcb_cflags@
-evas_engine_software_xcb_libs = @evas_engine_software_xcb_libs@
 evas_engine_software_xlib_CFLAGS = @evas_engine_software_xlib_CFLAGS@
 evas_engine_software_xlib_LIBS = @evas_engine_software_xlib_LIBS@
 evas_engine_software_xlib_cflags = @evas_engine_software_xlib_cflags@
@@ -1238,10 +1228,12 @@ evas_image_loader_webp_cflags = @evas_image_loader_webp_cflags@
 evas_image_loader_webp_libs = @evas_image_loader_webp_libs@
 evas_image_loader_xpm_cflags = @evas_image_loader_xpm_cflags@
 evas_image_loader_xpm_libs = @evas_image_loader_xpm_libs@
+evas_vg_loader_eet_cflags = @evas_vg_loader_eet_cflags@
+evas_vg_loader_eet_libs = @evas_vg_loader_eet_libs@
+evas_vg_loader_svg_cflags = @evas_vg_loader_svg_cflags@
+evas_vg_loader_svg_libs = @evas_vg_loader_svg_libs@
 exec_prefix = @exec_prefix@
-have_evas_engine_gl_xcb = @have_evas_engine_gl_xcb@
 have_evas_engine_gl_xlib = @have_evas_engine_gl_xlib@
-have_evas_engine_software_xcb = @have_evas_engine_software_xcb@
 have_evas_engine_software_xlib = @have_evas_engine_software_xlib@
 have_lcov = @have_lcov@
 host = @host@
@@ -1535,6 +1527,7 @@ want_liblz4 = @want_liblz4@
 want_lua_old = @want_lua_old@
 want_multisense = @want_multisense@
 want_physics = @want_physics@
+wayland_scanner = @wayland_scanner@
 with_eeze_eject = @with_eeze_eject@
 with_eeze_mount = @with_eeze_mount@
 with_eeze_umount = @with_eeze_umount@
@@ -1543,13 +1536,12 @@ EXTRA_DIST = $(embryofiles_DATA) $(evasfiles_DATA) $(eezefiles_DATA) \
 	$(ecorefiles_DATA) $(ecore_xfiles_DATA) $(ecoreimffiles_DATA) \
 	$(efreetfiles_DATA) $(eogdb_DATA) $(eogdbload_DATA) \
 	$(eogdb_SCRIPTS) eo/libeo-gdb.py.in $(edjefiles_DATA) \
-	$(mime_DATA) edje/edje-mode.el $(emotionfiles_DATA) \
-	$(ethumbfiles_DATA) ethumb/frames/default.edc \
-	ethumb/frames/border-0.jpg $(ethumb_clientfiles_DATA) \
-	$(eluafiles_DATA) $(elementary_themes_files) \
-	$(elementary_fdo_files) $(elementarydesktop_DATA) \
-	$(elementaryicon_DATA) $(elementaryfdo_DATA) \
-	elementary/edje_externals/icons.edc \
+	$(mime_DATA) $(emotionfiles_DATA) $(ethumbfiles_DATA) \
+	ethumb/frames/default.edc ethumb/frames/border-0.jpg \
+	$(ethumb_clientfiles_DATA) $(eluafiles_DATA) \
+	$(elementary_themes_files) $(elementary_fdo_files) \
+	$(elementarydesktop_DATA) $(elementaryicon_DATA) \
+	$(elementaryfdo_DATA) elementary/edje_externals/icons.edc \
 	elementary/edje_externals/ico_anchorblock.png \
 	elementary/edje_externals/ico_anchorview.png \
 	elementary/edje_externals/ico_bubble.png \
@@ -1575,6 +1567,7 @@ EXTRA_DIST = $(embryofiles_DATA) $(evasfiles_DATA) $(eezefiles_DATA) \
 	$(elementary_images_files) $(elementary_images_glayer_files) \
 	elementary/objects/test.edc \
 	elementary/objects/test_external.edc \
+	elementary/objects/test_masking.edc \
 	elementary/objects/test_prefs.edc \
 	elementary/objects/test_prefs.epc \
 	elementary/objects/multip.edc elementary/objects/cursors.edc \
@@ -1587,7 +1580,8 @@ EXTRA_DIST = $(embryofiles_DATA) $(evasfiles_DATA) $(eezefiles_DATA) \
 	elementary/objects/cross.png elementary/objects/border.png \
 	elementary/objects/border2.png elementary/objects/border3.png \
 	elementary/objects/border4.png elementary/objects/border5.png \
-	elementary/objects/border6.png
+	elementary/objects/border6.png \
+	elementary/objects/roundedrect.png
 CLEANFILES = libeo.so.@VMAJ@.@VMIN@.@VMIC@-gdb.py \
 	ethumb/frames/default.edj elementary/themes/default.edj \
 	$(elementaryedje_externals_DATA) $(elementaryobjects_DATA)
@@ -1707,6 +1701,7 @@ elementary/themes/edc/appmenu.edc \
 elementary/themes/edc/background.edc \
 elementary/themes/edc/backlight.edc \
 elementary/themes/edc/battery.edc \
+elementary/themes/edc/batman.edc \
 elementary/themes/edc/bluez4.edc \
 elementary/themes/edc/border.edc \
 elementary/themes/edc/border-icons.edc \
@@ -1723,6 +1718,7 @@ elementary/themes/edc/comp_effects.edc \
 elementary/themes/edc/conf.edc \
 elementary/themes/edc/connman.edc \
 elementary/themes/edc/cpufreq.edc \
+elementary/themes/edc/cpumonitor.edc \
 elementary/themes/edc/cslider.edc \
 elementary/themes/edc/desklock.edc \
 elementary/themes/edc/deskmirror.edc \
@@ -1741,9 +1737,12 @@ elementary/themes/edc/ilist.edc \
 elementary/themes/edc/illume.edc \
 elementary/themes/edc/init.edc \
 elementary/themes/edc/label.edc \
+elementary/themes/edc/luncher.edc \
+elementary/themes/edc/memusage.edc \
 elementary/themes/edc/menu.edc \
 elementary/themes/edc/mixer.edc \
 elementary/themes/edc/music_control.edc \
+elementary/themes/edc/netstatus.edc \
 elementary/themes/edc/notification.edc \
 elementary/themes/edc/packagekit.edc \
 elementary/themes/edc/pager.edc \
@@ -1787,10 +1786,10 @@ elementary/themes/edc/elm/colorclass.edc \
 elementary/themes/edc/elm/conform.edc \
 elementary/themes/edc/elm/ctxpopup.edc \
 elementary/themes/edc/elm/cursor.edc \
-elementary/themes/edc/elm/datetime.edc \
 elementary/themes/edc/elm/dayselector.edc \
 elementary/themes/edc/elm/diskselector.edc \
 elementary/themes/edc/elm/entry.edc \
+elementary/themes/edc/elm/ews.edc \
 elementary/themes/edc/elm/fileselector.edc \
 elementary/themes/edc/elm/flipselector.edc \
 elementary/themes/edc/elm/focus.edc \
@@ -1829,6 +1828,7 @@ elementary/themes/edc/elm/spinner.edc \
 elementary/themes/edc/elm/thumb.edc \
 elementary/themes/edc/elm/toolbar.edc \
 elementary/themes/edc/elm/tooltip.edc \
+elementary/themes/edc/elm/uiclock.edc \
 elementary/themes/edc/elm/video.edc \
 elementary/themes/edc/elm/win.edc \
 \
@@ -1901,6 +1901,14 @@ elementary/themes/img/col_sel_end_bottom.png \
 elementary/themes/img/col_sel_end_left.png \
 elementary/themes/img/col_sel_end_right.png \
 elementary/themes/img/col_sel_end_top.png \
+elementary/themes/img/cpu_bar.png \
+elementary/themes/img/cpu_green_on.png \
+elementary/themes/img/cpu_red_on.png \
+elementary/themes/img/cpu_yellow_on.png \
+elementary/themes/img/cpu_bar_vert.png \
+elementary/themes/img/cpu_green_on_vert.png \
+elementary/themes/img/cpu_red_on_vert.png \
+elementary/themes/img/cpu_yellow_on_vert.png \
 elementary/themes/img/darken_rounded_square_half_h.png \
 elementary/themes/img/darken_rounded_square_half.png \
 elementary/themes/img/darken_rounded_square.png \
@@ -2234,6 +2242,10 @@ elementary/themes/img/map_circle.png \
 elementary/themes/img/map_marker.png \
 elementary/themes/img/map_scale.png \
 elementary/themes/img/media_busy_progress.png \
+elementary/themes/img/mem_bar.png \
+elementary/themes/img/mem_on.png \
+elementary/themes/img/mem_bar_vert.png \
+elementary/themes/img/mem_on_vert.png \
 elementary/themes/img/mini_blue_glow_arrow_0.png \
 elementary/themes/img/mini_blue_glow_arrow_1.png \
 elementary/themes/img/mini_blue_glow_arrow_2.png \
@@ -2241,6 +2253,10 @@ elementary/themes/img/mini_blue_glow_arrow_3.png \
 elementary/themes/img/mini_box_bevel_shadow.png \
 elementary/themes/img/mini_box_glow.png \
 elementary/themes/img/music_control_icon.png \
+elementary/themes/img/netstatus_base.png \
+elementary/themes/img/netstatus_over.png \
+elementary/themes/img/netstatus_tx.png \
+elementary/themes/img/netstatus_rx.png \
 elementary/themes/img/outline_glow.png \
 elementary/themes/img/packagekit_base.png \
 elementary/themes/img/pointer_entry_bar.png \
@@ -3188,6 +3204,7 @@ elementary_images_files = \
 	elementary/images/logo.png \
 	elementary/images/logo_small.png \
 	elementary/images/animated_logo.gif \
+	elementary/images/fire.gif \
 	elementary/images/parking.png \
 	elementary/images/icon_00.png \
 	elementary/images/icon_01.png \
@@ -3219,6 +3236,7 @@ elementary_images_files = \
 	elementary/images/mystrale.jpg \
 	elementary/images/mystrale_2.jpg \
 	elementary/images/twofish.jpg \
+	elementary/images/pm_fill.png \
 	elementary/images/pt.png \
 	elementary/images/earth_normal.png \
 	elementary/images/space.png
@@ -3284,6 +3302,7 @@ elementaryobjectsdir = $(datadir)/elementary/objects
 elementaryobjects_DATA = \
 elementary/objects/test.edj \
 elementary/objects/test_external.edj \
+elementary/objects/test_masking.edj \
 elementary/objects/multip.edj \
 elementary/objects/cursors.edj \
 elementary/objects/font_preview.edj \
@@ -4328,7 +4347,12 @@ elementary/objects/test_external.edj: elementary/objects/test_external.edc
 	$(MKDIR_P) elementary/objects/; \
 	$(EDJE_CC) $(EDJE_CC_FLAGS) $< $@
 
-elementary/objects/multip.edj: elementary/objects/test_external.edc
+elementary/objects/test_masking.edj: elementary/objects/test_masking.edc
+	$(AM_V_EDJ) \
+	$(MKDIR_P) elementary/objects/; \
+	$(EDJE_CC) $(EDJE_CC_FLAGS) $< $@
+
+elementary/objects/multip.edj: elementary/objects/multip.edc
 	$(AM_V_EDJ) \
 	$(MKDIR_P) elementary/objects/; \
 	$(EDJE_CC) $(EDJE_CC_FLAGS) $< $@

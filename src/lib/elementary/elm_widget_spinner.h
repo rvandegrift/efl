@@ -49,7 +49,7 @@ struct _Elm_Spinner_Data
    Eina_Bool             wrap : 1;
    Eina_Bool             val_updated : 1;
    Eina_Bool             button_layout : 1;
-   Eina_Bool             inc_clicked : 1;
+   Eina_Bool             inc_btn_activated : 1;
 };
 
 typedef struct _Elm_Spinner_Special_Value Elm_Spinner_Special_Value;
@@ -64,7 +64,7 @@ struct _Elm_Spinner_Special_Value
  */
 
 #define ELM_SPINNER_DATA_GET(o, sd) \
-  Elm_Spinner_Data * sd = eo_data_scope_get(o, ELM_SPINNER_CLASS)
+  Elm_Spinner_Data * sd = efl_data_scope_get(o, ELM_SPINNER_CLASS)
 
 #define ELM_SPINNER_DATA_GET_OR_RETURN(o, ptr)       \
   ELM_SPINNER_DATA_GET(o, ptr);                      \
@@ -85,7 +85,7 @@ struct _Elm_Spinner_Special_Value
     }
 
 #define ELM_SPINNER_CHECK(obj)                              \
-  if (EINA_UNLIKELY(!eo_isa((obj), ELM_SPINNER_CLASS))) \
+  if (EINA_UNLIKELY(!efl_isa((obj), ELM_SPINNER_CLASS))) \
     return
 
 #endif

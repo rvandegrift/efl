@@ -73,9 +73,6 @@ mimedir = $(datadir)/mime/packages
 mime_DATA = edje/edje.xml
 EXTRA_DIST += $(mime_DATA)
 
-EXTRA_DIST += \
-edje/edje-mode.el
-
 # Helper for people using EDJ
 include ../src/Makefile_Edje_Helper.am
 
@@ -213,6 +210,7 @@ elementaryobjectsdir = $(datadir)/elementary/objects
 elementaryobjects_DATA = \
 elementary/objects/test.edj \
 elementary/objects/test_external.edj \
+elementary/objects/test_masking.edj \
 elementary/objects/multip.edj \
 elementary/objects/cursors.edj \
 elementary/objects/font_preview.edj \
@@ -235,7 +233,12 @@ elementary/objects/test_external.edj: elementary/objects/test_external.edc
 	$(MKDIR_P) elementary/objects/; \
 	$(EDJE_CC) $(EDJE_CC_FLAGS) $< $@
 
-elementary/objects/multip.edj: elementary/objects/test_external.edc
+elementary/objects/test_masking.edj: elementary/objects/test_masking.edc
+	$(AM_V_EDJ) \
+	$(MKDIR_P) elementary/objects/; \
+	$(EDJE_CC) $(EDJE_CC_FLAGS) $< $@
+
+elementary/objects/multip.edj: elementary/objects/multip.edc
 	$(AM_V_EDJ) \
 	$(MKDIR_P) elementary/objects/; \
 	$(EDJE_CC) $(EDJE_CC_FLAGS) $< $@

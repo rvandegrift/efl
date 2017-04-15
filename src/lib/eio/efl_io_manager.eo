@@ -3,148 +3,95 @@ import eina_types;
 struct Eio.Data
 {
   [[A structure to handle arbitrary data to be sent over Promises.]]
-  data: void_ptr;
-  size: uint;
+  data: void_ptr; [[Private data pointer]]
+  size: uint; [[Size of private data]]
 }
 
-// FIXME: all events should be Eo objects not data if we want to modify them
-
-struct Eio.Filter.Direct.Data
-{
-  info: const(Eina.File.Direct.Info)*;
-  filter: bool;
-}
-
-struct Eio.Filter.Name.Data
-{
-  file: string;
-  filter: bool;
-}
-
-struct Eio.Xattr.Data
-{
-  data: string;
-  size: uint;
-}
-
-// FIXME: We should send list of stuff in progress not single item, callback cost is to high
-
-class Efl.Io.Manager (Eo.Base)
+class Efl.Io.Manager (Efl.Loop_User)
 {
   [[Class representing an asynchronous file operation.]]
 
   methods {
-
-    file_ls {
+    ls {
       [[Lists entries in a given path.]]
       params {
-        @in path: string;
+        @in path: string; [[Path we want to list entries for]]
       }
-      return: promise<int, string>;
+      return: future<uint64, const(array<string>)>; [[List of entries in path]]
     }
 
-    file_direct_ls {
+    direct_ls {
       [[Lists entries in a given path with more information.]]
       params {
-        @in path: string;
+        @in path: string;[[Path we want to list entries for]]
+        @in recursive: bool; [[If $true, list entries recursively, $false otherwise]]
       }
-      return: promise<int, const(Eina_File_Direct_Info)*>;
+      return: future<uint64, const(array<Eina.File.Direct.Info>)>; [[List of entries in path]]
     }
 
-    file_stat_ls {
+    stat_ls {
       [[Lists entries in a given path with stat information.]]
       params {
-        @in path: string;
+        @in path: string;[[Path we want to list entries for]]
+        @in recursive: bool; [[If $true, list entries recursively, $false otherwise]]
       }
-      return: promise<int, const(Eina_File_Direct_Info)*>;
-    }
-
-    dir_stat_ls {
-      [[Recursively list the directory content and its sub content.]]
-      params {
-        @in path: string;
-      }
-      return: promise<int, const(Eina_File_Direct_Info)*>;
-    }
-
-    dir_direct_ls {
-      [[Recursively list the directory content and its sub content.]]
-      params {
-        @in path: string;
-      }
-      return: promise<int, const(Eina_File_Direct_Info)*>;
-    }
-
-    file_direct_stat {
-      [[Get stat info on a given file/directory.]]
-      params {
-        @in path: string;
-      }
-      return: promise<Eina_Stat>;
+      return: future<uint64, const(array<Eina.File.Direct.Info>)>; [[List of entries in path]]
     }
 
     // Extended attributes
-    @property file_xattr_list {
+    xattr_ls {
       [[Lists all extended attributes asynchronously.]]
-      keys {
-         path: string;
+      params {
+         @in path: string; [[Path we want to list entries for]]
       }
-      get {
-         return: promise<int, string>;
-      }
+      return: future<uint64, const(array<string>)>; [[Extended attributes]]
     }
 
-    @property file_xattr {
+    stat {
+      [[Get stat info on a given file/directory.]]
+      params {
+        @in path: string; [[Path we want to get stat information for]]
+      }
+      return: future<Eina.Stat>; [[Stat information]]
+    }
+
+    // FIXME: Add helper for Eina.Value to Xattr
+    @property xattr {
       [[Retrieves or sets information of a given extended attribute.]]
       set {
          values {
-            attribute: string;
-            xattr_data: string;
-            xattr_size: uint;
-            flags: Eina.Xattr.Flags;
+            data: ptr(Eina.Binbuf); [[Data to set as information]]
+            flags: Eina.Xattr.Flags; [[Extended attributes flags]]
          }
-         return: promise<int>;
+         return: future<uint64>; [[Future for asynchronous set operation]]
       }
       get {
-         keys {
-            path: string;
-            attribute: string;
-         }
-         return: promise<Eio.Xattr.Data>;
+         return: future<Eina.Binbuf>; [[Information]]
       }
       keys {
-         path: string;
+         path: string; [[File path]]
+         attribute: string; [[Attribute name]]
       }
     }
 
     // helper api
-    file_open {
+    open {
       [[Opens a file.
 
       The fulfilled value in the promise will be the Eina.File*.]]
       params {
-        @in path: string;
-        @in shared: bool;
+        @in path: string; [[Path to file]]
+        @in shared: bool; [[$true if the file can be accessed by others, $false otherwise]]
       }
-      return: promise<Eina.File*>;
+      return: future<Eina.File>; [[Eina file handle]]
     }
-    file_close {
+    close {
       [[Closes an open Eina.File.]]
       params {
-        @in file: Eina.File*;
+        @in file: ptr(Eina.File); [[Eina file handle]]
         // Here we're just interested whether the promise was fullfilled or not. No value needed.
-        @inout promise: promise<int>;
       }
+      return: future<int>; [[Close return code]]
     }
-  }
- events {
-    filter,name: Eio.Filter.Name.Data;
-    filter,direct: Eio.Filter.Direct.Data;
-    xattr: Eio.Filter.Name.Data;
- }
-
- implements {
-    Eo.Base.constructor;
-    Eo.Base.destructor;
   }
 }

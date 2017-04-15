@@ -1,31 +1,16 @@
-class Complex (Eo.Base)
+class Complex (Efl.Object)
 {
    data: Complex_Data;
    methods {
       // container test
       inptrcont {
          params {
-           l: list<int*>;
+           l: list<int>;
          }
       }
       inclasscont {
          params {
-           l: list<Eo.Base>;
-         }
-      }
-      inptrptrcont {
-         params {
-           l: list<int**>;
-         }
-      }
-      inptrcontown {
-         params {
-           l: own(list<int*>);
-         }
-      }
-      inptrptrcontown {
-         params {
-           l: own(list<int**>);
+           l: list<Efl.Object>;
          }
       }
       incontcont {
@@ -104,14 +89,9 @@ class Complex (Eo.Base)
          }
       }
       // out
-      outptrcont {
-         params {
-           @out l: list<int*>;
-         }
-      }
       outclasscont {
          params {
-           @out l: list<Eo.Base>;
+           @out l: list<Efl.Object>;
          }
       }
       outcontcont {
@@ -214,24 +194,6 @@ class Complex (Eo.Base)
       wrapper_out {
          params {
             @out a1: Complex;
-         }
-      }
-      with_promise_r {
-         return: promise<int>;
-      }
-      with_promise_in {
-         params {
-            @in p: promise<int>;
-         }
-      }
-      with_promise_out {
-         params {
-            @out p: promise<int>;
-         }
-      }
-      with_promise_inout {
-         params {
-            @inout p: promise<int>;
          }
       }
    }

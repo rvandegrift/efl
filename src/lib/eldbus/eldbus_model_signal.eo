@@ -7,14 +7,14 @@ class Eldbus.Model.Signal (Eldbus.Model.Arguments) {
 
                 @since 1.16]]
             params {
-                @in proxy: Eldbus.Proxy*; [[Eldbus proxy]]
-                @in signal: const(Eldbus.Introspection.Signal)*; [[The introspected method]]
+                @in proxy: ptr(Eldbus.Proxy); [[Eldbus proxy]]
+                @in signal: ptr(const(Eldbus.Introspection.Signal)); [[The introspected method]]
             }
         }
     }
     implements {
-        Eo.Base.constructor;
-        Eo.Base.destructor;
+        Efl.Object.constructor;
+        Efl.Object.destructor;
     }
     constructors {
         .constructor;

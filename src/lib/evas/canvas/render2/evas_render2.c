@@ -32,10 +32,10 @@ _always_call(Eo *eo_e, Evas_Callback_Type type, void *event_info)
 {
    int freeze_num = 0, i;
 
-   freeze_num = eo_event_freeze_count_get(eo_e);
-   for (i = 0; i < freeze_num; i++) eo_event_thaw(eo_e);
+   freeze_num = efl_event_freeze_count_get(eo_e);
+   for (i = 0; i < freeze_num; i++) efl_event_thaw(eo_e);
    evas_event_callback_call(eo_e, type, event_info);
-   for (i = 0; i < freeze_num; i++) eo_event_freeze(eo_e);
+   for (i = 0; i < freeze_num; i++) efl_event_freeze(eo_e);
 }
 
 // a list of canvases currently rendering
@@ -53,7 +53,7 @@ _evas_render2_th_init(void)
    if (initted) return;
    initted = EINA_TRUE;
    _th_main_queue = eina_thread_queue_new();
-   if (!eina_thread_create(&_th_main, EINA_THREAD_URGENT, 0,
+   if (!eina_thread_create(&_th_main, EINA_THREAD_URGENT, -1,
                            _evas_render2_th_main, NULL))
      ERR("Cannot create render2 thread");
 }
@@ -92,7 +92,7 @@ _evas_render2(Eo *eo_e, Evas_Public_Data *e)
    // bock any susbequent rneders from doing this walk
    eina_lock_take(&(e->lock_objects));
    // gain a reference
-   eo_ref(eo_e);
+   efl_ref(eo_e);
    // put into the "i'm rendering" pool
    e->rendering = EINA_TRUE;
    _rendering = eina_list_append(_rendering, eo_e);

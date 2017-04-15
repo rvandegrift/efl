@@ -116,6 +116,7 @@ struct _Evas_Filter_Context
    Eina_List *buffers; // Evas_Filter_Buffer *
    int last_buffer_id;
    int last_command_id;
+   void *user_data; // used by textblock
 
    // Variables changing at each run
    int w, h; // Dimensions of the input/output buffers
@@ -136,6 +137,7 @@ struct _Evas_Filter_Context
       int r, g, b, a; // clip color
       void *mask; // mask
       int mask_x, mask_y; // mask offset
+      Evas_Render_Op rop;
       Eina_Bool clip_use : 1;
       Eina_Bool color_use : 1;
    } target;

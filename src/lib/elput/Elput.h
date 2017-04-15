@@ -98,6 +98,17 @@ typedef struct _Elput_Event_Session_Active
    Eina_Bool active : 1;
 } Elput_Event_Session_Active;
 
+/** @since 1.19 */
+typedef struct Elput_Event_Pointer_Motion
+{
+   uint64_t time_usec;
+   double dx;
+   double dy;
+   double dx_unaccel;
+   double dy_unaccel;
+} Elput_Event_Pointer_Motion;
+
+
 EAPI extern int ELPUT_EVENT_SEAT_CAPS;
 EAPI extern int ELPUT_EVENT_SEAT_FRAME;
 EAPI extern int ELPUT_EVENT_KEYMAP_SEND;
@@ -105,18 +116,22 @@ EAPI extern int ELPUT_EVENT_MODIFIERS_SEND;
 EAPI extern int ELPUT_EVENT_DEVICE_CHANGE;
 EAPI extern int ELPUT_EVENT_SESSION_ACTIVE;
 
+/** @since 1.19 */
+EAPI extern int ELPUT_EVENT_POINTER_MOTION;
+
 /**
  * @file
  * @brief Ecore functions for dealing with libinput
  *
  * @defgroup Elput_Group Elput - libinput integration
- * @ingrup Ecore
+ * @ingroup Ecore
  *
  * Elput provides a wrapper and functions for using libinput
  *
  * @li @ref Elput_Init_Group
  * @li @ref Elput_Manager_Group
  * @li @ref Elput_Input_Group
+ * @li @ref Elput_Touch_Group
  *
  */
 
@@ -412,6 +427,183 @@ EAPI void elput_input_keyboard_cached_keymap_set(Elput_Manager *manager, void *k
  * @since 1.18
  */
 EAPI Eina_Stringshare *elput_input_device_output_name_get(Elput_Device *device);
+
+/**
+ * Set the pointer acceleration profile
+ *
+ * @param manager
+ * @param seat
+ * @param profile
+ *
+ * @ingroup Elput_Input_Group
+ * @since 1.19
+ */
+EAPI void elput_input_pointer_accel_profile_set(Elput_Manager *manager, const char *seat, uint32_t profile);
+
+/**
+ * @defgroup Elput_Touch_Group Configuration of touch devices
+ *
+ * Functions related to configuration of touch devices
+ */
+
+/**
+ * Enable or disable tap-and-drag on this device. When enabled, a
+ * single-finger tap immediately followed by a finger down results in a
+ * button down event, subsequent finger motion thus triggers a drag. The
+ * button is released on finger up.
+ *
+ * @param device
+ * @param enabled
+ *
+ * @return EINA_TRUE on success, EINA_FALSE otherwise
+ *
+ * @ingroup Elput_Touch_Group
+ * @since 1.19
+ */
+EAPI Eina_Bool elput_touch_drag_enabled_set(Elput_Device *device, Eina_Bool enabled);
+
+/**
+ * Get if tap-and-drag is enabled on this device
+ *
+ * @param device
+ *
+ * @return EINA_TRUE if enabled, EINA_FALSE otherwise
+ *
+ * @ingroup Elput_Touch_Group
+ * @since 1.19
+ */
+EAPI Eina_Bool elput_touch_drag_enabled_get(Elput_Device *device);
+
+/**
+ * Enable or disable drag-lock during tapping on a device. When enabled,
+ * a finger may be lifted and put back on the touchpad within a timeout and
+ * the drag process continues. When disabled, lifting the finger during a
+ * tap-and-drag will immediately stop the drag.
+ *
+ * @param device
+ * @param enabled
+ *
+ * @return EINA_TRUE on sucess, EINA_FALSE otherwise
+ *
+ * @ingroup Elput_Touch_Group
+ * @since 1.19
+ */
+EAPI Eina_Bool elput_touch_drag_lock_enabled_set(Elput_Device *device, Eina_Bool enabled);
+
+/**
+ * Get if drag-lock is enabled on this device
+ *
+ * @param device
+ *
+ * @return EINA_TRUE if enabled, EINA_FALSE otherwise
+ *
+ * @ingroup Elput_Touch_Group
+ * @since 1.19
+ */
+EAPI Eina_Bool elput_touch_drag_lock_enabled_get(Elput_Device *device);
+
+/**
+ * Enable or disable touchpad dwt (disable-while-typing) feature. When enabled, the
+ * device will be disabled while typing and for a short period after.
+ *
+ * @param device
+ * @param enabled
+ *
+ * @return EINA_TRUE on success, EINA_FALSE otherwise
+ *
+ * @ingroup Elput_Touch_Group
+ * @since 1.19
+ */
+EAPI Eina_Bool elput_touch_dwt_enabled_set(Elput_Device *device, Eina_Bool enabled);
+
+/**
+ * Get if touchpad dwt (disable-while-typing) is enabled.
+ *
+ * @param device
+ *
+ * @return EINA_TRUE if enabled, EINA_FALSE otherwise
+ *
+ * @ingroup Elput_Touch_Group
+ * @since 1.19
+ */
+EAPI Eina_Bool elput_touch_dwt_enabled_get(Elput_Device *device);
+
+/**
+ * Set the scroll method used for this device. The scroll method defines when
+ * to generate scroll axis events instead of pointer motion events.
+ *
+ * @param device
+ * @param method
+ *
+ * @return EINA_TRUE on success, EINA_FALSE otherwise
+ *
+ * @ingroup Elput_Touch_Group
+ * @since 1.19
+ */
+EAPI Eina_Bool elput_touch_scroll_method_set(Elput_Device *device, int method);
+
+/**
+ * Get the current scroll method set on a device
+ *
+ * @param device
+ *
+ * @return The current scroll method
+ *
+ * @ingroup Elput_Touch_Group
+ * @since 1.19
+ */
+EAPI int elput_touch_scroll_method_get(Elput_Device *device);
+
+/**
+ * Set the button click method for a device. The button click method defines
+ * when to generate software emulated buttons
+ *
+ * @param device
+ * @param method
+ *
+ * @return EINA_TRUE on success, EINA_FALSE otherwise
+ *
+ * @ingroup Elput_Touch_Group
+ * @since 1.19
+ */
+EAPI Eina_Bool elput_touch_click_method_set(Elput_Device *device, int method);
+
+/**
+ * Get the current button click method for a device
+ *
+ * @param device
+ *
+ * @return The current button click method
+ *
+ * @ingroup Elput_Touch_Group
+ * @since 1.19
+ */
+EAPI int elput_touch_click_method_get(Elput_Device *device);
+
+/**
+ * Enable or disable tap-to-click on a given device
+ *
+ * @param device
+ * @param enabled
+ *
+ * @return EINA_TRUE on success, EINA_FALSE otherwise
+ *
+ * @ingroup Elput_Touch_Group
+ * @since 1.19
+ */
+EAPI Eina_Bool elput_touch_tap_enabled_set(Elput_Device *device, Eina_Bool enabled);
+
+/**
+ * Get if tap-to-click is enabled on a given device
+ *
+ * @param device
+ *
+ * @return EINA_TRUE if enabled, EINA_FALSE otherwise
+ *
+ * @ingroup Elput_Touch_Group
+ * @since 1.19
+ */
+EAPI Eina_Bool elput_touch_tap_enabled_get(Elput_Device *device);
 
 # endif
 

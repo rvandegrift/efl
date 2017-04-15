@@ -14,7 +14,7 @@
 #define MY_CLASS_NAME "Ecore_Poller"
 
 #define ECORE_POLLER_CHECK(obj)                       \
-  if (!eo_isa((obj), ECORE_POLLER_CLASS)) \
+  if (!efl_isa((obj), ECORE_POLLER_CLASS)) \
     return
 
 struct _Ecore_Poller_Data
@@ -98,15 +98,15 @@ _ecore_poller_next_tick_eval(void)
           timer = ecore_timer_add(interval, _ecore_poller_cb_timer, NULL);
         else
           {
-             t = ecore_time_get();
-             if (interval != poll_cur_interval)
+             t = ecore_loop_time_get();
+             if (!EINA_DBL_EQ(interval, poll_cur_interval))
                {
                   t -= last_tick; /* time since we last ticked */
      /* delete the timer and reset it to tick off in the new
       * time interval. at the tick this will be adjusted */
                   ecore_timer_del(timer);
-                  timer = ecore_timer_add(interval - t,
-                                          _ecore_poller_cb_timer, NULL);
+                  timer = ecore_timer_loop_add(interval - t,
+                                               _ecore_poller_cb_timer, NULL);
                }
           }
      }
@@ -121,7 +121,7 @@ _ecore_poller_cb_timer(void *data EINA_UNUSED)
    int changes = 0;
 
    at_tick++;
-   last_tick = ecore_time_get();
+   last_tick = ecore_loop_time_get();
    /* we have 16 counters - each increments every time the poller counter
     * "ticks". it increments by the minimum interval (which can be 1, 2, 4,
     * 7, 16 etc. up to 32768) */
@@ -173,11 +173,11 @@ _ecore_poller_cb_timer(void *data EINA_UNUSED)
                      {
                         pollers[i] = (Ecore_Poller_Data *)eina_inlist_remove(EINA_INLIST_GET(pollers[i]), EINA_INLIST_GET(poller));
 
-                        eo_parent_set(poller->obj, NULL);
-                        if (eo_destructed_is(poller->obj))
-                           eo_manual_free(poller->obj);
+                        efl_parent_set(poller->obj, NULL);
+                        if (efl_destructed_is(poller->obj))
+                           efl_manual_free(poller->obj);
                         else
-                           eo_manual_free_set(poller->obj, EINA_FALSE);
+                           efl_manual_free_set(poller->obj, EINA_FALSE);
 
                         poller_delete_count--;
                         changes++;
@@ -237,7 +237,7 @@ ecore_poller_add(Ecore_Poller_Type type EINA_UNUSED,
                  const void       *data)
 {
    Ecore_Poller *poller;
-   poller = eo_add(MY_CLASS, _ecore_parent, ecore_poller_constructor(eo_self, type, interval, func, data));
+   poller = efl_add(MY_CLASS, _mainloop_singleton, ecore_poller_constructor(efl_added, type, interval, func, data));
    return poller;
 }
 
@@ -253,7 +253,7 @@ _ecore_poller_constructor(Eo *obj, Ecore_Poller_Data *poller, Ecore_Poller_Type 
          EINA_MAIN_LOOP_CHECK_RETURN;
       }
 
-   eo_manual_free_set(obj, EINA_TRUE);
+   efl_manual_free_set(obj, EINA_TRUE);
 
    if (!func)
      {
@@ -337,7 +337,8 @@ ecore_poller_del(Ecore_Poller *obj)
 
    if (!obj) return NULL;
    EINA_MAIN_LOOP_CHECK_RETURN_VAL(NULL);
-   Ecore_Poller_Data *poller = eo_data_scope_get(obj, MY_CLASS);
+   Ecore_Poller_Data *poller = efl_data_scope_get(obj, MY_CLASS);
+   if (!poller) return NULL;
    /* we are walking the poller list - a bad idea to remove from it while
     * walking it, so just flag it as delete_me and come back to it after
     * the loop has finished */
@@ -351,18 +352,18 @@ ecore_poller_del(Ecore_Poller *obj)
    data = poller->data;
    pollers[poller->ibit] = (Ecore_Poller_Data *)eina_inlist_remove(EINA_INLIST_GET(pollers[poller->ibit]), EINA_INLIST_GET(poller));
 
-   eo_parent_set(poller->obj, NULL);
-   if (eo_destructed_is(poller->obj))
-      eo_manual_free(obj);
+   efl_parent_set(poller->obj, NULL);
+   if (efl_destructed_is(poller->obj))
+      efl_manual_free(obj);
    else
-      eo_manual_free_set(obj, EINA_FALSE);
+      efl_manual_free_set(obj, EINA_FALSE);
 
    _ecore_poller_next_tick_eval();
    return data;
 }
 
 EOLIAN static void
-_ecore_poller_eo_base_destructor(Eo *obj, Ecore_Poller_Data *pd)
+_ecore_poller_efl_object_destructor(Eo *obj, Ecore_Poller_Data *pd)
 {
    if (!pd->delete_me)
    {
@@ -370,18 +371,18 @@ _ecore_poller_eo_base_destructor(Eo *obj, Ecore_Poller_Data *pd)
      poller_delete_count++;
    }
 
-   eo_destructor(eo_super(obj, MY_CLASS));
+   efl_destructor(efl_super(obj, MY_CLASS));
 }
 
 EOLIAN static Eo *
-_ecore_poller_eo_base_finalize(Eo *obj, Ecore_Poller_Data *pd)
+_ecore_poller_efl_object_finalize(Eo *obj, Ecore_Poller_Data *pd)
 {
    if (!pd->func)
    {
       return NULL;
    }
 
-   return eo_finalize(eo_super(obj, MY_CLASS));
+   return efl_finalize(efl_super(obj, MY_CLASS));
 }
 
 void
@@ -395,11 +396,11 @@ _ecore_poller_shutdown(void)
         while ((poller = pollers[i]))
           {
              pollers[i] = (Ecore_Poller_Data *)eina_inlist_remove(EINA_INLIST_GET(pollers[i]), EINA_INLIST_GET(pollers[i]));
-             eo_parent_set(poller->obj, NULL);
-             if (eo_destructed_is(poller->obj))
-                eo_manual_free(poller->obj);
+             efl_parent_set(poller->obj, NULL);
+             if (efl_destructed_is(poller->obj))
+                efl_manual_free(poller->obj);
              else
-                eo_manual_free_set(poller->obj, EINA_FALSE);
+                efl_manual_free_set(poller->obj, EINA_FALSE);
           }
      }
 }

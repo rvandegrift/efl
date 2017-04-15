@@ -1,17 +1,18 @@
-type @extern Ecore.Audio.Vio: __undefined_type; /* FIXME: Had function pointer members. */
-type @extern eo_key_data_free_func: __undefined_type; /* FIXME: Function pointers not allowed. */
+type @extern Ecore.Audio.Vio: __undefined_type; [[Ecore audio vio type]] /* FIXME: Had function pointer members. */
+type @extern efl_key_data_free_func: __undefined_type; [[Efl key data free function type]] /* FIXME: Function pointers not allowed. */
 
 enum Ecore.Audio.Format {
+    [[Ecore audio format type]]
     auto, [[Automatically detect the format (for inputs)]]
     raw, [[RAW samples (float)]]
     wav, [[WAV format]]
     ogg, [[OGG]]
     flac, [[FLAC, the Free Lossless Audio Codec]]
     mp3,  [[MP3 (not supported)]]
-    last [[Sentinel value, do not use]]
+    last [[Sentinel value to indicate last enum field during iteration]]
 }
 
-class Ecore.Audio (Eo.Base)
+class Ecore.Audio (Efl.Object)
 {
    [[Convenience audio class.]]
 
@@ -41,7 +42,7 @@ class Ecore.Audio (Eo.Base)
          get {
          }
          values {
-            paused: bool; [[true if object is paused, false if not]]
+            paused: bool; [[$true if object is paused, $false otherwise]]
          }
       }
       @property volume {
@@ -57,7 +58,7 @@ class Ecore.Audio (Eo.Base)
             volume: double; [[The volume]]
          }
       }
-      @property source @virtual_pure {
+      @property source @pure_virtual {
          [[Source of the object
 
            What sources are supported depends on the actual object.
@@ -67,30 +68,29 @@ class Ecore.Audio (Eo.Base)
            @since 1.8
          ]]
          set {
-            return: bool; [[true if the source was set correctly (i.e. the file
-                            was opened), EINA_FALSE otherwise
-                          ]]
+            return: bool; [[$true if the source was set correctly (i.e. the file
+                            was opened), $false otherwise]]
          }
          get {
          }
          values {
-            source: string; [[the source to set to (i.e. file, URL, device)]]
+            source: string; [[The source to set to (i.e. file, URL, device)]]
          }
       }
-      @property format @virtual_pure {
+      @property format @pure_virtual {
          [[Format of the object.]]
          set {
-            [[Set the format of the object
+            [[Sets the format of the object
 
               What formats are supported depends on the actual object. Default
               is ECORE_AUDIO_FORMAT_AUTO
 
               @since 1.8
             ]]
-            return: bool; [[true if the format was supported, false otherwise]]
+            return: bool; [[$true if the format was supported, $false otherwise]]
          }
          get {
-            [[Get the format of the object
+            [[Gets the format of the object
 
               After setting the source if the format was ECORE_AUDIO_FORMAT_AUTO
               this function will now return the actual format.
@@ -99,20 +99,20 @@ class Ecore.Audio (Eo.Base)
             ]]
          }
          values {
-            format: Ecore.Audio.Format; [[the format of the object]]
+            format: Ecore.Audio.Format; [[The audio format of the object]]
          }
       }
-      vio_set @virtual_pure {
-         [[Set the virtual IO functions
+      vio_set @pure_virtual {
+         [[Sets the virtual IO functions
 
            @since 1.8
          ]]
          params {
-              vio: Ecore.Audio.Vio *; [[the @Ecore.Audio.Vio struct with
+              vio: ptr(Ecore.Audio.Vio); [[The @Ecore.Audio.Vio struct with
                                         the function callbacks
                                       ]]
-              data: void_ptr; [[user data to pass to the VIO functions]]
-              free_func: eo_key_data_free_func; [[this function takes care to
+              data: void_ptr; [[User data to pass to the VIO functions]]
+              free_func: efl_key_data_free_func; [[This function takes care to
                                                   clean up $data when he VIO is
                                                   destroyed. NULL means do
                                                   nothing.
@@ -121,6 +121,6 @@ class Ecore.Audio (Eo.Base)
       }
    }
    implements {
-      Eo.Base.constructor;
+      Efl.Object.constructor;
    }
 }

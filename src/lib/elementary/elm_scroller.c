@@ -108,6 +108,8 @@ _key_action_move(Evas_Object *obj, const char *params)
    Evas_Coord f_y = 0;
    Evas_Coord f_w = 0;
    Evas_Coord f_h = 0;
+   Evas_Coord pagesize_h = 0, pagesize_v = 0;
+   Evas_Coord pagenumber_h = 0, pagenumber_v = 0;
 
    elm_interface_scrollable_content_pos_get(obj, &x, &y);
    elm_interface_scrollable_step_size_get(obj, &step_x, &step_y);
@@ -146,7 +148,7 @@ _key_action_move(Evas_Object *obj, const char *params)
                     cur_weight += ((f_x - c_x) - x) * ((f_x - c_x) - x);
                   if ((f_y - c_y) > y)
                     cur_weight += ((f_y - c_y) - y) * ((f_y - c_y) - y);
-                  if (cur_weight == 0.0)
+                  if (EINA_DBL_EQ(cur_weight, 0.0))
                     {
                        elm_widget_focus_steal(cur, NULL);
                        eina_list_free(can_focus_list);
@@ -190,25 +192,52 @@ _key_action_move(Evas_Object *obj, const char *params)
 
    eina_list_free(can_focus_list);
 
+   elm_interface_scrollable_paging_get(obj, NULL, NULL, &pagesize_h, &pagesize_v);
+   elm_interface_scrollable_current_page_get(obj, &pagenumber_h, &pagenumber_v);
+
    if (!strcmp(dir, "left"))
      {
         if ((x <= 0) && (!sd->loop_h)) return EINA_FALSE;
-        x -= step_x;
+        if (pagesize_h)
+          {
+             elm_interface_scrollable_page_bring_in(obj, pagenumber_h - 1, pagenumber_v);
+             return EINA_TRUE;
+          }
+        else
+          x -= step_x;
      }
    else if (!strcmp(dir, "right"))
      {
         if ((x >= (max_x - v_w)) && (!sd->loop_h)) return EINA_FALSE;
-        x += step_x;
+        if (pagesize_h)
+          {
+             elm_interface_scrollable_page_bring_in(obj, pagenumber_h + 1, pagenumber_v);
+             return EINA_TRUE;
+          }
+        else
+          x += step_x;
      }
    else if (!strcmp(dir, "up"))
      {
         if ((y <= 0) && (!sd->loop_v)) return EINA_FALSE;
-        y -= step_y;
+        if (pagesize_v)
+          {
+             elm_interface_scrollable_page_bring_in(obj, pagenumber_h, pagenumber_v - 1);
+             return EINA_TRUE;
+          }
+        else
+          y -= step_y;
      }
    else if (!strcmp(dir, "down"))
      {
         if ((y >= (max_y - v_h)) && (!sd->loop_v)) return EINA_FALSE;
-        y += step_y;
+        if (pagesize_v)
+          {
+             elm_interface_scrollable_page_bring_in(obj, pagenumber_h, pagenumber_v + 1);
+             return EINA_TRUE;
+          }
+        else
+          y += step_y;
      }
    else if (!strcmp(dir, "first"))
      {
@@ -220,17 +249,33 @@ _key_action_move(Evas_Object *obj, const char *params)
      }
    else if (!strcmp(dir, "prior"))
      {
-        if (page_y < 0)
-          y -= -(page_y * v_h) / 100;
+        if (pagesize_v)
+          {
+             elm_interface_scrollable_page_bring_in(obj, pagenumber_h, pagenumber_v - 1);
+             return EINA_TRUE;
+          }
         else
-          y -= page_y;
+          {
+             if (page_y < 0)
+               y -= -(page_y * v_h) / 100;
+             else
+               y -= page_y;
+          }
      }
    else if (!strcmp(dir, "next"))
      {
-        if (page_y < 0)
-          y += -(page_y * v_h) / 100;
+        if (pagesize_v)
+          {
+             elm_interface_scrollable_page_bring_in(obj, pagenumber_h, pagenumber_v + 1);
+             return EINA_TRUE;
+          }
         else
-          y += page_y;
+          {
+             if (page_y < 0)
+               y += -(page_y * v_h) / 100;
+             else
+               y += page_y;
+          }
      }
    else return EINA_FALSE;
 
@@ -239,7 +284,7 @@ _key_action_move(Evas_Object *obj, const char *params)
 }
 
 EOLIAN static Eina_Bool
-_elm_scroller_elm_widget_event(Eo *obj, Elm_Scroller_Data *sd EINA_UNUSED, Evas_Object *src, Evas_Callback_Type type, void *event_info)
+_elm_scroller_elm_widget_widget_event(Eo *obj, Elm_Scroller_Data *sd EINA_UNUSED, Evas_Object *src, Evas_Callback_Type type, void *event_info)
 {
    (void) src;
    Evas_Event_Key_Down *ev = event_info;
@@ -384,7 +429,7 @@ EOLIAN static Elm_Theme_Apply
 _elm_scroller_elm_widget_theme_apply(Eo *obj, Elm_Scroller_Data *sd EINA_UNUSED)
 {
    Elm_Theme_Apply int_ret = ELM_THEME_APPLY_FAILED;
-   int_ret = elm_obj_widget_theme_apply(eo_super(obj, MY_CLASS));
+   int_ret = elm_obj_widget_theme_apply(efl_super(obj, MY_CLASS));
    if (!int_ret) return ELM_THEME_APPLY_FAILED;
 
    _mirrored_set(obj, elm_widget_mirrored_get(obj));
@@ -426,28 +471,31 @@ _elm_scroller_elm_widget_focus_next(Eo *obj EINA_UNUSED, Elm_Scroller_Data *sd, 
        (elm_widget_child_can_focus_get(cur)))
      {
         Eina_Bool ret = EINA_FALSE;
-        Evas_Coord x = 0, y = 0;
-        Evas_Coord v_w = 0, v_h = 0;
-        Evas_Coord c_x = 0, c_y = 0;
-        Evas_Coord f_x = 0, f_y = 0, f_w = 0, f_h = 0;
-        Evas_Coord l_x = 0, l_y = 0, l_w = 0, l_h = 0;
-        Evas_Coord step_x = 0, step_y = 0;
 
         ret =  elm_widget_focus_next_get(cur, dir, next, next_item);
+        if (*next)
+          {
+             Evas_Coord x = 0, y = 0;
+             Evas_Coord v_w = 0, v_h = 0;
+             Evas_Coord c_x = 0, c_y = 0;
+             Evas_Coord f_x = 0, f_y = 0, f_w = 0, f_h = 0;
+             Evas_Coord l_x = 0, l_y = 0, l_w = 0, l_h = 0;
+             Evas_Coord step_x = 0, step_y = 0;
 
-        elm_interface_scrollable_content_pos_get(obj, &x, &y);
-        elm_interface_scrollable_step_size_get(obj, &step_x, &step_y);
-        elm_interface_scrollable_content_viewport_geometry_get
-              (obj, NULL, NULL, &v_w, &v_h);
-        evas_object_geometry_get(sd->content, &c_x, &c_y, NULL, NULL);
-        evas_object_geometry_get(*next, &f_x, &f_y, &f_w, &f_h);
-        l_x = f_x - c_x - step_x;
-        l_y = f_y - c_y - step_y;
-        l_w = f_w + (step_x * 2);
-        l_h = f_h + (step_y * 2);
+             elm_interface_scrollable_content_pos_get(obj, &x, &y);
+             elm_interface_scrollable_step_size_get(obj, &step_x, &step_y);
+             elm_interface_scrollable_content_viewport_geometry_get
+                (obj, NULL, NULL, &v_w, &v_h);
+             evas_object_geometry_get(sd->content, &c_x, &c_y, NULL, NULL);
+             evas_object_geometry_get(*next, &f_x, &f_y, &f_w, &f_h);
+             l_x = f_x - c_x - step_x;
+             l_y = f_y - c_y - step_y;
+             l_w = f_w + (step_x * 2);
+             l_h = f_h + (step_y * 2);
 
-        if (!ret || ELM_RECTS_INTERSECT(x, y, v_w, v_h, l_x, l_y, l_w, l_h))
-          return ret;
+             if (!ret || ELM_RECTS_INTERSECT(x, y, v_w, v_h, l_x, l_y, l_w, l_h))
+               return ret;
+          }
      }
 
    if (!(elm_widget_can_focus_get(obj)) &&
@@ -545,7 +593,7 @@ EOLIAN static Eina_Bool
 _elm_scroller_elm_widget_sub_object_del(Eo *obj, Elm_Scroller_Data *sd, Evas_Object *sobj)
 {
    Eina_Bool int_ret = EINA_FALSE;
-   int_ret = elm_obj_widget_sub_object_del(eo_super(obj, MY_CLASS), sobj);
+   int_ret = elm_obj_widget_sub_object_del(efl_super(obj, MY_CLASS), sobj);
    if (!int_ret) return EINA_FALSE;
 
    if (sobj == sd->content)
@@ -572,35 +620,35 @@ static void
 _edge_left_cb(Evas_Object *obj,
               void *data EINA_UNUSED)
 {
-   eo_event_callback_call(obj, ELM_SCROLLER_EVENT_EDGE_LEFT, NULL);
+   efl_event_callback_legacy_call(obj, ELM_SCROLLER_EVENT_EDGE_LEFT, NULL);
 }
 
 static void
 _edge_right_cb(Evas_Object *obj,
                void *data EINA_UNUSED)
 {
-   eo_event_callback_call(obj, ELM_SCROLLER_EVENT_EDGE_RIGHT, NULL);
+   efl_event_callback_legacy_call(obj, ELM_SCROLLER_EVENT_EDGE_RIGHT, NULL);
 }
 
 static void
 _edge_top_cb(Evas_Object *obj,
              void *data EINA_UNUSED)
 {
-   eo_event_callback_call(obj, ELM_SCROLLER_EVENT_EDGE_TOP, NULL);
+   efl_event_callback_legacy_call(obj, ELM_SCROLLER_EVENT_EDGE_TOP, NULL);
 }
 
 static void
 _edge_bottom_cb(Evas_Object *obj,
                 void *data EINA_UNUSED)
 {
-   eo_event_callback_call(obj, ELM_SCROLLER_EVENT_EDGE_BOTTOM, NULL);
+   efl_event_callback_legacy_call(obj, ELM_SCROLLER_EVENT_EDGE_BOTTOM, NULL);
 }
 
 static void
 _scroll_cb(Evas_Object *obj,
            void *data EINA_UNUSED)
 {
-   eo_event_callback_call
+   efl_event_callback_legacy_call
      (obj, EFL_UI_EVENT_SCROLL, NULL);
 }
 
@@ -608,35 +656,35 @@ static void
 _scroll_left_cb(Evas_Object *obj,
            void *data EINA_UNUSED)
 {
-   eo_event_callback_call(obj, ELM_SCROLLER_EVENT_SCROLL_LEFT, NULL);
+   efl_event_callback_legacy_call(obj, ELM_SCROLLER_EVENT_SCROLL_LEFT, NULL);
 }
 
 static void
 _scroll_right_cb(Evas_Object *obj,
            void *data EINA_UNUSED)
 {
-   eo_event_callback_call(obj, ELM_SCROLLER_EVENT_SCROLL_RIGHT, NULL);
+   efl_event_callback_legacy_call(obj, ELM_SCROLLER_EVENT_SCROLL_RIGHT, NULL);
 }
 
 static void
 _scroll_up_cb(Evas_Object *obj,
            void *data EINA_UNUSED)
 {
-   eo_event_callback_call(obj, ELM_SCROLLER_EVENT_SCROLL_UP, NULL);
+   efl_event_callback_legacy_call(obj, ELM_SCROLLER_EVENT_SCROLL_UP, NULL);
 }
 
 static void
 _scroll_down_cb(Evas_Object *obj,
            void *data EINA_UNUSED)
 {
-   eo_event_callback_call(obj, ELM_SCROLLER_EVENT_SCROLL_DOWN, NULL);
+   efl_event_callback_legacy_call(obj, ELM_SCROLLER_EVENT_SCROLL_DOWN, NULL);
 }
 
 static void
 _scroll_anim_start_cb(Evas_Object *obj,
                       void *data EINA_UNUSED)
 {
-   eo_event_callback_call
+   efl_event_callback_legacy_call
      (obj, EFL_UI_EVENT_SCROLL_ANIM_START, NULL);
 }
 
@@ -644,7 +692,7 @@ static void
 _scroll_anim_stop_cb(Evas_Object *obj,
                      void *data EINA_UNUSED)
 {
-   eo_event_callback_call
+   efl_event_callback_legacy_call
      (obj, EFL_UI_EVENT_SCROLL_ANIM_STOP, NULL);
 }
 
@@ -652,7 +700,7 @@ static void
 _scroll_drag_start_cb(Evas_Object *obj,
                       void *data EINA_UNUSED)
 {
-   eo_event_callback_call
+   efl_event_callback_legacy_call
      (obj, EFL_UI_EVENT_SCROLL_DRAG_START, NULL);
 }
 
@@ -660,7 +708,7 @@ static void
 _scroll_drag_stop_cb(Evas_Object *obj,
                      void *data EINA_UNUSED)
 {
-   eo_event_callback_call
+   efl_event_callback_legacy_call
      (obj, EFL_UI_EVENT_SCROLL_DRAG_STOP, NULL);
 }
 
@@ -668,49 +716,49 @@ static void
 _vbar_drag_cb(Evas_Object *obj,
                 void *data EINA_UNUSED)
 {
-   eo_event_callback_call(obj, ELM_SCROLLER_EVENT_VBAR_DRAG, NULL);
+   efl_event_callback_legacy_call(obj, ELM_SCROLLER_EVENT_VBAR_DRAG, NULL);
 }
 
 static void
 _vbar_press_cb(Evas_Object *obj,
                 void *data EINA_UNUSED)
 {
-   eo_event_callback_call(obj, ELM_SCROLLER_EVENT_VBAR_PRESS, NULL);
+   efl_event_callback_legacy_call(obj, ELM_SCROLLER_EVENT_VBAR_PRESS, NULL);
 }
 
 static void
 _vbar_unpress_cb(Evas_Object *obj,
                 void *data EINA_UNUSED)
 {
-   eo_event_callback_call(obj, ELM_SCROLLER_EVENT_VBAR_UNPRESS, NULL);
+   efl_event_callback_legacy_call(obj, ELM_SCROLLER_EVENT_VBAR_UNPRESS, NULL);
 }
 
 static void
 _hbar_drag_cb(Evas_Object *obj,
                 void *data EINA_UNUSED)
 {
-   eo_event_callback_call(obj, ELM_SCROLLER_EVENT_HBAR_DRAG, NULL);
+   efl_event_callback_legacy_call(obj, ELM_SCROLLER_EVENT_HBAR_DRAG, NULL);
 }
 
 static void
 _hbar_press_cb(Evas_Object *obj,
                 void *data EINA_UNUSED)
 {
-   eo_event_callback_call(obj, ELM_SCROLLER_EVENT_HBAR_PRESS, NULL);
+   efl_event_callback_legacy_call(obj, ELM_SCROLLER_EVENT_HBAR_PRESS, NULL);
 }
 
 static void
 _hbar_unpress_cb(Evas_Object *obj,
                 void *data EINA_UNUSED)
 {
-   eo_event_callback_call(obj, ELM_SCROLLER_EVENT_HBAR_UNPRESS, NULL);
+   efl_event_callback_legacy_call(obj, ELM_SCROLLER_EVENT_HBAR_UNPRESS, NULL);
 }
 
 static void
 _page_change_cb(Evas_Object *obj,
                 void *data EINA_UNUSED)
 {
-   eo_event_callback_call
+   efl_event_callback_legacy_call
      (obj, ELM_SCROLLER_EVENT_SCROLL_PAGE_CHANGED, NULL);
 }
 
@@ -729,6 +777,9 @@ _loop_content_set(Evas_Object *obj, Elm_Scroller_Data *sd, Evas_Object *content)
 
         elm_widget_sub_object_add(obj, sd->contents);
         elm_widget_on_show_region_hook_set(sd->contents, _show_region_hook, obj);
+
+        elm_widget_mirrored_automatic_set(sd->contents, EINA_FALSE);
+        elm_widget_mirrored_set(sd->contents, EINA_FALSE);
      }
    elm_object_part_content_set(sd->contents, "elm.swallow.content", content);
    sd->content = content;
@@ -769,7 +820,7 @@ _elm_scroller_content_set(Eo *obj, Elm_Scroller_Data *sd, const char *part, Evas
 {
    if (part && strcmp(part, "default"))
      {
-        return efl_content_set(efl_part(eo_super(obj, MY_CLASS), part), content);
+        return efl_content_set(efl_part(efl_super(obj, MY_CLASS), part), content);
      }
 
    if (sd->content == content) return EINA_TRUE;
@@ -812,7 +863,7 @@ _elm_scroller_content_get(Eo *obj, Elm_Scroller_Data *sd, const char *part)
 {
    if (part && strcmp(part, "default"))
      {
-        return efl_content_get(efl_part(eo_super(obj, MY_CLASS), part));
+        return efl_content_get(efl_part(efl_super(obj, MY_CLASS), part));
      }
 
    return sd->content;
@@ -824,7 +875,7 @@ _elm_scroller_content_unset(Eo *obj, Elm_Scroller_Data *sd, const char *part)
    Evas_Object *ret = NULL;
    if (part && strcmp(part, "default"))
      {
-        return efl_content_unset(efl_part(eo_super(obj, MY_CLASS), part));
+        return efl_content_unset(efl_part(efl_super(obj, MY_CLASS), part));
      }
 
    if (!sd->content) return NULL;
@@ -867,13 +918,15 @@ _elm_scroller_efl_canvas_group_group_add(Eo *obj, Elm_Scroller_Data *priv)
    ELM_WIDGET_DATA_GET_OR_RETURN(obj, wd);
    Evas_Coord minw, minh;
 
-   efl_canvas_group_add(eo_super(obj, MY_CLASS));
+   efl_canvas_group_add(efl_super(obj, MY_CLASS));
    elm_widget_sub_object_parent_add(obj);
    elm_widget_can_focus_set(obj, EINA_TRUE);
 
    if (!elm_layout_theme_set
        (obj, "scroller", "base", elm_widget_style_get(obj)))
      CRI("Failed to set layout!");
+
+   _mirrored_set(obj, elm_widget_mirrored_get(obj));
 
    priv->hit_rect = evas_object_rectangle_add(evas_object_evas_get(obj));
    evas_object_smart_member_add(priv->hit_rect, obj);
@@ -919,17 +972,23 @@ _elm_scroller_efl_canvas_group_group_add(Eo *obj, Elm_Scroller_Data *priv)
 }
 
 EOLIAN static void
-_elm_scroller_efl_canvas_group_group_move(Eo *obj, Elm_Scroller_Data *sd, Evas_Coord x, Evas_Coord y)
+_elm_scroller_efl_gfx_position_set(Eo *obj, Elm_Scroller_Data *sd, Evas_Coord x, Evas_Coord y)
 {
-   efl_canvas_group_move(eo_super(obj, MY_CLASS), x, y);
+   if (_evas_object_intercept_call(obj, EVAS_OBJECT_INTERCEPT_CB_MOVE, 0, x, y))
+     return;
+
+   efl_gfx_position_set(efl_super(obj, MY_CLASS), x, y);
 
    evas_object_move(sd->hit_rect, x, y);
 }
 
 EOLIAN static void
-_elm_scroller_efl_canvas_group_group_resize(Eo *obj, Elm_Scroller_Data *sd, Evas_Coord w, Evas_Coord h)
+_elm_scroller_efl_gfx_size_set(Eo *obj, Elm_Scroller_Data *sd, Evas_Coord w, Evas_Coord h)
 {
-   efl_canvas_group_resize(eo_super(obj, MY_CLASS), w, h);
+   if (_evas_object_intercept_call(obj, EVAS_OBJECT_INTERCEPT_CB_RESIZE, 0, w, h))
+     return;
+
+   efl_gfx_size_set(efl_super(obj, MY_CLASS), w, h);
 
    evas_object_resize(sd->hit_rect, w, h);
 }
@@ -937,7 +996,7 @@ _elm_scroller_efl_canvas_group_group_resize(Eo *obj, Elm_Scroller_Data *sd, Evas
 EOLIAN static void
 _elm_scroller_efl_canvas_group_group_member_add(Eo *obj, Elm_Scroller_Data *sd, Evas_Object *member)
 {
-   efl_canvas_group_member_add(eo_super(obj, MY_CLASS), member);
+   efl_canvas_group_member_add(efl_super(obj, MY_CLASS), member);
 
    if (sd->hit_rect)
      evas_object_raise(sd->hit_rect);
@@ -947,14 +1006,14 @@ EAPI Evas_Object *
 elm_scroller_add(Evas_Object *parent)
 {
    EINA_SAFETY_ON_NULL_RETURN_VAL(parent, NULL);
-   Evas_Object *obj = eo_add(MY_CLASS, parent);
+   Evas_Object *obj = efl_add(MY_CLASS, parent);
    return obj;
 }
 
 EOLIAN static Eo *
-_elm_scroller_eo_base_constructor(Eo *obj, Elm_Scroller_Data *_pd EINA_UNUSED)
+_elm_scroller_efl_object_constructor(Eo *obj, Elm_Scroller_Data *_pd EINA_UNUSED)
 {
-   obj = eo_constructor(eo_super(obj, MY_CLASS));
+   obj = efl_constructor(efl_super(obj, MY_CLASS));
    efl_canvas_object_type_set(obj, MY_CLASS_NAME_LEGACY);
    evas_object_smart_callbacks_descriptions_set(obj, _smart_callbacks);
    elm_interface_atspi_accessible_role_set(obj, ELM_ATSPI_ROLE_SCROLL_PANE);
@@ -1014,7 +1073,7 @@ _elm_scroller_elm_interface_scrollable_policy_set(Eo *obj, Elm_Scroller_Data *sd
        (policy_v >= ELM_SCROLLER_POLICY_LAST))
      return;
 
-   elm_interface_scrollable_policy_set(eo_super(obj, MY_CLASS), policy_h, policy_v);
+   elm_interface_scrollable_policy_set(efl_super(obj, MY_CLASS), policy_h, policy_v);
 }
 
 EAPI void
@@ -1041,7 +1100,7 @@ _elm_scroller_elm_interface_scrollable_single_direction_set(Eo *obj, Elm_Scrolle
    if (single_dir >= ELM_SCROLLER_SINGLE_DIRECTION_LAST)
      return;
 
-   elm_interface_scrollable_single_direction_set(eo_super(obj, MY_CLASS), single_dir);
+   elm_interface_scrollable_single_direction_set(efl_super(obj, MY_CLASS), single_dir);
 }
 
 EAPI Elm_Scroller_Single_Direction
@@ -1057,7 +1116,7 @@ elm_scroller_single_direction_get(const Evas_Object *obj)
 EOLIAN static Elm_Scroller_Single_Direction
 _elm_scroller_elm_interface_scrollable_single_direction_get(Eo *obj, Elm_Scroller_Data *sd EINA_UNUSED)
 {
-   return elm_interface_scrollable_single_direction_get(eo_super(obj, MY_CLASS));
+   return elm_interface_scrollable_single_direction_get(efl_super(obj, MY_CLASS));
 }
 
 EAPI void
@@ -1392,7 +1451,7 @@ _elm_scroller_propagate_events_get(Eo *obj, Elm_Scroller_Data *_pd EINA_UNUSED)
 }
 
 static void
-_elm_scroller_class_constructor(Eo_Class *klass)
+_elm_scroller_class_constructor(Efl_Class *klass)
 {
    evas_smart_legacy_type_register(MY_CLASS_NAME_LEGACY, klass);
 }

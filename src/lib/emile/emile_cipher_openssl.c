@@ -49,24 +49,54 @@ struct _Emile_SSL
 Eina_Bool
 _emile_cipher_init(void)
 {
+#if OPENSSL_VERSION_NUMBER < 0x10100000L || defined(LIBRESSL_VERSION_NUMBER)
    ERR_load_crypto_strings();
    SSL_library_init();
    SSL_load_error_strings();
    OpenSSL_add_all_algorithms();
+#endif /* if OPENSSL_VERSION_NUMBER < 0x10100000L || defined(LIBRESSL_VERSION_NUMBER) */
 
    return EINA_TRUE;
 }
 
 EAPI Eina_Bool
-emile_binbuf_sha1(const char *key,
-                  unsigned int key_len,
-                  const Eina_Binbuf *data,
-                  unsigned char digest[20])
+emile_binbuf_hmac_sha1(const char *key,
+                       unsigned int key_len,
+                       const Eina_Binbuf *data,
+                       unsigned char digest[20])
 {
    HMAC(EVP_sha1(),
         key, key_len,
         eina_binbuf_string_get(data), eina_binbuf_length_get(data),
         digest, NULL);
+   return EINA_TRUE;
+}
+
+EAPI Eina_Bool
+emile_binbuf_sha1(const Eina_Binbuf * data, unsigned char digest[20])
+{
+   const EVP_MD *md = EVP_sha1();
+   Eina_Slice slice = eina_binbuf_slice_get(data);
+#if OPENSSL_VERSION_NUMBER >= 0x10100000L && !defined(LIBRESSL_VERSION_NUMBER)
+   EVP_MD_CTX *ctx = EVP_MD_CTX_new();
+
+   EVP_DigestInit_ex(ctx, md, NULL);
+
+   EVP_DigestUpdate(ctx, slice.mem, slice.len);
+   EVP_DigestFinal_ex(ctx, digest, NULL);
+
+   EVP_MD_CTX_free(ctx);
+#else
+   EVP_MD_CTX ctx;
+
+   EVP_MD_CTX_init(&ctx);
+   EVP_DigestInit_ex(&ctx, md, NULL);
+
+   EVP_DigestUpdate(&ctx, slice.mem, slice.len);
+   EVP_DigestFinal_ex(&ctx, digest, NULL);
+
+   EVP_MD_CTX_cleanup(&ctx);
+#endif
    return EINA_TRUE;
 }
 
@@ -85,9 +115,8 @@ emile_binbuf_cipher(Emile_Cipher_Algorithm algo,
    unsigned int salt;
    unsigned int tmp = 0;
    unsigned int crypted_length;
-   int opened = 0;
    /* Openssl declarations*/
-   EVP_CIPHER_CTX ctx;
+   EVP_CIPHER_CTX *ctx = NULL;
    unsigned int *buffer = NULL;
    int tmp_len;
 
@@ -134,11 +163,9 @@ emile_binbuf_cipher(Emile_Cipher_Algorithm algo,
 
    /* Openssl create the corresponding cipher
       AES with a 256 bit key, Cipher Block Chaining mode */
-   EVP_CIPHER_CTX_init(&ctx);
-   if (!EVP_EncryptInit_ex(&ctx, EVP_aes_256_cbc(), NULL, ik, iv))
+   ctx = EVP_CIPHER_CTX_new();
+   if (!EVP_EncryptInit_ex(ctx, EVP_aes_256_cbc(), NULL, ik, iv))
      goto on_error;
-
-   opened = 1;
 
    memset(iv, 0, sizeof (iv));
    memset(ik, 0, sizeof (ik));
@@ -146,17 +173,18 @@ emile_binbuf_cipher(Emile_Cipher_Algorithm algo,
    pointer = (unsigned char*) eina_binbuf_string_get(result);
 
    /* Openssl encrypt */
-   if (!EVP_EncryptUpdate(&ctx, pointer + sizeof (int), &tmp_len,
+   if (!EVP_EncryptUpdate(ctx, pointer + sizeof (int), &tmp_len,
                           (unsigned char *)buffer,
                           eina_binbuf_length_get(data) + sizeof(unsigned int)))
      goto on_error;
 
    /* Openssl close the cipher */
-   if (!EVP_EncryptFinal_ex(&ctx, pointer + sizeof (int) + tmp_len,
+   if (!EVP_EncryptFinal_ex(ctx, pointer + sizeof (int) + tmp_len,
                             &tmp_len))
      goto on_error;
 
-   EVP_CIPHER_CTX_cleanup(&ctx);
+   EVP_CIPHER_CTX_free(ctx);
+   ctx = NULL;
    free(buffer);
 
    return result;
@@ -166,8 +194,10 @@ on_error:
    memset(ik, 0, sizeof (ik));
 
    /* Openssl error */
-   if (opened)
-     EVP_CIPHER_CTX_cleanup(&ctx);
+#if OPENSSL_VERSION_NUMBER < 0x10100000L || defined(LIBRESSL_VERSION_NUMBER)
+   if (ctx)
+     EVP_CIPHER_CTX_cleanup(ctx);
+#endif /* if OPENSSL_VERSION_NUMBER < 0x10100000L || defined(LIBRESSL_VERSION_NUMBER) */
 
    free(buffer);
 
@@ -186,7 +216,7 @@ emile_binbuf_decipher(Emile_Cipher_Algorithm algo,
 {
    Eina_Binbuf *result = NULL;
    unsigned int *over;
-   EVP_CIPHER_CTX ctx;
+   EVP_CIPHER_CTX *ctx = NULL;
    unsigned char ik[MAX_KEY_LEN];
    unsigned char iv[MAX_IV_LEN];
    unsigned char key_material[MAX_KEY_LEN + MAX_IV_LEN];
@@ -194,7 +224,6 @@ emile_binbuf_decipher(Emile_Cipher_Algorithm algo,
    unsigned int size;
    int tmp_len;
    int tmp = 0;
-   int opened = 0;
 
    if (algo != EMILE_AES256_CBC) return NULL;
    if (!emile_cipher_init()) return NULL;
@@ -230,23 +259,23 @@ emile_binbuf_decipher(Emile_Cipher_Algorithm algo,
    eina_binbuf_append_length(result, (unsigned char*) (over + 1), tmp_len);
 
    /* Openssl create the corresponding cipher */
-   EVP_CIPHER_CTX_init(&ctx);
-   opened = 1;
+   ctx = EVP_CIPHER_CTX_new();
 
-   if (!EVP_DecryptInit_ex(&ctx, EVP_aes_256_cbc(), NULL, ik, iv))
+   if (!EVP_DecryptInit_ex(ctx, EVP_aes_256_cbc(), NULL, ik, iv))
      goto on_error;
 
    memset(iv, 0, sizeof (iv));
    memset(ik, 0, sizeof (ik));
 
    /* Openssl decrypt */
-   if (!EVP_DecryptUpdate(&ctx,
+   if (!EVP_DecryptUpdate(ctx,
                           (void*) eina_binbuf_string_get(result), &tmp,
                           (void*) (over + 1), tmp_len))
      goto on_error;
 
    /* Openssl close the cipher*/
-   EVP_CIPHER_CTX_cleanup(&ctx);
+   EVP_CIPHER_CTX_free(ctx);
+   ctx = NULL;
 
    /* Get the decrypted data size */
    tmp = *(unsigned int*)(eina_binbuf_string_get(result));
@@ -264,8 +293,8 @@ on_error:
    memset(iv, 0, sizeof (iv));
    memset(ik, 0, sizeof (ik));
 
-   if (opened)
-     EVP_CIPHER_CTX_cleanup(&ctx);
+   if (ctx)
+     EVP_CIPHER_CTX_free(ctx);
 
    eina_binbuf_free(result);
 
@@ -294,9 +323,11 @@ emile_cipher_server_listen(Emile_Cipher_Type t)
          SSL_CTX_set_options(r->ssl_ctx,
                              options | SSL_OP_NO_SSLv2 | SSL_OP_SINGLE_DH_USE);
          break;
+#if OPENSSL_VERSION_NUMBER < 0x10100000L || defined(LIBRESSL_VERSION_NUMBER)
       case EMILE_TLSv1:
          r->ssl_ctx = SSL_CTX_new(TLSv1_server_method());
          break;
+#endif
       default:
          free(r);
          return NULL;
@@ -740,8 +771,10 @@ emile_cipher_server_connect(Emile_Cipher_Type t)
                              options | SSL_OP_NO_SSLv2 | SSL_OP_SINGLE_DH_USE);
          break;
       case EMILE_TLSv1:
+#if OPENSSL_VERSION_NUMBER < 0x10100000L || defined(LIBRESSL_VERSION_NUMBER)
          r->ssl_ctx = SSL_CTX_new(TLSv1_client_method());
          break;
+#endif
       default:
          free(r);
          return NULL;

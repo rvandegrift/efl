@@ -55,14 +55,14 @@ struct out_traits<eina::optional<T&>> { typedef eina::optional<T&> type; };
 template <>
 struct out_traits<void*> { typedef void*& type; };
 template <typename T>
-struct out_traits<efl::eina::future<T>> { typedef efl::eina::future<T>& type; };
+struct out_traits<efl::shared_future<T>> { typedef efl::shared_future<T>& type; };
 
 template <typename T>
 struct inout_traits { typedef T& type; };
 template <>
 struct inout_traits<void> { typedef void* type; };
 template <typename T>
-struct inout_traits<efl::eina::future<T>> { typedef efl::eina::future<T>& type; };
+struct inout_traits<efl::shared_future<T>> { typedef efl::shared_future<T>& type; };
 
 template <typename T>
 struct return_traits { typedef T type; };
@@ -85,9 +85,14 @@ struct tag
 };
   
 template <typename T>
-void assign_out_impl(T& lhs, T*& rhs, tag<T&, T*>)
+void assign_out_impl(T& lhs, T*& rhs, tag<T&, T*>, typename std::enable_if<!std::is_const<T>::value>::type* = 0)
 {
   lhs = *rhs;
+}
+template <typename T>
+void assign_out_impl(T const& lhs, T const*& rhs, tag<T const&, T const*>)
+{
+  const_cast<T&>(lhs) = *rhs;
 }
 inline void assign_out_impl(void*&, void*&, tag<void*, void*>)
 {
@@ -126,7 +131,7 @@ void assign_out_impl(T& lhs, Eo const* rhs, tag<T&, Eo const*>
   lhs._reset(const_cast<Eo*>(rhs));
 }
 template <typename T>
-void assign_out_impl(efl::eina::future<T>& /*v*/, Eina_Promise*, tag<efl::eina::future<T>&, Eina_Promise*>)
+void assign_out_impl(efl::shared_future<T>& /*v*/, Efl_Future*, tag<efl::shared_future<T>&, Efl_Future*>)
 {
 }
 template <typename Tag>
@@ -143,7 +148,7 @@ void assign_out_impl(efl::eina::string_view* view, const char* string, Tag)
 template <typename Tag>
 void assign_out_impl(efl::eina::stringshare& to, const char* from, Tag)
 {
-  to = {from};
+  to = from;
 }
 template <typename T>
 void assign_out_impl(T*& lhs, T& rhs, tag<T*, T>) // optional
@@ -163,7 +168,7 @@ void assign_out_impl(eina::value& lhs, Eina_Value& rhs, Tag)
   Eina_Value* v = eina_value_new(EINA_VALUE_TYPE_CHAR);
   eina_value_flush(v);
   eina_value_copy(&rhs, v);
-  lhs = {v};
+  lhs.reset(v);
   eina_value_flush(&rhs);
 }
 // This is a invalid use-case that is used in EFL. This leaks
@@ -173,7 +178,7 @@ void assign_out_impl(eina::value_view& lhs, Eina_Value& rhs, Tag)
   Eina_Value* v = eina_value_new(EINA_VALUE_TYPE_CHAR);
   eina_value_flush(v);
   eina_value_copy(&rhs, v);
-  lhs = {v};
+  lhs.reset(v);
 }
 template <typename T>
 void assign_out_impl(efl::eina::list<T>& lhs, Eina_List* rhs, tag<efl::eina::list<T>&, Eina_List*, true>)
@@ -257,7 +262,7 @@ Eo const* convert_inout_impl(T v, tag<T, Eo const*>
   return v._eo_ptr();
 }
 template <typename T>
-Eina_Promise* convert_inout_impl(efl::eina::future<T>& /*v*/, tag<efl::eina::future<T>, Eina_Promise*>)
+Efl_Future* convert_inout_impl(efl::shared_future<T>& /*v*/, tag<efl::shared_future<T>, Efl_Future*>)
 {
   return nullptr;
 }
@@ -274,11 +279,11 @@ T convert_to_c(V&& object);
     
 namespace impl {
 
-template <typename U, typename T>
+template <typename U, typename T, typename V>
 auto convert_to_c_impl
-(T&& v, tag<U, U>, typename std::enable_if<std::is_same<typename std::remove_reference<T>::type, U>::value>::type* =0) -> decltype(std::forward<T>(v))
+(V&& v, tag<U, T>, typename std::enable_if<std::is_same<typename std::remove_reference<T>::type, U>::value>::type* =0) -> decltype(std::forward<V>(v))
 {
-  return std::forward<T>(v);
+  return std::forward<V>(v);
 }
 
 template <typename T>
@@ -333,7 +338,7 @@ template <typename T>
 Eo* convert_to_c_impl(T v, tag<Eo*, T, true>
                       , typename std::enable_if<eo::is_eolian_object<T>::value>::type* = 0)
 {
-  return ::eo_ref(v._eo_ptr());
+  return ::efl_ref(v._eo_ptr());
 }
 template <typename T>
 Eo const* convert_to_c_impl(T v, tag<Eo const*, T>
@@ -511,7 +516,7 @@ inline const char* convert_to_c_impl(efl::eina::stringshare x, tag<const char*, 
    return eina_stringshare_ref(x.c_str());
 }
 template <typename T>
-Eina_Promise* convert_to_c_impl(efl::eina::future<T> const&, tag<Eina_Promise*, efl::eina::future<T>const&>)
+Efl_Future* convert_to_c_impl(efl::shared_future<T> const&, tag<Efl_Future*, efl::shared_future<T>const&>)
 {
   std::abort();
 }
@@ -556,7 +561,7 @@ struct is_container<efl::eina::array<T>> : std::true_type {};
 template <typename T>
 T convert_to_event(void* value, typename std::enable_if< eo::is_eolian_object<T>::value>::type* = 0)
 {
-  return T{::eo_ref(static_cast<Eo*>(value))};
+  return T{::efl_ref(static_cast<Eo*>(value))};
 }
 template <typename T>
 T convert_to_event(void* value, typename std::enable_if< is_container<T>::value
@@ -653,11 +658,7 @@ eina::accessor<T> convert_to_return(Eina_Accessor* value, tag<Eina_Accessor*, ei
   return eina::accessor<T>{ value };
 }
 template <typename T>
-struct is_future : std::false_type {};
-template <typename T>
-struct is_future<efl::eina::future<T>> : std::true_type {};
-template <typename T>
-T convert_to_return(Eina_Promise* /*value*/, tag<Eina_Promise*, T>, typename std::enable_if<is_future<T>::value>::type* = 0)
+efl::shared_future<T> convert_to_return(Efl_Future* /*value*/, tag<Efl_Future*, efl::shared_future<T>>)
 {
   std::abort();
   return {};
@@ -746,17 +747,17 @@ template <typename T>
 struct is_callable<T, decltype(std::declval<T>() ())> : std::true_type {};
 
 inline void do_eo_add(Eo*& object, efl::eo::concrete const& parent
-                      , Eo_Class const* klass)
+                      , Efl_Class const* klass)
 {
-  object = ::_eo_add_internal_start(__FILE__, __LINE__, klass, parent._eo_ptr(), EINA_TRUE, EINA_FALSE);
-  object = ::_eo_add_end(object, EINA_FALSE, EINA_FALSE);
+  object = ::_efl_add_internal_start(__FILE__, __LINE__, klass, parent._eo_ptr(), EINA_TRUE, EINA_FALSE);
+  object = ::_efl_add_end(object, EINA_FALSE, EINA_FALSE);
 }
 template <typename F>
-void do_eo_add(Eo*& object, efl::eo::concrete const& parent, Eo_Class const* klass, F f)
+void do_eo_add(Eo*& object, efl::eo::concrete const& parent, Efl_Class const* klass, F f)
 {
-  object = ::_eo_add_internal_start(__FILE__, __LINE__, klass, parent._eo_ptr(), EINA_TRUE, EINA_FALSE);
+  object = ::_efl_add_internal_start(__FILE__, __LINE__, klass, parent._eo_ptr(), EINA_TRUE, EINA_FALSE);
   f();
-  object = ::_eo_add_end(object, EINA_FALSE, EINA_FALSE);
+  object = ::_efl_add_end(object, EINA_FALSE, EINA_FALSE);
 }
 
 template <typename D, typename T>

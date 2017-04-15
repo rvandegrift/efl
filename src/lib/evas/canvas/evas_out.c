@@ -5,77 +5,52 @@
 #include "evas_cs2_private.h"
 #endif
 
-#define MY_CLASS EVAS_OUT_CLASS
-typedef struct _Evas_Out_Data Evas_Out_Data;
-struct _Evas_Out_Data
+#include "efl_canvas_output.eo.h"
+
+#define MY_CLASS EFL_CANVAS_OUTPUT_CLASS
+typedef struct _Efl_Canvas_Output_Data Efl_Canvas_Output_Data;
+struct _Efl_Canvas_Output_Data
 {
    void *info;/*, *context, *output;*/
    Evas_Coord x, y, w, h;
+
+   Eina_Bool finalized : 1;
 };
 
-EAPI Evas_Out *
-evas_out_add(Evas *e)
-{
-   MAGIC_CHECK(e, Evas, MAGIC_EVAS);
-   return NULL;
-   MAGIC_CHECK_END();
-   Evas_Object *eo_obj = eo_add(MY_CLASS, e);
-   return eo_obj;
-}
-
 EOLIAN static Eo *
-_evas_out_eo_base_constructor(Eo *eo_obj, Evas_Out_Data *eo_dat)
+_efl_canvas_output_efl_object_constructor(Eo *eo_obj, Efl_Canvas_Output_Data *data EINA_UNUSED)
 {
-   Eo *eo_parent = NULL;
-   Evas_Public_Data *e;
-
-   eo_parent = eo_parent_get(eo_obj);
-   e = eo_data_scope_get(eo_parent, EVAS_CANVAS_CLASS);
-   evas_canvas_async_block(e);
-
-   eo_obj = eo_constructor(eo_super(eo_obj, MY_CLASS));
-
-   if (!e) return NULL;
-   e->outputs = eina_list_append(e->outputs, eo_obj);
-   if (e->engine.func->info) eo_dat->info = e->engine.func->info(eo_parent);
-   // XXX: context and output are currently held in the core engine and are
-   // allocated by engine specific internal code. this all needs a new engine
-   // api to make it work
+   eo_obj = efl_constructor(efl_super(eo_obj, MY_CLASS));
 
    return eo_obj;
-}
-
-EAPI void
-evas_output_del(Evas_Out *evo)
-{
-   eo_unref(evo);
 }
 
 EOLIAN static void
-_evas_out_eo_base_destructor(Eo *eo_obj, Evas_Out_Data *eo_dat)
+_efl_canvas_output_efl_object_destructor(Eo *eo_obj, Efl_Canvas_Output_Data *eo_dat)
 {
    Eo *eo_parent = NULL;
    Evas_Public_Data *e;
 
-   eo_parent = eo_parent_get(eo_obj);
-   e = eo_data_scope_get(eo_parent, EVAS_CANVAS_CLASS);
+   eo_parent = efl_parent_get(eo_obj);
+   e = efl_data_scope_get(eo_parent, EVAS_CANVAS_CLASS);
    evas_canvas_async_block(e);
+
    if (!e) return;
    // XXX: need to free output and context one they get allocated one day
    // e->engine.func->context_free(eo_dat->output, eo_dat->context);
    // e->engine.func->output_free(eo_dat->output);
    e->engine.func->info_free(eo_parent, eo_dat->info);
    e->outputs = eina_list_remove(e->outputs, eo_obj);
-   eo_destructor(eo_super(eo_obj, MY_CLASS));
+   efl_destructor(efl_super(eo_obj, MY_CLASS));
 }
 
 EOLIAN static void
-_evas_out_view_set(Eo *eo_e, Evas_Out_Data *eo_dat, Evas_Coord x, Evas_Coord y, Evas_Coord w, Evas_Coord h)
+_efl_canvas_output_view_set(Eo *eo_e, Efl_Canvas_Output_Data *eo_dat, Evas_Coord x, Evas_Coord y, Evas_Coord w, Evas_Coord h)
 {
    Eo *eo_parent = NULL;
    Evas_Public_Data *e;
-   eo_parent = eo_parent_get(eo_e);
-   e = eo_data_scope_get(eo_parent, EVAS_CANVAS_CLASS);
+   eo_parent = efl_parent_get(eo_e);
+   e = efl_data_scope_get(eo_parent, EVAS_CANVAS_CLASS);
    evas_canvas_async_block(e);
    eo_dat->x = x;
    eo_dat->y = y;
@@ -86,7 +61,7 @@ _evas_out_view_set(Eo *eo_e, Evas_Out_Data *eo_dat, Evas_Coord x, Evas_Coord y, 
 }
 
 EOLIAN static void
-_evas_out_view_get(Eo *eo_e EINA_UNUSED, Evas_Out_Data *eo_dat, Evas_Coord *x, Evas_Coord *y, Evas_Coord *w, Evas_Coord *h)
+_efl_canvas_output_view_get(Eo *eo_e EINA_UNUSED, Efl_Canvas_Output_Data *eo_dat, Evas_Coord *x, Evas_Coord *y, Evas_Coord *w, Evas_Coord *h)
 {
    if (x) *x = eo_dat->x;
    if (y) *y = eo_dat->y;
@@ -95,24 +70,69 @@ _evas_out_view_get(Eo *eo_e EINA_UNUSED, Evas_Out_Data *eo_dat, Evas_Coord *x, E
 }
 
 EOLIAN static Eina_Bool
-_evas_out_engine_info_set(Eo *eo_e, Evas_Out_Data *eo_dat, Evas_Engine_Info *info)
+_efl_canvas_output_engine_info_set(Eo *eo_e, Efl_Canvas_Output_Data *eo_dat, Evas_Engine_Info *info)
 {
    Eo *eo_parent = NULL;
    Evas_Public_Data *e;
-   eo_parent = eo_parent_get(eo_e);
-   e = eo_data_scope_get(eo_parent, EVAS_CANVAS_CLASS);
+   eo_parent = efl_parent_get(eo_e);
+   e = efl_data_scope_get(eo_parent, EVAS_CANVAS_CLASS);
    evas_canvas_async_block(e);
    if (eo_dat->info != info) return EINA_FALSE;
 
    // XXX: handle setting of engine info here
-  
+
    return EINA_TRUE;
 }
 
 EOLIAN static Evas_Engine_Info*
-_evas_out_engine_info_get(Eo *eo_e EINA_UNUSED, Evas_Out_Data *eo_dat)
+_efl_canvas_output_engine_info_get(Eo *eo_e EINA_UNUSED, Efl_Canvas_Output_Data *eo_dat)
 {
    return eo_dat->info;
 }
 
-#include "canvas/evas_out.eo.c"
+static Eina_Bool
+_efl_canvas_output_lock(Eo *obj EINA_UNUSED, Efl_Canvas_Output_Data *pd EINA_UNUSED)
+{
+   return EINA_FALSE;
+}
+
+static Eina_Bool
+_efl_canvas_output_unlock(Eo *obj EINA_UNUSED, Efl_Canvas_Output_Data *pd EINA_UNUSED)
+{
+   return EINA_FALSE;
+}
+
+static void
+_efl_canvas_output_efl_object_parent_set(Eo *obj, Efl_Canvas_Output_Data *pd, Efl_Object *parent)
+{
+   if (parent != NULL && pd->finalized) return ;
+
+   efl_parent_set(efl_super(obj, EFL_CANVAS_OUTPUT_CLASS), parent);
+}
+
+static Efl_Object *
+_efl_canvas_output_efl_object_finalize(Eo *obj, Efl_Canvas_Output_Data *pd)
+{
+   Eo *eo_parent = NULL;
+   Evas_Public_Data *e;
+
+   eo_parent = efl_parent_get(obj);
+
+   if (!eo_parent || !efl_isa(eo_parent, EVAS_CANVAS_CLASS)) return NULL;
+   e = efl_data_scope_get(eo_parent, EVAS_CANVAS_CLASS);
+   evas_canvas_async_block(e);
+
+   if (!e) return NULL;
+
+   e->outputs = eina_list_append(e->outputs, obj);
+   if (e->engine.func->info) pd->info = e->engine.func->info(eo_parent);
+   // XXX: context and output are currently held in the core engine and are
+   // allocated by engine specific internal code. this all needs a new engine
+   // api to make it work
+
+   pd->finalized = EINA_TRUE;
+
+   return obj;
+}
+
+#include "canvas/efl_canvas_output.eo.c"

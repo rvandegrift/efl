@@ -92,8 +92,11 @@ lib/edje/edje_textblock_styles.c \
 lib/edje/edje_util.c \
 lib/edje/edje_var.c \
 lib/edje/edje_signal.c \
-lib/edje/edje_containers.c
-
+lib/edje/edje_part.c \
+lib/edje/edje_part_helper.h \
+lib/edje/edje_part_swallow.c \
+lib/edje/edje_part_table.c \
+lib/edje/edje_part_box.c
 
 lib_edje_libedje_la_CPPFLAGS = -I$(top_builddir)/src/lib/efl $(EDJE_COMMON_CPPFLAGS)
 lib_edje_libedje_la_LIBADD = @EDJE_LIBS@ @EDJE_LUA_LIBS@
@@ -273,6 +276,7 @@ tests/edje/data/test_color_class.edc \
 tests/edje/data/test_swallows.edc \
 tests/edje/data/test_box.edc \
 tests/edje/data/test_table.edc \
+tests/edje/data/test_combine_keywords.edc \
 tests/edje/data/filter.lua
 
 
@@ -312,6 +316,7 @@ EDJE_TEST_FILES = tests/edje/data/test_layout.edj \
                      tests/edje/data/test_color_class.edj \
 		     tests/edje/data/test_box.edj \
                      tests/edje/data/test_table.edj \
+                     tests/edje/data/test_combine_keywords.edj \
                      $(NULL)
 
 CLEANFILES += $(EDJE_TEST_FILES)
@@ -349,5 +354,5 @@ endif
 
 if HAVE_CXX11
 edje_eolian_cxx_hh = $(edje_eolian_files:%.eo=%.eo.hh)
-edje_eolian_cxx_impl = $(edje_eolian_files:%.eo=%.eo.impl.hh)
+edje_eolian_cxx_impl_hh = $(edje_eolian_files:%.eo=%.eo.impl.hh)
 endif

@@ -19,12 +19,13 @@ enum Elm.Popup.Orient
    top_right, [[Popup should appear in the top right of parent.]]
    bottom_left, [[Popup should appear in the bottom left of parent.]]
    bottom_right, [[Notify should appear in the bottom right of parent.]]
-   last [[Sentinel value, don't use.]]
+   last [[Sentinel value to indicate last enum field during iteration]]
 }
 
 
 class Elm.Popup (Elm.Layout, Elm.Interface.Atspi_Widget_Action)
 {
+   [[Elementary popup class]]
    legacy_prefix: elm_popup;
    eo_prefix: elm_obj_popup;
    event_prefix: elm_popup;
@@ -166,7 +167,7 @@ class Elm.Popup (Elm.Layout, Elm.Interface.Atspi_Widget_Action)
    }
    implements {
       class.constructor;
-      Eo.Base.constructor;
+      Efl.Object.constructor;
       Efl.Canvas.Group.group_del;
       Efl.Canvas.Group.group_add;
       Elm.Widget.focus_direction;
@@ -175,24 +176,22 @@ class Elm.Popup (Elm.Layout, Elm.Interface.Atspi_Widget_Action)
       Elm.Widget.focus_direction_manager_is;
       Elm.Widget.access;
       Elm.Widget.focus_next;
-      Elm.Widget.widget_parent.set;
+      Elm.Widget.widget_parent { set; }
       Elm.Widget.translate;
       Elm.Widget.sub_object_del;
-      Elm.Widget.event;
-      Elm.Layout.text.set;
-      Elm.Layout.text.get;
+      Elm.Widget.widget_event;
+      Elm.Layout.text { get; set; }
       Elm.Layout.sizing_eval;
       Elm.Layout.signal_emit;
-      Elm.Interface.Atspi_Widget_Action.elm_actions.get;
-      Elm.Interface.Atspi_Accessible.state_set.get;
+      Elm.Interface.Atspi_Widget_Action.elm_actions { get; }
+      Elm.Interface.Atspi_Accessible.state_set { get; }
       Efl.Part.part;
    }
    events {
-      block,clicked;
-      timeout;
-      item,focused;
-      item,unfocused;
-      dismissed;
+      block,clicked; [[Called when popup was clicked]]
+      timeout; [[Called when popup timed out]]
+      item,focused; [[Called when popup got focus]]
+      item,unfocused; [[Called when popup lost focus]]
+      dismissed; [[Called when popup was dismissed]]
    }
-
 }

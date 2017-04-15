@@ -12,6 +12,7 @@
 static Eina_Hash *_registered_engines = NULL;
 static Eina_List *_engines_paths = NULL;
 static Eina_List *_engines_available = NULL;
+static Eina_Module *_ecore_evas_vnc = NULL;
 
 #ifdef _WIN32
 # define ECORE_EVAS_ENGINE_NAME "module.dll"
@@ -19,6 +20,74 @@ static Eina_List *_engines_available = NULL;
 # define ECORE_EVAS_ENGINE_NAME "module.so"
 #endif
 
+static Eina_Module *
+_ecore_evas_vnc_server_module_try_load(const char *prefix,
+                                       Eina_Bool use_prefix_only)
+{
+   Eina_Module *m;
+
+   if (use_prefix_only)
+     m = eina_module_new(prefix);
+   else
+     {
+        char path[PATH_MAX];
+
+        snprintf(path, sizeof(path), "%s/vnc_server/%s/%s", prefix,
+                 MODULE_ARCH, ECORE_EVAS_ENGINE_NAME);
+        m = eina_module_new(path);
+     }
+
+   if (!m)
+     return NULL;
+   if (!eina_module_load(m))
+     {
+        eina_module_free(m);
+        _ecore_evas_vnc = NULL;
+        return NULL;
+     }
+
+   return m;
+}
+
+Eina_Module *
+_ecore_evas_vnc_server_module_load(void)
+{
+   char *prefix;
+
+   if (_ecore_evas_vnc)
+     return _ecore_evas_vnc;
+
+#ifdef NEED_RUN_IN_TREE
+#if defined(HAVE_GETUID) && defined(HAVE_GETEUID)
+   if (getuid() == geteuid())
+#endif
+     {
+        if (getenv("EFL_RUN_IN_TREE"))
+          {
+             _ecore_evas_vnc = _ecore_evas_vnc_server_module_try_load(PACKAGE_BUILD_DIR
+                                                                      "/src/modules/ecore_evas/vnc_server/.libs/"
+                                                                      ECORE_EVAS_ENGINE_NAME,
+                                                                      EINA_TRUE);
+             if (_ecore_evas_vnc)
+               return _ecore_evas_vnc;
+          }
+     }
+#endif
+
+   prefix = eina_module_symbol_path_get(_ecore_evas_vnc_server_module_load,
+                                        "/ecore_evas");
+   _ecore_evas_vnc = _ecore_evas_vnc_server_module_try_load(prefix, EINA_FALSE);
+   free(prefix);
+   //Last try...
+   if (!_ecore_evas_vnc)
+     {
+        _ecore_evas_vnc = _ecore_evas_vnc_server_module_try_load(PACKAGE_LIB_DIR"/ecore_evas",
+                                                                 EINA_FALSE);
+        if (!_ecore_evas_vnc)
+          ERR("Could not find a valid VNC module to load!");
+     }
+   return _ecore_evas_vnc;
+}
 
 Eina_Module *
 _ecore_evas_engine_load(const char *engine)
@@ -26,19 +95,24 @@ _ecore_evas_engine_load(const char *engine)
    const char *path;
    Eina_List *l;
    Eina_Module *em = NULL;
+#ifdef NEED_RUN_IN_TREE
    Eina_Bool run_in_tree;
+#endif
 
    EINA_SAFETY_ON_NULL_RETURN_VAL(engine, NULL);
 
    em =  (Eina_Module *)eina_hash_find(_registered_engines, engine);
    if (em) return em;
 
+#ifdef NEED_RUN_IN_TREE
    run_in_tree = !!getenv("EFL_RUN_IN_TREE");
+#endif
 
    EINA_LIST_FOREACH(_engines_paths, l, path)
      {
         char tmp[PATH_MAX] = "";
 
+#ifdef NEED_RUN_IN_TREE
 #if defined(HAVE_GETUID) && defined(HAVE_GETEUID)
         if (getuid() == geteuid())
 #endif
@@ -52,6 +126,7 @@ _ecore_evas_engine_load(const char *engine)
                   tmp[0] = '\0';
                }
           }
+#endif
 
         if (tmp[0] == '\0')
           snprintf(tmp, sizeof(tmp), "%s/%s/%s/%s",
@@ -83,6 +158,7 @@ _ecore_evas_engine_init(void)
 //   _registered_engines = eina_hash_string_small_new(EINA_FREE_CB(eina_module_free));
    _registered_engines = eina_hash_string_small_new(NULL);
 
+#ifdef NEED_RUN_IN_TREE
 #if defined(HAVE_GETUID) && defined(HAVE_GETEUID)
    if (getuid() == geteuid())
 #endif
@@ -98,6 +174,7 @@ _ecore_evas_engine_init(void)
                }
           }
      }
+#endif
 
    /* 1. libecore_evas.so/../ecore_evas/engines/ */
    paths[0] = eina_module_symbol_path_get(_ecore_evas_engine_init, "/ecore_evas/engines");
@@ -197,10 +274,6 @@ _ecore_evas_available_engines_get(void)
 #endif
 #ifdef BUILD_ECORE_EVAS_SOFTWARE_XLIB
                             ADDENG("software_x11");
-#else
-# ifdef BUILD_ECORE_EVAS_SOFTWARE_XCB
-                            ADDENG("software_x11");
-# endif
 #endif
                          }
                        else if (!strcmp(name, "buffer"))

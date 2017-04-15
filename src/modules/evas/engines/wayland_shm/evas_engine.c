@@ -20,6 +20,8 @@ static Evas_Func func, pfunc;
 Evas_Native_Tbm_Surface_Image_Set_Call  glsym__evas_native_tbm_surface_image_set = NULL;
 Evas_Native_Tbm_Surface_Stride_Get_Call  glsym__evas_native_tbm_surface_stride_get = NULL;
 
+static void eng_output_resize(void *data, int w, int h);
+
 /* engine structure data */
 typedef struct _Render_Engine Render_Engine;
 struct _Render_Engine
@@ -29,7 +31,7 @@ struct _Render_Engine
 
 /* LOCAL FUNCTIONS */
 static Render_Engine *
-_render_engine_swapbuf_setup(int w, int h, Evas_Engine_Info_Wayland_Shm *einfo)
+_render_engine_swapbuf_setup(int w, int h, Evas_Engine_Info_Wayland *einfo)
 {
    Render_Engine *re;
    Outbuf *ob;
@@ -48,12 +50,14 @@ _render_engine_swapbuf_setup(int w, int h, Evas_Engine_Info_Wayland_Shm *einfo)
                                                  _evas_outbuf_swap_mode_get,
                                                  _evas_outbuf_rotation_get,
                                                  NULL,
-                                                 NULL, 
+                                                 NULL,
+                                                 NULL,
                                                  _evas_outbuf_update_region_new,
                                                  _evas_outbuf_update_region_push,
                                                  _evas_outbuf_update_region_free,
                                                  _evas_outbuf_idle_flush,
                                                  _evas_outbuf_flush,
+                                                 _evas_outbuf_redraws_clear,
                                                  _evas_outbuf_free,
                                                  w, h))
      goto err;
@@ -70,6 +74,8 @@ _render_engine_swapbuf_setup(int w, int h, Evas_Engine_Info_Wayland_Shm *einfo)
      }
 
    evas_render_engine_software_generic_merge_mode_set(&re->generic, merge_mode);
+
+   re->generic.ob->info = einfo;
 
    /* return allocated render engine */
    return re;
@@ -101,12 +107,12 @@ _symbols(void)
 static void *
 eng_info(Evas *eo_evas EINA_UNUSED)
 {
-   Evas_Engine_Info_Wayland_Shm *einfo;
+   Evas_Engine_Info_Wayland *einfo;
 
    LOGFN(__FILE__, __LINE__, __FUNCTION__);
 
    /* try to allocate space for new engine info */
-   if (!(einfo = calloc(1, sizeof(Evas_Engine_Info_Wayland_Shm))))
+   if (!(einfo = calloc(1, sizeof(Evas_Engine_Info_Wayland))))
      return NULL;
 
    /* fill in engine info */
@@ -121,76 +127,44 @@ eng_info(Evas *eo_evas EINA_UNUSED)
 static void 
 eng_info_free(Evas *eo_evas EINA_UNUSED, void *info)
 {
-   Evas_Engine_Info_Wayland_Shm *einfo;
+   Evas_Engine_Info_Wayland *einfo;
 
    LOGFN(__FILE__, __LINE__, __FUNCTION__);
 
    /* try to free previously allocated engine info */
-   if ((einfo = (Evas_Engine_Info_Wayland_Shm *)info))
+   if ((einfo = (Evas_Engine_Info_Wayland *)info))
      free(einfo);
 }
 
-static int 
-eng_setup(Evas *eo_evas, void *info)
+static void *
+eng_setup(void *info, unsigned int w, unsigned int h)
 {
-   Evas_Engine_Info_Wayland_Shm *einfo;
-   Evas_Public_Data *epd;
-   Render_Engine *re = NULL;
+   Evas_Engine_Info_Wayland *einfo = info;
 
    LOGFN(__FILE__, __LINE__, __FUNCTION__);
 
-   /* try to cast to our engine info */
-   if (!(einfo = (Evas_Engine_Info_Wayland_Shm *)info))
-     return 0;
-
-   /* try to get evas public data */
-   if (!(epd = eo_data_scope_get(eo_evas, EVAS_CANVAS_CLASS)))
-     return 0;
-
-   /* test for valid engine output */
-   if (!(re = epd->engine.data.output))
-     {
-        /* if we have no engine data, assume we have not initialized yet */
-        evas_common_init();
-
-        re = _render_engine_swapbuf_setup(epd->output.w, epd->output.h, einfo);
-
-        if (re) 
-          re->generic.ob->info = einfo;
-        else
-          goto err;
-     }
-   else if (einfo->info.wl_surface)
-     {
-        Outbuf *ob;
-
-        ob = _evas_outbuf_setup(epd->output.w, epd->output.h, einfo);
-        if (ob)  evas_render_engine_software_generic_update(&re->generic, ob,
-                                                            epd->output.w,
-                                                            epd->output.h);
-     }
-
-   epd->engine.data.output = re;
-   if (!epd->engine.data.output)
-     {
-        ERR("Failed to create Render Engine");
-        goto err;
-     }
-
-   if (!epd->engine.data.context)
-     {
-        epd->engine.data.context = 
-          epd->engine.func->context_new(epd->engine.data.output);
-     }
-
-   return 1;
-
-err:
-   evas_common_shutdown();
-   return 0;
+   return _render_engine_swapbuf_setup(w, h, einfo);
 }
 
-static void 
+static int
+eng_update(void *data, void *info, unsigned int w, unsigned int h)
+{
+   Evas_Engine_Info_Wayland *einfo = info;
+   Render_Engine *re = data;
+
+   if (!einfo->info.wl_surface) return 0;
+
+   _evas_outbuf_surface_set(re->generic.ob, einfo->info.wl_shm, einfo->info.wl_dmabuf, einfo->info.wl_surface);
+
+   eng_output_resize(re, w, h);
+
+   evas_render_engine_software_generic_update(&re->generic, re->generic.ob,
+                                              w, h);
+
+   return 1;
+}
+
+static void
 eng_output_free(void *data)
 {
    Render_Engine *re;
@@ -200,15 +174,13 @@ eng_output_free(void *data)
         evas_render_engine_software_generic_clean(&re->generic);
         free(re);
      }
-
-   evas_common_shutdown();
 }
 
 static void 
 eng_output_resize(void *data, int w, int h)
 {
    Render_Engine *re;
-   Evas_Engine_Info_Wayland_Shm *einfo;
+   Evas_Engine_Info_Wayland *einfo;
    Eina_Bool resize = EINA_FALSE;
 
    LOGFN(__FILE__, __LINE__, __FUNCTION__);
@@ -220,7 +192,8 @@ eng_output_resize(void *data, int w, int h)
 
    _evas_outbuf_reconfigure(re->generic.ob, w, h,
                             einfo->info.rotation, einfo->info.depth,
-                            einfo->info.destination_alpha, resize);
+                            einfo->info.destination_alpha, resize,
+                            einfo->info.hidden);
 
    evas_common_tilebuf_free(re->generic.tb);
    if ((re->generic.tb = evas_common_tilebuf_new(w, h)))
@@ -393,6 +366,7 @@ module_open(Evas_Module *em)
    ORD(info);
    ORD(info_free);
    ORD(setup);
+   ORD(update);
    ORD(output_free);
    ORD(output_resize);
    ORD(image_native_set);
@@ -413,11 +387,11 @@ module_close(Evas_Module *em EINA_UNUSED)
    LOGFN(__FILE__, __LINE__, __FUNCTION__);
 
    /* unregister logging domain */
-   if (_evas_engine_way_shm_log_dom > -1)
-     eina_log_domain_unregister(_evas_engine_way_shm_log_dom);
-
-   /* reset logging domain variable */
-   _evas_engine_way_shm_log_dom = -1;
+   if (_evas_engine_way_shm_log_dom >= 0)
+     {
+        eina_log_domain_unregister(_evas_engine_way_shm_log_dom);
+        _evas_engine_way_shm_log_dom = -1;
+     }
 }
 
 static Evas_Module_Api evas_modapi = 

@@ -5,11 +5,31 @@
 #ifndef _MSC_VER
 # include <unistd.h>
 #endif
-#include <fcntl.h>
 #include <errno.h>
 
 #include "evas_common_private.h"
 #include "evas_private.h"
+
+#ifdef _WIN32
+
+# include <winsock2.h>
+
+# define pipe_write(fd, buffer, size) send((fd), (char *)(buffer), size, 0)
+# define pipe_read(fd, buffer, size)  recv((fd), (char *)(buffer), size, 0)
+# define pipe_close(fd)               closesocket(fd)
+# define PIPE_FD_ERROR   SOCKET_ERROR
+
+#else
+
+# include <fcntl.h>
+
+# define pipe_write(fd, buffer, size) write((fd), buffer, size)
+# define pipe_read(fd, buffer, size)  read((fd), buffer, size)
+# define pipe_close(fd)               close(fd)
+# define PIPE_FD_ERROR   -1
+
+#endif /* ! _WIN32 */
+
 
 typedef struct _Evas_Event_Async	Evas_Event_Async;
 struct _Evas_Event_Async
@@ -78,8 +98,8 @@ evas_async_events_init(void)
 {
    int filedes[2];
 
-   _init_evas_event++;
-   if (_init_evas_event > 1) return _init_evas_event;
+   if (_init_evas_event++)
+     return _init_evas_event;
 
    _fd_pid = getpid();
 
@@ -116,8 +136,8 @@ evas_async_events_init(void)
 int
 evas_async_events_shutdown(void)
 {
-   _init_evas_event--;
-   if (_init_evas_event > 0) return _init_evas_event;
+   if (--_init_evas_event)
+     return _init_evas_event;
 
    eina_condition_free(&_thread_cond);
    eina_lock_free(&_thread_mutex);
@@ -125,12 +145,14 @@ evas_async_events_shutdown(void)
    eina_lock_free(&_thread_feedback_mutex);
    eina_spinlock_free(&_thread_id_lock);
 
+   free(async_queue_cache);
+   async_queue_cache = NULL;
+
    eina_spinlock_free(&async_lock);
    eina_inarray_flush(&async_queue);
-   free(async_queue_cache);
 
-   close(_fd_read);
-   close(_fd_write);
+   pipe_close(_fd_read);
+   pipe_close(_fd_write);
    _fd_read = -1;
    _fd_write = -1;
 
@@ -159,7 +181,7 @@ _evas_async_events_process_single(void)
 {
    int ret, wakeup;
 
-   ret = read(_fd_read, &wakeup, sizeof(int));
+   ret = pipe_read(_fd_read, &wakeup, sizeof(int));
    if (ret < 0)
      {
         switch (errno)
@@ -216,13 +238,11 @@ evas_async_events_process(void)
 {
    int nr, count = 0;
 
-   if (_fd_read == -1) return 0;
+   if (_fd_read == -1) return -1;
 
    _evas_async_events_fork_handle();
 
    while ((nr = _evas_async_events_process_single()) > 0) count += nr;
-
-   evas_cache_image_wakeup();
 
    return count;
 }
@@ -251,7 +271,6 @@ evas_async_events_process_blocking(void)
 
    _evas_async_events_fd_blocking_set(EINA_TRUE);
    ret = _evas_async_events_process_single();
-   evas_cache_image_wakeup(); /* FIXME: is this needed ? */
    _evas_async_events_fd_blocking_set(EINA_FALSE);
 
    return ret;
@@ -293,7 +312,7 @@ evas_async_events_put(const void *target, Evas_Callback_Type type, void *event_i
 
         do
           {
-             check = write(_fd_write, &wakeup, sizeof (int));
+             check = pipe_write(_fd_write, &wakeup, sizeof (int));
           }
         while ((check != sizeof (int)) &&
                ((errno == EINTR) || (errno == EAGAIN)));
@@ -314,8 +333,6 @@ evas_async_events_put(const void *target, Evas_Callback_Type type, void *event_i
           }
      }
    else ret = EINA_TRUE;
-
-   evas_cache_image_wakeup();
 
    return ret;
 }
@@ -350,7 +367,7 @@ _evas_thread_main_loop_lock(void *target EINA_UNUSED,
    eina_condition_free(&call->c);
    eina_lock_free(&call->m);
    free(call);
-}                           
+}
 
 EAPI int
 evas_thread_main_loop_begin(void)

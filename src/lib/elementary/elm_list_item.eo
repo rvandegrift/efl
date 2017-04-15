@@ -1,5 +1,6 @@
 class Elm.List.Item(Elm.Widget.Item)
 {
+   [[Elementary list item class]]
    legacy_prefix: elm_list_item;
       eo_prefix: elm_obj_list_item;
       methods {
@@ -106,19 +107,15 @@ class Elm.List.Item(Elm.Widget.Item)
            }
       }
       implements {
-           Eo.Base.constructor;
+           Efl.Object.constructor;
            Elm.Widget.Item.disable;
            Elm.Widget.Item.del_pre;
            Elm.Widget.Item.signal_emit;
-           Elm.Widget.Item.focus.set;
-           Elm.Widget.Item.focus.get;
-           Elm.Widget.Item.part_text.get;
-           Elm.Widget.Item.part_text.set;
-           Elm.Widget.Item.part_content.get;
-           Elm.Widget.Item.part_content.set;
+           Elm.Widget.Item.focus { get; set; }
+           Elm.Widget.Item.part_text { get; set; }
+           Elm.Widget.Item.part_content { get; set; }
            Elm.Widget.Item.part_content_unset;
-           Elm.Interface.Atspi_Accessible.name.get;
-           Elm.Interface.Atspi_Accessible.state_set.get;
+           Elm.Interface.Atspi_Accessible.name { get; }
+           Elm.Interface.Atspi_Accessible.state_set { get; }
       }
 }
-

@@ -1,7 +1,6 @@
 #ifdef HAVE_CONFIG_H
 # include "config.h"
 #endif
-
 #include "emotion_gstreamer.h"
 
 int _emotion_gstreamer_log_domain = -1;
@@ -559,7 +558,7 @@ em_format_get(void *video)
 }
 
 static void
-em_video_data_size_get(void *video, int *w, int *h)
+em_videfl_data_size_get(void *video, int *w, int *h)
 {
    em_size_get(video, w, h);
 }
@@ -988,6 +987,77 @@ em_eject(void *video EINA_UNUSED)
    return 1;
 }
 
+static void
+_img_del_cb(void *data, Evas *e EINA_UNUSED, Evas_Object *obj EINA_UNUSED, void *event_info EINA_UNUSED)
+{
+   GstBuffer *buffer = data;
+
+   gst_buffer_unref(buffer);
+}
+
+void *
+em_meta_artwork_get(void *video, Evas_Object *img, const char *path, Emotion_Artwork_Info type)
+{
+   Emotion_Gstreamer *ev = video;
+   GError *err = NULL;
+
+   if (!ev) return NULL;
+
+   gst_init(NULL,NULL);
+
+   gchar *uri = gst_filename_to_uri(path, NULL);
+
+   GstDiscoverer *discoverer = gst_discoverer_new(10 * GST_SECOND, &err);
+   if (!discoverer) return NULL;
+   GstDiscovererInfo* info = gst_discoverer_discover_uri(discoverer,
+                                 uri, &err);
+   if (!info) return NULL;
+
+   int ret = gst_discoverer_info_get_result(info);
+   if (ret != GST_DISCOVERER_OK) goto done;
+
+   const GstTagList *tags = gst_discoverer_info_get_tags(info);
+
+   GstSample *sample;
+   GstBuffer *buffer;
+   GstMapInfo map;
+   
+   const gchar *tag = GST_TAG_PREVIEW_IMAGE;
+   if (type == EMOTION_ARTWORK_IMAGE) tag = GST_TAG_IMAGE;
+
+   if (gst_tag_list_get_sample(tags, tag, &sample))
+     {
+        buffer = gst_sample_get_buffer(sample);
+        if (!buffer) 
+          {
+             evas_object_del(img);
+             img = NULL;
+             goto done;
+          }
+
+        if (gst_buffer_map(gst_buffer_ref(buffer), &map, GST_MAP_READ))
+          {
+             evas_object_image_memfile_set(img, map.data, map.size, NULL, NULL);
+             evas_object_event_callback_add(img, EVAS_CALLBACK_DEL, _img_del_cb, buffer);
+          } 
+        gst_sample_unref(sample);
+     } 
+   else 
+     {
+        evas_object_del(img);
+        img = NULL;
+     }
+
+done:
+   if (err) g_error_free(err);
+
+   gst_discoverer_info_unref(info);
+   g_free(uri);
+   g_object_unref(discoverer);
+
+   return img;
+}
+
 static const char *
 em_meta_get(void *video, int meta)
 {
@@ -1079,7 +1149,7 @@ static const Emotion_Engine em_engine =
    em_seekable, /* seekable */
    em_frame_done, /* frame_done */
    em_format_get, /* format_get */
-   em_video_data_size_get, /* video_data_size_get */
+   em_videfl_data_size_get, /* videfl_data_size_get */
    em_yuv_rows_get, /* yuv_rows_get */
    em_bgra_data_get, /* bgra_data_get */
    em_event_feed, /* event_feed */
@@ -1116,7 +1186,8 @@ static const Emotion_Engine em_engine =
    em_eject, /* eject */
    em_meta_get, /* meta_get */
    NULL, /* priority_set */
-   NULL /* priority_get */
+   NULL, /* priority_get */
+   em_meta_artwork_get,
 };
 
 Eina_Bool

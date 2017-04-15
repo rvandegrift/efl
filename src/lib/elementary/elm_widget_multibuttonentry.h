@@ -59,7 +59,6 @@ struct _Multibuttonentry_Item
 {
    Elm_Widget_Item_Data *base;
 
-   Evas_Object  *button;
    Evas_Coord    vw, rw; // vw: visual width, real width
    Eina_Bool     visible : 1;
    Evas_Smart_Cb func;
@@ -115,7 +114,7 @@ struct _Elm_Multibuttonentry_Data
  */
 
 #define ELM_MULTIBUTTONENTRY_DATA_GET(o, sd) \
-  Elm_Multibuttonentry_Data *sd = eo_data_scope_get(o, ELM_MULTIBUTTONENTRY_CLASS);
+  Elm_Multibuttonentry_Data *sd = efl_data_scope_get(o, ELM_MULTIBUTTONENTRY_CLASS);
 
 #define ELM_MULTIBUTTONENTRY_DATA_GET_OR_RETURN(o, ptr) \
   ELM_MULTIBUTTONENTRY_DATA_GET(o, ptr);                \
@@ -127,7 +126,7 @@ struct _Elm_Multibuttonentry_Data
     }
 
 #define ELM_MULTIBUTTONENTRY_DATA_GET_OR_RETURN_VAL(o, ptr, val) \
-  Elm_Multibuttonentry_Data * ptr = eo_data_scope_get(o, ELM_MULTIBUTTONENTRY_CLASS); \
+  Elm_Multibuttonentry_Data * ptr = efl_data_scope_get(o, ELM_MULTIBUTTONENTRY_CLASS); \
   if (EINA_UNLIKELY(!ptr))                                       \
     {                                                            \
        CRI("No widget data for object %p (%s)",                  \
@@ -136,18 +135,18 @@ struct _Elm_Multibuttonentry_Data
     }
 
 #define ELM_MULTIBUTTONENTRY_ITEM_DATA_GET(o, sd) \
-  Elm_Multibuttonentry_Item_Data *sd = eo_data_scope_get(o, ELM_MULTIBUTTONENTRY_ITEM_CLASS)
+  Elm_Multibuttonentry_Item_Data *sd = efl_data_scope_get(o, ELM_MULTIBUTTONENTRY_ITEM_CLASS)
 
 #define ELM_MULTIBUTTONENTRY_CHECK(obj)                              \
-  if (EINA_UNLIKELY(!eo_isa((obj), ELM_MULTIBUTTONENTRY_CLASS))) \
+  if (EINA_UNLIKELY(!efl_isa((obj), ELM_MULTIBUTTONENTRY_CLASS))) \
     return
 
 #define ELM_MULTIBUTTONENTRY_ITEM_CHECK(it)                 \
-  if (EINA_UNLIKELY(!eo_isa((it->base->eo_obj), ELM_MULTIBUTTONENTRY_ITEM_CLASS))) \
+  if (EINA_UNLIKELY(!efl_isa((it->base->eo_obj), ELM_MULTIBUTTONENTRY_ITEM_CLASS))) \
     return
 
 #define ELM_MULTIBUTTONENTRY_ITEM_CHECK_OR_RETURN(it, ...)             \
-  if (EINA_UNLIKELY(!eo_isa((it->base->eo_obj), ELM_MULTIBUTTONENTRY_ITEM_CLASS))) \
+  if (EINA_UNLIKELY(!efl_isa((it->base->eo_obj), ELM_MULTIBUTTONENTRY_ITEM_CLASS))) \
     return __VA_ARGS__;
 
 #endif

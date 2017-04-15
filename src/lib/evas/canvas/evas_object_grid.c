@@ -43,7 +43,7 @@ struct _Evas_Object_Grid_Accessor
 };
 
 #define EVAS_OBJECT_GRID_DATA_GET(o, ptr)			\
-  Evas_Grid_Data *ptr = eo_data_scope_get(o, MY_CLASS)
+  Evas_Grid_Data *ptr = efl_data_scope_get(o, MY_CLASS)
 
 #define EVAS_OBJECT_GRID_DATA_GET_OR_RETURN(o, ptr)			\
   EVAS_OBJECT_GRID_DATA_GET(o, ptr);					\
@@ -51,7 +51,6 @@ struct _Evas_Object_Grid_Accessor
     {									\
       CRI("no widget data for object %p (%s)",				\
 	   o, evas_object_type_get(o));					\
-       abort();								\
        return;								\
     }
 
@@ -61,7 +60,6 @@ struct _Evas_Object_Grid_Accessor
     {									\
        CRI("No widget data for object %p (%s)",	                \
 	       o, evas_object_type_get(o));				\
-       abort();								\
        return val;							\
     }
 
@@ -166,7 +164,7 @@ _evas_object_grid_smart_add(Evas_Object *o)
    priv = evas_object_smart_data_get(o);
    if (!priv)
      {
-        priv = eo_data_ref(o, MY_CLASS);
+        priv = efl_data_ref(o, MY_CLASS);
         evas_object_smart_data_set(o, priv);
      }
 
@@ -231,18 +229,34 @@ _evas_object_grid_smart_calculate(Evas_Object *o)
      {
         long long x1, y1, x2, y2;
 
-        if (!mirror)
+        if (vwl > 0)
           {
-             x1 = xl + ((wl * (long long)opt->x) / vwl);
-             x2 = xl + ((wl * (long long)(opt->x + opt->w)) / vwl);
+             if (!mirror)
+               {
+                  x1 = xl + ((wl * (long long)opt->x) / vwl);
+                  x2 = xl + ((wl * (long long)(opt->x + opt->w)) / vwl);
+               }
+             else
+               {
+                  x1 = xl + ((wl * (vwl - (long long)(opt->x + opt->w))) / vwl);
+                  x2 = xl + ((wl * (vwl - (long long)opt->x)) / vwl);
+               }
           }
         else
           {
-             x1 = xl + ((wl * (vwl - (long long)(opt->x + opt->w))) / vwl);
-             x2 = xl + ((wl * (vwl - (long long)opt->x)) / vwl);
+             x1 = xl;
+             x2 = xl;
           }
-        y1 = yl + ((hl * (long long)opt->y) / vhl);
-        y2 = yl + ((hl * (long long)(opt->y + opt->h)) / vhl);
+        if (vhl > 0)
+          {
+             y1 = yl + ((hl * (long long)opt->y) / vhl);
+             y2 = yl + ((hl * (long long)(opt->y + opt->h)) / vhl);
+          }
+        else
+          {
+             y1 = yl;
+             y2 = yl;
+          }
         evas_object_move(opt->obj, x1, y1);
         evas_object_resize(opt->obj, x2 - x1, y2 - y1);
      }
@@ -265,14 +279,14 @@ evas_object_grid_add(Evas *evas)
    MAGIC_CHECK(evas, Evas, MAGIC_EVAS);
    return NULL;
    MAGIC_CHECK_END();
-   Evas_Object *obj = eo_add(MY_CLASS, evas);
+   Evas_Object *obj = efl_add(MY_CLASS, evas);
    return obj;
 }
 
 EOLIAN static Eo *
-_evas_grid_eo_base_constructor(Eo *obj, Evas_Grid_Data *class_data EINA_UNUSED)
+_evas_grid_efl_object_constructor(Eo *obj, Evas_Grid_Data *class_data EINA_UNUSED)
 {
-   obj = eo_constructor(eo_super(obj, MY_CLASS));
+   obj = efl_constructor(efl_super(obj, MY_CLASS));
    evas_object_smart_attach(obj, _evas_object_grid_smart_class_new());
 
    return obj;

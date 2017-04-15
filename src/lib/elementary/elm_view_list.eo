@@ -1,7 +1,8 @@
 import elm_genlist_item;
 
-class Elm.View.List (Eo.Base)
+class Elm.View.List (Efl.Object)
 {
+    [[Elementary view list class]]
     methods {
         genlist_set {
              [[Constructor wrapper
@@ -60,11 +61,10 @@ class Elm.View.List (Eo.Base)
     }
     /* For some reason the following comment after the event doesn't work: Event dispatch when a model is selected */
     events {
-        model,selected;
+        model,selected; [[Called when model was selected]]
     }
-
     implements {
-        Eo.Base.destructor;
+        Efl.Object.destructor;
     }
     constructors {
         .genlist_set;

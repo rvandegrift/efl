@@ -8,6 +8,9 @@
 #include <sys/time.h>
 #include <sys/resource.h>
 #endif
+#include <sys/types.h>
+#include <sys/stat.h>
+#include <fcntl.h>
 
 #include <Ecore.h>
 #include <Ecore_File.h>
@@ -30,7 +33,6 @@ main(int argc, char *argv[])
    char path[PATH_MAX], buf[PATH_MAX];
    FILE *log;
    int fd;
-   const char *s;
    const char *log_file_dir = NULL;
    const char *hostname_str = NULL;
 
@@ -48,9 +50,7 @@ main(int argc, char *argv[])
    if (!ipc_init()) goto ipc_error;
    if (!cache_init()) goto cache_error;
 
-   s = getenv("XDG_RUNTIME_DIR");
-   if (s) log_file_dir = s;
-   else log_file_dir = eina_environment_tmp_get();
+   log_file_dir = eina_environment_tmp_get();
    if (gethostname(buf, sizeof(buf)) < 0)
      hostname_str = "";
    else

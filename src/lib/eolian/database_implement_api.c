@@ -16,8 +16,7 @@ EAPI const Eolian_Class *
 eolian_implement_class_get(const Eolian_Implement *impl)
 {
    EINA_SAFETY_ON_NULL_RETURN_VAL(impl, NULL);
-   Eolian_Implement *mimpl = (Eolian_Implement *)impl;
-   return database_object_class_fill(impl->full_name, &mimpl->klass);
+   return impl->klass;
 }
 
 EAPI const Eolian_Function *
@@ -26,78 +25,92 @@ eolian_implement_function_get(const Eolian_Implement *impl,
 {
    EINA_SAFETY_ON_NULL_RETURN_VAL(impl, NULL);
 
-   if (impl->foo_id)
-     {
-        if (!func_type)
-          return impl->foo_id;
+   if (!impl->foo_id)
+     return NULL; /* normally unreachable */
 
-        if (impl->is_prop_get)
-          *func_type = EOLIAN_PROP_GET;
-        else if (impl->is_prop_set)
-          *func_type = EOLIAN_PROP_SET;
-        else
-          *func_type = eolian_function_type_get(impl->foo_id);
+   if (!func_type)
+     return impl->foo_id;
 
-        return impl->foo_id;
-     }
-
-   const Eolian_Class *klass = eolian_implement_class_get(impl);
-   if (!klass)
-     return NULL;
-
-   const char *func_name = impl->full_name + strlen(klass->full_name) + 1;
-
-   Eolian_Function_Type tp = EOLIAN_UNRESOLVED;
-
-   if (impl->is_prop_get)
-     tp = EOLIAN_PROP_GET;
+   if (impl->is_prop_get && impl->is_prop_set)
+     *func_type = EOLIAN_PROPERTY;
+   else if (impl->is_prop_get)
+     *func_type = EOLIAN_PROP_GET;
    else if (impl->is_prop_set)
-     tp = EOLIAN_PROP_SET;
+     *func_type = EOLIAN_PROP_SET;
+   else
+     *func_type = eolian_function_type_get(impl->foo_id);
 
-   const Eolian_Function *fid = eolian_class_function_get_by_name(klass,
-                                                                  func_name,
-                                                                  tp);
+   return impl->foo_id;
+}
 
-   if (fid && tp == EOLIAN_UNRESOLVED && (fid->type == EOLIAN_PROP_GET
-                                       || fid->type == EOLIAN_PROP_SET))
+EAPI const Eolian_Documentation *
+eolian_implement_documentation_get(const Eolian_Implement *impl,
+                                   Eolian_Function_Type ftype)
+{
+   EINA_SAFETY_ON_NULL_RETURN_VAL(impl, NULL);
+   switch (ftype)
      {
-        fprintf(stderr, "eolian:%s:%d:%d: both get and set required for property '%s'\n",
-                impl->base.file, impl->base.line, impl->base.column, func_name);
-        return NULL;
+      case EOLIAN_PROP_GET: return impl->get_doc; break;
+      case EOLIAN_PROP_SET: return impl->set_doc; break;
+      default: return impl->common_doc;
      }
+}
 
-   if (func_type)
+EAPI Eina_Bool
+eolian_implement_is_auto(const Eolian_Implement *impl, Eolian_Function_Type ftype)
+{
+   EINA_SAFETY_ON_NULL_RETURN_VAL(impl, EINA_FALSE);
+   EINA_SAFETY_ON_FALSE_RETURN_VAL(ftype != EOLIAN_UNRESOLVED, EINA_FALSE);
+   EINA_SAFETY_ON_FALSE_RETURN_VAL(ftype != EOLIAN_PROPERTY, EINA_FALSE);
+   switch (ftype)
      {
-        if (tp == EOLIAN_UNRESOLVED)
-          *func_type = eolian_function_type_get(fid);
-        else
-          *func_type = tp;
+      case EOLIAN_METHOD:
+        return impl->get_auto && !impl->is_prop_get && !impl->is_prop_set;
+      case EOLIAN_PROP_GET:
+        return impl->get_auto && impl->is_prop_get;
+      case EOLIAN_PROP_SET:
+        return impl->set_auto && impl->is_prop_set;
+      default:
+        return EINA_FALSE;
      }
-
-   ((Eolian_Implement*)impl)->foo_id = fid;
-
-   return fid;
 }
 
 EAPI Eina_Bool
-eolian_implement_is_auto(const Eolian_Implement *impl)
+eolian_implement_is_empty(const Eolian_Implement *impl, Eolian_Function_Type ftype)
 {
    EINA_SAFETY_ON_NULL_RETURN_VAL(impl, EINA_FALSE);
-   return impl->is_auto;
+   EINA_SAFETY_ON_FALSE_RETURN_VAL(ftype != EOLIAN_UNRESOLVED, EINA_FALSE);
+   EINA_SAFETY_ON_FALSE_RETURN_VAL(ftype != EOLIAN_PROPERTY, EINA_FALSE);
+   switch (ftype)
+     {
+      case EOLIAN_METHOD:
+        return impl->get_empty && !impl->is_prop_get && !impl->is_prop_set;
+      case EOLIAN_PROP_GET:
+        return impl->get_empty && impl->is_prop_get;
+      case EOLIAN_PROP_SET:
+        return impl->set_empty && impl->is_prop_set;
+      default:
+        return EINA_FALSE;
+     }
 }
 
 EAPI Eina_Bool
-eolian_implement_is_empty(const Eolian_Implement *impl)
+eolian_implement_is_pure_virtual(const Eolian_Implement *impl, Eolian_Function_Type ftype)
 {
    EINA_SAFETY_ON_NULL_RETURN_VAL(impl, EINA_FALSE);
-   return impl->is_empty;
-}
-
-EAPI Eina_Bool
-eolian_implement_is_virtual(const Eolian_Implement *impl)
-{
-   EINA_SAFETY_ON_NULL_RETURN_VAL(impl, EINA_FALSE);
-   return impl->is_virtual;
+   EINA_SAFETY_ON_FALSE_RETURN_VAL(ftype != EOLIAN_UNRESOLVED, EINA_FALSE);
+   EINA_SAFETY_ON_FALSE_RETURN_VAL(ftype != EOLIAN_PROPERTY, EINA_FALSE);
+   switch (ftype)
+     {
+      case EOLIAN_METHOD:
+        return impl->get_pure_virtual && !impl->is_prop_get && !impl->is_prop_set;
+      case EOLIAN_PROP_GET:
+        return impl->get_pure_virtual && impl->is_prop_get;
+      case EOLIAN_PROP_SET:
+        return impl->set_pure_virtual && impl->is_prop_set;
+      default:
+        return EINA_FALSE;
+     }
 }
 
 EAPI Eina_Bool

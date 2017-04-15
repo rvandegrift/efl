@@ -8,7 +8,7 @@ static Elm_Prefs_Item_Type supported_types[] =
 };
 
 static void
-_item_changed_cb(void *data, const Eo_Event *event)
+_item_changed_cb(void *data, const Efl_Event *event)
 {
    Elm_Prefs_Item_Changed_Cb prefs_it_changed_cb = data;
 
@@ -26,7 +26,7 @@ elm_prefs_slider_add(const Elm_Prefs_Item_Iface *iface EINA_UNUSED,
 
    evas_object_data_set(obj, "prefs_type", (void *)type);
 
-   eo_event_callback_add
+   efl_event_callback_add
      (obj, ELM_SLIDER_EVENT_CHANGED, _item_changed_cb, cb);
    if (type == ELM_PREFS_TYPE_INT)
      {

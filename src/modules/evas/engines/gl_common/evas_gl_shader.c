@@ -160,6 +160,8 @@ _evas_gl_common_shader_program_binary_load(Eet_File *ef, unsigned int flags)
    p->prog = prg;
    p->reset = EINA_TRUE;
    p->bin_saved = EINA_TRUE;
+   p->uniform.mvp = glGetUniformLocation(prg, "mvp");
+   p->uniform.rotation_id = glGetUniformLocation(prg, "rotation_id");
    evas_gl_common_shader_textures_bind(p);
 
 finish:
@@ -566,6 +568,8 @@ evas_gl_common_shader_generate_and_compile(Evas_GL_Shared *shared, unsigned int 
    if (p)
      {
         shared->needs_shaders_flush = 1;
+        p->uniform.mvp = glGetUniformLocation(p->prog, "mvp");
+        p->uniform.rotation_id = glGetUniformLocation(p->prog, "rotation_id");
         evas_gl_common_shader_textures_bind(p);
         eina_hash_add(shared->shaders_hash, &flags, p);
      }
@@ -671,6 +675,7 @@ evas_gl_common_shaders_flush(Evas_GL_Shared *shared)
                to_delete = eina_list_append(to_delete, p);
           }
 
+        eina_iterator_free(it);
         EINA_LIST_FREE(to_delete, p)
           eina_hash_del(shared->shaders_hash, &p->flags, p);
      }

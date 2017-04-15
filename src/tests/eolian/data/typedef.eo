@@ -1,5 +1,5 @@
 type Evas.Coord: int; /* Simple type definition */
-type List_Objects: own(list<Eo *>); /* A little more complex */
+type List_Objects: own(list<ptr(Eo)>); /* A little more complex */
 
 type Evas.Coord2: Evas.Coord;
 type Evas.Coord3: Evas.Coord2;
@@ -10,6 +10,8 @@ type Undef: __undefined_type; /* not generated */
 
 type Event: __builtin_event_cb; /* specially generated */
 
+type Free: __builtin_free_cb; /* specially generated */
+
 enum Enum.Bar
 {
    legacy: bar;
@@ -18,7 +20,7 @@ enum Enum.Bar
    last_item
 }
 
-enum Elm.Object.Select_mode
+enum Elm.Object.Select_Mode
 {
    default = 0,
    always,
@@ -33,7 +35,7 @@ class Typedef {
          params {
             idx: int;
          }
-         return: own(char*);
+         return: own(ptr(char));
       }
    }
 }

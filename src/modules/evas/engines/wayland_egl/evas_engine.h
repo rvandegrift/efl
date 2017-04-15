@@ -5,7 +5,7 @@
 # include "evas_common_private.h"
 # include "evas_private.h"
 # include "Evas.h"
-# include "Evas_Engine_Wayland_Egl.h"
+# include "Evas_Engine_Wayland.h"
 
 /* NB: This already includes wayland-client.h */
 # include <wayland-egl.h>
@@ -61,12 +61,12 @@ struct _Outbuf
    int w, h;
    int depth, screen, rot, alpha;
 
-   Evas *evas;
-   Evas_Engine_Info_Wayland_Egl *info;
+   Evas_Engine_Info_Wayland *info;
    Evas_Engine_GL_Context *gl_context;
 
+   int prev_age;
    Render_Engine_Swap_Mode swap_mode;
-   int prev_age, vsync;
+   int vsync;
    int frame_cnt;
 
    struct 
@@ -74,8 +74,8 @@ struct _Outbuf
         Eina_Bool drew : 1;
      } draw;
 
-   EGLContext egl_context[1];
-   EGLSurface egl_surface[1];
+   EGLContext egl_context;
+   EGLSurface egl_surface;
    EGLConfig egl_config;
    EGLDisplay egl_disp;
 
@@ -107,7 +107,7 @@ extern Evas_GL_Preload_Render_Call glsym_evas_gl_preload_render_unlock;
 extern unsigned int (*glsym_eglSwapBuffersWithDamage) (EGLDisplay a, void *b, const EGLint *d, EGLint c);
 extern unsigned int (*glsym_eglSetDamageRegionKHR) (EGLDisplay a, EGLSurface b, EGLint *c, EGLint d);
 
-Outbuf *eng_window_new(Evas *evas, Evas_Engine_Info_Wayland_Egl *einfo, int w, int h, Render_Engine_Swap_Mode swap_mode);
+Outbuf *eng_window_new(Evas_Engine_Info_Wayland *einfo, int w, int h, Render_Engine_Swap_Mode swap_mode);
 void eng_window_free(Outbuf *gw);
 void eng_window_use(Outbuf *gw);
 void eng_window_unsurf(Outbuf *gw);
@@ -117,10 +117,11 @@ void eng_outbuf_reconfigure(Outbuf *ob, int w, int h, int rot, Outbuf_Depth dept
 int eng_outbuf_rotation_get(Outbuf *ob);
 Render_Engine_Swap_Mode eng_outbuf_swap_mode_get(Outbuf *ob);
 Eina_Bool eng_outbuf_region_first_rect(Outbuf *ob);
+void eng_outbuf_damage_region_set(Outbuf *ob, Tilebuf_Rect *damage);
 void *eng_outbuf_update_region_new(Outbuf *ob, int x, int y, int w, int h, int *cx, int *cy, int *cw, int *ch);
 void eng_outbuf_update_region_free(Outbuf *ob, RGBA_Image *update);
 void eng_outbuf_update_region_push(Outbuf *ob, RGBA_Image *update, int x, int y, int w, int h);
-void eng_outbuf_flush(Outbuf *ob, Tilebuf_Rect *rects, Evas_Render_Mode render_mode);
+void eng_outbuf_flush(Outbuf *ob, Tilebuf_Rect *surface_damage, Tilebuf_Rect *buffer_damage, Evas_Render_Mode render_mode);
 
 Evas_Engine_GL_Context *eng_outbuf_gl_context_get(Outbuf *ob);
 void *eng_outbuf_egl_display_get(Outbuf *ob);

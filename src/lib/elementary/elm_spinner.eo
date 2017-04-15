@@ -1,6 +1,7 @@
 class Elm.Spinner (Elm.Layout, Efl.Ui.Spin,
                    Elm.Interface.Atspi.Value, Elm.Interface.Atspi_Widget_Action)
 {
+   [[Elementary spinner class]]
    legacy_prefix: elm_spinner;
    eo_prefix: elm_obj_spinner;
    event_prefix: elm_spinner;
@@ -144,7 +145,7 @@ class Elm.Spinner (Elm.Layout, Efl.Ui.Spin,
    }
    implements {
       class.constructor;
-      Eo.Base.constructor;
+      Efl.Object.constructor;
       Efl.Canvas.Group.group_add;
       Efl.Canvas.Group.group_del;
       Elm.Widget.theme_apply;
@@ -154,23 +155,22 @@ class Elm.Spinner (Elm.Layout, Efl.Ui.Spin,
       Elm.Widget.focus_next;
       Elm.Widget.focus_direction;
       Elm.Widget.on_focus;
-      Elm.Widget.event;
+      Elm.Widget.widget_event;
       Elm.Layout.sizing_eval;
-      Efl.Ui.Spin.min_max;
-      Efl.Ui.Spin.step;
-      Efl.Ui.Spin.value;
-      Efl.Ui.Spin.interval;
-      Elm.Interface.Atspi_Accessible.name.get;
-      Elm.Interface.Atspi.Value.value_and_text.get;
-      Elm.Interface.Atspi.Value.value_and_text.set;
-      Elm.Interface.Atspi.Value.range.get;
-      Elm.Interface.Atspi.Value.increment.get;
-      Elm.Interface.Atspi_Widget_Action.elm_actions.get;
+      Efl.Ui.Spin.min_max { get; set; }
+      Efl.Ui.Spin.step { get; set; }
+      Efl.Ui.Spin.value { get; set; }
+      Efl.Ui.Spin.interval { get; set; }
+      Elm.Interface.Atspi_Accessible.name { get; }
+      Elm.Interface.Atspi.Value.value_and_text { get; set; }
+      Elm.Interface.Atspi.Value.range { get; }
+      Elm.Interface.Atspi.Value.increment { get; }
+      Elm.Interface.Atspi_Widget_Action.elm_actions { get; }
    }
    events {
-      changed;
-      delay,changed;
-      spinner,drag,start;
-      spinner,drag,stop;
+      changed; [[Called when spinner changed]]
+      delay,changed; [[Called when spinner delay changed]]
+      spinner,drag,start; [[Called when spinner drag started]]
+      spinner,drag,stop; [[Called when spinner drag stopped]]
    }
 }

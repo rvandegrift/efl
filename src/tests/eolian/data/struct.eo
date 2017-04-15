@@ -1,5 +1,5 @@
 struct Named {
-    field: ref(int);
+    field: ptr(int);
     something: string;
     arr: static_array<int, 16>;
     tarr: terminated_array<string>;
@@ -23,10 +23,10 @@ class Struct {
          params {
             idx: int;
          }
-         return: own(char*);
+         return: own(ptr(char));
       }
       bar {
-         return: Named *;
+         return: ptr(Named);
       }
    }
 }

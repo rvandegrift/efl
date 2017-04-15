@@ -3,7 +3,7 @@
 #endif
 
 #define ECORE_EVAS_INTERNAL
-#define EFL_EVENT_PROTECTED
+#define EFL_INPUT_EVENT_PROTECTED
 
 #include <stdlib.h>
 #include <string.h>
@@ -44,34 +44,78 @@
 # define O_BINARY 0
 #endif
 
+#define ECORE_EVAS_CHECK(ee, ...) \
+   if (!ECORE_MAGIC_CHECK(ee, ECORE_MAGIC_EVAS)) \
+     { \
+        ECORE_MAGIC_FAIL(ee, ECORE_MAGIC_EVAS, __FUNCTION__); \
+        return __VA_ARGS__; \
+     }
+
+#define ECORE_EVAS_CHECK_GOTO(_ee, _label) \
+  if (!ECORE_MAGIC_CHECK(_ee, ECORE_MAGIC_EVAS)) \
+    { \
+       ECORE_MAGIC_FAIL(_ee, ECORE_MAGIC_EVAS, __FUNCTION__); \
+       goto _label; \
+    }
+
 EAPI Eina_Bool _ecore_evas_app_comp_sync = EINA_FALSE;
 EAPI int _ecore_evas_log_dom = -1;
 static int _ecore_evas_init_count = 0;
 static Ecore_Fd_Handler *_ecore_evas_async_events_fd = NULL;
 static Eina_Bool _ecore_evas_async_events_fd_handler(void *data, Ecore_Fd_Handler *fd_handler);
 
+static Ecore_Idle_Exiter *ecore_evas_idle_exiter = NULL;
 static Ecore_Idle_Enterer *ecore_evas_idle_enterer = NULL;
 static Ecore_Evas *ecore_evases = NULL;
 static int _ecore_evas_fps_debug = 0;
 
+static const Efl_Event_Description *_event_description_get(Efl_Pointer_Action action);
+
 //RENDER_SYNC
 static int _ecore_evas_render_sync = 1;
-static Ecore_Animator *ecore_evas_animator = NULL;
-static Eina_Bool ecore_evas_animator_ticked = EINA_FALSE;
-static Eina_Bool ecore_evas_first = EINA_TRUE;
-static int overtick = 0;
 
-static Eina_Bool
-_ecore_evas_animator(void *data EINA_UNUSED)
+static void
+_ecore_evas_focus_out_dispatch(Ecore_Evas *ee, Efl_Input_Device *seat)
 {
-   ecore_evas_animator_ticked = EINA_TRUE;
-   overtick--;
-   if (overtick == 0)
-     {
-        ecore_evas_animator = NULL;
-        return EINA_FALSE;
-     }
-   return EINA_TRUE;
+   evas_canvas_seat_focus_out(ee->evas, seat);
+   if (ee->func.fn_focus_out) ee->func.fn_focus_out(ee);
+   if (ee->func.fn_focus_device_out) ee->func.fn_focus_device_out(ee, seat);
+}
+
+static void
+_ecore_evas_device_del_cb(void *data, const Efl_Event *ev)
+{
+   Ecore_Evas *ee = data;
+
+   ee->prop.focused_by = eina_list_remove(ee->prop.focused_by, ev->object);
+   _ecore_evas_focus_out_dispatch(ee, ev->object);
+}
+
+static void
+_ecore_evas_mouse_out_dispatch(Ecore_Evas *ee, Efl_Input_Device *mouse)
+{
+   if (ee->func.fn_mouse_out) ee->func.fn_mouse_out(ee);
+   if (ee->func.fn_device_mouse_out) ee->func.fn_device_mouse_out(ee, mouse);
+}
+
+static void
+_ecore_evas_mouse_del_cb(void *data, const Efl_Event *ev)
+{
+   Ecore_Evas *ee = data;
+
+   ee->mice_in = eina_list_remove(ee->mice_in, ev->object);
+   _ecore_evas_mouse_out_dispatch(ee, ev->object);
+}
+
+static void
+_ecore_evas_animator(void *data, const Efl_Event *ev EINA_UNUSED)
+{
+   Ecore_Evas *ee = data;
+
+   ee->animator_ticked = EINA_TRUE;
+
+   efl_event_callback_del(ee->evas, EFL_EVENT_ANIMATOR_TICK, _ecore_evas_animator, ee);
+   ee->animator_registered = EINA_FALSE;
 }
 
 static Eina_Bool
@@ -88,15 +132,14 @@ _ecore_evas_changes_get(Ecore_Evas *ee)
 }
 
 static Eina_Bool
-_ecore_evas_changes_check(void)
+_ecore_evas_idle_exiter(void *data EINA_UNUSED)
 {
    Ecore_Evas *ee;
 
    EINA_INLIST_FOREACH(ecore_evases, ee)
-     {
-        if (_ecore_evas_changes_get(ee)) return EINA_TRUE;
-     }
-   return EINA_FALSE;
+     ee->animator_ran = EINA_FALSE;
+
+   return ECORE_CALLBACK_RENEW;
 }
 
 static Eina_Bool
@@ -112,34 +155,34 @@ _ecore_evas_idle_enter(void *data EINA_UNUSED)
 
    if (!ecore_evases) return ECORE_CALLBACK_RENEW;
 
-   if (_ecore_evas_render_sync)
-     {
-        if (!ecore_evas_first)
-          {
-             if ((!ecore_evas_animator_ticked) &&
-                 (!ecore_main_loop_animator_ticked_get()))
-               {
-                  if (_ecore_evas_changes_check())
-                    {
-                       if (!ecore_evas_animator)
-                         {
-                            overtick = 1;
-                            ecore_evas_animator = ecore_animator_add(_ecore_evas_animator, NULL);
-                         }
-                    }
-                  return ECORE_CALLBACK_RENEW;
-               }
-             ecore_evas_animator_ticked = EINA_FALSE;
-          }
-        ecore_evas_first = EINA_FALSE;
-     }
-
    if (_ecore_evas_fps_debug)
      {
         t1 = ecore_time_get();
      }
    EINA_INLIST_FOREACH(ecore_evases, ee)
      {
+        if (_ecore_evas_render_sync)
+          {
+             if (!ee->first_frame)
+               {
+                  if ((!ee->animator_ticked) &&
+                      (!ee->animator_ran))
+                    {
+                       if (_ecore_evas_changes_get(ee))
+                         {
+                            if (!ee->animator_registered)
+                              {
+                                 efl_event_callback_add(ee->evas, EFL_EVENT_ANIMATOR_TICK, _ecore_evas_animator, ee);
+                                 ee->animator_registered = EINA_TRUE;
+                              }
+                         }
+                       continue ;
+                    }
+                  ee->animator_ticked = EINA_FALSE;
+               }
+             ee->first_frame = EINA_FALSE;
+          }
+
 #ifdef ECORE_EVAS_ASYNC_RENDER_DEBUG
         if ((ee->in_async_render) && (now - ee->async_render_start > 2.0))
           {
@@ -173,9 +216,27 @@ _ecore_evas_idle_enter(void *data EINA_UNUSED)
 
         if (!ee->manual_render)
           {
+             Eina_Bool change = EINA_FALSE;
+
              if (ee->engine.func->fn_render)
-               rend |= ee->engine.func->fn_render(ee);
+               {
+                  change = ee->engine.func->fn_render(ee);
+                  rend |= change;
+               }
+              /*
+               * Some engines that generate their own ticks based on hardware
+               * events need to know that render has been considered, and
+               * whether it will actually generate a new image or not
+               */
+             if (ee->engine.func->fn_evas_changed)
+               ee->engine.func->fn_evas_changed(ee, change);
           }
+        else
+         {
+            if (ee->engine.func->fn_evas_changed)
+               ee->engine.func->fn_evas_changed(ee, EINA_FALSE);
+         }
+
 #ifdef ECORE_EVAS_ASYNC_RENDER_DEBUG
         if ((ee->in_async_render) && (ee->async_render_start <= 0.0))
           {
@@ -192,6 +253,87 @@ _ecore_evas_idle_enter(void *data EINA_UNUSED)
           _ecore_evas_fps_debug_rendertime_add(t2 - t1);
      }
    return ECORE_CALLBACK_RENEW;
+}
+
+static void
+_ecore_evas_object_cursor_del(void *data, Evas *e EINA_UNUSED,
+                              Evas_Object *obj EINA_UNUSED,
+                              void *event_info EINA_UNUSED)
+{
+   Ecore_Evas_Cursor *cursor = data;
+   cursor->object = NULL;
+}
+
+static void
+_ecore_evas_cursor_element_del(Ecore_Evas_Cursor *cursor)
+{
+   if (cursor->object)
+     {
+        evas_object_event_callback_del_full(cursor->object, EVAS_CALLBACK_DEL,
+                                            _ecore_evas_object_cursor_del,
+                                            cursor);
+        evas_object_del(cursor->object);
+     }
+   free(cursor);
+}
+
+static void
+_ecore_evas_cursor_add(Ecore_Evas *ee, Efl_Input_Device *dev)
+{
+   Ecore_Evas_Cursor *cursor = calloc(1, sizeof(Ecore_Evas_Cursor));
+   EINA_SAFETY_ON_NULL_RETURN(cursor);
+   eina_hash_add(ee->prop.cursors, &dev, cursor);
+   if (ee->prop.cursor_cache.object)
+     {
+        ecore_evas_object_cursor_device_set(ee, dev,
+                                            ee->prop.cursor_cache.object,
+                                            ee->prop.cursor_cache.layer,
+                                            ee->prop.cursor_cache.hot.x,
+                                            ee->prop.cursor_cache.hot.y);
+        memset(&ee->prop.cursor_cache, 0, sizeof(Ecore_Evas_Cursor));
+     }
+}
+
+static void
+_ecore_evas_dev_added_or_removed(void *data, const Efl_Event *event)
+{
+   Ecore_Evas *ee = data;
+
+   if (efl_input_device_type_get(event->info) != EFL_INPUT_DEVICE_CLASS_MOUSE)
+     return;
+
+   if (event->desc == EFL_CANVAS_EVENT_DEVICE_ADDED)
+     _ecore_evas_cursor_add(ee, event->info);
+   else
+     eina_hash_del_by_key(ee->prop.cursors, &event->info);
+}
+
+EFL_CALLBACKS_ARRAY_DEFINE(_ecore_evas_device_cbs,
+                           { EFL_CANVAS_EVENT_DEVICE_ADDED, _ecore_evas_dev_added_or_removed },
+                           { EFL_CANVAS_EVENT_DEVICE_REMOVED, _ecore_evas_dev_added_or_removed });
+Eina_Bool
+_ecore_evas_cursors_init(Ecore_Evas *ee)
+{
+   const Eina_List *devs, *l;
+   Efl_Input_Device *dev;
+
+   if (!ee) return EINA_FALSE;
+   ee->prop.cursors = eina_hash_pointer_new(EINA_FREE_CB(_ecore_evas_cursor_element_del));
+   EINA_SAFETY_ON_NULL_RETURN_VAL(ee->prop.cursors, EINA_FALSE);
+
+   devs = evas_device_list(ee->evas, NULL);
+
+   EINA_LIST_FOREACH(devs, l, dev)
+     {
+        if (efl_input_device_type_get(dev) != EFL_INPUT_DEVICE_CLASS_MOUSE)
+          continue;
+        _ecore_evas_cursor_add(ee, dev);
+     }
+
+   efl_event_callback_array_priority_add(ee->evas, _ecore_evas_device_cbs(),
+                                         EFL_CALLBACK_PRIORITY_BEFORE, ee);
+
+   return EINA_TRUE;
 }
 
 EAPI Ecore_Evas_Interface *
@@ -247,13 +389,9 @@ ecore_evas_engine_type_supported_get(Ecore_Evas_Engine_Type engine)
 #else
         return EINA_FALSE;
 #endif
-      case ECORE_EVAS_ENGINE_SOFTWARE_XCB:
-#ifdef BUILD_ECORE_EVAS_SOFTWARE_XCB
-        return EINA_TRUE;
-#else
+      case ECORE_EVAS_ENGINE_SOFTWARE_XCB: /* @deprecated */
         return EINA_FALSE;
-#endif
-      case ECORE_EVAS_ENGINE_XRENDER_XCB:
+      case ECORE_EVAS_ENGINE_XRENDER_XCB: /* @deprecated */
         return EINA_FALSE;
       case ECORE_EVAS_ENGINE_SOFTWARE_GDI:
 #ifdef BUILD_ECORE_EVAS_SOFTWARE_GDI
@@ -396,6 +534,8 @@ ecore_evas_init(void)
 
    ecore_evas_idle_enterer =
      ecore_idle_enterer_add(_ecore_evas_idle_enter, NULL);
+   ecore_evas_idle_exiter =
+     ecore_idle_exiter_add(_ecore_evas_idle_exiter, NULL);
    if (getenv("ECORE_EVAS_FPS_DEBUG")) _ecore_evas_fps_debug = 1;
    if (getenv("ECORE_EVAS_RENDER_NOSYNC")) _ecore_evas_render_sync = 0;
    if (_ecore_evas_fps_debug) _ecore_evas_fps_debug_init();
@@ -433,20 +573,20 @@ ecore_evas_shutdown(void)
      return _ecore_evas_init_count;
 
    eina_log_timing(_ecore_evas_log_dom,
-		   EINA_LOG_STATE_START,
-		   EINA_LOG_STATE_SHUTDOWN);
+                   EINA_LOG_STATE_START,
+                   EINA_LOG_STATE_SHUTDOWN);
+
+#ifdef BUILD_ECORE_EVAS_EWS
+   _ecore_evas_ews_events_flush();
+#endif
 
    while (ecore_evases) _ecore_evas_free(ecore_evases);
 
    if (_ecore_evas_fps_debug) _ecore_evas_fps_debug_shutdown();
    ecore_idle_enterer_del(ecore_evas_idle_enterer);
    ecore_evas_idle_enterer = NULL;
-
-   if (_ecore_evas_render_sync)
-     {
-        if (ecore_evas_animator) ecore_animator_del(ecore_evas_animator);
-        ecore_evas_animator = NULL;
-     }
+   ecore_idle_exiter_del(ecore_evas_idle_exiter);
+   ecore_evas_idle_exiter = NULL;
 
    _ecore_evas_extn_shutdown();
 
@@ -456,7 +596,7 @@ ecore_evas_shutdown(void)
    _ecore_evas_engine_shutdown();
    if (_ecore_evas_async_events_fd)
      ecore_main_fd_handler_del(_ecore_evas_async_events_fd);
-   
+
    ecore_fork_reset_callback_del(_ecore_evas_fork_cb, NULL);
 
    eina_log_domain_unregister(_ecore_evas_log_dom);
@@ -869,11 +1009,7 @@ ecore_evas_ecore_evas_get(const Evas *e)
 {
    Ecore_Evas *ee = evas_data_attach_get(e);
    if (!ee) return NULL;
-   if (!ECORE_MAGIC_CHECK(ee, ECORE_MAGIC_EVAS))
-     {
-        ECORE_MAGIC_FAIL(ee, ECORE_MAGIC_EVAS, "ecore_evas_ecore_evas_get");
-        return NULL;
-     }
+   ECORE_EVAS_CHECK(ee, NULL);
    return ee;
 }
 
@@ -881,12 +1017,7 @@ EAPI void
 ecore_evas_free(Ecore_Evas *ee)
 {
    if (!ee) return;
-   if (!ECORE_MAGIC_CHECK(ee, ECORE_MAGIC_EVAS))
-     {
-        ECORE_MAGIC_FAIL(ee, ECORE_MAGIC_EVAS,
-                         "ecore_evas_free");
-        return;
-     }
+   ECORE_EVAS_CHECK(ee);
    _ecore_evas_free(ee);
    return;
 }
@@ -894,12 +1025,7 @@ ecore_evas_free(Ecore_Evas *ee)
 EAPI void *
 ecore_evas_data_get(const Ecore_Evas *ee, const char *key)
 {
-   if (!ECORE_MAGIC_CHECK(ee, ECORE_MAGIC_EVAS))
-     {
-        ECORE_MAGIC_FAIL(ee, ECORE_MAGIC_EVAS,
-                         "ecore_evas_data_get");
-        return NULL;
-     }
+   ECORE_EVAS_CHECK(ee, NULL);
 
    if (!key) return NULL;
    if (!ee->data) return NULL;
@@ -910,12 +1036,7 @@ ecore_evas_data_get(const Ecore_Evas *ee, const char *key)
 EAPI void
 ecore_evas_data_set(Ecore_Evas *ee, const char *key, const void *data)
 {
-   if (!ECORE_MAGIC_CHECK(ee, ECORE_MAGIC_EVAS))
-     {
-        ECORE_MAGIC_FAIL(ee, ECORE_MAGIC_EVAS,
-                         "ecore_evas_data_set");
-        return;
-     }
+   ECORE_EVAS_CHECK(ee);
 
    if (!key) return;
 
@@ -952,12 +1073,7 @@ ecore_evas_object_ecore_evas_get(Evas_Object *obj)
 EAPI void
 ecore_evas_callback_resize_set(Ecore_Evas *ee, Ecore_Evas_Event_Cb func)
 {
-   if (!ECORE_MAGIC_CHECK(ee, ECORE_MAGIC_EVAS))
-     {
-        ECORE_MAGIC_FAIL(ee, ECORE_MAGIC_EVAS,
-                         "ecore_evas_callback_resize_set");
-        return;
-     }
+   ECORE_EVAS_CHECK(ee);
    IFC(ee, fn_callback_resize_set) (ee, func);
    IFE;
    ee->func.fn_resize = func;
@@ -966,12 +1082,7 @@ ecore_evas_callback_resize_set(Ecore_Evas *ee, Ecore_Evas_Event_Cb func)
 EAPI void
 ecore_evas_callback_move_set(Ecore_Evas *ee, Ecore_Evas_Event_Cb func)
 {
-   if (!ECORE_MAGIC_CHECK(ee, ECORE_MAGIC_EVAS))
-     {
-        ECORE_MAGIC_FAIL(ee, ECORE_MAGIC_EVAS,
-                         "ecore_evas_callback_move_set");
-        return;
-     }
+   ECORE_EVAS_CHECK(ee);
    IFC(ee, fn_callback_move_set) (ee, func);
    IFE;
    ee->func.fn_move = func;
@@ -980,12 +1091,7 @@ ecore_evas_callback_move_set(Ecore_Evas *ee, Ecore_Evas_Event_Cb func)
 EAPI void
 ecore_evas_callback_show_set(Ecore_Evas *ee, Ecore_Evas_Event_Cb func)
 {
-   if (!ECORE_MAGIC_CHECK(ee, ECORE_MAGIC_EVAS))
-     {
-        ECORE_MAGIC_FAIL(ee, ECORE_MAGIC_EVAS,
-                         "ecore_evas_callback_show_set");
-        return;
-     }
+   ECORE_EVAS_CHECK(ee);
    IFC(ee, fn_callback_show_set) (ee, func);
    IFE;
    ee->func.fn_show = func;
@@ -994,12 +1100,7 @@ ecore_evas_callback_show_set(Ecore_Evas *ee, Ecore_Evas_Event_Cb func)
 EAPI void
 ecore_evas_callback_hide_set(Ecore_Evas *ee, Ecore_Evas_Event_Cb func)
 {
-   if (!ECORE_MAGIC_CHECK(ee, ECORE_MAGIC_EVAS))
-     {
-        ECORE_MAGIC_FAIL(ee, ECORE_MAGIC_EVAS,
-                         "ecore_evas_callback_hide_set");
-        return;
-     }
+   ECORE_EVAS_CHECK(ee);
    IFC(ee, fn_callback_hide_set) (ee, func);
    IFE;
    ee->func.fn_hide = func;
@@ -1008,12 +1109,7 @@ ecore_evas_callback_hide_set(Ecore_Evas *ee, Ecore_Evas_Event_Cb func)
 EAPI void
 ecore_evas_callback_delete_request_set(Ecore_Evas *ee, Ecore_Evas_Event_Cb func)
 {
-   if (!ECORE_MAGIC_CHECK(ee, ECORE_MAGIC_EVAS))
-     {
-        ECORE_MAGIC_FAIL(ee, ECORE_MAGIC_EVAS,
-                         "ecore_evas_callback_delete_request_set");
-        return;
-     }
+   ECORE_EVAS_CHECK(ee);
    IFC(ee, fn_callback_delete_request_set) (ee, func);
    IFE;
    ee->func.fn_delete_request = func;
@@ -1022,12 +1118,7 @@ ecore_evas_callback_delete_request_set(Ecore_Evas *ee, Ecore_Evas_Event_Cb func)
 EAPI void
 ecore_evas_callback_destroy_set(Ecore_Evas *ee, Ecore_Evas_Event_Cb func)
 {
-   if (!ECORE_MAGIC_CHECK(ee, ECORE_MAGIC_EVAS))
-     {
-        ECORE_MAGIC_FAIL(ee, ECORE_MAGIC_EVAS,
-                         "ecore_evas_callback_destroy_set");
-        return;
-     }
+   ECORE_EVAS_CHECK(ee);
    IFC(ee, fn_callback_destroy_set) (ee, func);
    IFE;
    ee->func.fn_destroy = func;
@@ -1036,40 +1127,45 @@ ecore_evas_callback_destroy_set(Ecore_Evas *ee, Ecore_Evas_Event_Cb func)
 EAPI void
 ecore_evas_callback_focus_in_set(Ecore_Evas *ee, Ecore_Evas_Event_Cb func)
 {
-   if (!ECORE_MAGIC_CHECK(ee, ECORE_MAGIC_EVAS))
-     {
-        ECORE_MAGIC_FAIL(ee, ECORE_MAGIC_EVAS,
-                         "ecore_evas_callback_focus_in_set");
-        return;
-     }
+   ECORE_EVAS_CHECK(ee);
    IFC(ee, fn_callback_focus_in_set) (ee, func);
    IFE;
    ee->func.fn_focus_in = func;
 }
 
 EAPI void
+ecore_evas_callback_focus_device_in_set(Ecore_Evas *ee,
+                                        Ecore_Evas_Focus_Device_Event_Cb func)
+{
+   ECORE_EVAS_CHECK(ee);
+   IFC(ee, fn_callback_focus_device_in_set) (ee, func);
+   IFE;
+   ee->func.fn_focus_device_in = func;
+}
+
+EAPI void
 ecore_evas_callback_focus_out_set(Ecore_Evas *ee, Ecore_Evas_Event_Cb func)
 {
-   if (!ECORE_MAGIC_CHECK(ee, ECORE_MAGIC_EVAS))
-     {
-        ECORE_MAGIC_FAIL(ee, ECORE_MAGIC_EVAS,
-                         "ecore_evas_callback_focus_out_set");
-        return;
-     }
+   ECORE_EVAS_CHECK(ee);
    IFC(ee, fn_callback_focus_out_set) (ee, func);
    IFE;
    ee->func.fn_focus_out = func;
 }
 
 EAPI void
+ecore_evas_callback_focus_device_out_set(Ecore_Evas *ee,
+                                         Ecore_Evas_Focus_Device_Event_Cb func)
+{
+   ECORE_EVAS_CHECK(ee);
+   IFC(ee, fn_callback_focus_device_out_set) (ee, func);
+   IFE;
+   ee->func.fn_focus_device_out = func;
+}
+
+EAPI void
 ecore_evas_callback_sticky_set(Ecore_Evas *ee, Ecore_Evas_Event_Cb func)
 {
-   if (!ECORE_MAGIC_CHECK(ee, ECORE_MAGIC_EVAS))
-     {
-        ECORE_MAGIC_FAIL(ee, ECORE_MAGIC_EVAS,
-                         "ecore_evas_callback_sticky_set");
-        return;
-     }
+   ECORE_EVAS_CHECK(ee);
    IFC(ee, fn_callback_sticky_set) (ee, func);
    IFE;
    ee->func.fn_sticky = func;
@@ -1078,12 +1174,7 @@ ecore_evas_callback_sticky_set(Ecore_Evas *ee, Ecore_Evas_Event_Cb func)
 EAPI void
 ecore_evas_callback_unsticky_set(Ecore_Evas *ee, Ecore_Evas_Event_Cb func)
 {
-   if (!ECORE_MAGIC_CHECK(ee, ECORE_MAGIC_EVAS))
-     {
-        ECORE_MAGIC_FAIL(ee, ECORE_MAGIC_EVAS,
-                         "ecore_evas_callback_unsticky_set");
-        return;
-     }
+   ECORE_EVAS_CHECK(ee);
    IFC(ee, fn_callback_unsticky_set) (ee, func);
    IFE;
    ee->func.fn_unsticky = func;
@@ -1092,12 +1183,7 @@ ecore_evas_callback_unsticky_set(Ecore_Evas *ee, Ecore_Evas_Event_Cb func)
 EAPI void
 ecore_evas_callback_mouse_in_set(Ecore_Evas *ee, Ecore_Evas_Event_Cb func)
 {
-   if (!ECORE_MAGIC_CHECK(ee, ECORE_MAGIC_EVAS))
-     {
-        ECORE_MAGIC_FAIL(ee, ECORE_MAGIC_EVAS,
-                         "ecore_evas_callback_mouse_in_set");
-        return;
-     }
+   ECORE_EVAS_CHECK(ee);
    IFC(ee, fn_callback_mouse_in_set) (ee, func);
    IFE;
    ee->func.fn_mouse_in = func;
@@ -1106,12 +1192,7 @@ ecore_evas_callback_mouse_in_set(Ecore_Evas *ee, Ecore_Evas_Event_Cb func)
 EAPI void
 ecore_evas_callback_mouse_out_set(Ecore_Evas *ee, Ecore_Evas_Event_Cb func)
 {
-   if (!ECORE_MAGIC_CHECK(ee, ECORE_MAGIC_EVAS))
-     {
-        ECORE_MAGIC_FAIL(ee, ECORE_MAGIC_EVAS,
-                         "ecore_evas_callback_mouse_out_set");
-        return;
-     }
+   ECORE_EVAS_CHECK(ee);
    IFC(ee, fn_callback_mouse_out_set) (ee, func);
    IFE;
    ee->func.fn_mouse_out = func;
@@ -1120,12 +1201,7 @@ ecore_evas_callback_mouse_out_set(Ecore_Evas *ee, Ecore_Evas_Event_Cb func)
 EAPI void
 ecore_evas_callback_pre_render_set(Ecore_Evas *ee, Ecore_Evas_Event_Cb func)
 {
-   if (!ECORE_MAGIC_CHECK(ee, ECORE_MAGIC_EVAS))
-     {
-        ECORE_MAGIC_FAIL(ee, ECORE_MAGIC_EVAS,
-                         "ecore_evas_callback_pre_render_set");
-        return;
-     }
+   ECORE_EVAS_CHECK(ee);
    IFC(ee, fn_callback_pre_render_set) (ee, func);
    IFE;
    ee->func.fn_pre_render = func;
@@ -1134,12 +1210,7 @@ ecore_evas_callback_pre_render_set(Ecore_Evas *ee, Ecore_Evas_Event_Cb func)
 EAPI void
 ecore_evas_callback_post_render_set(Ecore_Evas *ee, Ecore_Evas_Event_Cb func)
 {
-   if (!ECORE_MAGIC_CHECK(ee, ECORE_MAGIC_EVAS))
-     {
-        ECORE_MAGIC_FAIL(ee, ECORE_MAGIC_EVAS,
-                         "ecore_evas_callback_post_render_set");
-        return;
-     }
+   ECORE_EVAS_CHECK(ee);
    IFC(ee, fn_callback_post_render_set) (ee, func);
    IFE;
    ee->func.fn_post_render = func;
@@ -1148,48 +1219,28 @@ ecore_evas_callback_post_render_set(Ecore_Evas *ee, Ecore_Evas_Event_Cb func)
 EAPI void
 ecore_evas_callback_pre_free_set(Ecore_Evas *ee, Ecore_Evas_Event_Cb func)
 {
-   if (!ECORE_MAGIC_CHECK(ee, ECORE_MAGIC_EVAS))
-     {
-        ECORE_MAGIC_FAIL(ee, ECORE_MAGIC_EVAS,
-                         "ecore_evas_callback_pre_free_set");
-        return;
-     }
+   ECORE_EVAS_CHECK(ee);
    ee->func.fn_pre_free = func;
 }
 
 EAPI void
 ecore_evas_callback_state_change_set(Ecore_Evas *ee, Ecore_Evas_Event_Cb func)
 {
-   if (!ECORE_MAGIC_CHECK(ee, ECORE_MAGIC_EVAS))
-     {
-        ECORE_MAGIC_FAIL(ee, ECORE_MAGIC_EVAS,
-                         "ecore_evas_callback_state_change_set");
-        return;
-     }
+   ECORE_EVAS_CHECK(ee);
    ee->func.fn_state_change = func;
 }
 
 EAPI Evas *
 ecore_evas_get(const Ecore_Evas *ee)
 {
-   if (!ECORE_MAGIC_CHECK(ee, ECORE_MAGIC_EVAS))
-     {
-        ECORE_MAGIC_FAIL(ee, ECORE_MAGIC_EVAS,
-                         "ecore_evas_get");
-        return NULL;
-     }
+   ECORE_EVAS_CHECK(ee, NULL);
    return ee->evas;
 }
 
 EAPI void
 ecore_evas_move(Ecore_Evas *ee, int x, int y)
 {
-   if (!ECORE_MAGIC_CHECK(ee, ECORE_MAGIC_EVAS))
-     {
-        ECORE_MAGIC_FAIL(ee, ECORE_MAGIC_EVAS,
-                         "ecore_evas_move");
-        return;
-     }
+   ECORE_EVAS_CHECK(ee);
    if (ee->prop.fullscreen) return;
    IFC(ee, fn_move) (ee, x, y);
    IFE;
@@ -1198,12 +1249,7 @@ ecore_evas_move(Ecore_Evas *ee, int x, int y)
 EAPI void
 ecore_evas_managed_move(Ecore_Evas *ee, int x, int y)
 {
-   if (!ECORE_MAGIC_CHECK(ee, ECORE_MAGIC_EVAS))
-     {
-        ECORE_MAGIC_FAIL(ee, ECORE_MAGIC_EVAS,
-                         "ecore_evas_managed_move");
-        return;
-     }
+   ECORE_EVAS_CHECK(ee);
    IFC(ee, fn_managed_move) (ee, x, y);
    IFE;
 }
@@ -1211,12 +1257,7 @@ ecore_evas_managed_move(Ecore_Evas *ee, int x, int y)
 EAPI void
 ecore_evas_resize(Ecore_Evas *ee, int w, int h)
 {
-   if (!ECORE_MAGIC_CHECK(ee, ECORE_MAGIC_EVAS))
-     {
-        ECORE_MAGIC_FAIL(ee, ECORE_MAGIC_EVAS,
-                         "ecore_evas_resize");
-        return;
-     }
+   ECORE_EVAS_CHECK(ee);
    if (ee->prop.fullscreen) return;
    if (w < 1) w = 1;
    if (h < 1) h = 1;
@@ -1235,12 +1276,7 @@ ecore_evas_resize(Ecore_Evas *ee, int w, int h)
 EAPI void
 ecore_evas_move_resize(Ecore_Evas *ee, int x, int y, int w, int h)
 {
-   if (!ECORE_MAGIC_CHECK(ee, ECORE_MAGIC_EVAS))
-     {
-        ECORE_MAGIC_FAIL(ee, ECORE_MAGIC_EVAS,
-                         "ecore_evas_move_resize");
-        return;
-     }
+   ECORE_EVAS_CHECK(ee);
    if (ee->prop.fullscreen) return;
    if (w < 1) w = 1;
    if (h < 1) h = 1;
@@ -1259,12 +1295,7 @@ ecore_evas_move_resize(Ecore_Evas *ee, int x, int y, int w, int h)
 EAPI void
 ecore_evas_geometry_get(const Ecore_Evas *ee, int *x, int *y, int *w, int *h)
 {
-   if (!ECORE_MAGIC_CHECK(ee, ECORE_MAGIC_EVAS))
-     {
-        ECORE_MAGIC_FAIL(ee, ECORE_MAGIC_EVAS,
-                         "ecore_evas_geometry_get");
-        return;
-     }
+   ECORE_EVAS_CHECK(ee);
    if (ECORE_EVAS_PORTRAIT(ee))
      {
         if (x) *x = ee->x;
@@ -1284,12 +1315,7 @@ ecore_evas_geometry_get(const Ecore_Evas *ee, int *x, int *y, int *w, int *h)
 EAPI void
 ecore_evas_request_geometry_get(const Ecore_Evas *ee, int *x, int *y, int *w, int *h)
 {
-   if (!ECORE_MAGIC_CHECK(ee, ECORE_MAGIC_EVAS))
-     {
-        ECORE_MAGIC_FAIL(ee, ECORE_MAGIC_EVAS,
-                         "ecore_evas_request_geometry_get");
-        return;
-     }
+   ECORE_EVAS_CHECK(ee);
    if (ECORE_EVAS_PORTRAIT(ee))
      {
         if (x) *x = ee->req.x;
@@ -1309,12 +1335,7 @@ ecore_evas_request_geometry_get(const Ecore_Evas *ee, int *x, int *y, int *w, in
 EAPI void
 ecore_evas_rotation_set(Ecore_Evas *ee, int rot)
 {
-   if (!ECORE_MAGIC_CHECK(ee, ECORE_MAGIC_EVAS))
-     {
-        ECORE_MAGIC_FAIL(ee, ECORE_MAGIC_EVAS,
-                         "ecore_evas_rotation_set");
-        return;
-     }
+   ECORE_EVAS_CHECK(ee);
    rot = rot % 360;
    while (rot < 0) rot += 360;
    IFC(ee, fn_rotation_set) (ee, rot, 0);
@@ -1327,12 +1348,7 @@ ecore_evas_rotation_set(Ecore_Evas *ee, int rot)
 EAPI void
 ecore_evas_rotation_with_resize_set(Ecore_Evas *ee, int rot)
 {
-   if (!ECORE_MAGIC_CHECK(ee, ECORE_MAGIC_EVAS))
-     {
-        ECORE_MAGIC_FAIL(ee, ECORE_MAGIC_EVAS,
-                         "ecore_evas_rotation_with_resize_set");
-        return;
-     }
+   ECORE_EVAS_CHECK(ee);
    rot = rot % 360;
    while (rot < 0) rot += 360;
    IFC(ee, fn_rotation_set) (ee, rot, 1);
@@ -1345,24 +1361,14 @@ ecore_evas_rotation_with_resize_set(Ecore_Evas *ee, int rot)
 EAPI int
 ecore_evas_rotation_get(const Ecore_Evas *ee)
 {
-   if (!ECORE_MAGIC_CHECK(ee, ECORE_MAGIC_EVAS))
-     {
-        ECORE_MAGIC_FAIL(ee, ECORE_MAGIC_EVAS,
-                         "ecore_evas_rotation_get");
-        return 0;
-     }
+   ECORE_EVAS_CHECK(ee, 0);
    return ee->rotation;
 }
 
 EAPI void
 ecore_evas_shaped_set(Ecore_Evas *ee, Eina_Bool shaped)
 {
-   if (!ECORE_MAGIC_CHECK(ee, ECORE_MAGIC_EVAS))
-     {
-        ECORE_MAGIC_FAIL(ee, ECORE_MAGIC_EVAS,
-                         "ecore_evas_shaped_set");
-        return;
-     }
+   ECORE_EVAS_CHECK(ee);
    IFC(ee, fn_shaped_set) (ee, shaped);
    IFE;
 }
@@ -1370,24 +1376,14 @@ ecore_evas_shaped_set(Ecore_Evas *ee, Eina_Bool shaped)
 EAPI Eina_Bool
 ecore_evas_shaped_get(const Ecore_Evas *ee)
 {
-   if (!ECORE_MAGIC_CHECK(ee, ECORE_MAGIC_EVAS))
-     {
-        ECORE_MAGIC_FAIL(ee, ECORE_MAGIC_EVAS,
-                         "ecore_evas_shaped_get");
-        return EINA_FALSE;
-     }
+   ECORE_EVAS_CHECK(ee, EINA_FALSE);
    return ee->shaped ? EINA_TRUE : EINA_FALSE;
 }
 
 EAPI void
 ecore_evas_alpha_set(Ecore_Evas *ee, Eina_Bool alpha)
 {
-   if (!ECORE_MAGIC_CHECK(ee, ECORE_MAGIC_EVAS))
-     {
-        ECORE_MAGIC_FAIL(ee, ECORE_MAGIC_EVAS,
-                         "ecore_evas_alpha_set");
-        return;
-     }
+   ECORE_EVAS_CHECK(ee);
    IFC(ee, fn_alpha_set) (ee, alpha);
    IFE;
 }
@@ -1395,24 +1391,14 @@ ecore_evas_alpha_set(Ecore_Evas *ee, Eina_Bool alpha)
 EAPI Eina_Bool
 ecore_evas_alpha_get(const Ecore_Evas *ee)
 {
-   if (!ECORE_MAGIC_CHECK(ee, ECORE_MAGIC_EVAS))
-     {
-        ECORE_MAGIC_FAIL(ee, ECORE_MAGIC_EVAS,
-                         "ecore_evas_alpha_get");
-        return EINA_FALSE;
-     }
+   ECORE_EVAS_CHECK(ee, EINA_FALSE);
    return ee->alpha ? EINA_TRUE : EINA_FALSE;
 }
 
 EAPI void
 ecore_evas_transparent_set(Ecore_Evas *ee, Eina_Bool transparent)
 {
-   if (!ECORE_MAGIC_CHECK(ee, ECORE_MAGIC_EVAS))
-     {
-        ECORE_MAGIC_FAIL(ee, ECORE_MAGIC_EVAS,
-                         "ecore_evas_transparent_set");
-        return;
-     }
+   ECORE_EVAS_CHECK(ee);
    IFC(ee, fn_transparent_set) (ee, transparent);
    IFE;
 }
@@ -1420,24 +1406,14 @@ ecore_evas_transparent_set(Ecore_Evas *ee, Eina_Bool transparent)
 EAPI Eina_Bool
 ecore_evas_transparent_get(const Ecore_Evas *ee)
 {
-   if (!ECORE_MAGIC_CHECK(ee, ECORE_MAGIC_EVAS))
-     {
-        ECORE_MAGIC_FAIL(ee, ECORE_MAGIC_EVAS,
-                         "ecore_evas_transparent_get");
-        return EINA_FALSE;
-     }
+   ECORE_EVAS_CHECK(ee, EINA_FALSE);
    return ee->transparent ? EINA_TRUE : 0;
 }
 
 EAPI void
 ecore_evas_show(Ecore_Evas *ee)
 {
-   if (!ECORE_MAGIC_CHECK(ee, ECORE_MAGIC_EVAS))
-     {
-        ECORE_MAGIC_FAIL(ee, ECORE_MAGIC_EVAS,
-                         "ecore_evas_show");
-        return;
-     }
+   ECORE_EVAS_CHECK(ee);
    IFC(ee, fn_show) (ee);
    IFE;
 }
@@ -1445,12 +1421,7 @@ ecore_evas_show(Ecore_Evas *ee)
 EAPI void
 ecore_evas_hide(Ecore_Evas *ee)
 {
-   if (!ECORE_MAGIC_CHECK(ee, ECORE_MAGIC_EVAS))
-     {
-        ECORE_MAGIC_FAIL(ee, ECORE_MAGIC_EVAS,
-                         "ecore_evas_hide");
-        return;
-     }
+   ECORE_EVAS_CHECK(ee);
    IFC(ee, fn_hide) (ee);
    IFE;
 }
@@ -1458,24 +1429,14 @@ ecore_evas_hide(Ecore_Evas *ee)
  EAPI int
 ecore_evas_visibility_get(const Ecore_Evas *ee)
 {
-   if (!ECORE_MAGIC_CHECK(ee, ECORE_MAGIC_EVAS))
-     {
-        ECORE_MAGIC_FAIL(ee, ECORE_MAGIC_EVAS,
-                         "ecore_evas_visibility_get");
-        return 0;
-     }
+   ECORE_EVAS_CHECK(ee, 0);
    return ee->visible ? 1:0;
 }
 
 EAPI void
 ecore_evas_raise(Ecore_Evas *ee)
 {
-   if (!ECORE_MAGIC_CHECK(ee, ECORE_MAGIC_EVAS))
-     {
-        ECORE_MAGIC_FAIL(ee, ECORE_MAGIC_EVAS,
-                         "ecore_evas_raise");
-        return;
-     }
+   ECORE_EVAS_CHECK(ee);
    IFC(ee, fn_raise) (ee);
    IFE;
 }
@@ -1483,12 +1444,7 @@ ecore_evas_raise(Ecore_Evas *ee)
 EAPI void
 ecore_evas_lower(Ecore_Evas *ee)
 {
-   if (!ECORE_MAGIC_CHECK(ee, ECORE_MAGIC_EVAS))
-     {
-        ECORE_MAGIC_FAIL(ee, ECORE_MAGIC_EVAS,
-                         "ecore_evas_lower");
-        return;
-     }
+   ECORE_EVAS_CHECK(ee);
    IFC(ee, fn_lower) (ee);
    IFE;
 }
@@ -1496,12 +1452,7 @@ ecore_evas_lower(Ecore_Evas *ee)
 EAPI void
 ecore_evas_activate(Ecore_Evas *ee)
 {
-   if (!ECORE_MAGIC_CHECK(ee, ECORE_MAGIC_EVAS))
-     {
-        ECORE_MAGIC_FAIL(ee, ECORE_MAGIC_EVAS,
-                         "ecore_evas_activate");
-        return;
-     }
+   ECORE_EVAS_CHECK(ee);
    IFC(ee, fn_activate) (ee);
    IFE;
 }
@@ -1509,12 +1460,7 @@ ecore_evas_activate(Ecore_Evas *ee)
 EAPI void
 ecore_evas_title_set(Ecore_Evas *ee, const char *t)
 {
-   if (!ECORE_MAGIC_CHECK(ee, ECORE_MAGIC_EVAS))
-     {
-        ECORE_MAGIC_FAIL(ee, ECORE_MAGIC_EVAS,
-                         "ecore_evas_title_set");
-        return;
-     }
+   ECORE_EVAS_CHECK(ee);
    IFC(ee, fn_title_set) (ee, t);
    IFE;
 }
@@ -1522,24 +1468,14 @@ ecore_evas_title_set(Ecore_Evas *ee, const char *t)
 EAPI const char *
 ecore_evas_title_get(const Ecore_Evas *ee)
 {
-   if (!ECORE_MAGIC_CHECK(ee, ECORE_MAGIC_EVAS))
-     {
-        ECORE_MAGIC_FAIL(ee, ECORE_MAGIC_EVAS,
-                         "ecore_evas_title_get");
-        return NULL;
-     }
+   ECORE_EVAS_CHECK(ee, NULL);
    return ee->prop.title;
 }
 
 EAPI void
 ecore_evas_name_class_set(Ecore_Evas *ee, const char *n, const char *c)
 {
-   if (!ECORE_MAGIC_CHECK(ee, ECORE_MAGIC_EVAS))
-     {
-        ECORE_MAGIC_FAIL(ee, ECORE_MAGIC_EVAS,
-                         "ecore_evas_name_class_set");
-        return;
-     }
+   ECORE_EVAS_CHECK(ee);
    IFC(ee, fn_name_class_set) (ee, n, c);
    IFE;
 }
@@ -1547,12 +1483,9 @@ ecore_evas_name_class_set(Ecore_Evas *ee, const char *n, const char *c)
 EAPI void
 ecore_evas_name_class_get(const Ecore_Evas *ee, const char **n, const char **c)
 {
-   if (!ECORE_MAGIC_CHECK(ee, ECORE_MAGIC_EVAS))
-     {
-        ECORE_MAGIC_FAIL(ee, ECORE_MAGIC_EVAS,
-                         "ecore_evas_name_class_get");
-        return;
-     }
+   if (n) *n = NULL;
+   if (c) *c = NULL;
+   ECORE_EVAS_CHECK(ee);
    if (n) *n = ee->prop.name;
    if (c) *c = ee->prop.clas;
 }
@@ -1560,12 +1493,7 @@ ecore_evas_name_class_get(const Ecore_Evas *ee, const char **n, const char **c)
 EAPI void
 ecore_evas_size_min_set(Ecore_Evas *ee, int w, int h)
 {
-   if (!ECORE_MAGIC_CHECK(ee, ECORE_MAGIC_EVAS))
-     {
-        ECORE_MAGIC_FAIL(ee, ECORE_MAGIC_EVAS,
-                         "ecore_evas_size_min_set");
-        return;
-     }
+   ECORE_EVAS_CHECK(ee);
    if (w < 0) w = 0;
    if (h < 0) h = 0;
    if (ECORE_EVAS_PORTRAIT(ee))
@@ -1583,12 +1511,9 @@ ecore_evas_size_min_set(Ecore_Evas *ee, int w, int h)
 EAPI void
 ecore_evas_size_min_get(const Ecore_Evas *ee, int *w, int *h)
 {
-   if (!ECORE_MAGIC_CHECK(ee, ECORE_MAGIC_EVAS))
-     {
-        ECORE_MAGIC_FAIL(ee, ECORE_MAGIC_EVAS,
-                         "ecore_evas_size_min_get");
-        return;
-     }
+   if (w) *w = 0;
+   if (h) *h = 0;
+   ECORE_EVAS_CHECK(ee);
    if (ECORE_EVAS_PORTRAIT(ee))
      {
         if (w) *w = ee->prop.min.w;
@@ -1604,12 +1529,7 @@ ecore_evas_size_min_get(const Ecore_Evas *ee, int *w, int *h)
 EAPI void
 ecore_evas_size_max_set(Ecore_Evas *ee, int w, int h)
 {
-   if (!ECORE_MAGIC_CHECK(ee, ECORE_MAGIC_EVAS))
-     {
-        ECORE_MAGIC_FAIL(ee, ECORE_MAGIC_EVAS,
-                         "ecore_evas_size_max_set");
-        return;
-     }
+   ECORE_EVAS_CHECK(ee);
    if (w < 0) w = 0;
    if (h < 0) h = 0;
    if (ECORE_EVAS_PORTRAIT(ee))
@@ -1627,12 +1547,9 @@ ecore_evas_size_max_set(Ecore_Evas *ee, int w, int h)
 EAPI void
 ecore_evas_size_max_get(const Ecore_Evas *ee, int *w, int *h)
 {
-   if (!ECORE_MAGIC_CHECK(ee, ECORE_MAGIC_EVAS))
-     {
-        ECORE_MAGIC_FAIL(ee, ECORE_MAGIC_EVAS,
-                         "ecore_evas_size_max_get");
-        return;
-     }
+   if (w) *w = 0;
+   if (h) *h = 0;
+   ECORE_EVAS_CHECK(ee);
    if (ECORE_EVAS_PORTRAIT(ee))
      {
         if (w) *w = ee->prop.max.w;
@@ -1648,12 +1565,7 @@ ecore_evas_size_max_get(const Ecore_Evas *ee, int *w, int *h)
 EAPI void
 ecore_evas_size_base_set(Ecore_Evas *ee, int w, int h)
 {
-   if (!ECORE_MAGIC_CHECK(ee, ECORE_MAGIC_EVAS))
-     {
-        ECORE_MAGIC_FAIL(ee, ECORE_MAGIC_EVAS,
-                         "ecore_evas_size_base_set");
-        return;
-     }
+   ECORE_EVAS_CHECK(ee);
    if (w < 0) w = 0;
    if (h < 0) h = 0;
    if (ECORE_EVAS_PORTRAIT(ee))
@@ -1671,12 +1583,7 @@ ecore_evas_size_base_set(Ecore_Evas *ee, int w, int h)
 EAPI void
 ecore_evas_size_base_get(const Ecore_Evas *ee, int *w, int *h)
 {
-   if (!ECORE_MAGIC_CHECK(ee, ECORE_MAGIC_EVAS))
-     {
-        ECORE_MAGIC_FAIL(ee, ECORE_MAGIC_EVAS,
-                         "ecore_evas_size_base_get");
-        return;
-     }
+   ECORE_EVAS_CHECK(ee);
    if (ECORE_EVAS_PORTRAIT(ee))
      {
         if (w) *w = ee->prop.base.w;
@@ -1692,12 +1599,7 @@ ecore_evas_size_base_get(const Ecore_Evas *ee, int *w, int *h)
 EAPI void
 ecore_evas_size_step_set(Ecore_Evas *ee, int w, int h)
 {
-   if (!ECORE_MAGIC_CHECK(ee, ECORE_MAGIC_EVAS))
-     {
-        ECORE_MAGIC_FAIL(ee, ECORE_MAGIC_EVAS,
-                         "ecore_evas_size_step_set");
-        return;
-     }
+   ECORE_EVAS_CHECK(ee);
    if (w < 0) w = 0;
    if (h < 0) h = 0;
    if (ECORE_EVAS_PORTRAIT(ee))
@@ -1715,12 +1617,7 @@ ecore_evas_size_step_set(Ecore_Evas *ee, int w, int h)
 EAPI void
 ecore_evas_size_step_get(const Ecore_Evas *ee, int *w, int *h)
 {
-   if (!ECORE_MAGIC_CHECK(ee, ECORE_MAGIC_EVAS))
-     {
-        ECORE_MAGIC_FAIL(ee, ECORE_MAGIC_EVAS,
-                         "ecore_evas_size_step_get");
-        return;
-     }
+   ECORE_EVAS_CHECK(ee);
    if (ECORE_EVAS_PORTRAIT(ee))
      {
         if (w) *w = ee->prop.step.w;
@@ -1733,18 +1630,106 @@ ecore_evas_size_step_get(const Ecore_Evas *ee, int *w, int *h)
      }
 }
 
-EAPI void
-ecore_evas_cursor_set(Ecore_Evas *ee, const char *file, int layer, int hot_x, int hot_y)
+EAPI Evas_Object *
+_ecore_evas_default_cursor_image_get(Ecore_Evas *ee)
 {
-   Evas_Object  *obj = NULL;
+   Efl_Input_Device *pointer;
+   Ecore_Evas_Cursor *cursor;
 
-   if (!ECORE_MAGIC_CHECK(ee, ECORE_MAGIC_EVAS))
+   pointer = evas_default_device_get(ee->evas, EFL_INPUT_DEVICE_CLASS_MOUSE);
+   cursor = eina_hash_find(ee->prop.cursors, &pointer);
+   EINA_SAFETY_ON_NULL_RETURN_VAL(cursor, NULL);
+   return cursor->object;
+}
+
+EAPI void
+_ecore_evas_default_cursor_hide(Ecore_Evas *ee)
+{
+   Efl_Input_Device *pointer;
+   Ecore_Evas_Cursor *cursor;
+
+   pointer = evas_default_device_get(ee->evas, EFL_INPUT_DEVICE_CLASS_MOUSE);
+   cursor = eina_hash_find(ee->prop.cursors, &pointer);
+   EINA_SAFETY_ON_NULL_RETURN(cursor);
+   if (cursor->object)
+     evas_object_hide(cursor->object);
+}
+
+static void
+_ecore_evas_object_cursor_device_set(Ecore_Evas *ee, Efl_Input_Device *pointer,
+                                     Evas_Object *obj, int layer,
+                                     int hot_x, int hot_y)
+{
+   Ecore_Evas_Cursor *cursor;
+   int x, y;
+   Evas_Object *old;
+
+   ECORE_EVAS_CHECK(ee);
+
+   if (!pointer)
      {
-        ECORE_MAGIC_FAIL(ee, ECORE_MAGIC_EVAS,
-                         "ecore_evas_cursor_set");
-        return;
+        pointer = evas_default_device_get(ee->evas, EFL_INPUT_DEVICE_CLASS_MOUSE);
+        if (!pointer)
+          {
+             ee->prop.cursor_cache.object = obj;
+             ee->prop.cursor_cache.layer = layer;
+             ee->prop.cursor_cache.hot.x = hot_x;
+             ee->prop.cursor_cache.hot.y = hot_y;
+             return;
+          }
      }
 
+   if (obj && ee->engine.func->fn_object_cursor_set)
+     ee->engine.func->fn_object_cursor_set(ee, obj, layer, hot_x, hot_y);
+   else if (!obj && ee->engine.func->fn_object_cursor_unset)
+     ee->engine.func->fn_object_cursor_unset(ee);
+
+   cursor = eina_hash_find(ee->prop.cursors, &pointer);
+   EINA_SAFETY_ON_NULL_RETURN(cursor);
+   old = cursor->object;
+   if (!obj)
+     {
+        cursor->object = NULL;
+        cursor->layer = 0;
+        cursor->hot.x = 0;
+        cursor->hot.y = 0;
+        goto end;
+     }
+
+   cursor->object = obj;
+   cursor->layer = layer;
+   cursor->hot.x = hot_x;
+   cursor->hot.y = hot_y;
+
+   evas_pointer_output_xy_get(ee->evas, &x, &y);
+
+   if (obj != old)
+     {
+        evas_object_layer_set(cursor->object, cursor->layer);
+        evas_object_pass_events_set(cursor->object, 1);
+        if (evas_pointer_inside_get(ee->evas))
+          evas_object_show(cursor->object);
+        evas_object_event_callback_add(obj, EVAS_CALLBACK_DEL,
+                                       _ecore_evas_object_cursor_del, cursor);
+     }
+
+   evas_object_move(cursor->object, x - cursor->hot.x,
+                    y - cursor->hot.y);
+
+end:
+   if ((old) && (obj != old))
+     {
+        evas_object_event_callback_del_full
+          (old, EVAS_CALLBACK_DEL, _ecore_evas_object_cursor_del, cursor);
+        evas_object_del(old);
+     }
+}
+
+EAPI void
+ecore_evas_cursor_set(Ecore_Evas *ee, const char *file,
+                      int layer, int hot_x, int hot_y)
+{
+   Evas_Object *obj = NULL;
    if (file)
      {
         int x, y;
@@ -1756,67 +1741,89 @@ ecore_evas_cursor_set(Ecore_Evas *ee, const char *file, int layer, int hot_x, in
         evas_object_image_fill_set(obj, 0, 0, x, y);
      }
 
-   IFC(ee, fn_object_cursor_set) (ee, obj, layer, hot_x, hot_y);
-   IFE;
+   _ecore_evas_object_cursor_device_set(ee, NULL, obj, layer, hot_x, hot_y);
 }
 
 EAPI void
-ecore_evas_object_cursor_set(Ecore_Evas *ee, Evas_Object *obj, int layer, int hot_x, int hot_y)
+ecore_evas_object_cursor_set(Ecore_Evas *ee, Evas_Object *obj,
+                             int layer, int hot_x, int hot_y)
 {
-   if (!ECORE_MAGIC_CHECK(ee, ECORE_MAGIC_EVAS))
+   _ecore_evas_object_cursor_device_set(ee, NULL, obj, layer, hot_x, hot_y);
+}
+
+EAPI void
+ecore_evas_object_cursor_device_set(Ecore_Evas *ee, Efl_Input_Device *pointer,
+                                    Evas_Object *obj, int layer,
+                                    int hot_x, int hot_y)
+{
+   _ecore_evas_object_cursor_device_set(ee, pointer, obj, layer, hot_x, hot_y);
+}
+
+EAPI Eina_Bool
+ecore_evas_cursor_device_get(const Ecore_Evas *ee, Efl_Input_Device *pointer,
+                             Evas_Object **obj, int *layer,
+                             int *hot_x, int *hot_y)
+{
+   Ecore_Evas_Cursor *cursor;
+
+   ECORE_EVAS_CHECK_GOTO(ee, err);
+
+   if (!pointer)
+     pointer = evas_default_device_get(ee->evas, EFL_INPUT_DEVICE_CLASS_MOUSE);
+   if (pointer)
      {
-        ECORE_MAGIC_FAIL(ee, ECORE_MAGIC_EVAS,
-                         "ecore_evas_cursor_set");
-        return;
+        cursor = eina_hash_find(ee->prop.cursors, &pointer);
+        if (cursor)
+          {
+             if (obj) *obj = cursor->object;
+             if (layer) *layer = cursor->layer;
+             if (hot_x) *hot_x = cursor->hot.x;
+             if (hot_y) *hot_y = cursor->hot.y;
+             return EINA_TRUE;
+          }
      }
-   IFC(ee, fn_object_cursor_set) (ee, obj, layer, hot_x, hot_y);
-   IFE;
+
+ err:
+   if (obj) *obj = NULL;
+   if (layer) *layer = 0;
+   if (hot_x) *hot_x = 0;
+   if (hot_y) *hot_y = 0;
+   return EINA_FALSE;
 }
 
 EAPI void
 ecore_evas_cursor_get(const Ecore_Evas *ee, Evas_Object **obj, int *layer, int *hot_x, int *hot_y)
 {
-   if (!ECORE_MAGIC_CHECK(ee, ECORE_MAGIC_EVAS))
-     {
-        ECORE_MAGIC_FAIL(ee, ECORE_MAGIC_EVAS,
-                         "ecore_evas_cursor_get");
-        return;
-     }
-   if (obj) *obj = ee->prop.cursor.object;
-   if (layer) *layer = ee->prop.cursor.layer;
-   if (hot_x) *hot_x = ee->prop.cursor.hot.x;
-   if (hot_y) *hot_y = ee->prop.cursor.hot.y;
+   ecore_evas_cursor_device_get(ee, NULL, obj, layer, hot_x, hot_y);
 }
 
 EAPI Evas_Object *
 ecore_evas_cursor_unset(Ecore_Evas *ee)
 {
+   Ecore_Evas_Cursor *cursor;
+   Efl_Input_Device *pointer;
    Evas_Object *obj;
 
-   if (!ECORE_MAGIC_CHECK(ee, ECORE_MAGIC_EVAS))
-     {
-        ECORE_MAGIC_FAIL(ee, ECORE_MAGIC_EVAS,
-                         "ecore_evas_cursor_unset");
-        return NULL;
-     }
-   obj = ee->prop.cursor.object;
-   IFC(ee, fn_object_cursor_unset) (ee);
-   evas_object_hide(obj);
-   ee->prop.cursor.object = NULL;
-   }
+   ECORE_EVAS_CHECK(ee, NULL);
 
+   pointer = evas_default_device_get(ee->evas, EFL_INPUT_DEVICE_CLASS_MOUSE);
+   cursor = eina_hash_find(ee->prop.cursors, &pointer);
+   EINA_SAFETY_ON_NULL_RETURN_VAL(cursor, NULL);
+   obj = cursor->object;
+   if (ee->engine.func->fn_object_cursor_unset)
+     ee->engine.func->fn_object_cursor_unset(ee);
+   evas_object_hide(obj);
+   cursor->object = NULL;
+   evas_object_event_callback_del_full(obj, EVAS_CALLBACK_DEL,
+                                       _ecore_evas_object_cursor_del,
+                                       cursor);
    return obj;
 }
 
 EAPI void
 ecore_evas_layer_set(Ecore_Evas *ee, int layer)
 {
-   if (!ECORE_MAGIC_CHECK(ee, ECORE_MAGIC_EVAS))
-     {
-        ECORE_MAGIC_FAIL(ee, ECORE_MAGIC_EVAS,
-                         "ecore_evas_layer_set");
-        return;
-     }
+   ECORE_EVAS_CHECK(ee);
    IFC(ee, fn_layer_set) (ee, layer);
    IFE;
    ee->prop.layer = layer;
@@ -1825,60 +1832,85 @@ ecore_evas_layer_set(Ecore_Evas *ee, int layer)
 EAPI int
 ecore_evas_layer_get(const Ecore_Evas *ee)
 {
-   if (!ECORE_MAGIC_CHECK(ee, ECORE_MAGIC_EVAS))
-     {
-        ECORE_MAGIC_FAIL(ee, ECORE_MAGIC_EVAS,
-                         "ecore_evas_layer_get");
-        return 0;
-     }
+   ECORE_EVAS_CHECK(ee, 0);
    return ee->prop.layer;
+}
+
+EAPI Eina_Bool
+ecore_evas_focus_device_get(const Ecore_Evas *ee, Efl_Input_Device *seat)
+{
+   ECORE_EVAS_CHECK(ee, EINA_FALSE);
+   if (!seat)
+     seat = evas_default_device_get(ee->evas, EFL_INPUT_DEVICE_CLASS_SEAT);
+   return eina_list_data_find(ee->prop.focused_by, seat) ? EINA_TRUE : EINA_FALSE;
+}
+
+EAPI void
+_ecore_evas_focus_device_set(Ecore_Evas *ee, Efl_Input_Device *seat,
+                             Eina_Bool on)
+{
+   Eina_Bool present;
+
+   if (!seat)
+     seat = evas_default_device_get(ee->evas, EFL_INPUT_DEVICE_CLASS_SEAT);
+   EINA_SAFETY_ON_NULL_RETURN(seat);
+
+   if (efl_input_device_type_get(seat) != EFL_INPUT_DEVICE_CLASS_SEAT)
+     {
+        ERR("The Input device must be an seat");
+        return;
+     }
+
+   present = ecore_evas_focus_device_get(ee, seat);
+   if (on)
+     {
+        if (present) return;
+        ee->prop.focused_by = eina_list_append(ee->prop.focused_by, seat);
+        efl_event_callback_add(seat, EFL_EVENT_DEL,
+                               _ecore_evas_device_del_cb, ee);
+        evas_canvas_seat_focus_in(ee->evas, seat);
+        if (ee->func.fn_focus_in) ee->func.fn_focus_in(ee);
+        if (ee->func.fn_focus_device_in) ee->func.fn_focus_device_in(ee, seat);
+     }
+   else
+     {
+        if (!present) return;
+        ee->prop.focused_by = eina_list_remove(ee->prop.focused_by, seat);
+        efl_event_callback_del(seat, EFL_EVENT_DEL,
+                               _ecore_evas_device_del_cb, ee);
+        _ecore_evas_focus_out_dispatch(ee, seat);
+     }
+}
+
+EAPI void
+ecore_evas_focus_device_set(Ecore_Evas *ee, Efl_Input_Device *seat,
+                            Eina_Bool on)
+{
+   ECORE_EVAS_CHECK(ee);
+   IFC(ee, fn_focus_device_set) (ee, seat, on);
+   IFE;
+   _ecore_evas_focus_device_set(ee, seat, on);
 }
 
 EAPI void
 ecore_evas_focus_set(Ecore_Evas *ee, Eina_Bool on)
 {
-   if (!ECORE_MAGIC_CHECK(ee, ECORE_MAGIC_EVAS))
-     {
-        ECORE_MAGIC_FAIL(ee, ECORE_MAGIC_EVAS,
-                         "ecore_evas_focus_set");
-        return;
-     }
+   ECORE_EVAS_CHECK(ee);
    IFC(ee, fn_focus_set) (ee, on);
    IFE;
-   if (on)
-     {
-        evas_focus_in(ee->evas);
-        if (ee->func.fn_focus_in) ee->func.fn_focus_in(ee);
-     }
-   else
-     {
-        evas_focus_out(ee->evas);
-        if (ee->func.fn_focus_out) ee->func.fn_focus_out(ee);
-     }
-   ee->prop.focused = !!on;
+   ecore_evas_focus_device_set(ee, NULL, on);
 }
 
 EAPI Eina_Bool
 ecore_evas_focus_get(const Ecore_Evas *ee)
 {
-   if (!ECORE_MAGIC_CHECK(ee, ECORE_MAGIC_EVAS))
-     {
-        ECORE_MAGIC_FAIL(ee, ECORE_MAGIC_EVAS,
-                         "ecore_evas_focus_get");
-        return EINA_FALSE;
-     }
-   return ee->prop.focused ? EINA_TRUE : EINA_FALSE;
+   return ecore_evas_focus_device_get(ee, NULL);
 }
 
 EAPI void
 ecore_evas_iconified_set(Ecore_Evas *ee, Eina_Bool on)
 {
-   if (!ECORE_MAGIC_CHECK(ee, ECORE_MAGIC_EVAS))
-     {
-        ECORE_MAGIC_FAIL(ee, ECORE_MAGIC_EVAS,
-                         "ecore_evas_iconified_set");
-        return;
-     }
+   ECORE_EVAS_CHECK(ee);
    IFC(ee, fn_iconified_set) (ee, on);
    IFE;
    ee->prop.iconified = !!on;
@@ -1887,24 +1919,14 @@ ecore_evas_iconified_set(Ecore_Evas *ee, Eina_Bool on)
 EAPI Eina_Bool
 ecore_evas_iconified_get(const Ecore_Evas *ee)
 {
-   if (!ECORE_MAGIC_CHECK(ee, ECORE_MAGIC_EVAS))
-     {
-        ECORE_MAGIC_FAIL(ee, ECORE_MAGIC_EVAS,
-                         "ecore_evas_iconified_get");
-        return EINA_FALSE;
-     }
+   ECORE_EVAS_CHECK(ee, EINA_FALSE);
    return ee->prop.iconified ? EINA_TRUE : EINA_FALSE;
 }
 
 EAPI void
 ecore_evas_borderless_set(Ecore_Evas *ee, Eina_Bool on)
 {
-   if (!ECORE_MAGIC_CHECK(ee, ECORE_MAGIC_EVAS))
-     {
-        ECORE_MAGIC_FAIL(ee, ECORE_MAGIC_EVAS,
-                         "ecore_evas_borderless_set");
-        return;
-     }
+   ECORE_EVAS_CHECK(ee);
    IFC(ee, fn_borderless_set) (ee, on);
    IFE;
    ee->prop.borderless = !!on;
@@ -1913,24 +1935,14 @@ ecore_evas_borderless_set(Ecore_Evas *ee, Eina_Bool on)
 EAPI Eina_Bool
 ecore_evas_borderless_get(const Ecore_Evas *ee)
 {
-   if (!ECORE_MAGIC_CHECK(ee, ECORE_MAGIC_EVAS))
-     {
-        ECORE_MAGIC_FAIL(ee, ECORE_MAGIC_EVAS,
-                         "ecore_evas_borderless_get");
-        return EINA_FALSE;
-     }
+   ECORE_EVAS_CHECK(ee, EINA_FALSE);
    return ee->prop.borderless ? EINA_TRUE : EINA_FALSE;
 }
 
 EAPI void
 ecore_evas_override_set(Ecore_Evas *ee, Eina_Bool on)
 {
-   if (!ECORE_MAGIC_CHECK(ee, ECORE_MAGIC_EVAS))
-     {
-        ECORE_MAGIC_FAIL(ee, ECORE_MAGIC_EVAS,
-                         "ecore_evas_override_set");
-        return;
-     }
+   ECORE_EVAS_CHECK(ee);
    IFC(ee, fn_override_set) (ee, on);
    IFE;
    ee->prop.override = !!on;
@@ -1939,24 +1951,14 @@ ecore_evas_override_set(Ecore_Evas *ee, Eina_Bool on)
 EAPI Eina_Bool
 ecore_evas_override_get(const Ecore_Evas *ee)
 {
-   if (!ECORE_MAGIC_CHECK(ee, ECORE_MAGIC_EVAS))
-     {
-        ECORE_MAGIC_FAIL(ee, ECORE_MAGIC_EVAS,
-                         "ecore_evas_override_get");
-        return EINA_FALSE;
-     }
+   ECORE_EVAS_CHECK(ee, EINA_FALSE);
    return ee->prop.override ? EINA_TRUE : EINA_FALSE;
 }
 
 EAPI void
 ecore_evas_maximized_set(Ecore_Evas *ee, Eina_Bool on)
 {
-   if (!ECORE_MAGIC_CHECK(ee, ECORE_MAGIC_EVAS))
-     {
-        ECORE_MAGIC_FAIL(ee, ECORE_MAGIC_EVAS,
-                         "ecore_evas_maximized_set");
-        return;
-     }
+   ECORE_EVAS_CHECK(ee);
    IFC(ee, fn_maximized_set) (ee, on);
    IFE;
 }
@@ -1964,36 +1966,21 @@ ecore_evas_maximized_set(Ecore_Evas *ee, Eina_Bool on)
 EAPI Eina_Bool
 ecore_evas_maximized_get(const Ecore_Evas *ee)
 {
-   if (!ECORE_MAGIC_CHECK(ee, ECORE_MAGIC_EVAS))
-     {
-        ECORE_MAGIC_FAIL(ee, ECORE_MAGIC_EVAS,
-                         "ecore_evas_maximized_get");
-        return EINA_FALSE;
-     }
+   ECORE_EVAS_CHECK(ee, EINA_FALSE);
    return ee->prop.maximized ? EINA_TRUE : EINA_FALSE;
 }
 
 EAPI Eina_Bool
 ecore_evas_window_profile_supported_get(const Ecore_Evas *ee)
 {
-   if (!ECORE_MAGIC_CHECK(ee, ECORE_MAGIC_EVAS))
-     {
-        ECORE_MAGIC_FAIL(ee, ECORE_MAGIC_EVAS,
-                         "ecore_evas_window_profile_supported_get");
-        return EINA_FALSE;
-     }
+   ECORE_EVAS_CHECK(ee, EINA_FALSE);
    return ee->profile_supported ? EINA_TRUE : EINA_FALSE;
 }
 
 EAPI void
 ecore_evas_window_profile_set(Ecore_Evas *ee, const char *profile)
 {
-   if (!ECORE_MAGIC_CHECK(ee, ECORE_MAGIC_EVAS))
-     {
-        ECORE_MAGIC_FAIL(ee, ECORE_MAGIC_EVAS,
-                         "ecore_evas_window_profile_set");
-        return;
-     }
+   ECORE_EVAS_CHECK(ee);
    IFC(ee, fn_profile_set) (ee, profile);
    IFE;
 }
@@ -2001,24 +1988,14 @@ ecore_evas_window_profile_set(Ecore_Evas *ee, const char *profile)
 EAPI const char *
 ecore_evas_window_profile_get(const Ecore_Evas *ee)
 {
-   if (!ECORE_MAGIC_CHECK(ee, ECORE_MAGIC_EVAS))
-     {
-        ECORE_MAGIC_FAIL(ee, ECORE_MAGIC_EVAS,
-                         "ecore_evas_window_profile_get");
-        return NULL;
-     }
+   ECORE_EVAS_CHECK(ee, NULL);
    return ee->prop.profile.name;
 }
 
 EAPI void
 ecore_evas_window_available_profiles_set(Ecore_Evas *ee, const char **profiles, const unsigned int count)
 {
-   if (!ECORE_MAGIC_CHECK(ee, ECORE_MAGIC_EVAS))
-     {
-        ECORE_MAGIC_FAIL(ee, ECORE_MAGIC_EVAS,
-                         "ecore_evas_window_available_profiles_set");
-        return;
-     }
+   ECORE_EVAS_CHECK(ee);
    IFC(ee, fn_profiles_set) (ee, profiles, count);
    IFE;
 }
@@ -2026,12 +2003,7 @@ ecore_evas_window_available_profiles_set(Ecore_Evas *ee, const char **profiles, 
 EAPI Eina_Bool
 ecore_evas_window_available_profiles_get(Ecore_Evas *ee, char ***profiles, unsigned int *count)
 {
-   if (!ECORE_MAGIC_CHECK(ee, ECORE_MAGIC_EVAS))
-     {
-        ECORE_MAGIC_FAIL(ee, ECORE_MAGIC_EVAS,
-                         "ecore_evas_window_available_profiles_get");
-        return EINA_FALSE;
-     }
+   ECORE_EVAS_CHECK(ee, EINA_FALSE);
 
    if ((ee->prop.profile.available_list) &&
        (ee->prop.profile.count >= 1))
@@ -2047,24 +2019,14 @@ ecore_evas_window_available_profiles_get(Ecore_Evas *ee, char ***profiles, unsig
 EAPI Eina_Bool
 ecore_evas_wm_rotation_supported_get(const Ecore_Evas *ee)
 {
-   if (!ECORE_MAGIC_CHECK(ee, ECORE_MAGIC_EVAS))
-     {
-        ECORE_MAGIC_FAIL(ee, ECORE_MAGIC_EVAS,
-                         "ecore_evas_wm_rotation_supported_get");
-        return EINA_FALSE;
-     }
+   ECORE_EVAS_CHECK(ee, EINA_FALSE);
    return ee->prop.wm_rot.supported;
 }
 
 EAPI void
 ecore_evas_wm_rotation_preferred_rotation_set(Ecore_Evas *ee, int rotation)
 {
-   if (!ECORE_MAGIC_CHECK(ee, ECORE_MAGIC_EVAS))
-     {
-        ECORE_MAGIC_FAIL(ee, ECORE_MAGIC_EVAS,
-                         "ecore_evas_wm_rotation_preferred_rotation_set");
-        return;
-     }
+   ECORE_EVAS_CHECK(ee);
    if (rotation != -1)
      {
         if (ee->prop.wm_rot.available_rots)
@@ -2089,24 +2051,14 @@ ecore_evas_wm_rotation_preferred_rotation_set(Ecore_Evas *ee, int rotation)
 EAPI int
 ecore_evas_wm_rotation_preferred_rotation_get(const Ecore_Evas *ee)
 {
-   if (!ECORE_MAGIC_CHECK(ee, ECORE_MAGIC_EVAS))
-     {
-        ECORE_MAGIC_FAIL(ee, ECORE_MAGIC_EVAS,
-                         "ecore_evas_wm_rotation_preferred_rotation_get");
-        return -1;
-     }
+   ECORE_EVAS_CHECK(ee, -1);
    return ee->prop.wm_rot.preferred_rot;
 }
 
 EAPI void
 ecore_evas_wm_rotation_available_rotations_set(Ecore_Evas *ee, const int *rotations, unsigned int count)
 {
-   if (!ECORE_MAGIC_CHECK(ee, ECORE_MAGIC_EVAS))
-     {
-        ECORE_MAGIC_FAIL(ee, ECORE_MAGIC_EVAS,
-                         "ecore_evas_wm_rotation_available_rotations_set");
-        return;
-     }
+   ECORE_EVAS_CHECK(ee);
    IFC(ee, fn_wm_rot_available_rotations_set) (ee, rotations, count);
    IFE;
 }
@@ -2114,12 +2066,7 @@ ecore_evas_wm_rotation_available_rotations_set(Ecore_Evas *ee, const int *rotati
 EAPI Eina_Bool
 ecore_evas_wm_rotation_available_rotations_get(const Ecore_Evas *ee, int **rotations, unsigned int *count)
 {
-   if (!ECORE_MAGIC_CHECK(ee, ECORE_MAGIC_EVAS))
-     {
-        ECORE_MAGIC_FAIL(ee, ECORE_MAGIC_EVAS,
-                         "ecore_evas_wm_rotation_available_rotations_get");
-        return EINA_FALSE;
-     }
+   ECORE_EVAS_CHECK(ee, EINA_FALSE);
    if ((!rotations) || (!count))
      return EINA_FALSE;
 
@@ -2138,13 +2085,7 @@ ecore_evas_wm_rotation_available_rotations_get(const Ecore_Evas *ee, int **rotat
 EAPI void
 ecore_evas_wm_rotation_manual_rotation_done_set(Ecore_Evas *ee, Eina_Bool set)
 {
-   if (!ECORE_MAGIC_CHECK(ee, ECORE_MAGIC_EVAS))
-     {
-        ECORE_MAGIC_FAIL(ee, ECORE_MAGIC_EVAS,
-                         "ecore_evas_wm_rotation_manual_rotation_done_set");
-        return;
-     }
-
+   ECORE_EVAS_CHECK(ee);
    if (!ee->prop.wm_rot.app_set)
      {
         return;
@@ -2157,13 +2098,7 @@ ecore_evas_wm_rotation_manual_rotation_done_set(Ecore_Evas *ee, Eina_Bool set)
 EAPI Eina_Bool
 ecore_evas_wm_rotation_manual_rotation_done_get(const Ecore_Evas *ee)
 {
-   if (!ECORE_MAGIC_CHECK(ee, ECORE_MAGIC_EVAS))
-     {
-        ECORE_MAGIC_FAIL(ee, ECORE_MAGIC_EVAS,
-                         "ecore_evas_wm_rotation_manual_rotation_done_get");
-        return EINA_FALSE;
-     }
-
+   ECORE_EVAS_CHECK(ee, EINA_FALSE);
    if (!ee->prop.wm_rot.app_set)
      {
         return EINA_FALSE;
@@ -2175,13 +2110,7 @@ ecore_evas_wm_rotation_manual_rotation_done_get(const Ecore_Evas *ee)
 EAPI void
 ecore_evas_wm_rotation_manual_rotation_done(Ecore_Evas *ee)
 {
-   if (!ECORE_MAGIC_CHECK(ee, ECORE_MAGIC_EVAS))
-     {
-        ECORE_MAGIC_FAIL(ee, ECORE_MAGIC_EVAS,
-                         "ecore_evas_wm_rotation_manual_rotation_done");
-        return;
-     }
-
+   ECORE_EVAS_CHECK(ee);
    if (!ee->prop.wm_rot.app_set)
      {
         return;
@@ -2194,24 +2123,14 @@ ecore_evas_wm_rotation_manual_rotation_done(Ecore_Evas *ee)
 EAPI const Eina_List *
 ecore_evas_aux_hints_supported_get(const Ecore_Evas *ee)
 {
-   if (!ECORE_MAGIC_CHECK(ee, ECORE_MAGIC_EVAS))
-     {
-        ECORE_MAGIC_FAIL(ee, ECORE_MAGIC_EVAS,
-                         "ecore_evas_aux_hints_supported_get");
-        return NULL;
-     }
+   ECORE_EVAS_CHECK(ee, NULL);
    return ee->prop.aux_hint.supported_list;
 }
 
 EAPI Eina_List *
 ecore_evas_aux_hints_allowed_get(const Ecore_Evas *ee)
 {
-   if (!ECORE_MAGIC_CHECK(ee, ECORE_MAGIC_EVAS))
-     {
-        ECORE_MAGIC_FAIL(ee, ECORE_MAGIC_EVAS,
-                         "ecore_evas_aux_hints_allowed_get");
-        return NULL;
-     }
+   ECORE_EVAS_CHECK(ee, NULL);
 
    Eina_List *list = NULL, *ll;
    Ecore_Evas_Aux_Hint *aux;
@@ -2229,12 +2148,7 @@ ecore_evas_aux_hints_allowed_get(const Ecore_Evas *ee)
 EAPI int
 ecore_evas_aux_hint_add(Ecore_Evas *ee, const char *hint, const char *val)
 {
-   if (!ECORE_MAGIC_CHECK(ee, ECORE_MAGIC_EVAS))
-     {
-        ECORE_MAGIC_FAIL(ee, ECORE_MAGIC_EVAS,
-                         "ecore_evas_aux_hint_add");
-        return -1;
-     }
+   ECORE_EVAS_CHECK(ee, -1);
 
    Eina_List *ll;
    char *supported_hint;
@@ -2278,12 +2192,7 @@ ecore_evas_aux_hint_add(Ecore_Evas *ee, const char *hint, const char *val)
 EAPI Eina_Bool
 ecore_evas_aux_hint_del(Ecore_Evas *ee, const int id)
 {
-   if (!ECORE_MAGIC_CHECK(ee, ECORE_MAGIC_EVAS))
-     {
-        ECORE_MAGIC_FAIL(ee, ECORE_MAGIC_EVAS,
-                         "ecore_evas_aux_hint_del");
-        return EINA_FALSE;
-     }
+   ECORE_EVAS_CHECK(ee, EINA_FALSE);
 
    Eina_List *ll;
    Ecore_Evas_Aux_Hint *aux;
@@ -2317,12 +2226,7 @@ ecore_evas_aux_hint_del(Ecore_Evas *ee, const int id)
 EAPI Eina_Bool
 ecore_evas_aux_hint_val_set(Ecore_Evas *ee, const int id, const char *val)
 {
-   if (!ECORE_MAGIC_CHECK(ee, ECORE_MAGIC_EVAS))
-     {
-        ECORE_MAGIC_FAIL(ee, ECORE_MAGIC_EVAS,
-                         "ecore_evas_aux_hint_val_set");
-        return EINA_FALSE;
-     }
+   ECORE_EVAS_CHECK(ee, EINA_FALSE);
 
    Eina_List *ll;
    Ecore_Evas_Aux_Hint *aux;
@@ -2355,12 +2259,7 @@ ecore_evas_aux_hint_val_set(Ecore_Evas *ee, const int id, const char *val)
 EAPI const char *
 ecore_evas_aux_hint_val_get(const Ecore_Evas *ee, int id)
 {
-   if (!ECORE_MAGIC_CHECK(ee, ECORE_MAGIC_EVAS))
-     {
-        ECORE_MAGIC_FAIL(ee, ECORE_MAGIC_EVAS,
-                         "ecore_evas_aux_hint_val_get");
-        return NULL;
-     }
+   ECORE_EVAS_CHECK(ee, NULL);
 
    Eina_List *ll;
    Ecore_Evas_Aux_Hint *aux;
@@ -2375,12 +2274,7 @@ ecore_evas_aux_hint_val_get(const Ecore_Evas *ee, int id)
 EAPI int
 ecore_evas_aux_hint_id_get(const Ecore_Evas *ee, const char *hint)
 {
-   if (!ECORE_MAGIC_CHECK(ee, ECORE_MAGIC_EVAS))
-     {
-        ECORE_MAGIC_FAIL(ee, ECORE_MAGIC_EVAS,
-                         "ecore_evas_aux_hint_id_get");
-        return -1;
-     }
+   ECORE_EVAS_CHECK(ee, -1);
 
    Eina_List *ll;
    Ecore_Evas_Aux_Hint *aux;
@@ -2395,12 +2289,7 @@ ecore_evas_aux_hint_id_get(const Ecore_Evas *ee, const char *hint)
 EAPI void
 ecore_evas_fullscreen_set(Ecore_Evas *ee, Eina_Bool on)
 {
-   if (!ECORE_MAGIC_CHECK(ee, ECORE_MAGIC_EVAS))
-     {
-        ECORE_MAGIC_FAIL(ee, ECORE_MAGIC_EVAS,
-                         "ecore_evas_fullscreen_set");
-        return;
-     }
+   ECORE_EVAS_CHECK(ee);
    IFC(ee, fn_fullscreen_set) (ee, on);
    IFE;
 }
@@ -2408,24 +2297,14 @@ ecore_evas_fullscreen_set(Ecore_Evas *ee, Eina_Bool on)
 EAPI Eina_Bool
 ecore_evas_fullscreen_get(const Ecore_Evas *ee)
 {
-   if (!ECORE_MAGIC_CHECK(ee, ECORE_MAGIC_EVAS))
-     {
-        ECORE_MAGIC_FAIL(ee, ECORE_MAGIC_EVAS,
-                         "ecore_evas_fullscreen_get");
-        return EINA_FALSE;
-     }
+   ECORE_EVAS_CHECK(ee, EINA_FALSE);
    return ee->prop.fullscreen ? EINA_TRUE : EINA_FALSE;
 }
 
 EAPI void
 ecore_evas_avoid_damage_set(Ecore_Evas *ee, Ecore_Evas_Avoid_Damage_Type on)
 {
-   if (!ECORE_MAGIC_CHECK(ee, ECORE_MAGIC_EVAS))
-     {
-        ECORE_MAGIC_FAIL(ee, ECORE_MAGIC_EVAS,
-                         "ecore_evas_avoid_damage_set");
-        return;
-     }
+   ECORE_EVAS_CHECK(ee);
    IFC(ee, fn_avoid_damage_set) (ee, on);
    IFE;
 }
@@ -2433,25 +2312,14 @@ ecore_evas_avoid_damage_set(Ecore_Evas *ee, Ecore_Evas_Avoid_Damage_Type on)
 EAPI Ecore_Evas_Avoid_Damage_Type
 ecore_evas_avoid_damage_get(const Ecore_Evas *ee)
 {
-   if (!ECORE_MAGIC_CHECK(ee, ECORE_MAGIC_EVAS))
-     {
-        ECORE_MAGIC_FAIL(ee, ECORE_MAGIC_EVAS,
-                         "ecore_evas_avoid_damage_get");
-        return ECORE_EVAS_AVOID_DAMAGE_NONE;
-     }
+   ECORE_EVAS_CHECK(ee, ECORE_EVAS_AVOID_DAMAGE_NONE);
    return ee->prop.avoid_damage;
 }
 
 EAPI void
 ecore_evas_withdrawn_set(Ecore_Evas *ee, Eina_Bool withdrawn)
 {
-   if (!ECORE_MAGIC_CHECK(ee, ECORE_MAGIC_EVAS))
-     {
-        ECORE_MAGIC_FAIL(ee, ECORE_MAGIC_EVAS,
-                         "ecore_evas_withdrawn_set");
-        return;
-     }
-
+   ECORE_EVAS_CHECK(ee);
    IFC(ee, fn_withdrawn_set) (ee, withdrawn);
    IFE;
 }
@@ -2459,25 +2327,14 @@ ecore_evas_withdrawn_set(Ecore_Evas *ee, Eina_Bool withdrawn)
 EAPI Eina_Bool
 ecore_evas_withdrawn_get(const Ecore_Evas *ee)
 {
-   if (!ECORE_MAGIC_CHECK(ee, ECORE_MAGIC_EVAS))
-     {
-        ECORE_MAGIC_FAIL(ee, ECORE_MAGIC_EVAS,
-                         "ecore_evas_withdrawn_get");
-        return EINA_FALSE;
-     }
+   ECORE_EVAS_CHECK(ee, EINA_FALSE);
    return ee->prop.withdrawn ? EINA_TRUE : EINA_FALSE;
 }
 
 EAPI void
 ecore_evas_sticky_set(Ecore_Evas *ee, Eina_Bool on)
 {
-   if (!ECORE_MAGIC_CHECK(ee, ECORE_MAGIC_EVAS))
-     {
-        ECORE_MAGIC_FAIL(ee, ECORE_MAGIC_EVAS,
-                         "ecore_evas_sticky_set");
-        return;
-     }
-
+   ECORE_EVAS_CHECK(ee);
    IFC(ee, fn_sticky_set) (ee, on);
    IFE;
 }
@@ -2485,25 +2342,14 @@ ecore_evas_sticky_set(Ecore_Evas *ee, Eina_Bool on)
 EAPI Eina_Bool
 ecore_evas_sticky_get(const Ecore_Evas *ee)
 {
-   if (!ECORE_MAGIC_CHECK(ee, ECORE_MAGIC_EVAS))
-     {
-        ECORE_MAGIC_FAIL(ee, ECORE_MAGIC_EVAS,
-                         "ecore_evas_sticky_get");
-        return EINA_FALSE;
-     }
+   ECORE_EVAS_CHECK(ee, EINA_FALSE);
    return ee->prop.sticky ? EINA_TRUE : EINA_FALSE;
 }
 
 EAPI void
 ecore_evas_window_group_set(Ecore_Evas *ee, const Ecore_Evas *ee_group)
 {
-   if (!ECORE_MAGIC_CHECK(ee, ECORE_MAGIC_EVAS))
-     {
-        ECORE_MAGIC_FAIL(ee, ECORE_MAGIC_EVAS,
-                         "XXX");
-        return;
-     }
-
+   ECORE_EVAS_CHECK(ee);
    IFC(ee, fn_window_group_set) (ee, ee_group);
    IFE;
 }
@@ -2511,25 +2357,14 @@ ecore_evas_window_group_set(Ecore_Evas *ee, const Ecore_Evas *ee_group)
 EAPI const Ecore_Evas *
 ecore_evas_window_group_get(const Ecore_Evas *ee)
 {
-   if (!ECORE_MAGIC_CHECK(ee, ECORE_MAGIC_EVAS))
-     {
-        ECORE_MAGIC_FAIL(ee, ECORE_MAGIC_EVAS,
-                         "XXX");
-        return NULL;
-     }
+   ECORE_EVAS_CHECK(ee, NULL);
    return ee->prop.group_ee;
 }
 
 EAPI void
 ecore_evas_aspect_set(Ecore_Evas *ee, double aspect)
 {
-   if (!ECORE_MAGIC_CHECK(ee, ECORE_MAGIC_EVAS))
-     {
-        ECORE_MAGIC_FAIL(ee, ECORE_MAGIC_EVAS,
-                         "XXX");
-        return;
-     }
-
+   ECORE_EVAS_CHECK(ee);
    IFC(ee, fn_aspect_set) (ee, aspect);
    IFE;
 }
@@ -2537,25 +2372,14 @@ ecore_evas_aspect_set(Ecore_Evas *ee, double aspect)
 EAPI double
 ecore_evas_aspect_get(const Ecore_Evas *ee)
 {
-   if (!ECORE_MAGIC_CHECK(ee, ECORE_MAGIC_EVAS))
-     {
-        ECORE_MAGIC_FAIL(ee, ECORE_MAGIC_EVAS,
-                         "XXX");
-        return EINA_FALSE;
-     }
+   ECORE_EVAS_CHECK(ee, 0.0);
    return ee->prop.aspect;
 }
 
 EAPI void
 ecore_evas_urgent_set(Ecore_Evas *ee, Eina_Bool on)
 {
-   if (!ECORE_MAGIC_CHECK(ee, ECORE_MAGIC_EVAS))
-     {
-        ECORE_MAGIC_FAIL(ee, ECORE_MAGIC_EVAS,
-                         "XXX");
-        return;
-     }
-
+   ECORE_EVAS_CHECK(ee);
    IFC(ee, fn_urgent_set) (ee, on);
    IFE;
 }
@@ -2563,25 +2387,14 @@ ecore_evas_urgent_set(Ecore_Evas *ee, Eina_Bool on)
 EAPI Eina_Bool
 ecore_evas_urgent_get(const Ecore_Evas *ee)
 {
-   if (!ECORE_MAGIC_CHECK(ee, ECORE_MAGIC_EVAS))
-     {
-        ECORE_MAGIC_FAIL(ee, ECORE_MAGIC_EVAS,
-                         "XXX");
-        return EINA_FALSE;
-     }
+   ECORE_EVAS_CHECK(ee, EINA_FALSE);
    return ee->prop.urgent ? EINA_TRUE : EINA_FALSE;
 }
 
 EAPI void
 ecore_evas_modal_set(Ecore_Evas *ee, Eina_Bool on)
 {
-   if (!ECORE_MAGIC_CHECK(ee, ECORE_MAGIC_EVAS))
-     {
-        ECORE_MAGIC_FAIL(ee, ECORE_MAGIC_EVAS,
-                         "XXX");
-        return;
-     }
-
+   ECORE_EVAS_CHECK(ee);
    IFC(ee, fn_modal_set) (ee, on);
    IFE;
 }
@@ -2589,25 +2402,14 @@ ecore_evas_modal_set(Ecore_Evas *ee, Eina_Bool on)
 EAPI Eina_Bool
 ecore_evas_modal_get(const Ecore_Evas *ee)
 {
-   if (!ECORE_MAGIC_CHECK(ee, ECORE_MAGIC_EVAS))
-     {
-        ECORE_MAGIC_FAIL(ee, ECORE_MAGIC_EVAS,
-                         "XXX");
-        return EINA_FALSE;
-     }
+   ECORE_EVAS_CHECK(ee, EINA_FALSE);
    return ee->prop.modal ? EINA_TRUE : EINA_FALSE;
 }
 
 EAPI void
 ecore_evas_demand_attention_set(Ecore_Evas *ee, Eina_Bool on)
 {
-   if (!ECORE_MAGIC_CHECK(ee, ECORE_MAGIC_EVAS))
-     {
-        ECORE_MAGIC_FAIL(ee, ECORE_MAGIC_EVAS,
-                         "XXX");
-        return;
-     }
-
+   ECORE_EVAS_CHECK(ee);
    IFC(ee, fn_demands_attention_set) (ee, on);
    IFE;
 }
@@ -2615,25 +2417,14 @@ ecore_evas_demand_attention_set(Ecore_Evas *ee, Eina_Bool on)
 EAPI Eina_Bool
 ecore_evas_demand_attention_get(const Ecore_Evas *ee)
 {
-   if (!ECORE_MAGIC_CHECK(ee, ECORE_MAGIC_EVAS))
-     {
-        ECORE_MAGIC_FAIL(ee, ECORE_MAGIC_EVAS,
-                         "XXX");
-        return EINA_FALSE;
-     }
+   ECORE_EVAS_CHECK(ee, EINA_FALSE);
    return ee->prop.demand_attention ? EINA_TRUE : EINA_FALSE;
 }
 
 EAPI void
 ecore_evas_focus_skip_set(Ecore_Evas *ee, Eina_Bool on)
 {
-   if (!ECORE_MAGIC_CHECK(ee, ECORE_MAGIC_EVAS))
-     {
-        ECORE_MAGIC_FAIL(ee, ECORE_MAGIC_EVAS,
-                         "XXX");
-        return;
-     }
-
+   ECORE_EVAS_CHECK(ee);
    IFC(ee, fn_focus_skip_set) (ee, on);
    IFE;
 }
@@ -2641,25 +2432,14 @@ ecore_evas_focus_skip_set(Ecore_Evas *ee, Eina_Bool on)
 EAPI Eina_Bool
 ecore_evas_focus_skip_get(const Ecore_Evas *ee)
 {
-   if (!ECORE_MAGIC_CHECK(ee, ECORE_MAGIC_EVAS))
-     {
-        ECORE_MAGIC_FAIL(ee, ECORE_MAGIC_EVAS,
-                         "XXX");
-        return EINA_FALSE;
-     }
+   ECORE_EVAS_CHECK(ee, EINA_FALSE);
    return ee->prop.focus_skip ? EINA_TRUE : EINA_FALSE;
 }
 
 EAPI void
 ecore_evas_ignore_events_set(Ecore_Evas *ee, Eina_Bool ignore)
 {
-   if (!ECORE_MAGIC_CHECK(ee, ECORE_MAGIC_EVAS))
-     {
-        ECORE_MAGIC_FAIL(ee, ECORE_MAGIC_EVAS,
-                         "ecore_evas_ignore_events_set");
-        return;
-     }
-
+   ECORE_EVAS_CHECK(ee);
    IFC(ee, fn_ignore_events_set) (ee, ignore);
    IFE;
 }
@@ -2667,48 +2447,28 @@ ecore_evas_ignore_events_set(Ecore_Evas *ee, Eina_Bool ignore)
 EAPI Eina_Bool
 ecore_evas_ignore_events_get(const Ecore_Evas *ee)
 {
-   if (!ECORE_MAGIC_CHECK(ee, ECORE_MAGIC_EVAS))
-     {
-        ECORE_MAGIC_FAIL(ee, ECORE_MAGIC_EVAS,
-                         "ecore_evas_ignore_events_get");
-        return EINA_FALSE;
-     }
+   ECORE_EVAS_CHECK(ee, EINA_FALSE);
    return ee->ignore_events ? EINA_TRUE : EINA_FALSE;
 }
 
 EAPI void
 ecore_evas_manual_render_set(Ecore_Evas *ee, Eina_Bool manual_render)
 {
-   if (!ECORE_MAGIC_CHECK(ee, ECORE_MAGIC_EVAS))
-     {
-        ECORE_MAGIC_FAIL(ee, ECORE_MAGIC_EVAS,
-                         "ecore_evas_manual_render_set");
-        return;
-     }
+   ECORE_EVAS_CHECK(ee);
    ee->manual_render = manual_render;
 }
 
 EAPI Eina_Bool
 ecore_evas_manual_render_get(const Ecore_Evas *ee)
 {
-   if (!ECORE_MAGIC_CHECK(ee, ECORE_MAGIC_EVAS))
-     {
-        ECORE_MAGIC_FAIL(ee, ECORE_MAGIC_EVAS,
-                         "ecore_evas_manual_render_get");
-        return EINA_FALSE;
-     }
+   ECORE_EVAS_CHECK(ee, EINA_FALSE);
    return ee->manual_render ? EINA_TRUE : EINA_FALSE;
 }
 
 EAPI void
 ecore_evas_manual_render(Ecore_Evas *ee)
 {
-   if (!ECORE_MAGIC_CHECK(ee, ECORE_MAGIC_EVAS))
-     {
-        ECORE_MAGIC_FAIL(ee, ECORE_MAGIC_EVAS,
-                         "ecore_evas_manual_render");
-        return;
-     }
+   ECORE_EVAS_CHECK(ee);
    if (ee->engine.func->fn_render)
      ee->engine.func->fn_render(ee);
 }
@@ -2716,12 +2476,7 @@ ecore_evas_manual_render(Ecore_Evas *ee)
 EAPI void
 ecore_evas_msg_parent_send(Ecore_Evas *ee, int msg_domain, int msg_id, void *data, int size)
 {
-   if (!ECORE_MAGIC_CHECK(ee, ECORE_MAGIC_EVAS))
-     {
-        ECORE_MAGIC_FAIL(ee, ECORE_MAGIC_EVAS,
-                         "ecore_evas_msg_parent_send");
-        return;
-     }
+   ECORE_EVAS_CHECK(ee);
    DBG("Msg(to parent): ee=%p msg_domain=%d msg_id=%d size=%d", ee, msg_domain, msg_id, size);
    IFC(ee, fn_msg_parent_send) (ee, msg_domain, msg_id, data, size);
    IFE;
@@ -2730,12 +2485,7 @@ ecore_evas_msg_parent_send(Ecore_Evas *ee, int msg_domain, int msg_id, void *dat
 EAPI void
 ecore_evas_msg_send(Ecore_Evas *ee, int msg_domain, int msg_id, void *data, int size)
 {
-   if (!ECORE_MAGIC_CHECK(ee, ECORE_MAGIC_EVAS))
-     {
-        ECORE_MAGIC_FAIL(ee, ECORE_MAGIC_EVAS,
-                         "ecore_evas_msg_send");
-        return;
-     }
+   ECORE_EVAS_CHECK(ee);
    DBG("Msg: ee=%p msg_domain=%d msg_id=%d size=%d", ee, msg_domain, msg_id, size);
    IFC(ee, fn_msg_send) (ee, msg_domain, msg_id, data, size);
    IFE;
@@ -2744,12 +2494,7 @@ ecore_evas_msg_send(Ecore_Evas *ee, int msg_domain, int msg_id, void *data, int 
 EAPI void
 ecore_evas_callback_msg_parent_handle_set(Ecore_Evas *ee, void (*func_parent_handle)(Ecore_Evas *ee, int msg_domain, int msg_id, void *data, int size))
 {
-   if (!ECORE_MAGIC_CHECK(ee, ECORE_MAGIC_EVAS))
-     {
-        ECORE_MAGIC_FAIL(ee, ECORE_MAGIC_EVAS,
-                         "ecore_evas_msg_parent_handle");
-        return;
-     }
+   ECORE_EVAS_CHECK(ee);
    DBG("Msg Parent handle: ee=%p", ee);
    ee->func.fn_msg_parent_handle = func_parent_handle;
 }
@@ -2757,12 +2502,7 @@ ecore_evas_callback_msg_parent_handle_set(Ecore_Evas *ee, void (*func_parent_han
 EAPI void
 ecore_evas_callback_msg_handle_set(Ecore_Evas *ee, void (*func_handle)(Ecore_Evas *ee, int msg_domain, int msg_id, void *data, int size))
 {
-   if (!ECORE_MAGIC_CHECK(ee, ECORE_MAGIC_EVAS))
-     {
-        ECORE_MAGIC_FAIL(ee, ECORE_MAGIC_EVAS,
-                         "ecore_evas_msg_handle");
-        return;
-     }
+   ECORE_EVAS_CHECK(ee);
    DBG("Msg handle: ee=%p", ee);
    ee->func.fn_msg_handle = func_handle;
 }
@@ -2771,37 +2511,21 @@ ecore_evas_callback_msg_handle_set(Ecore_Evas *ee, void (*func_handle)(Ecore_Eva
 EAPI void
 ecore_evas_comp_sync_set(Ecore_Evas *ee, Eina_Bool do_sync)
 {
-   if (!ECORE_MAGIC_CHECK(ee, ECORE_MAGIC_EVAS))
-     {
-        ECORE_MAGIC_FAIL(ee, ECORE_MAGIC_EVAS,
-                         "ecore_evas_comp_sync_set");
-        return;
-     }
+   ECORE_EVAS_CHECK(ee);
    ee->no_comp_sync = !do_sync;
 }
 
 EAPI Eina_Bool
 ecore_evas_comp_sync_get(const Ecore_Evas *ee)
 {
-   if (!ECORE_MAGIC_CHECK(ee, ECORE_MAGIC_EVAS))
-     {
-        ECORE_MAGIC_FAIL(ee, ECORE_MAGIC_EVAS,
-                         "ecore_evas_comp_sync_get");
-        return EINA_FALSE;
-     }
+   ECORE_EVAS_CHECK(ee, EINA_FALSE);
    return !ee->no_comp_sync;
 }
 
 EAPI Ecore_Window
 ecore_evas_window_get(const Ecore_Evas *ee)
 {
-   if (!ECORE_MAGIC_CHECK(ee, ECORE_MAGIC_EVAS))
-     {
-        ECORE_MAGIC_FAIL(ee, ECORE_MAGIC_EVAS,
-                         "ecore_evas_window_get");
-        return 0;
-     }
-
+   ECORE_EVAS_CHECK(ee, 0);
    return ee->prop.window;
 }
 
@@ -2812,13 +2536,7 @@ ecore_evas_screen_geometry_get(const Ecore_Evas *ee, int *x, int *y, int *w, int
    if (y) *y = 0;
    if (w) *w = 0;
    if (h) *h = 0;
-   if (!ECORE_MAGIC_CHECK(ee, ECORE_MAGIC_EVAS))
-     {
-        ECORE_MAGIC_FAIL(ee, ECORE_MAGIC_EVAS,
-                         "ecore_evas_screen_geometry_get");
-        return;
-     }
-
+   ECORE_EVAS_CHECK(ee);
    IFC(ee, fn_screen_geometry_get) (ee, x, y, w, h);
    IFE;
 }
@@ -2828,37 +2546,49 @@ ecore_evas_screen_dpi_get(const Ecore_Evas *ee, int *xdpi, int *ydpi)
 {
    if (xdpi) *xdpi = 0;
    if (ydpi) *ydpi = 0;
-   if (!ECORE_MAGIC_CHECK(ee, ECORE_MAGIC_EVAS))
-     {
-        ECORE_MAGIC_FAIL(ee, ECORE_MAGIC_EVAS,
-                         "ecore_evas_screen_geometry_get");
-        return;
-     }
-
+   ECORE_EVAS_CHECK(ee);
    IFC(ee, fn_screen_dpi_get) (ee, xdpi, ydpi);
    IFE;
 }
 
 EAPI void
-ecore_evas_draw_frame_set(Ecore_Evas *ee, Eina_Bool draw_frame)
+ecore_evas_draw_frame_set(Ecore_Evas *ee EINA_UNUSED, Eina_Bool draw_frame EINA_UNUSED)
 {
-   if (!ECORE_MAGIC_CHECK(ee, ECORE_MAGIC_EVAS))
-     {
-        ECORE_MAGIC_FAIL(ee, ECORE_MAGIC_EVAS, "ecore_evas_draw_frame_set");
-        return;
-     }
-   ee->prop.draw_frame = draw_frame;
+   WRN("Calling deprecated function %s (not implemented)", __FUNCTION__);
 }
 
 EAPI Eina_Bool
-ecore_evas_draw_frame_get(const Ecore_Evas *ee)
+ecore_evas_draw_frame_get(const Ecore_Evas *ee EINA_UNUSED)
 {
-   if (!ECORE_MAGIC_CHECK(ee, ECORE_MAGIC_EVAS))
-     {
-        ECORE_MAGIC_FAIL(ee, ECORE_MAGIC_EVAS, "ecore_evas_draw_frame_get");
-        return EINA_FALSE;
-     }
-   return ee->prop.draw_frame;
+   WRN("Calling deprecated function %s (not implemented)", __FUNCTION__);
+   return EINA_FALSE;
+}
+
+EAPI void
+ecore_evas_shadow_geometry_set(Ecore_Evas *ee, int l, int r, int t, int b)
+{
+   ECORE_EVAS_CHECK(ee);
+   if ((ee->shadow.l == l) && (ee->shadow.r == r) &&
+       (ee->shadow.t == t) && (ee->shadow.b == b)) return;
+   ee->shadow.l = l;
+   ee->shadow.r = r;
+   ee->shadow.t = t;
+   ee->shadow.b = b;
+   ee->shadow.changed = EINA_TRUE;
+}
+
+EAPI void
+ecore_evas_shadow_geometry_get(const Ecore_Evas *ee, int *l, int *r, int *t, int *b)
+{
+   if (l) *l = 0;
+   if (r) *r = 0;
+   if (t) *t = 0;
+   if (b) *b = 0;
+   ECORE_EVAS_CHECK(ee);
+   if (l) *l = ee->shadow.l;
+   if (r) *r = ee->shadow.r;
+   if (t) *t = ee->shadow.t;
+   if (b) *b = ee->shadow.b;
 }
 
 EAPI void 
@@ -2866,11 +2596,7 @@ ecore_evas_pointer_xy_get(const Ecore_Evas *ee, Evas_Coord *x, Evas_Coord *y)
 {
    if (x) *x = 0;
    if (y) *y = 0;
-   if (!ECORE_MAGIC_CHECK(ee, ECORE_MAGIC_EVAS))
-     {
-        ECORE_MAGIC_FAIL(ee, ECORE_MAGIC_EVAS, "ecore_evas_pointer_xy_get");
-        return;
-     }
+   ECORE_EVAS_CHECK(ee);
    IFC(ee, fn_pointer_xy_get) (ee, x, y);
    IFE;
 }
@@ -2878,26 +2604,47 @@ ecore_evas_pointer_xy_get(const Ecore_Evas *ee, Evas_Coord *x, Evas_Coord *y)
 EAPI Eina_Bool 
 ecore_evas_pointer_warp(const Ecore_Evas *ee, Evas_Coord x, Evas_Coord y)
 {
-   if (!ECORE_MAGIC_CHECK(ee, ECORE_MAGIC_EVAS))
-     {
-        ECORE_MAGIC_FAIL(ee, ECORE_MAGIC_EVAS, "ecore_evas_pointer_warp");
-        return EINA_FALSE;
-     }
-
+   ECORE_EVAS_CHECK(ee, EINA_FALSE);
    if (ee->engine.func->fn_pointer_warp)
      return ee->engine.func->fn_pointer_warp(ee, x, y);
 
    return EINA_FALSE;
 }
 
+EAPI void
+ecore_evas_pointer_device_xy_get(const Ecore_Evas *ee,
+                                 const Efl_Input_Device *pointer, Evas_Coord *x,
+                                 Evas_Coord *y)
+{
+   if ((!pointer) ||
+       (pointer == evas_default_device_get(ee->evas, EFL_INPUT_DEVICE_CLASS_MOUSE)))
+     ecore_evas_pointer_xy_get(ee, x, y);
+   else
+     {
+        if (x) *x = 0;
+        if (y) *y = 0;
+        ECORE_EVAS_CHECK(ee);
+        if (ee->vnc_server)
+          {
+             Eina_Module *mod;
+             void (*pointer_xy_get)(const void *, const Efl_Input_Device *, Evas_Coord *, Evas_Coord *y);
+
+             mod = _ecore_evas_vnc_server_module_load();
+             EINA_SAFETY_ON_NULL_RETURN(mod);
+
+             pointer_xy_get = eina_module_symbol_get(mod, "ecore_evas_vnc_server_pointer_xy_get");
+             EINA_SAFETY_ON_NULL_RETURN(pointer_xy_get);
+             pointer_xy_get(ee->vnc_server, pointer, x, y);
+          }
+        else if (ee->engine.func->fn_pointer_device_xy_get)
+          ee->engine.func->fn_pointer_device_xy_get(ee, pointer, x, y);
+     }
+}
+
 EAPI void *
 ecore_evas_pixmap_visual_get(const Ecore_Evas *ee)
 {
-   if (!ECORE_MAGIC_CHECK(ee, ECORE_MAGIC_EVAS))
-     {
-        ECORE_MAGIC_FAIL(ee, ECORE_MAGIC_EVAS, "ecore_evas_pixmap_visual_get");
-        return NULL;
-     }
+   ECORE_EVAS_CHECK(ee, NULL);
 
    if (!strcmp(ee->driver, "software_x11"))
      {
@@ -2924,11 +2671,7 @@ ecore_evas_pixmap_visual_get(const Ecore_Evas *ee)
 EAPI unsigned long 
 ecore_evas_pixmap_colormap_get(const Ecore_Evas *ee)
 {
-   if (!ECORE_MAGIC_CHECK(ee, ECORE_MAGIC_EVAS))
-     {
-        ECORE_MAGIC_FAIL(ee, ECORE_MAGIC_EVAS, "ecore_evas_pixmap_colormap_get");
-        return 0;
-     }
+   ECORE_EVAS_CHECK(ee, 0);
 
    if (!strcmp(ee->driver, "software_x11"))
      {
@@ -2955,11 +2698,7 @@ ecore_evas_pixmap_colormap_get(const Ecore_Evas *ee)
 EAPI int 
 ecore_evas_pixmap_depth_get(const Ecore_Evas *ee)
 {
-   if (!ECORE_MAGIC_CHECK(ee, ECORE_MAGIC_EVAS))
-     {
-        ECORE_MAGIC_FAIL(ee, ECORE_MAGIC_EVAS, "ecore_evas_pixmap_depth_get");
-        return 0;
-     }
+   ECORE_EVAS_CHECK(ee, 0);
 
    if (!strcmp(ee->driver, "software_x11"))
      {
@@ -3074,7 +2813,7 @@ _ecore_evas_fps_debug_rendertime_add(double t)
    tim = ecore_time_get();
    rtime += t;
    frames++;
-   if (rlapse == 0.0)
+   if (EINA_DBL_EQ(rlapse, 0.0))
      {
         rlapse = tim;
         flapse = frames;
@@ -3095,7 +2834,7 @@ _ecore_evas_fps_debug_rendertime_add(double t)
 static Ecore_Evas *_general_tick = NULL;
 
 EAPI void
-ecore_evas_animator_tick(Ecore_Evas *ee, Eina_Rectangle *viewport)
+ecore_evas_animator_tick(Ecore_Evas *ee, Eina_Rectangle *viewport, double loop_time)
 {
    Ecore_Evas *subee;
    Eina_List *l;
@@ -3110,12 +2849,15 @@ ecore_evas_animator_tick(Ecore_Evas *ee, Eina_Rectangle *viewport)
         a.update_area = *viewport;
      }
 
-   eo_event_callback_call(ee->evas, EFL_EVENT_ANIMATOR_TICK, &a);
+   ecore_loop_time_set(loop_time);
+
+   ee->animator_ran = EINA_TRUE;
+   efl_event_callback_call(ee->evas, EFL_EVENT_ANIMATOR_TICK, &a);
 
    // FIXME: We do not support partial animator in the subcanvas
    EINA_LIST_FOREACH(ee->sub_ecore_evas, l, subee)
      {
-        ecore_evas_animator_tick(subee, NULL);
+        ecore_evas_animator_tick(subee, NULL, loop_time);
      }
 
    // We are the source of sync for general animator.
@@ -3130,19 +2872,52 @@ ecore_evas_animator_tick(Ecore_Evas *ee, Eina_Rectangle *viewport)
 }
 
 static void
+_ecore_evas_custom_tick_begin(void *data)
+{
+   Ecore_Evas *ee = data;
+
+   if (ee->anim_count++ > 0) return;
+
+   ee->engine.func->fn_animator_register(ee);
+}
+
+static void
+_ecore_evas_custom_tick_end(void *data)
+{
+   Ecore_Evas *ee = data;
+
+   if ((--ee->anim_count) > 0) return;
+
+   ee->engine.func->fn_animator_unregister(ee);
+}
+
+static void
 _ecore_evas_tick_source_find(void)
 {
    Ecore_Evas *ee;
+   Ecore_Evas *standby = NULL;
 
    _general_tick = NULL;
    EINA_INLIST_FOREACH(ecore_evases, ee)
-     if (ee->anim_count &&
-                ee->engine.func->fn_animator_register &&
+     if (ee->engine.func->fn_animator_register &&
          ee->engine.func->fn_animator_unregister)
        {
-          _general_tick = ee;
-          break;
+          if (ee->anim_count)
+            {
+               _general_tick = ee;
+               break;
+            }
+          else
+            {
+               standby = ee;
+            }
        }
+
+   // If no general source is already ticking pick one.
+   if (!_general_tick && standby)
+     {
+        _general_tick = standby;
+     }
 
    if (!_general_tick)
      {
@@ -3150,21 +2925,25 @@ _ecore_evas_tick_source_find(void)
      }
    else
      {
+        // Source set will trigger the previous tick end registered and then the new begin.
+        // As we don't what was in behind, better first begin and end after source is set.
+        ecore_animator_custom_source_tick_begin_callback_set(_ecore_evas_custom_tick_begin, _general_tick);
         ecore_animator_source_set(ECORE_ANIMATOR_SOURCE_CUSTOM);
+        ecore_animator_custom_source_tick_end_callback_set(_ecore_evas_custom_tick_end, _general_tick);
      }
 }
 
 static Eina_Bool
 _ecore_evas_animator_fallback(void *data)
 {
-   ecore_evas_animator_tick(data, NULL);
+   ecore_evas_animator_tick(data, NULL, ecore_loop_time_get());
    return EINA_TRUE;
 }
 
 static void
-_check_animator_event_catcher_add(void *data, const Eo_Event *event)
+_check_animator_event_catcher_add(void *data, const Efl_Event *event)
 {
-   const Eo_Callback_Array_Item *array = event->info;
+   const Efl_Callback_Array_Item *array = event->info;
    Ecore_Evas *ee = data;
    int i;
 
@@ -3196,9 +2975,9 @@ _check_animator_event_catcher_add(void *data, const Eo_Event *event)
 }
 
 static void
-_check_animator_event_catcher_del(void *data, const Eo_Event *event)
+_check_animator_event_catcher_del(void *data, const Efl_Event *event)
 {
-   const Eo_Callback_Array_Item *array = event->info;
+   const Efl_Callback_Array_Item *array = event->info;
    Ecore_Evas *ee = data;
    int i;
 
@@ -3227,14 +3006,14 @@ _check_animator_event_catcher_del(void *data, const Eo_Event *event)
      }
 }
 
-EO_CALLBACKS_ARRAY_DEFINE(animator_watch,
-                          { EO_EVENT_CALLBACK_ADD, _check_animator_event_catcher_add },
-                          { EO_EVENT_CALLBACK_DEL, _check_animator_event_catcher_del });
+EFL_CALLBACKS_ARRAY_DEFINE(animator_watch,
+                          { EFL_EVENT_CALLBACK_ADD, _check_animator_event_catcher_add },
+                          { EFL_EVENT_CALLBACK_DEL, _check_animator_event_catcher_del });
 
 EAPI void
 _ecore_evas_register_animators(Ecore_Evas *ee)
 {
-   eo_event_callback_array_add(ee->evas, animator_watch(), ee);
+   efl_event_callback_array_add(ee->evas, animator_watch(), ee);
 }
 
 EAPI void
@@ -3246,7 +3025,8 @@ _ecore_evas_register(Ecore_Evas *ee)
 
    _ecore_evas_register_animators(ee);
 
-   if (_ecore_evas_render_sync) ecore_evas_first = EINA_TRUE;
+   if (_ecore_evas_render_sync) ee->first_frame = EINA_TRUE;
+   if (!_general_tick) _ecore_evas_tick_source_find();
 }
 
 EAPI void
@@ -3267,9 +3047,27 @@ _ecore_evas_unref(Ecore_Evas *ee)
      ERR("Ecore_Evas %p->refcount=%d < 0", ee, ee->refcount);
 }
 
+static Eina_Bool
+_ecore_evas_vnc_stop(Ecore_Evas *ee)
+{
+   Eina_Module *mod;
+   void (*vnc_del)(void *);
+
+   mod = _ecore_evas_vnc_server_module_load();
+   EINA_SAFETY_ON_NULL_RETURN_VAL(mod, EINA_FALSE);
+
+   vnc_del = eina_module_symbol_get(mod, "ecore_evas_vnc_server_del");
+   EINA_SAFETY_ON_NULL_RETURN_VAL(vnc_del, EINA_FALSE);
+
+   vnc_del(ee->vnc_server);
+   ee->vnc_server = NULL;
+   return EINA_TRUE;
+}
+
 EAPI void
 _ecore_evas_free(Ecore_Evas *ee)
 {
+   Efl_Input_Device *dev;
    Ecore_Evas_Interface *iface;
 
    ee->deleted = EINA_TRUE;
@@ -3288,9 +3086,20 @@ _ecore_evas_free(Ecore_Evas *ee)
    ee->anim = NULL;
 
    if (ee->func.fn_pre_free) ee->func.fn_pre_free(ee);
+   if (ee->vnc_server) _ecore_evas_vnc_stop(ee);
    while (ee->sub_ecore_evas)
      {
         _ecore_evas_free(ee->sub_ecore_evas->data);
+     }
+   EINA_LIST_FREE(ee->prop.focused_by, dev)
+     {
+        efl_event_callback_del(dev, EFL_EVENT_DEL,
+                               _ecore_evas_device_del_cb, ee);
+     }
+   EINA_LIST_FREE(ee->mice_in, dev)
+     {
+        efl_event_callback_del(dev, EFL_EVENT_DEL,
+                               _ecore_evas_mouse_del_cb, ee);
      }
    if (ee->data) eina_hash_free(ee->data);
    ee->data = NULL;
@@ -3312,8 +3121,9 @@ _ecore_evas_free(Ecore_Evas *ee)
      ecore_timer_del(ee->prop.wm_rot.manual_mode.timer);
    _ecore_evas_aux_hint_free(ee);
    ee->prop.wm_rot.manual_mode.timer = NULL;
-   if (ee->prop.cursor.object) evas_object_del(ee->prop.cursor.object);
-   ee->prop.cursor.object = NULL;
+   efl_event_callback_array_del(ee->evas, _ecore_evas_device_cbs(), ee);
+   eina_hash_free(ee->prop.cursors);
+   ee->prop.cursors = NULL;
    if (ee->evas) evas_free(ee->evas);
    ee->evas = NULL;
    ECORE_MAGIC_SET(ee, ECORE_MAGIC_NONE);
@@ -3359,53 +3169,104 @@ _ecore_evas_idle_timeout_update(Ecore_Evas *ee)
    if (ee->engine.idle_flush_timer)
      ecore_timer_del(ee->engine.idle_flush_timer);
    ee->engine.idle_flush_timer = 
-     ecore_timer_add(IDLE_FLUSH_TIME, _ecore_evas_cb_idle_flush, ee);
+     ecore_timer_loop_add(IDLE_FLUSH_TIME, _ecore_evas_cb_idle_flush, ee);
 }
 
 static void
-_ecore_evas_mouse_move_process_internal(Ecore_Evas *ee, int x, int y, unsigned int timestamp, Eina_Bool feed)
+_ecore_evas_mouse_move_process_internal(Ecore_Evas *ee,
+                                        Efl_Input_Device *pointer,
+                                        int x, int y, unsigned int timestamp,
+                                        Eina_Bool feed)
 {
-   int fx, fy, fw, fh;
-   ee->mouse.x = x;
-   ee->mouse.y = y;
+   Efl_Input_Pointer_Data *ev;
+   Efl_Input_Pointer *evt;
+   Eina_Bool send_event = EINA_TRUE;
+   Ecore_Evas_Cursor *cursor;
+   int fx, fy, fw, fh, evt_x, evt_y;
 
    evas_output_framespace_get(ee->evas, &fx, &fy, &fw, &fh);
 
-   if (ee->prop.cursor.object)
+   if (!pointer)
+     pointer = evas_default_device_get(ee->evas, EFL_INPUT_DEVICE_CLASS_MOUSE);
+   cursor = eina_hash_find(ee->prop.cursors, &pointer);
+   if (cursor)
      {
-        evas_object_show(ee->prop.cursor.object);
-        if (ee->rotation == 0)
-          evas_object_move(ee->prop.cursor.object,
-                           x - fx - ee->prop.cursor.hot.x,
-                           y - fy - ee->prop.cursor.hot.y);
-        else if (ee->rotation == 90)
-          evas_object_move(ee->prop.cursor.object,
-                           ee->h + fw - y - fx - 1 - ee->prop.cursor.hot.x,
-                           x - fy - ee->prop.cursor.hot.y);
-        else if (ee->rotation == 180)
-          evas_object_move(ee->prop.cursor.object,
-                           ee->w + fw - x - fx - 1 - ee->prop.cursor.hot.x,
-                           ee->h + fh - y - fy - 1 - ee->prop.cursor.hot.y);
-        else if (ee->rotation == 270)
-          evas_object_move(ee->prop.cursor.object,
-                           y - fx - ee->prop.cursor.hot.x,
-                           ee->w + fh - x - fy - 1 - ee->prop.cursor.hot.y);
+        cursor->pos_x = x;
+        cursor->pos_y = y;
+        if (cursor->object)
+          {
+             evas_object_show(cursor->object);
+             if (ee->rotation == 0)
+               evas_object_move(cursor->object,
+                                x - fx - cursor->hot.x,
+                                y - fy - cursor->hot.y);
+             else if (ee->rotation == 90)
+               evas_object_move(cursor->object,
+                                ee->h + fw - y - fx - 1 - cursor->hot.x,
+                                x - fy - cursor->hot.y);
+             else if (ee->rotation == 180)
+               evas_object_move(cursor->object,
+                                ee->w + fw - x - fx - 1 - cursor->hot.x,
+                                ee->h + fh - y - fy - 1 - cursor->hot.y);
+             else if (ee->rotation == 270)
+               evas_object_move(cursor->object,
+                                y - fx - cursor->hot.x,
+                                ee->w + fh - x - fy - 1 - cursor->hot.y);
+          }
      }
+
    if (!feed) return;
    if (ee->rotation == 0)
-     evas_event_input_mouse_move(ee->evas, x, y, timestamp, NULL);
+     {
+        evt_x = x;
+        evt_y = y;
+     }
    else if (ee->rotation == 90)
-     evas_event_input_mouse_move(ee->evas, ee->h + fw - y - 1, x, timestamp, NULL);
+     {
+        evt_x = ee->h + fw - y - 1;
+        evt_y = x;
+     }
    else if (ee->rotation == 180)
-     evas_event_input_mouse_move(ee->evas, ee->w + fw - x - 1, ee->h + fh - y - 1, timestamp, NULL);
+     {
+        evt_x = ee->w + fw - x - 1;
+        evt_y = ee->h + fh - y - 1;
+     }
    else if (ee->rotation == 270)
-     evas_event_input_mouse_move(ee->evas, y, ee->w + fh - x - 1, timestamp, NULL);
+     {
+        evt_x = y;
+        evt_y = ee->w + fh - x - 1;
+     }
+   else
+     send_event = EINA_FALSE;
+
+   if (!send_event) return;
+
+   evt = efl_input_instance_get(EFL_INPUT_POINTER_CLASS, ee->evas, (void **) &ev);
+   if (!evt) return;
+
+   ev->action = EFL_POINTER_ACTION_MOVE;
+   ev->device = efl_ref(pointer);
+   ev->timestamp = timestamp;
+   ev->cur.x = evt_x;
+   ev->cur.y = evt_y;
+   efl_event_callback_legacy_call(ee->evas,
+                                  _event_description_get(ev->action), evt);
+   efl_del(evt);
 }
 
 EAPI void
 _ecore_evas_mouse_move_process(Ecore_Evas *ee, int x, int y, unsigned int timestamp)
 {
-   _ecore_evas_mouse_move_process_internal(ee, x, y, timestamp, EINA_TRUE);
+   _ecore_evas_mouse_move_process_internal(ee, NULL, x, y, timestamp,
+                                           EINA_TRUE);
+}
+
+EAPI void
+_ecore_evas_mouse_device_move_process(Ecore_Evas *ee, Efl_Input_Device *pointer,
+                                      int x, int y, unsigned int timestamp)
+{
+   _ecore_evas_mouse_move_process_internal(ee, pointer, x, y, timestamp,
+                                           EINA_TRUE);
 }
 
 EAPI void
@@ -3596,19 +3457,14 @@ ecore_evas_ecore_evas_list_get(void)
 EAPI Eina_List *
 ecore_evas_sub_ecore_evas_list_get(const Ecore_Evas *ee)
 {
-   if (!ECORE_MAGIC_CHECK(ee, ECORE_MAGIC_EVAS))
-     {
-        ECORE_MAGIC_FAIL(ee, ECORE_MAGIC_EVAS,
-                         "ecore_evas_sub_ecore_evas_list_get");
-        return NULL;
-     }
+   ECORE_EVAS_CHECK(ee, NULL);
    return ee->sub_ecore_evas;
 }
 
 EAPI void
 ecore_evas_input_event_register(Ecore_Evas *ee)
 {
-   ecore_event_window_register((Ecore_Window)ee, ee, ee->evas,
+   ecore_event_window_register(ee->prop.window, ee, ee->evas,
                                (Ecore_Event_Mouse_Move_Cb)_ecore_evas_mouse_move_process,
                                (Ecore_Event_Multi_Move_Cb)_ecore_evas_mouse_multi_move_process,
                                (Ecore_Event_Multi_Down_Cb)_ecore_evas_mouse_multi_down_process,
@@ -3619,7 +3475,7 @@ ecore_evas_input_event_register(Ecore_Evas *ee)
 EAPI void
 ecore_evas_input_event_unregister(Ecore_Evas *ee)
 {
-   ecore_event_window_unregister((Ecore_Window)ee);
+   ecore_event_window_unregister(ee->prop.window);
 }
 
 EAPI Eina_Strbuf *
@@ -3667,6 +3523,7 @@ _ecore_evas_aux_hint_free(Ecore_Evas *ee)
 EAPI Ecore_Evas *
 ecore_evas_fb_new(const char *disp_name, int rotation, int w, int h)
 {
+   Ecore_Evas *ee;
    Ecore_Evas *(*new)(const char *, int, int, int);
    Eina_Module *m = _ecore_evas_engine_load("fb");
    EINA_SAFETY_ON_NULL_RETURN_VAL(m, NULL);
@@ -3674,12 +3531,19 @@ ecore_evas_fb_new(const char *disp_name, int rotation, int w, int h)
    new = eina_module_symbol_get(m, "ecore_evas_fb_new_internal");
    EINA_SAFETY_ON_NULL_RETURN_VAL(new, NULL);
 
-   return new(disp_name, rotation, w, h);
+   ee = new(disp_name, rotation, w, h);
+   if (!_ecore_evas_cursors_init(ee))
+     {
+        ecore_evas_free(ee);
+        return NULL;
+     }
+   return ee;
 }
 
 EAPI Ecore_Evas *
 ecore_evas_software_x11_new(const char *disp_name, Ecore_X_Window parent, int x, int y, int w, int h)
 {
+   Ecore_Evas *ee;
    Ecore_Evas *(*new)(const char *, Ecore_X_Window, int, int, int, int);
    Eina_Module *m = _ecore_evas_engine_load("x");
    EINA_SAFETY_ON_NULL_RETURN_VAL(m, NULL);
@@ -3687,7 +3551,13 @@ ecore_evas_software_x11_new(const char *disp_name, Ecore_X_Window parent, int x,
    new = eina_module_symbol_get(m, "ecore_evas_software_x11_new_internal");
    EINA_SAFETY_ON_NULL_RETURN_VAL(new, NULL);
 
-   return new(disp_name, parent, x, y, w, h);
+   ee = new(disp_name, parent, x, y, w, h);
+   if (!_ecore_evas_cursors_init(ee))
+     {
+        ecore_evas_free(ee);
+        return NULL;
+     }
+   return ee;
 }
 
 EAPI Ecore_X_Window
@@ -3733,6 +3603,7 @@ ecore_evas_software_x11_extra_event_window_add(Ecore_Evas *ee, Ecore_X_Window wi
 EAPI Ecore_Evas *
 ecore_evas_software_x11_pixmap_new(const char *disp_name, Ecore_X_Window parent, int x, int y, int w, int h)
 {
+   Ecore_Evas *ee;
    Ecore_Evas *(*new)(const char *, Ecore_X_Window, int, int, int, int);
    Eina_Module *m = _ecore_evas_engine_load("x");
    EINA_SAFETY_ON_NULL_RETURN_VAL(m, NULL);
@@ -3740,7 +3611,14 @@ ecore_evas_software_x11_pixmap_new(const char *disp_name, Ecore_X_Window parent,
    new = eina_module_symbol_get(m, "ecore_evas_software_x11_pixmap_new_internal");
    EINA_SAFETY_ON_NULL_RETURN_VAL(new, NULL);
 
-   return new(disp_name, parent, x, y, w, h);
+   ee = new(disp_name, parent, x, y, w, h);
+   if (!_ecore_evas_cursors_init(ee))
+     {
+        ecore_evas_free(ee);
+        return NULL;
+     }
+   return ee;
+
 }
 
 EAPI Ecore_X_Pixmap 
@@ -3759,6 +3637,7 @@ ecore_evas_software_x11_pixmap_get(const Ecore_Evas *ee)
 EAPI Ecore_Evas *
 ecore_evas_gl_x11_new(const char *disp_name, Ecore_X_Window parent, int x, int y, int w, int h)
 {
+   Ecore_Evas *ee;
    Ecore_Evas *(*new)(const char *, Ecore_X_Window, int, int, int, int);
    Eina_Module *m = _ecore_evas_engine_load("x");
    EINA_SAFETY_ON_NULL_RETURN_VAL(m, NULL);
@@ -3766,12 +3645,20 @@ ecore_evas_gl_x11_new(const char *disp_name, Ecore_X_Window parent, int x, int y
    new = eina_module_symbol_get(m, "ecore_evas_gl_x11_new_internal");
    EINA_SAFETY_ON_NULL_RETURN_VAL(new, NULL);
 
-   return new(disp_name, parent, x, y, w, h);
+   ee = new(disp_name, parent, x, y, w, h);
+   if (!_ecore_evas_cursors_init(ee))
+     {
+        ecore_evas_free(ee);
+        return NULL;
+     }
+   return ee;
+
 }
 
 EAPI Ecore_Evas *
 ecore_evas_gl_x11_options_new(const char *disp_name, Ecore_X_Window parent, int x, int y, int w, int h, const int *opt)
 {
+   Ecore_Evas *ee;
    Ecore_Evas *(*new)(const char *, Ecore_X_Window, int, int, int, int, const int*);
    Eina_Module *m = _ecore_evas_engine_load("x");
    EINA_SAFETY_ON_NULL_RETURN_VAL(m, NULL);
@@ -3779,12 +3666,19 @@ ecore_evas_gl_x11_options_new(const char *disp_name, Ecore_X_Window parent, int 
    new = eina_module_symbol_get(m, "ecore_evas_gl_x11_options_new_internal");
    EINA_SAFETY_ON_NULL_RETURN_VAL(new, NULL);
 
-   return new(disp_name, parent, x, y, w, h, opt);
+   ee = new(disp_name, parent, x, y, w, h, opt);
+   if (!_ecore_evas_cursors_init(ee))
+     {
+        ecore_evas_free(ee);
+        return NULL;
+     }
+   return ee;
 }
 
 EAPI Ecore_Evas *
 ecore_evas_gl_x11_pixmap_new(const char *disp_name, Ecore_X_Window parent, int x, int y, int w, int h)
 {
+   Ecore_Evas *ee;
    Ecore_Evas *(*new)(const char *, Ecore_X_Window, int, int, int, int);
    Eina_Module *m = _ecore_evas_engine_load("x");
    EINA_SAFETY_ON_NULL_RETURN_VAL(m, NULL);
@@ -3792,7 +3686,14 @@ ecore_evas_gl_x11_pixmap_new(const char *disp_name, Ecore_X_Window parent, int x
    new = eina_module_symbol_get(m, "ecore_evas_gl_x11_pixmap_new_internal");
    EINA_SAFETY_ON_NULL_RETURN_VAL(new, NULL);
 
-   return new(disp_name, parent, x, y, w, h);
+   ee = new(disp_name, parent, x, y, w, h);
+   if (!_ecore_evas_cursors_init(ee))
+     {
+        ecore_evas_free(ee);
+        return NULL;
+     }
+   return ee;
+
 }
 
 EAPI Ecore_X_Pixmap 
@@ -3948,9 +3849,47 @@ ecore_evas_x11_shape_input_apply(Ecore_Evas *ee)
    iface->shape_input_apply(ee);
 }
 
+EAPI Eina_Bool
+ecore_evas_vnc_start(Ecore_Evas *ee, const char *addr, int port,
+                     Ecore_Evas_Vnc_Client_Accept_Cb accept_cb,
+                     Ecore_Evas_Vnc_Client_Disconnected_Cb disc_cb,
+                     void *data)
+{
+   Eina_Module *mod;
+   void *(*vnc_new)(Ecore_Evas *, int, const char *,
+                    Ecore_Evas_Vnc_Client_Accept_Cb,
+                    Ecore_Evas_Vnc_Client_Disconnected_Cb,
+                    void *);
+
+   EINA_SAFETY_ON_NULL_RETURN_VAL(ee, EINA_FALSE);
+
+   if (ee->vnc_server)
+     return EINA_FALSE;
+
+   mod = _ecore_evas_vnc_server_module_load();
+   EINA_SAFETY_ON_NULL_RETURN_VAL(mod, EINA_FALSE);
+
+   vnc_new = eina_module_symbol_get(mod, "ecore_evas_vnc_server_new");
+   EINA_SAFETY_ON_NULL_RETURN_VAL(vnc_new, EINA_FALSE);
+
+   ee->vnc_server = vnc_new(ee, port, addr, accept_cb, disc_cb, data);
+   EINA_SAFETY_ON_NULL_RETURN_VAL(ee->vnc_server, EINA_FALSE);
+   return EINA_TRUE;
+}
+
+EAPI Eina_Bool
+ecore_evas_vnc_stop(Ecore_Evas *ee)
+{
+   EINA_SAFETY_ON_NULL_RETURN_VAL(ee, EINA_FALSE);
+   EINA_SAFETY_ON_FALSE_RETURN_VAL(ee->vnc_server, EINA_FALSE);
+
+   return _ecore_evas_vnc_stop(ee);
+}
+
 EAPI Ecore_Evas *
 ecore_evas_extn_socket_new(int w, int h)
 {
+   Ecore_Evas *ee;
    Ecore_Evas *(*new)(int, int);
    Eina_Module *m = _ecore_evas_engine_load("extn");
    EINA_SAFETY_ON_NULL_RETURN_VAL(m, NULL);
@@ -3958,7 +3897,14 @@ ecore_evas_extn_socket_new(int w, int h)
    new = eina_module_symbol_get(m, "ecore_evas_extn_socket_new_internal");
    EINA_SAFETY_ON_NULL_RETURN_VAL(new, NULL);
 
-   return new(w, h);
+   ee = new(w, h);
+   if (!_ecore_evas_cursors_init(ee))
+     {
+        ecore_evas_free(ee);
+        return NULL;
+     }
+   return ee;
+
 }
 
 EAPI Eina_Bool
@@ -4061,6 +4007,7 @@ EAPI Ecore_Evas *
 ecore_evas_sdl_new(const char* name, int w, int h, int fullscreen,
 		   int hwsurface, int noframe, int alpha)
 {
+   Ecore_Evas *ee;
    Ecore_Evas *(*new)(const char *, int, int, int, int, int, int);
    Eina_Module *m = _ecore_evas_engine_load("sdl");
    EINA_SAFETY_ON_NULL_RETURN_VAL(m, NULL);
@@ -4068,13 +4015,20 @@ ecore_evas_sdl_new(const char* name, int w, int h, int fullscreen,
    new = eina_module_symbol_get(m, "ecore_evas_sdl_new_internal");
    EINA_SAFETY_ON_NULL_RETURN_VAL(new, NULL);
 
-   return new(name, w, h, fullscreen, hwsurface, noframe, alpha);
+   ee = new(name, w, h, fullscreen, hwsurface, noframe, alpha);
+   if (!_ecore_evas_cursors_init(ee))
+     {
+        ecore_evas_free(ee);
+        return NULL;
+     }
+   return ee;
 }
 
 EAPI Ecore_Evas *
 ecore_evas_sdl16_new(const char* name, int w, int h, int fullscreen,
 		     int hwsurface, int noframe, int alpha)
 {
+   Ecore_Evas *ee;
    Ecore_Evas *(*new)(const char *, int, int, int, int, int, int);
    Eina_Module *m = _ecore_evas_engine_load("sdl");
    EINA_SAFETY_ON_NULL_RETURN_VAL(m, NULL);
@@ -4082,12 +4036,19 @@ ecore_evas_sdl16_new(const char* name, int w, int h, int fullscreen,
    new = eina_module_symbol_get(m, "ecore_evas_sdl16_new_internal");
    EINA_SAFETY_ON_NULL_RETURN_VAL(new, NULL);
 
-   return new(name, w, h, fullscreen, hwsurface, noframe, alpha);
+   ee = new(name, w, h, fullscreen, hwsurface, noframe, alpha);
+   if (!_ecore_evas_cursors_init(ee))
+     {
+        ecore_evas_free(ee);
+        return NULL;
+     }
+   return ee;
 }
 
 EAPI Ecore_Evas *
 ecore_evas_gl_sdl_new(const char* name, int w, int h, int fullscreen, int noframe)
 {
+   Ecore_Evas *ee;
    Ecore_Evas *(*new)(const char *, int, int, int, int);
    Eina_Module *m = _ecore_evas_engine_load("sdl");
    EINA_SAFETY_ON_NULL_RETURN_VAL(m, NULL);
@@ -4095,13 +4056,20 @@ ecore_evas_gl_sdl_new(const char* name, int w, int h, int fullscreen, int nofram
    new = eina_module_symbol_get(m, "ecore_evas_gl_sdl_new_internal");
    EINA_SAFETY_ON_NULL_RETURN_VAL(new, NULL);
 
-   return new(name, w, h, fullscreen, noframe);
+   ee = new(name, w, h, fullscreen, noframe);
+   if (!_ecore_evas_cursors_init(ee))
+     {
+        ecore_evas_free(ee);
+        return NULL;
+     }
+   return ee;
 }
 
 EAPI Ecore_Evas *
 ecore_evas_wayland_shm_new(const char *disp_name, unsigned int parent,
 			   int x, int y, int w, int h, Eina_Bool frame)
 {
+   Ecore_Evas *ee;
    Ecore_Evas *(*new)(const char *, unsigned int, int, int, int, int, Eina_Bool);
    Eina_Module *m = _ecore_evas_engine_load("wayland");
    EINA_SAFETY_ON_NULL_RETURN_VAL(m, NULL);
@@ -4109,13 +4077,20 @@ ecore_evas_wayland_shm_new(const char *disp_name, unsigned int parent,
    new = eina_module_symbol_get(m, "ecore_evas_wayland_shm_new_internal");
    EINA_SAFETY_ON_NULL_RETURN_VAL(new, NULL);
 
-   return new(disp_name, parent, x, y, w, h, frame);
+   ee = new(disp_name, parent, x, y, w, h, frame);
+   if (!_ecore_evas_cursors_init(ee))
+     {
+        ecore_evas_free(ee);
+        return NULL;
+     }
+   return ee;
 }
 
 EAPI Ecore_Evas *
 ecore_evas_wayland_egl_new(const char *disp_name, unsigned int parent,
 			   int x, int y, int w, int h, Eina_Bool frame)
 {
+   Ecore_Evas *ee;
    Ecore_Evas *(*new)(const char *, unsigned int, int, int, int, int, Eina_Bool);
    Eina_Module *m = _ecore_evas_engine_load("wayland");
    EINA_SAFETY_ON_NULL_RETURN_VAL(m, NULL);
@@ -4123,7 +4098,13 @@ ecore_evas_wayland_egl_new(const char *disp_name, unsigned int parent,
    new = eina_module_symbol_get(m, "ecore_evas_wayland_egl_new_internal");
    EINA_SAFETY_ON_NULL_RETURN_VAL(new, NULL);
 
-   return new(disp_name, parent, x, y, w, h, frame);
+   ee = new(disp_name, parent, x, y, w, h, frame);
+   if (!_ecore_evas_cursors_init(ee))
+     {
+        ecore_evas_free(ee);
+        return NULL;
+     }
+   return ee;
 }
 
 EAPI void
@@ -4199,6 +4180,7 @@ EAPI Ecore_Evas *
 ecore_evas_drm_new(const char *disp_name, unsigned int parent,
                    int x, int y, int w, int h)
 {
+   Ecore_Evas *ee;
    Ecore_Evas *(*new)(const char *, unsigned int, int, int, int, int);
    Eina_Module *m = _ecore_evas_engine_load("drm");
    EINA_SAFETY_ON_NULL_RETURN_VAL(m, NULL);
@@ -4206,13 +4188,20 @@ ecore_evas_drm_new(const char *disp_name, unsigned int parent,
    new = eina_module_symbol_get(m, "ecore_evas_drm_new_internal");
    EINA_SAFETY_ON_NULL_RETURN_VAL(new, NULL);
 
-   return new(disp_name, parent, x, y, w, h);
+   ee = new(disp_name, parent, x, y, w, h);
+   if (!_ecore_evas_cursors_init(ee))
+     {
+        ecore_evas_free(ee);
+        return NULL;
+     }
+   return ee;
 }
 
 EAPI Ecore_Evas *
 ecore_evas_gl_drm_new(const char *disp_name, unsigned int parent,
                           int x, int y, int w, int h)
 {
+   Ecore_Evas *ee;
    Ecore_Evas *(*new)(const char *, unsigned int, int, int, int, int);
    Eina_Module *m = _ecore_evas_engine_load("drm");
    EINA_SAFETY_ON_NULL_RETURN_VAL(m, NULL);
@@ -4220,7 +4209,14 @@ ecore_evas_gl_drm_new(const char *disp_name, unsigned int parent,
    new = eina_module_symbol_get(m, "ecore_evas_gl_drm_new_internal");
    EINA_SAFETY_ON_NULL_RETURN_VAL(new, NULL);
 
-   return new(disp_name, parent, x, y, w, h);
+   ee = new(disp_name, parent, x, y, w, h);
+   if (!_ecore_evas_cursors_init(ee))
+     {
+        ecore_evas_free(ee);
+        return NULL;
+     }
+   return ee;
+
 }
 
 EAPI Ecore_Evas *
@@ -4230,6 +4226,7 @@ ecore_evas_software_gdi_new(Ecore_Win32_Window *parent,
 			    int                 width,
 			    int                 height)
 {
+   Ecore_Evas *ee;
    Ecore_Evas *(*new)(Ecore_Win32_Window *, int, int, int, int);
    Eina_Module *m = _ecore_evas_engine_load("win32");
    EINA_SAFETY_ON_NULL_RETURN_VAL(m, NULL);
@@ -4237,7 +4234,14 @@ ecore_evas_software_gdi_new(Ecore_Win32_Window *parent,
    new = eina_module_symbol_get(m, "ecore_evas_software_gdi_new_internal");
    EINA_SAFETY_ON_NULL_RETURN_VAL(new, NULL);
 
-   return new(parent, x, y, width, height);
+   ee = new(parent, x, y, width, height);
+   if (!_ecore_evas_cursors_init(ee))
+     {
+        ecore_evas_free(ee);
+        return NULL;
+     }
+   return ee;
+
 }
 
 EAPI Ecore_Evas *
@@ -4247,6 +4251,7 @@ ecore_evas_software_ddraw_new(Ecore_Win32_Window *parent,
 			      int                 width,
 			      int                 height)
 {
+   Ecore_Evas *ee;
    Ecore_Evas *(*new)(Ecore_Win32_Window *, int, int, int, int);
    Eina_Module *m = _ecore_evas_engine_load("win32");
    EINA_SAFETY_ON_NULL_RETURN_VAL(m, NULL);
@@ -4254,7 +4259,13 @@ ecore_evas_software_ddraw_new(Ecore_Win32_Window *parent,
    new = eina_module_symbol_get(m, "ecore_evas_software_ddraw_new_internal");
    EINA_SAFETY_ON_NULL_RETURN_VAL(new, NULL);
 
-   return new(parent, x, y, width, height);
+   ee = new(parent, x, y, width, height);
+   if (!_ecore_evas_cursors_init(ee))
+     {
+        ecore_evas_free(ee);
+        return NULL;
+     }
+   return ee;
 }
 
 EAPI Ecore_Win32_Window *
@@ -4270,6 +4281,7 @@ ecore_evas_win32_window_get(const Ecore_Evas *ee)
 EAPI Ecore_Evas *
 ecore_evas_cocoa_new(Ecore_Cocoa_Window *parent, int x, int y, int w, int h)
 {
+   Ecore_Evas *ee;
    Ecore_Evas *(*new)(Ecore_Cocoa_Window *, int, int, int, int);
    Eina_Module *m = _ecore_evas_engine_load("cocoa");
    EINA_SAFETY_ON_NULL_RETURN_VAL(m, NULL);
@@ -4277,12 +4289,19 @@ ecore_evas_cocoa_new(Ecore_Cocoa_Window *parent, int x, int y, int w, int h)
    new = eina_module_symbol_get(m, "ecore_evas_cocoa_new_internal");
    EINA_SAFETY_ON_NULL_RETURN_VAL(new, NULL);
 
-   return new(parent, x, y, w, h);
+   ee = new(parent, x, y, w, h);
+   if (!_ecore_evas_cursors_init(ee))
+     {
+        ecore_evas_free(ee);
+        return NULL;
+     }
+   return ee;
 }
 
 EAPI Ecore_Evas *
 ecore_evas_psl1ght_new(const char* name, int w, int h)
 {
+   Ecore_Evas *ee;
    Ecore_Evas *(*new)(const char*, int, int);
    Eina_Module *m = _ecore_evas_engine_load("psl1ght");
    EINA_SAFETY_ON_NULL_RETURN_VAL(m, NULL);
@@ -4290,7 +4309,13 @@ ecore_evas_psl1ght_new(const char* name, int w, int h)
    new = eina_module_symbol_get(m, "ecore_evas_psl1ght_new_internal");
    EINA_SAFETY_ON_NULL_RETURN_VAL(new, NULL);
 
-   return new(name, w, h);
+   ee = new(name, w, h);
+   if (!_ecore_evas_cursors_init(ee))
+     {
+        ecore_evas_free(ee);
+        return NULL;
+     }
+   return ee;
 }
 
 
@@ -4306,12 +4331,13 @@ ecore_evas_psl1ght_new(const char* name, int w, int h)
    } while (0)
 
 static inline void
-_pointer_position_set(Efl_Event_Pointer_Data *ev, Ecore_Evas *ee, int x, int y,
+_pointer_position_set(Efl_Input_Pointer_Data *ev, Ecore_Evas *ee, int x, int y,
                       double mx, double my)
 {
    int fx, fy, fw, fh;
 
-   if (!mx && !my)
+   if ((EINA_DBL_EQ(mx, 0.0)) &&
+       (EINA_DBL_EQ(my, 0.0)))
      {
         mx = x;
         my = y;
@@ -4328,7 +4354,7 @@ _pointer_position_set(Efl_Event_Pointer_Data *ev, Ecore_Evas *ee, int x, int y,
      EVENT_XY_SET(ev, my, ee->w + fh - mx - 1, fx, fy);
 }
 
-static const Eo_Event_Description *
+static const Efl_Event_Description *
 _event_description_get(Efl_Pointer_Action action)
 {
    switch (action)
@@ -4347,6 +4373,8 @@ _event_description_get(Efl_Pointer_Action action)
         return EFL_EVENT_POINTER_OUT;
       case EFL_POINTER_ACTION_WHEEL:
         return EFL_EVENT_POINTER_WHEEL;
+      case EFL_POINTER_ACTION_AXIS:
+        return EFL_EVENT_POINTER_AXIS;
       default: return NULL;
      }
 }
@@ -4354,8 +4382,8 @@ _event_description_get(Efl_Pointer_Action action)
 static Eina_Bool
 _direct_mouse_updown(Ecore_Evas *ee, const Ecore_Event_Mouse_Button *info, Efl_Pointer_Action action)
 {
-   Efl_Event_Pointer_Data *ev;
-   Efl_Event_Pointer *evt;
+   Efl_Input_Pointer_Data *ev;
+   Efl_Input_Pointer *evt;
    Evas *e = ee->evas;
    Eina_Bool processed;
 
@@ -4368,7 +4396,7 @@ _direct_mouse_updown(Ecore_Evas *ee, const Ecore_Event_Mouse_Button *info, Efl_P
     * modifiers (already passed to evas, no need to do anything)
     */
 
-   evt = efl_event_instance_get(EFL_EVENT_POINTER_CLASS, e, (void **) &ev);
+   evt = efl_input_instance_get(EFL_INPUT_POINTER_CLASS, e, (void **) &ev);
    if (!evt) return EINA_FALSE;
 
    ev->action = action;
@@ -4376,17 +4404,19 @@ _direct_mouse_updown(Ecore_Evas *ee, const Ecore_Event_Mouse_Button *info, Efl_P
    if (info->double_click) ev->button_flags |= EFL_POINTER_FLAGS_DOUBLE_CLICK;
    if (info->triple_click) ev->button_flags |= EFL_POINTER_FLAGS_TRIPLE_CLICK;
    ev->timestamp = info->timestamp;
-   ev->finger = info->multi.device;
+   ev->tool = info->multi.device;
    _pointer_position_set(ev, ee, info->x, info->y, info->multi.x, info->multi.y);
    ev->radius = info->multi.radius;
    ev->radius_x = info->multi.radius_x;
    ev->radius_y = info->multi.radius_y;
    ev->pressure = info->multi.pressure;
    ev->angle = info->multi.angle - ee->rotation;
+   if (info->dev) ev->device = efl_ref(info->dev);
+   else ev->device = efl_ref(evas_default_device_get(e, EFL_INPUT_DEVICE_CLASS_MOUSE));
 
-   eo_event_callback_call(e, _event_description_get(ev->action), evt);
+   efl_event_callback_legacy_call(e, _event_description_get(ev->action), evt);
    processed = ev->evas_done;
-   eo_del(evt);
+   efl_del(evt);
 
    return processed;
 }
@@ -4412,12 +4442,13 @@ _direct_mouse_cancel_cb(Ecore_Evas *ee, const Ecore_Event_Mouse_Button *info)
 static Eina_Bool
 _direct_mouse_move_cb(Ecore_Evas *ee, const Ecore_Event_Mouse_Move *info)
 {
-   Efl_Event_Pointer_Data *ev;
-   Efl_Event_Pointer *evt;
+   Efl_Input_Pointer_Data *ev;
+   Efl_Input_Pointer *evt;
    Evas *e = ee->evas;
    Eina_Bool processed;
 
-   _ecore_evas_mouse_move_process_internal(ee, info->x, info->y, info->timestamp, EINA_FALSE);
+   _ecore_evas_mouse_move_process_internal(ee, info->dev, info->x, info->y,
+                                           info->timestamp, EINA_FALSE);
 
    /* Unused information:
     * same_screen
@@ -4428,12 +4459,12 @@ _direct_mouse_move_cb(Ecore_Evas *ee, const Ecore_Event_Mouse_Move *info)
     * modifiers (already passed to evas, no need to do anything)
     */
 
-   evt = efl_event_instance_get(EFL_EVENT_POINTER_CLASS, e, (void **) &ev);
+   evt = efl_input_instance_get(EFL_INPUT_POINTER_CLASS, e, (void **) &ev);
    if (!evt) return EINA_FALSE;
 
    ev->action = EFL_POINTER_ACTION_MOVE;
    ev->timestamp = info->timestamp;
-   ev->finger = info->multi.device;
+   ev->tool = info->multi.device;
    _pointer_position_set(ev, ee, info->x, info->y, info->multi.x, info->multi.y);
 
    ev->radius = info->multi.radius;
@@ -4441,10 +4472,12 @@ _direct_mouse_move_cb(Ecore_Evas *ee, const Ecore_Event_Mouse_Move *info)
    ev->radius_y = info->multi.radius_y;
    ev->pressure = info->multi.pressure;
    ev->angle = info->multi.angle - ee->rotation;
+   if (info->dev) ev->device = efl_ref(info->dev);
+   else ev->device = efl_ref(evas_default_device_get(e, EFL_INPUT_DEVICE_CLASS_MOUSE));
 
-   eo_event_callback_call(e, _event_description_get(ev->action), evt);
+   efl_event_callback_legacy_call(e, _event_description_get(ev->action), evt);
    processed = ev->evas_done;
-   eo_del(evt);
+   efl_del(evt);
 
    return processed;
 }
@@ -4452,8 +4485,8 @@ _direct_mouse_move_cb(Ecore_Evas *ee, const Ecore_Event_Mouse_Move *info)
 static Eina_Bool
 _direct_mouse_wheel_cb(Ecore_Evas *ee, const Ecore_Event_Mouse_Wheel *info)
 {
-   Efl_Event_Pointer_Data *ev;
-   Efl_Event_Pointer *evt;
+   Efl_Input_Pointer_Data *ev;
+   Efl_Input_Pointer *evt;
    Evas *e = ee->evas;
    Eina_Bool processed;
 
@@ -4465,7 +4498,7 @@ _direct_mouse_wheel_cb(Ecore_Evas *ee, const Ecore_Event_Mouse_Wheel *info)
     * modifiers (already passed to evas, no need to do anything)
     */
 
-   evt = efl_event_instance_get(EFL_EVENT_POINTER_CLASS, e, (void **) &ev);
+   evt = efl_input_instance_get(EFL_INPUT_POINTER_CLASS, e, (void **) &ev);
    if (!evt) return EINA_FALSE;
 
    ev->action = EFL_POINTER_ACTION_WHEEL;
@@ -4473,10 +4506,12 @@ _direct_mouse_wheel_cb(Ecore_Evas *ee, const Ecore_Event_Mouse_Wheel *info)
    _pointer_position_set(ev, ee, info->x, info->y, info->x, info->y);
    ev->wheel.z = info->z;
    ev->wheel.dir = info->direction ? EFL_ORIENT_HORIZONTAL : EFL_ORIENT_VERTICAL;
+   if (info->dev) ev->device = efl_ref(info->dev);
+   else ev->device = efl_ref(evas_default_device_get(e, EFL_INPUT_DEVICE_CLASS_MOUSE));
 
-   eo_event_callback_call(e, _event_description_get(ev->action), evt);
+   efl_event_callback_legacy_call(e, _event_description_get(ev->action), evt);
    processed = ev->evas_done;
-   eo_del(evt);
+   efl_del(evt);
 
    return processed;
 }
@@ -4484,8 +4519,8 @@ _direct_mouse_wheel_cb(Ecore_Evas *ee, const Ecore_Event_Mouse_Wheel *info)
 static Eina_Bool
 _direct_mouse_inout(Ecore_Evas *ee, const Ecore_Event_Mouse_IO *info, Efl_Pointer_Action action)
 {
-   Efl_Event_Pointer_Data *ev;
-   Efl_Event_Pointer *evt;
+   Efl_Input_Pointer_Data *ev;
+   Efl_Input_Pointer *evt;
    Evas *e = ee->evas;
    Eina_Bool processed;
 
@@ -4494,16 +4529,18 @@ _direct_mouse_inout(Ecore_Evas *ee, const Ecore_Event_Mouse_IO *info, Efl_Pointe
     * modifiers (already passed to evas, no need to do anything)
     */
 
-   evt = efl_event_instance_get(EFL_EVENT_POINTER_CLASS, e, (void **) &ev);
+   evt = efl_input_instance_get(EFL_INPUT_POINTER_CLASS, e, (void **) &ev);
    if (!evt) return EINA_FALSE;
 
    ev->action = action;
    ev->timestamp = info->timestamp;
    _pointer_position_set(ev, ee, info->x, info->y, info->x, info->y);
+   if (info->dev) ev->device = efl_ref(info->dev);
+   else ev->device = efl_ref(evas_default_device_get(e, EFL_INPUT_DEVICE_CLASS_MOUSE));
 
-   eo_event_callback_call(e, _event_description_get(ev->action), evt);
+   efl_event_callback_legacy_call(e, _event_description_get(ev->action), evt);
    processed = ev->evas_done;
-   eo_del(evt);
+   efl_del(evt);
 
    return processed;
 }
@@ -4521,10 +4558,127 @@ _direct_mouse_out_cb(Ecore_Evas *ee, const Ecore_Event_Mouse_IO *info)
 }
 
 static Eina_Bool
+_direct_axis_update_cb(Ecore_Evas *ee, const Ecore_Event_Axis_Update *info)
+{
+   Eina_Bool haswinx = 0, haswiny = 0;
+   Efl_Input_Pointer_Data *ev;
+   Efl_Input_Pointer *evt;
+   Evas *e = ee->evas;
+   Eina_Bool processed;
+   double x = 0, y = 0;
+   int n;
+
+   /* Unused information:
+    * window, root_window, event_window
+    */
+
+   evt = efl_input_instance_get(EFL_INPUT_POINTER_CLASS, e, (void **) &ev);
+   if (!ev) return EINA_FALSE;
+
+   ev->action = EFL_POINTER_ACTION_AXIS;
+   ev->timestamp = info->timestamp;
+   ev->tool = info->toolid;
+
+   // see also evas_events.c
+   for (n = 0; n < info->naxis; n++)
+     {
+        const Ecore_Axis *axis = &(info->axis[n]);
+        switch (axis->label)
+          {
+           case EVAS_AXIS_LABEL_WINDOW_X:
+             _efl_input_value_mark(ev, EFL_INPUT_VALUE_X);
+             x = axis->value;
+             haswinx = EINA_TRUE;
+             break;
+
+           case EVAS_AXIS_LABEL_WINDOW_Y:
+             _efl_input_value_mark(ev, EFL_INPUT_VALUE_Y);
+             y = axis->value;
+             haswiny = EINA_TRUE;
+             break;
+
+           case EVAS_AXIS_LABEL_X:
+             if (!haswinx)
+               {
+                  _efl_input_value_mark(ev, EFL_INPUT_VALUE_X);
+                  x = axis->value;
+               }
+             ev->raw.x = axis->value;
+             ev->has_raw = EINA_TRUE;
+             break;
+
+           case EVAS_AXIS_LABEL_Y:
+             if (!haswiny)
+               {
+                  _efl_input_value_mark(ev, EFL_INPUT_VALUE_Y);
+                  y = axis->value;
+               }
+             ev->raw.y = axis->value;
+             ev->has_raw = EINA_TRUE;
+             break;
+
+           case EVAS_AXIS_LABEL_NORMAL_X:
+             ev->norm.x = axis->value;
+             ev->has_norm = EINA_TRUE;
+             break;
+
+           case EVAS_AXIS_LABEL_NORMAL_Y:
+             ev->norm.y = axis->value;
+             ev->has_norm = EINA_TRUE;
+             break;
+
+           case EVAS_AXIS_LABEL_PRESSURE:
+             _efl_input_value_mark(ev, EFL_INPUT_VALUE_PRESSURE);
+             ev->pressure = axis->value;
+             break;
+
+           case EVAS_AXIS_LABEL_DISTANCE:
+             _efl_input_value_mark(ev, EFL_INPUT_VALUE_DISTANCE);
+             ev->distance = axis->value;
+             break;
+
+           case EVAS_AXIS_LABEL_AZIMUTH:
+             _efl_input_value_mark(ev, EFL_INPUT_VALUE_AZIMUTH);
+             ev->azimuth = axis->value;
+             break;
+
+           case EVAS_AXIS_LABEL_TILT:
+             _efl_input_value_mark(ev, EFL_INPUT_VALUE_TILT);
+             ev->tilt = axis->value;
+             break;
+
+           case EVAS_AXIS_LABEL_TWIST:
+             _efl_input_value_mark(ev, EFL_INPUT_VALUE_TWIST);
+             ev->twist = axis->value;
+             break;
+
+           case EVAS_AXIS_LABEL_UNKNOWN:
+           case EVAS_AXIS_LABEL_TOUCH_WIDTH_MAJOR:
+           case EVAS_AXIS_LABEL_TOUCH_WIDTH_MINOR:
+           case EVAS_AXIS_LABEL_TOOL_WIDTH_MAJOR:
+           case EVAS_AXIS_LABEL_TOOL_WIDTH_MINOR:
+           default:
+             DBG("Unsupported axis label %d, value %f (discarded)",
+                 axis->label, axis->value);
+             break;
+          }
+     }
+   _pointer_position_set(ev, ee, x, y, x, y);
+   if (info->dev) ev->device = efl_ref(info->dev);
+   else ev->device = efl_ref(evas_default_device_get(e, EFL_INPUT_DEVICE_CLASS_MOUSE));
+
+   efl_event_callback_legacy_call(e, _event_description_get(ev->action), evt);
+   processed = ev->evas_done;
+   efl_del(evt);
+
+   return processed;
+}
+
+static Eina_Bool
 _direct_key_updown_cb(Ecore_Evas *ee, const Ecore_Event_Key *info, Eina_Bool down)
 {
-   Efl_Event_Key_Data *ev;
-   Efl_Event_Key *evt;
+   Efl_Input_Key_Data *ev;
+   Efl_Input_Key *evt;
    Evas *e = ee->evas;
    Eina_Bool processed;
 
@@ -4536,7 +4690,7 @@ _direct_key_updown_cb(Ecore_Evas *ee, const Ecore_Event_Key *info, Eina_Bool dow
     * modifiers (already passed to evas, no need to do anything)
     */
 
-   evt = efl_event_instance_get(EFL_EVENT_KEY_CLASS, e, (void **) &ev);
+   evt = efl_input_instance_get(EFL_INPUT_KEY_CLASS, e, (void **) &ev);
    if (!evt || !ev) return EINA_FALSE;
 
    ev->timestamp = info->timestamp;
@@ -4548,24 +4702,18 @@ _direct_key_updown_cb(Ecore_Evas *ee, const Ecore_Event_Key *info, Eina_Bool dow
    ev->keycode = info->keycode;
    ev->data = info->data;
    ev->event_flags = 0;
-   ev->device = NULL; /* FIXME */
+   if (info->dev) ev->device = efl_ref(info->dev);
+   else ev->device = efl_ref(evas_default_device_get(e, EFL_INPUT_DEVICE_CLASS_KEYBOARD));
 
    if (down)
-     eo_event_callback_call(e, EFL_EVENT_KEY_DOWN, evt);
+     efl_event_callback_legacy_call(e, EFL_EVENT_KEY_DOWN, evt);
    else
-     eo_event_callback_call(e, EFL_EVENT_KEY_UP, evt);
+     efl_event_callback_legacy_call(e, EFL_EVENT_KEY_UP, evt);
 
    processed = ev->evas_done;
-   eo_del(evt);
+   efl_del(evt);
 
    return processed;
-}
-
-static Eina_Bool
-_direct_axis_update_cb(Ecore_Evas *ee EINA_UNUSED, const Ecore_Event_Axis_Update *info EINA_UNUSED)
-{
-   /* TODO: Add joystick event type. */
-   return EINA_FALSE;
 }
 
 EAPI Eina_Bool
@@ -4598,4 +4746,64 @@ _ecore_evas_input_direct_cb(void *window, int type, const void *info)
         ERR("unhandled input event type %d", type);
         return EINA_FALSE;
      }
+}
+
+EAPI void
+_ecore_evas_mouse_inout_set(Ecore_Evas *ee, Efl_Input_Device *mouse,
+                            Eina_Bool in, Eina_Bool force_out)
+{
+   Efl_Input_Device *present;
+
+   if (!mouse)
+     mouse = evas_default_device_get(ee->evas,
+                                     EFL_INPUT_DEVICE_CLASS_MOUSE);;
+
+   EINA_SAFETY_ON_NULL_RETURN(mouse);
+   present = eina_list_data_find(ee->mice_in, mouse);
+
+   if (in)
+     {
+        if (present) return;
+        ee->mice_in = eina_list_append(ee->mice_in, mouse);
+        efl_event_callback_add(mouse, EFL_EVENT_DEL,
+                               _ecore_evas_mouse_del_cb, ee);
+        if (ee->func.fn_mouse_in) ee->func.fn_mouse_in(ee);
+     }
+   else
+     {
+        if (present) ee->mice_in = eina_list_remove(ee->mice_in, mouse);
+        else if (!present && !force_out) return;
+        efl_event_callback_del(mouse, EFL_EVENT_DEL,
+                               _ecore_evas_mouse_del_cb, ee);
+        _ecore_evas_mouse_out_dispatch(ee, mouse);
+     }
+}
+
+EAPI Eina_Bool
+_ecore_evas_mouse_in_check(Ecore_Evas *ee, Efl_Input_Device *mouse)
+{
+   if (!mouse)
+     mouse = evas_default_device_get(ee->evas, EFL_INPUT_DEVICE_CLASS_MOUSE);
+   EINA_SAFETY_ON_NULL_RETURN_VAL(mouse, EINA_FALSE);
+   return eina_list_data_find(ee->mice_in, mouse) ? EINA_TRUE : EINA_FALSE;
+}
+
+EAPI void
+ecore_evas_callback_device_mouse_out_set(Ecore_Evas *ee,
+                                         Ecore_Evas_Mouse_IO_Cb func)
+{
+   ECORE_EVAS_CHECK(ee);
+   IFC(ee, fn_callback_device_mouse_out_set) (ee, func);
+   IFE;
+   ee->func.fn_device_mouse_out = func;
+}
+
+EAPI void
+ecore_evas_callback_device_mouse_in_set(Ecore_Evas *ee,
+                                        Ecore_Evas_Mouse_IO_Cb func)
+{
+   ECORE_EVAS_CHECK(ee);
+   IFC(ee, fn_callback_device_mouse_in_set) (ee, func);
+   IFE;
+   ee->func.fn_device_mouse_in = func;
 }

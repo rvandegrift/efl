@@ -32,6 +32,7 @@
 #  endif
 # else
 #  ifdef GL_GLES
+#   include <EGL/egl.h>
 #   include <GLES2/gl2.h>
 #   include <GLES2/gl2ext.h>
 #  else
@@ -68,6 +69,7 @@ typedef struct _Evas_GL_Font_Texture          Evas_GL_Font_Texture;
 typedef struct _Evas_GL_Polygon               Evas_GL_Polygon;
 typedef struct _Evas_GL_Polygon_Point         Evas_GL_Polygon_Point;
 typedef struct _Evas_GL_Texture_Async_Preload Evas_GL_Texture_Async_Preload;
+typedef struct _Evas_GL_Image_Data_Map        Evas_GL_Image_Data_Map;
 
 typedef Eina_Bool (*evas_gl_make_current_cb)(void *engine_data, void *doit);
 
@@ -102,9 +104,12 @@ typedef Eina_Bool (*evas_gl_make_current_cb)(void *engine_data, void *doit);
 struct _Evas_GL_Program
 {
    unsigned int flags, hitcount, tex_count;
-   GLuint prog;
+   struct {
+      GLuint mvp, rotation_id;
+   } uniform;
+   GLuint    prog;
 
-   Eina_Bool reset : 1;
+   Eina_Bool reset     : 1;
    Eina_Bool bin_saved : 1;
    Eina_Bool delete_me : 1;
 };
@@ -116,62 +121,62 @@ struct _Evas_GL_Shared
    int                 images_size;
 
    struct {
-      GLint max_texture_units;
-      GLint max_texture_size;
-      GLint max_vertex_elements;
-      GLfloat anisotropic;
-      Eina_Bool rgb : 1;
-      Eina_Bool bgra : 1;
-      Eina_Bool tex_npo2 : 1;
-      Eina_Bool tex_rect : 1;
-      Eina_Bool sec_image_map : 1;
-      Eina_Bool sec_tbm_surface : 1;
-      Eina_Bool egl_tbm_ext : 1;
-      Eina_Bool bin_program : 1;
+      GLint     max_texture_units;
+      GLint     max_texture_size;
+      GLint     max_vertex_elements;
+      GLfloat   anisotropic;
+      Eina_Bool rgb               : 1;
+      Eina_Bool bgra              : 1;
+      Eina_Bool tex_npo2          : 1;
+      Eina_Bool tex_rect          : 1;
+      Eina_Bool sec_image_map     : 1;
+      Eina_Bool sec_tbm_surface   : 1;
+      Eina_Bool egl_tbm_ext       : 1;
+      Eina_Bool bin_program       : 1;
       Eina_Bool unpack_row_length : 1;
-      Eina_Bool etc1 : 1;
-      Eina_Bool etc2 : 1;
-      Eina_Bool etc1_subimage : 1;
-      Eina_Bool s3tc : 1;
+      Eina_Bool etc1              : 1;
+      Eina_Bool etc2              : 1;
+      Eina_Bool etc1_subimage     : 1;
+      Eina_Bool s3tc              : 1;
       // tuning params - per gpu/cpu combo?
-#define DEF_CUTOUT                  4096
+#define DEF_CUTOUT                 4096
 
-#define MAX_PIPES              128
+#define MAX_PIPES                    32
 #define DEF_PIPES                    32
 #define DEF_PIPES_SGX_540            24
 #define DEF_PIPES_TEGRA_2             8
 #define DEF_PIPES_TEGRA_3            24
 
-#define MIN_ATLAS_ALLOC         16
-#define MAX_ATLAS_ALLOC       1024
-#define DEF_ATLAS_ALLOC            256
+#define MIN_ATLAS_ALLOC              16
+#define MAX_ATLAS_ALLOC            1024
+#define DEF_ATLAS_ALLOC             256
 
-#define MIN_ATLAS_ALLOC_ALPHA   16
-#define MAX_ATLAS_ALLOC_ALPHA 4096
-#define DEF_ATLAS_ALLOC_ALPHA      512
+#define MIN_ATLAS_ALLOC_ALPHA        16
+#define MAX_ATLAS_ALLOC_ALPHA      4096
+#define DEF_ATLAS_ALLOC_ALPHA       512
 
-#define MAX_ATLAS_W            512
+#define MAX_ATLAS_W                 512
 #define DEF_ATLAS_W                 512
 
-#define MAX_ATLAS_H            512
+#define MAX_ATLAS_H                 512
 #define DEF_ATLAS_H                 512
 
-#define ATLAS_FORMATS_COUNT    12
+#define ATLAS_FORMATS_COUNT          12
 
       Eina_List *cspaces; // depend on the values of etc1, etc2 and st3c
 
       struct {
          struct {
-            int max;
+            int        max;
          } cutout;
          struct {
-            int max;
+            int        max;
          } pipes;
          struct {
-            int max_alloc_size;
-            int max_alloc_alpha_size;
-            int max_w;
-            int max_h;
+            int        max_alloc_size;
+            int        max_alloc_alpha_size;
+            int        max_w;
+            int        max_h;
          } atlas;
       } tune;
    } info;
@@ -203,8 +208,8 @@ struct _Evas_GL_Shared
    // persp map
    int foc, z0, px, py;
    int ax, ay;
+   int offx, offy;
    GLfloat proj[16];
-
    Eina_Bool needs_shaders_flush : 1;
 };
 
@@ -257,77 +262,78 @@ struct _Evas_Engine_GL_Context
          Evas_GL_Program *prog;
          GLuint          cur_tex, cur_texu, cur_texv, cur_texa, cur_texm;
          int             tex_target;
-         int             render_op;
          int             cx, cy, cw, ch;
-         int             smooth;
-         int             blend;
-         int             clip;
-         Eina_Bool       anti_alias : 1;
+         signed char     render_op;
+         Eina_Bool       smooth     : 2;
+         Eina_Bool       blend      : 2;
+         Eina_Bool       clip       : 2;
+         Eina_Bool       anti_alias : 2;
       } current;
    } state;
-   
+
    struct {
       int                x, y, w, h;
-      Eina_Bool          enabled : 1;
-      Eina_Bool          used : 1;
+      Eina_Bool          enabled    : 1;
+      Eina_Bool          used       : 1;
    } master_clip;
 
    struct {
+      Eina_Bool          size       : 1;
+   } change;
+
+   Eina_Bool             havestuff  : 1;
+
+   struct {
       struct {
-         int             x, y, w, h;
-         Shader_Type     type;
+         int              x, y, w, h;
+         Shader_Type      type;
       } region;
       struct {
          Evas_GL_Program *prog;
-         Evas_GL_Image  *surface;
-         GLuint          cur_tex, cur_texu, cur_texv, cur_texa, cur_texm;
-         void           *cur_tex_dyn, *cur_texu_dyn, *cur_texv_dyn;
-         int             tex_target;
-         int             render_op;
-         int             cx, cy, cw, ch;
-         int             smooth;
-         int             blend;
-         int             mask_smooth;
-         int             clip;
+         Evas_GL_Image   *surface;
+         void            *cur_tex_dyn, *cur_texu_dyn, *cur_texv_dyn;
+         GLuint           cur_tex, cur_texu, cur_texv, cur_texa, cur_texm;
+         int              tex_target;
+         int              cx, cy, cw, ch;
+         signed char      render_op;
+         Eina_Bool        smooth      : 2;
+         Eina_Bool        blend       : 2;
+         Eina_Bool        mask_smooth : 2;
+         Eina_Bool        clip        : 2;
       } shader;
       struct {
-         int num, alloc;
-         GLshort *vertex;
-         GLubyte *color;
-         GLfloat *texuv;
-         GLfloat *texuv2;
-         GLfloat *texuv3;
-         GLfloat *texa;
-         GLfloat *texsam;
-         GLfloat *mask;
-         GLfloat *masksam;
-         Eina_Bool line: 1;
-         Eina_Bool use_vertex : 1; // always true
-         Eina_Bool use_color : 1;
-         Eina_Bool use_texuv : 1;
-         Eina_Bool use_texuv2 : 1;
-         Eina_Bool use_texuv3 : 1;
-         Eina_Bool use_texa : 1;
-         Eina_Bool use_texsam : 1;
-         Eina_Bool use_mask : 1;
-         Eina_Bool use_masksam : 1;
-         Eina_Bool anti_alias : 1;
+         int            num, alloc;
+         GLshort       *vertex;
+         GLubyte       *color;
+         GLfloat       *texuv;
+         GLfloat       *texuv2;
+         GLfloat       *texuv3;
+         GLfloat       *texa;
+         GLfloat       *texsam;
+         GLfloat       *mask;
+         GLfloat       *masksam;
          Evas_GL_Image *im;
-         GLuint buffer;
-         int buffer_alloc;
-         int buffer_use;
+         GLuint         buffer;
+         int            buffer_alloc;
+         int            buffer_use;
+         Eina_Bool      line        : 1;
+         Eina_Bool      use_vertex  : 1; // always true
+         Eina_Bool      use_color   : 1;
+         Eina_Bool      use_texuv   : 1;
+         Eina_Bool      use_texuv2  : 1;
+         Eina_Bool      use_texuv3  : 1;
+         Eina_Bool      use_texa    : 1;
+         Eina_Bool      use_texsam  : 1;
+         Eina_Bool      use_mask    : 1;
+         Eina_Bool      use_masksam : 1;
+         Eina_Bool      anti_alias  : 1;
       } array;
    } pipe[MAX_PIPES];
 
-   struct {
-      Eina_Bool size : 1;
-   } change;
-   
-   Eina_List *font_glyph_textures;
-
-   Eina_Bool havestuff : 1;
-
+   Eina_List     *font_glyph_textures;
+   Eina_List     *font_glyph_images;
    Evas_GL_Image *def_surface;
+   RGBA_Image    *font_surface;
 
 #ifdef GL_GLES
    // FIXME: hack. expose egl display to gl core for egl image sec extn.
@@ -339,15 +345,13 @@ struct _Evas_Engine_GL_Context
 #endif
 
    GLuint preserve_bit;
-   int gles_version;
-
-   RGBA_Image *font_surface;
+   int    gles_version;
 };
 
 struct _Evas_GL_Texture_Pool
 {
    Evas_Engine_GL_Context *gc;
-   GLuint           texture, fb;
+   GLuint           texture, fb, stencil;
    GLuint           intformat, format, dataformat;
    int              w, h;
    int              references;
@@ -372,29 +376,28 @@ struct _Evas_GL_Texture_Pool
 struct _Evas_GL_Texture_Alloca
 {
    Evas_GL_Texture *tex;
-   int x, w;
+   int              x, w;
 };
 
 struct _Evas_GL_Texture
 {
-   Evas_Engine_GL_Context *gc;
-   Evas_GL_Image   *im;
-   Evas_GL_Texture_Pool *pt, *ptu, *ptv, *ptt;
-   Evas_GL_Texture_Pool *pt2, *ptu2, *ptv2;
+   Evas_Engine_GL_Context  *gc;
+   Evas_GL_Image           *im;
+   Evas_GL_Texture_Pool    *pt, *ptu, *ptv, *ptt;
+   Evas_GL_Texture_Pool    *pt2, *ptu2, *ptv2;
    union {
       Evas_GL_Texture_Pool *ptuv;
       Evas_GL_Texture_Pool *pta;
    };
    RGBA_Font_Glyph *fglyph;
+   int              references;
    int              x, y, w, h;
    int              tx, ty;
    double           sx1, sy1, sx2, sy2;
-   int              references;
 
-   struct
-   {
+   struct {
       Evas_GL_Texture_Pool *pt[2], *ptuv[2];
-      int              source;
+      int                   source;
    } double_buffer;
 
    Eina_List       *targets;
@@ -409,54 +412,56 @@ struct _Evas_GL_Texture
 struct _Evas_GL_Image
 {
    Evas_Engine_GL_Context *gc;
-   RGBA_Image      *im;
-   Evas_GL_Texture *tex;
-   Evas_Image_Load_Opts load_opts;
-   int              references;
+   RGBA_Image             *im;
+   Evas_GL_Texture        *tex;
+   Evas_Image_Load_Opts    load_opts;
+   RGBA_Font_Glyph        *fglyph;
+   int                     references;
    // if im->im == NULL, it's a render-surface so these here are used
-   int              w, h;
+   int                     w, h;
    struct {
-      Evas_Colorspace space;
-      void         *data;
-      unsigned char no_free : 1;
+      Evas_Colorspace      space;
+      void                *data;
+      unsigned char        no_free : 1;
    } cs;
 
    struct {
-      void         *data;
+      void           *data;
       struct {
-         void     (*bind)    (void *image);
-         void     (*unbind)  (void *image);
-         void     (*free)    (void *image);
-         int      (*yinvert) (void *image);
+         void       (*bind)    (void *image);
+         void       (*unbind)  (void *image);
+         void       (*free)    (void *image);
+         int        (*yinvert) (void *image);
       } func;
-      int           yinvert;
-      int           target;
-      int           mipmap;
-      unsigned char loose : 1;
-      void         *disp;
-      Evas_GL_Shared  *shared;
+      void           *disp;
+      Evas_GL_Shared *shared;
+      int             target;
+      Eina_Bool       yinvert : 1;
+      Eina_Bool       mipmap  : 1;
+      Eina_Bool       loose   : 1;
    } native;
 
    struct {
-      Evas_GL_Image *origin;
-      Eina_Bool      smooth : 1;
+      Evas_GL_Image  *origin;
+      Eina_Bool       smooth : 1;
    } scaled;
-
-   int scale_hint, content_hint;
-   int csize;
 
    Eina_List         *filtered;
    Eina_List         *targets;
-   Evas_Image_Orient orient;
+   Eina_Inlist       *maps; /* Evas_GL_Image_Data_Map */
 
-   unsigned char    dirty : 1;
-   unsigned char    cached : 1;
-   unsigned char    alpha : 1;
-   unsigned char    tex_only : 1;
-   unsigned char    locked : 1; // gl_surface_lock/unlock
-   unsigned char    direct : 1; // evas gl direct renderable
+   Evas_Image_Orient  orient;
+   int                scale_hint, content_hint;
+   int                csize;
+
+   Eina_Bool          dirty         : 1;
+   Eina_Bool          cached        : 1;
+   Eina_Bool          alpha         : 1;
+   Eina_Bool          tex_only      : 1;
+   Eina_Bool          locked        : 1; // gl_surface_lock/unlock
+   Eina_Bool          direct        : 1; // evas gl direct renderable
    /*Disable generate atlas for texture unit, EINA_FALSE by default*/
-   Eina_Bool        disable_atlas : 1;
+   Eina_Bool          disable_atlas : 1;
 };
 
 struct _Evas_GL_Font_Texture
@@ -478,9 +483,21 @@ struct _Evas_GL_Polygon_Point
 struct _Evas_GL_Texture_Async_Preload
 {
    Evas_GL_Texture *tex;
-   RGBA_Image *im;
+   RGBA_Image      *im;
 
-   Eina_Bool unpack_row_length;
+   Eina_Bool        unpack_row_length;
+};
+
+struct _Evas_GL_Image_Data_Map
+{
+   EINA_INLIST;
+   Evas_GL_Texture *tex; // one or the other
+   RGBA_Image      *im; // one or the other
+   Eina_Rw_Slice    slice;
+   int              stride; // in bytes
+   int              rx, ry, rw, rh; // actual map region
+   Evas_Colorspace  cspace;
+   Efl_Gfx_Buffer_Access_Mode mode;
 };
 
 /* GL_Common function that are used by gl_generic inherited module */
@@ -528,6 +545,7 @@ typedef void (*Evas_Gl_Symbols)(void *(*GetProcAddress)(const char *sym));
 
 EAPI void __evas_gl_err(int err, const char *file, const char *func, int line, const char *op);
 
+int               evas_gl_common_version_check(int *minor_version);
 void              evas_gl_common_tiling_start(Evas_Engine_GL_Context *gc,
                                               int rot, int gw, int gh,
                                               int cx, int cy, int cw, int ch,
@@ -632,7 +650,8 @@ void              evas_gl_common_rect_draw(Evas_Engine_GL_Context *gc, int x, in
 void              evas_gl_texture_pool_empty(Evas_GL_Texture_Pool *pt);
 Evas_GL_Texture  *evas_gl_common_texture_new(Evas_Engine_GL_Context *gc, RGBA_Image *im, Eina_Bool disable_atlas);
 Evas_GL_Texture  *evas_gl_common_texture_native_new(Evas_Engine_GL_Context *gc, unsigned int w, unsigned int h, int alpha, Evas_GL_Image *im);
-Evas_GL_Texture  *evas_gl_common_texture_render_new(Evas_Engine_GL_Context *gc, unsigned int w, unsigned int h, int alpha);
+Evas_GL_Texture  *evas_gl_common_texture_render_new(Evas_Engine_GL_Context *gc, unsigned int w, unsigned int h, int alpha, int stencil);
+Evas_GL_Texture  *evas_gl_common_texture_render_noscale_new(Evas_Engine_GL_Context *gc, unsigned int w, unsigned int h, int alpha);
 Evas_GL_Texture  *evas_gl_common_texture_dynamic_new(Evas_Engine_GL_Context *gc, Evas_GL_Image *im);
 void              evas_gl_common_texture_update(Evas_GL_Texture *tex, RGBA_Image *im);
 void              evas_gl_common_texture_upload(Evas_GL_Texture *tex, RGBA_Image *im, unsigned int bytes_count);
@@ -657,11 +676,14 @@ Evas_GL_Image    *evas_gl_common_image_mmap(Evas_Engine_GL_Context *gc, Eina_Fil
 Evas_GL_Image    *evas_gl_common_image_new_from_copied_data(Evas_Engine_GL_Context *gc, unsigned int w, unsigned int h, DATA32 *data, int alpha, Evas_Colorspace cspace);
 Evas_GL_Image    *evas_gl_common_image_new(Evas_Engine_GL_Context *gc, unsigned int w, unsigned int h, int alpha, Evas_Colorspace cspace);
 Evas_GL_Image    *evas_gl_common_image_new_from_rgbaimage(Evas_Engine_GL_Context *gc, RGBA_Image *im, Evas_Image_Load_Opts *lo, int *error);
+void              evas_gl_common_image_preload_watch(Evas_GL_Image *im);
+void              evas_gl_common_image_preload_unwatch(Evas_GL_Image *im);
 Evas_GL_Image    *evas_gl_common_image_alpha_set(Evas_GL_Image *im, int alpha);
 void              evas_gl_common_image_scale_hint_set(Evas_GL_Image *im, int hint);
 void              evas_gl_common_image_content_hint_set(Evas_GL_Image *im, int hint);
 void              evas_gl_common_image_cache_flush(Evas_Engine_GL_Context *gc);
-Evas_GL_Image    *evas_gl_common_image_surface_new(Evas_Engine_GL_Context *gc, unsigned int w, unsigned int h, int alpha);
+Evas_GL_Image    *evas_gl_common_image_surface_new(Evas_Engine_GL_Context *gc, unsigned int w, unsigned int h, int alpha, int stencil);
+Evas_GL_Image    *evas_gl_common_image_surface_noscale_new(Evas_Engine_GL_Context *gc, unsigned int w, unsigned int h, int alpha);
 void              evas_gl_common_image_dirty(Evas_GL_Image *im, unsigned int x, unsigned int y, unsigned int w, unsigned int h);
 void              evas_gl_common_image_update(Evas_Engine_GL_Context *gc, Evas_GL_Image *im);
 void              evas_gl_common_image_map_draw(Evas_Engine_GL_Context *gc, Evas_GL_Image *im, int npoints, RGBA_Map_Point *p, int smooth, int level);
@@ -670,9 +692,9 @@ void              evas_gl_common_image_draw(Evas_Engine_GL_Context *gc, Evas_GL_
 void             *evas_gl_font_texture_new(void *gc, RGBA_Font_Glyph *fg);
 void              evas_gl_font_texture_free(void *);
 void              evas_gl_font_texture_draw(void *gc, void *surface, void *dc, RGBA_Font_Glyph *fg, int x, int y);
-void             *evas_gl_image_new_from_data(void *gc, unsigned int w, unsigned int h, DATA32 *data, int alpha, Evas_Colorspace cspace);
-void              evas_gl_image_free(void *im);
-void              evas_gl_image_draw(void *gc, void *im, int sx, int sy, int sw, int sh, int dx, int dy, int dw, int dh, int smooth);
+void             *evas_gl_font_image_new(void *gc, RGBA_Font_Glyph *fg, int alpha, Evas_Colorspace cspace);
+void              evas_gl_font_image_free(void *im);
+void              evas_gl_font_image_draw(void *gc, void *im, int dx, int dy, int dw, int dh, int smooth);
 
 Evas_GL_Polygon  *evas_gl_common_poly_point_add(Evas_GL_Polygon *poly, int x, int y);
 Evas_GL_Polygon  *evas_gl_common_poly_points_clear(Evas_GL_Polygon *poly);
@@ -690,9 +712,10 @@ extern void       (*glsym_glProgramParameteri)    (GLuint a, GLuint b, GLint d);
 extern void       (*glsym_glReleaseShaderCompiler)(void);
 extern void      *(*glsym_glMapBuffer)            (GLenum a, GLenum b);
 extern GLboolean  (*glsym_glUnmapBuffer)          (GLenum a);
+extern void       (*glsym_glRenderbufferStorageMultisample)(GLenum target, GLsizei samples, GLenum internalformat, GLsizei width, GLsizei height);
 
 #ifdef GL_GLES
-extern void          *(*secsym_eglCreateImage)               (void *a, void *b, GLenum c, void *d, const int *e);
+EAPI void *           evas_gl_common_eglCreateImage          (EGLDisplay dpy, EGLContext ctx, EGLenum target, EGLClientBuffer buffer, const EGLAttrib *attrib_list);
 extern unsigned int   (*secsym_eglDestroyImage)              (void *a, void *b);
 extern void           (*secsym_glEGLImageTargetTexture2DOES) (int a, void *b);
 extern void          *(*secsym_eglMapImageSEC)               (void *a, void *b, int c, int d);
@@ -852,7 +875,8 @@ __evas_gl_errdyn(int err, const char *file, const char *func, int line, const ch
 #  define glsym_glReleaseShaderCompiler(...) GL_ERROR_TRACE(glsym_glReleaseShaderCompiler, #__VA_ARGS__, __VA_ARGS__)
 #  define glsym_glMapBuffer(...) GL_ERROR_TRACE_RET(void *, glsym_glMapBuffer, #__VA_ARGS__, __VA_ARGS__)
 #  define glsym_glUnmapBuffer(...) GL_ERROR_TRACE_RET(unsigned int, glsym_glUnmapBuffer, #__VA_ARGS__, __VA_ARGS__)
-#  define secsym_eglCreateImage(...) GL_ERROR_TRACE_RET(void *, secsym_eglCreateImage, #__VA_ARGS__, __VA_ARGS__)
+#  define eglsym_eglCreateImage(...) GL_ERROR_TRACE_RET(void *, eglsym_eglCreateImage, #__VA_ARGS__, __VA_ARGS__)
+#  define eglsym_eglCreateImageKHR(...) GL_ERROR_TRACE_RET(void *, eglsym_eglCreateImageKHR, #__VA_ARGS__, __VA_ARGS__)
 #  define secsym_eglDestroyImage(...) GL_ERROR_TRACE_RET(unsigned int, secsym_eglDestroyImage, #__VA_ARGS__, __VA_ARGS__)
 #  define secsym_glEGLImageTargetTexture2DOES(...) GL_ERROR_TRACE(secsym_glEGLImageTargetTexture2DOES, #__VA_ARGS__, __VA_ARGS__)
 #  define secsym_eglMapImageSEC(...) GL_ERROR_TRACE_RET(void *, secsym_eglMapImageSEC, #__VA_ARGS__, __VA_ARGS__)

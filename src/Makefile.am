@@ -1,3 +1,4 @@
+AUTOMAKE_OPTIONS= -Wno-portability
 MAINTAINERCLEANFILES = Makefile.in
 CLEANFILES =
 BUILT_SOURCES =
@@ -38,6 +39,7 @@ include Makefile_Eolian.am
 include Makefile_Ector.am
 include Makefile_Ecore.am
 include Makefile_Evas.am
+include Makefile_Eldbus.am
 include Makefile_Ecore_Con.am
 include Makefile_Ecore_Ipc.am
 include Makefile_Ecore_File.am
@@ -54,7 +56,6 @@ include Makefile_Ecore_Win32.am
 include Makefile_Ecore_X.am
 include Makefile_Ecore_IMF.am
 include Makefile_Ecore_IMF_Evas.am
-include Makefile_Eldbus.am
 include Makefile_Elput.am
 include Makefile_Ecore_Drm.am
 include Makefile_Ecore_Drm2.am
@@ -78,6 +79,8 @@ include Makefile_Eolian_Cxx.am
 
 include Makefile_Elua.am
 
+include Makefile_Wayland_Protocols.am
+
 if HAVE_JS
 AM_V_CP = $(am__v_CP_@AM_V@)
 am__v_CP_ = $(am__v_CP_@AM_DEFAULT_V@)
@@ -85,7 +88,7 @@ am__v_CP_0 = @echo "  CP  " $@;
 CP = cp
 if EFL_ENABLE_TESTS
 if HAVE_NODEJS
-AM_TESTS_ENVIRONMENT += NODE_PATH='$(abs_builddir)/lib/efl_js:$(abs_builddir)/tests/eolian_js:$(abs_builddir)/tests/efl_js'; export NODE_PATH;
+AM_TESTS_ENVIRONMENT += NODE_PATH='$(abs_builddir)/bin/efl_js:$(abs_builddir)/tests/eolian_js:$(abs_builddir)/tests/efl_js'; export NODE_PATH;
 endif
 endif
 endif
@@ -173,6 +176,7 @@ dist-hook:
 	@mkdir -p $(distdir)/lib/evas/common/evas_op_mask $(distdir)/lib/evas/common/evas_op_mul
 	@mkdir -p $(distdir)/lib/evas/common/evas_op_sub $(distdir)/lib/evas/filters/blur
 	@mkdir -p $(distdir)/static_libs/http-parser/contrib $(distdir)/bindings/luajit/eina
+	@mkdir -p $(distdir)/wayland_protocol
 	for F in $(EXTRA_DIST2); do cp -f $(srcdir)/$$F $(distdir)/$$F; done
 
 clean-local:
@@ -191,3 +195,39 @@ install-exec-hook:
 	   mv $$FNAMEEXT $$FNAME; \
 	done
 	$(EFL_INSTALL_EXEC_HOOK)
+
+#At the bottom because .SECONDEXPANSION is applied to all following rules.
+if HAVE_WAYLAND_SCANNER
+#Stolen from weston's Makefile.am and modified for Enlightenment
+.SECONDEXPANSION:
+
+define protostability
+$(if $(findstring unstable,$1),unstable,stable)
+endef
+
+define protoname
+$(shell echo $1 | sed 's/\([a-z\-]\+\)-[a-z]\+-v[0-9]\+/\1/')
+endef
+
+#rules for generating protocol from wayland_protocols
+%-protocol.c : $(WAYLAND_PROTOCOLS_DATADIR)/$$(call protostability,$$*)/$$(call protoname,$$*)/$$*.xml
+	$(AM_V_GEN)$(MKDIR_P) $(dir $@) && $(wayland_scanner) code < $< > $@
+
+%-server-protocol.h : $(WAYLAND_PROTOCOLS_DATADIR)/$$(call protostability,$$*)/$$(call protoname,$$*)/$$*.xml
+	$(AM_V_GEN)$(MKDIR_P) $(dir $@) && $(wayland_scanner) server-header < $< > $@
+
+%-client-protocol.h : $(WAYLAND_PROTOCOLS_DATADIR)/$$(call protostability,$$*)/$$(call protoname,$$*)/$$*.xml
+	$(AM_V_GEN)$(MKDIR_P) $(dir $@) && $(wayland_scanner) client-header < $< > $@
+
+#rules for generating local protocols which must be in src/wayland_protocol
+%-protocol.c : $(top_srcdir)/src/wayland_protocol/$(notdir $$*).xml
+	$(AM_V_GEN)$(MKDIR_P) $(dir $@) && $(wayland_scanner) code < $< > $@
+
+%-server-protocol.h : $(top_srcdir)/src/wayland_protocol/$(notdir $$*).xml
+	$(AM_V_GEN)$(MKDIR_P) $(dir $@) && $(wayland_scanner) server-header < $< > $@
+
+%-client-protocol.h : $(top_srcdir)/src/wayland_protocol/$(notdir $$*).xml
+	$(AM_V_GEN)$(MKDIR_P) $(dir $@) && $(wayland_scanner) client-header < $< > $@
+
+#End of weston stuff
+endif

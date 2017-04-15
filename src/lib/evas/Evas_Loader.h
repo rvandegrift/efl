@@ -26,11 +26,11 @@
  */
 /**
  * What does it means for you ?
- *    Evas Loader are dynamically linked to Evas at run time. You can use anything
- * you want here as long as the license of the module you add to your system match
- * the application you are using it in. Be aware that if you make a module that use
+ *    Evas Loader is dynamically linked to Evas at run time. You can use anything
+ * you want here as long as the license of the module you add to your system matches
+ * the application you are using it in. Be aware that if you make a module that uses
  * a GPL library, it may turn the license of your binary to GPL. Evas doesn't ship
- * with any GPL module.
+ * with any GPL modules.
  */
 
 #ifndef _EVAS_LOADER_H
@@ -78,7 +78,9 @@ typedef enum _Evas_Module_Type
    EVAS_MODULE_TYPE_ENGINE = 0,
    EVAS_MODULE_TYPE_IMAGE_LOADER = 1,
    EVAS_MODULE_TYPE_IMAGE_SAVER = 2,
-   EVAS_MODULE_TYPE_OBJECT = 3
+   EVAS_MODULE_TYPE_OBJECT = 3,
+   EVAS_MODULE_TYPE_VG_LOADER = 4,
+   EVAS_MODULE_TYPE_VG_SAVER = 5
 } Evas_Module_Type;
 
 typedef struct _Evas_Module_Api    Evas_Module_Api;
@@ -106,7 +108,7 @@ struct _Evas_Module
 {
    const Evas_Module_Api *definition;
 
-   void		*functions;	/* this are the functions exported by the module */
+   void		*functions;	/* these are the functions exported by the module */
    int           id_engine;	/* some internal data for the module i.e the id for engines */
 
    int           ref; /* how many refs */
@@ -117,7 +119,16 @@ struct _Evas_Module
    unsigned char	loaded : 1;
 };
 
-typedef Emile_Image_Load_Opts Evas_Image_Load_Opts;
+typedef struct _Evas_Image_Load_Opts  Evas_Image_Load_Opts;
+
+struct _Evas_Image_Load_Opts
+{
+   Emile_Image_Load_Opts emile;
+   Eina_Bool             skip_head; // skip open of file and header load and
+                                    // defer this until a preload is done
+                                    // to allow for real async/threaded load
+};
+
 typedef Emile_Image_Animated  Evas_Image_Animated;
 typedef Emile_Image_Property  Evas_Image_Property;
 
@@ -132,6 +143,7 @@ typedef Efl_Image_Load_Error Evas_Load_Error;
 #define EVAS_LOAD_ERROR_RESOURCE_ALLOCATION_FAILED EFL_IMAGE_LOAD_ERROR_RESOURCE_ALLOCATION_FAILED
 #define EVAS_LOAD_ERROR_CORRUPT_FILE EFL_IMAGE_LOAD_ERROR_CORRUPT_FILE
 #define EVAS_LOAD_ERROR_UNKNOWN_FORMAT EFL_IMAGE_LOAD_ERROR_UNKNOWN_FORMAT
+#define EVAS_LOAD_ERROR_CANCELLED EFL_IMAGE_LOAD_ERROR_CANCELLED
 
 typedef Emile_Image_Animated_Loop_Hint Evas_Image_Animated_Loop_Hint;
 
@@ -196,6 +208,22 @@ struct _Evas_Image_Load_Func
 
 EAPI Eina_Bool    evas_module_register   (const Evas_Module_Api *module, Evas_Module_Type type);
 EAPI Eina_Bool    evas_module_unregister (const Evas_Module_Api *module, Evas_Module_Type type);
+
+EAPI Eina_Bool    evas_module_task_cancelled (void); /**< @since 1.19 */
+
+#define EVAS_MODULE_TASK_CHECK(Count, Mask, Error, Error_Handler)       \
+  do {                                                                  \
+     Count++;                                                           \
+     if ((Count & Mask) == Mask)                                        \
+       {                                                                \
+          Count = 0;                                                    \
+          if (evas_module_task_cancelled())                             \
+            {                                                           \
+               *Error = EFL_IMAGE_LOAD_ERROR_CANCELLED;                 \
+               goto Error_Handler;                                      \
+            }                                                           \
+       }                                                                \
+  } while (0)
 
 #define EVAS_MODULE_DEFINE(Type, Tn, Name)		\
   Eina_Bool evas_##Tn##_##Name##_init(void)		\

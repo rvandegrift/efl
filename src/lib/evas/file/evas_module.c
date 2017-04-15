@@ -20,15 +20,69 @@
 #define EVAS_MODULE_NO_IMAGE_SAVERS 0
 #endif
 
+#ifndef EVAS_MODULE_NO_VG_LOADERS
+#define EVAS_MODULE_NO_VG_LOADERS 0
+#endif
 
-static Eina_Hash *evas_modules[4] = {
+#ifndef EVAS_MODULE_NO_VG_SAVERS
+#define EVAS_MODULE_NO_VG_SAVERS 0
+#endif
+
+typedef struct _Evas_Module_Task Evas_Module_Task;
+struct _Evas_Module_Task
+{
+   Eina_Bool (*cancelled)(void *data);
+   void *data;
+};
+
+static Eina_TLS task = 0;
+
+EAPI Eina_Bool
+evas_module_task_cancelled(void)
+{
+   Evas_Module_Task *t;
+
+   t = eina_tls_get(task);
+   if (!t) return EINA_FALSE;
+
+   return t->cancelled(t->data);
+}
+
+EAPI void
+evas_module_task_register(Eina_Bool (*cancelled)(void *data), void *data)
+{
+   Evas_Module_Task *t;
+
+   t = malloc(sizeof (Evas_Module_Task));
+   if (!t) return ;
+
+   t->cancelled = cancelled;
+   t->data = data;
+
+   eina_tls_set(task, t);
+}
+
+EAPI void
+evas_module_task_unregister(void)
+{
+    Evas_Module_Task *t;
+
+    t = eina_tls_get(task);
+    if (!t) return ;
+
+    eina_tls_set(task, NULL);
+    free(t);
+}
+
+static Eina_Hash *evas_modules[6] = {
+  NULL,
+  NULL,
   NULL,
   NULL,
   NULL,
   NULL
 };
 
-static Eina_List *eina_evas_modules = NULL;
 static Eina_List *evas_module_paths = NULL;
 static Eina_Array *evas_engines = NULL;
 
@@ -56,6 +110,7 @@ evas_module_paths_init(void)
 {
    char *libdir, *path;
 
+#ifdef NEED_RUN_IN_TREE
 #if defined(HAVE_GETUID) && defined(HAVE_GETEUID)
    if (getuid() == geteuid())
 #endif
@@ -71,6 +126,7 @@ evas_module_paths_init(void)
                }
           }
      }
+#endif
 
    /* 1. libevas.so/../evas/modules/ */
    libdir = (char *)_evas_module_libdir_get();
@@ -124,6 +180,11 @@ EVAS_EINA_STATIC_MODULE_DEFINE(engine, software_generic);
 EVAS_EINA_STATIC_MODULE_DEFINE(engine, software_x11);
 #endif
 
+#if !EVAS_MODULE_NO_VG_LOADERS
+EVAS_EINA_STATIC_MODULE_DEFINE(vg_loader, eet);
+EVAS_EINA_STATIC_MODULE_DEFINE(vg_loader, svg);
+#endif
+
 #if !EVAS_MODULE_NO_IMAGE_LOADERS
 EVAS_EINA_STATIC_MODULE_DEFINE(image_loader, bmp);
 EVAS_EINA_STATIC_MODULE_DEFINE(image_loader, dds);
@@ -143,6 +204,10 @@ EVAS_EINA_STATIC_MODULE_DEFINE(image_loader, wbmp);
 EVAS_EINA_STATIC_MODULE_DEFINE(image_loader, webp);
 EVAS_EINA_STATIC_MODULE_DEFINE(image_loader, xpm);
 EVAS_EINA_STATIC_MODULE_DEFINE(image_loader, tgv);
+#endif
+
+#if !EVAS_MODULE_NO_VG_SAVERS
+EVAS_EINA_STATIC_MODULE_DEFINE(vg_saver, eet);
 #endif
 
 #if !EVAS_MODULE_NO_IMAGE_SAVERS
@@ -188,6 +253,14 @@ static const struct {
 #endif
 #ifdef EVAS_STATIC_BUILD_SOFTWARE_X11
   EVAS_EINA_STATIC_MODULE_USE(engine, software_x11),
+#endif
+#endif
+#if !EVAS_MODULE_NO_VG_LOADERS
+#ifdef EVAS_STATIC_BUILD_VG_SVG
+  EVAS_EINA_STATIC_MODULE_USE(vg_loader, svg),
+#endif
+#ifdef EVAS_STATIC_BUILD_VG_EET
+  EVAS_EINA_STATIC_MODULE_USE(vg_loader, eet),
 #endif
 #endif
 #if !EVAS_MODULE_NO_IMAGE_LOADERS
@@ -246,6 +319,11 @@ static const struct {
   EVAS_EINA_STATIC_MODULE_USE(image_loader, tgv),
 #endif
 #endif
+#if !EVAS_MODULE_NO_VG_SAVERS
+#ifdef EVAS_STATIC_BUILD_VG_EET
+  EVAS_EINA_STATIC_MODULE_USE(vg_saver, eet),
+#endif
+#endif
 #if !EVAS_MODULE_NO_IMAGE_SAVERS
 #ifdef EVAS_STATIC_BUILD_EET
   EVAS_EINA_STATIC_MODULE_USE(image_saver, eet),
@@ -269,6 +347,8 @@ static const struct {
   { NULL, NULL }
 };
 
+static void _evas_module_hash_free_cb(void *data);
+
 /* this will alloc an Evas_Module struct for each module
  * it finds on the paths */
 void
@@ -278,12 +358,16 @@ evas_module_init(void)
 
    evas_module_paths_init();
 
-   evas_modules[EVAS_MODULE_TYPE_ENGINE] = eina_hash_string_small_new(/* FIXME: Add a function to cleanup stuff. */ NULL);
-   evas_modules[EVAS_MODULE_TYPE_IMAGE_LOADER] = eina_hash_string_small_new(/* FIXME: Add a function to cleanup stuff. */ NULL);
-   evas_modules[EVAS_MODULE_TYPE_IMAGE_SAVER] = eina_hash_string_small_new(/* FIXME: Add a function to cleanup stuff. */ NULL);
-   evas_modules[EVAS_MODULE_TYPE_OBJECT] = eina_hash_string_small_new(/* FIXME: Add a function to cleanup stuff. */ NULL);
+   evas_modules[EVAS_MODULE_TYPE_ENGINE] = eina_hash_string_small_new(_evas_module_hash_free_cb);
+   evas_modules[EVAS_MODULE_TYPE_IMAGE_LOADER] = eina_hash_string_small_new(_evas_module_hash_free_cb);
+   evas_modules[EVAS_MODULE_TYPE_IMAGE_SAVER] = eina_hash_string_small_new(_evas_module_hash_free_cb);
+   evas_modules[EVAS_MODULE_TYPE_OBJECT] = eina_hash_string_small_new(_evas_module_hash_free_cb);
+   evas_modules[EVAS_MODULE_TYPE_VG_LOADER] = eina_hash_string_small_new(_evas_module_hash_free_cb);
+   evas_modules[EVAS_MODULE_TYPE_VG_SAVER] = eina_hash_string_small_new(_evas_module_hash_free_cb);
 
    evas_engines = eina_array_new(4);
+
+   eina_tls_cb_new(&task, (Eina_TLS_Delete_Cb) evas_module_task_unregister);
 
    for (i = 0; evas_static_module[i].init; ++i)
      evas_static_module[i].init();
@@ -294,7 +378,7 @@ evas_module_register(const Evas_Module_Api *module, Evas_Module_Type type)
 {
    Evas_Module *em;
 
-   if ((unsigned int)type > 3) return EINA_FALSE;
+   if ((unsigned int)type > 5) return EINA_FALSE;
    if (!module) return EINA_FALSE;
    if (module->version != EVAS_MODULE_API_VERSION) return EINA_FALSE;
 
@@ -328,9 +412,11 @@ evas_module_engine_list(void)
    unsigned int i;
    const char *s, *s2;
    char buf[PATH_MAX];
+#ifdef NEED_RUN_IN_TREE
    Eina_Bool run_in_tree;
 
    run_in_tree = !!getenv("EFL_RUN_IN_TREE");
+#endif
 
    EINA_LIST_FOREACH(evas_module_paths, l, s)
      {
@@ -344,6 +430,7 @@ evas_module_engine_list(void)
                {
                   const char *fname = fi->path + fi->name_start;
 
+#ifdef NEED_RUN_IN_TREE
                   buf[0] = '\0';
 #if defined(HAVE_GETUID) && defined(HAVE_GETEUID)
                   if (getuid() == geteuid())
@@ -359,6 +446,7 @@ evas_module_engine_list(void)
                     }
 
                   if (buf[0] == '\0')
+#endif
                     snprintf(buf, sizeof(buf), "%s/engines/%s/%s",
                              s, fname, MODULE_ARCH);
 
@@ -396,17 +484,28 @@ evas_module_unregister(const Evas_Module_Api *module, Evas_Module_Type type)
 {
    Evas_Module *em;
 
-   if ((unsigned int)type > 3) return EINA_FALSE;
+   if ((unsigned int)type > 5) return EINA_FALSE;
    if (!module) return EINA_FALSE;
 
    em = eina_hash_find(evas_modules[type], module->name);
    if (!em || em->definition != module) return EINA_FALSE;
 
-   if (type == EVAS_MODULE_TYPE_ENGINE)
-     eina_array_data_set(evas_engines, em->id_engine - 1, NULL);
-
    eina_hash_del(evas_modules[type], module->name, em);
 
+   return EINA_TRUE;
+}
+
+static void
+_evas_module_hash_free_cb(void *data)
+{
+   Evas_Module *em = data;
+
+   // Note: This free callback leaks the Eina_Module, and does not call
+   // dlclose(). This is by choice as dlclose() leads to other issues.
+
+   if (!em) return;
+   if (em->id_engine > 0)
+     eina_array_data_set(evas_engines, em->id_engine - 1, NULL);
    if (em->loaded)
      {
         em->definition->func.close(em);
@@ -415,8 +514,6 @@ evas_module_unregister(const Evas_Module_Api *module, Evas_Module_Type type)
 
    LKD(em->lock);
    free(em);
-
-   return EINA_TRUE;
 }
 
 #if defined(_WIN32) || defined(__CYGWIN__)
@@ -433,9 +530,11 @@ evas_module_find_type(Evas_Module_Type type, const char *name)
    Evas_Module *em;
    Eina_Module *en;
    Eina_List *l;
+#ifdef NEED_RUN_IN_TREE
    Eina_Bool run_in_tree;
+#endif
 
-   if ((unsigned int)type > 3) return NULL;
+   if ((unsigned int)type > 5) return NULL;
 
    em = eina_hash_find(evas_modules[type], name);
    if (em)
@@ -444,7 +543,9 @@ evas_module_find_type(Evas_Module_Type type, const char *name)
         return NULL;
      }
 
+#ifdef NEED_RUN_IN_TREE
    run_in_tree = !!getenv("EFL_RUN_IN_TREE");
+#endif
 
    EINA_LIST_FOREACH(evas_module_paths, l, path)
      {
@@ -455,9 +556,12 @@ evas_module_find_type(Evas_Module_Type type, const char *name)
            case EVAS_MODULE_TYPE_IMAGE_LOADER: type_str = "image_loaders"; break;
            case EVAS_MODULE_TYPE_IMAGE_SAVER: type_str = "image_savers"; break;
            case EVAS_MODULE_TYPE_OBJECT: type_str = "object"; break;
+           case EVAS_MODULE_TYPE_VG_LOADER: type_str = "vg_loaders"; break;
+           case EVAS_MODULE_TYPE_VG_SAVER: type_str = "vg_savers"; break;
           }
 
         buffer[0] = '\0';
+#if NEED_RUN_IN_TREE
 #if defined(HAVE_GETUID) && defined(HAVE_GETEUID)
         if (getuid() == geteuid())
 #endif
@@ -470,6 +574,7 @@ evas_module_find_type(Evas_Module_Type type, const char *name)
                   buffer[0] = '\0';
                }
           }
+#endif
 
         if (buffer[0] == '\0')
           snprintf(buffer, sizeof(buffer), "%s/%s/%s/%s/%s",
@@ -480,7 +585,8 @@ evas_module_find_type(Evas_Module_Type type, const char *name)
         en = eina_module_new(buffer);
         if (!en) continue;
 
-        if (type == EVAS_MODULE_TYPE_ENGINE) eina_module_symbol_global_set(en, EINA_TRUE);
+        if (type == EVAS_MODULE_TYPE_ENGINE)
+          eina_module_symbol_global_set(en, EINA_TRUE);
 
         if (!eina_module_load(en))
           {
@@ -491,8 +597,7 @@ evas_module_find_type(Evas_Module_Type type, const char *name)
         em = eina_hash_find(evas_modules[type], name);
         if (em)
           {
-             eina_evas_modules = eina_list_append(eina_evas_modules, en);
-             return em;
+             if (evas_module_load(em)) return em;
           }
 
         eina_module_free(en);
@@ -618,44 +723,15 @@ evas_module_clean(void)
 
 static Eina_Prefix *pfx = NULL;
 
-static Eina_Bool
-_cb_mod_close(const Eina_Hash *hash EINA_UNUSED,
-              const void *key EINA_UNUSED,
-              void *data, void *fdata EINA_UNUSED)
-{
-   Evas_Module *em = data;
-
-   em->definition->func.close(em);
-   em->loaded = 0;
-   return EINA_TRUE;
-}
-
 /* will dlclose all the modules loaded and free all the structs */
 void
 evas_module_shutdown(void)
 {
-   Eina_Module *en;
    char *path;
    int i;
 
    for (i = 0; evas_static_module[i].shutdown; ++i)
      evas_static_module[i].shutdown();
-
-   EINA_LIST_FREE(eina_evas_modules, en)
-     {
-// yes - looks zstupid. just to keep compilers from complaining with warnings
-        if (!en) continue;
-// NEVER FREE MODULES - they MAY be needed after shutdown - eg indirect func
-// symbols from gl for example to shut down extensions. so yes - you may
-// think this is a leak. technically it is, but it's needed to keep things
-// running, so ignore this one
-//        eina_module_free(en);
-     }
-
-   eina_hash_foreach(evas_modules[EVAS_MODULE_TYPE_ENGINE], _cb_mod_close, NULL);
-   eina_hash_foreach(evas_modules[EVAS_MODULE_TYPE_IMAGE_LOADER], _cb_mod_close, NULL);
-   eina_hash_foreach(evas_modules[EVAS_MODULE_TYPE_IMAGE_SAVER], _cb_mod_close, NULL);
-   eina_hash_foreach(evas_modules[EVAS_MODULE_TYPE_OBJECT], _cb_mod_close, NULL);
 
    eina_hash_free(evas_modules[EVAS_MODULE_TYPE_ENGINE]);
    evas_modules[EVAS_MODULE_TYPE_ENGINE] = NULL;
@@ -665,6 +741,12 @@ evas_module_shutdown(void)
    evas_modules[EVAS_MODULE_TYPE_IMAGE_SAVER] = NULL;
    eina_hash_free(evas_modules[EVAS_MODULE_TYPE_OBJECT]);
    evas_modules[EVAS_MODULE_TYPE_OBJECT] = NULL;
+   eina_hash_free(evas_modules[EVAS_MODULE_TYPE_VG_LOADER]);
+   evas_modules[EVAS_MODULE_TYPE_VG_LOADER] = NULL;
+   eina_hash_free(evas_modules[EVAS_MODULE_TYPE_VG_SAVER]);
+   evas_modules[EVAS_MODULE_TYPE_VG_SAVER] = NULL;
+
+   eina_tls_free(task);
 
    EINA_LIST_FREE(evas_module_paths, path)
      free(path);

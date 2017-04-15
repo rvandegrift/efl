@@ -376,6 +376,8 @@ extern EAPI int _evas_log_dom_global;
 
 #define TILE_CACHE_LINE_SIZE      64
 
+#define RGBA_PLANE_MAX 3
+
 /*****************************************************************************/
 
 #define UNROLL2(op...) op op
@@ -422,7 +424,6 @@ typedef struct _RGBA_Pipe             RGBA_Pipe;
 typedef struct _RGBA_Pipe_Thread_Info RGBA_Pipe_Thread_Info;
 #endif
 typedef struct _RGBA_Image            RGBA_Image;
-typedef struct _RGBA_Image_Span       RGBA_Image_Span;
 typedef struct _RGBA_Draw_Context     RGBA_Draw_Context;
 typedef struct _RGBA_Polygon_Point    RGBA_Polygon_Point;
 typedef struct _RGBA_Map_Point        RGBA_Map_Point;
@@ -565,7 +566,7 @@ struct _Image_Entry_Flags
    Eina_Bool alpha_sparse  : 1;
    Eina_Bool preload_done  : 1;
    Eina_Bool delete_me     : 1;
-   
+
    Eina_Bool pending       : 1;
    Eina_Bool rotated       : 1;
    Eina_Bool unload_cancel : 1;
@@ -587,9 +588,12 @@ struct _Image_Entry_Frame
 
 struct _Evas_Cache_Target
 {
-  EINA_INLIST;
-  const Eo *target;
-  void *data;
+   EINA_INLIST;
+   const Eo *target;
+   void *data;
+   void (*simple_cb) (void *data);
+   void *simple_data;
+   Eina_Bool delete_me;
 };
 
 struct _Image_Timestamp
@@ -613,6 +617,8 @@ struct _Image_Entry
 {
    EINA_INLIST;
 
+   int                    magic;
+
    Evas_Cache_Image      *cache;
 #ifdef EVAS_CSERVE2
    Evas_Cache2           *cache2;
@@ -625,7 +631,7 @@ struct _Image_Entry
 
    Evas_Cache_Target     *targets;
    Evas_Preload_Pthread  *preload;
-   Eina_List             *tasks;
+   Eina_List             *tasks; // FIXME: Tasks are not used: always NULL func
 
    Image_Timestamp        tstamp;
 
@@ -646,6 +652,7 @@ struct _Image_Entry
    unsigned char          scale;
 
    unsigned char          need_unload : 1;
+   unsigned char          load_failed : 1;
 
    struct
      {
@@ -674,7 +681,7 @@ struct _Image_Entry
    /* Reference to the file */
    Eina_File             *f;
    void                  *loader_data;
-  
+
    Image_Entry_Flags      flags;
    Evas_Image_Scale_Hint  scale_hint;
    void                  *data1, *data2;
@@ -737,43 +744,47 @@ struct _Evas_Common_Transform
 struct _RGBA_Draw_Context
 {
    struct {
-      Eina_Bool use : 1;
-      DATA32 col;
-   } mul;
-   struct {
-#ifdef HAVE_PIXMAN
-   pixman_image_t  *pixman_color_image;
-#endif
-      DATA32 col;
-   } col;
-   struct RGBA_Draw_Context_clip {
-      int    x, y, w, h;
-      Evas_Public_Data *evas; // for async unref
-      void  *mask; // RGBA_Image (SW) or Evas_GL_Image (GL)
-      int    mask_x, mask_y;
-      Eina_Bool use : 1;
-      Eina_Bool async : 1;
-   } clip;
-   Cutout_Rects cutout;
-   struct {
       struct {
          void *(*gl_new)  (void *data, RGBA_Font_Glyph *fg);
          void  (*gl_free) (void *ext_dat);
          void  (*gl_draw) (void *data, void *dest, void *context, RGBA_Font_Glyph *fg, int x, int y);
-         void *(*gl_image_new_from_data) (void *gc, unsigned int w, unsigned int h, DATA32 *image_data, int alpha, Evas_Colorspace cspace);
+         void *(*gl_image_new) (void *gc, RGBA_Font_Glyph *fg, int alpha, Evas_Colorspace cspace);
          void  (*gl_image_free) (void *image);
-         void  (*gl_image_draw) (void *gc, void *im, int sx, int sy, int sw, int sh, int dx, int dy, int dw, int dh, int smooth);
+         void  (*gl_image_draw) (void *gc, void *im, int dx, int dy, int dw, int dh, int smooth);
       } func;
       void *data;
    } font_ext;
    struct {
-      int color_space;
-   } interpolation;
+      int x, y, w, h;
+   } cutout_target;
+   struct RGBA_Draw_Context_clip {
+      Evas_Public_Data *evas; // for async unref
+      void  *mask; // RGBA_Image (SW) or Evas_GL_Image (GL)
+      int    x, y, w, h;
+      int    mask_x, mask_y;
+      Eina_Bool use : 1;
+      Eina_Bool async : 1;
+   } clip;
    struct {
-      int y, h;
-   } sli;
-   int            render_op;
-   Eina_Bool anti_alias : 1;
+#ifdef HAVE_PIXMAN
+      pixman_image_t  *pixman_color_image;
+#endif
+      DATA32 col;
+   } col;
+   Cutout_Rects cutout;
+   struct {
+      DATA32    col;
+      Eina_Bool use : 1;
+   } mul;
+   struct {
+      Cutout_Rects *rects;
+      unsigned int  used;
+   } cache;
+   struct {
+      unsigned char color_space;
+   } interpolation;
+   unsigned char render_op;
+   unsigned char anti_alias : 1;
 };
 
 #ifdef BUILD_PIPE_RENDER
@@ -840,8 +851,9 @@ struct _RGBA_Pipe_Thread_Info
 
 struct _RGBA_Image_Data_Map {
    EINA_INLIST;
-   unsigned char  *ptr, *baseptr;
-   int             size, stride; // in bytes
+   unsigned char  *baseptr;
+   Eina_Rw_Slice   slice;
+   int             stride; // in bytes
    int             rx, ry, rw, rh; // actual map region
    int             plane;
    Evas_Colorspace cspace;
@@ -1309,8 +1321,8 @@ EAPI int          evas_async_events_process_blocking(void);
 void	          evas_render_rendering_wait(Evas_Public_Data *evas);
 void              evas_all_sync(void);
 
-void              evas_thread_init(void);
-void              evas_thread_shutdown(void);
+int               evas_thread_init(void);
+int               evas_thread_shutdown(void);
 EAPI void         evas_thread_cmd_enqueue(Evas_Thread_Command_Cb cb, void *data);
 EAPI void         evas_thread_queue_flush(Evas_Thread_Command_Cb cb, void *data);
 

@@ -23,17 +23,17 @@ class Elm.Check (Efl.Ui.Nstate, Elm.Interface.Atspi_Widget_Action)
    }
    implements {
       class.constructor;
-      Eo.Base.constructor;
+      Efl.Object.constructor;
       Efl.Canvas.Group.group_add;
       Elm.Widget.activate;
       Elm.Widget.theme_apply;
       Elm.Widget.sub_object_del;
-      Elm.Widget.event;
-      Elm.Layout.text_aliases.get;
-      Efl.Ui.Nstate.count.set;
-      Efl.Ui.Nstate.value.set;
-      Elm.Interface.Atspi_Accessible.state_set.get;
-      Elm.Interface.Atspi_Widget_Action.elm_actions.get;
+      Elm.Widget.widget_event;
+      Elm.Layout.text_aliases { get; }
+      Efl.Ui.Nstate.count { set; }
+      Efl.Ui.Nstate.value { set; }
+      Elm.Interface.Atspi_Accessible.state_set { get; }
+      Elm.Interface.Atspi_Widget_Action.elm_actions { get; }
    }
    events {
       changed; [[This is called whenever the user changes the state of the check

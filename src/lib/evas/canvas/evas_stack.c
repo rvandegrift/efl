@@ -46,8 +46,8 @@ evas_object_raise(Evas_Object *obj)
 EOLIAN void
 _efl_canvas_object_efl_gfx_stack_raise(Eo *eo_obj, Evas_Object_Protected_Data *obj)
 {
-   evas_object_async_block(obj);
-   if (evas_object_intercept_call_raise(eo_obj, obj)) return;
+   if (_evas_object_intercept_call_evas(obj, EVAS_OBJECT_INTERCEPT_CB_RAISE, 1))
+     return;
 
    if (!((EINA_INLIST_GET(obj))->next))
      {
@@ -75,17 +75,13 @@ _efl_canvas_object_efl_gfx_stack_raise(Eo *eo_obj, Evas_Object_Protected_Data *o
        (!evas_event_freezes_through(eo_obj, obj)) &&
        (!evas_object_is_source_invisible(eo_obj, obj)))
      {
-        if (!obj->is_smart)
+        if (!obj->is_smart && obj->cur->visible)
           {
-             if (evas_object_is_in_output_rect(eo_obj, obj,
-                                               obj->layer->evas->pointer.x,
-                                               obj->layer->evas->pointer.y,
-                                               1, 1) && obj->cur->visible)
-               evas_event_feed_mouse_move(obj->layer->evas->evas,
-                                          obj->layer->evas->pointer.x,
-                                          obj->layer->evas->pointer.y,
-                                          obj->layer->evas->last_timestamp,
-                                          NULL);
+             _evas_canvas_event_pointer_in_rect_mouse_move_feed(obj->layer->evas,
+                                                                eo_obj,
+                                                                obj, 1, 1,
+                                                                EINA_FALSE,
+                                                                NULL);
           }
      }
 }
@@ -99,8 +95,8 @@ evas_object_lower(Evas_Object *obj)
 EOLIAN void
 _efl_canvas_object_efl_gfx_stack_lower(Eo *eo_obj, Evas_Object_Protected_Data *obj)
 {
-   evas_object_async_block(obj);
-   if (evas_object_intercept_call_lower(eo_obj, obj)) return;
+   if (_evas_object_intercept_call_evas(obj, EVAS_OBJECT_INTERCEPT_CB_LOWER, 1))
+     return;
 
    if (!((EINA_INLIST_GET(obj))->prev))
      {
@@ -129,17 +125,13 @@ _efl_canvas_object_efl_gfx_stack_lower(Eo *eo_obj, Evas_Object_Protected_Data *o
        (!evas_event_freezes_through(eo_obj, obj)) &&
        (!evas_object_is_source_invisible(eo_obj, obj)))
      {
-        if (!obj->is_smart)
+        if (!obj->is_smart && obj->cur->visible)
           {
-             if (evas_object_is_in_output_rect(eo_obj, obj,
-                                               obj->layer->evas->pointer.x,
-                                               obj->layer->evas->pointer.y,
-                                               1, 1) && obj->cur->visible)
-               evas_event_feed_mouse_move(obj->layer->evas->evas,
-                                          obj->layer->evas->pointer.x,
-                                          obj->layer->evas->pointer.y,
-                                          obj->layer->evas->last_timestamp,
-                                          NULL);
+             _evas_canvas_event_pointer_in_rect_mouse_move_feed(obj->layer->evas,
+                                                                eo_obj,
+                                                                obj, 1, 1,
+                                                                EINA_FALSE,
+                                                                NULL);
           }
      }
 }
@@ -150,18 +142,19 @@ evas_object_stack_above(Evas_Object *obj, Evas_Object *above)
    efl_gfx_stack_above((Evas_Object *)obj, above);
 }
 
+#define SERR(x, ...) EINA_SAFETY_ERROR(eina_slstr_printf(x, __VA_ARGS__))
+
 EOLIAN void
 _efl_canvas_object_efl_gfx_stack_stack_above(Eo *eo_obj, Evas_Object_Protected_Data *obj, Efl_Gfx_Stack *eo_above)
 {
-   evas_object_async_block(obj);
    if (!eo_above)
      {
         evas_object_raise(eo_obj);
         return;
      }
    if (eo_obj == eo_above) return;
-   if (evas_object_intercept_call_stack_above(eo_obj, obj, eo_above)) return;
-   Evas_Object_Protected_Data *above = eo_data_scope_get(eo_above, EFL_CANVAS_OBJECT_CLASS);
+   if (_evas_object_intercept_call_evas(obj, EVAS_OBJECT_INTERCEPT_CB_STACK_ABOVE, 1, eo_above)) return;
+   Evas_Object_Protected_Data *above = efl_data_scope_get(eo_above, EFL_CANVAS_OBJECT_CLASS);
    if ((EINA_INLIST_GET(obj))->prev == EINA_INLIST_GET(above))
      {
         evas_object_inform_call_restack(eo_obj);
@@ -171,7 +164,11 @@ _efl_canvas_object_efl_gfx_stack_stack_above(Eo *eo_obj, Evas_Object_Protected_D
      {
         if (obj->smart.parent != above->smart.parent)
           {
-             ERR("COMPLAIN! evas_object_stack_above(), %p not inside same smart as %p!", eo_obj, eo_above);
+             SERR("Invalid operation: object '%s' %p (parent: '%s' %p) not "
+                  "inside same smart parent as above '%s' %p (parent '%s' %p)!",
+                  efl_class_name_get(eo_obj), eo_obj, efl_class_name_get(obj->smart.parent),
+                  obj->smart.parent, efl_class_name_get(eo_above), eo_above,
+                  efl_class_name_get(above->smart.parent), above->smart.parent);
              return;
           }
         evas_object_smart_member_stack_above(eo_obj, eo_above);
@@ -180,12 +177,21 @@ _efl_canvas_object_efl_gfx_stack_stack_above(Eo *eo_obj, Evas_Object_Protected_D
      {
         if (above->smart.parent)
           {
-             ERR("COMPLAIN! evas_object_stack_above(), %p stack above %p, but above has smart parent, obj does not", eo_obj, eo_above);
+             SERR("Invalid operation: '%s' %p has no parent but "
+                  "above '%s' %p has parent '%s' %p!",
+                  efl_class_name_get(eo_obj), eo_obj,
+                  efl_class_name_get(eo_above), eo_above,
+                  efl_class_name_get(above->smart.parent), above->smart.parent);
              return;
           }
         if (obj->layer != above->layer)
           {
-             ERR("COMPLAIN! evas_object_stack_above(), %p stack above %p, not matching layers", eo_obj, eo_above);
+             SERR("Invalid operation: '%s' %p is on layer %d but "
+                  "above '%s' %p is on mismatching layer %d!",
+                  efl_class_name_get(eo_obj), eo_obj,
+                  obj->layer ? (int) obj->layer->layer : -99999,
+                  efl_class_name_get(eo_above), eo_above,
+                  above->layer ? (int) above->layer->layer : -99999);
              return;
           }
         if (obj->in_layer)
@@ -211,17 +217,13 @@ _efl_canvas_object_efl_gfx_stack_stack_above(Eo *eo_obj, Evas_Object_Protected_D
        (!evas_event_freezes_through(eo_obj, obj)) &&
        (!evas_object_is_source_invisible(eo_obj, obj)))
      {
-        if (!obj->is_smart)
+        if (!obj->is_smart && obj->cur->visible)
           {
-             if (evas_object_is_in_output_rect(eo_obj, obj,
-                                               obj->layer->evas->pointer.x,
-                                               obj->layer->evas->pointer.y,
-                                               1, 1) && obj->cur->visible)
-               evas_event_feed_mouse_move(obj->layer->evas->evas,
-                                          obj->layer->evas->pointer.x,
-                                          obj->layer->evas->pointer.y,
-                                          obj->layer->evas->last_timestamp,
-                                          NULL);
+             _evas_canvas_event_pointer_in_rect_mouse_move_feed(obj->layer->evas,
+                                                                eo_obj,
+                                                                obj, 1, 1,
+                                                                EINA_FALSE,
+                                                                NULL);
           }
      }
 }
@@ -235,15 +237,14 @@ evas_object_stack_below(Evas_Object *obj, Evas_Object *below)
 EOLIAN void
 _efl_canvas_object_efl_gfx_stack_stack_below(Eo *eo_obj, Evas_Object_Protected_Data *obj, Efl_Gfx_Stack *eo_below)
 {
-   evas_object_async_block(obj);
    if (!eo_below)
      {
         evas_object_lower(eo_obj);
         return;
      }
    if (eo_obj == eo_below) return;
-   if (evas_object_intercept_call_stack_below(eo_obj, obj, eo_below)) return;
-   Evas_Object_Protected_Data *below = eo_data_scope_get(eo_below, EFL_CANVAS_OBJECT_CLASS);
+   if (_evas_object_intercept_call_evas(obj, EVAS_OBJECT_INTERCEPT_CB_STACK_BELOW, 1, eo_below)) return;
+   Evas_Object_Protected_Data *below = efl_data_scope_get(eo_below, EFL_CANVAS_OBJECT_CLASS);
    if ((EINA_INLIST_GET(obj))->next == EINA_INLIST_GET(below))
      {
         evas_object_inform_call_restack(eo_obj);
@@ -253,7 +254,11 @@ _efl_canvas_object_efl_gfx_stack_stack_below(Eo *eo_obj, Evas_Object_Protected_D
      {
         if (obj->smart.parent != below->smart.parent)
           {
-             ERR("COMPLAIN! evas_object_stack_below(), %p not inside same smart as %p!", eo_obj, eo_below);
+             SERR("Invalid operation: object '%s' %p (parent: '%s' %p) not "
+                  "inside same smart parent as below '%s' %p (parent '%s' %p)!",
+                  efl_class_name_get(eo_obj), eo_obj, efl_class_name_get(obj->smart.parent),
+                  obj->smart.parent, efl_class_name_get(eo_below), eo_below,
+                  efl_class_name_get(below->smart.parent), below->smart.parent);
              return;
           }
         evas_object_smart_member_stack_below(eo_obj, eo_below);
@@ -262,12 +267,21 @@ _efl_canvas_object_efl_gfx_stack_stack_below(Eo *eo_obj, Evas_Object_Protected_D
      {
         if (below->smart.parent)
           {
-             ERR("COMPLAIN! evas_object_stack_below(), %p stack below %p, but below has smart parent, obj does not", eo_obj, eo_below);
+             SERR("Invalid operation: object '%s' %p has no parent but "
+                  "below '%s' %p has different parent '%s' %p!",
+                  efl_class_name_get(eo_obj), eo_obj,
+                  efl_class_name_get(eo_below), eo_below,
+                  efl_class_name_get(below->smart.parent), below->smart.parent);
              return;
           }
         if (obj->layer != below->layer)
           {
-             ERR("COMPLAIN! evas_object_stack_below(), %p stack below %p, not matching layers", eo_obj, eo_below);
+             SERR("Invalid operation: object '%s' %p is on layer %d but "
+                  "below '%s' %p is on mismatching layer %d!",
+                  efl_class_name_get(eo_obj), eo_obj,
+                  obj->layer ? (int) obj->layer->layer : -99999,
+                  efl_class_name_get(eo_below), eo_below,
+                  below->layer ? (int) below->layer->layer : -99999);
              return;
           }
         if (obj->in_layer)
@@ -293,17 +307,13 @@ _efl_canvas_object_efl_gfx_stack_stack_below(Eo *eo_obj, Evas_Object_Protected_D
        (!evas_event_freezes_through(eo_obj, obj)) &&
        (!evas_object_is_source_invisible(eo_obj, obj)))
      {
-        if (!obj->is_smart)
+        if (!obj->is_smart && obj->cur->visible)
           {
-             if (evas_object_is_in_output_rect(eo_obj, obj,
-                                               obj->layer->evas->pointer.x,
-                                               obj->layer->evas->pointer.y,
-                                               1, 1) && obj->cur->visible)
-               evas_event_feed_mouse_move(obj->layer->evas->evas,
-                                          obj->layer->evas->pointer.x,
-                                          obj->layer->evas->pointer.y,
-                                          obj->layer->evas->last_timestamp,
-                                          NULL);
+             _evas_canvas_event_pointer_in_rect_mouse_move_feed(obj->layer->evas,
+                                                                eo_obj,
+                                                                obj, 1, 1,
+                                                                EINA_FALSE,
+                                                                NULL);
           }
      }
 }

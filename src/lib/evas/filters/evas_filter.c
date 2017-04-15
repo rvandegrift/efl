@@ -49,7 +49,7 @@ _evas_image_get(Ector_Buffer *buf)
 /* Main functions */
 
 Evas_Filter_Context *
-evas_filter_context_new(Evas_Public_Data *evas, Eina_Bool async)
+evas_filter_context_new(Evas_Public_Data *evas, Eina_Bool async, void *user_data)
 {
    Evas_Filter_Context *ctx;
 
@@ -60,8 +60,23 @@ evas_filter_context_new(Evas_Public_Data *evas, Eina_Bool async)
 
    ctx->evas = evas;
    ctx->async = async;
+   ctx->user_data = user_data;
 
    return ctx;
+}
+
+void *
+evas_filter_context_data_get(Evas_Filter_Context *ctx)
+{
+   EINA_SAFETY_ON_NULL_RETURN_VAL(ctx, NULL);
+
+   return ctx->user_data;
+}
+
+Eina_Bool
+evas_filter_context_async_get(Evas_Filter_Context *ctx)
+{
+   return ctx->async;
 }
 
 /* Private function to reset the filter context. Used from parser.c */
@@ -90,7 +105,7 @@ static void
 _filter_buffer_backing_free(Evas_Filter_Buffer *fb)
 {
    if (!fb || !fb->buffer) return;
-   eo_del(fb->buffer);
+   efl_del(fb->buffer);
    fb->buffer = NULL;
 }
 
@@ -105,26 +120,26 @@ evas_filter_context_proxy_render_all(Evas_Filter_Context *ctx, Eo *eo_obj,
    Eina_List *li;
 
    if (!ctx->has_proxies) return;
-   obj = eo_data_scope_get(eo_obj, EFL_CANVAS_OBJECT_CLASS);
+   obj = efl_data_scope_get(eo_obj, EFL_CANVAS_OBJECT_CLASS);
 
    EINA_LIST_FOREACH(ctx->buffers, li, fb)
      if (fb->source)
        {
           // TODO: Lock current object as proxyrendering (see image obj)
-          source = eo_data_scope_get(fb->source, EFL_CANVAS_OBJECT_CLASS);
+          source = efl_data_scope_get(fb->source, EFL_CANVAS_OBJECT_CLASS);
           _assert(fb->w == source->cur->geometry.w);
           _assert(fb->h == source->cur->geometry.h);
           if (source->proxy->surface && !source->proxy->redraw)
             {
                XDBG("Source already rendered: '%s' of type '%s'",
-                   fb->source_name, eo_class_name_get(eo_class_get(fb->source)));
+                   fb->source_name, efl_class_name_get(efl_class_get(fb->source)));
             }
           else
             {
                XDBG("Source needs to be rendered: '%s' of type '%s' (%s)",
-                   fb->source_name, eo_class_name_get(eo_class_get(fb->source)),
+                   fb->source_name, efl_class_name_get(efl_class_get(fb->source)),
                    source->proxy->redraw ? "redraw" : "no surface");
-               evas_render_proxy_subrender(ctx->evas->evas, fb->source, eo_obj, obj, do_async);
+               evas_render_proxy_subrender(ctx->evas->evas, fb->source, eo_obj, obj, EINA_FALSE, do_async);
             }
           _filter_buffer_backing_free(fb);
           XDBG("Source #%d '%s' has dimensions %dx%d", fb->id, fb->source_name, fb->w, fb->h);
@@ -1271,6 +1286,7 @@ evas_filter_target_set(Evas_Filter_Context *ctx, void *draw_context,
    if (ctx->target.r == 255 && ctx->target.g == 255 &&
        ctx->target.b == 255 && ctx->target.a == 255)
      ctx->target.color_use = EINA_FALSE;
+   ctx->target.rop = ENFN->context_render_op_get(ENDT, draw_context);
 
    ENFN->context_clip_image_get
       (ENDT, draw_context, &mask, &ctx->target.mask_x, &ctx->target.mask_y);
@@ -1314,18 +1330,15 @@ _filter_target_render(Evas_Filter_Context *ctx)
                                      ctx->target.r, ctx->target.g,
                                      ctx->target.b, ctx->target.a);
      }
-   else
-     {
-        ENFN->context_multiplier_unset(ENDT, drawctx);
-     }
 
    if (ctx->target.mask)
-     ENFN->context_clip_image_set(ENDT, drawctx,
-                                  ctx->target.mask, ctx->target.mask_x, ctx->target.mask_y,
-                                  ctx->evas, EINA_FALSE);
-   else
-     ENFN->context_clip_image_unset(ENDT, drawctx);
+     {
+        ENFN->context_clip_image_set(ENDT, drawctx, ctx->target.mask,
+                                     ctx->target.mask_x, ctx->target.mask_y,
+                                     ctx->evas, EINA_FALSE);
+     }
 
+   ENFN->context_render_op_set(ENDT, drawctx, ctx->target.rop);
    ENFN->image_draw(ENDT, drawctx, surface, image,
                     0, 0, src->w, src->h,
                     ctx->target.x, ctx->target.y, src->w, src->h,
@@ -1347,6 +1360,8 @@ evas_filter_font_draw(Evas_Filter_Context *ctx, void *draw_context, int bufid,
    void *surface = NULL;
 
    fb = _filter_buffer_get(ctx, bufid);
+   EINA_SAFETY_ON_NULL_RETURN_VAL(fb, EINA_FALSE);
+
    surface = _evas_image_get(fb->buffer);
    if (!surface) return EINA_FALSE;
 
@@ -1622,14 +1637,14 @@ static int init_cnt = 0;
 int _evas_filter_log_dom = 0;
 
 void
-evas_filter_init()
+evas_filter_init(void)
 {
    if ((init_cnt++) > 0) return;
    _evas_filter_log_dom = eina_log_domain_register("evas_filter", EVAS_FILTER_LOG_COLOR);
 }
 
 void
-evas_filter_shutdown()
+evas_filter_shutdown(void)
 {
    if ((--init_cnt) > 0) return;
    evas_filter_parser_shutdown();

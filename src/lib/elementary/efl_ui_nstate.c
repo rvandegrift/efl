@@ -31,10 +31,10 @@ static const Elm_Action key_actions[] = {
    {NULL, NULL}
 };
 
-EOLIAN static Eo_Base *
-_efl_ui_nstate_eo_base_constructor(Eo *obj, Efl_Ui_Nstate_Data *pd EINA_UNUSED)
+EOLIAN static Efl_Object *
+_efl_ui_nstate_efl_object_constructor(Eo *obj, Efl_Ui_Nstate_Data *pd EINA_UNUSED)
 {
-   obj = eo_constructor(eo_super(obj, MY_CLASS));
+   obj = efl_constructor(efl_super(obj, MY_CLASS));
    efl_canvas_object_type_set(obj, MY_CLASS_NAME);
    evas_object_smart_callbacks_descriptions_set(obj, _smart_callbacks);
    //TODO: Add ATSPI call here
@@ -58,7 +58,7 @@ _state_active(Evas_Object *obj, Efl_Ui_Nstate_Data *sd)
    elm_layout_signal_emit(obj, buf, "elm");
    edje_object_message_signal_process(elm_layout_edje_get(obj));
    elm_obj_layout_sizing_eval(obj);
-   eo_event_callback_call(obj, EFL_UI_NSTATE_EVENT_STATE_CHANGED, NULL);
+   efl_event_callback_legacy_call(obj, EFL_UI_NSTATE_EVENT_STATE_CHANGED, NULL);
 }
 
 static void
@@ -75,7 +75,7 @@ _efl_ui_nstate_efl_canvas_group_group_add(Eo *obj, Efl_Ui_Nstate_Data *pd)
 {
    ELM_WIDGET_DATA_GET_OR_RETURN(obj, wd);
 
-   efl_canvas_group_add(eo_super(obj, MY_CLASS));
+   efl_canvas_group_add(efl_super(obj, MY_CLASS));
    elm_widget_sub_object_parent_add(obj);
 
    pd->state = 0;
@@ -92,7 +92,11 @@ _efl_ui_nstate_efl_canvas_group_group_add(Eo *obj, Efl_Ui_Nstate_Data *pd)
 EOLIAN static void
 _efl_ui_nstate_efl_canvas_group_group_del(Eo *obj, Efl_Ui_Nstate_Data *pd EINA_UNUSED)
 {
-   efl_canvas_group_del(eo_super(obj, MY_CLASS));
+   ELM_WIDGET_DATA_GET_OR_RETURN(obj, wd);
+
+   edje_object_signal_callback_del_full(wd->resize_obj, "elm,action,state,changed",
+                                        "*", _on_state_changed, obj);
+   efl_canvas_group_del(efl_super(obj, MY_CLASS));
 }
 
 EOLIAN static int
@@ -139,7 +143,7 @@ _efl_ui_nstate_elm_widget_theme_apply(Eo *obj, Efl_Ui_Nstate_Data *pd)
 {
    Elm_Theme_Apply int_ret = ELM_THEME_APPLY_FAILED;
 
-   int_ret = elm_obj_widget_theme_apply(eo_super(obj, MY_CLASS));
+   int_ret = elm_obj_widget_theme_apply(efl_super(obj, MY_CLASS));
    if (!int_ret) return ELM_THEME_APPLY_FAILED;
 
    _state_active(obj, pd);
@@ -155,7 +159,7 @@ _key_action_activate(Evas_Object *obj, const char *params EINA_UNUSED)
 }
 
 EOLIAN static Eina_Bool
-_efl_ui_nstate_elm_widget_event(Eo *obj, Efl_Ui_Nstate_Data *_pd EINA_UNUSED, Evas_Object *src EINA_UNUSED, Evas_Callback_Type type, void *event_info)
+_efl_ui_nstate_elm_widget_widget_event(Eo *obj, Efl_Ui_Nstate_Data *_pd EINA_UNUSED, Evas_Object *src EINA_UNUSED, Evas_Callback_Type type, void *event_info)
 {
    Evas_Event_Key_Down *ev = event_info;
 
@@ -177,7 +181,7 @@ _efl_ui_nstate_activate(Eo *obj, Efl_Ui_Nstate_Data *_pd)
 }
 
 EOLIAN static void
-_efl_ui_nstate_class_constructor(Eo_Class *klass)
+_efl_ui_nstate_class_constructor(Efl_Class *klass)
 {
    evas_smart_legacy_type_register(MY_CLASS_NAME, klass);
 }

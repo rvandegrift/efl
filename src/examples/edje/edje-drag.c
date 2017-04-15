@@ -5,7 +5,7 @@
  * buffer one). See stdout/stderr for output.
  *
  * @verbatim
- * edje_cc drag.edc && gcc -o drag-box drag-box.c `pkg-config --libs --cflags evas ecore ecore-evas edje`
+ * edje_cc drag.edc && gcc -o edje-drag edje-drag.c `pkg-config --libs --cflags evas ecore ecore-evas edje`
  * @endverbatim
  */
 
@@ -26,14 +26,9 @@
 #define WIDTH  300
 #define HEIGHT 300
 
-#define RECTW 30
-#define RECTH 30
-
-#define NRECTS 20
-
 static const char commands[] = \
   "commands are:\n"
-  "\tDdown - set drag step to 1\n"
+  "\tDown - set drag step to 1\n"
   "\tUp - set drag step to -1\n"
   "\tm - set drag value to 0.5\n"
   "\tPrior - set drag page to -1\n"
@@ -143,7 +138,7 @@ main(int argc EINA_UNUSED, char *argv[] EINA_UNUSED)
 
    ecore_evas_callback_destroy_set(ee, _on_destroy);
    ecore_evas_callback_resize_set(ee, _on_canvas_resize);
-   ecore_evas_title_set(ee, "Edje Box Example");
+   ecore_evas_title_set(ee, "Edje Drag Example");
 
    evas = ecore_evas_get(ee);
 
@@ -158,7 +153,9 @@ main(int argc EINA_UNUSED, char *argv[] EINA_UNUSED)
 
    edje_obj = edje_object_add(evas);
 
-   edje_object_file_set(edje_obj, edje_file, "example/group");
+   if (!edje_object_file_set(edje_obj, edje_file, "example/group"))
+     printf("failed to set file %s.\n", edje_file);
+
    evas_object_move(edje_obj, 0, 0);
    evas_object_resize(edje_obj, WIDTH, HEIGHT);
    evas_object_show(edje_obj);

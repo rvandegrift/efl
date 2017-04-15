@@ -32,7 +32,7 @@ _elm_glview_elm_widget_on_focus(Eo *obj, Elm_Glview_Data *_pd EINA_UNUSED, Elm_O
    ELM_WIDGET_DATA_GET_OR_RETURN(obj, wd, EINA_FALSE);
    Eina_Bool int_ret = EINA_FALSE;
 
-   int_ret = elm_obj_widget_on_focus(eo_super(obj, MY_CLASS), NULL);
+   int_ret = elm_obj_widget_on_focus(efl_super(obj, MY_CLASS), NULL);
    if (!int_ret) return EINA_FALSE;
 
    if (elm_widget_focus_get(obj))
@@ -86,9 +86,12 @@ _glview_update_surface(Evas_Object *obj)
 }
 
 EOLIAN static void
-_elm_glview_efl_canvas_group_group_resize(Eo *obj, Elm_Glview_Data *sd, Evas_Coord w, Evas_Coord h)
+_elm_glview_efl_gfx_size_set(Eo *obj, Elm_Glview_Data *sd, Evas_Coord w, Evas_Coord h)
 {
-   efl_canvas_group_resize(eo_super(obj, MY_CLASS), w, h);
+   if (_evas_object_intercept_call(obj, EVAS_OBJECT_INTERCEPT_CB_RESIZE, 0, w, h))
+     return;
+
+   efl_gfx_size_set(efl_super(obj, MY_CLASS), w, h);
 
    sd->resized = EINA_TRUE;
 
@@ -100,8 +103,6 @@ _elm_glview_efl_canvas_group_group_resize(Eo *obj, Elm_Glview_Data *sd, Evas_Coo
              h = 64;
           }
 
-        if ((sd->w == w) && (sd->h == h)) return;
-
         sd->w = w;
         sd->h = h;
 
@@ -110,7 +111,7 @@ _elm_glview_efl_canvas_group_group_resize(Eo *obj, Elm_Glview_Data *sd, Evas_Coo
 }
 
 static void
-_render_cb(void *obj, const Eo_Event *event EINA_UNUSED)
+_render_cb(void *obj, const Efl_Event *event EINA_UNUSED)
 {
    ELM_GLVIEW_DATA_GET(obj, sd);
    ELM_WIDGET_DATA_GET_OR_RETURN(obj, wd, );
@@ -128,7 +129,7 @@ _render_cb(void *obj, const Eo_Event *event EINA_UNUSED)
    if (!sd->initialized)
      {
         //TODO:will be optimized
-        eo_event_callback_call(obj, ELM_GLVIEW_EVENT_CREATED, NULL);
+        efl_event_callback_legacy_call(obj, ELM_GLVIEW_EVENT_CREATED, NULL);
         if (sd->init_func) sd->init_func(obj);
         sd->initialized = EINA_TRUE;
      }
@@ -136,7 +137,7 @@ _render_cb(void *obj, const Eo_Event *event EINA_UNUSED)
    if (sd->resized)
      {
         //TODO:will be optimized
-        eo_event_callback_call(obj, ELM_GLVIEW_EVENT_RESIZED, NULL);
+        efl_event_callback_legacy_call(obj, ELM_GLVIEW_EVENT_RESIZED, NULL);
         if (sd->resize_func) sd->resize_func(obj);
         sd->resized = EINA_FALSE;
      }
@@ -146,7 +147,7 @@ _render_cb(void *obj, const Eo_Event *event EINA_UNUSED)
    // Call the render function
    if (sd->render_func) sd->render_func(obj);
    //TODO:will be optimized
-   eo_event_callback_call(obj, ELM_GLVIEW_EVENT_RENDER, NULL);
+   efl_event_callback_legacy_call(obj, ELM_GLVIEW_EVENT_RENDER, NULL);
 
    // Depending on the policy return true or false
    if (sd->render_policy == ELM_GLVIEW_RENDER_POLICY_ON_DEMAND)
@@ -167,7 +168,7 @@ _render_cb(void *obj, const Eo_Event *event EINA_UNUSED)
    return;
 
  on_error:
-   eo_event_callback_del(ecore_main_loop_get(),
+   efl_event_callback_del(ecore_main_loop_get(),
                          EFL_LOOP_EVENT_IDLE_ENTER,
                          _render_cb,
                          obj);
@@ -184,9 +185,12 @@ _set_render_policy_callback(Evas_Object *obj)
      {
       case ELM_GLVIEW_RENDER_POLICY_ON_DEMAND:
          if (sd->render_idle_enterer)
-           evas_object_image_pixels_dirty_set(wd->resize_obj, EINA_TRUE);
+           {
+              evas_object_image_pixels_dirty_set(wd->resize_obj, EINA_TRUE);
+              evas_object_image_data_update_add(wd->resize_obj, 0, 0, sd->w, sd->h);
+           }
          // Delete idle_enterer if it for some reason is around
-         eo_event_callback_del(ecore_main_loop_get(),
+         efl_event_callback_del(ecore_main_loop_get(),
                                EFL_LOOP_EVENT_IDLE_ENTER,
                                _render_cb,
                                obj);
@@ -201,9 +205,9 @@ _set_render_policy_callback(Evas_Object *obj)
 
       case ELM_GLVIEW_RENDER_POLICY_ALWAYS:
         if (evas_object_image_pixels_dirty_get(wd->resize_obj))
-          sd->render_idle_enterer = eo_event_callback_priority_add(ecore_main_loop_get(),
+          sd->render_idle_enterer = efl_event_callback_priority_add(ecore_main_loop_get(),
                                                                    EFL_LOOP_EVENT_IDLE_ENTER,
-                                                                   EO_CALLBACK_PRIORITY_BEFORE,
+                                                                   EFL_CALLBACK_PRIORITY_BEFORE,
                                                                    _render_cb,
                                                                    obj);
         // Unset the pixel getter callback if set already
@@ -230,7 +234,7 @@ _elm_glview_efl_canvas_group_group_add(Eo *obj, Elm_Glview_Data *priv EINA_UNUSE
    elm_widget_resize_object_set(obj, img, EINA_TRUE);
    evas_object_image_size_set(img, 1, 1);
 
-   efl_canvas_group_add(eo_super(obj, MY_CLASS));
+   efl_canvas_group_add(efl_super(obj, MY_CLASS));
 }
 
 static void
@@ -297,9 +301,9 @@ _elm_glview_efl_canvas_group_group_del(Eo *obj, Elm_Glview_Data *sd)
         sd->del_func(obj);
      }
    //TODO:will be optimised
-   eo_event_callback_call(obj, ELM_GLVIEW_EVENT_DESTROYED, NULL);
+   efl_event_callback_legacy_call(obj, ELM_GLVIEW_EVENT_DESTROYED, NULL);
 
-   eo_event_callback_del(ecore_main_loop_get(),
+   efl_event_callback_del(ecore_main_loop_get(),
                          EFL_LOOP_EVENT_IDLE_ENTER,
                          _render_cb,
                          obj);
@@ -314,13 +318,13 @@ _elm_glview_efl_canvas_group_group_del(Eo *obj, Elm_Glview_Data *sd)
    if (sd->config) evas_gl_config_free(sd->config);
    if (sd->evasgl) evas_gl_free(sd->evasgl);
 
-   efl_canvas_group_del(eo_super(obj, MY_CLASS));
+   efl_canvas_group_del(efl_super(obj, MY_CLASS));
 }
 
 static void
-_cb_added(void *data EINA_UNUSED, const Eo_Event *ev)
+_cb_added(void *data EINA_UNUSED, const Efl_Event *ev)
 {
-   const Eo_Callback_Array_Item *event = ev->info;
+   const Efl_Callback_Array_Item *event = ev->info;
 
    ELM_GLVIEW_DATA_GET(ev->object, sd);
 
@@ -338,7 +342,7 @@ EAPI Evas_Object *
 elm_glview_add(Evas_Object *parent)
 {
    EINA_SAFETY_ON_NULL_RETURN_VAL(parent, NULL);
-   Evas_Object *obj = eo_add(MY_CLASS, parent, elm_obj_glview_version_constructor(eo_self, EVAS_GL_GLES_2_X));
+   Evas_Object *obj = efl_add(MY_CLASS, parent, elm_obj_glview_version_constructor(efl_added, EVAS_GL_GLES_2_X));
    return obj;
 }
 
@@ -346,7 +350,7 @@ EAPI Evas_Object *
 elm_glview_version_add(Evas_Object *parent, Evas_GL_Context_Version version)
 {
    EINA_SAFETY_ON_NULL_RETURN_VAL(parent, NULL);
-   Evas_Object *obj = eo_add(MY_CLASS, parent, elm_obj_glview_version_constructor(eo_self, version));
+   Evas_Object *obj = efl_add(MY_CLASS, parent, elm_obj_glview_version_constructor(efl_added, version));
    return obj;
 }
 
@@ -361,11 +365,11 @@ _elm_glview_version_constructor(Eo *obj, Elm_Glview_Data *sd,
    efl_canvas_object_type_set(obj, MY_CLASS_NAME_LEGACY);
    evas_object_smart_callbacks_descriptions_set(obj, _smart_callbacks);
    elm_interface_atspi_accessible_role_set(obj, ELM_ATSPI_ROLE_ANIMATION);
-   eo_event_callback_add(obj, EO_EVENT_CALLBACK_ADD, _cb_added, NULL);
+   efl_event_callback_add(obj, EFL_EVENT_CALLBACK_ADD, _cb_added, NULL);
 }
 
 EOLIAN static Eo *
-_elm_glview_eo_base_finalize(Eo *obj, Elm_Glview_Data *sd)
+_elm_glview_efl_object_finalize(Eo *obj, Elm_Glview_Data *sd)
 {
    if (!sd->evasgl)
      {
@@ -373,7 +377,7 @@ _elm_glview_eo_base_finalize(Eo *obj, Elm_Glview_Data *sd)
         return NULL;
      }
 
-   return eo_finalize(eo_super(obj, MY_CLASS));
+   return efl_finalize(efl_super(obj, MY_CLASS));
 }
 
 EOLIAN static Evas_GL_API*
@@ -528,13 +532,13 @@ _elm_glview_draw_request(Eo *obj, Elm_Glview_Data *sd)
 {
    ELM_WIDGET_DATA_GET_OR_RETURN(obj, wd);
 
-   evas_object_image_pixels_dirty_set
-     (wd->resize_obj, EINA_TRUE);
+   evas_object_image_pixels_dirty_set(wd->resize_obj, EINA_TRUE);
+   evas_object_image_data_update_add(wd->resize_obj, 0, 0, sd->w, sd->h);
    if (sd->render_policy == ELM_GLVIEW_RENDER_POLICY_ALWAYS &&
        !sd->render_idle_enterer)
-     sd->render_idle_enterer = eo_event_callback_priority_add(ecore_main_loop_get(),
+     sd->render_idle_enterer = efl_event_callback_priority_add(ecore_main_loop_get(),
                                                               EFL_LOOP_EVENT_IDLE_ENTER,
-                                                              EO_CALLBACK_PRIORITY_BEFORE,
+                                                              EFL_CALLBACK_PRIORITY_BEFORE,
                                                               _render_cb, obj);
 }
 
@@ -551,7 +555,7 @@ _elm_glview_rotation_get(Eo *obj EINA_UNUSED, Elm_Glview_Data *sd)
 }
 
 static void
-_elm_glview_class_constructor(Eo_Class *klass)
+_elm_glview_class_constructor(Efl_Class *klass)
 {
    evas_smart_legacy_type_register(MY_CLASS_NAME_LEGACY, klass);
 }

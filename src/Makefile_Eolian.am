@@ -14,7 +14,6 @@ lib_eolian_libeolian_la_SOURCES = \
                                   lib/eolian/eolian.c \
                                   lib/eolian/eolian_database.c \
                                   lib/eolian/eolian_database.h \
-                                  lib/eolian/database_fill.c \
                                   lib/eolian/database_class.c \
                                   lib/eolian/database_class_api.c \
                                   lib/eolian/database_function.c \
@@ -48,19 +47,16 @@ bin_PROGRAMS += \
                 bin/eolian/eolian_gen
 
 bin_eolian_eolian_gen_SOURCES = \
-                bin/eolian/common_funcs.c \
-                bin/eolian/common_funcs.h \
-                bin/eolian/eo_generator.c \
-                bin/eolian/eo_generator.h \
-                bin/eolian/impl_generator.c \
-                bin/eolian/impl_generator.h \
-                bin/eolian/legacy_generator.c \
-                bin/eolian/legacy_generator.h \
-                bin/eolian/types_generator.c \
-                bin/eolian/types_generator.h \
-                bin/eolian/docs_generator.c \
-                bin/eolian/docs_generator.h \
-                bin/eolian/main.c
+                bin/eolian/main.c \
+                bin/eolian/main.h \
+                bin/eolian/types.c \
+                bin/eolian/types.h \
+                bin/eolian/headers.c \
+                bin/eolian/headers.h \
+                bin/eolian/sources.c \
+                bin/eolian/sources.h \
+                bin/eolian/docs.c \
+                bin/eolian/docs.h
 
 bin_eolian_eolian_gen_CPPFLAGS = -I$(top_builddir)/src/lib/efl @EOLIAN_CFLAGS@
 bin_eolian_eolian_gen_LDADD = @USE_EOLIAN_LIBS@
@@ -111,18 +107,19 @@ tests/eolian/eolian_suite
 tests_eolian_eolian_suite_SOURCES = \
 tests/eolian/eolian_parsing.c \
 tests/eolian/eolian_generation.c \
-tests/eolian/eolian_generated_promise.c \
+tests/eolian/eolian_generated_future.c \
 tests/eolian/eolian_suite.c \
 tests/eolian/eolian_suite.h
 
-tests/eolian/tests_eolian_eolian_suite-eolian_generated_promise.$(OBJEXT): tests/eolian/generated_promise.eo.h tests/eolian/generated_promise.eo.c
+tests/eolian/tests_eolian_eolian_suite-eolian_generated_future.$(OBJEXT): tests/eolian/generated_future.eo.h tests/eolian/generated_future.eo.c
 
-CLEANFILES += tests/eolian/generated_promise.eo.h tests/eolian/generated_promise.eo.c
+CLEANFILES += tests/eolian/generated_future.eo.h tests/eolian/generated_future.eo.c
 
 tests_eolian_eolian_suite_CPPFLAGS = -I$(top_builddir)/src/lib/efl -I$(top_builddir)/src/tests/eolian \
 -DTESTS_BUILD_DIR=\"$(top_builddir)/src/tests/eolian\" \
 -DPACKAGE_DATA_DIR=\"$(top_srcdir)/src/tests/eolian\" \
 -DPACKAGE_BUILD_DIR=\"$(abs_top_builddir)\" \
+-DEOLIAN_GEN="\"$(EOLIAN_GEN)\"" \
 @CHECK_CFLAGS@ \
 @EOLIAN_CFLAGS@ @EO_CFLAGS@
 TESTS += tests/eolian/eolian_suite
@@ -147,5 +144,5 @@ tests/eolian/data/class_simple_ref_legacy.h \
 tests/eolian/data/import_types_ref.h \
 tests/eolian/data/docs_ref.h \
 tests/eolian/data/docs_ref_legacy.h \
-tests/eolian/generated_promise.eo \
+tests/eolian/generated_future.eo \
 $(EOLIAN_TESTS_EOS)

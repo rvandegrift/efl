@@ -7,21 +7,22 @@ struct Elm.Event.Policy_Changed
 }
 
 /* FIXME: These shouldn't be here, we don't do functions in eolian!!! */
-type Elm_Gen_Item_Text_Get_Cb: __undefined_type;
-type Elm_Gen_Item_Content_Get_Cb: __undefined_type;
-type Elm_Gen_Item_State_Get_Cb: __undefined_type;
-type Elm_Gen_Item_Del_Cb: __undefined_type;
-type Elm_Gen_Item_Filter_Get_Cb: __undefined_type;
-type Elm_Gen_Item_Reusable_Content_Get_Cb: __undefined_type;
-type Elm_Tooltip_Item_Content_Cb: __undefined_type;
-type Elm_Object_Item_Signal_Cb: __undefined_type;
-type Elm_Event_Cb: __undefined_type;
-type Evas_Smart_Cb: __undefined_type;
-type Eina_Compare_Cb: __undefined_type;
+type Elm_Gen_Item_Text_Get_Cb: __undefined_type; [[Elementary genlist/gengrid item text callback type]]
+type Elm_Gen_Item_Content_Get_Cb: __undefined_type; [[Elementary genlist/gengrid item content callback type]]
+type Elm_Gen_Item_State_Get_Cb: __undefined_type; [[Elementary genlist/gengrid item state callback type]]
+type Elm_Gen_Item_Del_Cb: __undefined_type; [[Elementary genlist/gengrid item del callback type]]
+type Elm_Gen_Item_Filter_Get_Cb: __undefined_type; [[Elementary genlist/gengrid item filter callback type]]
+type Elm_Gen_Item_Reusable_Content_Get_Cb: __undefined_type; [[Elementary genlist/gengrid item reusable content callback type]]
+type Elm_Tooltip_Item_Content_Cb: __undefined_type; [[Elementary tooltip item content callback type]]
+type Elm_Object_Item_Signal_Cb: __undefined_type; [[Elementary object item signal callback type]]
+type Elm_Event_Cb: __undefined_type; [[Elementary event callback type]]
+type Evas_Smart_Cb: __undefined_type; [[Evas smart callback type]]
+type Eina_Compare_Cb: __undefined_type; [[Eina compare callback type]]
 
 /* FIXME: This shouldn't be here, we don't do functions in eolian!!! */
 struct Elm.Gen.Item.Class.Functions
 {
+   [[Elementary genlist/gengrid callback functions data structure]]
    text_get: Elm_Gen_Item_Text_Get_Cb; [[ Text fetching class function for
                                           genlist/gengrid item classes. ]]
    content_get: Elm_Gen_Item_Content_Get_Cb; [[ Content fetching class function
@@ -48,13 +49,13 @@ struct Elm.Gen.Item.Class
                               its managed for you by class ref/unref calls. ]]
    delete_me: bool; [[ Leave this alone - set it to 0 if you have a
                                const class of your own. ]]
-   item_style: const(char) *; [[ Name of the visual style to use for this item.
+   item_style: string; [[ Name of the visual style to use for this item.
                                 If you don't know use "default". ]]
-   decorate_item_style: const(char) *; [[ Style used if item is set to a decorate
+   decorate_item_style: string; [[ Style used if item is set to a decorate
                                          mode. see elm_genlist_item_decorate_mode_set()
                                          or NULL if you don't care. currently
                                          it's used only in genlist. ]]
-   decorate_all_item_style: const(char) *; [[ Style to use when in edit mode, or
+   decorate_all_item_style: string; [[ Style to use when in edit mode, or
                                              NULL if you don't care. Currently
                                              it's used only in genlist. ]]
    func: Elm.Gen.Item.Class.Functions; [[ Set of callbacks ]]
@@ -92,7 +93,7 @@ enum Elm.Policy
 
                @since 1.8
              ]]
-   last
+   last [[Sentinel value to indicate last enum field during iteration]]
 }
 
 enum Elm.Policy.Quit
@@ -177,7 +178,7 @@ enum Elm.Wrap.Type
    char,     [[Char wrap - wrap between characters.]]
    word,     [[Word wrap - wrap in allowed wrapping points (as defined in the unicode standard).]]
    mixed,    [[Mixed wrap - Word wrap, and if that fails, char wrap.]]
-   last
+   last      [[Sentinel value to indicate last enum field during iteration]]
 }
 
 enum Elm.Focus_Direction
@@ -212,15 +213,6 @@ enum Efl.Ui.Focus.Move_Policy
                Left, Right, Up, Down, Tab, or Shift+Tab.]]
 }
 
-enum Elm.App.View_State
-{
-   unknown = 0,
-   live,
-   paused,
-   closed,
-   shallow,
-}
-
 enum Elm.Prefs.Reset_Mode
 {
    [[Modes of resetting a prefs widget.
@@ -236,7 +228,7 @@ enum Elm.Prefs.Item_Type
    [[Elm Prefs item types.
      @since 1.8]]
    legacy: elm_prefs_type;
-   unknown = 0,
+   unknown = 0, [[Unknown type]]
    action, [[action type, bound to button-like UI elements]]
    bool, [[boolean type, bound to checkbox-like UI elements]]
    int, [[integer type, bound to spinner-like UI elements]]
@@ -284,4 +276,13 @@ enum Efl.Ui.Softcursor_Mode
    auto, [[Auto-detect if a software cursor should be used (default).]]
    on,   [[Always use a softcursor.]]
    off   [[Never use a softcursor.]]
+}
+
+enum Elm.Icon.Type
+{
+   [[Elementary icon types]]
+   legacy: elm_icon;
+   none, [[Icon has no type set]]
+   file, [[Icon is of type file]]
+   standard [[Icon is of type standard]]
 }

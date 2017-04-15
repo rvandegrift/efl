@@ -132,11 +132,15 @@ _cb_server_add(void *data EINA_UNUSED, int type EINA_UNUSED, void *event)
    return ECORE_CALLBACK_DONE;
 }
 
+static Ecore_Timer *reconnect_timer = NULL;
+static unsigned int reconnect_count = 0;
+
 static Eina_Bool
-_cb_server_del(void *data EINA_UNUSED, int type EINA_UNUSED, void *event)
+_cb_server_reconnect(void *data EINA_UNUSED)
 {
-   IPC_HEAD(Del);
-   ipc = NULL;
+   if (reconnect_timer) ecore_timer_del(reconnect_timer);
+   reconnect_timer = NULL;
+   reconnect_count++;
    _ipc_launch();
    if (ipc)
      {
@@ -148,6 +152,32 @@ _cb_server_del(void *data EINA_UNUSED, int type EINA_UNUSED, void *event)
         ecore_ipc_server_send(ipc, 1, 0, 0, 0, 0, s, len);
         efreet_icon_extensions_refresh();
      }
+   return EINA_FALSE;
+}
+
+static Eina_Bool
+_cb_server_del(void *data EINA_UNUSED, int type EINA_UNUSED, void *event)
+{
+   static double last_del = 0.0;
+   double t;
+   IPC_HEAD(Del);
+   ipc = NULL;
+   if (reconnect_count > 10)
+     {
+        reconnect_timer = NULL;
+        CRI("efreetd connection failed 10 times! check for stale socket files in %s/.ecore/efreetd",
+          efreet_runtime_dir_get());
+        return EINA_FALSE;
+     }
+   t = ecore_time_get();
+   if ((t - last_del) < 0.5)
+     {
+        if (reconnect_timer) ecore_timer_del(reconnect_timer);
+        reconnect_timer = ecore_timer_add(0.5, _cb_server_reconnect, NULL);
+     }
+   else
+     _cb_server_reconnect(NULL);
+   last_del = t;
    return ECORE_CALLBACK_DONE;
 }
 
@@ -203,6 +233,8 @@ _icon_desktop_cache_update_event_add(int event_type)
    ecore_event_add(event_type, ev, icon_cache_update_free, l);
 }
 
+EAPI void (*_efreet_mime_update_func) (void) = NULL;
+
 static Eina_Bool
 _cb_server_data(void *data EINA_UNUSED, int type EINA_UNUSED, void *event)
 {
@@ -222,6 +254,10 @@ _cb_server_data(void *data EINA_UNUSED, int type EINA_UNUSED, void *event)
    else if (e->major == 3) // desktop cache update
      {
         _icon_desktop_cache_update_event_add(EFREET_EVENT_DESKTOP_CACHE_UPDATE);
+     }
+   else if (e->major == 4) // mime cache update
+     {
+        if (_efreet_mime_update_func) _efreet_mime_update_func();
      }
    return ECORE_CALLBACK_DONE;
 }
@@ -247,9 +283,12 @@ efreet_cache_init(void)
         ERR("Failed to create directory '%s'", buf);
     }
 
-    EFREET_EVENT_ICON_CACHE_UPDATE = ecore_event_type_new();
-    EFREET_EVENT_DESKTOP_CACHE_UPDATE = ecore_event_type_new();
-    EFREET_EVENT_DESKTOP_CACHE_BUILD = ecore_event_type_new();
+    if (EFREET_EVENT_ICON_CACHE_UPDATE == 0)
+      {
+         EFREET_EVENT_ICON_CACHE_UPDATE = ecore_event_type_new();
+         EFREET_EVENT_DESKTOP_CACHE_UPDATE = ecore_event_type_new();
+         EFREET_EVENT_DESKTOP_CACHE_BUILD = ecore_event_type_new();
+      }
 
     themes = eina_hash_string_superfast_new(EINA_FREE_CB(efreet_cache_icon_theme_free));
     icons = eina_hash_string_superfast_new(EINA_FREE_CB(efreet_cache_icon_free));
@@ -314,6 +353,10 @@ void
 efreet_cache_shutdown(void)
 {
     Efreet_Old_Cache *d;
+
+    ecore_event_type_flush(EFREET_EVENT_ICON_CACHE_UPDATE,
+                           EFREET_EVENT_DESKTOP_CACHE_UPDATE,
+                           EFREET_EVENT_DESKTOP_CACHE_BUILD);
 
     IF_RELEASE(theme_name);
 

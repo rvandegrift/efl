@@ -101,7 +101,7 @@ EOLIAN static Elm_Theme_Apply
 _efl_ui_flip_elm_widget_theme_apply(Eo *obj, Efl_Ui_Flip_Data *sd EINA_UNUSED)
 {
    Elm_Theme_Apply int_ret = ELM_THEME_APPLY_FAILED;
-   int_ret = elm_obj_widget_theme_apply(eo_super(obj, MY_CLASS));
+   int_ret = elm_obj_widget_theme_apply(efl_super(obj, MY_CLASS));
    if (!int_ret) return ELM_THEME_APPLY_FAILED;
 
    _sizing_eval(obj);
@@ -175,7 +175,7 @@ _efl_ui_flip_elm_widget_sub_object_add(Eo *obj, Efl_Ui_Flip_Data *_pd EINA_UNUSE
    if (evas_object_data_get(sobj, "elm-parent") == obj)
      return EINA_TRUE;
 
-   int_ret = elm_obj_widget_sub_object_add(eo_super(obj, MY_CLASS), sobj);
+   int_ret = elm_obj_widget_sub_object_add(efl_super(obj, MY_CLASS), sobj);
    if (!int_ret) return EINA_FALSE;
 
    evas_object_data_set(sobj, "_elm_leaveme", sobj);
@@ -193,7 +193,7 @@ _efl_ui_flip_elm_widget_sub_object_del(Eo *obj, Efl_Ui_Flip_Data *sd, Evas_Objec
    Eina_Bool int_ret = EINA_FALSE;
 
 
-   int_ret = elm_obj_widget_sub_object_del(eo_super(obj, MY_CLASS), sobj);
+   int_ret = elm_obj_widget_sub_object_del(efl_super(obj, MY_CLASS), sobj);
    if (!int_ret) return EINA_FALSE;
 
    if (sobj == sd->front.content)
@@ -304,7 +304,7 @@ _slice_3d(Efl_Ui_Flip_Data *sd EINA_UNUSED,
           Evas_Coord w,
           Evas_Coord h)
 {
-   Evas_Map *m = (Evas_Map *)evas_object_map_get(sl->obj);
+   Evas_Map *m = evas_map_dup(evas_object_map_get(sl->obj));
    int i;
 
    if (!m) return;
@@ -322,6 +322,7 @@ _slice_3d(Efl_Ui_Flip_Data *sd EINA_UNUSED,
    else evas_object_hide(sl->obj);
 
    evas_object_map_set(sl->obj, m);
+   evas_map_free(m);
 }
 
 static void
@@ -511,7 +512,7 @@ _slice_obj_vert_color_merge(Slice *s1,
 static int
 _state_update(Evas_Object *obj)
 {
-   Efl_Ui_Flip_Data *sd = eo_data_scope_get(obj, MY_CLASS);
+   Efl_Ui_Flip_Data *sd = efl_data_scope_get(obj, MY_CLASS);
    Slice *sl;
    Vertex3 *tvo, *tvol;
    Evas_Object *front, *back;
@@ -873,6 +874,41 @@ _state_update(Evas_Object *obj)
 }
 
 static void
+_cross_fade_update(Evas_Object *obj, double t)
+{
+   int ca, cb;
+   Evas_Object *aclip, *bclip;
+   Eina_Bool front;
+   double s;
+   EFL_UI_FLIP_DATA_GET(obj, sd);
+   front = sd->next_state;
+
+   s = sin(t * M_PI_2);  // fade in sinusoidally
+   t = s * s;
+   ca = 255 * t;
+   if (ca < 0) ca = 0;
+   if (ca > 255) ca = 255;
+
+   cb = sqrt(255 * 255 - ca * ca);
+   if (cb < 0) cb = 0;
+   if (cb > 255) cb = 255;
+
+   if (front)
+     {
+         aclip = sd->front.clip;
+         bclip = sd->back.clip;
+     }
+   else
+     {
+         aclip = sd->back.clip;
+         bclip = sd->front.clip;
+     }
+
+   evas_object_color_set(aclip, ca, ca, ca, ca);
+   evas_object_color_set(bclip, cb, cb, cb, cb);
+}
+
+static void
 _state_end(Efl_Ui_Flip_Data *sd)
 {
    _state_slices_clear(sd);
@@ -940,7 +976,7 @@ _map_uv_set(Evas_Object *obj, Evas_Map *map)
    Evas_Coord x, y, w, h;
 
    // FIXME: only handles filled obj
-   if (eo_isa(obj, EFL_CANVAS_IMAGE_INTERNAL_CLASS) &&
+   if (efl_isa(obj, EFL_CANVAS_IMAGE_INTERNAL_CLASS) &&
        !evas_object_image_source_get(obj))
      {
         int iw, ih;
@@ -1308,6 +1344,13 @@ _flip(Evas_Object *obj)
              _flip_show_hide(obj);
              _state_update(obj);
           }
+        else if (sd->mode == ELM_FLIP_CROSS_FADE)
+          {
+             sd->dir = 0;
+             sd->started = EINA_TRUE;
+             sd->pageflip = EINA_FALSE;
+             _cross_fade_update(obj, t);
+          }
         else
           _flip_do(obj, t, sd->mode, 0, 0);
      }
@@ -1337,7 +1380,15 @@ _flip(Evas_Object *obj)
           sd->state = sd->next_state;
         _configure(obj);
         _flip_show_hide(obj);
-        eo_event_callback_call(obj, EFL_UI_FLIP_EVENT_ANIMATE_DONE, NULL);
+
+        if (sd->mode == ELM_FLIP_CROSS_FADE)
+          {
+             // Make the content fully opaque again
+             evas_object_color_set(sd->front.clip, 255, 255, 255, 255);
+             evas_object_color_set(sd->back.clip, 255, 255, 255, 255);
+          }
+
+        efl_event_callback_legacy_call(obj, EFL_UI_FLIP_EVENT_ANIMATE_DONE, NULL);
 
         // update the new front and back object.
         _update_front_back(obj, sd);
@@ -1521,7 +1572,7 @@ _event_anim(void *data,
    _flip_show_hide(sd->obj);
    _configure(sd->obj);
    sd->animator = NULL;
-   eo_event_callback_call
+   efl_event_callback_legacy_call
      (sd->obj, EFL_UI_FLIP_EVENT_ANIMATE_DONE, NULL);
 
    return ECORE_CALLBACK_CANCEL;
@@ -1532,7 +1583,7 @@ _update_job(void *data)
 {
    Elm_Flip_Mode m = ELM_FLIP_ROTATE_X_CENTER_AXIS;
    Evas_Object *obj = data;
-   Efl_Ui_Flip_Data *sd = eo_data_scope_get(obj, MY_CLASS);
+   Efl_Ui_Flip_Data *sd = efl_data_scope_get(obj, MY_CLASS);
    int rev = 0;
    double p;
 
@@ -1708,7 +1759,7 @@ _move_cb(void *data,
              evas_smart_objects_calculate(evas_object_evas_get(data));
              _configure(fl);
              // FIXME: end hack
-             eo_event_callback_call(fl, EFL_UI_FLIP_EVENT_ANIMATE_BEGIN, NULL);
+             efl_event_callback_legacy_call(fl, EFL_UI_FLIP_EVENT_ANIMATE_BEGIN, NULL);
           }
         else return;
      }
@@ -1811,7 +1862,7 @@ _efl_ui_flip_content_unset(Eo *obj EINA_UNUSED, Efl_Ui_Flip_Data *_pd EINA_UNUSE
 EOLIAN static void
 _efl_ui_flip_efl_canvas_group_group_add(Eo *obj, Efl_Ui_Flip_Data *priv)
 {
-   efl_canvas_group_add(eo_super(obj, MY_CLASS));
+   efl_canvas_group_add(efl_super(obj, MY_CLASS));
    elm_widget_sub_object_parent_add(obj);
 
    priv->clip = evas_object_rectangle_add(evas_object_evas_get(obj));
@@ -1847,8 +1898,6 @@ _efl_ui_flip_efl_canvas_group_group_add(Eo *obj, Efl_Ui_Flip_Data *priv)
    priv->intmode = EFL_UI_FLIP_INTERACTION_NONE;
 
    elm_widget_can_focus_set(obj, EINA_FALSE);
-
-   _sizing_eval(obj);
 }
 
 EOLIAN static void
@@ -1857,21 +1906,21 @@ _efl_ui_flip_efl_canvas_group_group_del(Eo *obj, Efl_Ui_Flip_Data *sd)
    ecore_animator_del(sd->animator);
    _state_slices_clear(sd);
 
-   efl_canvas_group_del(eo_super(obj, MY_CLASS));
+   efl_canvas_group_del(efl_super(obj, MY_CLASS));
 }
 
 EAPI Evas_Object *
 elm_flip_add(Evas_Object *parent)
 {
    EINA_SAFETY_ON_NULL_RETURN_VAL(parent, NULL);
-   Evas_Object *obj = eo_add(MY_CLASS, parent);
+   Evas_Object *obj = efl_add(MY_CLASS, parent);
    return obj;
 }
 
 EOLIAN static Eo *
-_efl_ui_flip_eo_base_constructor(Eo *obj, Efl_Ui_Flip_Data *sd)
+_efl_ui_flip_efl_object_constructor(Eo *obj, Efl_Ui_Flip_Data *sd)
 {
-   obj = eo_constructor(eo_super(obj, MY_CLASS));
+   obj = efl_constructor(efl_super(obj, MY_CLASS));
    sd->obj = obj;
 
    efl_canvas_object_type_set(obj, MY_CLASS_NAME_LEGACY);
@@ -1893,7 +1942,7 @@ elm_flip_perspective_set(Evas_Object *obj,
                          Evas_Coord x EINA_UNUSED,
                          Evas_Coord y EINA_UNUSED)
 {
-   ELM_FLIP_CHECK(obj);
+   EFL_UI_FLIP_CHECK(obj);
 }
 
 // FIXME: add ambient and lighting control
@@ -1905,7 +1954,6 @@ _internal_elm_flip_go_to(Evas_Object *obj,
                 Elm_Flip_Mode mode)
 {
    if (!sd->animator) sd->animator = ecore_animator_add(_animate, obj);
-   _flip_show_hide(obj);
 
    sd->mode = mode;
    sd->start = ecore_loop_time_get();
@@ -1919,6 +1967,33 @@ _internal_elm_flip_go_to(Evas_Object *obj,
      sd->pageflip = EINA_TRUE;
    // force calc to contents are the right size before transition
    evas_smart_objects_calculate(evas_object_evas_get(obj));
+
+   if (sd->mode == ELM_FLIP_CROSS_FADE)
+     {
+        // Convention: a is fading in, b is fading out
+        Evas_Object *a, *b;
+        if (front)
+          {
+             a = sd->front.content;
+             b = sd->back.content;
+          }
+        else
+          {
+             a = sd->back.content;
+             b = sd->front.content;
+          }
+
+        // Stack fade-in content on top of fade-out content
+        if (a && b) evas_object_stack_above(a, b);
+
+        evas_object_show(sd->front.clip);
+        evas_object_show(sd->back.clip);
+     }
+   else
+     {
+        _flip_show_hide(obj);
+     }
+
    _flip(obj);
    // FIXME: hack around evas rendering bug (only fix makes evas bitch-slow)
    evas_object_map_enable_set(sd->front.content, EINA_FALSE);
@@ -1928,7 +2003,8 @@ _internal_elm_flip_go_to(Evas_Object *obj,
    evas_smart_objects_calculate(evas_object_evas_get(obj));
    _configure(obj);
    // FIXME: end hack
-   eo_event_callback_call(obj, EFL_UI_FLIP_EVENT_ANIMATE_BEGIN, NULL);
+
+   efl_event_callback_legacy_call(obj, EFL_UI_FLIP_EVENT_ANIMATE_BEGIN, NULL);
 
    // set focus to the content object when flip go to is called
    if (elm_object_focus_get(obj))
@@ -2254,7 +2330,7 @@ _efl_ui_flip_efl_pack_linear_pack_index_get(Eo *obj EINA_UNUSED, Efl_Ui_Flip_Dat
 }
 
 static void
-_efl_ui_flip_class_constructor(Eo_Class *klass)
+_efl_ui_flip_class_constructor(Efl_Class *klass)
 {
    evas_smart_legacy_type_register(MY_CLASS_NAME_LEGACY, klass);
 }

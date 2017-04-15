@@ -1,18 +1,20 @@
 class Ector.Renderer.Software.Buffer (Ector.Renderer.Software, Ector.Renderer.Buffer)
 {
+   [[Ecto software renderer buffer class]]
    methods {
       @property buffer {
+      	 [[Buffer property]]
          set {}
          get {}
          values {
-            buf: Ector.Buffer;
+            buf: Ector.Buffer; [[Buffer]]
          }
       }
    }
    implements {
       Ector.Renderer.prepare;
-      Ector.Renderer.crc.get;
+      Ector.Renderer.crc { get; }
       Ector.Renderer.Software.fill;
-      Eo.Base.destructor;
+      Efl.Object.destructor;
    }
 }

@@ -1,5 +1,6 @@
 class Elm.Flipselector.Item(Elm.Widget.Item)
 {
+   [[Elementary flipselector item class]]
    legacy_prefix: elm_flipselector_item;
    eo_prefix: elm_obj_flipselector_item;
    methods {
@@ -46,10 +47,9 @@ class Elm.Flipselector.Item(Elm.Widget.Item)
         }
    }
    implements {
-        Eo.Base.constructor;
-        Eo.Base.destructor;
+        Efl.Object.constructor;
+        Efl.Object.destructor;
         Elm.Widget.Item.signal_emit;
-        Elm.Widget.Item.part_text.get;
-        Elm.Widget.Item.part_text.set;
+        Elm.Widget.Item.part_text { get; set; }
    }
 }

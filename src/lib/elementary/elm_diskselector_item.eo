@@ -1,5 +1,6 @@
 class Elm.Diskselector.Item(Elm.Widget.Item)
 {
+      [[Elementary diskselector item class]]
       legacy_prefix: elm_diskselector_item;
       eo_prefix: elm_obj_diskselector_item;
       methods {
@@ -81,11 +82,9 @@ class Elm.Diskselector.Item(Elm.Widget.Item)
                    }*/
       }
       implements {
-           Eo.Base.constructor;
-           Eo.Base.destructor;
-           Elm.Widget.Item.part_text.get;
-           Elm.Widget.Item.part_text.set;
-           Elm.Widget.Item.part_content.get;
-           Elm.Widget.Item.part_content.set;
+           Efl.Object.constructor;
+           Efl.Object.destructor;
+           Elm.Widget.Item.part_text { get; set; }
+           Elm.Widget.Item.part_content { get; set; }
       }
 }

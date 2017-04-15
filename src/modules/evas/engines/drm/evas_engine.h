@@ -48,7 +48,6 @@ typedef struct _Outbuf_Fb
 
    Eina_Bool valid : 1;
    Eina_Bool drawn : 1;
-   Eina_Bool busy : 1;
 } Outbuf_Fb;
 
 struct _Outbuf
@@ -59,13 +58,12 @@ struct _Outbuf
    struct
      {
         int num;
-        Outbuf_Fb ofb[4], *draw, *display;
+        Outbuf_Fb ofb[4], *draw;
         Ecore_Drm2_Output *output;
         Eina_List *pending;
+        Eina_Rectangle *rects;
+        unsigned int rect_count;
      } priv;
-
-   drmEventContext ctx;
-   Ecore_Fd_Handler *hdlr;
 
    Eina_Bool alpha : 1;
    Eina_Bool vsync : 1;
@@ -79,6 +77,7 @@ Render_Engine_Swap_Mode _outbuf_state_get(Outbuf *ob);
 void *_outbuf_update_region_new(Outbuf *ob, int x, int y, int w, int h, int *cx, int *cy, int *cw, int *ch);
 void _outbuf_update_region_push(Outbuf *ob, RGBA_Image *update, int x, int y, int w, int h);
 void _outbuf_update_region_free(Outbuf *ob, RGBA_Image *update);
-void _outbuf_flush(Outbuf *ob, Tilebuf_Rect *rects, Evas_Render_Mode render_mode);
+void _outbuf_flush(Outbuf *ob, Tilebuf_Rect *surface_damage, Tilebuf_Rect *buffer_damage, Evas_Render_Mode render_mode);
+void _outbuf_redraws_clear(Outbuf *ob);
 
 #endif

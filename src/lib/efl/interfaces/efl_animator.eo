@@ -1,10 +1,12 @@
 import eina_types;
 
 struct Efl.Event.Animator_Tick {
+   [[EFL event animator tick data structure]]
    update_area: Eina.Rectangle; [[Area of the canvas that will be pushed to screen.]]
 }
 
 interface Efl.Animator {
+   [[Efl animator interface]]
    eo_prefix: efl_animator;
    event_prefix: efl;
    events {

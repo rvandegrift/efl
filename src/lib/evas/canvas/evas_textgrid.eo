@@ -3,9 +3,9 @@ enum Evas.Textgrid.Palette {
 
      @since 1.7]]
    none,     [[No palette is used]]
-   standard, [[standard palette (around 16 colors)]]
-   extended, [[extended palette (at max 256 colors)]]
-   last      [[ignore it]]
+   standard, [[Standard palette (around 16 colors)]]
+   extended, [[Extended palette (at max 256 colors)]]
+   last      [[Sentinel value to indicate last enum field during iteration]]
 }
 
 enum Evas.Textgrid.Font_Style {
@@ -18,10 +18,11 @@ enum Evas.Textgrid.Font_Style {
 }
 
 /* XXX: Actual definition is in C. */
-struct Evas.Textgrid.Cell;
+struct Evas.Textgrid.Cell; [[Evas textgrid cell data structure]]
 
 class Evas.Textgrid (Efl.Canvas.Object, Efl.Text.Properties)
 {
+   [[Evas textgrid class]]
    legacy_prefix: evas_object_textgrid;
    eo_prefix: evas_obj_textgrid;
    methods {
@@ -126,7 +127,7 @@ class Evas.Textgrid (Efl.Canvas.Object, Efl.Text.Properties)
 
          params {
             @in y: int; [[The row index of the grid.]]
-            @in row: const(Evas.Textgrid.Cell)*; [[The string as a sequence of #Evas_Textgrid_Cell.]]
+            @in row: ptr(const(Evas.Textgrid.Cell)); [[The string as a sequence of #Evas_Textgrid_Cell.]]
          }
       }
       cellrow_get @const {
@@ -139,7 +140,7 @@ class Evas.Textgrid (Efl.Canvas.Object, Efl.Text.Properties)
            See also @.cellrow_set, @.size.set and @.update_add.
 
            @since 1.7]]
-         return: Evas.Textgrid.Cell*; [[A pointer to the first cell of the given row.]]
+         return: ptr(Evas.Textgrid.Cell); [[A pointer to the first cell of the given row.]]
          params {
             @in y: int; [[The row index of the grid.]]
          }
@@ -196,12 +197,10 @@ class Evas.Textgrid (Efl.Canvas.Object, Efl.Text.Properties)
       }
    }
    implements {
-      Eo.Base.constructor;
-      Eo.Base.destructor;
-      Eo.Base.dbg_info_get;
-      Efl.Text.Properties.font.get;
-      Efl.Text.Properties.font.set;
-      Efl.Text.Properties.font_source.get;
-      Efl.Text.Properties.font_source.set;
+      Efl.Object.constructor;
+      Efl.Object.destructor;
+      Efl.Object.dbg_info_get;
+      Efl.Text.Properties.font { get; set; }
+      Efl.Text.Properties.font_source { get; set; }
    }
 }

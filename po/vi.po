@@ -3,12 +3,12 @@
 # This file is put in the public domain.
 # Thiep Ha <thiepha@gmail.com>, 2015.
 #
-#: src/lib/elementary/elm_config.c:3766
+#: src/lib/elementary/elm_config.c:3747
 msgid ""
 msgstr ""
 "Project-Id-Version: elementary\n"
 "Report-Msgid-Bugs-To: enlightenment-devel@lists.sourceforge.net\n"
-"POT-Creation-Date: 2016-12-07 15:32+0100\n"
+"POT-Creation-Date: 2017-04-12 10:30+0200\n"
 "PO-Revision-Date: 2015-09-29 18:06+0900\n"
 "Last-Translator: Thiep Ha <thiepha@gmail.com>\n"
 "Language-Team: General\n"
@@ -143,158 +143,171 @@ msgstr "không định nghĩa giấy phép.\n"
 msgid "ERROR: unknown option --%s, ignored.\n"
 msgstr "LỖI: không rõ lựa chọn --%s, bỏ qua.\n"
 
-#: src/lib/ecore/ecore_getopt.c:1703
+#: src/lib/ecore/ecore_getopt.c:1710
 #, c-format
 msgid "ERROR: option --%s requires an argument!\n"
 msgstr "LỖI: lựa chọn --%s đòi hỏi một tham số!\n"
 
-#: src/lib/ecore/ecore_getopt.c:1745
+#: src/lib/ecore/ecore_getopt.c:1752
 #, c-format
 msgid "ERROR: unknown option -%c, ignored.\n"
 msgstr "LỖI: không rõ lựa chọn -%c, bỏ qua.\n"
 
-#: src/lib/ecore/ecore_getopt.c:1783
+#: src/lib/ecore/ecore_getopt.c:1797
 #, c-format
 msgid "ERROR: option -%c requires an argument!\n"
 msgstr "LỖI: lựa chọn -%c đòi hỏi một tham số!\n"
 
-#: src/lib/ecore/ecore_getopt.c:1878
+#: src/lib/ecore/ecore_getopt.c:1892
 #, c-format
 msgid "ERROR: missing required positional argument %s.\n"
 msgstr "LỖI: thiếu tham số vị trí được yêu cầu %s.\n"
 
-#: src/lib/ecore/ecore_getopt.c:1910
+#: src/lib/ecore/ecore_getopt.c:1924
 #, c-format
 msgid "ERROR: unsupported action type %d for positional argument %s\n"
 msgstr "LỖI: kiểu hoạt động không được hỗ trợ %d cho tham số vị trí %s\n"
 
-#: src/lib/ecore/ecore_getopt.c:2031 src/lib/ecore/ecore_getopt.c:2097
+#: src/lib/ecore/ecore_getopt.c:2045 src/lib/ecore/ecore_getopt.c:2111
 msgid "ERROR: no parser provided.\n"
 msgstr "LỖI: không cung cấp bộ phân tích.\n"
 
-#: src/lib/ecore/ecore_getopt.c:2036 src/lib/ecore/ecore_getopt.c:2102
+#: src/lib/ecore/ecore_getopt.c:2050 src/lib/ecore/ecore_getopt.c:2116
 msgid "ERROR: no values provided.\n"
 msgstr "LỖI: không cung cấp giá trị.\n"
 
-#: src/lib/ecore/ecore_getopt.c:2045 src/lib/ecore/ecore_getopt.c:2111
+#: src/lib/ecore/ecore_getopt.c:2059 src/lib/ecore/ecore_getopt.c:2125
 msgid "ERROR: no arguments provided.\n"
 msgstr "LỖI: không cung cấp đối số.\n"
 
-#: src/lib/ecore/ecore_getopt.c:2071
+#: src/lib/ecore/ecore_getopt.c:2085
 msgid "ERROR: invalid options found."
 msgstr "LỖI: phát hiện các tùy chọn không hợp lệ."
 
-#: src/lib/ecore/ecore_getopt.c:2077 src/lib/ecore/ecore_getopt.c:2143
+#: src/lib/ecore/ecore_getopt.c:2091 src/lib/ecore/ecore_getopt.c:2157
 #, c-format
 msgid " See --%s.\n"
 msgstr "Xem --%s.\n"
 
-#: src/lib/ecore/ecore_getopt.c:2079 src/lib/ecore/ecore_getopt.c:2145
+#: src/lib/ecore/ecore_getopt.c:2093 src/lib/ecore/ecore_getopt.c:2159
 #, c-format
 msgid " See -%c.\n"
 msgstr "Xem -%c.\n"
 
-#: src/lib/ecore/ecore_getopt.c:2137
+#: src/lib/ecore/ecore_getopt.c:2151
 msgid "ERROR: invalid positional arguments found."
 msgstr "LỖI: phát hiện các đối số vị trí không hợp lệ."
 
-#: src/lib/ecore/ecore_getopt.c:2172
+#: src/lib/ecore/ecore_getopt.c:2186
 #, c-format
 msgid "ERROR: incorrect geometry value '%s'\n"
 msgstr "LỖI: giá trị hình học không đúng '%s'\n"
 
-#: src/lib/ecore/ecore_getopt.c:2190
+#: src/lib/ecore/ecore_getopt.c:2204
 #, c-format
 msgid "ERROR: incorrect size value '%s'\n"
 msgstr "LỖI: giá trị kích thước không đúng '%s'\n"
 
-#: src/lib/efreet/efreet_base.c:123
+#: src/lib/efreet/efreet_base.c:126
 msgid "Desktop"
 msgstr "Màn Hình Nền"
 
-#: src/lib/efreet/efreet_base.c:131
+#: src/lib/efreet/efreet_base.c:134
 msgid "Downloads"
 msgstr "Tải Về"
 
-#: src/lib/efreet/efreet_base.c:140
+#: src/lib/efreet/efreet_base.c:143
 msgid "Templates"
 msgstr "Mẫu"
 
-#: src/lib/efreet/efreet_base.c:149
+#: src/lib/efreet/efreet_base.c:152
 msgid "Public"
 msgstr "Công Cộng"
 
-#: src/lib/efreet/efreet_base.c:158
+#: src/lib/efreet/efreet_base.c:161
 msgid "Documents"
 msgstr "Tài Liệu"
 
-#: src/lib/efreet/efreet_base.c:166
+#: src/lib/efreet/efreet_base.c:169
 msgid "Music"
 msgstr "Âm Nhạc"
 
-#: src/lib/efreet/efreet_base.c:174
+#: src/lib/efreet/efreet_base.c:177
 msgid "Pictures"
 msgstr "Hình Ảnh"
 
-#: src/lib/efreet/efreet_base.c:182
+#: src/lib/efreet/efreet_base.c:186
 msgid "Videos"
 msgstr "Video"
 
-#: src/lib/elementary/elc_fileselector.c:1873
+#: src/lib/elementary/elc_fileselector.c:1902
 msgid "Up"
 msgstr "Trên"
 
-#: src/lib/elementary/elc_fileselector.c:1887
+#: src/lib/elementary/elc_fileselector.c:1916
 msgid "Home"
 msgstr "Trang Chủ"
 
-#: src/lib/elementary/elc_fileselector.c:1906
+#: src/lib/elementary/elc_fileselector.c:1935
 msgid "Search"
 msgstr "Tìm Kiếm"
 
-#: src/lib/elementary/elc_fileselector.c:2107
-#: src/lib/elementary/elm_entry.c:1700 src/lib/elementary/elm_entry.c:1725
+#: src/lib/elementary/elc_fileselector.c:2227
+#: src/lib/elementary/elm_entry.c:1707 src/lib/elementary/elm_entry.c:1732
 msgid "Cancel"
 msgstr "Hủy"
 
-#: src/lib/elementary/elc_fileselector.c:2117
+#: src/lib/elementary/elc_fileselector.c:2237
 msgid "OK"
 msgstr "Đồng Ý"
 
-#: src/lib/elementary/elc_multibuttonentry.c:675
+#: src/lib/elementary/elc_hoversel.c:428 src/lib/elementary/elm_button.c:278
+#: src/lib/elementary/elm_check.c:212 src/lib/elementary/elm_gengrid.c:1440
+#: src/lib/elementary/elm_genlist.c:1720 src/lib/elementary/elm_list.c:2176
+#: src/lib/elementary/elm_radio.c:216
+#: src/lib/elementary/elm_segment_control.c:529
+#: src/lib/elementary/elm_spinner.c:1002 src/lib/elementary/elm_toolbar.c:2377
+msgid "State: Disabled"
+msgstr "Trạng Thái: Không Khả Dụng"
+
+#: src/lib/elementary/elc_hoversel.c:627
+msgid "Hoversel"
+msgstr ""
+
+#: src/lib/elementary/elc_multibuttonentry.c:697
 msgid "multi button entry label"
 msgstr "Nhãn Của Bộ Nhập Nhiều Nút"
 
-#: src/lib/elementary/elc_multibuttonentry.c:697
+#: src/lib/elementary/elc_multibuttonentry.c:719
 msgid "multi button entry item"
 msgstr "Mục Của Bộ Nhập Nhiều Nút"
 
-#: src/lib/elementary/elc_multibuttonentry.c:1573
+#: src/lib/elementary/elc_multibuttonentry.c:1611
 msgid "multi button entry"
 msgstr "Bộ Nhập Nhiều Nút"
 
-#: src/lib/elementary/elc_naviframe.c:435
+#: src/lib/elementary/elc_naviframe.c:442
 msgid "Title"
 msgstr "Đề Mục"
 
-#: src/lib/elementary/elc_naviframe.c:984
-#: src/lib/elementary/elc_naviframe.c:1189
+#: src/lib/elementary/elc_naviframe.c:993
+#: src/lib/elementary/elc_naviframe.c:1211
 msgid "Back"
 msgstr "Quay Lại"
 
-#: src/lib/elementary/elc_naviframe.c:1288
+#: src/lib/elementary/elc_naviframe.c:1309
 msgid "Next"
 msgstr "Tiếp"
 
-#: src/lib/elementary/elc_popup.c:297 src/lib/elementary/elc_popup.c:955
+#: src/lib/elementary/elc_popup.c:299 src/lib/elementary/elc_popup.c:957
 msgid "Popup Title"
 msgstr "Tiêu Đề Hộp Thoại"
 
-#: src/lib/elementary/elc_popup.c:307 src/lib/elementary/elc_popup.c:1031
+#: src/lib/elementary/elc_popup.c:309 src/lib/elementary/elc_popup.c:1033
 msgid "Popup Body Text"
 msgstr "Văn Bản Thân Hộp Thoại"
 
-#: src/lib/elementary/elm_bubble.c:195
+#: src/lib/elementary/elm_bubble.c:196
 msgid "Bubble"
 msgstr "Bubble"
 
@@ -302,55 +315,47 @@ msgstr "Bubble"
 msgid "Clicked"
 msgstr "Đã Nhấp"
 
-#: src/lib/elementary/elm_button.c:278 src/lib/elementary/elm_check.c:212
-#: src/lib/elementary/elm_gengrid.c:1258 src/lib/elementary/elm_genlist.c:1715
-#: src/lib/elementary/elm_list.c:2176 src/lib/elementary/elm_radio.c:216
-#: src/lib/elementary/elm_segment_control.c:527
-#: src/lib/elementary/elm_spinner.c:1014 src/lib/elementary/elm_toolbar.c:2378
-msgid "State: Disabled"
-msgstr "Trạng Thái: Không Khả Dụng"
-
 #: src/lib/elementary/elm_button.c:303
 msgid "Button"
 msgstr "Nút"
 
-#: src/lib/elementary/elm_calendar.c:270
+#: src/lib/elementary/elm_calendar.c:272
 msgid "%B %Y"
 msgstr "%B %Y"
 
-#: src/lib/elementary/elm_calendar.c:276
+#: src/lib/elementary/elm_calendar.c:278
 msgid "%B"
 msgstr "%B"
 
-#: src/lib/elementary/elm_calendar.c:282
+#: src/lib/elementary/elm_calendar.c:284
 msgid "%Y"
 msgstr "%Y"
 
-#: src/lib/elementary/elm_calendar.c:396
+#: src/lib/elementary/elm_calendar.c:409
 msgid "calendar item"
 msgstr "Mục Của Lịch"
 
-#: src/lib/elementary/elm_calendar.c:423
+#: src/lib/elementary/elm_calendar.c:436
 msgid "calendar decrement month button"
 msgstr "Nút Giảm Tháng"
 
-#: src/lib/elementary/elm_calendar.c:429
+#: src/lib/elementary/elm_calendar.c:442
 msgid "calendar decrement year button"
 msgstr "Nút Giảm Năm"
 
-#: src/lib/elementary/elm_calendar.c:435
+#: src/lib/elementary/elm_calendar.c:448
 msgid "calendar increment month button"
 msgstr "Nút Tăng Tháng"
 
-#: src/lib/elementary/elm_calendar.c:441
+#: src/lib/elementary/elm_calendar.c:454
 msgid "calendar increment year button"
 msgstr "Nút Tăng Năm"
 
-#: src/lib/elementary/elm_calendar.c:446
+#: src/lib/elementary/elm_calendar.c:459
 msgid "calendar month"
 msgstr "Lịch Tháng"
 
-#: src/lib/elementary/elm_calendar.c:451
+#: src/lib/elementary/elm_calendar.c:464
 msgid "calendar year"
 msgstr "Lịch Năm"
 
@@ -388,63 +393,63 @@ msgstr "Trạng Thái: Có Thể Chỉnh Sửa"
 msgid "Clock"
 msgstr "Đồng Hồ"
 
-#: src/lib/elementary/elm_colorselector.c:910
+#: src/lib/elementary/elm_colorselector.c:913
 msgid "Pick a color"
 msgstr "Chọn Một Màu"
 
-#: src/lib/elementary/elm_colorselector.c:948
+#: src/lib/elementary/elm_colorselector.c:951
 msgid "R:"
 msgstr "Đỏ:"
 
-#: src/lib/elementary/elm_colorselector.c:950
+#: src/lib/elementary/elm_colorselector.c:953
 msgid "G:"
 msgstr "Xanh Lá Cây:"
 
-#: src/lib/elementary/elm_colorselector.c:952
+#: src/lib/elementary/elm_colorselector.c:955
 msgid "B:"
 msgstr "Xanh Da Trời:"
 
-#: src/lib/elementary/elm_colorselector.c:954
+#: src/lib/elementary/elm_colorselector.c:957
 msgid "A:"
 msgstr "Độ Mờ:"
 
-#: src/lib/elementary/elm_colorselector.c:1678
+#: src/lib/elementary/elm_colorselector.c:1680
 msgid "color selector palette item"
 msgstr "Mục Của Bảng Chọn Màu"
 
-#: src/lib/elementary/elm_config.c:3782
+#: src/lib/elementary/elm_config.c:3764
 msgid "default:LTR"
 msgstr "Mặc Định: Trái Sang Phải"
 
-#: src/lib/elementary/elm_dayselector.c:408
+#: src/lib/elementary/elm_dayselector.c:405
 msgid "day selector item"
 msgstr "Mục Của Bảng Chọn Ngày"
 
-#: src/lib/elementary/elm_diskselector.c:700
+#: src/lib/elementary/elm_diskselector.c:702
 msgid "diskselector item"
 msgstr "Mục Của Bộ Chọn Đĩa"
 
-#: src/lib/elementary/elm_entry.c:1687
-msgid "Copy"
-msgstr "Sao Chép"
-
-#: src/lib/elementary/elm_entry.c:1692
+#: src/lib/elementary/elm_entry.c:1697
 msgid "Cut"
 msgstr "Cắt"
 
-#: src/lib/elementary/elm_entry.c:1696 src/lib/elementary/elm_entry.c:1719
+#: src/lib/elementary/elm_entry.c:1700
+msgid "Copy"
+msgstr "Sao Chép"
+
+#: src/lib/elementary/elm_entry.c:1704 src/lib/elementary/elm_entry.c:1726
 msgid "Paste"
 msgstr "Dán"
 
-#: src/lib/elementary/elm_entry.c:1712
+#: src/lib/elementary/elm_entry.c:1719
 msgid "Select"
 msgstr "Chọn"
 
-#: src/lib/elementary/elm_entry.c:3791
+#: src/lib/elementary/elm_entry.c:3804
 msgid "Entry"
 msgstr "Bộ Nhập"
 
-#: src/lib/elementary/elm_gengrid.c:1288
+#: src/lib/elementary/elm_gengrid.c:1470
 msgid "Gengrid Item"
 msgstr "Mục Của Gengrid"
 
@@ -456,27 +461,27 @@ msgstr "Chỉ Mục"
 msgid "Index Item"
 msgstr "Mục Của Bộ Chỉ Mục"
 
-#: src/lib/elementary/elm_label.c:395
+#: src/lib/elementary/elm_label.c:408
 msgid "Label"
 msgstr "Nhãn"
 
-#: src/lib/elementary/elm_panel.c:74
+#: src/lib/elementary/elm_panel.c:85
 msgid "state: opened"
 msgstr "Trạng Thái: Mở"
 
-#: src/lib/elementary/elm_panel.c:75
+#: src/lib/elementary/elm_panel.c:86
 msgid "state: closed"
 msgstr "Trạng Thái: Đóng"
 
-#: src/lib/elementary/elm_panel.c:115
+#: src/lib/elementary/elm_panel.c:126
 msgid "A panel is open"
 msgstr "Một Bảng Đang Mở"
 
-#: src/lib/elementary/elm_panel.c:117
+#: src/lib/elementary/elm_panel.c:128
 msgid "Double tap to close panel menu"
 msgstr "Nhấn kép để đóng bảng chọn"
 
-#: src/lib/elementary/elm_panel.c:169
+#: src/lib/elementary/elm_panel.c:180
 msgid "panel button"
 msgstr "Nút Bảng"
 
@@ -488,16 +493,16 @@ msgstr "Thanh Trạng Thái"
 msgid "Radio"
 msgstr "Đài"
 
-#: src/lib/elementary/elm_segment_control.c:530
-#: src/lib/elementary/elm_toolbar.c:2380
+#: src/lib/elementary/elm_segment_control.c:532
+#: src/lib/elementary/elm_toolbar.c:2379
 msgid "State: Selected"
 msgstr "Trạng Thái: Đã Chọn"
 
-#: src/lib/elementary/elm_segment_control.c:532
+#: src/lib/elementary/elm_segment_control.c:534
 msgid "State: Unselected"
 msgstr "Trạng Thái: Chưa Chọn"
 
-#: src/lib/elementary/elm_segment_control.c:546
+#: src/lib/elementary/elm_segment_control.c:548
 msgid "Segment Control Item"
 msgstr "Mục Điều Khiển Đoạn"
 
@@ -505,46 +510,46 @@ msgstr "Mục Điều Khiển Đoạn"
 msgid "slider"
 msgstr "Thanh Trượt"
 
-#: src/lib/elementary/elm_spinner.c:1044
+#: src/lib/elementary/elm_spinner.c:1032
 msgid "incremented"
 msgstr "Đã Tăng"
 
-#: src/lib/elementary/elm_spinner.c:1050
+#: src/lib/elementary/elm_spinner.c:1038
 msgid "decremented"
 msgstr "Đã Giảm"
 
-#: src/lib/elementary/elm_spinner.c:1083 src/lib/elementary/elm_spinner.c:1150
+#: src/lib/elementary/elm_spinner.c:1071 src/lib/elementary/elm_spinner.c:1138
 msgid "spinner"
 msgstr "Bộ Xoay"
 
-#: src/lib/elementary/elm_spinner.c:1092 src/lib/elementary/elm_spinner.c:1133
+#: src/lib/elementary/elm_spinner.c:1080 src/lib/elementary/elm_spinner.c:1121
 msgid "spinner increment button"
 msgstr "Bút Tăng Bộ Xoay"
 
-#: src/lib/elementary/elm_spinner.c:1095 src/lib/elementary/elm_spinner.c:1142
+#: src/lib/elementary/elm_spinner.c:1083 src/lib/elementary/elm_spinner.c:1130
 msgid "spinner decrement button"
 msgstr "Nút Giảm Bộ Xoay"
 
-#: src/lib/elementary/elm_spinner.c:1097
+#: src/lib/elementary/elm_spinner.c:1085
 msgid "spinner text"
 msgstr "Văn Bản Bộ Xoay"
 
-#: src/lib/elementary/elm_toolbar.c:1835 src/lib/elementary/elm_toolbar.c:2436
+#: src/lib/elementary/elm_toolbar.c:1834 src/lib/elementary/elm_toolbar.c:2435
 msgid "Selected"
 msgstr "Đã Chọn"
 
-#: src/lib/elementary/elm_toolbar.c:2376
+#: src/lib/elementary/elm_toolbar.c:2375
 msgid "Separator"
 msgstr "Bộ Tách"
 
-#: src/lib/elementary/elm_toolbar.c:2382
+#: src/lib/elementary/elm_toolbar.c:2381
 msgid "Has menu"
 msgstr "Có Bảng Chọn"
 
-#: src/lib/elementary/elm_toolbar.c:2431
+#: src/lib/elementary/elm_toolbar.c:2430
 msgid "Unselected"
 msgstr "Không Chọn"
 
-#: src/lib/elementary/elm_toolbar.c:2448
+#: src/lib/elementary/elm_toolbar.c:2447
 msgid "Toolbar Item"
 msgstr "Mục Của Thanh Công Cụ"
