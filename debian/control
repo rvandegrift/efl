@@ -22,7 +22,8 @@ Build-Depends: dpkg-dev (>= 1.14.8), debhelper (>= 9), dh-autoreconf,
  libgstreamer1.0-dev, libgstreamer-plugins-base1.0-dev, libgcrypt-dev,
  libbullet-dev, libpulse-dev, liblz4-dev, libwebp-dev, libharfbuzz-dev,
  libsystemd-dev, libavahi-client-dev, systemd, libvlc-dev, libraw-dev,
- libpoppler-cpp-dev, libspectre-dev, librsvg2-dev
+ libpoppler-cpp-dev, libspectre-dev, librsvg2-dev,
+ wayland-protocols, libwayland-dev, libgbm-dev, libxkbcommon-dev, libinput-dev
 Build-Depends-Indep: doxygen, ghostscript, imagemagick, texlive-font-utils
 Standards-Version: 3.9.8
 Vcs-Git: https://anonscm.debian.org/git/pkg-e/libs/efl.git
@@ -297,6 +298,38 @@ Description: Evas module providing the Framebuffer engine
  .
  This package contains the framebuffer Evas engine module.
 
+Package: libevas1-engines-drm
+Architecture: any
+Multi-Arch: same
+Depends: ${shlibs:Depends}, ${misc:Depends}
+Conflicts: libevas-0.9.9.050a-engines
+Breaks: libeina1a (<< ${source:Upstream-Version})
+Replaces: libevas-engines, libevas-engines-extras
+Provides: libevas1-engine
+Description: Evas module providing the DRM engine
+ Evas is an advanced canvas library, providing six engines for rendering: X11,
+ OpenGL (hardware accelerated), DirectFB, the framebuffer, Microsoft Windows
+ and Qtopia.
+ Due to its simple API, evas can be developed with rapidly, and cleanly.
+ .
+ This package contains the DRM-related Evas engine modules.
+
+Package: libevas1-engines-wayland
+Architecture: any
+Multi-Arch: same
+Depends: ${shlibs:Depends}, ${misc:Depends}
+Conflicts: libevas-0.9.9.050a-engines
+Breaks: libeina1a (<< ${source:Upstream-Version})
+Replaces: libevas-engines, libevas-engines-extras
+Provides: libevas1-engine
+Description: Evas module providing the Wayland engine
+ Evas is an advanced canvas library, providing six engines for rendering: X11,
+ OpenGL (hardware accelerated), DirectFB, the framebuffer, Microsoft Windows
+ and Qtopia.
+ Due to its simple API, evas can be developed with rapidly, and cleanly.
+ .
+ This package contains the Wayland-related Evas engine modules.
+
 # ECORE
 
 Package: libecore1
@@ -358,6 +391,22 @@ Description: Ecore Connection Library
  applications.
  .
  This package contains the Ecore Connection Library.
+
+Package: libecore-drm2-1
+Architecture: any
+Multi-Arch: same
+Pre-Depends: ${misc:Pre-Depends}
+Depends: ${misc:Depends}, ${shlibs:Depends}
+Breaks: libeina1a (<< ${source:Upstream-Version})
+Description: Ecore functions for dealing with DRM2
+ This is the core event abstraction layer and X abstraction layer that makes
+ doing selections, Xdnd, general X stuff, and event loops, timeouts and idle
+ handlers fast, optimized, and convenient. It's a separate library so anyone
+ can make use of the work put into Ecore to make this job easy for
+ applications.
+ .
+ This package contains the Ecore wrapper and convenience functions for using
+ DRM2
 
 Package: libecore-evas1
 Architecture: any
@@ -450,6 +499,22 @@ Description: Ecore inter-process communication functions
  .
  This package contains the Ecore inter-process communication functions.
 
+Package: libecore-wl2-1
+Architecture: any
+Multi-Arch: same
+Pre-Depends: ${misc:Pre-Depends}
+Depends: ${misc:Depends}, ${shlibs:Depends}
+Breaks: libeina1a (<< ${source:Upstream-Version})
+Description: Ecore functions for dealing with Wayland
+ This is the core event abstraction layer and X abstraction layer that makes
+ doing selections, Xdnd, general X stuff, and event loops, timeouts and idle
+ handlers fast, optimized, and convenient. It's a separate library so anyone
+ can make use of the work put into Ecore to make this job easy for
+ applications.
+ .
+ This package contains the Ecore wrapper and convenience functions for using
+ Wayland
+
 Package: libecore-x1
 Architecture: any
 Multi-Arch: same
@@ -498,11 +563,12 @@ Depends: ${misc:Depends}, pkg-config,
          libemile-dev (>= ${source:Upstream-Version}),
          libector-dev (>= ${source:Upstream-Version}),
          libevas-dev (>= ${source:Upstream-Version}),
+         libelput-dev (>= ${source:Upstream-Version}),
          libgnutls28-dev, libcurl4-gnutls-dev, libxcursor-dev, libxss-dev,
          libxrender-dev, libxinerama-dev, libxrandr-dev, libxext-dev, libxi-dev,
          libxcomposite-dev, libxdamage-dev, x11proto-xext-dev, libxtst-dev,
          libglib2.0-dev, libdbus-1-dev, libpulse-dev, libavahi-client-dev,
-         libsndfile-dev
+         libsndfile-dev, libwayland-dev, libdrm-dev, libgbm-dev
 Description: Ecore headers and static libraries
  This is the core event abstraction layer and X abstraction layer that makes
  doing selections, Xdnd, general X stuff, and event loops, timeouts and idle
@@ -1003,6 +1069,32 @@ Depends: ${misc:Depends}, ${shlibs:Depends}, pkg-config,
 Description: EO object parser and C code generator - development
  Eolian parses Enlightenment's meta-data (.eo) files and can then
  generate C code along with header files.
+ .
+ This package contains the development files.
+
+Package: libelput1
+Architecture: any
+Multi-Arch: same
+Pre-Depends: ${misc:Pre-Depends}
+Depends: ${misc:Depends}, ${shlibs:Depends}
+Breaks: libeina1a (<< ${source:Upstream-Version})
+Description: EFL abstraction library for libinput
+ The elput library is an efl abstraction for the libinput library which
+ can be used by various other subsystems (ecore_fb, ecore_drm, etc) to
+ handle interfacing with libinput without having to duplicate the code
+ in each subsystem.
+
+Package: libelput-dev
+Section: libdevel
+Architecture: any
+Depends: ${misc:Depends}, ${shlibs:Depends}, pkg-config,
+ libelput1 (= ${binary:Version}), libinput-dev, libxkbcommon-dev
+Breaks: libeina1a (<< ${source:Upstream-Version})
+Description: EFL abstraction library for libinput - development
+ The elput library is an efl abstraction for the libinput library which
+ can be used by various other subsystems (ecore_fb, ecore_drm, etc) to
+ handle interfacing with libinput without having to duplicate the code
+ in each subsystem.
  .
  This package contains the development files.
 

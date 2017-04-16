@@ -16,6 +16,8 @@ libecore_input.so.1 libecore-input1 #MINVER#
  ecore_event_modifier_mask@Base 1.18.4+eo+1
  ecore_event_shutdown@Base 1.18.4+eo+1
  ecore_event_update_modifier@Base 1.18.4+eo+1
+ ecore_input_joystick_event_axis_deadzone_get@Base 1.19.0+eo+1
+ ecore_input_joystick_event_axis_deadzone_set@Base 1.19.0+eo+1
 libecore_input_evas.so.1 libecore-input1 #MINVER#
 * Build-Depends-Package: libecore-dev
  _ecore_event_window_direct_cb_set@Base 1.18.4+eo+1
@@ -31,6 +33,7 @@ libecore_input_evas.so.1 libecore-input1 #MINVER#
  ecore_event_evas_mouse_move@Base 1.18.4+eo+1
  ecore_event_evas_mouse_out@Base 1.18.4+eo+1
  ecore_event_evas_mouse_wheel@Base 1.18.4+eo+1
+ ecore_event_evas_seat_modifier_lock_update@Base 1.19.0+eo+1
  ecore_event_evas_shutdown@Base 1.18.4+eo+1
  ecore_event_window_ignore_events@Base 1.18.4+eo+1
  ecore_event_window_match@Base 1.18.4+eo+1
