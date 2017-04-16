@@ -39,6 +39,7 @@ override_dh_auto_configure:
 	--enable-wayland \
 	--enable-elput \
 	--enable-drm \
+	--enable-scim \
 	$(arch_flags)
 
 override_dh_auto_build:
