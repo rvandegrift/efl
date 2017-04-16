@@ -36,6 +36,9 @@ override_dh_auto_configure:
 	--enable-static \
 	--enable-image-loader-webp \
 	--with-generic_vlc \
+	--enable-wayland \
+	--enable-elput \
+	--enable-drm \
 	$(arch_flags)
 
 override_dh_auto_build:
