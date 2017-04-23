@@ -2,12 +2,12 @@ Description: Perform widget preview generation in parallel
 Author: Ross Vandegrift <ross@kallisti.us>
 Origin: other
 Forwarded: yes
-Last-Update: 2016-11-26
-diff --git a/doc/Makefile.am b/doc/Makefile.am
-index 17adf52..ca34cf4 100644
+Last-Update: 2017-04-23
+---
+This patch header follows DEP-3: http://dep.debian.net/deps/dep3/
 --- a/doc/Makefile.am
 +++ b/doc/Makefile.am
-@@ -16,85 +16,6 @@ previews-build:
+@@ -16,85 +16,6 @@
  
  previews-data:
  	@$(MAKE) -C previews doc
@@ -93,7 +93,7 @@ index 17adf52..ca34cf4 100644
  
  # put in here every elm widget, so that it gets its hierarchy tree built
  # then, make a reference to the generated image, in the form
-@@ -171,18 +92,7 @@ widget-build:
+@@ -171,18 +92,7 @@
  	@$(MAKE) -C widgets
  
  widget-preview: widget-build
@@ -113,8 +113,6 @@ index 17adf52..ca34cf4 100644
  
  widget-tree-figures: doc
  	$(srcdir)/widget_hierarchy.py --scan $(top_srcdir)/src/lib -o $(builddir)/widget_tree.p;
-diff --git a/doc/shot.sh b/doc/shot.sh
-index b67be70..4b52d69 100755
 --- a/doc/shot.sh
 +++ b/doc/shot.sh
 @@ -1,18 +1,131 @@
