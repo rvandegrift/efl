@@ -1,0 +1,18 @@
+Description: disable download file test
+ this test attemps to download data from the internet
+Author: Ross Vandegrift <ross@kallisti.us>
+Origin: other
+Forwarded: not-needed
+Last-Update: 2017-04-23
+---
+This patch header follows DEP-3: http://dep.debian.net/deps/dep3/
+--- a/src/tests/ecore/ecore_test_ecore_file.c
++++ b/src/tests/ecore/ecore_test_ecore_file.c
+@@ -539,6 +539,6 @@
+    tcase_add_test(tc, ecore_test_ecore_file_init);
+    tcase_add_test(tc, ecore_test_ecore_file_operations);
+    tcase_add_test(tc, ecore_test_ecore_file_monitor);
+-   tcase_add_test(tc, ecore_test_ecore_file_download);
++   /* tcase_add_test(tc, ecore_test_ecore_file_download); */
+    tcase_add_test(tc, ecore_test_ecore_file_path);
+ }

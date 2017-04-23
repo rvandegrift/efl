@@ -1,9 +1,11 @@
 02_no_ecore_imf_test.diff
+10-disable_ecore_file_download.diff
 15_try_curl-gnutls.diff
 20-skip_dbus_tests.diff
 21-skip_net_tests.diff
 24-skip_gnutls_broken.diff
 26-skip_filter_tests.diff
+30-disable_eldbus_system_test.diff
 45_disable_doc_pack.diff
 50-fix-edje_recc-bashism.diff
 75-disable-evas_test_image.diff

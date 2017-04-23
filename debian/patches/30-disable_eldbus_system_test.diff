@@ -1,0 +1,17 @@
+Description: disable eldbus system bus tests
+ So far, only a session bus is available during make check.
+Author: Ross Vandegrift <ross@kallisti.us>
+Origin: others
+Forwarded: no
+Last-Update: 2017-04-23
+---
+This patch header follows DEP-3: http://dep.debian.net/deps/dep3/
+--- a/src/tests/eldbus_cxx/eldbus_cxx_test_eldbus_connect.cc
++++ b/src/tests/eldbus_cxx/eldbus_cxx_test_eldbus_connect.cc
+@@ -32,5 +32,5 @@
+ eldbus_test_connection(TCase* tc)
+ {
+   tcase_add_test(tc, eldbus_cxx_session_connection);
+-  tcase_add_test(tc, eldbus_cxx_system_connection);
++  /* tcase_add_test(tc, eldbus_cxx_system_connection); */
+ }

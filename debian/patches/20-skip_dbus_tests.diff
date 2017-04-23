@@ -1,32 +1,32 @@
-Description: Skip tests that require running dbus
- * eldbus_cxx
- * eldbus
+Description: Skip tests that require a dbus system bus
+ So far, only a session bus is available during make check.
 Author: Andreas Metzler <ametzler@debian.org>
 Author: Ross Vandegrift <ross@kallisti.us>
 Origin: other
 Forwarded: no
-Last-Update: 2016-08-19
+Last-Update: 2017-04-23
 ---
 This patch header follows DEP-3: http://dep.debian.net/deps/dep3/
---- a/src/tests/eldbus_cxx/eldbus_cxx_suite.cc
-+++ b/src/tests/eldbus_cxx/eldbus_cxx_suite.cc
-@@ -20,6 +20,8 @@
- 
-    putenv(const_cast<char*>("EFL_RUN_IN_TREE=1"));
- 
-+   fprintf(stderr, "Skipping %s\n", argv[0]);
-+   return(77);
-    failed_count = _efl_suite_build_and_run(argc - 1, (const char **)argv + 1,
-                                            "Eldbus C++", etc);
- 
 --- a/src/tests/eldbus/eldbus_suite.c
 +++ b/src/tests/eldbus/eldbus_suite.c
-@@ -27,6 +27,8 @@
+@@ -15,7 +15,7 @@
+   { "eldbus_model_method", eldbus_test_eldbus_model_method },
+   { "eldbus_model_signal", eldbus_test_eldbus_model_signal },
+   { "eldbus_test_eldbus_object", eldbus_test_eldbus_object },
+-  { "eldbus_test_eldbus_message", eldbus_test_eldbus_message },
++  /* { "eldbus_test_eldbus_message", eldbus_test_eldbus_message }, */
+   { NULL, NULL }
+ };
  
-    putenv("EFL_RUN_IN_TREE=1");
- 
-+   fprintf(stderr, "Skipping %s\n", argv[0]);
-+   return(77);
-    failed_count = _efl_suite_build_and_run(argc - 1, (const char **)argv + 1,
-                                            "Eldbus", etc);
- 
+--- a/src/tests/eldbus/eldbus_test_eldbus_object.c
++++ b/src/tests/eldbus/eldbus_test_eldbus_object.c
+@@ -403,7 +403,7 @@
+ eldbus_test_eldbus_object(TCase *tc)
+ {
+    tcase_add_checked_fixture(tc, _setup, _teardown);
+-   tcase_add_test(tc, utc_eldbus_object_send_info_get_p);
+-   tcase_add_test(tc, utc_eldbus_introspect_p);
++   /* tcase_add_test(tc, utc_eldbus_object_send_info_get_p); */
++   /* tcase_add_test(tc, utc_eldbus_introspect_p); */
+    tcase_add_test(tc, utc_eldbus_object_peer_p);
+ }
