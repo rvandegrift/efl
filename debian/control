@@ -382,7 +382,8 @@ Package: libecore-con1
 Architecture: any
 Multi-Arch: same
 Pre-Depends: ${misc:Pre-Depends}
-Depends: ${misc:Depends}, ${shlibs:Depends}
+Depends: ${misc:Depends}, ${shlibs:Depends},
+	 libecore-bin (>= ${source:Upstream-Version})
 Breaks: libeina1a (<< ${source:Upstream-Version})
 Description: Ecore Connection Library
  This is the core event abstraction layer and X abstraction layer that makes
@@ -534,6 +535,7 @@ Description: Ecore functions for dealing with the X Window System
 
 Package: libecore-bin
 Architecture: any
+Multi-Arch: foreign
 Depends: ${misc:Depends}, ${shlibs:Depends}
 Description: Core abstraction layer for enlightenment DR 0.17 binary utilities
  This is the core event abstraction layer and X abstraction layer that makes
@@ -542,7 +544,8 @@ Description: Core abstraction layer for enlightenment DR 0.17 binary utilities
  can make use of the work put into Ecore to make this job easy for
  applications.
  .
- This package contains code generation utilities used in building EFL apps.
+ This package contains code generation utilities used in building EFL
+ apps and a libproxy abstraction binary used by ecore_con.
 
 Package: libecore-dev
 Architecture: any
