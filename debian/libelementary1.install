@@ -1,7 +1,5 @@
 debian/tmp/usr/lib/*/libelementary*.so.*
 debian/tmp/usr/lib/*/edje/modules/elm/*/module.so
-debian/tmp/usr/lib/*/elementary/modules/access_output/*/module.so
-debian/tmp/usr/lib/*/elementary/modules/datetime_input_ctxpopup/*/module.so
-debian/tmp/usr/lib/*/elementary/modules/prefs/*/elm_prefs_swallow.edj
-debian/tmp/usr/lib/*/elementary/modules/prefs/*/module.so
-debian/tmp/usr/lib/*/elementary/modules/web/*/*/module.so
+debian/tmp/usr/lib/*/elementary/modules/*/*/*.so
+debian/tmp/usr/lib/*/elementary/modules/*/*/*.edj
+debian/tmp/usr/lib/*/elementary/modules/*/*/*/*.so
