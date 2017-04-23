@@ -1,0 +1,118 @@
+Description: fix ecore_file tests when run as root
+ At least on Linux, ecore_file calls access which returns different
+ results for root.  This accounts for that difference.
+Author: Ross Vandegrift <ross@kallisti.us>
+Origin: other
+Forwarded: no
+Last-Update: 2017-04-23
+---
+This patch header follows DEP-3: http://dep.debian.net/deps/dep3/
+--- a/src/tests/ecore/ecore_test_ecore_file.c
++++ b/src/tests/ecore/ecore_test_ecore_file.c
+@@ -295,6 +295,32 @@
+    ck_assert_str_eq(ecore_file_realpath(NULL), "");
+    ck_assert_str_eq(ecore_file_realpath(not_exist_file), "");
+ 
++   chdir(eina_environment_tmp_get());
++   fail_if(ecore_file_mkpath(src_dir) != EINA_TRUE);
++   fail_if(ecore_file_rmdir(src_dir) != EINA_TRUE);
++   fail_if(ecore_file_mkpath(NULL) != EINA_FALSE);
++   fail_if(ecore_file_mkpaths(dirs) != 4);
++   for (i = 0; dirs[i]; i++)
++     if (ecore_file_is_dir(dirs[i]))
++       fail_if(ecore_file_recursive_rm(dirs[i]) != EINA_TRUE);
++   fail_if(ecore_file_mkpaths(NULL) != -1);
++
++   fail_if(ecore_file_dir_get(NULL) != NULL);
++   fail_if(ecore_file_strip_ext(NULL) != NULL);
++   fail_if(ecore_file_escape_name(NULL) != NULL);
++
++   ret = ecore_file_shutdown();
++   fail_if(ret != 0);
++
++}
++END_TEST
++
++START_TEST(ecore_test_ecore_file_access)
++{
++   const char *src_dir, *src_file, *dest_file;
++   const char *not_exist_file;
++   int fd;
++
+    src_file = get_tmp_file();
+    fail_if(!src_file);
+    fail_if(ecore_file_remove(src_file) != EINA_TRUE);
+@@ -302,7 +328,10 @@
+    fail_if(fd < 0);
+    fail_if(close(fd) != 0);
+    fail_if(ecore_file_can_read(src_file) != EINA_TRUE);
+-   fail_if(ecore_file_can_write(src_file) != EINA_FALSE);
++   if (geteuid() != 0)
++     fail_if(ecore_file_can_write(src_file) != EINA_FALSE);
++   else
++     fail_if(ecore_file_can_write(src_file) != EINA_TRUE);
+    fail_if(ecore_file_can_exec(src_file) != EINA_FALSE);
+    fail_if(ecore_file_cp(src_file, src_file) != EINA_FALSE);
+    fail_if(ecore_file_remove(src_file) != EINA_TRUE);
+@@ -313,8 +342,11 @@
+    fd = open(src_file, O_RDWR | O_BINARY | O_CREAT, 0200);
+    fail_if(fd < 0);
+    fail_if(close(fd) != 0);
+-   fail_if(ecore_file_can_read(src_file) != EINA_FALSE);
+    fail_if(ecore_file_can_write(src_file) != EINA_TRUE);
++   if (geteuid() != 0)
++     fail_if(ecore_file_can_read(src_file) != EINA_FALSE);
++   else
++     fail_if(ecore_file_can_read(src_file) != EINA_TRUE);
+    fail_if(ecore_file_can_exec(src_file) != EINA_FALSE);
+    fail_if(ecore_file_remove(src_file) != EINA_TRUE);
+ 
+@@ -324,8 +356,13 @@
+    fd = open(src_file, O_RDWR | O_BINARY | O_CREAT, 0100);
+    fail_if(fd < 0);
+    fail_if(close(fd) != 0);
+-   fail_if(ecore_file_can_read(src_file) != EINA_FALSE);
+-   fail_if(ecore_file_can_write(src_file) != EINA_FALSE);
++   if (geteuid() != 0) {
++     fail_if(ecore_file_can_read(src_file) != EINA_FALSE);
++     fail_if(ecore_file_can_write(src_file) != EINA_FALSE);
++   } else {
++     fail_if(ecore_file_can_read(src_file) != EINA_TRUE);
++     fail_if(ecore_file_can_write(src_file) != EINA_TRUE);
++   }
+    fail_if(ecore_file_can_exec(src_file) != EINA_TRUE);
+    fail_if(ecore_file_remove(src_file) != EINA_TRUE);
+ 
+@@ -333,24 +370,6 @@
+    fail_if(ecore_file_remove(not_exist_file) != EINA_FALSE);
+    fail_if(ecore_file_cp(not_exist_file, "test_file") != EINA_FALSE);
+    fail_if(ecore_file_mv(not_exist_file, "test_file") != EINA_FALSE);
+-
+-   chdir(eina_environment_tmp_get());
+-   fail_if(ecore_file_mkpath(src_dir) != EINA_TRUE);
+-   fail_if(ecore_file_rmdir(src_dir) != EINA_TRUE);
+-   fail_if(ecore_file_mkpath(NULL) != EINA_FALSE);
+-   fail_if(ecore_file_mkpaths(dirs) != 4);
+-   for (i = 0; dirs[i]; i++)
+-     if (ecore_file_is_dir(dirs[i]))
+-       fail_if(ecore_file_recursive_rm(dirs[i]) != EINA_TRUE);
+-   fail_if(ecore_file_mkpaths(NULL) != -1);
+-
+-   fail_if(ecore_file_dir_get(NULL) != NULL);
+-   fail_if(ecore_file_strip_ext(NULL) != NULL);
+-   fail_if(ecore_file_escape_name(NULL) != NULL);
+-
+-   ret = ecore_file_shutdown();
+-   fail_if(ret != 0);
+-
+ }
+ END_TEST
+ 
+@@ -538,6 +557,7 @@
+ {
+    tcase_add_test(tc, ecore_test_ecore_file_init);
+    tcase_add_test(tc, ecore_test_ecore_file_operations);
++   tcase_add_test(tc, ecore_test_ecore_file_access);
+    tcase_add_test(tc, ecore_test_ecore_file_monitor);
+    /* tcase_add_test(tc, ecore_test_ecore_file_download); */
+    tcase_add_test(tc, ecore_test_ecore_file_path);
