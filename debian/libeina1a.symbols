@@ -8,13 +8,11 @@ libeina.so.1 libeina1a #MINVER#
  EINA_ERROR_NOT_MAIN_LOOP@Base 1.18.4+eo+1
  EINA_ERROR_NOT_MEMPOOL_MODULE@Base 1.18.4+eo+1
  EINA_ERROR_OUT_OF_MEMORY@Base 1.18.4+eo+1
- EINA_ERROR_PROMISE_CANCEL@Base 1.18.4+eo+1
- EINA_ERROR_PROMISE_NO_NOTIFY@Base 1.18.4+eo+1
- EINA_ERROR_PROMISE_NULL@Base 1.18.4+eo+1
  EINA_ERROR_SAFETY_FAILED@Base 1.18.4+eo+1
  EINA_ERROR_VALUE_FAILED@Base 1.18.4+eo+1
  EINA_ERROR_WRONG_MODULE@Base 1.18.4+eo+1
  EINA_LOG_DOMAIN_GLOBAL@Base 1.18.4+eo+1
+ EINA_THREAD_JOIN_CANCELED@Base 1.19.0+eo+1
  EINA_UNICODE_EMPTY_STRING@Base 1.18.4+eo+1
  EINA_VALUE_BLOB_OPERATIONS_MALLOC@Base 1.18.4+eo+1
  EINA_VALUE_STRUCT_OPERATIONS_BINSEARCH@Base 1.18.4+eo+1
@@ -44,13 +42,27 @@ libeina.so.1 libeina1a #MINVER#
  _EINA_VALUE_TYPE_BASICS_END@Base 1.18.4+eo+1
  _EINA_VALUE_TYPE_BASICS_START@Base 1.18.4+eo+1
  _EINA_VALUE_TYPE_OPTIONAL@Base 1.18.4+eo+1
- _eina_crc@Base 1.18.4+eo+1
+ _eina_barrier_free@Base 1.19.0+eo+1
+ _eina_barrier_new@Base 1.19.0+eo+1
+ _eina_condition_free@Base 1.19.0+eo+1
+ _eina_condition_new@Base 1.19.0+eo+1
+  _eina_crc@Base 1.18.4+eo+1
+ _eina_lock_debug_abort@Base 1.19.0+eo+1
+ _eina_lock_debug_deadlock@Base 1.19.0+eo+1
+ _eina_lock_free@Base 1.19.0+eo+1
+ _eina_lock_new@Base 1.19.0+eo+1
  _eina_log_state_init@Base 1.18.4+eo+1
  _eina_log_state_shutdown@Base 1.18.4+eo+1
  _eina_main_loop@Base 1.18.4+eo+1
- _eina_safety_error@Base 1.18.4+eo+1
+ _eina_rwlock_free@Base 1.19.0+eo+1
+ _eina_rwlock_new@Base 1.19.0+eo+1
+  _eina_safety_error@Base 1.18.4+eo+1
+ _eina_semaphore_free@Base 1.19.0+eo+1
+ _eina_semaphore_new@Base 1.19.0+eo+1
  _eina_sp_ids_tables@Base 1.18.4+eo+1
  _eina_sp_log_dom@Base 1.18.4+eo+1
+ _eina_spinlock_free@Base 1.19.0+eo+1
+ _eina_spinlock_new@Base 1.19.0+eo+1
  _eina_threads_activated@Base 1.18.4+eo+1
  _eina_threads_debug@Base 1.18.4+eo+1
  _eina_tracking@Base 1.18.4+eo+1
@@ -87,19 +99,26 @@ libeina.so.1 libeina1a #MINVER#
  eina_binbuf_append_buffer@Base 1.18.4+eo+1
  eina_binbuf_append_char@Base 1.18.4+eo+1
  eina_binbuf_append_length@Base 1.18.4+eo+1
+ eina_binbuf_append_slice@Base 1.19.0+eo+1
+ eina_binbuf_expand@Base 1.19.0+eo+1
  eina_binbuf_free@Base 1.18.4+eo+1
  eina_binbuf_insert_char@Base 1.18.4+eo+1
  eina_binbuf_insert_length@Base 1.18.4+eo+1
+ eina_binbuf_insert_slice@Base 1.19.0+eo+1
  eina_binbuf_length_get@Base 1.18.4+eo+1
  eina_binbuf_manage_new@Base 1.18.4+eo+1
  eina_binbuf_manage_new_length@Base 1.18.4+eo+1
  eina_binbuf_manage_read_only_new_length@Base 1.18.4+eo+1
  eina_binbuf_new@Base 1.18.4+eo+1
+ eina_binbuf_release@Base 1.19.0+eo+1
  eina_binbuf_remove@Base 1.18.4+eo+1
  eina_binbuf_reset@Base 1.18.4+eo+1
+ eina_binbuf_rw_slice_get@Base 1.19.0+eo+1
+ eina_binbuf_slice_get@Base 1.19.0+eo+1
  eina_binbuf_string_free@Base 1.18.4+eo+1
  eina_binbuf_string_get@Base 1.18.4+eo+1
  eina_binbuf_string_steal@Base 1.18.4+eo+1
+ eina_binbuf_use@Base 1.19.0+eo+1
  eina_binshare_add_length@Base 1.18.4+eo+1
  eina_binshare_del@Base 1.18.4+eo+1
  eina_binshare_dump@Base 1.18.4+eo+1
@@ -169,10 +188,23 @@ libeina.so.1 libeina1a #MINVER#
  eina_file_split@Base 1.18.4+eo+1
  eina_file_stat_ls@Base 1.18.4+eo+1
  eina_file_statat@Base 1.18.4+eo+1
+ eina_file_unlink@Base 1.19.0+eo+1
  eina_file_virtual@Base 1.18.4+eo+1
  eina_file_virtualize@Base 1.18.4+eo+1
  eina_file_xattr_get@Base 1.18.4+eo+1
  eina_file_xattr_value_get@Base 1.18.4+eo+1
+ eina_freeq_clear@Base 1.19.0+eo+1
+ eina_freeq_count_max_get@Base 1.19.0+eo+1
+ eina_freeq_count_max_set@Base 1.19.0+eo+1
+ eina_freeq_free@Base 1.19.0+eo+1
+ eina_freeq_main_get@Base 1.19.0+eo+1
+ eina_freeq_mem_max_get@Base 1.19.0+eo+1
+ eina_freeq_mem_max_set@Base 1.19.0+eo+1
+ eina_freeq_new@Base 1.19.0+eo+1
+ eina_freeq_ptr_add@Base 1.19.0+eo+1
+ eina_freeq_ptr_pending@Base 1.19.0+eo+1
+ eina_freeq_reduce@Base 1.19.0+eo+1
+ eina_freeq_type_get@Base 1.19.0+eo+1
  eina_hamster_count@Base 1.18.4+eo+1
  eina_hash_add@Base 1.18.4+eo+1
  eina_hash_add_by_hash@Base 1.18.4+eo+1
@@ -254,6 +286,7 @@ libeina.so.1 libeina1a #MINVER#
  eina_inlist_sorted_state_insert@Base 1.18.4+eo+1
  eina_inlist_sorted_state_new@Base 1.18.4+eo+1
  eina_iterator_container_get@Base 1.18.4+eo+1
+ eina_iterator_filter_new@Base 1.19.0+eo+1
  eina_iterator_foreach@Base 1.18.4+eo+1
  eina_iterator_free@Base 1.18.4+eo+1
  eina_iterator_lock@Base 1.18.4+eo+1
@@ -298,6 +331,7 @@ libeina.so.1 libeina1a #MINVER#
  eina_list_sorted_insert@Base 1.18.4+eo+1
  eina_list_sorted_merge@Base 1.18.4+eo+1
  eina_list_split_list@Base 1.18.4+eo+1
+ eina_lock_debug@Base 1.19.0+eo+1
  eina_log_abort_on_critical_get@Base 1.18.4+eo+1
  eina_log_abort_on_critical_level_get@Base 1.18.4+eo+1
  eina_log_abort_on_critical_level_set@Base 1.18.4+eo+1
@@ -443,31 +477,6 @@ libeina.so.1 libeina1a #MINVER#
  eina_prefix_locale_get@Base 1.18.4+eo+1
  eina_prefix_new@Base 1.18.4+eo+1
  eina_prime_table@Base 1.18.4+eo+1
- eina_promise_add@Base 1.18.4+eo+1
- eina_promise_all@Base 1.18.4+eo+1
- eina_promise_cancel@Base 1.18.4+eo+1
- eina_promise_error_get@Base 1.18.4+eo+1
- eina_promise_override@Base 1.18.4+eo+1
- eina_promise_owner_cancelled_is@Base 1.18.4+eo+1
- eina_promise_owner_default_call_then@Base 1.18.4+eo+1
- eina_promise_owner_default_cancel_cb_add@Base 1.18.4+eo+1
- eina_promise_owner_default_manual_then_set@Base 1.18.4+eo+1
- eina_promise_owner_error_set@Base 1.18.4+eo+1
- eina_promise_owner_override@Base 1.18.4+eo+1
- eina_promise_owner_pending_is@Base 1.18.4+eo+1
- eina_promise_owner_progress@Base 1.18.4+eo+1
- eina_promise_owner_progress_notify@Base 1.18.4+eo+1
- eina_promise_owner_promise_get@Base 1.18.4+eo+1
- eina_promise_owner_value_set@Base 1.18.4+eo+1
- eina_promise_pending_is@Base 1.18.4+eo+1
- eina_promise_progress_cb_add@Base 1.18.4+eo+1
- eina_promise_progress_notification@Base 1.18.4+eo+1
- eina_promise_race@Base 1.18.4+eo+1
- eina_promise_ref@Base 1.18.4+eo+1
- eina_promise_ref_get@Base 1.18.4+eo+1
- eina_promise_then@Base 1.18.4+eo+1
- eina_promise_unref@Base 1.18.4+eo+1
- eina_promise_value_get@Base 1.18.4+eo+1
  eina_quad_coords_get@Base 1.18.4+eo+1
  eina_quad_coords_set@Base 1.18.4+eo+1
  eina_quad_rectangle_from@Base 1.18.4+eo+1
@@ -532,6 +541,7 @@ libeina.so.1 libeina1a #MINVER#
  eina_rbtree_iterator_prefix@Base 1.18.4+eo+1
  eina_rectangle_free@Base 1.18.4+eo+1
  eina_rectangle_new@Base 1.18.4+eo+1
+ eina_rectangle_outside_position@Base 1.19.0+eo+1
  eina_rectangle_pool_count@Base 1.18.4+eo+1
  eina_rectangle_pool_data_get@Base 1.18.4+eo+1
  eina_rectangle_pool_data_set@Base 1.18.4+eo+1
@@ -570,6 +580,13 @@ libeina.so.1 libeina1a #MINVER#
  eina_simple_xml_node_tag_new@Base 1.18.4+eo+1
  eina_simple_xml_parse@Base 1.18.4+eo+1
  eina_simple_xml_tag_attributes_find@Base 1.18.4+eo+1
+ eina_slstr_copy_new@Base 1.19.0+eo+1
+ eina_slstr_local_clear@Base 1.19.0+eo+1
+ eina_slstr_steal_new@Base 1.19.0+eo+1
+ eina_slstr_strbuf_new@Base 1.19.0+eo+1
+ eina_slstr_stringshare_new@Base 1.19.0+eo+1
+ eina_slstr_tmpstr_new@Base 1.19.0+eo+1
+ eina_slstr_vasprintf_new@Base 1.19.0+eo+1
  eina_str_convert@Base 1.18.4+eo+1
  eina_str_convert_len@Base 1.18.4+eo+1
  eina_str_escape@Base 1.18.4+eo+1
@@ -588,7 +605,9 @@ libeina.so.1 libeina1a #MINVER#
  eina_strbuf_append_length@Base 1.18.4+eo+1
  eina_strbuf_append_n@Base 1.18.4+eo+1
  eina_strbuf_append_printf@Base 1.18.4+eo+1
- eina_strbuf_append_vprintf@Base 1.18.4+eo+1
+ eina_strbuf_append_slice@Base 1.19.0+eo+1
+  eina_strbuf_append_vprintf@Base 1.18.4+eo+1
+ eina_strbuf_expand@Base 1.19.0+eo+1
  eina_strbuf_free@Base 1.18.4+eo+1
  eina_strbuf_insert@Base 1.18.4+eo+1
  eina_strbuf_insert_char@Base 1.18.4+eo+1
@@ -596,6 +615,7 @@ libeina.so.1 libeina1a #MINVER#
  eina_strbuf_insert_length@Base 1.18.4+eo+1
  eina_strbuf_insert_n@Base 1.18.4+eo+1
  eina_strbuf_insert_printf@Base 1.18.4+eo+1
+ eina_strbuf_insert_slice@Base 1.19.0+eo+1
  eina_strbuf_insert_vprintf@Base 1.18.4+eo+1
  eina_strbuf_length_get@Base 1.18.4+eo+1
  eina_strbuf_ltrim@Base 1.18.4+eo+1
@@ -603,17 +623,21 @@ libeina.so.1 libeina1a #MINVER#
  eina_strbuf_manage_new_length@Base 1.18.4+eo+1
  eina_strbuf_manage_read_only_new_length@Base 1.18.4+eo+1
  eina_strbuf_new@Base 1.18.4+eo+1
+ eina_strbuf_release@Base 1.19.0+eo+1
  eina_strbuf_remove@Base 1.18.4+eo+1
  eina_strbuf_replace@Base 1.18.4+eo+1
  eina_strbuf_replace_all@Base 1.18.4+eo+1
  eina_strbuf_reset@Base 1.18.4+eo+1
  eina_strbuf_rtrim@Base 1.18.4+eo+1
+ eina_strbuf_rw_slice_get@Base 1.19.0+eo+1
+ eina_strbuf_slice_get@Base 1.19.0+eo+1
  eina_strbuf_string_free@Base 1.18.4+eo+1
  eina_strbuf_string_get@Base 1.18.4+eo+1
  eina_strbuf_string_steal@Base 1.18.4+eo+1
  eina_strbuf_substr_get@Base 1.18.4+eo+1
  eina_strbuf_tolower@Base 1.18.4+eo+1
  eina_strbuf_trim@Base 1.18.4+eo+1
+ eina_strbuf_use@Base 1.19.0+eo+1
  eina_strftime@Base 1.18.4+eo+1
  eina_stringshare_add@Base 1.18.4+eo+1
  eina_stringshare_add_length@Base 1.18.4+eo+1
@@ -626,6 +650,10 @@ libeina.so.1 libeina1a #MINVER#
  eina_stringshare_vprintf@Base 1.18.4+eo+1
  eina_strlcat@Base 1.18.4+eo+1
  eina_strlcpy@Base 1.18.4+eo+1
+ eina_thread_cancel@Base 1.19.0+eo+1
+ eina_thread_cancel_checkpoint@Base 1.19.0+eo+1
+ eina_thread_cancellable_run@Base 1.19.0+eo+1
+ eina_thread_cancellable_set@Base 1.19.0+eo+1
  eina_thread_create@Base 1.18.4+eo+1
  eina_thread_equal@Base 1.18.4+eo+1
  eina_thread_join@Base 1.18.4+eo+1
@@ -689,22 +717,29 @@ libeina.so.1 libeina1a #MINVER#
  eina_ustrbuf_append_escaped@Base 1.18.4+eo+1
  eina_ustrbuf_append_length@Base 1.18.4+eo+1
  eina_ustrbuf_append_n@Base 1.18.4+eo+1
+ eina_ustrbuf_append_slice@Base 1.19.0+eo+1
+ eina_ustrbuf_expand@Base 1.19.0+eo+1
  eina_ustrbuf_free@Base 1.18.4+eo+1
  eina_ustrbuf_insert@Base 1.18.4+eo+1
  eina_ustrbuf_insert_char@Base 1.18.4+eo+1
  eina_ustrbuf_insert_escaped@Base 1.18.4+eo+1
  eina_ustrbuf_insert_length@Base 1.18.4+eo+1
  eina_ustrbuf_insert_n@Base 1.18.4+eo+1
+ eina_ustrbuf_insert_slice@Base 1.19.0+eo+1
  eina_ustrbuf_length_get@Base 1.18.4+eo+1
  eina_ustrbuf_manage_new@Base 1.18.4+eo+1
  eina_ustrbuf_manage_new_length@Base 1.18.4+eo+1
  eina_ustrbuf_manage_read_only_new_length@Base 1.18.4+eo+1
  eina_ustrbuf_new@Base 1.18.4+eo+1
+ eina_ustrbuf_release@Base 1.19.0+eo+1
  eina_ustrbuf_remove@Base 1.18.4+eo+1
  eina_ustrbuf_reset@Base 1.18.4+eo+1
+ eina_ustrbuf_rw_slice_get@Base 1.19.0+eo+1
+ eina_ustrbuf_slice_get@Base 1.19.0+eo+1
  eina_ustrbuf_string_free@Base 1.18.4+eo+1
  eina_ustrbuf_string_get@Base 1.18.4+eo+1
  eina_ustrbuf_string_steal@Base 1.18.4+eo+1
+ eina_ustrbuf_use@Base 1.19.0+eo+1
  eina_ustringshare_add@Base 1.18.4+eo+1
  eina_ustringshare_add_length@Base 1.18.4+eo+1
  eina_ustringshare_del@Base 1.18.4+eo+1
@@ -752,99 +787,125 @@ libeina.so.1 libeina1a #MINVER#
  eina_xattr_value_ls@Base 1.18.4+eo+1
 libeo.so.1 libeina1a #MINVER#
 * Build-Depends-Package: libeina-dev
- EO_DBG_INFO_TYPE@Base 1.18.4+eo+1
- _EO_EVENT_CALLBACK_ADD@Base 1.18.4+eo+1
- _EO_EVENT_CALLBACK_DEL@Base 1.18.4+eo+1
- _EO_EVENT_DEL@Base 1.18.4+eo+1
- ___eo_ref2_get@Base 1.18.4+eo+1
- ___eo_ref2_reset@Base 1.18.4+eo+1
- _eo_add_end@Base 1.18.4+eo+1
- _eo_add_internal_start@Base 1.18.4+eo+1
- _eo_api_op_id_get@Base 1.18.4+eo+1
- _eo_call_end@Base 1.18.4+eo+1
- _eo_call_resolve@Base 1.18.4+eo+1
- _eo_class_creation_lock@Base 1.18.4+eo+1
- _eo_init_generation@Base 1.18.4+eo+1
- _eo_self_get@Base 1.18.4+eo+1
- eo_base_class_get@Base 1.18.4+eo+1
- eo_base_legacy_only_event_description_get@Base 1.18.4+eo+1
- eo_children_iterator_new@Base 1.18.4+eo+1
- eo_class_class_get@Base 1.18.4+eo+1
- eo_class_get@Base 1.18.4+eo+1
- eo_class_name_get@Base 1.18.4+eo+1
- eo_class_new@Base 1.18.4+eo+1
- eo_comment_get@Base 1.18.4+eo+1
- eo_comment_set@Base 1.18.4+eo+1
- eo_composite_attach@Base 1.18.4+eo+1
- eo_composite_detach@Base 1.18.4+eo+1
- eo_composite_part_is@Base 1.18.4+eo+1
- eo_constructor@Base 1.18.4+eo+1
- eo_data_scope_get@Base 1.18.4+eo+1
- eo_data_xref_internal@Base 1.18.4+eo+1
- eo_data_xunref_internal@Base 1.18.4+eo+1
- eo_dbg_info_free@Base 1.18.4+eo+1
- eo_dbg_info_get@Base 1.18.4+eo+1
- eo_del@Base 1.18.4+eo+1
- eo_del_intercept_get@Base 1.18.4+eo+1
- eo_del_intercept_set@Base 1.18.4+eo+1
- eo_destructed_is@Base 1.18.4+eo+1
- eo_destructor@Base 1.18.4+eo+1
- eo_event_callback_array_del@Base 1.18.4+eo+1
- eo_event_callback_array_priority_add@Base 1.18.4+eo+1
- eo_event_callback_call@Base 1.18.4+eo+1
- eo_event_callback_del@Base 1.18.4+eo+1
- eo_event_callback_forwarder_add@Base 1.18.4+eo+1
- eo_event_callback_forwarder_del@Base 1.18.4+eo+1
- eo_event_callback_priority_add@Base 1.18.4+eo+1
- eo_event_callback_stop@Base 1.18.4+eo+1
- eo_event_freeze@Base 1.18.4+eo+1
- eo_event_freeze_count_get@Base 1.18.4+eo+1
- eo_event_global_freeze@Base 1.18.4+eo+1
- eo_event_global_freeze_count_get@Base 1.18.4+eo+1
- eo_event_global_thaw@Base 1.18.4+eo+1
- eo_event_thaw@Base 1.18.4+eo+1
- eo_finalize@Base 1.18.4+eo+1
- eo_finalized_get@Base 1.18.4+eo+1
- eo_init@Base 1.18.4+eo+1
- eo_interface_interface_get@Base 1.18.4+eo+1
- eo_isa@Base 1.18.4+eo+1
- eo_key_data_get@Base 1.18.4+eo+1
- eo_key_data_set@Base 1.18.4+eo+1
- eo_key_ref_get@Base 1.18.4+eo+1
- eo_key_ref_set@Base 1.18.4+eo+1
- eo_key_value_get@Base 1.18.4+eo+1
- eo_key_value_set@Base 1.18.4+eo+1
- eo_key_wref_get@Base 1.18.4+eo+1
- eo_key_wref_set@Base 1.18.4+eo+1
- eo_manual_free@Base 1.18.4+eo+1
- eo_manual_free_set@Base 1.18.4+eo+1
- eo_name_find@Base 1.18.4+eo+1
- eo_name_get@Base 1.18.4+eo+1
- eo_name_set@Base 1.18.4+eo+1
- eo_override@Base 1.18.4+eo+1
- eo_override_class_get@Base 1.18.4+eo+1
- eo_parent_get@Base 1.18.4+eo+1
- eo_parent_set@Base 1.18.4+eo+1
- eo_provider_find@Base 1.18.4+eo+1
- eo_ref@Base 1.18.4+eo+1
- eo_ref_get@Base 1.18.4+eo+1
- eo_shutdown@Base 1.18.4+eo+1
- eo_super@Base 1.18.4+eo+1
- eo_unref@Base 1.18.4+eo+1
- eo_wref_add@Base 1.18.4+eo+1
- eo_wref_del@Base 1.18.4+eo+1
- eo_xref_internal@Base 1.18.4+eo+1
- eo_xunref@Base 1.18.4+eo+1
+ EFL_DBG_INFO_TYPE@Base 1.19.0+eo+1
+ EINA_ERROR_FUTURE_CANCEL@Base 1.19.0+eo+1
+ _EFL_EVENT_CALLBACK_ADD@Base 1.19.0+eo+1
+ _EFL_EVENT_CALLBACK_DEL@Base 1.19.0+eo+1
+ _EFL_EVENT_DEL@Base 1.19.0+eo+1
+ _EFL_FUTURE_EVENT_FAILURE@Base 1.19.0+eo+1
+ _EFL_FUTURE_EVENT_PROGRESS@Base 1.19.0+eo+1
+ _EFL_FUTURE_EVENT_SUCCESS@Base 1.19.0+eo+1
+ ___efl_ref2_get@Base 1.19.0+eo+1
+ ___efl_ref2_reset@Base 1.19.0+eo+1
+ _efl_add_end@Base 1.19.0+eo+1
+ _efl_add_internal_start@Base 1.19.0+eo+1
+ _efl_added_get@Base 1.19.0+eo+1
+ _efl_class_creation_lock@Base 1.19.0+eo+1
+ _efl_object_api_op_id_get@Base 1.19.0+eo+1
+ _efl_object_call_end@Base 1.19.0+eo+1
+ _efl_object_call_resolve@Base 1.19.0+eo+1
+ _efl_object_init_generation@Base 1.19.0+eo+1
+ _efl_object_op_api_id_get@Base 1.19.0+eo+1
+ efl_callbacks_cmp@Base 1.19.0+eo+1
+ efl_children_iterator_new@Base 1.19.0+eo+1
+ efl_class_class_get@Base 1.19.0+eo+1
+ efl_class_functions_set@Base 1.19.0+eo+1
+ efl_class_get@Base 1.19.0+eo+1
+ efl_class_name_get@Base 1.19.0+eo+1
+ efl_class_new@Base 1.19.0+eo+1
+ efl_comment_get@Base 1.19.0+eo+1
+ efl_comment_set@Base 1.19.0+eo+1
+ efl_compatible@Base 1.19.0+eo+1
+ efl_composite_attach@Base 1.19.0+eo+1
+ efl_composite_detach@Base 1.19.0+eo+1
+ efl_composite_part_is@Base 1.19.0+eo+1
+ efl_constructor@Base 1.19.0+eo+1
+ efl_data_scope_get@Base 1.19.0+eo+1
+ efl_data_xref_internal@Base 1.19.0+eo+1
+ efl_data_xunref_internal@Base 1.19.0+eo+1
+ efl_dbg_info_free@Base 1.19.0+eo+1
+ efl_dbg_info_get@Base 1.19.0+eo+1
+ efl_del@Base 1.19.0+eo+1
+ efl_del_intercept_get@Base 1.19.0+eo+1
+ efl_del_intercept_set@Base 1.19.0+eo+1
+ efl_destructed_is@Base 1.19.0+eo+1
+ efl_destructor@Base 1.19.0+eo+1
+ efl_domain_current_get@Base 1.19.0+eo+1
+ efl_domain_current_pop@Base 1.19.0+eo+1
+ efl_domain_current_push@Base 1.19.0+eo+1
+ efl_domain_current_set@Base 1.19.0+eo+1
+ efl_domain_data_adopt@Base 1.19.0+eo+1
+ efl_domain_data_get@Base 1.19.0+eo+1
+ efl_domain_data_return@Base 1.19.0+eo+1
+ efl_domain_get@Base 1.19.0+eo+1
+ efl_domain_switch@Base 1.19.0+eo+1
+ efl_event_callback_array_del@Base 1.19.0+eo+1
+ efl_event_callback_array_priority_add@Base 1.19.0+eo+1
+ efl_event_callback_call@Base 1.19.0+eo+1
+ efl_event_callback_del@Base 1.19.0+eo+1
+ efl_event_callback_forwarder_add@Base 1.19.0+eo+1
+ efl_event_callback_forwarder_del@Base 1.19.0+eo+1
+ efl_event_callback_legacy_call@Base 1.19.0+eo+1
+ efl_event_callback_priority_add@Base 1.19.0+eo+1
+ efl_event_callback_stop@Base 1.19.0+eo+1
+ efl_event_freeze@Base 1.19.0+eo+1
+ efl_event_freeze_count_get@Base 1.19.0+eo+1
+ efl_event_global_freeze@Base 1.19.0+eo+1
+ efl_event_global_freeze_count_get@Base 1.19.0+eo+1
+ efl_event_global_thaw@Base 1.19.0+eo+1
+ efl_event_thaw@Base 1.19.0+eo+1
+ efl_finalize@Base 1.19.0+eo+1
+ efl_finalized_get@Base 1.19.0+eo+1
+ efl_future_cancel@Base 1.19.0+eo+1
+ efl_future_class_get@Base 1.19.0+eo+1
+ efl_future_link@Base 1.19.0+eo+1
+ efl_future_then@Base 1.19.0+eo+1
+ efl_interface_interface_get@Base 1.19.0+eo+1
+ efl_isa@Base 1.19.0+eo+1
+ efl_key_data_get@Base 1.19.0+eo+1
+ efl_key_data_set@Base 1.19.0+eo+1
+ efl_key_ref_get@Base 1.19.0+eo+1
+ efl_key_ref_set@Base 1.19.0+eo+1
+ efl_key_value_get@Base 1.19.0+eo+1
+ efl_key_value_set@Base 1.19.0+eo+1
+ efl_key_wref_get@Base 1.19.0+eo+1
+ efl_key_wref_set@Base 1.19.0+eo+1
+ efl_manual_free@Base 1.19.0+eo+1
+ efl_manual_free_set@Base 1.19.0+eo+1
+ efl_name_find@Base 1.19.0+eo+1
+ efl_name_get@Base 1.19.0+eo+1
+ efl_name_set@Base 1.19.0+eo+1
+ efl_object_class_get@Base 1.19.0+eo+1
+ efl_object_init@Base 1.19.0+eo+1
+ efl_object_legacy_only_event_description_get@Base 1.19.0+eo+1
+ efl_object_override@Base 1.19.0+eo+1
+ efl_object_override_class_get@Base 1.19.0+eo+1
+ efl_object_shutdown@Base 1.19.0+eo+1
+ efl_parent_get@Base 1.19.0+eo+1
+ efl_parent_set@Base 1.19.0+eo+1
+ efl_provider_find@Base 1.19.0+eo+1
+ efl_ref@Base 1.19.0+eo+1
+ efl_ref_get@Base 1.19.0+eo+1
+ efl_reuse@Base 1.19.0+eo+1
+ efl_super@Base 1.19.0+eo+1
+ efl_unref@Base 1.19.0+eo+1
+ efl_wref_add@Base 1.19.0+eo+1
+ efl_wref_del@Base 1.19.0+eo+1
+ efl_xref_internal@Base 1.19.0+eo+1
+ efl_xunref@Base 1.19.0+eo+1
 libefl.so.1 libeina1a #MINVER#
 * Build-Depends-Package: libeina-dev
  EFL_MODEL_ERROR_INCORRECT_VALUE@Base 1.18.4+eo+1
  EFL_MODEL_ERROR_INIT_FAILED@Base 1.18.4+eo+1
+ EFL_MODEL_ERROR_INVALID_OBJECT@Base 1.19.0+eo+1
  EFL_MODEL_ERROR_NOT_FOUND@Base 1.18.4+eo+1
  EFL_MODEL_ERROR_NOT_SUPPORTED@Base 1.18.4+eo+1
  EFL_MODEL_ERROR_PERMISSION_DENIED@Base 1.18.4+eo+1
  EFL_MODEL_ERROR_READ_ONLY@Base 1.18.4+eo+1
  EFL_MODEL_ERROR_UNKNOWN@Base 1.18.4+eo+1
+ _EFL_CANVAS_EVENT_DEVICE_ADDED@Base 1.19.0+eo+1
  _EFL_CANVAS_EVENT_DEVICE_CHANGED@Base 1.18.4+eo+1
+ _EFL_CANVAS_EVENT_DEVICE_REMOVED@Base 1.19.0+eo+1
  _EFL_CANVAS_EVENT_FOCUS_IN@Base 1.18.4+eo+1
  _EFL_CANVAS_EVENT_FOCUS_OUT@Base 1.18.4+eo+1
  _EFL_CANVAS_EVENT_OBJECT_FOCUS_IN@Base 1.18.4+eo+1
@@ -854,18 +915,6 @@ libefl.so.1 libeina1a #MINVER#
  _EFL_CONTAINER_EVENT_CONTENT_ADDED@Base 1.18.4+eo+1
  _EFL_CONTAINER_EVENT_CONTENT_REMOVED@Base 1.18.4+eo+1
  _EFL_EVENT_ANIMATOR_TICK@Base 1.18.4+eo+1
- _EFL_EVENT_HOLD@Base 1.18.4+eo+1
- _EFL_EVENT_KEY_DOWN@Base 1.18.4+eo+1
- _EFL_EVENT_KEY_UP@Base 1.18.4+eo+1
- _EFL_EVENT_POINTER_CANCEL@Base 1.18.4+eo+1
- _EFL_EVENT_POINTER_DOWN@Base 1.18.4+eo+1
- _EFL_EVENT_POINTER_IN@Base 1.18.4+eo+1
- _EFL_EVENT_POINTER_MOVE@Base 1.18.4+eo+1
- _EFL_EVENT_POINTER_OUT@Base 1.18.4+eo+1
- _EFL_EVENT_POINTER_UP@Base 1.18.4+eo+1
- _EFL_EVENT_POINTER_WHEEL@Base 1.18.4+eo+1
- _EFL_FILE_EVENT_ASYNC_ERROR@Base 1.18.4+eo+1
- _EFL_FILE_EVENT_ASYNC_OPENED@Base 1.18.4+eo+1
  _EFL_GFX_CHANGED@Base 1.18.4+eo+1
  _EFL_GFX_EVENT_CHANGE_SIZE_HINTS@Base 1.18.4+eo+1
  _EFL_GFX_EVENT_HIDE@Base 1.18.4+eo+1
@@ -880,6 +929,16 @@ libefl.so.1 libeina1a #MINVER#
  _EFL_IMAGE_LOAD_EVENT_LOAD_CANCELLED@Base 1.18.4+eo+1
  _EFL_IMAGE_LOAD_EVENT_LOAD_DONE@Base 1.18.4+eo+1
  _EFL_IMAGE_LOAD_EVENT_LOAD_ERROR@Base 1.18.4+eo+1
+ _EFL_IO_BUFFER_EVENT_POSITION_READ_CHANGED@Base 1.19.0+eo+1
+ _EFL_IO_BUFFER_EVENT_POSITION_WRITE_CHANGED@Base 1.19.0+eo+1
+ _EFL_IO_BUFFER_EVENT_REALLOCATED@Base 1.19.0+eo+1
+ _EFL_IO_CLOSER_EVENT_CLOSED@Base 1.19.0+eo+1
+ _EFL_IO_POSITIONER_EVENT_POSITION_CHANGED@Base 1.19.0+eo+1
+ _EFL_IO_QUEUE_EVENT_SLICE_CHANGED@Base 1.19.0+eo+1
+ _EFL_IO_READER_EVENT_CAN_READ_CHANGED@Base 1.19.0+eo+1
+ _EFL_IO_READER_EVENT_EOS@Base 1.19.0+eo+1
+ _EFL_IO_SIZER_EVENT_SIZE_CHANGED@Base 1.19.0+eo+1
+ _EFL_IO_WRITER_EVENT_CAN_WRITE_CHANGED@Base 1.19.0+eo+1
  _EFL_MODEL_EVENT_CHILDREN_COUNT_CHANGED@Base 1.18.4+eo+1
  _EFL_MODEL_EVENT_CHILD_ADDED@Base 1.18.4+eo+1
  _EFL_MODEL_EVENT_CHILD_REMOVED@Base 1.18.4+eo+1
@@ -895,8 +954,6 @@ libefl.so.1 libeina1a #MINVER#
  efl_canvas_object_top_in_rectangle_get@Base 1.18.4+eo+1
  efl_canvas_objects_at_xy_get@Base 1.18.4+eo+1
  efl_canvas_objects_in_rectangle_get@Base 1.18.4+eo+1
- efl_canvas_pointer_canvas_xy_get@Base 1.18.4+eo+1
- efl_canvas_pointer_inside_get@Base 1.18.4+eo+1
  efl_canvas_smart_objects_calculate@Base 1.18.4+eo+1
  efl_config_get@Base 1.18.4+eo+1
  efl_config_interface_get@Base 1.18.4+eo+1
@@ -915,16 +972,6 @@ libefl.so.1 libeina1a #MINVER#
  efl_control_priority_set@Base 1.18.4+eo+1
  efl_control_suspend_get@Base 1.18.4+eo+1
  efl_control_suspend_set@Base 1.18.4+eo+1
- efl_event_dup@Base 1.18.4+eo+1
- efl_event_instance_get@Base 1.18.4+eo+1
- efl_event_interface_get@Base 1.18.4+eo+1
- efl_event_reset@Base 1.18.4+eo+1
- efl_event_timestamp_get@Base 1.18.4+eo+1
- efl_event_timestamp_set@Base 1.18.4+eo+1
- efl_file_async_get@Base 1.18.4+eo+1
- efl_file_async_set@Base 1.18.4+eo+1
- efl_file_async_wait@Base 1.18.4+eo+1
- efl_file_eject@Base 1.18.4+eo+1
  efl_file_get@Base 1.18.4+eo+1
  efl_file_interface_get@Base 1.18.4+eo+1
  efl_file_mmap_get@Base 1.18.4+eo+1
@@ -939,9 +986,9 @@ libefl.so.1 libeina1a #MINVER#
  efl_gfx_buffer_borders_get@Base 1.18.4+eo+1
  efl_gfx_buffer_colorspace_get@Base 1.18.4+eo+1
  efl_gfx_buffer_copy_set@Base 1.18.4+eo+1
- efl_gfx_buffer_data_get@Base 1.18.4+eo+1
- efl_gfx_buffer_data_set@Base 1.18.4+eo+1
  efl_gfx_buffer_interface_get@Base 1.18.4+eo+1
+ efl_gfx_buffer_managed_get@Base 1.19.0+eo+1
+ efl_gfx_buffer_managed_set@Base 1.19.0+eo+1
  efl_gfx_buffer_map@Base 1.18.4+eo+1
  efl_gfx_buffer_size_get@Base 1.18.4+eo+1
  efl_gfx_buffer_size_set@Base 1.18.4+eo+1
@@ -987,33 +1034,36 @@ libefl.so.1 libeina1a #MINVER#
  efl_gfx_gradient_stop_get@Base 1.18.4+eo+1
  efl_gfx_gradient_stop_set@Base 1.18.4+eo+1
  efl_gfx_interface_get@Base 1.18.4+eo+1
+ efl_gfx_path_append_arc@Base 1.19.0+eo+1
+ efl_gfx_path_append_arc_to@Base 1.19.0+eo+1
+ efl_gfx_path_append_circle@Base 1.19.0+eo+1
+ efl_gfx_path_append_close@Base 1.19.0+eo+1
+ efl_gfx_path_append_cubic_to@Base 1.19.0+eo+1
+ efl_gfx_path_append_line_to@Base 1.19.0+eo+1
+ efl_gfx_path_append_move_to@Base 1.19.0+eo+1
+ efl_gfx_path_append_quadratic_to@Base 1.19.0+eo+1
+ efl_gfx_path_append_rect@Base 1.19.0+eo+1
+ efl_gfx_path_append_scubic_to@Base 1.19.0+eo+1
+ efl_gfx_path_append_squadratic_to@Base 1.19.0+eo+1
+ efl_gfx_path_append_svg_path@Base 1.19.0+eo+1
+ efl_gfx_path_bounds_get@Base 1.19.0+eo+1
+ efl_gfx_path_current_ctrl_get@Base 1.19.0+eo+1
+ efl_gfx_path_current_get@Base 1.19.0+eo+1
+ efl_gfx_path_dup@Base 1.19.0+eo+1
+ efl_gfx_path_equal_commands@Base 1.19.0+eo+1
+ efl_gfx_path_get@Base 1.19.0+eo+1
+ efl_gfx_path_interpolate@Base 1.19.0+eo+1
+ efl_gfx_path_length_get@Base 1.19.0+eo+1
+ efl_gfx_path_mixin_get@Base 1.19.0+eo+1
+ efl_gfx_path_reset@Base 1.19.0+eo+1
+ efl_gfx_path_set@Base 1.19.0+eo+1
  efl_gfx_position_get@Base 1.18.4+eo+1
  efl_gfx_position_set@Base 1.18.4+eo+1
- efl_gfx_shape_append_arc@Base 1.18.4+eo+1
- efl_gfx_shape_append_arc_to@Base 1.18.4+eo+1
- efl_gfx_shape_append_circle@Base 1.18.4+eo+1
- efl_gfx_shape_append_close@Base 1.18.4+eo+1
- efl_gfx_shape_append_cubic_to@Base 1.18.4+eo+1
- efl_gfx_shape_append_line_to@Base 1.18.4+eo+1
- efl_gfx_shape_append_move_to@Base 1.18.4+eo+1
- efl_gfx_shape_append_quadratic_to@Base 1.18.4+eo+1
- efl_gfx_shape_append_rect@Base 1.18.4+eo+1
- efl_gfx_shape_append_scubic_to@Base 1.18.4+eo+1
- efl_gfx_shape_append_squadratic_to@Base 1.18.4+eo+1
- efl_gfx_shape_append_svg_path@Base 1.18.4+eo+1
- efl_gfx_shape_bounds_get@Base 1.18.4+eo+1
- efl_gfx_shape_current_ctrl_get@Base 1.18.4+eo+1
- efl_gfx_shape_current_get@Base 1.18.4+eo+1
  efl_gfx_shape_dup@Base 1.18.4+eo+1
- efl_gfx_shape_equal_commands@Base 1.18.4+eo+1
  efl_gfx_shape_fill_rule_get@Base 1.18.4+eo+1
  efl_gfx_shape_fill_rule_set@Base 1.18.4+eo+1
  efl_gfx_shape_interpolate@Base 1.18.4+eo+1
  efl_gfx_shape_mixin_get@Base 1.18.4+eo+1
- efl_gfx_shape_path_get@Base 1.18.4+eo+1
- efl_gfx_shape_path_length_get@Base 1.18.4+eo+1
- efl_gfx_shape_path_set@Base 1.18.4+eo+1
- efl_gfx_shape_reset@Base 1.18.4+eo+1
  efl_gfx_shape_stroke_cap_get@Base 1.18.4+eo+1
  efl_gfx_shape_stroke_cap_set@Base 1.18.4+eo+1
  efl_gfx_shape_stroke_color_get@Base 1.18.4+eo+1
@@ -1099,6 +1149,8 @@ libefl.so.1 libeina1a #MINVER#
  efl_image_load_scale_down_get@Base 1.18.4+eo+1
  efl_image_load_scale_down_set@Base 1.18.4+eo+1
  efl_image_load_size_get@Base 1.18.4+eo+1
+ efl_image_load_skip_header_get@Base 1.19.0+eo+1
+ efl_image_load_skip_header_set@Base 1.19.0+eo+1
  efl_image_load_size_set@Base 1.18.4+eo+1
  efl_image_ratio_get@Base 1.18.4+eo+1
  efl_image_scale_hint_get@Base 1.18.4+eo+1
@@ -1111,16 +1163,61 @@ libefl.so.1 libeina1a #MINVER#
  efl_input_device_name_get@Base 1.18.4+eo+1
  efl_input_device_name_set@Base 1.18.4+eo+1
  efl_input_device_parent_get@Base 1.18.4+eo+1
+ efl_input_device_parent_set@Base 1.19.0+eo+1
+ efl_input_device_seat_get@Base 1.19.0+eo+1
  efl_input_device_source_get@Base 1.18.4+eo+1
  efl_input_device_source_set@Base 1.18.4+eo+1
  efl_input_device_subtype_get@Base 1.18.4+eo+1
  efl_input_device_subtype_set@Base 1.18.4+eo+1
  efl_input_device_type_get@Base 1.18.4+eo+1
  efl_input_device_type_set@Base 1.18.4+eo+1
- efl_input_interface_interface_get@Base 1.18.4+eo+1
- efl_input_lock_enabled_get@Base 1.18.4+eo+1
- efl_input_modifier_enabled_get@Base 1.18.4+eo+1
- efl_input_state_interface_get@Base 1.18.4+eo+1
+ efl_io_buffer_adopt_readonly@Base 1.19.0+eo+1
+ efl_io_buffer_adopt_readwrite@Base 1.19.0+eo+1
+ efl_io_buffer_binbuf_steal@Base 1.19.0+eo+1
+ efl_io_buffer_class_get@Base 1.19.0+eo+1
+ efl_io_buffer_limit_get@Base 1.19.0+eo+1
+ efl_io_buffer_limit_set@Base 1.19.0+eo+1
+ efl_io_buffer_position_read_get@Base 1.19.0+eo+1
+ efl_io_buffer_position_read_set@Base 1.19.0+eo+1
+ efl_io_buffer_position_write_get@Base 1.19.0+eo+1
+ efl_io_buffer_position_write_set@Base 1.19.0+eo+1
+ efl_io_buffer_preallocate@Base 1.19.0+eo+1
+ efl_io_buffer_slice_get@Base 1.19.0+eo+1
+ efl_io_closer_close@Base 1.19.0+eo+1
+ efl_io_closer_close_on_destructor_get@Base 1.19.0+eo+1
+ efl_io_closer_close_on_destructor_set@Base 1.19.0+eo+1
+ efl_io_closer_close_on_exec_get@Base 1.19.0+eo+1
+ efl_io_closer_close_on_exec_set@Base 1.19.0+eo+1
+ efl_io_closer_closed_get@Base 1.19.0+eo+1
+ efl_io_closer_closed_set@Base 1.19.0+eo+1
+ efl_io_closer_mixin_get@Base 1.19.0+eo+1
+ efl_io_positioner_mixin_get@Base 1.19.0+eo+1
+ efl_io_positioner_position_get@Base 1.19.0+eo+1
+ efl_io_positioner_position_set@Base 1.19.0+eo+1
+ efl_io_positioner_seek@Base 1.19.0+eo+1
+ efl_io_queue_class_get@Base 1.19.0+eo+1
+ efl_io_queue_clear@Base 1.19.0+eo+1
+ efl_io_queue_discard@Base 1.19.0+eo+1
+ efl_io_queue_eos_mark@Base 1.19.0+eo+1
+ efl_io_queue_limit_get@Base 1.19.0+eo+1
+ efl_io_queue_limit_set@Base 1.19.0+eo+1
+ efl_io_queue_preallocate@Base 1.19.0+eo+1
+ efl_io_queue_slice_get@Base 1.19.0+eo+1
+ efl_io_queue_usage_get@Base 1.19.0+eo+1
+ efl_io_reader_can_read_get@Base 1.19.0+eo+1
+ efl_io_reader_can_read_set@Base 1.19.0+eo+1
+ efl_io_reader_eos_get@Base 1.19.0+eo+1
+ efl_io_reader_eos_set@Base 1.19.0+eo+1
+ efl_io_reader_interface_get@Base 1.19.0+eo+1
+ efl_io_reader_read@Base 1.19.0+eo+1
+ efl_io_sizer_mixin_get@Base 1.19.0+eo+1
+ efl_io_sizer_resize@Base 1.19.0+eo+1
+ efl_io_sizer_size_get@Base 1.19.0+eo+1
+ efl_io_sizer_size_set@Base 1.19.0+eo+1
+ efl_io_writer_can_write_get@Base 1.19.0+eo+1
+ efl_io_writer_can_write_set@Base 1.19.0+eo+1
+ efl_io_writer_interface_get@Base 1.19.0+eo+1
+ efl_io_writer_write@Base 1.19.0+eo+1
  efl_model_child_add@Base 1.18.4+eo+1
  efl_model_child_del@Base 1.18.4+eo+1
  efl_model_children_count_get@Base 1.18.4+eo+1
@@ -1135,6 +1232,15 @@ libefl.so.1 libeina1a #MINVER#
  efl_model_property_set@Base 1.18.4+eo+1
  efl_model_value_struct_description_free@Base 1.18.4+eo+1
  efl_model_value_struct_description_new@Base 1.18.4+eo+1
+ efl_observable_class_get@Base 1.19.0+eo+1
+ efl_observable_iterator_tuple_new@Base 1.19.0+eo+1
+ efl_observable_observer_add@Base 1.19.0+eo+1
+ efl_observable_observer_clean@Base 1.19.0+eo+1
+ efl_observable_observer_del@Base 1.19.0+eo+1
+ efl_observable_observers_iterator_new@Base 1.19.0+eo+1
+ efl_observable_observers_update@Base 1.19.0+eo+1
+ efl_observer_interface_get@Base 1.19.0+eo+1
+ efl_observer_update@Base 1.19.0+eo+1
  efl_orientation_get@Base 1.18.4+eo+1
  efl_orientation_interface_get@Base 1.18.4+eo+1
  efl_orientation_set@Base 1.18.4+eo+1
@@ -1177,12 +1283,10 @@ libefl.so.1 libeina1a #MINVER#
  efl_pack_unpack_at@Base 1.18.4+eo+1
  efl_part@Base 1.18.4+eo+1
  efl_part_interface_get@Base 1.18.4+eo+1
- efl_player_audio_mute_get@Base 1.18.4+eo+1
- efl_player_audio_mute_set@Base 1.18.4+eo+1
- efl_player_audio_volume_get@Base 1.18.4+eo+1
- efl_player_audio_volume_set@Base 1.18.4+eo+1
  efl_player_interface_get@Base 1.18.4+eo+1
  efl_player_length_get@Base 1.18.4+eo+1
+ efl_player_mute_get@Base 1.19.0+eo+1
+ efl_player_mute_set@Base 1.19.0+eo+1
  efl_player_play_get@Base 1.18.4+eo+1
  efl_player_play_set@Base 1.18.4+eo+1
  efl_player_play_speed_get@Base 1.18.4+eo+1
@@ -1192,6 +1296,8 @@ libefl.so.1 libeina1a #MINVER#
  efl_player_position_set@Base 1.18.4+eo+1
  efl_player_progress_get@Base 1.18.4+eo+1
  efl_player_seekable_get@Base 1.18.4+eo+1
+ efl_player_volume_get@Base 1.19.0+eo+1
+ efl_player_volume_set@Base 1.19.0+eo+1
  efl_screen_dpi_get@Base 1.18.4+eo+1
  efl_screen_interface_get@Base 1.18.4+eo+1
  efl_screen_rotation_get@Base 1.18.4+eo+1
@@ -1204,6 +1310,23 @@ libefl.so.1 libeina1a #MINVER#
  efl_text_properties_font_source_set@Base 1.18.4+eo+1
  efl_text_properties_interface_get@Base 1.18.4+eo+1
  efl_text_set@Base 1.18.4+eo+1
+ efl_ui_factory_create@Base 1.19.0+eo+1
+ efl_ui_factory_interface_get@Base 1.19.0+eo+1
+ efl_ui_factory_release@Base 1.19.0+eo+1
+ efl_ui_item_interface_get@Base 1.19.0+eo+1
+ efl_ui_item_next_get@Base 1.19.0+eo+1
+ efl_ui_item_prev_get@Base 1.19.0+eo+1
+ efl_ui_item_selected_get@Base 1.19.0+eo+1
+ efl_ui_item_selected_set@Base 1.19.0+eo+1
+ efl_ui_menu_first_item_get@Base 1.19.0+eo+1
+ efl_ui_menu_interface_get@Base 1.19.0+eo+1
+ efl_ui_menu_items_get@Base 1.19.0+eo+1
+ efl_ui_menu_last_item_get@Base 1.19.0+eo+1
+ efl_ui_menu_selected_item_get@Base 1.19.0+eo+1
+ efl_ui_model_connect@Base 1.19.0+eo+1
+ efl_ui_model_connect_interface_get@Base 1.19.0+eo+1
+ efl_ui_model_factory_connect@Base 1.19.0+eo+1
+ efl_ui_model_factory_connect_interface_get@Base 1.19.0+eo+1
  efl_ui_progress_interface_get@Base 1.18.4+eo+1
  efl_ui_progress_span_size_get@Base 1.18.4+eo+1
  efl_ui_progress_span_size_set@Base 1.18.4+eo+1
@@ -1220,6 +1343,9 @@ libefl.so.1 libeina1a #MINVER#
  efl_ui_spin_step_set@Base 1.18.4+eo+1
  efl_ui_spin_value_get@Base 1.18.4+eo+1
  efl_ui_spin_value_set@Base 1.18.4+eo+1
+ efl_ui_view_interface_get@Base 1.19.0+eo+1
+ efl_ui_view_model_get@Base 1.19.0+eo+1
+ efl_ui_view_model_set@Base 1.19.0+eo+1
  efl_vpath_core_class_get@Base 1.18.4+eo+1
  efl_vpath_core_get@Base 1.18.4+eo+1
  efl_vpath_core_meta_get@Base 1.18.4+eo+1
@@ -1228,6 +1354,8 @@ libefl.so.1 libeina1a #MINVER#
  efl_vpath_file_class_get@Base 1.18.4+eo+1
  efl_vpath_file_core_class_get@Base 1.18.4+eo+1
  efl_vpath_file_do@Base 1.18.4+eo+1
+ efl_vpath_file_keep_get@Base 1.19.0+eo+1
+ efl_vpath_file_keep_set@Base 1.19.0+eo+1
  efl_vpath_file_path_get@Base 1.18.4+eo+1
  efl_vpath_file_path_set@Base 1.18.4+eo+1
  efl_vpath_file_result_get@Base 1.18.4+eo+1

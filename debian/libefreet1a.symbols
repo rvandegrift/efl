@@ -6,6 +6,7 @@ libefreet.so.1 libefreet1a #MINVER#, libefreet-bin
  EFREET_EVENT_DESKTOP_CACHE_BUILD@Base 1.18.4+eo+1
  EFREET_EVENT_DESKTOP_CACHE_UPDATE@Base 1.18.4+eo+1
  EFREET_EVENT_ICON_CACHE_UPDATE@Base 1.18.4+eo+1
+ _efreet_mime_update_func@Base 1.19.0+eo+1
  efreet_array_string_edd@Base 1.18.4+eo+1
  efreet_cache_array_string_free@Base 1.18.4+eo+1
  efreet_cache_home_get@Base 1.18.4+eo+1

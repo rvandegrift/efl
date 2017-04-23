@@ -87,6 +87,8 @@ libecore_x.so.1 libecore-x1 #MINVER#
  ECORE_X_ATOM_E_KEYROUTER_WINDOW_KEYTABLE@Base 1.18.4+eo+1
  ECORE_X_ATOM_E_PROFILE@Base 1.18.4+eo+1
  ECORE_X_ATOM_E_PROFILE_LIST@Base 1.18.4+eo+1
+ ECORE_X_ATOM_E_STACK_POSITION@Base 1.19.0+eo+1
+ ECORE_X_ATOM_E_STACK_TYPE@Base 1.19.0+eo+1
  ECORE_X_ATOM_E_VIDEO_PARENT@Base 1.18.4+eo+1
  ECORE_X_ATOM_E_VIDEO_POSITION@Base 1.18.4+eo+1
  ECORE_X_ATOM_E_VIRTUAL_KEYBOARD@Base 1.18.4+eo+1
@@ -125,6 +127,7 @@ libecore_x.so.1 libecore-x1 #MINVER#
  ECORE_X_ATOM_E_WINDOW_ROTATION_PREFERRED_ROTATION@Base 1.18.4+eo+1
  ECORE_X_ATOM_E_WINDOW_ROTATION_SUPPORTED@Base 1.18.4+eo+1
  ECORE_X_ATOM_FILE_NAME@Base 1.18.4+eo+1
+ ECORE_X_ATOM_GTK_FRAME_EXTENTS@Base 1.19.0+eo+1
  ECORE_X_ATOM_MOTIF_WM_HINTS@Base 1.18.4+eo+1
  ECORE_X_ATOM_NET_ACTIVE_WINDOW@Base 1.18.4+eo+1
  ECORE_X_ATOM_NET_CLIENT_LIST@Base 1.18.4+eo+1
@@ -506,6 +509,10 @@ libecore_x.so.1 libecore-x1 #MINVER#
  ecore_x_e_init@Base 1.18.4+eo+1
  ecore_x_e_keyrouter_get@Base 1.18.4+eo+1
  ecore_x_e_keyrouter_set@Base 1.18.4+eo+1
+ ecore_x_e_stack_position_get@Base 1.19.0+eo+1
+ ecore_x_e_stack_position_set@Base 1.19.0+eo+1
+ ecore_x_e_stack_type_get@Base 1.19.0+eo+1
+ ecore_x_e_stack_type_set@Base 1.19.0+eo+1
  ecore_x_e_virtual_keyboard_get@Base 1.18.4+eo+1
  ecore_x_e_virtual_keyboard_set@Base 1.18.4+eo+1
  ecore_x_e_virtual_keyboard_state_get@Base 1.18.4+eo+1

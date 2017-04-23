@@ -8,7 +8,9 @@ libeolian.so.1 libeolian1 #MINVER#
  eolian_all_eot_file_paths_get@Base 1.18.4+eo+1
  eolian_all_eot_files_get@Base 1.18.4+eo+1
  eolian_all_eot_files_parse@Base 1.18.4+eo+1
- eolian_class_c_get_function_name_get@Base 1.18.4+eo+1
+ eolian_class_c_data_type_get@Base 1.19.0+eo+1
+  eolian_class_c_get_function_name_get@Base 1.18.4+eo+1
+ eolian_class_c_name_get@Base 1.19.0+eo+1
  eolian_class_constructors_get@Base 1.18.4+eo+1
  eolian_class_ctor_enable_get@Base 1.18.4+eo+1
  eolian_class_data_type_get@Base 1.18.4+eo+1
@@ -43,9 +45,15 @@ libeolian.so.1 libeolian1 #MINVER#
  eolian_declaration_variable_get@Base 1.18.4+eo+1
  eolian_declarations_get_by_file@Base 1.18.4+eo+1
  eolian_directory_scan@Base 1.18.4+eo+1
- eolian_documentation_description_get@Base 1.18.4+eo+1
- eolian_documentation_since_get@Base 1.18.4+eo+1
- eolian_documentation_summary_get@Base 1.18.4+eo+1
+ eolian_doc_token_init@Base 1.19.0+eo+1
+ eolian_doc_token_ref_get@Base 1.19.0+eo+1
+ eolian_doc_token_text_get@Base 1.19.0+eo+1
+ eolian_doc_token_type_get@Base 1.19.0+eo+1
+  eolian_documentation_description_get@Base 1.18.4+eo+1
+  eolian_documentation_since_get@Base 1.18.4+eo+1
+ eolian_documentation_string_split@Base 1.19.0+eo+1
+  eolian_documentation_summary_get@Base 1.18.4+eo+1
+ eolian_documentation_tokenize@Base 1.19.0+eo+1
  eolian_event_c_name_get@Base 1.18.4+eo+1
  eolian_event_documentation_get@Base 1.18.4+eo+1
  eolian_event_is_beta@Base 1.18.4+eo+1
@@ -67,17 +75,13 @@ libeolian.so.1 libeolian1 #MINVER#
  eolian_expression_value_to_literal@Base 1.18.4+eo+1
  eolian_file_parse@Base 1.18.4+eo+1
  eolian_function_class_get@Base 1.18.4+eo+1
- eolian_function_documentation_get@Base 1.18.4+eo+1
  eolian_function_full_c_name_get@Base 1.18.4+eo+1
- eolian_function_is_auto@Base 1.18.4+eo+1
+ eolian_function_implement_get@Base 1.19.0+eo+1
  eolian_function_is_beta@Base 1.18.4+eo+1
  eolian_function_is_c_only@Base 1.18.4+eo+1
  eolian_function_is_class@Base 1.18.4+eo+1
  eolian_function_is_constructor@Base 1.18.4+eo+1
- eolian_function_is_empty@Base 1.18.4+eo+1
- eolian_function_is_implemented@Base 1.18.4+eo+1
  eolian_function_is_legacy_only@Base 1.18.4+eo+1
- eolian_function_is_virtual_pure@Base 1.18.4+eo+1
  eolian_function_legacy_get@Base 1.18.4+eo+1
  eolian_function_name_get@Base 1.18.4+eo+1
  eolian_function_object_is_const@Base 1.18.4+eo+1
@@ -89,13 +93,14 @@ libeolian.so.1 libeolian1 #MINVER#
  eolian_function_scope_get@Base 1.18.4+eo+1
  eolian_function_type_get@Base 1.18.4+eo+1
  eolian_implement_class_get@Base 1.18.4+eo+1
+ eolian_implement_documentation_get@Base 1.19.0+eo+1
  eolian_implement_full_name_get@Base 1.18.4+eo+1
  eolian_implement_function_get@Base 1.18.4+eo+1
  eolian_implement_is_auto@Base 1.18.4+eo+1
  eolian_implement_is_empty@Base 1.18.4+eo+1
  eolian_implement_is_prop_get@Base 1.18.4+eo+1
  eolian_implement_is_prop_set@Base 1.18.4+eo+1
- eolian_implement_is_virtual@Base 1.18.4+eo+1
+ eolian_implement_is_pure_virtual@Base 1.19.0+eo+1
  eolian_init@Base 1.18.4+eo+1
  eolian_parameter_default_value_get@Base 1.18.4+eo+1
  eolian_parameter_direction_get@Base 1.18.4+eo+1
@@ -119,7 +124,7 @@ libeolian.so.1 libeolian1 #MINVER#
  eolian_type_full_name_get@Base 1.18.4+eo+1
  eolian_type_is_const@Base 1.18.4+eo+1
  eolian_type_is_own@Base 1.18.4+eo+1
- eolian_type_is_ref@Base 1.18.4+eo+1
+ eolian_type_is_ptr@Base 1.19.0+eo+1
  eolian_type_name_get@Base 1.18.4+eo+1
  eolian_type_namespaces_get@Base 1.18.4+eo+1
  eolian_type_next_type_get@Base 1.18.4+eo+1

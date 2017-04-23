@@ -11,9 +11,6 @@ libeio.so.1 libeio1 #MINVER#
  EIO_MONITOR_FILE_MODIFIED@Base 1.18.4+eo+1
  EIO_MONITOR_SELF_DELETED@Base 1.18.4+eo+1
  EIO_MONITOR_SELF_RENAME@Base 1.18.4+eo+1
- _EFL_IO_MANAGER_EVENT_FILTER_DIRECT@Base 1.18.4+eo+1
- _EFL_IO_MANAGER_EVENT_FILTER_NAME@Base 1.18.4+eo+1
- _EFL_IO_MANAGER_EVENT_XATTR@Base 1.18.4+eo+1
  _EIO_SENTRY_EVENT_DIRECTORY_CLOSED@Base 1.18.4+eo+1
  _EIO_SENTRY_EVENT_DIRECTORY_CREATED@Base 1.18.4+eo+1
  _EIO_SENTRY_EVENT_DIRECTORY_DELETED@Base 1.18.4+eo+1
@@ -26,17 +23,15 @@ libeio.so.1 libeio1 #MINVER#
  _EIO_SENTRY_EVENT_SELF_DELETED@Base 1.18.4+eo+1
  _EIO_SENTRY_EVENT_SELF_RENAME@Base 1.18.4+eo+1
  efl_io_manager_class_get@Base 1.18.4+eo+1
- efl_io_manager_dir_direct_ls@Base 1.18.4+eo+1
- efl_io_manager_dir_stat_ls@Base 1.18.4+eo+1
- efl_io_manager_file_close@Base 1.18.4+eo+1
- efl_io_manager_file_direct_ls@Base 1.18.4+eo+1
- efl_io_manager_file_direct_stat@Base 1.18.4+eo+1
- efl_io_manager_file_ls@Base 1.18.4+eo+1
- efl_io_manager_file_open@Base 1.18.4+eo+1
- efl_io_manager_file_stat_ls@Base 1.18.4+eo+1
- efl_io_manager_file_xattr_get@Base 1.18.4+eo+1
- efl_io_manager_file_xattr_list_get@Base 1.18.4+eo+1
- efl_io_manager_file_xattr_set@Base 1.18.4+eo+1
+ efl_io_manager_close@Base 1.19.0+eo+1
+ efl_io_manager_direct_ls@Base 1.19.0+eo+1
+ efl_io_manager_ls@Base 1.19.0+eo+1
+ efl_io_manager_open@Base 1.19.0+eo+1
+ efl_io_manager_stat@Base 1.19.0+eo+1
+ efl_io_manager_stat_ls@Base 1.19.0+eo+1
+ efl_io_manager_xattr_get@Base 1.19.0+eo+1
+ efl_io_manager_xattr_ls@Base 1.19.0+eo+1
+ efl_io_manager_xattr_set@Base 1.19.0+eo+1
  eio_dir_copy@Base 1.18.4+eo+1
  eio_dir_direct_ls@Base 1.18.4+eo+1
  eio_dir_move@Base 1.18.4+eo+1
