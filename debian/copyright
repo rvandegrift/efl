@@ -132,7 +132,7 @@ Copyright: ITB CompuPhase, 1997-2003
            J.E. Hendrix, 1982, 1983
            T. Riemersma, 1997-2003
 
-Files: src/lib/ecore*/* src/modules/ecore*/* src/utils/ecore/*
+Files: src/lib/ecore*/* src/modules/ecore*/*
 License: BSD-2-clause
 Copyright: Enlightenment Developers (see AUTHORS)
            Brad Hards (1999-2002)
