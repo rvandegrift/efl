@@ -6,6 +6,18 @@ libecore.so.1 libecore1 #MINVER#
  ECORE_EXE_EVENT_ERROR@Base 1.18.4+eo+1
  _ECORE_EXE_EVENT_DATA_ERROR@Base 1.18.4+eo+1
  _ECORE_EXE_EVENT_DATA_GET@Base 1.18.4+eo+1
+ _EFL_IO_BUFFERED_STREAM_EVENT_ERROR@Base 1.19.0+eo+1
+ _EFL_IO_BUFFERED_STREAM_EVENT_FINISHED@Base 1.19.0+eo+1
+ _EFL_IO_BUFFERED_STREAM_EVENT_LINE@Base 1.19.0+eo+1
+ _EFL_IO_BUFFERED_STREAM_EVENT_PROGRESS@Base 1.19.0+eo+1
+ _EFL_IO_BUFFERED_STREAM_EVENT_READ_FINISHED@Base 1.19.0+eo+1
+ _EFL_IO_BUFFERED_STREAM_EVENT_SLICE_CHANGED@Base 1.19.0+eo+1
+ _EFL_IO_BUFFERED_STREAM_EVENT_WRITE_FINISHED@Base 1.19.0+eo+1
+ _EFL_IO_COPIER_EVENT_DATA@Base 1.19.0+eo+1
+ _EFL_IO_COPIER_EVENT_DONE@Base 1.19.0+eo+1
+ _EFL_IO_COPIER_EVENT_ERROR@Base 1.19.0+eo+1
+ _EFL_IO_COPIER_EVENT_LINE@Base 1.19.0+eo+1
+ _EFL_IO_COPIER_EVENT_PROGRESS@Base 1.19.0+eo+1
  _EFL_LOOP_EVENT_ARGUMENTS@Base 1.18.4+eo+1
  _EFL_LOOP_EVENT_IDLE@Base 1.18.4+eo+1
  _EFL_LOOP_EVENT_IDLE_ENTER@Base 1.18.4+eo+1
@@ -14,6 +26,9 @@ libecore.so.1 libecore1 #MINVER#
  _EFL_LOOP_FD_EVENT_READ@Base 1.18.4+eo+1
  _EFL_LOOP_FD_EVENT_WRITE@Base 1.18.4+eo+1
  _EFL_LOOP_TIMER_EVENT_TICK@Base 1.18.4+eo+1
+ _EFL_PROMISE_EVENT_FUTURE_NONE@Base 1.19.0+eo+1
+ _EFL_PROMISE_EVENT_FUTURE_PROGRESS_SET@Base 1.19.0+eo+1
+ _EFL_PROMISE_EVENT_FUTURE_SET@Base 1.19.0+eo+1
  _ecore_magic_fail@Base 1.18.4+eo+1
  ecore_animator_add@Base 1.18.4+eo+1
  ecore_animator_custom_source_tick_begin_callback_set@Base 1.18.4+eo+1
@@ -43,6 +58,7 @@ libecore.so.1 libecore1 #MINVER#
  ecore_event_handler_data_get@Base 1.18.4+eo+1
  ecore_event_handler_data_set@Base 1.18.4+eo+1
  ecore_event_handler_del@Base 1.18.4+eo+1
+ ecore_event_type_flush_internal@Base 1.19.0+eo+1
  ecore_event_type_new@Base 1.18.4+eo+1
  ecore_exe_auto_limits_set@Base 1.18.4+eo+1
  ecore_exe_callback_pre_free_set@Base 1.18.4+eo+1
@@ -122,7 +138,6 @@ libecore.so.1 libecore1 #MINVER#
  ecore_memory_state_set@Base 1.18.4+eo+1
  ecore_obj_exe_command_get@Base 1.18.4+eo+1
  ecore_obj_exe_command_set@Base 1.18.4+eo+1
- ecore_parent_class_get@Base 1.18.4+eo+1
  ecore_pipe_add@Base 1.18.4+eo+1
  ecore_pipe_del@Base 1.18.4+eo+1
  ecore_pipe_freeze@Base 1.18.4+eo+1
@@ -154,6 +169,7 @@ libecore.so.1 libecore1 #MINVER#
  ecore_thread_check@Base 1.18.4+eo+1
  ecore_thread_feedback@Base 1.18.4+eo+1
  ecore_thread_feedback_run@Base 1.18.4+eo+1
+ ecore_thread_future_run@Base 1.19.0+eo+1
  ecore_thread_global_data_add@Base 1.18.4+eo+1
  ecore_thread_global_data_del@Base 1.18.4+eo+1
  ecore_thread_global_data_find@Base 1.18.4+eo+1
@@ -171,7 +187,6 @@ libecore.so.1 libecore1 #MINVER#
  ecore_thread_pending_feedback_get@Base 1.18.4+eo+1
  ecore_thread_pending_get@Base 1.18.4+eo+1
  ecore_thread_pending_total_get@Base 1.18.4+eo+1
- ecore_thread_promise_run@Base 1.18.4+eo+1
  ecore_thread_reschedule@Base 1.18.4+eo+1
  ecore_thread_run@Base 1.18.4+eo+1
  ecore_thread_wait@Base 1.18.4+eo+1
@@ -196,6 +211,73 @@ libecore.so.1 libecore1 #MINVER#
  ecore_timer_thaw@Base 1.18.4+eo+1
  ecore_version@Base 1.18.4+eo+1
  efl_build_version_set@Base 1.18.4+eo+1
+ efl_future_all_internal@Base 1.19.0+eo+1
+ efl_future_iterator_all@Base 1.19.0+eo+1
+ efl_future_iterator_race@Base 1.19.0+eo+1
+ efl_future_race_internal@Base 1.19.0+eo+1
+ efl_io_buffered_stream_class_get@Base 1.19.0+eo+1
+ efl_io_buffered_stream_clear@Base 1.19.0+eo+1
+ efl_io_buffered_stream_discard@Base 1.19.0+eo+1
+ efl_io_buffered_stream_eos_mark@Base 1.19.0+eo+1
+ efl_io_buffered_stream_flush@Base 1.19.0+eo+1
+ efl_io_buffered_stream_inner_io_get@Base 1.19.0+eo+1
+ efl_io_buffered_stream_inner_io_set@Base 1.19.0+eo+1
+ efl_io_buffered_stream_line_delimiter_get@Base 1.19.0+eo+1
+ efl_io_buffered_stream_line_delimiter_set@Base 1.19.0+eo+1
+ efl_io_buffered_stream_max_queue_size_input_get@Base 1.19.0+eo+1
+ efl_io_buffered_stream_max_queue_size_input_set@Base 1.19.0+eo+1
+ efl_io_buffered_stream_max_queue_size_output_get@Base 1.19.0+eo+1
+ efl_io_buffered_stream_max_queue_size_output_set@Base 1.19.0+eo+1
+ efl_io_buffered_stream_pending_read_get@Base 1.19.0+eo+1
+ efl_io_buffered_stream_pending_write_get@Base 1.19.0+eo+1
+ efl_io_buffered_stream_progress_get@Base 1.19.0+eo+1
+ efl_io_buffered_stream_read_chunk_size_get@Base 1.19.0+eo+1
+ efl_io_buffered_stream_read_chunk_size_set@Base 1.19.0+eo+1
+ efl_io_buffered_stream_slice_get@Base 1.19.0+eo+1
+ efl_io_buffered_stream_timeout_inactivity_get@Base 1.19.0+eo+1
+ efl_io_buffered_stream_timeout_inactivity_set@Base 1.19.0+eo+1
+ efl_io_closer_fd_get@Base 1.19.0+eo+1
+ efl_io_closer_fd_mixin_get@Base 1.19.0+eo+1
+ efl_io_closer_fd_set@Base 1.19.0+eo+1
+ efl_io_copier_binbuf_steal@Base 1.19.0+eo+1
+ efl_io_copier_buffer_limit_get@Base 1.19.0+eo+1
+ efl_io_copier_buffer_limit_set@Base 1.19.0+eo+1
+ efl_io_copier_class_get@Base 1.19.0+eo+1
+ efl_io_copier_destination_get@Base 1.19.0+eo+1
+ efl_io_copier_destination_set@Base 1.19.0+eo+1
+ efl_io_copier_done_get@Base 1.19.0+eo+1
+ efl_io_copier_done_set@Base 1.19.0+eo+1
+ efl_io_copier_flush@Base 1.19.0+eo+1
+ efl_io_copier_line_delimiter_get@Base 1.19.0+eo+1
+ efl_io_copier_line_delimiter_set@Base 1.19.0+eo+1
+ efl_io_copier_pending_size_get@Base 1.19.0+eo+1
+ efl_io_copier_progress_get@Base 1.19.0+eo+1
+ efl_io_copier_read_chunk_size_get@Base 1.19.0+eo+1
+ efl_io_copier_read_chunk_size_set@Base 1.19.0+eo+1
+ efl_io_copier_source_get@Base 1.19.0+eo+1
+ efl_io_copier_source_set@Base 1.19.0+eo+1
+ efl_io_copier_timeout_inactivity_get@Base 1.19.0+eo+1
+ efl_io_copier_timeout_inactivity_set@Base 1.19.0+eo+1
+ efl_io_file_class_get@Base 1.19.0+eo+1
+ efl_io_file_flags_get@Base 1.19.0+eo+1
+ efl_io_file_flags_set@Base 1.19.0+eo+1
+ efl_io_file_mode_get@Base 1.19.0+eo+1
+ efl_io_file_mode_set@Base 1.19.0+eo+1
+ efl_io_positioner_fd_get@Base 1.19.0+eo+1
+ efl_io_positioner_fd_mixin_get@Base 1.19.0+eo+1
+ efl_io_positioner_fd_set@Base 1.19.0+eo+1
+ efl_io_reader_fd_get@Base 1.19.0+eo+1
+ efl_io_reader_fd_mixin_get@Base 1.19.0+eo+1
+ efl_io_reader_fd_set@Base 1.19.0+eo+1
+ efl_io_sizer_fd_get@Base 1.19.0+eo+1
+ efl_io_sizer_fd_mixin_get@Base 1.19.0+eo+1
+ efl_io_sizer_fd_set@Base 1.19.0+eo+1
+ efl_io_stderr_class_get@Base 1.19.0+eo+1
+ efl_io_stdin_class_get@Base 1.19.0+eo+1
+ efl_io_stdout_class_get@Base 1.19.0+eo+1
+ efl_io_writer_fd_get@Base 1.19.0+eo+1
+ efl_io_writer_fd_mixin_get@Base 1.19.0+eo+1
+ efl_io_writer_fd_set@Base 1.19.0+eo+1
  efl_loop_app_efl_version_get@Base 1.18.4+eo+1
  efl_loop_begin@Base 1.18.4+eo+1
  efl_loop_class_get@Base 1.18.4+eo+1
@@ -205,6 +287,7 @@ libecore.so.1 libecore1 #MINVER#
  efl_loop_fd_file_set@Base 1.18.4+eo+1
  efl_loop_fd_get@Base 1.18.4+eo+1
  efl_loop_fd_set@Base 1.18.4+eo+1
+ efl_loop_get@Base 1.19.0+eo+1
  efl_loop_iterate@Base 1.18.4+eo+1
  efl_loop_iterate_may_block@Base 1.18.4+eo+1
  efl_loop_job@Base 1.18.4+eo+1
@@ -221,7 +304,25 @@ libecore.so.1 libecore1 #MINVER#
  efl_loop_timer_reset@Base 1.18.4+eo+1
  efl_loop_unregister@Base 1.18.4+eo+1
  efl_loop_user_class_get@Base 1.18.4+eo+1
- efl_loop_user_loop_get@Base 1.18.4+eo+1
+ efl_model_composite_boolean_children_class_get@Base 1.19.0+eo+1
+ efl_model_composite_boolean_class_get@Base 1.19.0+eo+1
+ efl_model_composite_boolean_composite_model_get@Base 1.19.0+eo+1
+ efl_model_composite_boolean_composite_model_set@Base 1.19.0+eo+1
+ efl_model_composite_boolean_property_add@Base 1.19.0+eo+1
+ efl_model_container_child_property_add@Base 1.19.0+eo+1
+ efl_model_container_child_property_value_type_get@Base 1.19.0+eo+1
+ efl_model_container_child_property_values_get@Base 1.19.0+eo+1
+ efl_model_container_class_get@Base 1.19.0+eo+1
+ efl_model_container_item_class_get@Base 1.19.0+eo+1
+ efl_model_container_item_define@Base 1.19.0+eo+1
+ efl_model_container_item_invalidate@Base 1.19.0+eo+1
+ efl_model_item_class_get@Base 1.19.0+eo+1
+ efl_promise_class_get@Base 1.19.0+eo+1
+ efl_promise_connect@Base 1.19.0+eo+1
+ efl_promise_failed_set@Base 1.19.0+eo+1
+ efl_promise_future_get@Base 1.19.0+eo+1
+ efl_promise_progress_set@Base 1.19.0+eo+1
+ efl_promise_value_set@Base 1.19.0+eo+1
 libeldbus.so.1 libecore1 #MINVER#
 * Build-Depends-Package: libecore-dev
  _ELDBUS_MODEL_METHOD_EVENT_SUCCESSFUL_CALL@Base 1.18.4+eo+1
@@ -280,29 +381,21 @@ libeldbus.so.1 libecore1 #MINVER#
  eldbus_model_arguments_constructor@Base 1.18.4+eo+1
  eldbus_model_arguments_name_get@Base 1.18.4+eo+1
  eldbus_model_connection_address_get@Base 1.18.4+eo+1
- eldbus_model_connection_address_set@Base 1.18.4+eo+1
  eldbus_model_connection_class_get@Base 1.18.4+eo+1
  eldbus_model_connection_constructor@Base 1.18.4+eo+1
  eldbus_model_connection_private_get@Base 1.18.4+eo+1
- eldbus_model_connection_private_set@Base 1.18.4+eo+1
  eldbus_model_connection_type_get@Base 1.18.4+eo+1
- eldbus_model_connection_type_set@Base 1.18.4+eo+1
  eldbus_model_method_call@Base 1.18.4+eo+1
  eldbus_model_method_class_get@Base 1.18.4+eo+1
  eldbus_model_method_constructor@Base 1.18.4+eo+1
  eldbus_model_object_address_get@Base 1.18.4+eo+1
- eldbus_model_object_address_set@Base 1.18.4+eo+1
  eldbus_model_object_bus_get@Base 1.18.4+eo+1
- eldbus_model_object_bus_set@Base 1.18.4+eo+1
  eldbus_model_object_class_get@Base 1.18.4+eo+1
  eldbus_model_object_connection_constructor@Base 1.18.4+eo+1
  eldbus_model_object_constructor@Base 1.18.4+eo+1
  eldbus_model_object_path_get@Base 1.18.4+eo+1
- eldbus_model_object_path_set@Base 1.18.4+eo+1
  eldbus_model_object_private_get@Base 1.18.4+eo+1
- eldbus_model_object_private_set@Base 1.18.4+eo+1
  eldbus_model_object_type_get@Base 1.18.4+eo+1
- eldbus_model_object_type_set@Base 1.18.4+eo+1
  eldbus_model_proxy_class_get@Base 1.18.4+eo+1
  eldbus_model_proxy_constructor@Base 1.18.4+eo+1
  eldbus_model_proxy_name_get@Base 1.18.4+eo+1
