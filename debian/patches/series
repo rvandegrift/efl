@@ -7,6 +7,7 @@
 24-skip_gnutls_broken.diff
 26-skip_filter_tests.diff
 30-disable_eldbus_system_test.diff
+35-disable_ecore_flaky_test.diff
 45_disable_doc_pack.diff
 50-fix-edje_recc-bashism.diff
 85-disable-elm_tests.diff
