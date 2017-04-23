@@ -11,4 +11,4 @@
 85-disable-elm_tests.diff
 90-disable-ecore_con_tests.diff
 95-parallel-previews.diff
-100-drop-pregen-shaders.diff
+99-fix-shader-regen.diff

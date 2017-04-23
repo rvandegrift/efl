@@ -43,10 +43,8 @@ override_dh_auto_configure:
 	$(arch_flags)
 
 override_dh_auto_build:
-	$(CURDIR)/debian/fake_home.sh dh_auto_build --verbose --parallel
-	src/modules/evas/engines/gl_common/shader_3d/gen_shaders_3d.sh
-	src/modules/evas/engines/gl_common/shader/gen_shaders.sh
-	src/lib/ector/gl/shader/gen_shaders.sh
+	$(CURDIR)/debian/fake_home.sh env EFL_SHD_REGEN=1 \
+		dh_auto_build --verbose --parallel
 ifeq ($(filter yes,$(LETSBUILDINDEP)),yes)
 	$(CURDIR)/debian/fake_home.sh $(MAKE) doc
 endif
@@ -81,3 +79,4 @@ override_dh_strip:
 override_dh_clean:
 	dh_clean
 	find -name '*.luac' -exec rm {} \;
+	find -name '*shader*.x' -exec rm {} \;

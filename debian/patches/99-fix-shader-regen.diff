@@ -1,0 +1,104 @@
+Description: fix issues in shader code regeneration scripts
+ The EFL tarballs ship some generated source code that the Debian
+ package should re-generate on build.  This patch includes fixes to that
+ process.
+Author: Ross Vandegrift <ross@kallisti.us>
+Origin: other
+Forwarded: no
+Last-Update: 2017-04-23
+---
+This patch header follows DEP-3: http://dep.debian.net/deps/dep3/
+--- a/src/lib/ector/gl/shader/gen_shaders.sh
++++ b/src/lib/ector/gl/shader/gen_shaders.sh
+@@ -7,16 +7,18 @@
+ OUTPUT="$DIR/ector_gl_shaders.x"
+ 
+ # Skip generation if there is no diff (or no git)
+-if ! git rev-parse 2>> /dev/null >> /dev/null ; then exit 0 ; fi
+-if git diff --quiet --exit-code -- "$DIR"
+-then
+-  for f in gen_shaders.sh fragment.glsl vertex.glsl include.glsl; do
+-    if [ "$DIR/$f" -nt "$OUTPUT" ]; then
+-      touch "$OUTPUT"
+-      break
+-    fi
+-  done
+-  exit 0
++if [ "x$EFL_SHD_REGEN" != "x1" ]; then
++  if ! git rev-parse 2>> /dev/null >> /dev/null ; then exit 0 ; fi
++  if git diff --quiet --exit-code -- "$DIR"
++  then
++    for f in gen_shaders.sh fragment.glsl vertex.glsl include.glsl; do
++      if [ "$DIR/$f" -nt "$OUTPUT" ]; then
++        touch "$OUTPUT"
++        break
++      fi
++    done
++    exit 0
++  fi
+ fi
+ 
+ # Write header
+@@ -31,7 +33,8 @@
+   m4 "$DIR/include.glsl" "$DIR/$SHD.glsl" > "$SHD.tmp"
+ 
+   OIFS="$IFS"
+-  IFS=$'\n'
++  IFS='
++'				# IFS must contain a single newline
+   echo -n "static const char ${SHD}_glsl[] =" >> "$OUTPUT.tmp"
+   for LINE in `cat "$SHD.tmp"` ; do
+       printf "\n   \"$LINE\\\n\"" >> "$OUTPUT.tmp"
+--- a/src/modules/evas/engines/gl_common/shader_3d/gen_shaders_3d.sh
++++ b/src/modules/evas/engines/gl_common/shader_3d/gen_shaders_3d.sh
+@@ -14,11 +14,13 @@
+ if [ -e ${OUTPUT} ] && [ ! -w ${OUTPUT} ] ; then exit 0; fi
+ 
+ # Skip generation if there is no diff (or no git)
+-if ! git rev-parse 2>> /dev/null >> /dev/null ; then exit 0 ; fi
+-if git diff --quiet --exit-code -- "$DIR"
+-then
+-  touch "$OUTPUT"
+-  exit 0
++if [ "x$EFL_SHD_REGEN" != "x1" ]; then
++  if ! git rev-parse 2>> /dev/null >> /dev/null ; then exit 0 ; fi
++  if git diff --quiet --exit-code -- "$DIR"
++  then
++    touch "$OUTPUT"
++    exit 0
++  fi
+ fi
+ 
+ exec 1<&-
+--- a/src/modules/evas/engines/gl_common/shader/gen_shaders.sh
++++ b/src/modules/evas/engines/gl_common/shader/gen_shaders.sh
+@@ -14,11 +14,13 @@
+ if [ -e ${OUTPUT} ] && [ ! -w ${OUTPUT} ] ; then exit 0; fi
+ 
+ # Skip generation if there is no diff (or no git)
+-if ! git rev-parse 2>> /dev/null >> /dev/null ; then exit 0 ; fi
+-if git diff --quiet --exit-code -- "$DIR"
+-then
+-  touch "$OUTPUT"
+-  exit 0
++if [ "x$EFL_SHD_REGEN" != "x1" ]; then
++  if ! git rev-parse 2>> /dev/null >> /dev/null ; then exit 0 ; fi
++  if git diff --quiet --exit-code -- "$DIR"
++  then
++    touch "$OUTPUT"
++    exit 0
++  fi
+ fi
+ 
+ exec 1<&-
+--- a/src/Makefile_Ector.am
++++ b/src/Makefile_Ector.am
+@@ -154,6 +154,8 @@
+ 	@echo "  SHADERS  $@"
+ 	@sh $(srcdir)/lib/ector/gl/shader/gen_shaders.sh
+ 
++lib/ector/gl/ector_gl_shader.c: lib/ector/gl/shader/ector_gl_shaders.x
++
+ lib_ector_libector_la_CPPFLAGS = -I$(top_builddir)/src/lib/efl \
+ -I$(top_builddir)/src/lib \
+ -I$(top_builddir)/src/lib/ector \
