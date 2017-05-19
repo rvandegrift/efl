@@ -1,3 +1,43 @@
+efl (1.19.0-1) UNRELEASED; urgency=medium
+
+  * Team upload.
+  * New upstream version
+
+  [ Ross Vandegrift ]
+  * Update gbp.conf for experimental branch
+  * Build with Wayland support
+  * Build with SCIM support
+  * Build-depend on libibus-1.0-dev to fix ibus support
+  * Build-Depend on netbase to provide /etc/services for tests
+  * Setup writable $HOME for build.  Needed because edje_cc now fails if
+    it can't mkdir $HOME/.run.  See src/lib/efl/interfaces/efl_vpath_core.c.
+  * Update symbols for changes in 1.19.0 release
+  * Bump all eo symbol version for 1.19.0 release
+  * debian/libecore-bin.install: distribute libproxy isolation binary
+  * debian/libecore-x1.install: drop removed ecore_x_* helpers
+  * debian/libelementary1.install: update wildcards to catch any new modules
+  * Improve shader code generation scripts, and use that feature during build
+  * Build-Depend on dbus so tests can be run with a session bus
+  * Drop patches for disabling tests that work again:
+    - d/p/21-skip_net_tests.diff
+    - d/p/24-skip_gnutls_broken.diff
+    - d/p/26-skip_filter_tests.diff
+    - d/p/75-disable-evas_test_image.diff
+    - d/p/80-disable-ecore_cxx_safe_call_sync.diff
+  * Defuzz & dep3 patches:
+    - d/p/15_try_curl-gnutls.diff
+    - d/p/85-disable-elm_tests.diff
+    - d/p/95-parallel-previews.diff
+  * d/p/17-fix_ecore_file_tests_as_root.diff: fix test when run as root
+  * d/p/35-disable_ecore_flaky_test.diff: disable test that sometimes fails
+  * d/p/25-disable_cxx_tests.diff: disable failing cxx tests
+  * d/p/90-disable-ecore_con_tests.diff: disable tests failing under sbuild
+  * d/copyright: eliminate removed files
+  * Include dpkg arch makefile to fix calling debian/rules directly
+    (Closes: #858563)
+
+ -- Ross Vandegrift <ross@kallisti.us>  Fri, 19 May 2017 10:45:42 -0400
+
 efl (1.18.4-1) experimental; urgency=medium
 
   * Team upload.
