@@ -4,7 +4,8 @@
 
 #define EFL_INPUT_EVENT_PROTECTED
 
-#include <Evas.h>
+#include "evas_common_private.h"
+#include "evas_private.h"
 
 #define EFL_INTERNAL_UNSTABLE
 #include "interfaces/efl_common_internal.h"
@@ -178,13 +179,12 @@ _efl_input_key_efl_input_event_reset(Eo *obj EINA_UNUSED, Efl_Input_Key_Data *pd
 }
 
 EOLIAN static Efl_Input_Event *
-_efl_input_key_efl_input_event_dup(Eo *obj EINA_UNUSED, Efl_Input_Key_Data *pd)
+_efl_input_key_efl_input_event_dup(Eo *obj, Efl_Input_Key_Data *pd)
 {
    Efl_Input_Key_Data *ev;
    Efl_Input_Key *evt;
 
-   // no parent
-   evt = efl_input_instance_get(EFL_INPUT_KEY_CLASS, NULL, (void **) &ev);
+   evt = efl_input_instance_get(MY_CLASS, efl_parent_get(obj), (void **) &ev);
    if (!evt || !ev) return NULL;
 
    memcpy(ev, pd, sizeof(*ev));
@@ -264,6 +264,13 @@ EOLIAN static Eina_Bool
 _efl_input_key_efl_input_event_fake_get(Eo *obj EINA_UNUSED, Efl_Input_Key_Data *pd)
 {
    return pd->fake;
+}
+
+EOLIAN static void *
+_efl_input_key_efl_input_event_legacy_info_get(Eo *obj, Efl_Input_Key_Data *pd)
+{
+   if (pd->legacy) return pd->legacy;
+   return efl_input_key_legacy_info_fill(obj, NULL);
 }
 
 #include "efl_input_key.eo.c"

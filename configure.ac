@@ -1,4 +1,4 @@
-EFL_VERSION([1], [19], [0], [release])
+EFL_VERSION([1], [19], [1], [release])
 AC_INIT([efl], [efl_version], [enlightenment-devel@lists.sourceforge.net])
 
 AC_PREREQ([2.60])
@@ -388,7 +388,7 @@ AM_CONDITIONAL([EFL_ENABLE_TESTS], [test "${want_tests}" = "yes"])
 # check for crypto/tls library to use
 case "$build_crypto" in
    gnutls)
-      EFL_DEPEND_PKG([crypto], [GNUTLS], [gnutls >= 2.12.16])
+      EFL_DEPEND_PKG([crypto], [GNUTLS], [gnutls >= 3.3.6])
 
       AM_PATH_LIBGCRYPT([], [:],
          [AC_MSG_ERROR([libgcrypt required but not found])])
@@ -2473,8 +2473,8 @@ EFL_INTERNAL_DEPEND_PKG([EVAS], [ecore])
 
 EFL_ADD_LIBS([EVAS], [-lm])
 
-# Freetype
-EFL_DEPEND_PKG([EVAS], [FREETYPE], [freetype2 >= 9.3.0])
+# Freetype (the version 16.2.10 equals the freetype 2.5.0.1 release)
+EFL_DEPEND_PKG([EVAS], [FREETYPE], [freetype2 >= 16.2.10])
 
 ## optional dependencies
 

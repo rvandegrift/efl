@@ -11,7 +11,7 @@
 
 Summary: Enlightenment Foundation Libraries
 Name: efl
-Version: 1.19.0
+Version: 1.19.1
 Release: %{_rel}
 License: LGPLv2.1 GPLv2.1 BSD
 Group: System Environment/Libraries
