@@ -273,6 +273,7 @@ libelementary.so.1 libelementary1 #MINVER#
  _ELM_OBJ_CODE_WIDGET_EVENT_LINE_GUTTER_CLICKED@Base 1.19.0+eo+1
  _ELM_OBJ_CODE_WIDGET_EVENT_SELECTION_CHANGED@Base 1.19.0+eo+1
  _ELM_OBJ_CODE_WIDGET_EVENT_SELECTION_CLEARED@Base 1.19.0+eo+1
+ _ELM_OBJ_CODE_WIDGET_EVENT_SELECTION_START@Base 1.19.1+eo+1
  _ELM_PANEL_EVENT_TOGGLED@Base 1.19.0+eo+1
  _ELM_PANES_EVENT_PRESS@Base 1.19.0+eo+1
  _ELM_PANES_EVENT_UNPRESS@Base 1.19.0+eo+1
@@ -856,6 +857,7 @@ libelementary.so.1 libelementary1 #MINVER#
  elm_code_widget_tab_inserts_spaces_set@Base 1.19.0+eo+1
  elm_code_widget_tabstop_get@Base 1.19.0+eo+1
  elm_code_widget_tabstop_set@Base 1.19.0+eo+1
+ elm_code_widget_text_at_cursor_insert@Base 1.19.1+eo+1
  elm_code_widget_text_between_positions_get@Base 1.19.0+eo+1
  elm_code_widget_text_left_gutter_width_get@Base 1.19.0+eo+1
  elm_code_widget_text_tabwidth_at_column_get@Base 1.19.0+eo+1
@@ -2335,6 +2337,7 @@ libelementary.so.1 libelementary1 #MINVER#
  elm_obj_code_widget_tab_inserts_spaces_set@Base 1.19.0+eo+1
  elm_obj_code_widget_tabstop_get@Base 1.19.0+eo+1
  elm_obj_code_widget_tabstop_set@Base 1.19.0+eo+1
+ elm_obj_code_widget_text_at_cursor_insert@Base 1.19.1+eo+1
  elm_obj_code_widget_text_between_positions_get@Base 1.19.0+eo+1
  elm_obj_code_widget_text_left_gutter_width_get@Base 1.19.0+eo+1
  elm_obj_code_widget_text_tabwidth_at_column_get@Base 1.19.0+eo+1

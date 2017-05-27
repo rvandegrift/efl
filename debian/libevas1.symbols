@@ -263,6 +263,7 @@ libevas.so.1 libevas1 #MINVER#
  efl_input_key_set@Base 1.19.0+eo+1
  efl_input_key_string_get@Base 1.19.0+eo+1
  efl_input_key_string_set@Base 1.19.0+eo+1
+ efl_input_legacy_info_get@Base 1.19.1+eo+1
  efl_input_lock_enabled_get@Base 1.19.0+eo+1
  efl_input_modifier_enabled_get@Base 1.19.0+eo+1
  efl_input_pointer_action_get@Base 1.19.0+eo+1
@@ -1700,6 +1701,7 @@ libevas.so.1 libevas1 #MINVER#
  evas_textblock_cursor_free@Base 1.19.0+eo+1
  evas_textblock_cursor_geometry_bidi_get@Base 1.19.0+eo+1
  evas_textblock_cursor_geometry_get@Base 1.19.0+eo+1
+ evas_textblock_cursor_is_format@Base 1.19.1+eo+1
  _evas_object_intercept_call@Base 1.19.0+eo+1
  evas_textblock_cursor_line_char_first@Base 1.19.0+eo+1
  evas_textblock_cursor_line_char_last@Base 1.19.0+eo+1

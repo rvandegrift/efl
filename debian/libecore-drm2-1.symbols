@@ -41,7 +41,6 @@ libecore_drm2.so.1 libecore-drm2-1 #MINVER#
  ecore_drm2_output_connector_type_get@Base 1.19.0+eo+1
  ecore_drm2_output_crtc_get@Base 1.19.0+eo+1
  ecore_drm2_output_crtc_size_get@Base 1.19.0+eo+1
- ecore_drm2_output_current_fb_get@Base 1.19.0+eo+1
  ecore_drm2_output_dpi_get@Base 1.19.0+eo+1
  ecore_drm2_output_dpms_get@Base 1.19.0+eo+1
  ecore_drm2_output_dpms_set@Base 1.19.0+eo+1
@@ -57,8 +56,6 @@ libecore_drm2.so.1 libecore-drm2-1 #MINVER#
  ecore_drm2_output_model_get@Base 1.19.0+eo+1
  ecore_drm2_output_modes_get@Base 1.19.0+eo+1
  ecore_drm2_output_name_get@Base 1.19.0+eo+1
- ecore_drm2_output_next_fb_get@Base 1.19.0+eo+1
- ecore_drm2_output_next_fb_set@Base 1.19.0+eo+1
  ecore_drm2_output_physical_size_get@Base 1.19.0+eo+1
  ecore_drm2_output_possible_crtc_get@Base 1.19.0+eo+1
  ecore_drm2_output_primary_get@Base 1.19.0+eo+1
