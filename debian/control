@@ -6,7 +6,7 @@ Uploaders: Nicolas Braud-Santoni <nicolas@braud-santoni.eu>,
            Albin Tonnerre <lutin@debian.org>,
            Ross Vandegrift <ross@kallisti.us>
 Build-Depends: debhelper (>= 10),
- pkg-config, check, autopoint,
+ pkg-config, autopoint,
  zlib1g-dev, libjpeg-dev, libpng-dev, libtiff-dev, libgif-dev, libxpm-dev,
  libfreetype6-dev, libfontconfig1-dev,
  libx11-dev, x11proto-xext-dev, , libglu1-mesa-dev, mesa-common-dev,
