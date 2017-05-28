@@ -602,7 +602,7 @@ Package: libector-dev
 Section: libdevel
 Architecture: any
 Pre-Depends: ${misc:Pre-Depends}
-Depends: ${shlibs:Depends}, ${misc:Depends},
+Depends: ${misc:Depends},
  libeina-dev (>= ${source:Upstream-Version})
 Description: Library that provides vector graphics capabilities for EFL development files
  Ector provides a new retained rendering library that is used by Evas
@@ -618,7 +618,7 @@ Package: libefl-all-dev
 Section: libdevel
 Architecture: any
 Pre-Depends: ${misc:Pre-Depends}
-Depends: ${shlibs:Depends}, ${misc:Depends},
+Depends: ${misc:Depends},
  libecore-dev (>= ${source:Upstream-Version}),
  libector-dev (>= ${source:Upstream-Version}),
  libedje-dev (>= ${source:Upstream-Version}),
@@ -1091,7 +1091,7 @@ Description: EFL abstraction library for libinput
 Package: libelput-dev
 Section: libdevel
 Architecture: any
-Depends: ${misc:Depends}, ${shlibs:Depends}, pkg-config,
+Depends: ${misc:Depends}, pkg-config,
  libelput1 (= ${binary:Version}), libinput-dev, libxkbcommon-dev
 Breaks: libeina1a (<< ${source:Upstream-Version})
 Description: EFL abstraction library for libinput - development
