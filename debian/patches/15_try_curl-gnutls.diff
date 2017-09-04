@@ -8,7 +8,7 @@ Last-Update: 2016-08-19
 
 --- a/src/lib/ecore_con/ecore_con_url_curl.c
 +++ b/src/lib/ecore_con/ecore_con_url_curl.c
-@@ -64,6 +64,9 @@
+@@ -282,6 +282,9 @@
     if (!_c->mod)
       ERR("Could not find libcurl.5.dylib, libcurl.4.dylib, libcurl.so.5, libcurl.so.4");
  #else
