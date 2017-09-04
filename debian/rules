@@ -19,7 +19,7 @@ LETSBUILDINDEP := $(shell if dh_listpackages | grep -q efl-doc ; then \
 	else echo no ; fi)
 
 %:
-	dh $@ --with autoreconf --parallel
+	dh $@
 
 override_dh_auto_configure:
 	dh_auto_configure --verbose -- \
@@ -45,7 +45,7 @@ override_dh_auto_configure:
 	$(arch_flags)
 
 override_dh_auto_build:
-	$(CURDIR)/debian/fake_home.sh dh_auto_build --verbose --parallel
+	$(CURDIR)/debian/fake_home.sh dh_auto_build --verbose
 	src/modules/evas/engines/gl_common/shader_3d/gen_shaders_3d.sh
 	src/modules/evas/engines/gl_common/shader/gen_shaders.sh
 	src/lib/ector/gl/shader/gen_shaders.sh
