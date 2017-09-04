@@ -26,23 +26,38 @@
 
 #include "eina_suite.h"
 
-#ifdef __MACH__
-# include <mach/clock.h>
-# include <mach/mach.h>
+#ifndef HAVE_CLOCK_GETTIME
 
-#define CLOCK_REALTIME 0
+# ifdef __MACH__
+#  include <mach/clock.h>
+#  include <mach/mach.h>
 
-void clock_gettime(int mode, struct timespec* ts)
+#  define CLOCK_REALTIME 0
+
+int
+clock_gettime(int mode, struct timespec* ts)
 {
    clock_serv_t cclock;
    mach_timespec_t mts;
-   host_get_clock_service(mach_host_self(), CALENDAR_CLOCK, &cclock);
-   clock_get_time(cclock, &mts);
+   kern_return_t err;
+
+   err = host_get_clock_service(mach_host_self(), CALENDAR_CLOCK, &cclock);
+   if (EINA_UNLIKELY(err != KERN_SUCCESS)) return err;
+
+   err = clock_get_time(cclock, &mts);
    mach_port_deallocate(mach_task_self(), cclock);
+   if (EINA_UNLIKELY(err != KERN_SUCCESS)) return err;
+
    ts->tv_sec = mts.tv_sec;
    ts->tv_nsec = mts.tv_nsec;
+
+   return 0;
 }
-#endif
+# else /* ! __MACH__ */
+# error No support for clock_gettime()
+# endif /* __MACH__ */
+
+#endif /* ! HAVE_CLOCK_GETTIME */
 
 static Eina_Spinlock spin;
 static Eina_Thread thread;
@@ -75,7 +90,7 @@ START_TEST(eina_test_spinlock)
    counter = 0;
    fail_if(!eina_spinlock_new(&spin));
 
-   fail_if(!eina_thread_create(&thread, EINA_THREAD_NORMAL, 0, _eina_test_lock_thread, "test"));
+   fail_if(!eina_thread_create(&thread, EINA_THREAD_NORMAL, -1, _eina_test_lock_thread, "test"));
 
    for (i = 0; i < 10000; i++)
      {
@@ -141,7 +156,7 @@ START_TEST(eina_test_tls)
 
    fail_if(!eina_tls_set(key, _eina_test_tls_alloc(42)));
 
-   fail_if(!eina_thread_create(&thread, EINA_THREAD_NORMAL, 0, _eina_test_tls_thread, NULL));
+   fail_if(!eina_thread_create(&thread, EINA_THREAD_NORMAL, -1, _eina_test_tls_thread, NULL));
 
    eina_thread_join(thread);
    fail_if(_eina_tls_free_count != 1);
@@ -201,7 +216,7 @@ START_TEST(eina_test_rwlock)
    fail_if(eina_rwlock_take_read(&mutex) != EINA_LOCK_SUCCEED);
    fail_if(eina_lock_take(&mtcond) != EINA_LOCK_SUCCEED);
 
-   fail_if(!eina_thread_create(&thread, EINA_THREAD_NORMAL, 0, _eina_test_rwlock_thread, NULL));
+   fail_if(!eina_thread_create(&thread, EINA_THREAD_NORMAL, -1, _eina_test_rwlock_thread, NULL));
 
    fail_if(!eina_barrier_wait(&barrier));
    fail_if(!eina_condition_wait(&cond));
@@ -227,6 +242,7 @@ START_TEST(eina_test_rwlock)
    delay = (ts2.tv_sec - ts.tv_sec) * 1000L + (ts2.tv_nsec - ts.tv_nsec) / 1000000L;
    fail_if(delay < 50);
    fail_if(delay > 200);
+   fail_if(eina_error_get() != ETIMEDOUT);
    fail_if(eina_lock_release(&mtcond) != EINA_LOCK_SUCCEED);
 
    eina_thread_join(thread);

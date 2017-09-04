@@ -13,6 +13,7 @@ static const Efl_Test_Case etc[] = {
   { "Eo call errors", eo_test_call_errors },
   { "Eo eina value", eo_test_value },
   { "Eo threaded eo calls", eo_test_threaded_calls },
+  { "Eo event calls", eo_test_event},
   { NULL, NULL }
 };
 
@@ -24,7 +25,9 @@ main(int argc, char **argv)
    if (!_efl_test_option_disp(argc, argv, etc))
      return 0;
 
+#ifdef NEED_RUN_IN_TREE
    putenv("EFL_RUN_IN_TREE=1");
+#endif
 
    failed_count = _efl_suite_build_and_run(argc - 1, (const char **)argv + 1,
                                            "Eo", etc);

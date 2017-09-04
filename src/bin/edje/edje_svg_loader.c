@@ -680,10 +680,12 @@ _attr_parse_svg_node(void *data, const char *key, const char *value)
      }
    else if (!strcmp(key, "viewBox"))
      {
-        if (_parse_number(&value, &doc->vx))
-          if (_parse_number(&value, &doc->vy))
-            if (_parse_number(&value, &doc->vw))
-              _parse_number(&value, &doc->vh);
+
+        if (!_parse_number(&value, &doc->vx) && !_parse_number(&value, &doc->vy) &&
+            !_parse_number(&value, &doc->vw) && !_parse_number(&value, &doc->vh))
+          {
+             return EINA_FALSE;
+	  }
      }
    else if (!strcmp(key, "style"))
      {
@@ -1104,27 +1106,37 @@ _attr_parse_polygon_points(const char *str, double **points, int *point_count)
    int tmp_count=0;
    int count = 0;
    double num;
-   double *point_array = NULL;
+   double *point_array = NULL, *tmp_array;
 
    while (_parse_number(&str, &num))
      {
         tmp[tmp_count++] = num;
         if (tmp_count == 50)
           {
-             point_array = realloc(point_array, (count + tmp_count) * sizeof(double));
+             tmp_array = realloc(point_array, (count + tmp_count) * sizeof(double));
+             if (!tmp_array) goto error_alloc;
+             point_array = tmp_array;
              memcpy(&point_array[count], tmp, tmp_count * sizeof(double));
              count += tmp_count;
+             tmp_count = 0;
           }
      }
 
    if (tmp_count > 0)
      {
-        point_array = realloc(point_array, (count + tmp_count) * sizeof(double));
+        tmp_array = realloc(point_array, (count + tmp_count) * sizeof(double));
+        if (!tmp_array) goto error_alloc;
+        point_array = tmp_array;
         memcpy(&point_array[count], tmp, tmp_count * sizeof(double));
         count += tmp_count;
      }
    *point_count = count;
    *points = point_array;
+   return;
+
+error_alloc:
+   ERR("allocation for point array failed. out of memory");
+   abort();
 }
 
 /* parse the attributes for a polygon element.
@@ -1230,8 +1242,8 @@ _attr_parse_rect_node(void *data, const char *key, const char *value)
         _parse_style_attr(node, key, value);
      }
 
-   if (rect->rx != 0 && rect->ry == 0) rect->ry = rect->rx;
-   if (rect->ry != 0 && rect->rx == 0) rect->rx = rect->ry;
+   if (!EINA_DBL_EQ(rect->rx, 0) && EINA_DBL_EQ(rect->ry, 0)) rect->ry = rect->rx;
+   if (!EINA_DBL_EQ(rect->ry, 0) && EINA_DBL_EQ(rect->rx, 0)) rect->rx = rect->ry;
 
    return EINA_TRUE;
 }
@@ -1733,7 +1745,7 @@ _evas_svg_loader_xml_open_parser(Evas_SVG_Loader *loader,
    const char *attrs = NULL;
    int attrs_length = 0;
    int sz = length;
-   char tag_name[20];
+   char tag_name[20] = "";
    Factory_Method method;
    Gradient_Factory_Method gradient_method;
    Svg_Node *node = NULL, *parent;
@@ -1853,6 +1865,7 @@ _evas_svg_loader_parser(void *data, Eina_Simple_XML_Type type,
          break;
       case EINA_SIMPLE_XML_OPEN_EMPTY:
          _evas_svg_loader_xml_open_parser(loader, content, length);
+         break;
       case EINA_SIMPLE_XML_CLOSE:
          _evas_svg_loader_xml_close_parser(loader, content, length);
          break;

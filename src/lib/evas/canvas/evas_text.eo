@@ -1,5 +1,8 @@
+type @extern Evas.Text_Style_Type : __undefined_type;
+
 class Evas.Text (Efl.Canvas.Object, Efl.Text, Efl.Text.Properties, Efl.Canvas.Filter.Internal)
 {
+   [[Evas text class]]
    legacy_prefix: evas_object_text;
    eo_prefix: evas_obj_text;
    methods {
@@ -10,12 +13,12 @@ class Evas.Text (Efl.Canvas.Object, Efl.Text, Efl.Text.Properties, Efl.Canvas.Fi
            underneath it, will just be shown if the object is set to one of
            the following styles:
 
-           - @Evas.Text_Style_Type.shadow
-           - @Evas.Text_Style_Type.outline_shadow
-           - @Evas.Text_Style_Type.far_shadow
-           - @Evas.Text_Style_Type.outline_soft_shadow
-           - @Evas.Text_Style_Type.soft_shadow
-           - @Evas.Text_Style_Type.far_soft_shadow
+           - $EVAS_TEXT_STYLE_TYPE_SHADOW
+           - $EVAS_TEXT_STYLE_TYPE_OUTLINE_SHADOW
+           - $EVAS_TEXT_STYLE_TYPE_FAR_SHADOW
+           - $EVAS_TEXT_STYLE_TYPE_OUTLINE_SOFT_SHADOW
+           - $EVAS_TEXT_STYLE_TYPE_SOFT_SHADOW
+           - $EVAS_TEXT_STYLE_TYPE_FAR_SOFT_SHADOW
 
            One can also change the direction where the shadow grows to, with
            @.style
@@ -35,7 +38,7 @@ class Evas.Text (Efl.Canvas.Object, Efl.Text, Efl.Text.Properties, Efl.Canvas.Fi
          }
       }
       @property ellipsis {
-         [[Conttrols the ellipsis that should be used for the text object.
+         [[Controls the ellipsis that should be used for the text object.
 
           This is a value between 0.0 and 1.0 indicating the position of the text
           to be shown. 0.0 means the start will be shown and the end trimmed, 1.0
@@ -50,7 +53,7 @@ class Evas.Text (Efl.Canvas.Object, Efl.Text, Efl.Text.Properties, Efl.Canvas.Fi
          get {
          }
          values {
-            ellipsis: double(-1); [[the ellipsis. Allowed values: -1.0 or 0.0-1.0]]
+            ellipsis: double(-1.0); [[The ellipsis. Allowed values: -1.0 or 0.0-1.0]]
          }
       }
       @property bidi_delimiters {
@@ -70,14 +73,15 @@ class Evas.Text (Efl.Canvas.Object, Efl.Text, Efl.Text.Properties, Efl.Canvas.Fi
          }
       }
       @property outline_color {
-         [[Controlss the outline color for the given text object.
+         [[Controls the outline color for the given text object.
 
            Outline effects (colored lines around text glyphs) will just be
            shown if the object is set to one of the following styles:
-           - @Evas.Text_Style_Type.outline
-           - @Evas.Text_Style_Type.soft_outline
-           - @Evas.Text_Style_Type.outline_shadow
-           - @Evas.Text_Style_Type.outline_soft_shadow]]
+           - $EVAS_TEXT_STYLE_TYPE_OUTLINE
+           - $EVAS_TEXT_STYLE_TYPE_SOFT_OUTLINE
+           - $EVAS_TEXT_STYLE_TYPE_OUTLINE_SHADOW
+           - $EVAS_TEXT_STYLE_TYPE_OUTLINE_SOFT_SHADOW
+         ]]
          set {
          }
          get {
@@ -94,8 +98,8 @@ class Evas.Text (Efl.Canvas.Object, Efl.Text, Efl.Text.Properties, Efl.Canvas.Fi
 
            'Glow 2' effects, which are glowing colors decorating the text's
            (immediate) surroundings, will just be shown if the object is set
-           to the @Evas.Text_Style_Type.glow style. See also
-           @.glow_color.]]
+           to the $EVAS_TEXT_STYLE_TYPE_GLOW style. See also @.glow_color.
+         ]]
          set {
          }
          get {
@@ -134,7 +138,7 @@ class Evas.Text (Efl.Canvas.Object, Efl.Text, Efl.Text.Properties, Efl.Canvas.Fi
          get {
          }
          values {
-            style: Evas.Text_Style_Type; [[a style type.]]
+            style: Evas.Text_Style_Type; [[Style type]]
          }
       }
       @property glow_color {
@@ -142,10 +146,10 @@ class Evas.Text (Efl.Canvas.Object, Efl.Text, Efl.Text.Properties, Efl.Canvas.Fi
 
            Glow effects, which are glowing colors decorating the text's
            surroundings, will just be shown if the object is set to the
-           @Evas.Text_Style_Type.glow style.
+           $EVAS_TEXT_STYLE_TYPE_GLOW style.
 
            Note: Glow effects are placed from a short distance of the text
-           itself, but no touching it. For glowing effects right on the
+           itself, but not touching it. For glowing effects right on the
            borders of the glyphs, see 'glow 2' effects.]]
          set {
          }
@@ -159,8 +163,9 @@ class Evas.Text (Efl.Canvas.Object, Efl.Text, Efl.Text.Properties, Efl.Canvas.Fi
          }
       }
       @property max_descent {
+      	 [[Maximal descent property]]
          get {
-            return: Evas.Coord;
+            return: int; [[Evas coordinate]]
          }
       }
       @property style_pad {
@@ -179,56 +184,68 @@ class Evas.Text (Efl.Canvas.Object, Efl.Text, Efl.Text.Properties, Efl.Canvas.Fi
             [[Retrieves the direction of the text currently being displayed in the
             text object.]]
 
-            return: Efl.Text.Bidirectional_Type;
+            return: Efl.Text.Bidirectional_Type; [[Bidirectional type]]
          }
       }
       @property ascent {
+      	 [[Ascent property]]
          get {
-            return: Evas.Coord;
+            return: int; [[Evas coordinate]]
          }
       }
       @property horiz_advance {
+      	 [[Horizontal advance property]]
          get {
-            return: Evas.Coord;
+            return: int; [[Evas coordinate]]
          }
       }
       @property inset {
+      	 [[Inset property]]
          get {
-            return: Evas.Coord;
+            return: int; [[Evas coordinate]]
          }
       }
       @property max_ascent {
+      	 [[Maximal ascent property]]
          get {
-            return: Evas.Coord;
+            return: int; [[Evas coordinate]]
          }
       }
       @property vert_advance {
+      	 [[Vertical advance property]]
          get {
-            return: Evas.Coord;
+            return: int; [[Evas coordinate]]
          }
       }
       @property descent {
+      	 [[descent property]]
          get {
-            return: Evas.Coord;
+            return: int; [[Evas coordinate]]
          }
       }
       last_up_to_pos @const {
-         [[Returns the logical position of the last char in the text up to the pos given. this is NOT the position of the last char because of the possibility of RTL in the text.]]
-         return: int(-1);
+         [[Returns the logical position of the last char in the text up to
+           the pos given.
+
+           This is NOT the position of the last char because of the possibility
+           of RTL in the text.
+         ]]
+         return: int(-1); [[Logical position of the last char]]
          params {
-            @in x: Evas.Coord;
-            @in y: Evas.Coord;
+            @in x: int; [[X coordinate]]
+            @in y: int; [[Y coordinate]]
          }
       }
       char_coords_get @const {
-         return: int;
+      	 [[Get character coordinates]]
+         return: int; [[Logical position of char]]
          params {
-            @in x: Evas.Coord;
-            @in y: Evas.Coord;
-            @out cx: Evas.Coord;
-            @out cy: Evas.Coord;
-            @out cw: Evas.Coord;
-            @out ch: Evas.Coord;
+            @in x: int; [[X coordinate]]
+            @in y: int; [[Y coordinate]]
+            @out cx: int; [[X coordinate]]
+            @out cy: int; [[Y coordinate]]
+            @out cw: int; [[Width]]
+            @out ch: int; [[Height]]
          }
       }
       char_pos_get @const {
@@ -242,29 +259,25 @@ class Evas.Text (Efl.Canvas.Object, Efl.Text, Efl.Text.Properties, Efl.Canvas.Fi
          return: bool; [[$false on success, $true otherwise]]
          params {
             @in pos: int; [[The character position to request co-ordinates for.]]
-            @out cx: Evas.Coord; [[A pointer to an @Evas.Coord to store the X value in (can be NULL).]]
-            @out cy: Evas.Coord; [[A pointer to an @Evas.Coord to store the Y value in (can be NULL).]]
-            @out cw: Evas.Coord; [[A pointer to an @Evas.Coord to store the Width value in (can be NULL).]]
-            @out ch: Evas.Coord; [[A pointer to an @Evas.Coord to store the Height value in (can be NULL).]]
+            @out cx: int; [[A pointer to an int to store the X value in (can be NULL).]]
+            @out cy: int; [[A pointer to an int to store the Y value in (can be NULL).]]
+            @out cw: int; [[A pointer to an int to store the Width value in (can be NULL).]]
+            @out ch: int; [[A pointer to an int to store the Height value in (can be NULL).]]
          }
       }
    }
    implements {
-      Eo.Base.constructor;
-      Eo.Base.destructor;
-      Eo.Base.dbg_info_get;
-      Efl.Gfx.size.set;
-      Efl.Text.text.set;
-      Efl.Text.text.get;
-      Efl.Text.Properties.font.get;
-      Efl.Text.Properties.font.set;
-      Efl.Text.Properties.font_source.get;
-      Efl.Text.Properties.font_source.set;
-      Efl.Gfx.Filter.filter_program.set;
+      Efl.Object.constructor;
+      Efl.Object.destructor;
+      Efl.Gfx.size { set; }
+      Efl.Text.text { get; set; }
+      Efl.Text.Properties.font { get; set; }
+      Efl.Text.Properties.font_source { get; set; }
+      Efl.Gfx.Filter.filter_program { set; }
+      Efl.Canvas.Filter.Internal.filter_dirty;
       Efl.Canvas.Filter.Internal.filter_input_alpha;
       Efl.Canvas.Filter.Internal.filter_input_render;
-      Efl.Canvas.Filter.Internal.filter_dirty;
-      Efl.Canvas.Object.paragraph_direction.set;
-      Efl.Canvas.Object.paragraph_direction.get;
+      Efl.Canvas.Filter.Internal.filter_state_prepare;
+      Efl.Canvas.Object.paragraph_direction { set; get; }
    }
 }

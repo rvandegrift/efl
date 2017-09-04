@@ -1,3 +1,29 @@
+/* this file contains code copied from weston; the copyright notice is below */
+/*
+ * Copyright © 2013 Intel Corporation
+ *
+ * Permission is hereby granted, free of charge, to any person obtaining
+ * a copy of this software and associated documentation files (the
+ * "Software"), to deal in the Software without restriction, including
+ * without limitation the rights to use, copy, modify, merge, publish,
+ * distribute, sublicense, and/or sell copies of the Software, and to
+ * permit persons to whom the Software is furnished to do so, subject to
+ * the following conditions:
+ *
+ * The above copyright notice and this permission notice (including the
+ * next paragraph) shall be included in all copies or substantial
+ * portions of the Software.
+ *
+ * THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND,
+ * EXPRESS OR IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF
+ * MERCHANTABILITY, FITNESS FOR A PARTICULAR PURPOSE AND
+ * NONINFRINGEMENT.  IN NO EVENT SHALL THE AUTHORS OR COPYRIGHT HOLDERS
+ * BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER LIABILITY, WHETHER IN AN
+ * ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM, OUT OF OR IN
+ * CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
+ * SOFTWARE.
+ */
+
 #include "elput_private.h"
 #include <libudev.h>
 
@@ -12,6 +38,7 @@ _cb_open_restricted(const char *path, int flags, void *data)
    if (!em->input.thread)
      return em->interface->open(em, path, flags);
    if (!em->interface->open_async) return ret;
+   if (ecore_thread_check(em->input.thread)) return ret;
    ao = calloc(1, sizeof(Elput_Async_Open));
    if (!ao) return ret;
    if (pipe2(p, O_CLOEXEC) < 0)
@@ -76,6 +103,7 @@ _udev_seat_create(Elput_Manager *em, const char *name)
    if (!eseat) return NULL;
 
    eseat->manager = em;
+   eseat->refs = 1;
 
    eseat->name = eina_stringshare_add(name);
    em->input.seats = eina_list_append(em->input.seats, eseat);
@@ -83,17 +111,26 @@ _udev_seat_create(Elput_Manager *em, const char *name)
    return eseat;
 }
 
-static void
+void
 _udev_seat_destroy(Elput_Seat *eseat)
 {
    Elput_Device *edev;
+
+   eseat->refs--;
+   if (eseat->refs) return;
 
    EINA_LIST_FREE(eseat->devices, edev)
      _evdev_device_destroy(edev);
 
    if (eseat->kbd) _evdev_keyboard_destroy(eseat->kbd);
+   eseat->kbd = NULL;
    if (eseat->ptr) _evdev_pointer_destroy(eseat->ptr);
+   eseat->ptr = NULL;
    if (eseat->touch) _evdev_touch_destroy(eseat->touch);
+   eseat->touch = NULL;
+   if (eseat->manager->input.seats)
+     eseat->manager->input.seats = eina_list_remove(eseat->manager->input.seats, eseat);
+   if (eseat->refs) return;
 
    eina_stringshare_del(eseat->name);
    free(eseat);
@@ -135,6 +172,7 @@ _device_event_cb_free(void *data EINA_UNUSED, void *event)
 
    ev = event;
 
+   ev->device->refs--;
    if (ev->type == ELPUT_DEVICE_REMOVED)
      {
         Elput_Seat *seat;
@@ -159,6 +197,7 @@ _device_event_send(Elput_Device *edev, Elput_Device_Change_Type type)
 
    ev->device = edev;
    ev->type = type;
+   edev->refs++;
 
    ecore_event_add(ELPUT_EVENT_DEVICE_CHANGE, ev, _device_event_cb_free, NULL);
 }
@@ -168,7 +207,6 @@ _device_add(Elput_Manager *em, struct libinput_device *dev)
 {
    Elput_Seat *eseat;
    Elput_Device *edev;
-   const char *oname;
 
    eseat = _udev_seat_get(em, dev);
    if (!eseat) return;
@@ -176,10 +214,15 @@ _device_add(Elput_Manager *em, struct libinput_device *dev)
    edev = _evdev_device_create(eseat, dev);
    if (!edev) return;
 
-   oname = libinput_device_get_output_name(dev);
-   eina_stringshare_replace(&edev->output_name, oname);
-
    eseat->devices = eina_list_append(eseat->devices, edev);
+
+   DBG("Input Device Added: %s", libinput_device_get_name(dev));
+   if (edev->caps & ELPUT_DEVICE_CAPS_KEYBOARD)
+     DBG("\tDevice added as Keyboard device");
+   if (edev->caps & ELPUT_DEVICE_CAPS_POINTER)
+     DBG("\tDevice added as Pointer device");
+   if (edev->caps & ELPUT_DEVICE_CAPS_TOUCH)
+     DBG("\tDevice added as Touch device");
 
    _device_event_send(edev, ELPUT_DEVICE_ADDED);
 }
@@ -191,6 +234,8 @@ _device_remove(Elput_Manager *em EINA_UNUSED, struct libinput_device *device)
 
    edev = libinput_device_get_user_data(device);
    if (!edev) return;
+
+   DBG("Input Device Removed: %s", libinput_device_get_name(device));
 
    _device_event_send(edev, ELPUT_DEVICE_REMOVED);
 }
@@ -210,11 +255,9 @@ _udev_process_event(struct libinput_event *event)
    switch (libinput_event_get_type(event))
      {
       case LIBINPUT_EVENT_DEVICE_ADDED:
-        DBG("Input Device Added: %s", libinput_device_get_name(dev));
         _device_add(em, dev);
         break;
       case LIBINPUT_EVENT_DEVICE_REMOVED:
-        DBG("Input Device Removed: %s", libinput_device_get_name(dev));
         _device_remove(em, dev);
         break;
       default:
@@ -363,6 +406,11 @@ _elput_input_enable(Elput_Manager *manager)
 void
 _elput_input_disable(Elput_Manager *manager)
 {
+   Elput_Seat *seat;
+   Eina_List *l;
+
+   EINA_LIST_FOREACH(manager->input.seats, l, seat)
+     seat->pending_motion = 1;
    libinput_suspend(manager->input.lib);
    _process_events(&manager->input);
    manager->input.suspended = EINA_TRUE;
@@ -387,12 +435,13 @@ EAPI void
 elput_input_shutdown(Elput_Manager *manager)
 {
    Elput_Seat *seat;
+   Eina_List *l, *ll;
 
    EINA_SAFETY_ON_NULL_RETURN(manager);
 
    ecore_main_fd_handler_del(manager->input.hdlr);
 
-   EINA_LIST_FREE(manager->input.seats, seat)
+   EINA_LIST_FOREACH_SAFE(manager->input.seats, l, ll, seat)
      _udev_seat_destroy(seat);
 
    if (manager->input.thread)
@@ -420,12 +469,10 @@ elput_input_pointer_xy_get(Elput_Manager *manager, const char *seat, int *x, int
 
    EINA_LIST_FOREACH(manager->input.seats, l, eseat)
      {
-        if (!eseat->ptr) continue;
-        if ((eseat->name) && (strcmp(eseat->name, seat)))
-          continue;
-        if (x) *x = eseat->ptr->x;
-        if (y) *y = eseat->ptr->y;
-        break;
+        if (!eina_streq(eseat->name, seat)) continue;
+        if (x) *x = eseat->pointer.x;
+        if (y) *y = eseat->pointer.y;
+        return;
      }
 }
 
@@ -454,8 +501,8 @@ elput_input_pointer_xy_set(Elput_Manager *manager, const char *seat, int x, int 
         if ((eseat->name) && (strcmp(eseat->name, seat)))
           continue;
 
-        eseat->ptr->x = x;
-        eseat->ptr->y = y;
+        eseat->pointer.x = x;
+        eseat->pointer.y = y;
         eseat->ptr->timestamp = ecore_loop_time_get();
 
         EINA_LIST_FOREACH(eseat->devices, ll, edev)
@@ -511,19 +558,61 @@ elput_input_pointer_left_handed_set(Elput_Manager *manager, const char *seat, Ei
    return EINA_TRUE;
 }
 
-EAPI const Eina_List *
-elput_input_devices_get(Elput_Seat *seat)
-{
-   EINA_SAFETY_ON_NULL_RETURN_VAL(seat, NULL);
-   return seat->devices;
-}
-
 EAPI void
 elput_input_pointer_max_set(Elput_Manager *manager, int maxw, int maxh)
 {
    EINA_SAFETY_ON_NULL_RETURN(manager);
    manager->input.pointer_w = maxw;
    manager->input.pointer_h = maxh;
+}
+
+EAPI Eina_Bool
+elput_input_pointer_rotation_set(Elput_Manager *manager, int rotation)
+{
+   Elput_Seat *eseat;
+   Elput_Device *edev;
+   Eina_List *l, *ll;
+
+   EINA_SAFETY_ON_NULL_RETURN_VAL(manager, EINA_FALSE);
+
+   if ((rotation % 90 != 0) || (rotation / 90 > 3) || (rotation < 0))
+     return EINA_FALSE;
+
+   EINA_LIST_FOREACH(manager->input.seats, l, eseat)
+     {
+        EINA_LIST_FOREACH(eseat->devices, ll, edev)
+          {
+             if (!(edev->caps & ELPUT_DEVICE_CAPS_POINTER)) continue;
+
+             switch (rotation)
+               {
+                case 0:
+                  edev->swap = EINA_FALSE;
+                  edev->invert_x = EINA_FALSE;
+                  edev->invert_y = EINA_FALSE;
+                  break;
+                case 90:
+                  edev->swap = EINA_TRUE;
+                  edev->invert_x = EINA_FALSE;
+                  edev->invert_y = EINA_TRUE;
+                  break;
+                case 180:
+                  edev->swap = EINA_FALSE;
+                  edev->invert_x = EINA_TRUE;
+                  edev->invert_y = EINA_TRUE;
+                  break;
+                case 270:
+                  edev->swap = EINA_TRUE;
+                  edev->invert_x = EINA_TRUE;
+                  edev->invert_y = EINA_FALSE;
+                  break;
+                default:
+                  break;
+               }
+          }
+     }
+
+   return EINA_TRUE;
 }
 
 EAPI void
@@ -534,6 +623,9 @@ elput_input_devices_calibrate(Elput_Manager *manager, int w, int h)
    Eina_List *l, *ll;
 
    EINA_SAFETY_ON_NULL_RETURN(manager);
+
+   manager->output_w = w;
+   manager->output_h = h;
 
    EINA_LIST_FOREACH(manager->input.seats, l, eseat)
      {
@@ -559,7 +651,7 @@ elput_input_key_remap_enable(Elput_Manager *manager, Eina_Bool enable)
      {
         EINA_LIST_FOREACH(eseat->devices, ll, edev)
           {
-             if (!(edev->caps & EVDEV_SEAT_KEYBOARD)) continue;
+             if (!(edev->caps & ELPUT_DEVICE_CAPS_KEYBOARD)) continue;
 
              edev->key_remap = enable;
              if ((!enable) && (edev->key_remap_hash))
@@ -590,7 +682,7 @@ elput_input_key_remap_set(Elput_Manager *manager, int *from_keys, int *to_keys, 
      {
         EINA_LIST_FOREACH(eseat->devices, ll, edev)
           {
-             if (!(edev->caps & EVDEV_SEAT_KEYBOARD)) continue;
+             if (!(edev->caps & ELPUT_DEVICE_CAPS_KEYBOARD)) continue;
 
              if (!edev->key_remap) continue;
              if (!edev->key_remap_hash)
@@ -613,28 +705,115 @@ elput_input_key_remap_set(Elput_Manager *manager, int *from_keys, int *to_keys, 
 }
 
 EAPI void
-elput_input_keyboard_cached_context_set(Elput_Manager *manager, void *context)
+elput_input_keyboard_info_set(Elput_Manager *manager, void *context, void *keymap, int group)
 {
-   EINA_SAFETY_ON_NULL_RETURN(manager);
+   Eina_List *l;
+   Elput_Seat *seat;
 
-   if ((context) && (manager->cached.context == context)) return;
+   EINA_SAFETY_ON_NULL_RETURN(manager);
+   EINA_SAFETY_ON_FALSE_RETURN((!!context) == (!!keymap));
+
+   if ((manager->cached.context == context) &&
+       (manager->cached.keymap == keymap))
+     return;
+   if (context) xkb_context_ref(context);
+   if (keymap) xkb_keymap_ref(keymap);
+   if (manager->cached.context) xkb_context_unref(manager->cached.context);
+   if (manager->cached.keymap) xkb_keymap_unref(manager->cached.keymap);
    manager->cached.context = context;
+   manager->cached.keymap = keymap;
+   manager->cached.group = group;
+   EINA_LIST_FOREACH(manager->input.seats, l, seat)
+     _keyboard_keymap_update(seat);
 }
 
 EAPI void
-elput_input_keyboard_cached_keymap_set(Elput_Manager *manager, void *keymap)
+elput_input_keyboard_group_set(Elput_Manager *manager, int group)
 {
+   Eina_List *l;
+   Elput_Seat *seat;
    EINA_SAFETY_ON_NULL_RETURN(manager);
 
-   if ((keymap) && (manager->cached.keymap == keymap)) return;
-   manager->cached.keymap = keymap;
+   if (manager->cached.group == group) return;
+   manager->cached.group = group;
+   EINA_LIST_FOREACH(manager->input.seats, l, seat)
+     _keyboard_group_update(seat);
+}
+
+EAPI void
+elput_input_pointer_accel_profile_set(Elput_Manager *manager, const char *seat, uint32_t profile)
+{
+   Elput_Seat *eseat;
+   Elput_Device *edev;
+   Eina_List *l, *ll;
+
+   EINA_SAFETY_ON_NULL_RETURN(manager);
+
+   /* if no seat name is passed in, just use default seat name */
+   if (!seat) seat = "seat0";
+
+   EINA_LIST_FOREACH(manager->input.seats, l, eseat)
+     {
+        if ((eseat->name) && (strcmp(eseat->name, seat)))
+          continue;
+
+        EINA_LIST_FOREACH(eseat->devices, ll, edev)
+          {
+             if (!libinput_device_has_capability(edev->device,
+                                                 LIBINPUT_DEVICE_CAP_POINTER))
+               continue;
+
+             if (libinput_device_config_accel_set_profile(edev->device,
+                                                          profile) !=
+                 LIBINPUT_CONFIG_STATUS_SUCCESS)
+               {
+                  WRN("Failed to set acceleration profile for device: %s",
+                      libinput_device_get_name(edev->device));
+                  continue;
+               }
+          }
+     }
+}
+
+EAPI Elput_Seat *
+elput_device_seat_get(const Elput_Device *dev)
+{
+   EINA_SAFETY_ON_NULL_RETURN_VAL(dev, NULL);
+   return dev->seat;
+}
+
+EAPI Elput_Device_Caps
+elput_device_caps_get(const Elput_Device *dev)
+{
+   EINA_SAFETY_ON_NULL_RETURN_VAL(dev, 0);
+   return dev->caps;
 }
 
 EAPI Eina_Stringshare *
-elput_input_device_output_name_get(Elput_Device *device)
+elput_device_output_name_get(Elput_Device *device)
 {
    EINA_SAFETY_ON_NULL_RETURN_VAL(device, NULL);
 
-   if (!device->output_name) return NULL;
-   return eina_stringshare_ref(device->output_name);
+   return device->output_name;
+}
+
+EAPI const Eina_List *
+elput_seat_devices_get(const Elput_Seat *seat)
+{
+   EINA_SAFETY_ON_NULL_RETURN_VAL(seat, NULL);
+   return seat->devices;
+}
+
+EAPI Eina_Stringshare *
+elput_seat_name_get(const Elput_Seat *seat)
+{
+   EINA_SAFETY_ON_NULL_RETURN_VAL(seat, NULL);
+   return seat->name;
+}
+
+EAPI Elput_Manager *
+elput_seat_manager_get(const Elput_Seat *seat)
+{
+   EINA_SAFETY_ON_NULL_RETURN_VAL(seat, NULL);
+   return seat->manager;
 }

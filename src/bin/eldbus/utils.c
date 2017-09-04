@@ -34,19 +34,30 @@ Eina_Bool
 file_write(const char *file_name, const char *buffer)
 {
    FILE *file_handler;
+   const char *filename = file_name;
+   Eina_Strbuf *fname = NULL;
 
-   file_handler = fopen(file_name, "wt");
+   fname = eina_strbuf_new();
+
+   if (output_dir)
+     {
+        eina_strbuf_append_printf(fname, "%s/%s", output_dir, file_name);
+        filename = eina_strbuf_string_get(fname);
+     }
+   file_handler = fopen(filename, "wt");
    if (!file_handler)
      {
-        printf("Error to write file: %s\n", file_name);
+        printf("Error to write file: %s\n", filename);
+        eina_strbuf_free(fname);
         return EINA_FALSE;
      }
 
    if (fwrite(buffer, strlen(buffer), 1, file_handler) < 1)
      {
-        printf("Error writing to file: %s\n", file_name);
+        printf("Error writing to file: %s\n", filename);
      }
    fclose(file_handler);
+   eina_strbuf_free(fname);
 
    return EINA_TRUE;
 }

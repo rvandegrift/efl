@@ -46,13 +46,17 @@
 # endif
 #endif /* ! _WIN32 */
 
+/* save typing */
+#define ENFN obj->layer->evas->engine.func
+#define ENDT _evas_default_output_get(obj->layer->evas)
+#define ENC  _evas_engine_context(obj->layer->evas)
+
 #include "canvas/evas_text.eo.h"
 #include "canvas/evas_textgrid.eo.h"
 #include "canvas/evas_line.eo.h"
 #include "canvas/evas_box.eo.h"
 #include "canvas/evas_table.eo.h"
 #include "canvas/evas_grid.eo.h"
-#include "canvas/evas_out.eo.h"
 
 #define RENDER_METHOD_INVALID            0x00000000
 
@@ -69,6 +73,8 @@ typedef struct _Evas_Font_Description       Evas_Font_Description;
 typedef struct _Evas_Data_Node              Evas_Data_Node;
 typedef struct _Evas_Func                   Evas_Func;
 typedef struct _Evas_Image_Save_Func        Evas_Image_Save_Func;
+typedef struct _Evas_Vg_Load_Func           Evas_Vg_Load_Func;
+typedef struct _Evas_Vg_Save_Func           Evas_Vg_Save_Func;
 typedef struct _Evas_Object_Func            Evas_Object_Func;
 typedef struct _Evas_Intercept_Func         Evas_Intercept_Func;
 typedef struct _Evas_Key_Grab               Evas_Key_Grab;
@@ -80,18 +86,27 @@ typedef struct _Evas_Post_Callback          Evas_Post_Callback;
 typedef struct _Evas_Coord_Touch_Point      Evas_Coord_Touch_Point;
 typedef struct _Evas_Object_Proxy_Data      Evas_Object_Proxy_Data;
 typedef struct _Evas_Object_Map_Data        Evas_Object_Map_Data;
+typedef struct _Evas_Object_Events_Data     Evas_Object_Events_Data;
 typedef struct _Evas_Proxy_Render_Data      Evas_Proxy_Render_Data;
 typedef struct _Evas_Object_3D_Data         Evas_Object_3D_Data;
 typedef struct _Evas_Object_Mask_Data       Evas_Object_Mask_Data;
+typedef struct _Evas_Object_Pointer_Data            Evas_Object_Pointer_Data;
 
 typedef struct _Evas_Smart_Data             Evas_Smart_Data;
+typedef struct _Efl_Object_Event_Grabber_Data  Efl_Object_Event_Grabber_Data;
+
 
 typedef struct _Evas_Object_Protected_State Evas_Object_Protected_State;
 typedef struct _Evas_Object_Protected_Data  Evas_Object_Protected_Data;
 
+/* gfx filters typedef only */
 typedef struct _Evas_Filter_Program         Evas_Filter_Program;
+typedef struct _Evas_Filter_Context         Evas_Filter_Context;
 typedef struct _Evas_Object_Filter_Data     Evas_Object_Filter_Data;
 typedef struct _Evas_Filter_Data_Binding    Evas_Filter_Data_Binding;
+typedef struct _Evas_Pointer_Data           Evas_Pointer_Data;
+typedef struct _Evas_Filter_Command         Evas_Filter_Command;
+typedef enum _Evas_Filter_Support           Evas_Filter_Support;
 
 // 3D stuff
 
@@ -587,8 +602,8 @@ MAGIC_CHECK_FAILED(o, t, m)
 
 // helper function for legacy EAPI implementations
 #define EVAS_OBJ_GET_OR_RETURN(o, ...) ({ \
-   Evas_Object_Protected_Data *_obj = eo_isa(o, EFL_CANVAS_OBJECT_CLASS) ? \
-     eo_data_scope_get(eo_obj, EFL_CANVAS_OBJECT_CLASS) : NULL; \
+   Evas_Object_Protected_Data *_obj = efl_isa(o, EFL_CANVAS_OBJECT_CLASS) ? \
+     efl_data_scope_get(eo_obj, EFL_CANVAS_OBJECT_CLASS) : NULL; \
    if (!_obj) { MAGIC_CHECK_FAILED(o,0,0) return __VA_ARGS__; } \
    _obj; })
 
@@ -601,22 +616,26 @@ MAGIC_CHECK_FAILED(o, t, m)
 /* DEBUG mode: fail, but normally just ERR(). This also returns if NULL. */
 #ifdef DEBUG
 #define EVAS_OBJECT_LEGACY_API(_eo, ...) \
-   do { Evas_Object_Protected_Data *_o = eo_data_scope_get(_eo, EFL_CANVAS_OBJECT_CLASS); \
+   do { Evas_Object_Protected_Data *_o = efl_data_scope_get(_eo, EFL_CANVAS_OBJECT_CLASS); \
       if (EINA_UNLIKELY(!_o)) return __VA_ARGS__; \
       if (EINA_UNLIKELY(!_o->legacy)) { \
-         char buf[1024]; snprintf(buf, sizeof(buf), "Calling legacy API on EO object '%s' is not permitted!", eo_class_name_get(_o->object)); \
+         char buf[1024]; snprintf(buf, sizeof(buf), "Calling legacy API on EO object '%s' is not permitted!", efl_class_name_get(_o->object)); \
          EINA_SAFETY_ERROR(buf); \
          return __VA_ARGS__; \
    } } while (0)
 #else
 #define EVAS_OBJECT_LEGACY_API(_eo, ...) \
-   do { Evas_Object_Protected_Data *_o = eo_data_scope_get(_eo, EFL_CANVAS_OBJECT_CLASS); \
+   do { Evas_Object_Protected_Data *_o = efl_data_scope_get(_eo, EFL_CANVAS_OBJECT_CLASS); \
       if (EINA_UNLIKELY(!_o)) return __VA_ARGS__; \
       if (EINA_UNLIKELY(!_o->legacy)) { \
-         char buf[1024]; snprintf(buf, sizeof(buf), "Calling legacy API on EO object '%s' is not permitted!", eo_class_name_get(_o->object)); \
+         char buf[1024]; snprintf(buf, sizeof(buf), "Calling legacy API on EO object '%s' is not permitted!", efl_class_name_get(_o->object)); \
          EINA_SAFETY_ERROR(buf); \
    } } while (0)
 #endif
+
+#define EVAS_LEGACY_API(_obj, _e, ...) \
+   Evas_Public_Data *_e = efl_data_scope_safe_get((_obj), EVAS_CANVAS_CLASS); \
+   if (!_e) return __VA_ARGS__
 
 #define EVAS_OBJECT_IMAGE_FREE_FILE_AND_KEY(cur, prev)                  \
   if (cur->u.file && !cur->mmaped_source)				\
@@ -646,7 +665,7 @@ MAGIC_CHECK_FAILED(o, t, m)
 
 struct _Evas_Coord_Touch_Point
 {
-   Evas_Coord x, y; // point's x, y position
+   double x, y;
    int id; // id in order to distinguish each point
    Evas_Touch_Point_State state;
 };
@@ -730,6 +749,11 @@ struct _Evas_Intercept_Func
       void *data;
       Eina_Bool intercepted;
    } focus_set;
+   struct {
+      Evas_Object_Intercept_Device_Focus_Set_Cb func;
+      void *data;
+      Eina_Bool intercepted;
+   } device_focus_set;
 };
 
 struct _Evas_Smart_Cb_Description_Array
@@ -766,7 +790,8 @@ struct _Evas_Modifier
       int       count;
       char    **list;
    } mod;
-   Evas_Modifier_Mask mask; /* ok we have a max of 64 modifiers */
+   Eina_Hash *masks; /* we have a max of 64 modifiers per seat */
+   Evas_Public_Data *e;
 };
 
 struct _Evas_Lock
@@ -775,16 +800,60 @@ struct _Evas_Lock
       int       count;
       char    **list;
    } lock;
-   Evas_Modifier_Mask mask; /* we have a max of 64 locks */
+   Eina_Hash *masks; /* we have a max of 64 locks per seat */
+   Evas_Public_Data *e;
 };
 
 struct _Evas_Post_Callback
 {
-   Evas_Object               *obj;
    Evas_Object_Event_Post_Cb  func;
    const void                *data;
+   int                        event_id;
+   Evas_Callback_Type         type;
    unsigned char              delete_me : 1;
 };
+
+// somehow this has bugs ... and i am not sure why...
+//#define INLINE_ACTIVE_GEOM 1
+
+typedef struct
+{
+#ifdef INLINE_ACTIVE_GEOM
+   Evas_Coord_Rectangle        rect;
+#endif
+   Evas_Object_Protected_Data *obj;
+} Evas_Active_Entry;
+
+typedef struct Evas_Pointer_Seat
+{
+   EINA_INLIST;
+   Evas_Device *seat;
+   Eina_Inlist *pointers;
+   struct {
+      Eina_List *in;
+   } object;
+   Evas_Coord     x, y;
+   Evas_Point     prev;
+   int            mouse_grabbed;
+   int            downs;
+   int            nogrep;
+   unsigned char  inside : 1;
+} Evas_Pointer_Seat;
+
+struct _Evas_Pointer_Data
+{
+   EINA_INLIST;
+   Evas_Device    *pointer;
+   DATA32         button;
+   Evas_Pointer_Seat *seat;
+};
+
+typedef struct _Evas_Post_Render_Job
+{
+   EINA_INLIST;
+   void (*func)(void *);
+   void *data;
+} Evas_Post_Render_Job;
 
 struct _Evas_Public_Data
 {
@@ -793,17 +862,7 @@ struct _Evas_Public_Data
    DATA32            magic;
    Evas              *evas;
 
-   struct {
-      unsigned char  inside : 1;
-      int            mouse_grabbed;
-      int            downs;
-      DATA32         button;
-      Evas_Coord     x, y;
-      int            nogrep;
-      struct {
-          Eina_List *in;
-      } object;
-   } pointer;
+   Eina_Inlist       *seats;
 
    struct  {
       Evas_Coord     x, y, w, h;
@@ -820,7 +879,6 @@ struct _Evas_Public_Data
      {
         Evas_Coord x, y, w, h;
         Eina_Bool changed : 1;
-        Evas_Object *clip;
      } framespace;
 
    Eina_List        *damages;
@@ -841,15 +899,6 @@ struct _Evas_Public_Data
    struct {
       Evas_Module *module;
       Evas_Func *func;
-      Ector_Surface *ector;
-      struct {
-         void *output;
-
-         void *context;
-      } data;
-
-      void *info;
-      int   info_magic;
    } engine;
 
    struct {
@@ -858,7 +907,7 @@ struct _Evas_Public_Data
    } render;
 
    Eina_Array     delete_objects;
-   Eina_Array     active_objects;
+   Eina_Inarray   active_objects;
    Eina_Array     restack_objects;
    Eina_Array     render_objects;
    Eina_Array     pending_objects;
@@ -870,6 +919,11 @@ struct _Evas_Public_Data
    Eina_Array     image_unref_queue;
    Eina_Array     glyph_unref_queue;
    Eina_Array     texts_unref_queue;
+
+   struct {
+      Evas_Post_Render_Job *jobs;
+      Eina_Spinlock lock;
+   } post_render;
 
    Eina_Clist     calc_list;
    Eina_Clist     calc_done;
@@ -885,10 +939,14 @@ struct _Evas_Public_Data
 
    Eina_List     *font_path;
 
+   Eina_Inarray  *update_del_redirect_array;
+
    int            in_smart_calc;
    int            smart_calc_count;
 
-   Evas_Object   *focused;
+   Eo            *pending_default_focus_obj;
+   Eina_Hash     *focused_objects; //Key - seat; value - the focused object
+   Eina_List     *focused_by; //Which seat has the canvas focus
    void          *attach_data;
    Evas_Modifier  modifiers;
    Evas_Lock      locks;
@@ -897,6 +955,8 @@ struct _Evas_Public_Data
    int            last_mouse_up_counter;
    int            nochange;
    Evas_Font_Hinting_Flags hinting;
+   Evas_Callback_Type current_event;
+   int            running_post_events;
 
    Eina_List     *touch_points;
    Eina_List     *devices;
@@ -904,14 +964,20 @@ struct _Evas_Public_Data
 
    Eina_List     *outputs;
 
+   Evas_Device   *default_seat;
+   Evas_Device   *default_mouse;
+   Evas_Device   *default_keyboard;
+
    unsigned char  changed : 1;
    unsigned char  delete_me : 1;
    unsigned char  invalidate : 1;
    unsigned char  cleanup : 1;
-   unsigned char  focus : 1;
    Eina_Bool      is_frozen : 1;
    Eina_Bool      rendering : 1;
    Eina_Bool      render2 : 1;
+   Eina_Bool      common_init : 1;
+   Eina_Bool      inside_post_render : 1;
+   Eina_Bool      devices_modified : 1;
 };
 
 struct _Evas_Layer
@@ -974,7 +1040,7 @@ struct _Evas_Map
    Evas_Coord_Rectangle  normal_geometry; // bounding box of map geom actually
 //   void                 *surface; // surface holding map if needed
 //   int                   surface_w, surface_h; // current surface w & h alloc
-   Evas_Coord            mx, my; // mouse x, y after conversion to map space
+   double                mx, my; // mouse x, y after conversion to map space
    struct {
       Evas_Coord         px, py, z0, foc;
    } persp;
@@ -1002,6 +1068,8 @@ struct _Evas_Object_Proxy_Data
 
 struct _Evas_Object_Map_Data
 {
+   // WARNING - you cannot change the below cur/prev layout, content or size
+   // unless you also update evas_object_main.c _map_same() func
    struct {
       Evas_Map             *map;
       Evas_Object          *map_parent;
@@ -1033,6 +1101,20 @@ struct _Evas_Object_Mask_Data
    Eina_Bool      is_scaled : 1;
 };
 
+struct _Evas_Object_Events_Data
+{
+   /*
+      The list below contain the seats (Efl.Input.Devices) which this
+      object allows events to be reported (Mouse, Keybord and focus events).
+    */
+   Eina_List     *events_whitelist; /* Efl_Input_Device */
+
+   Eina_List     *focused_by_seats; /* Efl_Input_Device */
+   Eina_Inlist   *pointer_grabs; /* Evas_Object_Pointer_Data */
+
+   Evas_Object   *parent; /* An Efl.Canvas.Object.Event.Grabber */
+};
+
 struct _Evas_Object_Protected_State
 {
    Evas_Object_Protected_Data *clipper;
@@ -1061,6 +1143,15 @@ struct _Evas_Object_Protected_State
    Eina_Bool             anti_alias : 1;
    Eina_Bool             valid_bounding_box : 1;
    Eina_Bool             snapshot : 1;
+};
+
+struct _Evas_Object_Pointer_Data {
+   EINA_INLIST;
+
+   Evas_Pointer_Data *evas_pdata;
+   Evas_Object_Pointer_Mode pointer_mode;
+   int mouse_grabbed;
+   Eina_Bool mouse_in;
 };
 
 struct _Evas_Object_Protected_Data
@@ -1102,6 +1193,7 @@ struct _Evas_Object_Protected_Data
    const Evas_Object_Map_Data *map;
    const Evas_Object_3D_Data  *data_3d;
    const Evas_Object_Mask_Data *mask;
+   const Evas_Object_Events_Data *events;
 
    // Pointer to the Evas_Object itself
    Evas_Object                *object;
@@ -1110,23 +1202,61 @@ struct _Evas_Object_Protected_Data
 
    int                         last_mouse_down_counter;
    int                         last_mouse_up_counter;
-   int                         mouse_grabbed;
-
-   // Daniel: Added because the destructor can't take parameters, at least for the moment
-   int                         clean_layer;
-   int                         last_event;
+   int                         last_event_id;
    Evas_Callback_Type          last_event_type;
 
    struct {
-        int                      in_move, in_resize;
+      int                      in_move, in_resize;
    } doing;
 
    unsigned int                ref;
 
    unsigned int                animator_ref;
-   unsigned int                move_ref;
+   uint64_t                    callback_mask;
 
+   unsigned char               no_change_render;
    unsigned char               delete_me;
+
+   Eina_Bool                   render_pre : 1;
+   Eina_Bool                   rect_del : 1;
+
+   Eina_Bool                   is_active : 1;
+   Eina_Bool                   changed : 1;
+   Eina_Bool                   restack : 1;
+   Eina_Bool                   is_smart : 1;
+   Eina_Bool                   is_event_parent : 1;
+   Eina_Bool                   pass_events : 1;
+   Eina_Bool                   store : 1;
+
+   Eina_Bool                   changed_move : 1;
+   Eina_Bool                   changed_color : 1;
+   Eina_Bool                   changed_map : 1;
+   Eina_Bool                   changed_pchange : 1;
+   Eina_Bool                   changed_src_visible : 1;
+   Eina_Bool                   freeze_events : 1;
+   Eina_Bool                   repeat_events : 1;
+   Eina_Bool                   no_propagate : 1;
+
+   Eina_Bool                   del_ref : 1;
+   Eina_Bool                   need_surface_clear : 1;
+   Eina_Bool                   pre_render_done : 1;
+   Eina_Bool                   precise_is_inside : 1;
+   Eina_Bool                   is_static_clip : 1;
+
+   Eina_Bool                   in_layer : 1;
+   Eina_Bool                   is_frame : 1;
+   Eina_Bool                   is_frame_top : 1; // this is the frame edje
+   Eina_Bool                   child_has_map : 1;
+   Eina_Bool                   efl_del_called : 1;
+   Eina_Bool                   no_render : 1; // since 1.15
+   Eina_Bool                   legacy : 1; // used legacy constructor
+   Eina_Bool                   clean_layer : 1; // destructor option
+
+   Eina_Bool                   snapshot_needs_redraw : 1;
+   Eina_Bool                   snapshot_no_obscure : 1;
+   Eina_Bool                   is_image_object : 1;
+   Eina_Bool                   gfx_map_has : 1;
+   Eina_Bool                   gfx_map_update : 1;
 
    struct  {
       Eina_Bool                pass_events : 1;
@@ -1137,39 +1267,7 @@ struct _Evas_Object_Protected_Data
       Eina_Bool                src_invisible_valid : 1;
    } parent_cache;
 
-   Evas_Object_Pointer_Mode    pointer_mode : 2;
-   Eina_Bool                   store : 1;
-   Eina_Bool                   pass_events : 1;
-   Eina_Bool                   freeze_events : 1;
-   Eina_Bool                   repeat_events : 1;
-   Eina_Bool                   restack : 1;
-   Eina_Bool                   is_active : 1;
-
-   Eina_Bool                   precise_is_inside : 1;
-   Eina_Bool                   is_static_clip : 1;
-   Eina_Bool                   render_pre : 1;
-   Eina_Bool                   rect_del : 1;
-   Eina_Bool                   mouse_in : 1;
-   Eina_Bool                   pre_render_done : 1;
-   Eina_Bool                   focused : 1;
-   Eina_Bool                   in_layer : 1;
-
-   Eina_Bool                   no_propagate : 1;
-   Eina_Bool                   changed : 1;
-   Eina_Bool                   changed_move : 1;
-   Eina_Bool                   changed_color : 1;
-   Eina_Bool                   changed_map : 1;
-   Eina_Bool                   changed_pchange : 1;
-   Eina_Bool                   changed_src_visible : 1;
-   Eina_Bool                   need_surface_clear : 1;
-   Eina_Bool                   del_ref : 1;
-
-   Eina_Bool                   is_frame : 1;
-   Eina_Bool                   child_has_map : 1;
-   Eina_Bool                   eo_del_called : 1;
-   Eina_Bool                   is_smart : 1;
-   Eina_Bool                   no_render : 1; // since 1.15
-   Eina_Bool                   legacy : 1; // used legacy constructor
+   Eina_Bool                   events_filter_enabled : 1;
 };
 
 struct _Evas_Data_Node
@@ -1222,35 +1320,24 @@ struct _Evas_Font_Description
    Eina_Bool is_new : 1;
 };
 
-struct _Evas_Object_Filter_Data
+struct _Efl_Canvas_Output
 {
-   Eina_Stringshare    *name;
-   Eina_Stringshare    *code;
-   Evas_Filter_Program *chain;
-   Eina_Hash           *sources; // Evas_Filter_Proxy_Binding
-   Eina_Inlist         *data; // Evas_Filter_Data_Binding
-   void                *output;
-   struct {
-      struct {
-         Eina_Stringshare *name;
-         double            value;
-      } cur;
-      struct {
-         Eina_Stringshare *name;
-         double            value;
-      } next;
-      double               pos;
-   } state;
-   Eina_Bool            changed : 1;
-   Eina_Bool            invalid : 1; // Code parse failed
-   Eina_Bool            async : 1;
+   Eo *canvas;
+
+   Ector_Surface *ector;
+
+   void *info, *output;
+   Evas_Coord x, y, w, h;
+
+   int info_magic;
 };
 
 struct _Evas_Object_Func
 {
    void (*free) (Evas_Object *obj, Evas_Object_Protected_Data *pd, void *type_private_data);
    void (*render) (Evas_Object *obj, Evas_Object_Protected_Data *pd, void *type_private_data,
-                   void *output, void *context, void *surface, int x, int y, Eina_Bool do_async);
+                   void *engine, void *output, void *context, void *surface,
+                   int x, int y, Eina_Bool do_async);
    void (*render_pre) (Evas_Object *obj, Evas_Object_Protected_Data *pd, void *type_private_data);
    void (*render_post) (Evas_Object *obj, Evas_Object_Protected_Data *pd, void *type_private_data);
 
@@ -1281,6 +1368,10 @@ struct _Evas_Object_Func
                            Evas_Coord *x, Evas_Coord *y, Evas_Coord *w, Evas_Coord *h);
 
    int (*can_map) (Evas_Object *obj);
+// new - add to prepare list during render if object needs some pre-render
+// preparation - may include rendering content to buffer or loading data
+// from disk or uploading to texture etc.
+   void (*render_prepare) (Evas_Object *obj, Evas_Object_Protected_Data *pd, Eina_Bool do_async);
 
 // new render2 functions
 
@@ -1296,214 +1387,228 @@ struct _Evas_Func
 {
    void *(*info)                           (Evas *e);
    void (*info_free)                       (Evas *e, void *info);
-   int  (*setup)                           (Evas *e, void *info);
+   void *(*setup)                          (void *engine, void *info, unsigned int w, unsigned int h);
+   int  (*update)                          (void *engine, void *data, void *info, unsigned int w, unsigned int h);
 
-   void (*output_free)                     (void *data);
-   void (*output_resize)                   (void *data, int w, int h);
-   void (*output_tile_size_set)            (void *data, int w, int h);
-   void (*output_redraws_rect_add)         (void *data, int x, int y, int w, int h);
-   void (*output_redraws_rect_del)         (void *data, int x, int y, int w, int h);
-   void (*output_redraws_clear)            (void *data);
-   void *(*output_redraws_next_update_get) (void *data, int *x, int *y, int *w, int *h, int *cx, int *cy, int *cw, int *ch);
-   void (*output_redraws_next_update_push) (void *data, void *surface, int x, int y, int w, int h, Evas_Render_Mode render_mode);
-   void (*output_flush)                    (void *data, Evas_Render_Mode render_mode);
-   void (*output_idle_flush)               (void *data);
-   void (*output_dump)                     (void *data);
+   void (*output_free)                     (void *engine, void *data);
+   void (*output_resize)                   (void *engine, void *data, int w, int h);
+   void (*output_tile_size_set)            (void *engine, void *data, int w, int h);
+   void (*output_redraws_rect_add)         (void *engine, void *data, int x, int y, int w, int h);
+   void (*output_redraws_rect_del)         (void *engine, void *data, int x, int y, int w, int h);
+   void (*output_redraws_clear)            (void *engine, void *data);
+   void *(*output_redraws_next_update_get) (void *engine, void *data, int *x, int *y, int *w, int *h, int *cx, int *cy, int *cw, int *ch);
+   void (*output_redraws_next_update_push) (void *engine, void *data, void *surface, int x, int y, int w, int h, Evas_Render_Mode render_mode);
+   void (*output_flush)                    (void *engine, void *data, Evas_Render_Mode render_mode);
+   void (*output_idle_flush)               (void *engine, void *data);
+   void (*output_dump)                     (void *engine, void *data);
 
-   void *(*context_new)                    (void *data);
-   void *(*context_dup)                    (void *data, void *context);
-   Eina_Bool (*canvas_alpha_get)           (void *data, void *context);
-   void (*context_free)                    (void *data, void *context);
-   void (*context_clip_set)                (void *data, void *context, int x, int y, int w, int h);
-   void (*context_clip_image_set)          (void *data, void *context, void *surface, int x, int y, Evas_Public_Data *evas, Eina_Bool do_async);
-   void (*context_clip_image_unset)        (void *data, void *context);
-   void (*context_clip_image_get)          (void *data, void *context, void **surface, int *x, int *y); /* incref surface if not NULL */
-   void (*context_clip_clip)               (void *data, void *context, int x, int y, int w, int h);
-   void (*context_clip_unset)              (void *data, void *context);
-   int  (*context_clip_get)                (void *data, void *context, int *x, int *y, int *w, int *h);
-   void (*context_color_set)               (void *data, void *context, int r, int g, int b, int a);
-   int  (*context_color_get)               (void *data, void *context, int *r, int *g, int *b, int *a);
-   void (*context_multiplier_set)          (void *data, void *context, int r, int g, int b, int a);
-   void (*context_multiplier_unset)        (void *data, void *context);
-   int  (*context_multiplier_get)          (void *data, void *context, int *r, int *g, int *b, int *a);
-   void (*context_cutout_add)              (void *data, void *context, int x, int y, int w, int h);
-   void (*context_cutout_clear)            (void *data, void *context);
-   void (*context_anti_alias_set)          (void *data, void *context, unsigned char aa);
-   unsigned char (*context_anti_alias_get) (void *data, void *context);
-   void (*context_color_interpolation_set) (void *data, void *context, int color_space);
-   int  (*context_color_interpolation_get) (void *data, void *context);
-   void (*context_render_op_set)           (void *data, void *context, int render_op);
-   int  (*context_render_op_get)           (void *data, void *context);
+   void *(*context_new)                    (void *engine);
+   void *(*context_dup)                    (void *engine, void *context);
+   Eina_Bool (*canvas_alpha_get)           (void *engine);
+   void (*context_free)                    (void *engine, void *context);
+   void (*context_clip_set)                (void *engine, void *context, int x, int y, int w, int h);
+   void (*context_clip_image_set)          (void *engine, void *context, void *surface, int x, int y, Evas_Public_Data *evas, Eina_Bool do_async);
+   void (*context_clip_image_unset)        (void *engine, void *context);
+   void (*context_clip_image_get)          (void *engine, void *context, void **surface, int *x, int *y); /* incref surface if not NULL */
+   void (*context_clip_clip)               (void *engine, void *context, int x, int y, int w, int h);
+   void (*context_clip_unset)              (void *engine, void *context);
+   int  (*context_clip_get)                (void *engine, void *context, int *x, int *y, int *w, int *h);
+   void (*context_color_set)               (void *engine, void *context, int r, int g, int b, int a);
+   int  (*context_color_get)               (void *engine, void *context, int *r, int *g, int *b, int *a);
+   void (*context_multiplier_set)          (void *engine, void *context, int r, int g, int b, int a);
+   void (*context_multiplier_unset)        (void *engine, void *context);
+   int  (*context_multiplier_get)          (void *engine, void *context, int *r, int *g, int *b, int *a);
+   void (*context_cutout_add)              (void *engine, void *context, int x, int y, int w, int h);
+   void (*context_cutout_clear)            (void *engine, void *context);
+   void (*context_cutout_target)           (void *engine, void *context, int x, int y, int w, int h);
+   void (*context_anti_alias_set)          (void *engine, void *context, unsigned char aa);
+   unsigned char (*context_anti_alias_get) (void *engine, void *context);
+   void (*context_color_interpolation_set) (void *engine, void *context, int color_space);
+   int  (*context_color_interpolation_get) (void *engine, void *context);
+   void (*context_render_op_set)           (void *engine, void *context, int render_op);
+   int  (*context_render_op_get)           (void *engine, void *context);
 
-   void (*rectangle_draw)                  (void *data, void *context, void *surface, int x, int y, int w, int h, Eina_Bool do_async);
+   void (*rectangle_draw)                  (void *engine, void *data, void *context, void *surface, int x, int y, int w, int h, Eina_Bool do_async);
 
-   void (*line_draw)                       (void *data, void *context, void *surface, int x1, int y1, int x2, int y2, Eina_Bool do_async);
+   void (*line_draw)                       (void *engine, void *data, void *context, void *surface, int x1, int y1, int x2, int y2, Eina_Bool do_async);
 
-   void *(*polygon_point_add)              (void *data, void *context, void *polygon, int x, int y);
-   void *(*polygon_points_clear)           (void *data, void *context, void *polygon);
-   void (*polygon_draw)                    (void *data, void *context, void *surface, void *polygon, int x, int y, Eina_Bool do_async);
+   void *(*polygon_point_add)              (void *engine, void *polygon, int x, int y);
+   void *(*polygon_points_clear)           (void *engine, void *polygon);
+   void (*polygon_draw)                    (void *engine, void *data, void *context, void *surface, void *polygon, int x, int y, Eina_Bool do_async);
 
-   void *(*image_load)                     (void *data, const char *file, const char *key, int *error, Evas_Image_Load_Opts *lo);
-   void *(*image_mmap)                     (void *data, Eina_File *f, const char *key, int *error, Evas_Image_Load_Opts *lo);
-   void *(*image_new_from_data)            (void *data, int w, int h, DATA32 *image_data, int alpha, Evas_Colorspace cspace);
-   void *(*image_new_from_copied_data)     (void *data, int w, int h, DATA32 *image_data, int alpha, Evas_Colorspace cspace);
-   void (*image_free)                      (void *data, void *image);
-   void *(*image_ref)                      (void *data, void *image);
-   void (*image_size_get)                  (void *data, void *image, int *w, int *h);
-   void *(*image_size_set)                 (void *data, void *image, int w, int h);
-   void (*image_stride_get)                (void *data, void *image, int *stride);
-   void *(*image_dirty_region)             (void *data, void *image, int x, int y, int w, int h);
-   void *(*image_data_get)                 (void *data, void *image, int to_write, DATA32 **image_data, int *err, Eina_Bool *tofree);
-   void *(*image_data_put)                 (void *data, void *image, DATA32 *image_data);
-   void *(*image_data_direct)              (void *data, void *image, Evas_Colorspace *cspace);
-   void  (*image_data_preload_request)     (void *data, void *image, const Eo *target);
-   void  (*image_data_preload_cancel)      (void *data, void *image, const Eo *target);
-   void *(*image_alpha_set)                (void *data, void *image, int has_alpha);
-   int  (*image_alpha_get)                 (void *data, void *image);
-   void *(*image_orient_set)               (void *data, void *image, Evas_Image_Orient orient);
-   Evas_Image_Orient (*image_orient_get)   (void *data, void *image);
-   Eina_Bool (*image_draw)                 (void *data, void *context, void *surface, void *image, int src_x, int src_y, int src_w, int src_h, int dst_x, int dst_y, int dst_w, int dst_h, int smooth, Eina_Bool do_async);
-   void (*image_colorspace_set)            (void *data, void *image, Evas_Colorspace cspace);
-   Evas_Colorspace (*image_colorspace_get) (void *data, void *image);
-   Evas_Colorspace (*image_file_colorspace_get)(void *data, void *image);
-   Eina_Bool (*image_can_region_get)       (void *data, void *image);
+   void *(*image_load)                     (void *engine, const char *file, const char *key, int *error, Evas_Image_Load_Opts *lo);
+   void *(*image_mmap)                     (void *engine, Eina_File *f, const char *key, int *error, Evas_Image_Load_Opts *lo);
+   void *(*image_new_from_data)            (void *engine, int w, int h, DATA32 *image_data, int alpha, Evas_Colorspace cspace);
+   void *(*image_new_from_copied_data)     (void *engine, int w, int h, DATA32 *image_data, int alpha, Evas_Colorspace cspace);
+   void (*image_free)                      (void *engine, void *image);
+   void *(*image_ref)                      (void *engine, void *image);
+   void (*image_size_get)                  (void *engine, void *image, int *w, int *h);
+   void *(*image_size_set)                 (void *engine, void *image, int w, int h);
+   void (*image_stride_get)                (void *engine, void *image, int *stride);
+   void *(*image_dirty_region)             (void *engine, void *image, int x, int y, int w, int h);
+   void *(*image_data_get)                 (void *engine, void *image, int to_write, DATA32 **image_data, int *err, Eina_Bool *tofree);
+   void *(*image_data_put)                 (void *engine, void *image, DATA32 *image_data);
+   Eina_Bool (*image_data_direct_get)      (void *engine, void *image, int plane, Eina_Slice *slice, Evas_Colorspace *cspace, Eina_Bool load);
+   void  (*image_data_preload_request)     (void *engine, void *image, const Eo *target);
+   void  (*image_data_preload_cancel)      (void *engine, void *image, const Eo *target);
+   void *(*image_alpha_set)                (void *engine, void *image, int has_alpha);
+   int  (*image_alpha_get)                 (void *engine, void *image);
+   void *(*image_orient_set)               (void *engine, void *image, Evas_Image_Orient orient);
+   Evas_Image_Orient (*image_orient_get)   (void *engine, void *image);
+   Eina_Bool (*image_draw)                 (void *engine, void *data, void *context, void *surface, void *image, int src_x, int src_y, int src_w, int src_h, int dst_x, int dst_y, int dst_w, int dst_h, int smooth, Eina_Bool do_async);
+   void (*image_colorspace_set)            (void *engine, void *image, Evas_Colorspace cspace);
+   Evas_Colorspace (*image_colorspace_get) (void *engine, void *image);
+   Evas_Colorspace (*image_file_colorspace_get)(void *engine, void *image);
+   Eina_Bool (*image_can_region_get)       (void *engine, void *image);
 
    /* image data map/unmap: direct or indirect access to pixels data */
-   void *(*image_data_map)                 (void *data, void **image, int *length, int *stride, int x, int y, int w, int h, Evas_Colorspace cspace, Efl_Gfx_Buffer_Access_Mode mode);
-   Eina_Bool (*image_data_unmap)           (void *data, void *image, void *map, int length);
-   int (*image_data_maps_get)              (void *data, const void *image, void **maps, int *lengths);
+   Eina_Bool (*image_data_map)             (void *engine, void **image, Eina_Rw_Slice *slice, int *stride, int x, int y, int w, int h, Evas_Colorspace cspace, Efl_Gfx_Buffer_Access_Mode mode, int plane);
+   Eina_Bool (*image_data_unmap)           (void *engine, void *image, const Eina_Rw_Slice *slice);
+   int (*image_data_maps_get)              (void *engine, const void *image, const Eina_Rw_Slice **slices);
 
-   int (*image_native_init)                (void *data, Evas_Native_Surface_Type type);
-   void (*image_native_shutdown)           (void *data, Evas_Native_Surface_Type type);
-   void *(*image_native_set)               (void *data, void *image, void *native);
-   void *(*image_native_get)               (void *data, void *image);
+   /* new api for direct data set (not put) */
+   void *(*image_data_slice_add)           (void *engine, void *image, const Eina_Slice *slice, Eina_Bool copy, int w, int h, int stride, Evas_Colorspace space, int plane, Eina_Bool alpha);
 
-   void (*image_cache_flush)               (void *data);
-   void (*image_cache_set)                 (void *data, int bytes);
-   int  (*image_cache_get)                 (void *data);
+   void (*image_prepare)                   (void *engine, void *image);
 
-   Evas_Font_Set *(*font_load)             (void *data, const char *name, int size, Font_Rend_Flags wanted_rend);
-   Evas_Font_Set *(*font_memory_load)      (void *data, const char *source, const char *name, int size, const void *fdata, int fdata_size, Font_Rend_Flags wanted_rend);
-   Evas_Font_Set *(*font_add)              (void *data, Evas_Font_Set *font, const char *name, int size, Font_Rend_Flags wanted_rend);
-   Evas_Font_Set *(*font_memory_add)       (void *data, Evas_Font_Set *font, const char *source, const char *name, int size, const void *fdata, int fdata_size, Font_Rend_Flags wanted_rend);
-   void (*font_free)                       (void *data, Evas_Font_Set *font);
-   int  (*font_ascent_get)                 (void *data, Evas_Font_Set *font);
-   int  (*font_descent_get)                (void *data, Evas_Font_Set *font);
-   int  (*font_max_ascent_get)             (void *data, Evas_Font_Set *font);
-   int  (*font_max_descent_get)            (void *data, Evas_Font_Set *font);
-   void (*font_string_size_get)            (void *data, Evas_Font_Set *font, const Evas_Text_Props *intl_props, int *w, int *h);
-   int  (*font_inset_get)                  (void *data, Evas_Font_Set *font, const Evas_Text_Props *text_props);
-   int  (*font_h_advance_get)              (void *data, Evas_Font_Set *font, const Evas_Text_Props *intl_props);
-   int  (*font_v_advance_get)              (void *data, Evas_Font_Set *font, const Evas_Text_Props *intl_props);
-   int  (*font_char_coords_get)            (void *data, Evas_Font_Set *font, const Evas_Text_Props *intl_props, int pos, int *cx, int *cy, int *cw, int *ch);
-   int  (*font_char_at_coords_get)         (void *data, Evas_Font_Set *font, const Evas_Text_Props *intl_props, int x, int y, int *cx, int *cy, int *cw, int *ch);
-   Eina_Bool (*font_draw)                  (void *data, void *context, void *surface, Evas_Font_Set *font, int x, int y, int w, int h, int ow, int oh, Evas_Text_Props *intl_props, Eina_Bool do_async);
-   void (*font_cache_flush)                (void *data);
-   void (*font_cache_set)                  (void *data, int bytes);
-   int  (*font_cache_get)                  (void *data);
+   void *(*image_surface_noscale_new)      (void *engine, int w, int h, int alpha);
+   void (*image_surface_noscale_region_get)(void *engine, void *image, int *x, int *y, int *w, int *h);
+
+   int (*image_native_init)                (void *engine, Evas_Native_Surface_Type type);
+   void (*image_native_shutdown)           (void *engine, Evas_Native_Surface_Type type);
+   void *(*image_native_set)               (void *engine, void *image, void *native);
+   void *(*image_native_get)               (void *engine, void *image);
+
+   void (*image_cache_flush)               (void *engine);
+   void (*image_cache_set)                 (void *engine, int bytes);
+   int  (*image_cache_get)                 (void *engine);
+
+   void *(*image_plane_assign)             (void *data, void *image, int x, int y);
+   void (*image_plane_release)             (void *data, void *image, void *plane);
+
+   Evas_Font_Set *(*font_load)             (void *engine, const char *name, int size, Font_Rend_Flags wanted_rend);
+   Evas_Font_Set *(*font_memory_load)      (void *engine, const char *source, const char *name, int size, const void *fdata, int fdata_size, Font_Rend_Flags wanted_rend);
+   Evas_Font_Set *(*font_add)              (void *engine, Evas_Font_Set *font, const char *name, int size, Font_Rend_Flags wanted_rend);
+   Evas_Font_Set *(*font_memory_add)       (void *engine, Evas_Font_Set *font, const char *source, const char *name, int size, const void *fdata, int fdata_size, Font_Rend_Flags wanted_rend);
+   void (*font_free)                       (void *engine, Evas_Font_Set *font);
+   int  (*font_ascent_get)                 (void *engine, Evas_Font_Set *font);
+   int  (*font_descent_get)                (void *engine, Evas_Font_Set *font);
+   int  (*font_max_ascent_get)             (void *engine, Evas_Font_Set *font);
+   int  (*font_max_descent_get)            (void *engine, Evas_Font_Set *font);
+   void (*font_string_size_get)            (void *engine, Evas_Font_Set *font, const Evas_Text_Props *intl_props, int *w, int *h);
+   int  (*font_inset_get)                  (void *engine, Evas_Font_Set *font, const Evas_Text_Props *text_props);
+   int  (*font_h_advance_get)              (void *engine, Evas_Font_Set *font, const Evas_Text_Props *intl_props);
+   int  (*font_v_advance_get)              (void *engine, Evas_Font_Set *font, const Evas_Text_Props *intl_props);
+   int  (*font_char_coords_get)            (void *engine, Evas_Font_Set *font, const Evas_Text_Props *intl_props, int pos, int *cx, int *cy, int *cw, int *ch);
+   int  (*font_char_at_coords_get)         (void *engine, Evas_Font_Set *font, const Evas_Text_Props *intl_props, int x, int y, int *cx, int *cy, int *cw, int *ch);
+   Eina_Bool (*font_draw)                  (void *engine, void *data, void *context, void *surface, Evas_Font_Set *font, int x, int y, int w, int h, int ow, int oh, Evas_Text_Props *intl_props, Eina_Bool do_async);
+   void (*font_cache_flush)                (void *engine);
+   void (*font_cache_set)                  (void *engine, int bytes);
+   int  (*font_cache_get)                  (void *engine);
 
    /* Engine functions will over time expand from here */
 
-   void (*font_hinting_set)                (void *data, Evas_Font_Set *font, int hinting);
-   int  (*font_hinting_can_hint)           (void *data, int hinting);
+   void (*font_hinting_set)                (void *engine, Evas_Font_Set *font, int hinting);
+   int  (*font_hinting_can_hint)           (void *engine, int hinting);
 
-/*    void (*image_rotation_set)              (void *data, void *image); */
+   void (*image_scale_hint_set)            (void *engine, void *image, int hint);
+   int  (*image_scale_hint_get)            (void *engine, void *image);
+   int  (*font_last_up_to_pos)             (void *engine, Evas_Font_Set *font, const Evas_Text_Props *intl_props, int x, int y, int width_offset);
 
-   void (*image_scale_hint_set)            (void *data, void *image, int hint);
-   int  (*image_scale_hint_get)            (void *data, void *image);
-   int  (*font_last_up_to_pos)             (void *data, Evas_Font_Set *font, const Evas_Text_Props *intl_props, int x, int y);
+   Eina_Bool (*image_map_draw)             (void *engine, void *data, void *context, void *surface, void *image, RGBA_Map *m, int smooth, int level, Eina_Bool do_async);
+   void *(*image_map_surface_new)          (void *engine, int w, int h, int alpha);
+   void (*image_map_clean)                 (void *engine, RGBA_Map *m);
+   void *(*image_scaled_update)            (void *engine, void *scaled, void *image, int dst_w, int dst_h, Eina_Bool smooth, Evas_Colorspace cspace);
 
-   Eina_Bool (*image_map_draw)                  (void *data, void *context, void *surface, void *image, RGBA_Map *m, int smooth, int level, Eina_Bool do_async);
-   void *(*image_map_surface_new)          (void *data, int w, int h, int alpha);
-   void (*image_map_clean)                 (void *data, RGBA_Map *m);
-   void *(*image_scaled_update)            (void *data, void *scaled, void *image, int dst_w, int dst_h, Eina_Bool smooth, Eina_Bool alpha, Evas_Colorspace cspace);
-
-   void (*image_content_hint_set)          (void *data, void *surface, int hint);
-   int  (*image_content_hint_get)          (void *data, void *surface);
-   int  (*font_pen_coords_get)             (void *data, Evas_Font_Set *font, const Evas_Text_Props *intl_props, int pos, int *cpen_x, int *cy, int *cadv, int *ch);
-   Eina_Bool (*font_text_props_info_create) (void *data, Evas_Font_Instance *fi, const Eina_Unicode *text, Evas_Text_Props *intl_props, const Evas_BiDi_Paragraph_Props *par_props, size_t pos, size_t len, Evas_Text_Props_Mode mode, const char *lang);
-   int  (*font_right_inset_get)            (void *data, Evas_Font_Set *font, const Evas_Text_Props *text_props);
+   void (*image_content_hint_set)          (void *engine, void *surface, int hint);
+   int  (*image_content_hint_get)          (void *engine, void *surface);
+   int  (*font_pen_coords_get)             (void *engine, Evas_Font_Set *font, const Evas_Text_Props *intl_props, int pos, int *cpen_x, int *cy, int *cadv, int *ch);
+   Eina_Bool (*font_text_props_info_create) (void *engine, Evas_Font_Instance *fi, const Eina_Unicode *text, Evas_Text_Props *intl_props, const Evas_BiDi_Paragraph_Props *par_props, size_t pos, size_t len, Evas_Text_Props_Mode mode, const char *lang);
+   int  (*font_right_inset_get)            (void *engine, Evas_Font_Set *font, const Evas_Text_Props *text_props);
 
    /* EFL-GL Glue Layer */
-   void *(*gl_surface_create)            (void *data, void *config, int w, int h);
-   void *(*gl_pbuffer_surface_create)    (void *data, void *config, int w, int h, int const *attrib_list);
-   int  (*gl_surface_destroy)            (void *data, void *surface);
-   void *(*gl_context_create)            (void *data, void *share_context, int version, void *(*native_context_get)(void *ctx), void *(*engine_data_get)(void *evasgl));
-   int  (*gl_context_destroy)            (void *data, void *context);
-   int  (*gl_make_current)               (void *data, void *surface, void *context);
-   const char *(*gl_string_query)        (void *data, int name);
-   void *(*gl_proc_address_get)          (void *data, const char *name);
-   int  (*gl_native_surface_get)         (void *data, void *surface, void *native_surface);
-   void *(*gl_api_get)                   (void *data, int version);
-   void (*gl_direct_override_get)        (void *data, Eina_Bool *override, Eina_Bool *force_off);
-   void (*gl_get_pixels_set)             (void *data, void *get_pixels, void *get_pixels_data, void *obj);
-   Eina_Bool (*gl_surface_lock)          (void *data, void *surface);
-   Eina_Bool (*gl_surface_read_pixels)   (void *data, void *surface, int x, int y, int w, int h, Evas_Colorspace cspace, void *pixels);
-   Eina_Bool (*gl_surface_unlock)        (void *data, void *surface);
-   int  (*gl_error_get)                  (void *data);
-   void *(*gl_current_context_get)       (void *data);
-   void *(*gl_current_surface_get)       (void *data);
-   int  (*gl_rotation_angle_get)         (void *data);
-   Eina_Bool (*gl_surface_query)         (void *data, void *surface, int attr, void *value);
-   Eina_Bool (*gl_surface_direct_renderable_get) (void *data, Evas_Native_Surface *ns, Eina_Bool *override, void *surface);
-   void (*gl_image_direct_set)           (void *data, void *image, Eina_Bool direct);
-   int  (*gl_image_direct_get)           (void *data, void *image);
-   void (*gl_get_pixels_pre)             (void *data);
-   void (*gl_get_pixels_post)            (void *data);
+   void *(*gl_surface_create)            (void *engine, void *config, int w, int h);
+   void *(*gl_pbuffer_surface_create)    (void *engine, void *config, int w, int h, int const *attrib_list);
+   int  (*gl_surface_destroy)            (void *engine, void *surface);
+   void *(*gl_context_create)            (void *engine, void *share_context, int version, void *(*native_context_get)(void *ctx), void *(*engine_data_get)(void *evasgl));
+   int  (*gl_context_destroy)            (void *engine, void *context);
+   int  (*gl_make_current)               (void *engine, void *surface, void *context);
+   const char *(*gl_string_query)        (void *engine, int name);
+   void *(*gl_proc_address_get)          (void *engine, const char *name);
+   int  (*gl_native_surface_get)         (void *engine, void *surface, void *native_surface);
+   void *(*gl_api_get)                   (void *engine, int version);
+   void (*gl_direct_override_get)        (void *engine, Eina_Bool *override, Eina_Bool *force_off);
+   void (*gl_get_pixels_set)             (void *engine, void *get_pixels, void *get_pixels_data, void *obj);
+   Eina_Bool (*gl_surface_lock)          (void *engine, void *surface);
+   Eina_Bool (*gl_surface_read_pixels)   (void *engine, void *surface, int x, int y, int w, int h, Evas_Colorspace cspace, void *pixels);
+   Eina_Bool (*gl_surface_unlock)        (void *engine, void *surface);
+   int  (*gl_error_get)                  (void *engine);
+   void *(*gl_current_context_get)       (void *engine);
+   void *(*gl_current_surface_get)       (void *engine);
+   int  (*gl_rotation_angle_get)         (void *engine);
+   Eina_Bool (*gl_surface_query)         (void *engine, void *surface, int attr, void *value);
+   Eina_Bool (*gl_surface_direct_renderable_get) (void *engine, Evas_Native_Surface *ns, Eina_Bool *override, void *surface);
+   void (*gl_image_direct_set)           (void *engine, void *image, Eina_Bool direct);
+   int  (*gl_image_direct_get)           (void *engine, void *image);
+   void (*gl_get_pixels_pre)             (void *engine);
+   void (*gl_get_pixels_post)            (void *engine);
 
-   int  (*image_load_error_get)          (void *data, void *image);
-   int  (*font_run_end_get)              (void *data, Evas_Font_Set *font, Evas_Font_Instance **script_fi, Evas_Font_Instance **cur_fi, Evas_Script_Type script, const Eina_Unicode *text, int run_len);
+   int  (*image_load_error_get)          (void *engine, void *image);
+   int  (*font_run_end_get)              (void *engine, Evas_Font_Set *font, Evas_Font_Instance **script_fi, Evas_Font_Instance **cur_fi, Evas_Script_Type script, const Eina_Unicode *text, int run_len);
 
    /* animated feature */
-   Eina_Bool (*image_animated_get)       (void *data, void *image);
-   int (*image_animated_frame_count_get) (void *data, void *image);
-   Evas_Image_Animated_Loop_Hint  (*image_animated_loop_type_get) (void *data, void *image);
-   int (*image_animated_loop_count_get)  (void *data, void *image);
-   double (*image_animated_frame_duration_get) (void *data, void *image, int start_frame, int frame_num);
-   Eina_Bool (*image_animated_frame_set) (void *data, void *image, int frame_index);
+   Eina_Bool (*image_animated_get)       (void *engine, void *image);
+   int (*image_animated_frame_count_get) (void *engine, void *image);
+   Evas_Image_Animated_Loop_Hint  (*image_animated_loop_type_get) (void *engine, void *image);
+   int (*image_animated_loop_count_get)  (void *engine, void *image);
+   double (*image_animated_frame_duration_get) (void *engine, void *image, int start_frame, int frame_num);
+   Eina_Bool (*image_animated_frame_set) (void *engine, void *image, int frame_index);
 
    /* max size query */
-   void (*image_max_size_get)            (void *data, int *maxw, int *maxh);
+   void (*image_max_size_get)            (void *engine, int *maxw, int *maxh);
 
    /* multiple font draws */
-   Eina_Bool (*multi_font_draw)          (void *data, void *context, void *surface, Evas_Font_Set *font, int x, int y, int w, int h, int ow, int oh, Evas_Font_Array *texts, Eina_Bool do_async);
+   Eina_Bool (*multi_font_draw)          (void *engine, void *data, void *context, void *surface, Evas_Font_Set *font, int x, int y, int w, int h, int ow, int oh, Evas_Font_Array *texts, Eina_Bool do_async);
 
    Eina_Bool (*pixel_alpha_get)          (void *image, int x, int y, DATA8 *alpha, int src_region_x, int src_region_y, int src_region_w, int src_region_h, int dst_region_x, int dst_region_y, int dst_region_w, int dst_region_h);
 
-   void (*context_flush)                 (void *data);
+   void (*context_flush)                 (void *engine);
 
    /* 3D features */
-   void *(*drawable_new)                 (void *data, int w, int h, int alpha);
-   void  (*drawable_free)                (void *data, void *drawable);
-   void  (*drawable_size_get)            (void *data, void *drawable, int *w, int *h);
-   void *(*image_drawable_set)           (void *data, void *image, void *drawable);
+   void *(*drawable_new)                 (void *engine, int w, int h, int alpha);
+   void  (*drawable_free)                (void *engine, void *drawable);
+   void  (*drawable_size_get)            (void *engine, void *drawable, int *w, int *h);
+   void *(*image_drawable_set)           (void *engine, void *image, void *drawable);
    void (*drawable_texture_rendered_pixels_get) (unsigned int tex, int x, int y, int w, int h, void *drawable EINA_UNUSED, void *data);
-   void  (*drawable_scene_render)        (void *data, void *drawable, void *scene_data);
-   Eina_Bool (*drawable_scene_render_to_texture) (void *data, void *drawable, void *scene_data);
+   void  (*drawable_scene_render)        (void *engine, void *data, void *drawable, void *scene_data);
+   Eina_Bool (*drawable_scene_render_to_texture) (void *engine, void *drawable, void *scene_data);
 
    int (*drawable_texture_color_pick_id_get) (void *drawable);
    int (*drawable_texture_target_id_get) (void *drawable);
    void (*drawable_texture_pixel_color_get) (unsigned int tex EINA_UNUSED, int x, int y, Evas_Color *color, void *drawable);
 
-   void *(*texture_new)                  (void *data, Eina_Bool use_atlas);
-   void  (*texture_free)                 (void *data, void *texture);
-   void  (*texture_size_get)             (void *data, void *texture, int *w, int *h);
-   void  (*texture_wrap_set)             (void *data, void *texture, Evas_Canvas3D_Wrap_Mode s, Evas_Canvas3D_Wrap_Mode t);
-   void  (*texture_wrap_get)             (void *data, void *texture, Evas_Canvas3D_Wrap_Mode *s, Evas_Canvas3D_Wrap_Mode *t);
-   void  (*texture_filter_set)           (void *data, void *texture, Evas_Canvas3D_Texture_Filter min, Evas_Canvas3D_Texture_Filter mag);
-   void  (*texture_filter_get)           (void *data, void *texture, Evas_Canvas3D_Texture_Filter *min, Evas_Canvas3D_Texture_Filter *mag);
-   void  (*texture_image_set)            (void *data, void *texture, void *image);
-   void *(*texture_image_get)            (void *data, void *texture);
+   void *(*texture_new)                  (void *engine, Eina_Bool use_atlas);
+   void  (*texture_free)                 (void *engine, void *texture);
+   void  (*texture_size_get)             (void *engine, void *texture, int *w, int *h);
+   void  (*texture_wrap_set)             (void *engine, void *texture, Evas_Canvas3D_Wrap_Mode s, Evas_Canvas3D_Wrap_Mode t);
+   void  (*texture_wrap_get)             (void *engine, void *texture, Evas_Canvas3D_Wrap_Mode *s, Evas_Canvas3D_Wrap_Mode *t);
+   void  (*texture_filter_set)           (void *engine, void *texture, Evas_Canvas3D_Texture_Filter min, Evas_Canvas3D_Texture_Filter mag);
+   void  (*texture_filter_get)           (void *engine, void *texture, Evas_Canvas3D_Texture_Filter *min, Evas_Canvas3D_Texture_Filter *mag);
+   void  (*texture_image_set)            (void *engine, void *texture, void *image);
+   void *(*texture_image_get)            (void *engine, void *texture);
 
-   Ector_Surface *(*ector_create)        (void *data);
-   void  (*ector_destroy)                (void *data, Ector_Surface *surface);
-   Ector_Buffer *(*ector_buffer_wrap)    (void *data, Evas *e, void *engine_image, Eina_Bool is_rgba_image);
-   Ector_Buffer *(*ector_buffer_new)     (void *data, Evas *e, void *pixels, int width, int height, int stride, Efl_Gfx_Colorspace cspace, Eina_Bool writeable, int l, int r, int t, int b, Ector_Buffer_Flag flags);
-   void  (*ector_begin)                  (void *data, void *context, Ector_Surface *ector, void *surface, void *engine_data, int x, int y, Eina_Bool do_async);
-   void  (*ector_renderer_draw)          (void *data, void *context, void *surface, void *engine_data, Ector_Renderer *r, Eina_Array *clips, Eina_Bool do_async);
-   void  (*ector_end)                    (void *data, void *context, Ector_Surface *ector, void *surface, void *engine_data, Eina_Bool do_async);
-   void* (*ector_new)                    (void *data, void *context, Ector_Surface *ector, void *surface);
+   Ector_Surface *(*ector_create)        (void *engine, void *output);
+   void  (*ector_destroy)                (void *engine, Ector_Surface *surface);
+   Ector_Buffer *(*ector_buffer_wrap)    (void *engine, Evas *e, void *engine_image);
+   Ector_Buffer *(*ector_buffer_new)     (void *engine, Evas *e, int width, int height, Efl_Gfx_Colorspace cspace, Ector_Buffer_Flag flags);
+   void  (*ector_begin)                  (void *engine, void *context, Ector_Surface *ector, void *surface, void *engine_data, int x, int y, Eina_Bool do_async);
+   void  (*ector_renderer_draw)          (void *engine, void *data, void *context, void *surface, void *engine_data, Ector_Renderer *r, Eina_Array *clips, Eina_Bool do_async);
+   void  (*ector_end)                    (void *engine, void *context, Ector_Surface *ector, void *surface, void *engine_data, Eina_Bool do_async);
+   void* (*ector_new)                    (void *engine, void *context, Ector_Surface *ector, void *surface);
    void  (*ector_free)                   (void *engine_data);
+
+   Evas_Filter_Support (*gfx_filter_supports) (void *engine, Evas_Filter_Command *cmd);
+   Eina_Bool (*gfx_filter_process)       (void *engine, Evas_Filter_Command *cmd);
 };
 
 struct _Evas_Image_Save_Func
@@ -1511,27 +1616,39 @@ struct _Evas_Image_Save_Func
   int (*image_save) (RGBA_Image *im, const char *file, const char *key, int quality, int compress, const char *encoding);
 };
 
+struct _Evas_Vg_Load_Func
+{
+  void     *(*file_data) (Eina_File *f, Eina_Stringshare *key, int *error);
+};
+
+struct _Evas_Vg_Save_Func
+{
+  int (*vg_save) (void *vg, const char *file, const char *key, int compress);
+};
+
 #ifdef __cplusplus
 extern "C" {
 #endif
 
 Evas_Object *evas_object_new(Evas *e);
-void evas_object_change_reset(Evas_Object *obj);
-void evas_object_cur_prev(Evas_Object *obj);
-void evas_object_free(Evas_Object *obj, int clean_layer);
+void evas_object_change_reset(Evas_Object_Protected_Data *obj);
+void evas_object_clip_recalc_do(Evas_Object_Protected_Data *obj, Evas_Object_Protected_Data *clipper);
+void evas_object_cur_prev(Evas_Object_Protected_Data *obj);
+void evas_object_free(Evas_Object *obj, Eina_Bool clean_layer);
 void evas_object_update_bounding_box(Evas_Object *obj, Evas_Object_Protected_Data *pd, Evas_Smart_Data *s);
 void evas_object_inject(Evas_Object *obj, Evas_Object_Protected_Data *pd, Evas *e);
 void evas_object_release(Evas_Object *obj, Evas_Object_Protected_Data *pd, int clean_layer);
 void evas_object_change(Evas_Object *obj, Evas_Object_Protected_Data *pd);
 void evas_object_content_change(Evas_Object *obj, Evas_Object_Protected_Data *pd);
-void evas_object_clip_changes_clean(Evas_Object *obj);
+void evas_object_clip_changes_clean(Evas_Object_Protected_Data *obj);
 void evas_object_render_pre_visible_change(Eina_Array *rects, Evas_Object *obj, int is_v, int was_v);
 void evas_object_render_pre_clipper_change(Eina_Array *rects, Evas_Object *obj);
 void evas_object_render_pre_prev_cur_add(Eina_Array *rects, Evas_Object *obj, Evas_Object_Protected_Data *pd);
 void evas_object_render_pre_effect_updates(Eina_Array *rects, Evas_Object *obj, int is_v, int was_v);
 void evas_rects_return_difference_rects(Eina_Array *rects, int x, int y, int w, int h, int xx, int yy, int ww, int hh);
+Evas_Object_Pointer_Data *_evas_object_pointer_data_get(Evas_Pointer_Data *evas_pdata, Evas_Object_Protected_Data *obj);
 
-void evas_object_clip_dirty(Evas_Object *obj, Evas_Object_Protected_Data *pd);
+void evas_object_clip_dirty_do(Evas_Object_Protected_Data *pd);
 void evas_object_recalc_clippees(Evas_Object_Protected_Data *pd);
 Evas_Layer *evas_layer_new(Evas *e);
 void _evas_layer_flush_removes(Evas_Layer *lay);
@@ -1551,16 +1668,19 @@ void evas_object_clip_across_check(Evas_Object *obj, Evas_Object_Protected_Data 
 void evas_object_clip_across_clippees_check(Evas_Object *obj, Evas_Object_Protected_Data *pd);
 void evas_object_mapped_clip_across_mark(Evas_Object *obj, Evas_Object_Protected_Data *pd);
 void evas_event_callback_call(Evas *e, Evas_Callback_Type type, void *event_info);
-void evas_object_event_callback_call(Evas_Object *obj, Evas_Object_Protected_Data *pd, Evas_Callback_Type type, void *event_info, int event_id, const Eo_Event_Description *eo_event_desc, Efl_Event *eo_event_info);
+void evas_object_callback_init(Efl_Canvas_Object *eo_obj, Evas_Object_Protected_Data *obj);
+void evas_object_callback_shutdown(Efl_Canvas_Object *eo_obj, Evas_Object_Protected_Data *obj);
+void evas_object_event_callback_call(Evas_Object *obj, Evas_Object_Protected_Data *pd, Evas_Callback_Type type, void *event_info, int event_id, const Efl_Event_Description *efl_event_desc);
 Eina_List *evas_event_objects_event_list(Evas *e, Evas_Object *stop, int x, int y);
-int evas_mem_free(int mem_required);
-int evas_mem_degrade(int mem_required);
 void evas_debug_error(void);
 void evas_debug_input_null(void);
 void evas_debug_magic_null(void);
 void evas_debug_magic_wrong(DATA32 expected, DATA32 supplied);
 void evas_debug_generic(const char *str);
 const char *evas_debug_magic_string_get(DATA32 magic);
+void evas_render_update_del(Evas_Public_Data *e, int x, int y, int w, int h);
+void evas_render_object_render_cache_free(Evas_Object *eo_obj, void *data);
+   
 void evas_object_smart_use(Evas_Smart *s);
 void evas_object_smart_unuse(Evas_Smart *s);
 void evas_smart_cb_descriptions_fix(Evas_Smart_Cb_Description_Array *a) EINA_ARG_NONNULL(1);
@@ -1575,8 +1695,10 @@ Evas_Object *_evas_object_image_video_parent_get(Evas_Object *obj);
 void _evas_object_image_video_overlay_show(Evas_Object *obj);
 void _evas_object_image_video_overlay_hide(Evas_Object *obj);
 void _evas_object_image_video_overlay_do(Evas_Object *obj);
+Eina_Bool _evas_object_image_can_use_plane(Evas_Object_Protected_Data *obj);
+void _evas_object_image_plane_release(Evas_Object *eo_obj, Evas_Object_Protected_Data *obj);
 void _evas_object_image_free(Evas_Object *obj);
-void evas_object_smart_bounding_box_get(Evas_Object *eo_obj,
+void evas_object_smart_bounding_box_get(Evas_Object_Protected_Data *obj,
                                         Evas_Coord_Rectangle *cur_bounding_box,
                                         Evas_Coord_Rectangle *prev_bounding_box);
 void evas_object_smart_del(Evas_Object *obj);
@@ -1585,15 +1707,23 @@ void evas_object_smart_member_raise(Evas_Object *member);
 void evas_object_smart_member_lower(Evas_Object *member);
 void evas_object_smart_member_stack_above(Evas_Object *member, Evas_Object *other);
 void evas_object_smart_member_stack_below(Evas_Object *member, Evas_Object *other);
+void evas_object_smart_render_cache_clear(Evas_Object *eo_obj);
+void *evas_object_smart_render_cache_get(const Evas_Object *eo_obj);
+void evas_object_smart_render_cache_set(Evas_Object *eo_obj, void *data);
+
+const Eina_List *evas_object_event_grabber_members_list(const Eo *eo_obj);
+
 const Eina_Inlist *evas_object_smart_members_get_direct(const Evas_Object *obj);
-void _efl_canvas_group_group_members_all_del(Evas_Object *obj);
+void _efl_canvas_group_group_members_all_del(Evas_Object *eo_obj);
+void _evas_object_smart_clipped_smart_move_internal(Evas_Object *eo_obj, Evas_Coord x, Evas_Coord y);
 void evas_call_smarts_calculate(Evas *e);
-void evas_object_smart_bounding_box_update(Evas_Object *eo_obj, Evas_Object_Protected_Data *obj);
-void evas_object_smart_need_bounding_box_update(Evas_Object *eo_obj, Evas_Smart_Data *o, Evas_Object_Protected_Data *obj);
+void evas_object_smart_bounding_box_update(Evas_Object_Protected_Data *obj);
+void evas_object_smart_need_bounding_box_update(Evas_Smart_Data *o, Evas_Object_Protected_Data *obj);
 Eina_Bool evas_object_smart_changed_get(Evas_Object *eo_obj);
 void evas_object_smart_attach(Evas_Object *eo_obj, Evas_Smart *s);
-void *evas_mem_calloc(int size);
-void _evas_post_event_callback_call(Evas *e, Evas_Public_Data* e_pd);
+void _evas_post_event_callback_call_real(Evas *e, Evas_Public_Data* e_pd, int min_event_id);
+#define _evas_post_event_callback_call(e, pd, id) do { \
+   if (!pd->delete_me && pd->post_events) _evas_post_event_callback_call_real(e, pd, id); } while (0)
 void _evas_post_event_callback_free(Evas *e);
 void evas_event_callback_list_post_free(Eina_Inlist **list);
 void evas_object_event_callback_all_del(Evas_Object *obj);
@@ -1610,19 +1740,6 @@ void evas_object_inform_call_image_preloaded(Evas_Object *obj);
 void evas_object_inform_call_image_unloaded(Evas_Object *obj);
 void evas_object_inform_call_image_resize(Evas_Object *obj);
 void evas_object_intercept_cleanup(Evas_Object *obj);
-int evas_object_intercept_call_show(Evas_Object *obj, Evas_Object_Protected_Data *pd);
-int evas_object_intercept_call_hide(Evas_Object *obj, Evas_Object_Protected_Data *pd);
-int evas_object_intercept_call_move(Evas_Object *obj, Evas_Object_Protected_Data *pd, Evas_Coord x, Evas_Coord y);
-int evas_object_intercept_call_resize(Evas_Object *obj, Evas_Object_Protected_Data *pd, Evas_Coord w, Evas_Coord h);
-int evas_object_intercept_call_raise(Evas_Object *obj, Evas_Object_Protected_Data *pd);
-int evas_object_intercept_call_lower(Evas_Object *obj, Evas_Object_Protected_Data *pd);
-int evas_object_intercept_call_stack_above(Evas_Object *obj, Evas_Object_Protected_Data *pd, Evas_Object *above);
-int evas_object_intercept_call_stack_below(Evas_Object *obj, Evas_Object_Protected_Data *pd, Evas_Object *below);
-int evas_object_intercept_call_layer_set(Evas_Object *obj, Evas_Object_Protected_Data *pd, int l);
-int evas_object_intercept_call_color_set(Evas_Object *obj, Evas_Object_Protected_Data *pd, int r, int g, int b, int a);
-int evas_object_intercept_call_clip_set(Evas_Object *obj, Evas_Object_Protected_Data *pd, Evas_Object *clip);
-int evas_object_intercept_call_clip_unset(Evas_Object *obj, Evas_Object_Protected_Data *pd);
-int evas_object_intercept_call_focus_set(Evas_Object *obj, Evas_Object_Protected_Data *pd, Eina_Bool focus);
 void evas_object_grabs_cleanup(Evas_Object *obj, Evas_Object_Protected_Data *pd);
 void evas_key_grab_free(Evas_Object *obj, Evas_Object_Protected_Data *pd, const char *keyname, Evas_Modifier_Mask modifiers, Evas_Modifier_Mask not_modifiers);
 void evas_font_dir_cache_free(void);
@@ -1647,59 +1764,28 @@ void evas_text_style_pad_get(Evas_Text_Style_Type style, int *l, int *r, int *t,
 void _evas_object_text_rehint(Evas_Object *obj);
 void _evas_object_textblock_rehint(Evas_Object *obj);
 
+Eina_Bool _evas_object_intercept_call_evas(Evas_Object_Protected_Data *obj, Evas_Object_Intercept_Cb_Type cb_type, int internal, ...);
+
 void evas_unref_queue_image_put(Evas_Public_Data *pd, void *image);
 void evas_unref_queue_glyph_put(Evas_Public_Data *pd, void *glyph);
 void evas_unref_queue_texts_put(Evas_Public_Data *pd, void *glyph);
+void evas_post_render_job_add(Evas_Public_Data *pd, void (*func)(void *), void *data);
 
 void evas_draw_image_map_async_check(Evas_Object_Protected_Data *obj,
-                                     void *data, void *context, void *surface,
+                                     void *engine, void *data, void *context, void *surface,
                                      void *image, RGBA_Map *m, int smooth,
                                      int level, Eina_Bool do_async);
 void evas_font_draw_async_check(Evas_Object_Protected_Data *obj,
-                                void *data, void *context, void *surface,
+                                void *engine, void *data, void *context, void *surface,
                                 Evas_Font_Set *font,
                                 int x, int y, int w, int h, int ow, int oh,
                                 Evas_Text_Props *intl_props, Eina_Bool do_async);
 
-void _freeze_events_set(Eo *obj, void *_pd, va_list *list);
-void _freeze_events_get(Eo *obj, void *_pd, va_list *list);
-void _pass_events_set(Eo *obj, void *_pd, va_list *list);
-void _pass_events_get(Eo *obj, void *_pd, va_list *list);
-void _repeat_events_set(Eo *obj, void *_pd, va_list *list);
-void _repeat_events_get(Eo *obj, void *_pd, va_list *list);
-void _propagate_events_set(Eo *obj, void *_pd, va_list *list);
-void _propagate_events_get(Eo *obj, void *_pd, va_list *list);
-void _pointer_mode_set(Eo *obj, void *_pd, va_list *list);
-void _pointer_mode_get(Eo *obj, void *_pd, va_list *list);
-void _key_grab(Eo *obj, void *_pd, va_list *list);
-void _key_ungrab(Eo *obj, void *_pd, va_list *list);
-void _focus_set(Eo *obj, void *_pd, va_list *list);
-void _focus_get(Eo *obj, void *_pd, va_list *list);
-void _name_set(Eo *obj, void *_pd, va_list *list);
-void _name_get(Eo *obj, void *_pd, va_list *list);
-void _name_child_find(Eo *obj, void *_pd, va_list *list);
-void _layer_set(Eo *obj, void *_pd, va_list *list);
-void _layer_get(Eo *obj, void *_pd, va_list *list);
-void _clip_set(Eo *obj, void *_pd, va_list *list);
-void _clip_get(Eo *obj, void *_pd, va_list *list);
-void _clip_unset(Eo *obj, void *_pd, va_list *list);
-void _clipees_get(Eo *obj, void *_pd, va_list *list);
-void _clipees_has(Eo *obj, void *_pd, va_list *list);
-void _map_enable_set(Eo *obj, void *_pd, va_list *list);
-void _map_enable_get(Eo *obj, void *_pd, va_list *list);
-void _map_source_set(Eo *obj, void *_pd, va_list *list);
-void _map_source_get(Eo *obj, void *_pd, va_list *list);
-void _map_set(Eo *obj, void *_pd, va_list *list);
-void _map_get(Eo *obj, void *_pd, va_list *list);
-void _raise(Eo *obj, void *_pd, va_list *list);
-void _lower(Eo *obj, void *_pd, va_list *list);
-void _stack_above(Eo *obj, void *_pd, va_list *list);
-void _stack_below(Eo *obj, void *_pd, va_list *list);
-void _above_get(Eo *obj, void *_pd, va_list *list);
-void _below_get(Eo *obj, void *_pd, va_list *list);
-void _smart_move_children_relative(Eo *obj, void *_pd, va_list *list);
-void _smart_clipped_clipper_get(Eo *obj, void *_pd, va_list *list);
 void _efl_canvas_object_clip_prev_reset(Evas_Object_Protected_Data *obj, Eina_Bool cur_prev);
+
+Eina_Bool _efl_canvas_object_clip_set_block(Eo *eo_obj, Evas_Object_Protected_Data *obj, Evas_Object *eo_clip, Evas_Object_Protected_Data *clip);
+Eina_Bool _efl_canvas_object_clip_unset_block(Eo *eo_obj, Evas_Object_Protected_Data *obj);
+Eina_Bool _efl_canvas_object_efl_gfx_size_set_block(Eo *eo_obj, Evas_Object_Protected_Data *obj, Evas_Coord w, Evas_Coord h, Eina_Bool internal);
 
 void _canvas_event_default_flags_set(Eo *e, void *_pd, va_list *list);
 void _canvas_event_default_flags_get(Eo *e, void *_pd, va_list *list);
@@ -1740,6 +1826,7 @@ void _canvas_font_cache_flush(Eo *e, void *_pd, va_list *list);
 void _canvas_font_cache_set(Eo *e, void *_pd, va_list *list);
 void _canvas_font_cache_get(Eo *e, void *_pd, va_list *list);
 void _canvas_font_available_list(Eo *e, void *_pd, va_list *list);
+void _evas_focus_device_del_cb(void *data, const Efl_Event *ev);
 
 void _canvas_key_modifier_get(Eo *e, void *_pd, va_list *list);
 void _canvas_key_lock_get(Eo *e, void *_pd, va_list *list);
@@ -1766,11 +1853,6 @@ void _canvas_render_dump(Eo *obj, void *_pd, va_list *list);
 
 void _canvas_object_bottom_get(Eo *e, void *_pd, va_list *list);
 void _canvas_object_top_get(Eo *e, void *_pd, va_list *list);
-
-void _canvas_touch_point_list_count(Eo *obj, void *_pd, va_list *list);
-void _canvas_touch_point_list_nth_xy_get(Eo *obj, void *_pd, va_list *list);
-void _canvas_touch_point_list_nth_id_get(Eo *obj, void *_pd, va_list *list);
-void _canvas_touch_point_list_nth_state_get(Eo *obj, void *_pd, va_list *list);
 
 void _canvas_image_cache_flush(Eo *e, void *_pd, va_list *list);
 void _canvas_image_cache_reload(Eo *e, void *_pd, va_list *list);
@@ -1847,8 +1929,13 @@ void _evas_canvas3d_eet_file_free(Evas_Canvas3D_File_Eet* eet_file);
 void evas_filter_init(void);
 void evas_filter_shutdown(void);
 
+/* Efl.Gfx.Map */
+void _efl_gfx_map_init(void);
+void _efl_gfx_map_shutdown(void);
+void _efl_gfx_map_update(Eo *eo_obj);
+
 /* Ector */
-Ector_Surface *evas_ector_get(Evas_Public_Data *evas);
+Ector_Surface *evas_ector_get(Evas_Public_Data *evas, void *output);
 
 /* Temporary save/load functions */
 void evas_common_load_model_from_file(Evas_Canvas3D_Mesh *model, const char *file);
@@ -1874,7 +1961,7 @@ void evas_model_set_from_surface_primitive(Evas_Canvas3D_Mesh *mesh, int frame, 
 void evas_model_set_from_terrain_primitive(Evas_Canvas3D_Mesh *mesh, int frame, int precision, Eina_Vector2 tex_scale);
 
 /* Filter functions */
-Eina_Bool evas_filter_object_render(Eo *eo_obj, Evas_Object_Protected_Data *obj, void *output, void *context, void *surface, int x, int y, Eina_Bool do_async, Eina_Bool alpha);
+Eina_Bool evas_filter_object_render(Eo *eo_obj, Evas_Object_Protected_Data *obj, void *engine, void *output, void *context, void *surface, int x, int y, Eina_Bool do_async, Eina_Bool alpha);
 
 extern int _evas_alloc_error;
 extern int _evas_event_counter;
@@ -1900,7 +1987,22 @@ struct _Evas_Proxy_Render_Data
 
 void _evas_canvas_event_init(Evas *eo_e, Evas_Public_Data *e);
 void _evas_canvas_event_shutdown(Evas *eo_e, Evas_Public_Data *e);
-
+void _evas_canvas_event_pointer_in_rect_mouse_move_feed(Evas_Public_Data *edata,
+                                                        Evas_Object *obj,
+                                                        Evas_Object_Protected_Data *obj_data,
+                                                        int w, int h,
+                                                        Eina_Bool in_objects_list,
+                                                        void *data);
+void _evas_canvas_event_pointer_in_list_mouse_move_feed(Evas_Public_Data *edata,
+                                                        Eina_List *was,
+                                                        Evas_Object *obj,
+                                                        Evas_Object_Protected_Data *obj_data,
+                                                        int w, int h,
+                                                        Eina_Bool xor_rule,
+                                                        void *data);
+void _evas_canvas_event_pointer_move_event_dispatch(Evas_Public_Data *edata,
+                                                    Evas_Pointer_Data *pdata,
+                                                    void *data);
 int evas_async_events_init(void);
 int evas_async_events_shutdown(void);
 int evas_async_target_del(const void *target);
@@ -1915,9 +2017,14 @@ Evas_Preload_Pthread *evas_preload_thread_run(void (*func_heavy)(void *data),
                                               void (*func_cancel)(void *data),
                                               const void *data);
 Eina_Bool evas_preload_thread_cancel(Evas_Preload_Pthread *thread);
+Eina_Bool evas_preload_thread_cancelled_is(Evas_Preload_Pthread *thread);
+Eina_Bool evas_preload_pthread_wait(Evas_Preload_Pthread *work, double wait);
 
 void _evas_walk(Evas_Public_Data *e_pd);
 void _evas_unwalk(Evas_Public_Data *e_pd);
+
+EAPI void evas_module_task_register(Eina_Bool (*cancelled)(void *data), void *data);
+EAPI void evas_module_task_unregister(void);
 
 // expose for use in engines
 EAPI int _evas_module_engine_inherit(Evas_Func *funcs, char *name);
@@ -1931,15 +2038,14 @@ Eina_Bool evas_render_mapped(Evas_Public_Data *e, Evas_Object *obj,
                              void *context, void *surface, int off_x, int off_y,
                              int mapped, int ecx, int ecy, int ecw, int ech,
                              Evas_Proxy_Render_Data *proxy_render_data,
-                             int level, Eina_Bool use_mapped_ctx, Eina_Bool do_async);
+                             int level, Eina_Bool do_async);
 void evas_render_invalidate(Evas *e);
-void evas_render_object_recalc(Evas_Object *obj);
-void evas_render_proxy_subrender(Evas *eo_e, Evas_Object *eo_source, Evas_Object *eo_proxy,
-                                 Evas_Object_Protected_Data *proxy_obj, Eina_Bool do_async);
-void evas_render_mask_subrender(Evas_Public_Data *e, Evas_Object_Protected_Data *mask, Evas_Object_Protected_Data *prev_mask, int level);
+void evas_render_object_recalc(Evas_Object_Protected_Data *obj);
+void evas_render_proxy_subrender(Evas *eo_e, Evas_Object *eo_source, Evas_Object *eo_proxy, Evas_Object_Protected_Data *proxy_obj, Eina_Bool source_clip, Eina_Bool do_async);
+void evas_render_mask_subrender(Evas_Public_Data *e, Evas_Object_Protected_Data *mask, Evas_Object_Protected_Data *prev_mask, int level, Eina_Bool do_async);
 
 Eina_Bool evas_map_inside_get(const Evas_Map *m, Evas_Coord x, Evas_Coord y);
-Eina_Bool evas_map_coords_get(const Evas_Map *m, Evas_Coord x, Evas_Coord y, Evas_Coord *mx, Evas_Coord *my, int grab);
+Eina_Bool evas_map_coords_get(const Evas_Map *m, double x, double y, double *mx, double *my, int grab);
 Eina_Bool evas_object_map_update(Evas_Object *obj, int x, int y, int imagew, int imageh, int uvw, int uvh);
 void evas_map_object_move_diff_set(Evas_Map *m, Evas_Coord diff_x, Evas_Coord diff_y);
 
@@ -1954,14 +2060,26 @@ void _evas_device_cleanup(Evas *e);
 Evas_Device *_evas_device_top_get(const Evas *e);
 
 /* legacy/eo events */
-Eina_Bool efl_event_pointer_legacy_info_set(Efl_Event_Pointer *evt, const void *event_info, Evas_Callback_Type type);
-Eina_Bool efl_event_key_legacy_info_set(Efl_Event_Key *evt, const void *event_info, Evas_Callback_Type type);
-Eina_Bool efl_event_hold_legacy_info_set(Efl_Event_Hold *evt, const void *event_info, Evas_Callback_Type type);
+void *efl_input_pointer_legacy_info_fill(Evas *eo_evas, Efl_Input_Key *eo_ev, Evas_Callback_Type type, Evas_Event_Flags **pflags);
+void *efl_input_key_legacy_info_fill(Efl_Input_Key *evt, Evas_Event_Flags **pflags);
+void *efl_input_hold_legacy_info_fill(Efl_Input_Hold *evt, Evas_Event_Flags **pflags);
 
 Eina_Bool evas_vg_loader_svg(Evas_Object *vg, const Eina_File *f, const char *key EINA_UNUSED);
 
-void *_evas_object_image_surface_get(Evas_Object *eo, Evas_Object_Protected_Data *obj);
+void *_evas_object_image_surface_get(Evas_Object_Protected_Data *obj, Eina_Bool create);
+void _evas_filter_radius_get(Evas_Object_Protected_Data *obj, int *l, int *r, int *t, int *b);
+Eina_Bool _evas_filter_obscured_regions_set(Evas_Object_Protected_Data *obj, const Eina_Tiler *tiler);
 Eina_Bool _evas_image_proxy_source_clip_get(const Eo *eo_obj);
+
+void _evas_focus_dispatch_event(Evas_Object_Protected_Data *obj,
+                                Efl_Input_Device *seat, Eina_Bool in);
+Evas_Pointer_Data *_evas_pointer_data_by_device_get(Evas_Public_Data *edata, Efl_Input_Device *pointer);
+Evas_Pointer_Data *_evas_pointer_data_add(Evas_Public_Data *edata, Efl_Input_Device *pointer);
+void _evas_pointer_data_remove(Evas_Public_Data *edata, Efl_Input_Device *pointer);
+Eina_List *_evas_pointer_list_in_rect_get(Evas_Public_Data *edata,
+                                         Evas_Object *obj,
+                                         Evas_Object_Protected_Data *obj_data,
+                                         int w, int h);
 
 extern Eina_Cow *evas_object_proxy_cow;
 extern Eina_Cow *evas_object_map_cow;
@@ -1972,11 +2090,8 @@ extern Eina_Cow *evas_object_3d_cow;
 extern Eina_Cow *evas_object_image_pixels_cow;
 extern Eina_Cow *evas_object_image_load_opts_cow;
 extern Eina_Cow *evas_object_image_state_cow;
-
-extern Eina_Cow *evas_object_filter_cow;
-// This should be replaced by something like "eina_cow_default_get()" maybe
-extern const void * const evas_object_filter_cow_default;
 extern Eina_Cow *evas_object_mask_cow;
+extern Eina_Cow *evas_object_events_cow;
 
 # define EINA_COW_STATE_WRITE_BEGIN(Obj, Write, State)          \
   EINA_COW_WRITE_BEGIN(evas_object_state_cow, Obj->State, \

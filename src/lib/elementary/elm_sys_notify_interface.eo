@@ -1,4 +1,4 @@
-type Elm_Sys_Notify_Send_Cb: __undefined_type;
+type Elm_Sys_Notify_Send_Cb: __undefined_type; [[elementary system notify send callback type]] 
 
 enum Elm.Sys_Notify.Urgency
 {
@@ -13,6 +13,7 @@ enum Elm.Sys_Notify.Urgency
 
 interface Elm.Sys_Notify_Interface
 {
+   [[Elementary system notify interface]]
    eo_prefix: elm_obj_sys_notify_interface;
    legacy_prefix: elm_sys_notify_interface;
 
@@ -65,4 +66,3 @@ interface Elm.Sys_Notify_Interface
       }
    }
 }
-

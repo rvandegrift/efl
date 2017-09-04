@@ -2,10 +2,9 @@
 # include <config.h>
 #endif
 
+#define EINA_SLSTR_INTERNAL
+
 #ifdef _WIN32
-# define WIN32_LEAN_AND_MEAN
-# include <winsock2.h>
-# undef WIN32_LEAN_AND_MEAN
 # ifndef USER_TIMER_MINIMUM
 #  define USER_TIMER_MINIMUM 0x0a
 # endif
@@ -275,6 +274,8 @@ static void _ecore_main_win32_handlers_cleanup(void);
 
 int in_main_loop = 0;
 
+static Eina_List *_pending_futures = NULL;
+static Eina_List *_pending_promises = NULL;
 static unsigned char _ecore_exit_code = 0;
 static int do_quit = 0;
 static Ecore_Fd_Handler *fd_handlers = NULL;
@@ -310,9 +311,11 @@ static double t1 = 0.0;
 static double t2 = 0.0;
 #endif
 
-static int timer_fd = -1;
+#ifdef HAVE_EPOLL
 static int epoll_fd = -1;
 static pid_t epoll_pid;
+#endif
+static int timer_fd = -1;
 
 #ifdef USE_G_MAIN_LOOP
 static GPollFD ecore_epoll_fd;
@@ -325,25 +328,12 @@ static gboolean _ecore_glib_idle_enterer_called;
 static gboolean ecore_fds_ready;
 #endif
 
-void
-_ecore_fd_close_on_exec(int fd)
-{
-#ifdef HAVE_FCNTL
-   int flags;
-
-   flags = fcntl(fd, F_GETFD);
-   if (flags == -1) return;
-   flags |= FD_CLOEXEC;
-   if (fcntl(fd, F_SETFD, flags) == -1)  return;
-#else
-   (void) fd;
-#endif
-}
-
+#ifdef EFL_EXTRA_SANITY_CHECKS
 static inline void
 _ecore_fd_valid(void)
 {
-   if (HAVE_EPOLL && epoll_fd >= 0)
+#ifdef HAVE_EPOLL
+   if (epoll_fd >= 0)
      {
         if (fcntl(epoll_fd, F_GETFD) < 0)
           {
@@ -355,7 +345,9 @@ _ecore_fd_valid(void)
 #endif
           }
      }
+#endif
 }
+#endif
 
 static inline void
 _ecore_try_add_to_call_list(Ecore_Fd_Handler *fdh)
@@ -379,15 +371,16 @@ _ecore_try_add_to_call_list(Ecore_Fd_Handler *fdh)
      }
 }
 
+#ifdef HAVE_EPOLL
 static inline int
 _ecore_get_epoll_fd(void)
 {
-   if (epoll_pid && epoll_pid != getpid())
+   if (epoll_pid && (epoll_pid != getpid()))
      {
         /* forked! */
         _ecore_main_loop_shutdown();
      }
-   if (epoll_pid == 0 && epoll_fd < 0)
+   if ((epoll_pid == 0) && (epoll_fd < 0))
      {
         _ecore_main_loop_init();
      }
@@ -400,7 +393,6 @@ _ecore_epoll_add(int   efd,
                  int   events,
                  void *ptr)
 {
-   
    struct epoll_event ev;
 
    memset(&ev, 0, sizeof (ev));
@@ -419,6 +411,7 @@ _ecore_poll_events_from_fdh(Ecore_Fd_Handler *fdh)
    if (fdh->flags & ECORE_FD_ERROR) events |= EPOLLERR | EPOLLPRI;
    return events;
 }
+#endif
 
 #ifdef USE_G_MAIN_LOOP
 static inline int
@@ -482,11 +475,12 @@ _ecore_main_fdh_poll_add(Ecore_Fd_Handler *fdh)
    DBG("_ecore_main_fdh_poll_add");
    int r = 0;
 
+#ifdef HAVE_EPOLL
 #ifdef HAVE_LIBUV
    if(!_dl_uv_run)
 #endif
      {
-       if ((!fdh->file) && HAVE_EPOLL && epoll_fd >= 0)
+        if ((!fdh->file) && (epoll_fd >= 0))
          {
            r = _ecore_epoll_add(_ecore_get_epoll_fd(), fdh->fd,
                                 _ecore_poll_events_from_fdh(fdh), fdh);
@@ -494,6 +488,7 @@ _ecore_main_fdh_poll_add(Ecore_Fd_Handler *fdh)
      }
 #ifdef HAVE_LIBUV
    else
+#endif
 #endif
      {
 #ifdef HAVE_LIBUV
@@ -533,11 +528,12 @@ _ecore_main_fdh_poll_add(Ecore_Fd_Handler *fdh)
 static inline void
 _ecore_main_fdh_poll_del(Ecore_Fd_Handler *fdh)
 {
+#ifdef HAVE_EPOLL
 #ifdef HAVE_LIBUV
    if(!_dl_uv_run)
 #endif
      {
-       if ((!fdh->file) && HAVE_EPOLL && epoll_fd >= 0)
+       if ((!fdh->file) && (epoll_fd >= 0))
          {
            struct epoll_event ev;
            int efd = _ecore_get_epoll_fd();
@@ -564,6 +560,7 @@ _ecore_main_fdh_poll_del(Ecore_Fd_Handler *fdh)
 #ifdef HAVE_LIBUV
    else
 #endif
+#endif
      {
 #ifdef HAVE_LIBUV
        DBG("_ecore_main_fdh_poll_del libuv %p", fdh);
@@ -585,11 +582,12 @@ _ecore_main_fdh_poll_modify(Ecore_Fd_Handler *fdh)
 {
    DBG("_ecore_main_fdh_poll_modify %p", fdh);
    int r = 0;
+#ifdef HAVE_EPOLL
 #ifdef HAVE_LIBUV
    if(!_dl_uv_run)
 #endif
      {
-       if ((!fdh->file) && HAVE_EPOLL && epoll_fd >= 0)
+       if ((!fdh->file) && (epoll_fd >= 0))
          {
            struct epoll_event ev;
            int efd = _ecore_get_epoll_fd();
@@ -603,6 +601,7 @@ _ecore_main_fdh_poll_modify(Ecore_Fd_Handler *fdh)
      }
 #ifdef HAVE_LIBUV
    else
+#endif
 #endif
      {
 #ifdef HAVE_LIBUV
@@ -618,6 +617,7 @@ _ecore_main_fdh_poll_modify(Ecore_Fd_Handler *fdh)
    return r;
 }
 
+#ifdef HAVE_EPOLL
 static inline int
 _ecore_main_fdh_epoll_mark_active(void)
 {
@@ -664,6 +664,7 @@ _ecore_main_fdh_epoll_mark_active(void)
 
    return ret;
 }
+#endif
 
 #ifdef USE_G_MAIN_LOOP
 
@@ -728,7 +729,8 @@ _ecore_main_gsource_prepare(GSource *source EINA_UNUSED,
                 {
                    int r = -1;
                    double t = _efl_loop_timer_next_get();
-                   if (timer_fd >= 0 && t > 0.0)
+
+                   if ((timer_fd >= 0) && (t > 0.0))
                      {
                         struct itimerspec ts;
 
@@ -797,13 +799,13 @@ _ecore_main_gsource_check(GSource *source EINA_UNUSED)
           {
              uint64_t count = 0;
              int r = read(timer_fd, &count, sizeof count);
-             if (r == -1 && errno == EAGAIN)
+             if ((r == -1) && (errno == EAGAIN))
                ;
              else if (r == sizeof count)
                ret = TRUE;
              else
                {
-     /* unexpected things happened... fail back to old way */
+                  /* unexpected things happened... fail back to old way */
                    ERR("timer read returned %d (errno=%d)", r, errno);
                    close(timer_fd);
                    timer_fd = -1;
@@ -814,9 +816,11 @@ _ecore_main_gsource_check(GSource *source EINA_UNUSED)
      ret = TRUE;
 
    /* check if fds are ready */
-   if (HAVE_EPOLL && epoll_fd >= 0)
+#ifdef HAVE_EPOLL
+   if (epoll_fd >= 0)
      ecore_fds_ready = (_ecore_main_fdh_epoll_mark_active() > 0);
    else
+#endif
      ecore_fds_ready = (_ecore_main_fdh_glib_mark_active() > 0);
    _ecore_main_fd_handlers_cleanup();
    if (ecore_fds_ready)
@@ -951,7 +955,7 @@ detect_time_changes_start(void)
    if (realtime_fd < 0) return;
 
    memset(&its, 0, sizeof(its));
-   its.it_value.tv_sec += 0xfffffff0; // end of time - 0xf
+   its.it_value.tv_sec = 0x7ffffff0; // end of time - 0xf
    if (timerfd_settime(realtime_fd,
                        TFD_TIMER_ABSTIME | TFD_TIMER_CANCELON_SET,
                        &its, NULL) < 0)
@@ -1035,22 +1039,28 @@ _ecore_main_loop_init(void)
    // Please note that this function is being also called in case of a bad fd to reset the main loop.
 
    DBG("_ecore_main_loop_init");
+#ifdef HAVE_EPOLL
    epoll_fd = epoll_create(1);
-   if ((epoll_fd < 0) && HAVE_EPOLL)
+   if (epoll_fd < 0)
      WRN("Failed to create epoll fd!");
-   epoll_pid = getpid();
-   _ecore_fd_close_on_exec(epoll_fd);
-
-   /* add polls on all our file descriptors */
-   Ecore_Fd_Handler *fdh;
-   EINA_INLIST_FOREACH(fd_handlers, fdh)
+   else
      {
-        if (fdh->delete_me)
-          continue;
-        _ecore_epoll_add(epoll_fd, fdh->fd,
-                         _ecore_poll_events_from_fdh(fdh), fdh);
-        _ecore_main_fdh_poll_add(fdh);
+        eina_file_close_on_exec(epoll_fd, EINA_TRUE);
+
+        epoll_pid = getpid();
+
+        /* add polls on all our file descriptors */
+        Ecore_Fd_Handler *fdh;
+        EINA_INLIST_FOREACH(fd_handlers, fdh)
+          {
+             if (fdh->delete_me) continue;
+             _ecore_epoll_add(epoll_fd, fdh->fd,
+                              _ecore_poll_events_from_fdh(fdh), fdh);
+             _ecore_main_fdh_poll_add(fdh);
+          }
      }
+#endif
+
 #ifdef HAVE_LIBUV
    {
      DBG("loading lib uv");
@@ -1130,7 +1140,8 @@ _ecore_main_loop_init(void)
    else
      {
         g_source_set_priority(ecore_glib_source, G_PRIORITY_HIGH_IDLE + 20);
-        if (HAVE_EPOLL && epoll_fd >= 0)
+#ifdef HAVE_EPOLL
+        if (epoll_fd >= 0)
           {
              /* epoll multiplexes fds into the g_main_loop */
               ecore_epoll_fd.fd = epoll_fd;
@@ -1138,14 +1149,14 @@ _ecore_main_loop_init(void)
               ecore_epoll_fd.revents = 0;
               g_source_add_poll(ecore_glib_source, &ecore_epoll_fd);
           }
-
+#endif
         /* timerfd gives us better than millisecond accuracy in g_main_loop */
         timer_fd = timerfd_create(CLOCK_MONOTONIC, TFD_NONBLOCK);
         if (timer_fd < 0)
           WRN("failed to create timer fd!");
         else
           {
-             _ecore_fd_close_on_exec(timer_fd);
+             eina_file_close_on_exec(timer_fd, EINA_TRUE);
              ecore_timer_fd.fd = timer_fd;
              ecore_timer_fd.events = G_IO_IN;
              ecore_timer_fd.revents = 0;
@@ -1176,12 +1187,14 @@ _ecore_main_loop_shutdown(void)
 
    detect_time_changes_stop();
 
+#ifdef HAVE_EPOLL
    if (epoll_fd >= 0)
      {
         close(epoll_fd);
         epoll_fd = -1;
      }
    epoll_pid = 0;
+#endif
 
    if (timer_fd >= 0)
      {
@@ -1209,8 +1222,8 @@ _ecore_main_fd_handler_del(Ecore_Fd_Handler *fd_handler)
         return NULL;
      }
 
-   _ecore_main_fdh_poll_del(fd_handler);
    fd_handler->delete_me = EINA_TRUE;
+   _ecore_main_fdh_poll_del(fd_handler);
    fd_handlers_to_delete = eina_list_append(fd_handlers_to_delete, fd_handler);
    if (fd_handler->prep_func && fd_handlers_with_prep)
      fd_handlers_with_prep = eina_list_remove(fd_handlers_with_prep, fd_handler);
@@ -1365,7 +1378,7 @@ _ecore_main_fd_handler_add(int                    fd,
    DBG("_ecore_main_fd_handler_add");
    Ecore_Fd_Handler *fdh = NULL;
 
-   if ((fd < 0) || (flags == 0) || (!func)) return NULL;
+   if ((fd < 0) || (!func)) return NULL;
 
    fdh = ecore_fd_handler_calloc(1);
    if (!fdh) return NULL;
@@ -1590,13 +1603,16 @@ ecore_main_fd_handler_active_set(Ecore_Fd_Handler      *fd_handler,
    ret = _ecore_main_fdh_poll_modify(fd_handler);
    if (ret < 0)
      {
-        ERR("Failed to mod epoll fd %d: %s!", fd_handler->fd, strerror(ret));
+        ERR("Failed to mod epoll fd %d: %s!", fd_handler->fd, strerror(errno));
      }
 }
 
 void
 _ecore_main_shutdown(void)
 {
+   Efl_Promise *promise;
+   Efl_Future *future;
+
    if (in_main_loop)
      {
         ERR("\n"
@@ -1604,6 +1620,13 @@ _ecore_main_shutdown(void)
             "***                 Program may crash or behave strangely now.");
         return;
      }
+
+   EINA_LIST_FREE(_pending_futures, future)
+     efl_del(future);
+
+   EINA_LIST_FREE(_pending_promises, promise)
+     ecore_loop_promise_fulfill(promise);
+
    while (fd_handlers)
      {
         Ecore_Fd_Handler *fdh;
@@ -1682,7 +1705,7 @@ _ecore_main_select(double timeout)
    int max_fd, ret, err_no;
 
    t = NULL;
-   if ((!ECORE_FINITE(timeout)) || (timeout == 0.0)) /* finite() tests for NaN, too big, too small, and infinity.  */
+   if ((!ECORE_FINITE(timeout)) || (EINA_DBL_EQ(timeout, 0.0))) /* finite() tests for NaN, too big, too small, and infinity.  */
      {
         tv.tv_sec = 0;
         tv.tv_usec = 0;
@@ -1713,8 +1736,10 @@ _ecore_main_select(double timeout)
    if (fd_handlers_with_prep)
      _ecore_main_prepare_handlers();
 
-   if (!HAVE_EPOLL || epoll_fd < 0)
+#ifdef HAVE_EPOLL
+   if (epoll_fd < 0)
      {
+#endif
         EINA_INLIST_FOREACH(fd_handlers, fdh)
           {
              if (!fdh->delete_me)
@@ -1737,12 +1762,14 @@ _ecore_main_select(double timeout)
                }
           }
      }
+#ifdef HAVE_EPOLL
    else
      {
         /* polling on the epoll fd will wake when an fd in the epoll set is active */
          max_fd = _ecore_get_epoll_fd();
          FD_SET(max_fd, &rfds);
      }
+#endif
    EINA_LIST_FOREACH(file_fd_handlers, l, fdh)
      if (!fdh->delete_me)
        {
@@ -1765,10 +1792,12 @@ _ecore_main_select(double timeout)
        }
    if (_ecore_signal_count_get()) return -1;
 
+   eina_evlog("<RUN", NULL, 0.0, NULL);
    eina_evlog("!SLEEP", NULL, 0.0, t ? "timeout" : "forever");
    ret = main_loop_select(max_fd + 1, &rfds, &wfds, &exfds, t);
    err_no = errno;
    eina_evlog("!WAKE", NULL, 0.0, NULL);
+   eina_evlog(">RUN", NULL, 0.0, NULL);
 
    _ecore_time_loop_time = ecore_time_get();
    if (ret < 0)
@@ -1781,9 +1810,11 @@ _ecore_main_select(double timeout)
      }
    if (ret > 0)
      {
-        if (HAVE_EPOLL && epoll_fd >= 0)
+#ifdef HAVE_EPOLL
+        if (epoll_fd >= 0)
           _ecore_main_fdh_epoll_mark_active();
         else
+#endif
           {
              EINA_INLIST_FOREACH(fd_handlers, fdh)
                {
@@ -1851,8 +1882,8 @@ _ecore_main_fd_handlers_bads_rem(void)
                        ERR("Fd function err returned 0, remove it");
                        if (!fdh->delete_me)
                          {
-                            _ecore_main_fdh_poll_del(fdh);
                             fdh->delete_me = EINA_TRUE;
+                            _ecore_main_fdh_poll_del(fdh);
                             fd_handlers_to_delete = eina_list_append(fd_handlers_to_delete, fdh);
                          }
                        found++;
@@ -1864,8 +1895,8 @@ _ecore_main_fd_handlers_bads_rem(void)
                   ERR("Problematic fd found at %d! setting it for delete", fdh->fd);
                   if (!fdh->delete_me)
                     {
-                       _ecore_main_fdh_poll_del(fdh);
                        fdh->delete_me = EINA_TRUE;
+                       _ecore_main_fdh_poll_del(fdh);
                        fd_handlers_to_delete = eina_list_append(fd_handlers_to_delete, fdh);
                     }
 
@@ -1975,13 +2006,15 @@ _ecore_main_fd_handlers_call(void)
                      {
                         if (!fdh->delete_me)
                           {
-                             _ecore_main_fdh_poll_del(fdh);
                              fdh->delete_me = EINA_TRUE;
+                             _ecore_main_fdh_poll_del(fdh);
                              fd_handlers_to_delete = eina_list_append(fd_handlers_to_delete, fdh);
                           }
                      }
                    fdh->references--;
+#ifdef EFL_EXTRA_SANITY_CHECKS
                    _ecore_fd_valid();
+#endif
 
                    fdh->read_active = EINA_FALSE;
                    fdh->write_active = EINA_FALSE;
@@ -2054,6 +2087,7 @@ _ecore_main_loop_uv_prepare(uv_prepare_t* handle EINA_UNUSED)
            fdh = fd_handlers;
            fd_handlers = (Ecore_Fd_Handler *)eina_inlist_remove(EINA_INLIST_GET(fd_handlers),
                                                                 EINA_INLIST_GET(fdh));
+           fdh->delete_me = 1;
            _ecore_main_fdh_poll_del(fdh);
            ECORE_MAGIC_SET(fdh, ECORE_MAGIC_NONE);
            ecore_fd_handler_mp_free(fdh);
@@ -2226,8 +2260,18 @@ static void
 _ecore_main_loop_iterate_internal(int once_only)
 {
    double next_time = -1.0;
+   Eo *f, *p;
 
    in_main_loop++;
+
+   /* destroy all optional futures */
+   EINA_LIST_FREE(_pending_futures, f)
+     efl_del(f);
+
+   /* and propagate all promise value */
+   EINA_LIST_FREE(_pending_promises, p)
+     ecore_loop_promise_fulfill(p);
+
    /* expire any timers */
    _efl_loop_timer_expired_timers_call(_ecore_time_loop_time);
 
@@ -2293,6 +2337,16 @@ _ecore_main_loop_iterate_internal(int once_only)
 
    /* start of the sleeping or looping section */
 start_loop: /*-*************************************************************/
+   /* We could be looping here without exiting the function and we need to
+      process future and promise before the next waiting period. */
+   /* destroy all optional futures */
+   EINA_LIST_FREE(_pending_futures, f)
+     efl_del(f);
+
+   /* and propagate all promise value */
+   EINA_LIST_FREE(_pending_promises, p)
+     ecore_loop_promise_fulfill(p);
+
    /* any timers re-added as a result of these are allowed to go */
    _efl_loop_timer_enable_new();
    /* if we have been asked to quit the mainloop then exit at this point */
@@ -2354,6 +2408,11 @@ process_all: /*-*********************************************************/
 done: /*-*****************************************************************/
    /* Agressively flush animator */
    _ecore_animator_flush();
+   if (!once_only)
+     {
+        /* Free all short lived strings */
+        eina_slstr_local_clear();
+     }
    in_main_loop--;
 }
 
@@ -2517,6 +2576,15 @@ _ecore_main_win32_objects_wait(DWORD objects_nbr,
    return WAIT_FAILED;
 }
 
+static unsigned int
+_stdin_wait_thread(void *data EINA_UNUSED)
+{
+   int c = getc(stdin);
+   ungetc(c, stdin);
+
+   return 0;
+}
+
 static int
 _ecore_main_win32_select(int             nfds EINA_UNUSED,
                          fd_set         *readfds,
@@ -2525,6 +2593,9 @@ _ecore_main_win32_select(int             nfds EINA_UNUSED,
                          struct timeval *tv)
 {
    HANDLE *objects;
+   static HANDLE stdin_wait_thread = INVALID_HANDLE_VALUE;
+   Eina_Bool stdin_thread_done = EINA_FALSE;
+   HANDLE stdin_handle;
    int *sockets;
    Ecore_Fd_Handler *fdh;
    Ecore_Win32_Handler *wh;
@@ -2552,6 +2623,9 @@ _ecore_main_win32_select(int             nfds EINA_UNUSED,
    /* Create an event object per socket */
    EINA_INLIST_FOREACH(fd_handlers, fdh)
      {
+        if (fdh->delete_me)
+          continue;
+
         WSAEVENT event;
         long network_event;
 
@@ -2582,11 +2656,28 @@ _ecore_main_win32_select(int             nfds EINA_UNUSED,
              objects_nbr++;
           }
      }
-
+   stdin_handle = GetStdHandle(STD_INPUT_HANDLE);
    /* store the HANDLEs in the objects to wait for */
    EINA_INLIST_FOREACH(win32_handlers, wh)
      {
-        objects[objects_nbr] = wh->h;
+        if (wh->delete_me)
+          continue;
+
+        if (wh->h == stdin_handle)
+          {
+             if (stdin_wait_thread == INVALID_HANDLE_VALUE)
+               stdin_wait_thread = (HANDLE)_beginthreadex(NULL,
+                                                          0,
+                                                          _stdin_wait_thread,
+                                                          NULL,
+                                                          0,
+                                                          NULL);
+             objects[objects_nbr] = stdin_wait_thread;
+          }
+        else
+          {
+             objects[objects_nbr] = wh->h;
+          }
         objects_nbr++;
      }
 
@@ -2675,11 +2766,15 @@ _ecore_main_win32_select(int             nfds EINA_UNUSED,
               win32_handler_current = (Ecore_Win32_Handler *)EINA_INLIST_GET(win32_handler_current)->next;
           }
 
+        if (objects[result - WAIT_OBJECT_0] == stdin_wait_thread)
+          stdin_thread_done = EINA_TRUE;
+
         while (win32_handler_current)
           {
              wh = win32_handler_current;
 
-             if (objects[result - WAIT_OBJECT_0] == wh->h)
+             if (objects[result - WAIT_OBJECT_0] == wh->h ||
+                 (objects[result - WAIT_OBJECT_0] == stdin_wait_thread && wh->h == stdin_handle))
                {
                   if (!wh->delete_me)
                     {
@@ -2707,6 +2802,9 @@ err :
    /* Remove event objects again */
    for (i = 0; i < events_nbr; i++) WSACloseEvent(objects[i]);
 
+   if (stdin_thread_done)
+     stdin_wait_thread = INVALID_HANDLE_VALUE;
+
    free(objects);
    free(sockets);
    return res;
@@ -2717,11 +2815,11 @@ err :
 Eo *_mainloop_singleton = NULL;
 
 EOLIAN static Efl_Loop *
-_efl_loop_main_get(Eo_Class *klass EINA_UNUSED, void *_pd EINA_UNUSED)
+_efl_loop_main_get(Efl_Class *klass EINA_UNUSED, void *_pd EINA_UNUSED)
 {
    if (!_mainloop_singleton)
      {
-        _mainloop_singleton = eo_add(EFL_LOOP_CLASS, NULL);
+        _mainloop_singleton = efl_add(EFL_LOOP_CLASS, NULL);
      }
 
    return _mainloop_singleton;
@@ -2758,23 +2856,31 @@ _efl_loop_quit(Eo *obj EINA_UNUSED, Efl_Loop_Data *pd EINA_UNUSED, unsigned char
    _ecore_exit_code = exit_code;
 }
 
-EOLIAN static Eo_Base *
-_efl_loop_eo_base_provider_find(Eo *obj, Efl_Loop_Data *pd, const Eo_Base *klass)
+EOLIAN static Efl_Object *
+_efl_loop_efl_object_provider_find(Eo *obj, Efl_Loop_Data *pd, const Efl_Object *klass)
 {
-   Eo_Base *r;
+   Efl_Object *r;
 
    if (klass == EFL_LOOP_CLASS) return obj;
 
    r = eina_hash_find(pd->providers, &klass);
    if (r) return r;
 
-   return eo_provider_find(eo_super(obj, EFL_LOOP_CLASS), klass);
+   return efl_provider_find(efl_super(obj, EFL_LOOP_CLASS), klass);
 }
 
 static void
-_check_event_catcher_add(void *data, const Eo_Event *event)
+_poll_trigger(void *data, const Efl_Event *event)
 {
-   const Eo_Callback_Array_Item *array = event->info;
+   Eo *parent = efl_parent_get(event->object);
+
+   efl_event_callback_call(parent, data, NULL);
+}
+
+static void
+_check_event_catcher_add(void *data, const Efl_Event *event)
+{
+   const Efl_Callback_Array_Item *array = event->info;
    Efl_Loop_Data *pd = data;
    int i;
 
@@ -2784,13 +2890,54 @@ _check_event_catcher_add(void *data, const Eo_Event *event)
           {
              ++pd->idlers;
           }
+        // XXX: all the below are kind of bad. ecore_pollers were special.
+        // they all woke up at the SAME time based on interval, (all pollers
+        // of interval 1 woke up together, those with 2 woke up when 1 and
+        // 2 woke up, 4 woke up together along with 1 and 2 etc.
+        // the below means they will just go off whenever but at a pre
+        // defined interval - 1/60th, 6 and 66 seconds. not really great
+        // pollers probably should be less frequent that 1/60th even on poll
+        // high, medium probably down to 1-2 sec and low - yes maybe 30 or 60
+        // sec... still - not timed to wake up together. :(
+        else if (array[i].desc == EFL_LOOP_EVENT_POLL_HIGH)
+          {
+             if (!pd->poll_high)
+               {
+                  // Would be better to have it in sync with normal wake up
+                  // of the main loop for better energy efficiency, I guess.
+                  pd->poll_high = efl_add(EFL_LOOP_TIMER_CLASS, event->object,
+                                          efl_event_callback_add(efl_added, EFL_LOOP_TIMER_EVENT_TICK, _poll_trigger, EFL_LOOP_EVENT_POLL_HIGH),
+                                          efl_loop_timer_interval_set(efl_added, 1.0/60.0));
+               }
+             ++pd->pollers.high;
+          }
+        else if (array[i].desc == EFL_LOOP_EVENT_POLL_MEDIUM)
+          {
+             if (!pd->poll_medium)
+               {
+                  pd->poll_medium = efl_add(EFL_LOOP_TIMER_CLASS, event->object,
+                                            efl_event_callback_add(efl_added, EFL_LOOP_TIMER_EVENT_TICK, _poll_trigger, EFL_LOOP_EVENT_POLL_MEDIUM),
+                                            efl_loop_timer_interval_set(efl_added, 6));
+               }
+             ++pd->pollers.medium;
+          }
+        else if (array[i].desc == EFL_LOOP_EVENT_POLL_LOW)
+          {
+             if (!pd->poll_low)
+               {
+                  pd->poll_low = efl_add(EFL_LOOP_TIMER_CLASS, event->object,
+                                         efl_event_callback_add(efl_added, EFL_LOOP_TIMER_EVENT_TICK, _poll_trigger, EFL_LOOP_EVENT_POLL_LOW),
+                                         efl_loop_timer_interval_set(efl_added, 66));
+               }
+             ++pd->pollers.low;
+          }
      }
 }
 
 static void
-_check_event_catcher_del(void *data, const Eo_Event *event)
+_check_event_catcher_del(void *data, const Efl_Event *event)
 {
-   const Eo_Callback_Array_Item *array = event->info;
+   const Efl_Callback_Array_Item *array = event->info;
    Efl_Loop_Data *pd = data;
    int i;
 
@@ -2800,32 +2947,63 @@ _check_event_catcher_del(void *data, const Eo_Event *event)
           {
              --pd->idlers;
           }
+        else if (array[i].desc == EFL_LOOP_EVENT_POLL_HIGH)
+          {
+             --pd->pollers.high;
+             if (!pd->pollers.high)
+               {
+                  ecore_timer_del(pd->poll_high);
+                  pd->poll_high = NULL;
+               }
+          }
+        else if (array[i].desc == EFL_LOOP_EVENT_POLL_MEDIUM)
+          {
+             --pd->pollers.medium;
+             if (!pd->pollers.medium)
+               {
+                  ecore_timer_del(pd->poll_medium);
+                  pd->poll_medium = NULL;
+               }
+          }
+        else if (array[i].desc == EFL_LOOP_EVENT_POLL_LOW)
+          {
+             --pd->pollers.low;
+             if (!pd->pollers.low)
+               {
+                  ecore_timer_del(pd->poll_low);
+                  pd->poll_low = NULL;
+               }
+          }
      }
 }
 
-EO_CALLBACKS_ARRAY_DEFINE(event_catcher_watch,
-                          { EO_EVENT_CALLBACK_ADD, _check_event_catcher_add },
-                          { EO_EVENT_CALLBACK_DEL, _check_event_catcher_del });
+EFL_CALLBACKS_ARRAY_DEFINE(event_catcher_watch,
+                          { EFL_EVENT_CALLBACK_ADD, _check_event_catcher_add },
+                          { EFL_EVENT_CALLBACK_DEL, _check_event_catcher_del });
 
-EOLIAN static Eo_Base *
-_efl_loop_eo_base_constructor(Eo *obj, Efl_Loop_Data *pd)
+EOLIAN static Efl_Object *
+_efl_loop_efl_object_constructor(Eo *obj, Efl_Loop_Data *pd)
 {
-   obj = eo_constructor(eo_super(obj, EFL_LOOP_CLASS));
+   obj = efl_constructor(efl_super(obj, EFL_LOOP_CLASS));
    if (!obj) return NULL;
 
-   eo_event_callback_array_add(obj, event_catcher_watch(), pd);
+   efl_event_callback_array_add(obj, event_catcher_watch(), pd);
 
-   pd->providers = eina_hash_pointer_new((void*) eo_unref);
+   pd->providers = eina_hash_pointer_new((void*) efl_unref);
 
    return obj;
 }
 
 EOLIAN static void
-_efl_loop_eo_base_destructor(Eo *obj, Efl_Loop_Data *pd)
+_efl_loop_efl_object_destructor(Eo *obj, Efl_Loop_Data *pd)
 {
-   eo_destructor(eo_super(obj, EFL_LOOP_CLASS));
-
    eina_hash_free(pd->providers);
+
+   efl_del(pd->poll_low);
+   efl_del(pd->poll_medium);
+   efl_del(pd->poll_high);
+
+   efl_destructor(efl_super(obj, EFL_LOOP_CLASS));
 }
 
 typedef struct _Efl_Internal_Promise Efl_Internal_Promise;
@@ -2835,7 +3013,7 @@ struct _Efl_Internal_Promise
       Ecore_Job *job;
       Efl_Loop_Timer *timer;
    } u;
-   Eina_Promise_Owner *promise;
+   Efl_Promise *promise;
 
    const void *data;
 
@@ -2847,7 +3025,7 @@ _efl_loop_job_cb(void *data)
 {
    Efl_Internal_Promise *j = data;
 
-   eina_promise_owner_value_set(j->promise, j->data, NULL);
+   efl_promise_value_set(j->promise, (void*) j->data, NULL);
 
    free(j);
 }
@@ -2863,7 +3041,7 @@ _efl_loop_arguments_cleanup(Eina_Array *arga)
 }
 
 static void
-_efl_loop_arguments_send(void *data, void *value EINA_UNUSED)
+_efl_loop_arguments_send(void *data, const Efl_Event *ev EINA_UNUSED)
 {
    static Eina_Bool initialization = EINA_TRUE;
    Efl_Loop_Arguments arge;
@@ -2873,13 +3051,13 @@ _efl_loop_arguments_send(void *data, void *value EINA_UNUSED)
    arge.initialization = initialization;
    initialization = EINA_FALSE;
 
-   eo_event_callback_call(ecore_main_loop_get(), EFL_LOOP_EVENT_ARGUMENTS, &arge);
+   efl_event_callback_call(ecore_main_loop_get(), EFL_LOOP_EVENT_ARGUMENTS, &arge);
 
    _efl_loop_arguments_cleanup(arga);
 }
 
 static void
-_efl_loop_arguments_cancel(void *data, Eina_Error err EINA_UNUSED)
+_efl_loop_arguments_cancel(void *data, const Efl_Event *ev EINA_UNUSED)
 {
    _efl_loop_arguments_cleanup(data);
 }
@@ -2890,7 +3068,7 @@ _efl_loop_arguments_cancel(void *data, Eina_Error err EINA_UNUSED)
 EAPI void
 ecore_loop_arguments_send(int argc, const char **argv)
 {
-   Eina_Promise *job;
+   Efl_Future *job;
    Eina_Array *arga;
    int i = 0;
 
@@ -2899,45 +3077,74 @@ ecore_loop_arguments_send(int argc, const char **argv)
      eina_array_push(arga, eina_stringshare_add(argv[i]));
 
    job = efl_loop_job(ecore_main_loop_get(), NULL);
-   eina_promise_then(job, _efl_loop_arguments_send, _efl_loop_arguments_cancel, arga);
+   efl_future_then(job, _efl_loop_arguments_send, _efl_loop_arguments_cancel, NULL, arga);
 }
 
-static void _efl_loop_timeout_force_cancel_cb(void *data, const Eo_Event *event EINA_UNUSED);
-static void _efl_loop_timeout_cb(void *data, const Eo_Event *event EINA_UNUSED);
+static void _efl_loop_timeout_force_cancel_cb(void *data, const Efl_Event *event EINA_UNUSED);
+static void _efl_loop_timeout_cb(void *data, const Efl_Event *event EINA_UNUSED);
 
-EO_CALLBACKS_ARRAY_DEFINE(timeout,
+// Only one main loop handle for now
+void
+ecore_loop_future_register(Efl_Loop *l EINA_UNUSED, Efl_Future *f)
+{
+   _pending_futures = eina_list_append(_pending_futures, f);
+}
+
+void
+ecore_loop_future_unregister(Efl_Loop *l EINA_UNUSED, Efl_Future *f)
+{
+   _pending_futures = eina_list_remove(_pending_futures, f);
+}
+
+void
+ecore_loop_promise_register(Efl_Loop *l EINA_UNUSED, Efl_Promise *p)
+{
+   _pending_promises = eina_list_append(_pending_promises, p);
+}
+
+void
+ecore_loop_promise_unregister(Efl_Loop *l EINA_UNUSED, Efl_Promise *p)
+{
+   _pending_promises = eina_list_remove(_pending_promises, p);
+}
+
+EFL_CALLBACKS_ARRAY_DEFINE(timeout,
                           { EFL_LOOP_TIMER_EVENT_TICK, _efl_loop_timeout_cb },
-                          { EO_EVENT_DEL, _efl_loop_timeout_force_cancel_cb });
+                          { EFL_EVENT_DEL, _efl_loop_timeout_force_cancel_cb });
 
 /* This event will be triggered when the main loop is destroyed and destroy its timers along */
 static void _efl_loop_internal_cancel(Efl_Internal_Promise *p);
 
 static void
-_efl_loop_timeout_force_cancel_cb(void *data, const Eo_Event *event EINA_UNUSED)
+_efl_loop_timeout_force_cancel_cb(void *data, const Efl_Event *event EINA_UNUSED)
 {
    _efl_loop_internal_cancel(data);
 }
 
+static void _efl_loop_job_cancel(void* data, const Efl_Event *ev EINA_UNUSED);
+
 static void
-_efl_loop_timeout_cb(void *data, const Eo_Event *event EINA_UNUSED)
+_efl_loop_timeout_cb(void *data, const Efl_Event *event EINA_UNUSED)
 {
    Efl_Internal_Promise *t = data;
 
-   eina_promise_owner_value_set(t->promise, t->data, NULL);
+   efl_promise_value_set(t->promise, (void*) t->data, NULL);
+   efl_del(t->promise);
 
-   eo_event_callback_array_del(t->u.timer, timeout(), t);
-   eo_del(t->u.timer);
+   efl_event_callback_array_del(t->u.timer, timeout(), t);
+   efl_del(t->u.timer);
 }
 
 static void
 _efl_loop_internal_cancel(Efl_Internal_Promise *p)
 {
-   eina_promise_owner_error_set(p->promise, EINA_ERROR_PROMISE_CANCEL);
+   efl_promise_failed_set(p->promise, EINA_ERROR_FUTURE_CANCEL);
+   efl_del(p->promise);
    free(p);
 }
 
 static void
-_efl_loop_job_cancel(void* data, Eina_Promise_Owner* promise EINA_UNUSED)
+_efl_loop_job_cancel(void* data, const Efl_Event *ev EINA_UNUSED)
 {
    Efl_Internal_Promise *j = data;
 
@@ -2947,35 +3154,36 @@ _efl_loop_job_cancel(void* data, Eina_Promise_Owner* promise EINA_UNUSED)
      }
    else
      {
-        eo_event_callback_array_del(j->u.timer, timeout(), j);
-        eo_del(j->u.timer);
+        efl_event_callback_array_del(j->u.timer, timeout(), j);
+        efl_del(j->u.timer);
      }
 
    _efl_loop_internal_cancel(j);
 }
 
 static Efl_Internal_Promise *
-_efl_internal_promise_new(Eina_Promise_Owner* promise, const void *data)
+_efl_internal_promise_new(Efl_Promise* promise, const void *data)
 {
    Efl_Internal_Promise *p;
 
    p = calloc(1, sizeof (Efl_Internal_Promise));
    if (!p) return NULL;
 
-   eina_promise_owner_default_cancel_cb_add(promise, &_efl_loop_job_cancel, p, NULL);
+   efl_event_callback_add(promise, EFL_PROMISE_EVENT_FUTURE_NONE, _efl_loop_job_cancel, p);
+
    p->promise = promise;
    p->data = data;
 
    return p;
 }
 
-static Eina_Promise *
-_efl_loop_job(Eo *obj EINA_UNUSED, Efl_Loop_Data *pd EINA_UNUSED, const void *data)
+static Efl_Future *
+_efl_loop_job(Eo *obj, Efl_Loop_Data *pd EINA_UNUSED, const void *data)
 {
    Efl_Internal_Promise *j;
-   Eina_Promise_Owner *promise;
+   Efl_Object *promise;
 
-   promise = eina_promise_add();
+   promise = efl_add(EFL_PROMISE_CLASS, obj);
    if (!promise) return NULL;
 
    j = _efl_internal_promise_new(promise, data);
@@ -2985,56 +3193,56 @@ _efl_loop_job(Eo *obj EINA_UNUSED, Efl_Loop_Data *pd EINA_UNUSED, const void *da
    j->u.job = ecore_job_add(_efl_loop_job_cb, j);
    if (!j->u.job) goto on_error;
 
-   return eina_promise_owner_promise_get(promise);
+   return efl_promise_future_get(promise);
 
  on_error:
-   eina_promise_unref(eina_promise_owner_promise_get(promise));
+   efl_del(promise);
    free(j);
 
    return NULL;
 }
 
-static Eina_Promise *
+static Efl_Future *
 _efl_loop_timeout(Eo *obj, Efl_Loop_Data *pd EINA_UNUSED, double time, const void *data)
 {
    Efl_Internal_Promise *t;
-   Eina_Promise_Owner *promise;
+   Efl_Object *promise;
 
-   promise = eina_promise_add();
+   promise = efl_add(EFL_PROMISE_CLASS, obj);
    if (!promise) return NULL;
 
    t = _efl_internal_promise_new(promise, data);
    if (!t) goto on_error;
 
    t->job_is = EINA_FALSE;
-   t->u.timer = eo_add(EFL_LOOP_TIMER_CLASS, obj,
-                       efl_loop_timer_interval_set(eo_self, time),
-                       eo_event_callback_array_add(eo_self, timeout(), t));
+   t->u.timer = efl_add(EFL_LOOP_TIMER_CLASS, obj,
+                        efl_loop_timer_interval_set(efl_added, time),
+                        efl_event_callback_array_add(efl_added, timeout(), t));
 
    if (!t->u.timer) goto on_error;
 
-   return eina_promise_owner_promise_get(promise);
+   return efl_promise_future_get(promise);
 
  on_error:
-   eina_promise_unref(eina_promise_owner_promise_get(promise));
+   efl_del(promise);
    free(t);
 
    return NULL;
 }
 
 static Eina_Bool
-_efl_loop_register(Eo *obj EINA_UNUSED, Efl_Loop_Data *pd, const Eo_Class *klass, const Eo_Base *provider)
+_efl_loop_register(Eo *obj EINA_UNUSED, Efl_Loop_Data *pd, const Efl_Class *klass, const Efl_Object *provider)
 {
    // The passed object does not provide that said class.
-   if (!eo_isa(provider, klass)) return EINA_FALSE;
+   if (!efl_isa(provider, klass)) return EINA_FALSE;
 
-   // Note: I would prefer to use eo_xref here, but I can't figure a nice way to
-   // call eo_xunref on hash destruction.
-   return eina_hash_add(pd->providers, &klass, eo_ref(provider));
+   // Note: I would prefer to use efl_xref here, but I can't figure a nice way to
+   // call efl_xunref on hash destruction.
+   return eina_hash_add(pd->providers, &klass, efl_ref(provider));
 }
 
 static Eina_Bool
-_efl_loop_unregister(Eo *obj EINA_UNUSED, Efl_Loop_Data *pd, const Eo_Class *klass, const Eo_Base *provider)
+_efl_loop_unregister(Eo *obj EINA_UNUSED, Efl_Loop_Data *pd, const Efl_Class *klass, const Efl_Object *provider)
 {
    return eina_hash_del(pd->providers, &klass, provider);
 }

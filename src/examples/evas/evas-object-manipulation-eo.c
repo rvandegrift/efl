@@ -1,8 +1,5 @@
 /**
- * Porting evas-object-manipulation.c example
- * to use Eo-styled Evas API.
- *
- * Simple Evas example illustrating basic objects manipulation.
+ * Example of basic object manipulation with an Eo-styled Evas API.
  *
  * You'll need at least one engine built for it (excluding the buffer
  * one) and the png image loader also built. See stdout/stderr for
@@ -51,8 +48,7 @@ struct test_data
 
 static struct test_data d = {0};
 
-/* here just to keep our example's window size and background image's
- * size in synchrony */
+/* Keep the example's window size in sync with the background image's size */
 static void
 _canvas_resize_cb(Ecore_Evas *ee)
 {
@@ -72,7 +68,7 @@ _on_keydown(void        *data EINA_UNUSED,
 
    if (strcmp(ev->key, "h") == 0) /* print help */
      {
-        fprintf(stdout, "%s", commands);
+        printf("%s", commands);
         return;
      }
 
@@ -90,8 +86,8 @@ _on_keydown(void        *data EINA_UNUSED,
         evas_color_argb_premul(alpha, &r, &g, &b);
         efl_gfx_color_set(d.clipper, r, g, b, alpha);
 
-        fprintf(stdout, "Changing clipper's opacity: %d%%\n",
-                (int)((alpha / 255.0) * 100));
+        printf("Changing clipper's opacity: %d%%\n",
+               (int)((alpha / 255.0) * 100));
         return;
      }
 
@@ -100,19 +96,19 @@ _on_keydown(void        *data EINA_UNUSED,
      {
         int alpha, r, g, b;
 
-        fprintf(stdout, "Changing clipper's color to");
+        printf("Changing clipper's color to");
 
         efl_gfx_color_get(d.clipper, &r, &g, &b, &alpha);
         evas_color_argb_unpremul(alpha, &r, &g, &b);
 
         if (g > 0)
           {
-             fprintf(stdout, "red\n");
+             printf("red\n");
              g = b = 0;
           }
         else
           {
-             fprintf(stdout, "white\n");
+             printf("white\n");
              g = b = 255;
           }
 
@@ -123,19 +119,19 @@ _on_keydown(void        *data EINA_UNUSED,
 
    if (strcmp(ev->key, "c") == 0) /* toggle clipper's clipping function */
      {
-        fprintf(stdout, "Toggling clipping ");
+        printf("Toggling clipping ");
 
         Evas_Object *clip = NULL;
         clip = efl_canvas_object_clip_get(d.img);
         if (clip == d.clipper)
           {
-             efl_canvas_object_clip_unset(d.img);
-             fprintf(stdout, "off\n");
+             efl_canvas_object_clip_set(d.img, NULL);
+             printf("off\n");
           }
         else
           {
              efl_canvas_object_clip_set(d.img, d.clipper);
-             fprintf(stdout, "on\n");
+             printf("on\n");
           }
         return;
      }
@@ -147,7 +143,7 @@ _on_keydown(void        *data EINA_UNUSED,
          * if you pass parameter to "set" by value. */
         visibility = efl_gfx_visible_get(d.clipper);
         efl_gfx_visible_set(d.clipper, !visibility);
-        fprintf(stdout, "Clipper is now %s\n", visibility ? "hidden" : "visible");
+        printf("Clipper is now %s\n", visibility ? "hidden" : "visible");
         return;
      }
 }
@@ -173,24 +169,24 @@ main(void)
    d.canvas = ecore_evas_get(d.ee);
 
    /* Creating object with Eo.
-    * Object must be deleted explixitly at the end of program.*/
-   d.bg = eo_add(EFL_CANVAS_RECTANGLE_CLASS, d.canvas);
+    * Object must be deleted explicitly at the end of program.*/
+   d.bg = efl_add(EFL_CANVAS_RECTANGLE_CLASS, d.canvas);
 
-   /* Eo-styled way to perform actions on an object*/
+   /* Eo-styled way to perform actions on an object */
    evas_object_name_set(d.bg, "background rectangle");
    efl_gfx_color_set(d.bg, 255, 255, 255, 255);
    /* white bg */
-               efl_gfx_position_set(d.bg, 0, 0);
+   efl_gfx_position_set(d.bg, 0, 0);
    /* at canvas' origin */
-               efl_gfx_size_set(d.bg, WIDTH, HEIGHT);
+   efl_gfx_size_set(d.bg, WIDTH, HEIGHT);
    /* covers full canvas */
-               efl_gfx_visible_set(d.bg, EINA_TRUE);
+   efl_gfx_visible_set(d.bg, EINA_TRUE);
    evas_object_focus_set(d.bg, EINA_TRUE);
 
    evas_object_event_callback_add(
      d.bg, EVAS_CALLBACK_KEY_DOWN, _on_keydown, NULL);
 
-   d.img = eo_add(EFL_CANVAS_IMAGE_CLASS, d.canvas);
+   d.img = efl_add(EFL_CANVAS_IMAGE_CLASS, d.canvas);
 
    /* As soon as 'canvas' object is a parent for 'image' object,
     * 'canvas' keeps reference to 'image'.
@@ -209,12 +205,12 @@ main(void)
         efl_gfx_position_set(d.img, 0, 0);
         efl_gfx_size_set(d.img, WIDTH, HEIGHT);
         efl_gfx_visible_set(d.img, EINA_TRUE);
-        fprintf(stdout, "Image object added, class name is: %s\n",
-                eo_class_name_get(d.img));
+        printf("Image object added, class name is: %s\n",
+               efl_class_name_get(d.img));
      }
 
    /* border on the image's clipper, here just to emphasize its position */
-   d.clipper_border = eo_add(EFL_CANVAS_IMAGE_CLASS, d.canvas);
+   d.clipper_border = efl_add(EFL_CANVAS_IMAGE_CLASS, d.canvas);
    efl_file_set(d.clipper_border, border_img_path, NULL);
    err = efl_image_load_error_get(d.clipper_border);
 
@@ -225,15 +221,16 @@ main(void)
    else
      {
         efl_image_border_set(d.clipper_border, 3, 3, 3, 3);
-        efl_image_border_center_fill_set(d.clipper_border, EVAS_BORDER_FILL_NONE);
+        efl_image_border_center_fill_set(d.clipper_border, EFL_GFX_BORDER_FILL_MODE_NONE);
         efl_gfx_position_set(d.clipper_border, (WIDTH / 4) -3, (HEIGHT / 4) - 3);
         efl_gfx_size_set(d.clipper_border, (WIDTH / 2) + 6, (HEIGHT / 2) + 6);
         efl_gfx_visible_set(d.clipper_border, EINA_TRUE);
      }
+
    /* solid white clipper (note that it's the default color for a
     * rectangle) - it won't change clippees' colors, then (multiplying
     * by 255) */
-   d.clipper = eo_add(EFL_CANVAS_RECTANGLE_CLASS, d.canvas);
+   d.clipper = efl_add(EFL_CANVAS_RECTANGLE_CLASS, d.canvas);
 
    efl_gfx_position_set(d.clipper, WIDTH / 4, HEIGHT / 4);
    efl_gfx_size_set(d.clipper, WIDTH / 2, HEIGHT / 2);
@@ -241,7 +238,7 @@ main(void)
 
    efl_canvas_object_clip_set(d.img, d.clipper);
 
-   fprintf(stdout, "%s", commands);
+   printf("%s", commands);
 
    ecore_main_loop_begin();
 

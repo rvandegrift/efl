@@ -2,7 +2,6 @@
 #include "config.h"
 #endif
 
-#include <Ector.h>
 #include "draw_private.h"
 
 int _draw_log_dom = -1;
@@ -134,7 +133,7 @@ _comp_func_source(uint32_t *dest, const uint32_t *src, int length, uint32_t colo
  * d = d * (1-sa) + s * sa
  */
 static void
-_comp_func_mask_blend(uint32_t *dest, uint8_t *mask, int length, uint32_t color)
+_comp_func_mask_blend(uint32_t *dest, const uint8_t *mask, int length, uint32_t color)
 {
    int k;
 
@@ -150,7 +149,7 @@ _comp_func_mask_blend(uint32_t *dest, uint8_t *mask, int length, uint32_t color)
  * d = s * sa
  */
 static void
-_comp_func_mask_copy(uint32_t *dest, uint8_t *mask, int length, uint32_t color)
+_comp_func_mask_copy(uint32_t *dest, const uint8_t *mask, int length, uint32_t color)
 {
    int k;
 
@@ -164,7 +163,7 @@ _comp_func_mask_copy(uint32_t *dest, uint8_t *mask, int length, uint32_t color)
  * d = d * (1-wa) + w * wa
  */
 static void
-_comp_func_mix3_blend(uint32_t *dest, uint32_t *src, uint32_t *mul, int len, uint32_t color)
+_comp_func_mix3_blend(uint32_t *dest, const uint32_t *src, const uint32_t *mul, int len, uint32_t color)
 {
    int k, a;
 
@@ -179,7 +178,7 @@ _comp_func_mix3_blend(uint32_t *dest, uint32_t *src, uint32_t *mul, int len, uin
 
 /* d = s * m * c */
 static void
-_comp_func_mix3_copy(uint32_t *dest, uint32_t *src, uint32_t *mul, int len, uint32_t color)
+_comp_func_mix3_copy(uint32_t *dest, const uint32_t *src, const uint32_t *mul, int len, uint32_t color)
 {
    int k;
 
@@ -194,7 +193,7 @@ _comp_func_mix3_copy(uint32_t *dest, uint32_t *src, uint32_t *mul, int len, uint
  * d = d * (1-wa) + w * wa
  */
 static void
-_comp_func_mix3_blend_nomul(uint32_t *dest, uint32_t *src, uint32_t *mul, int len, uint32_t color EINA_UNUSED)
+_comp_func_mix3_blend_nomul(uint32_t *dest, const uint32_t *src, const uint32_t *mul, int len, uint32_t color EINA_UNUSED)
 {
    int k, a;
 
@@ -208,7 +207,7 @@ _comp_func_mix3_blend_nomul(uint32_t *dest, uint32_t *src, uint32_t *mul, int le
 
 /* d = s * m */
 static void
-_comp_func_mix3_copy_nomul(uint32_t *dest, uint32_t *src, uint32_t *mul, int len, uint32_t color EINA_UNUSED)
+_comp_func_mix3_copy_nomul(uint32_t *dest, const uint32_t *src, const uint32_t *mul, int len, uint32_t color EINA_UNUSED)
 {
    int k;
 
@@ -278,7 +277,7 @@ efl_draw_func_span_get(Efl_Gfx_Render_Op op, uint32_t color, Eina_Bool src_alpha
 }
 
 int
-efl_draw_init()
+efl_draw_init(void)
 {
    static int i = 0;
    if (!(i++))

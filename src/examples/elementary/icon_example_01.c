@@ -4,7 +4,7 @@
 #include <Elementary.h>
 
 EAPI_MAIN int
-elm_main(int argc, char **argv)
+elm_main(int argc EINA_UNUSED, char **argv EINA_UNUSED)
 {
    Evas_Object *win, *icon;
    const char *path, *group, *name;
@@ -15,7 +15,6 @@ elm_main(int argc, char **argv)
    elm_win_autodel_set(win, EINA_TRUE);
 
    icon = elm_icon_add(win);
-   elm_icon_order_lookup_set(icon, ELM_ICON_LOOKUP_THEME_FDO);
    elm_icon_standard_set(icon, "home");
 
    path = NULL;

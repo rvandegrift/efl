@@ -1,6 +1,9 @@
 #include "evas_common_private.h"
 #include "evas_private.h"
 
+#define EFL_INTERNAL_UNSTABLE
+#include "interfaces/efl_common_internal.h"
+
 /* private calls */
 
 /* FIXME: this is not optimal, but works. i should have a hash of keys per */
@@ -32,7 +35,7 @@ evas_key_grab_new(Evas_Object *eo_obj, Evas_Object_Protected_Data *obj, const ch
 
    if (have_exclusion && exclusive) return NULL;
 
-   g = evas_mem_calloc(sizeof(Evas_Key_Grab));
+   g = calloc(1, sizeof(Evas_Key_Grab));
    if (!g) return NULL;
    g->object = eo_obj;
    g->modifiers = modifiers;
@@ -44,17 +47,8 @@ evas_key_grab_new(Evas_Object *eo_obj, Evas_Object_Protected_Data *obj, const ch
    g->is_active = EINA_TRUE;
    if (!g->keyname)
      {
-        if (!evas_mem_free(strlen(keyname) + 1))
-          {
-             free(g);
-             return NULL;
-          }
-        g->keyname = strdup(keyname);
-        if (!g->keyname)
-          {
-             free(g);
-             return NULL;
-          }
+        free(g);
+        return NULL;
      }
 
    if (exclusive)
@@ -132,17 +126,19 @@ evas_key_grab_free(Evas_Object *eo_obj, Evas_Object_Protected_Data *obj, const c
 
    g = evas_key_grab_find(eo_obj, obj, keyname, modifiers, not_modifiers);
    if (!g) return;
-   Evas_Object_Protected_Data *g_object = eo_data_scope_get(g->object, EFL_CANVAS_OBJECT_CLASS);
+   Evas_Object_Protected_Data *g_object = efl_data_scope_get(g->object, EFL_CANVAS_OBJECT_CLASS);
    g_object->grabs = eina_list_remove(g_object->grabs, g);
    obj->layer->evas->grabs = eina_list_remove(obj->layer->evas->grabs, g);
    if (g->keyname) free(g->keyname);
    free(g);
 }
 
-/* public calls */
+// Legacy implementation. TODO: remove use of Evas_Modifier_Mask
 
-EOLIAN Eina_Bool
-_efl_canvas_object_key_grab(Eo *eo_obj, Evas_Object_Protected_Data *obj, const char *keyname, Evas_Modifier_Mask modifiers, Evas_Modifier_Mask not_modifiers, Eina_Bool exclusive)
+static Eina_Bool
+_object_key_grab(Eo *eo_obj, Evas_Object_Protected_Data *obj, const char *keyname,
+                 Evas_Modifier_Mask modifiers, Evas_Modifier_Mask not_modifiers,
+                 Eina_Bool exclusive)
 {
    /* MEM OK */
    Evas_Key_Grab *g;
@@ -152,8 +148,9 @@ _efl_canvas_object_key_grab(Eo *eo_obj, Evas_Object_Protected_Data *obj, const c
    return ((!g) ? EINA_FALSE : EINA_TRUE);
 }
 
-EOLIAN void
-_efl_canvas_object_key_ungrab(Eo *eo_obj, Evas_Object_Protected_Data *obj, const char *keyname, Evas_Modifier_Mask modifiers, Evas_Modifier_Mask not_modifiers)
+static void
+_object_key_ungrab(Eo *eo_obj, Evas_Object_Protected_Data *obj, const char *keyname,
+                   Evas_Modifier_Mask modifiers, Evas_Modifier_Mask not_modifiers)
 {
    /* MEM OK */
    Evas_Key_Grab *g;
@@ -162,7 +159,7 @@ _efl_canvas_object_key_ungrab(Eo *eo_obj, Evas_Object_Protected_Data *obj, const
    if (!keyname) return;
    g = evas_key_grab_find(eo_obj, obj, keyname, modifiers, not_modifiers);
    if (!g) return;
-   Evas_Object_Protected_Data *g_object = eo_data_scope_get(g->object, EFL_CANVAS_OBJECT_CLASS);
+   Evas_Object_Protected_Data *g_object = efl_data_scope_get(g->object, EFL_CANVAS_OBJECT_CLASS);
    if (g_object->layer->evas->walking_grabs)
      {
         if (!g->delete_me)
@@ -189,4 +186,87 @@ _efl_canvas_object_key_ungrab(Eo *eo_obj, Evas_Object_Protected_Data *obj, const
 
         evas_key_grab_free(g->object, g_object, keyname, modifiers, not_modifiers);
      }
+}
+
+static inline Evas_Modifier_Mask
+_efl_input_modifier_to_evas_modifier_mask(Evas_Public_Data *e, Efl_Input_Modifier in)
+{
+   Evas_Modifier_Mask out = 0;
+   size_t i;
+
+   static const Efl_Input_Modifier mods[] = {
+      EFL_INPUT_MODIFIER_ALT,
+      EFL_INPUT_MODIFIER_CONTROL,
+      EFL_INPUT_MODIFIER_SHIFT,
+      EFL_INPUT_MODIFIER_META,
+      EFL_INPUT_MODIFIER_ALTGR,
+      EFL_INPUT_MODIFIER_HYPER,
+      EFL_INPUT_MODIFIER_SUPER
+   };
+
+   for (i = 0; i < EINA_C_ARRAY_LENGTH(mods); i++)
+     if (in & mods[i])
+       {
+          out |= evas_key_modifier_mask_get
+                (e->evas, _efl_input_modifier_to_string(mods[i]));
+       }
+
+   return out;
+}
+
+// EO API
+
+EOLIAN Eina_Bool
+_efl_canvas_object_key_grab(Eo *eo_obj, Evas_Object_Protected_Data *obj,
+                            const char *keyname, Efl_Input_Modifier mod,
+                            Efl_Input_Modifier not_mod, Eina_Bool exclusive)
+{
+   Evas_Modifier_Mask modifiers, not_modifiers;
+
+   EVAS_OBJECT_DATA_VALID_CHECK(obj, EINA_FALSE);
+   modifiers = _efl_input_modifier_to_evas_modifier_mask(obj->layer->evas, mod);
+   not_modifiers = _efl_input_modifier_to_evas_modifier_mask(obj->layer->evas, not_mod);
+
+   return _object_key_grab(eo_obj, obj, keyname, modifiers, not_modifiers, exclusive);
+}
+
+EOLIAN void
+_efl_canvas_object_key_ungrab(Eo *eo_obj, Evas_Object_Protected_Data *obj,
+                              const char *keyname, Efl_Input_Modifier mod,
+                              Efl_Input_Modifier not_mod)
+{
+   Evas_Modifier_Mask modifiers, not_modifiers;
+
+   EVAS_OBJECT_DATA_VALID_CHECK(obj);
+   modifiers = _efl_input_modifier_to_evas_modifier_mask(obj->layer->evas, mod);
+   not_modifiers = _efl_input_modifier_to_evas_modifier_mask(obj->layer->evas, not_mod);
+
+   _object_key_ungrab(eo_obj, obj, keyname, modifiers, not_modifiers);
+}
+
+// Legacy API
+
+EAPI Eina_Bool
+evas_object_key_grab(Evas_Object *eo_obj, const char *keyname,
+                     Evas_Modifier_Mask modifiers, Evas_Modifier_Mask not_modifiers,
+                     Eina_Bool exclusive)
+{
+   Evas_Object_Protected_Data *obj;
+
+   obj = EVAS_OBJECT_DATA_SAFE_GET(eo_obj);
+   EVAS_OBJECT_DATA_VALID_CHECK(obj, EINA_FALSE);
+
+   return _object_key_grab(eo_obj, obj, keyname, modifiers, not_modifiers, exclusive);
+}
+
+EAPI void
+evas_object_key_ungrab(Efl_Canvas_Object *eo_obj, const char *keyname,
+                       Evas_Modifier_Mask modifiers, Evas_Modifier_Mask not_modifiers)
+{
+   Evas_Object_Protected_Data *obj;
+
+   obj = EVAS_OBJECT_DATA_SAFE_GET(eo_obj);
+   EVAS_OBJECT_DATA_VALID_CHECK(obj);
+
+   _object_key_ungrab(eo_obj, obj, keyname, modifiers, not_modifiers);
 }

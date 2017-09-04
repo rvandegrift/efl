@@ -3,12 +3,10 @@ class Ecore.Audio.Out.Sndfile (Ecore.Audio.Out)
    [[Ecore audio output to the sndfile library.]]
    eo_prefix: ecore_audio_obj_out_sndfile;
    implements {
-      Eo.Base.constructor;
-      Eo.Base.destructor;
-      Ecore.Audio.source.get;
-      Ecore.Audio.source.set;
-      Ecore.Audio.format.get;
-      Ecore.Audio.format.set;
+      Efl.Object.constructor;
+      Efl.Object.destructor;
+      Ecore.Audio.source { get; set; }
+      Ecore.Audio.format { get; set; }
       Ecore.Audio.Out.input_attach;
    }
 }

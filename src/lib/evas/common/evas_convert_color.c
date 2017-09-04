@@ -1,9 +1,6 @@
 #include "evas_common_private.h"
 #include "evas_convert_color.h"
-
-#ifdef BUILD_NEON
-#include <arm_neon.h>
-#endif
+#include "draw.h"
 
 EAPI DATA32
 evas_common_convert_ag_premul(DATA16 *data, unsigned int len)
@@ -26,91 +23,44 @@ evas_common_convert_ag_premul(DATA16 *data, unsigned int len)
    return nas;
 }
 
-EAPI DATA32
-evas_common_convert_argb_premul(DATA32 *data, unsigned int len)
+EAPI void
+evas_common_convert_ag_unpremul(DATA16 *data, unsigned int len)
 {
-   DATA32 *de = data + len;
-   DATA32 nas = 0;
-
-#ifdef BUILD_NEON
-   if (evas_common_cpu_has_feature(CPU_FEATURE_NEON))
-     {
-        uint8x8_t mask_0x00 = vdup_n_u8(0);
-        uint8x8_t mask_0x01 = vdup_n_u8(1);
-        uint8x8_t mask_0xff = vdup_n_u8(255);
-        uint8x8_t cmp;
-        uint64x1_t tmp;
-
-        while (data <= de - 8)
-          {
-             uint8x8x4_t rgba = vld4_u8(data);
-
-             cmp = vand_u8(vorr_u8(vceq_u8(rgba.val[3], mask_0xff),
-                                   vceq_u8(rgba.val[3], mask_0x00)),
-                           mask_0x01);
-             tmp = vpaddl_u32(vpaddl_u16(vpaddl_u8(cmp)));
-             nas += vget_lane_u32(vreinterpret_u32_u64(tmp), 0);
-
-             uint16x8x4_t lrgba;
-             lrgba.val[0] = vmovl_u8(rgba.val[0]);
-             lrgba.val[1] = vmovl_u8(rgba.val[1]);
-             lrgba.val[2] = vmovl_u8(rgba.val[2]);
-             lrgba.val[3] = vaddl_u8(rgba.val[3], mask_0x01);
-
-             rgba.val[0] = vshrn_n_u16(vmlaq_u16(lrgba.val[0], lrgba.val[0],
-                                                 lrgba.val[3]), 8);
-             rgba.val[1] = vshrn_n_u16(vmlaq_u16(lrgba.val[1], lrgba.val[1],
-                                                 lrgba.val[3]), 8);
-             rgba.val[2] = vshrn_n_u16(vmlaq_u16(lrgba.val[2], lrgba.val[2],
-                                                 lrgba.val[3]), 8);
-             vst4_u8(data, rgba);
-             data += 8;
-          }
-     }
-#endif
+   DATA16 *de = data + len;
+   DATA16 p_val = 0x0000, p_res = 0x0000;
 
    while (data < de)
      {
-	DATA32  a = 1 + (*data >> 24);
+        if (p_val == *data) *data = p_res;
+        else
+          {
+             DATA16 a = (*data >> 8);
 
-	*data = (*data & 0xff000000) +
-	  (((((*data) >> 8) & 0xff) * a) & 0xff00) +
-	  (((((*data) & 0x00ff00ff) * a) >> 8) & 0x00ff00ff);
-	data++;
-
-	if ((a == 1) || (a == 256))
-	  nas++;
+             p_val = *data;
+             if ((a > 0) && (a < 255))
+               {
+                  *data = ((a << 8) | (((*data & 0xff) * 0xff) / a));
+               }
+             else if (a == 0)
+               {
+                  *data = 0x0000;
+               }
+             p_res = *data;
+          }
+        data++;
      }
+}
 
-   return nas;
+EAPI DATA32
+evas_common_convert_argb_premul(DATA32 *data, unsigned int len)
+{
+   return (DATA32) efl_draw_argb_premul(data, len);
 }
 
 EAPI void
 evas_common_convert_argb_unpremul(DATA32 *data, unsigned int len)
 {
-   DATA32 *de = data + len;
-   DATA32 p_val = 0x00000000, p_res = 0x00000000;
-
-   while (data < de)
-     {
-        DATA32 a = (*data >> 24);
-
-        if (p_val == *data) *data = p_res;
-        else
-          {
-             p_val = *data;
-             if ((a > 0) && (a < 255))
-               *data = ARGB_JOIN(a,
-                                 (R_VAL(data) * 255) / a,
-                                 (G_VAL(data) * 255) / a,
-                                 (B_VAL(data) * 255) / a);
-             else if (a == 0)
-               *data = 0x00000000;
-             p_res = *data;
-          }
-	data++;
-     }
-
+   return efl_draw_argb_unpremul(data, len);
 }
 
 EAPI void
@@ -138,7 +88,7 @@ evas_common_convert_color_hsv_to_rgb(float h, float s, float v, int *r, int *g, 
    float f;
 
    v *= 255;
-   if (s == 0)
+   if (EINA_FLT_EQ(s, 0.0))
      {
        if (r) *r = v;
        if (g) *g = v;

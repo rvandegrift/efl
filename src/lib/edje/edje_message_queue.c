@@ -1,6 +1,6 @@
 #include "edje_private.h"
 
-static void _edje_object_message_popornot_send(Evas_Object *obj, Edje_Message_Type type, int id, void *msg, Eina_Bool prop);
+static void _edje_message_propagate_send(Edje *ed, Edje_Queue queue, Edje_Message_Type type, int id, void *emsg, Eina_Bool prop);
 
 static int _injob = 0;
 static Ecore_Job *_job = NULL;
@@ -16,7 +16,7 @@ static int tmp_msgq_restart = 0;
 *============================================================================*/
 
 static void
-_edje_object_message_popornot_send(Evas_Object *obj, Edje_Message_Type type, int id, void *msg, Eina_Bool prop)
+_edje_object_message_propagate_send(Evas_Object *obj, Edje_Message_Type type, int id, void *msg, Eina_Bool prop)
 {
    Edje *ed;
    Eina_List *l;
@@ -24,27 +24,125 @@ _edje_object_message_popornot_send(Evas_Object *obj, Edje_Message_Type type, int
 
    ed = _edje_fetch(obj);
    if (!ed) return;
-   _edje_message_propornot_send(ed, EDJE_QUEUE_SCRIPT, type, id, msg, prop);
+   _edje_message_propagate_send(ed, EDJE_QUEUE_SCRIPT, type, id, msg, prop);
    EINA_LIST_FOREACH(ed->subobjs, l, o)
      {
-        _edje_object_message_popornot_send(o, type, id, msg, EINA_TRUE);
+        _edje_object_message_propagate_send(o, type, id, msg, EINA_TRUE);
      }
 }
 
 EOLIAN void
-_edje_object_message_send(Eo *obj, Edje *_pd EINA_UNUSED, Edje_Message_Type type, int id, void *msg)
+_edje_object_message_send(Eo *obj, Edje *pd EINA_UNUSED, int id, const Eina_Value val)
 {
-   _edje_object_message_popornot_send(obj, type, id, msg, EINA_FALSE);
+   const Eina_Value_Type *valtype;
+   Edje_Message_Type msgtype;
+
+   /* Note: Only primitive types & arrays of them are supported.
+    * This reduces complexity and I couldn't find many real uses for combo
+    * types (string+int or string+float).
+    */
+
+   union {
+      Edje_Message_String str;
+      Edje_Message_Int i;
+      Edje_Message_Float f;
+      Edje_Message_String_Set ss;
+      Edje_Message_Int_Set is;
+      Edje_Message_Float_Set fs;
+      //Edje_Message_String_Int si;
+      //Edje_Message_String_Float sf;
+      //Edje_Message_String_Int_Set sis;
+      //Edje_Message_String_Float_Set sfs;
+   } msg, *pmsg;
+
+   valtype = eina_value_type_get(&val);
+   if (!valtype) goto bad_type;
+
+   pmsg = &msg;
+   if ((valtype == EINA_VALUE_TYPE_STRING) ||
+       (valtype == EINA_VALUE_TYPE_STRINGSHARE))
+     {
+        eina_value_get(&val, &msg.str.str);
+        msgtype = EDJE_MESSAGE_STRING;
+     }
+   else if (valtype == EINA_VALUE_TYPE_INT)
+     {
+        eina_value_get(&val, &msg.i.val);
+        msgtype = EDJE_MESSAGE_INT;
+     }
+   else if (valtype == EINA_VALUE_TYPE_FLOAT)
+     {
+        float f;
+        eina_value_get(&val, &f);
+        msg.f.val = (double) f;
+        msgtype = EDJE_MESSAGE_FLOAT;
+     }
+   else if (valtype == EINA_VALUE_TYPE_DOUBLE)
+     {
+        eina_value_get(&val, &msg.f.val);
+        msgtype = EDJE_MESSAGE_FLOAT;
+     }
+   else if (valtype == EINA_VALUE_TYPE_ARRAY)
+     {
+        Eina_Value_Array array = {};
+        size_t sz, k, count;
+
+        eina_value_get(&val, &array);
+        count = eina_inarray_count(array.array);
+        if ((array.subtype == EINA_VALUE_TYPE_STRING) ||
+            (array.subtype == EINA_VALUE_TYPE_STRINGSHARE))
+          {
+             sz = sizeof(char *);
+             msgtype = EDJE_MESSAGE_STRING_SET;
+             pmsg = alloca(sizeof(*pmsg) + sz * count);
+             pmsg->ss.count = count;
+             for (k = 0; k < count; k++)
+               pmsg->ss.str[k] = eina_inarray_nth(array.array, k);
+          }
+        else if (array.subtype == EINA_VALUE_TYPE_INT)
+          {
+             sz = sizeof(int);
+             msgtype = EDJE_MESSAGE_INT_SET;
+             pmsg = alloca(sizeof(*pmsg) + sz * count);
+             pmsg->is.count = count;
+             for (k = 0; k < count; k++)
+               pmsg->is.val[k] = *((int *) eina_inarray_nth(array.array, k));
+          }
+        else if (array.subtype == EINA_VALUE_TYPE_DOUBLE)
+          {
+             sz = sizeof(double);
+             msgtype = EDJE_MESSAGE_FLOAT_SET;
+             pmsg = alloca(sizeof(*pmsg) + sz * count);
+             pmsg->fs.count = count;
+             for (k = 0; k < count; k++)
+               pmsg->fs.val[k] = *((double *) eina_inarray_nth(array.array, k));
+          }
+        else if (array.subtype == EINA_VALUE_TYPE_FLOAT)
+          {
+             sz = sizeof(double);
+             msgtype = EDJE_MESSAGE_FLOAT_SET;
+             pmsg = alloca(sizeof(*pmsg) + sz * count);
+             pmsg->fs.count = count;
+             for (k = 0; k < count; k++)
+               pmsg->fs.val[k] = (double) *((float *) eina_inarray_nth(array.array, k));
+          }
+        else goto bad_type;
+
+     }
+   else goto bad_type;
+
+   _edje_object_message_propagate_send(obj, msgtype, id, pmsg, EINA_FALSE);
+   return;
+
+bad_type:
+   ERR("Unsupported value type: %s. Only primitives types int, real "
+       "(float or double), string or arrays of those types are supported.",
+       eina_value_type_name_get(valtype));
+   return;
 }
 
-EOLIAN void
-_edje_object_message_handler_set(Eo *obj EINA_UNUSED, Edje *ed, Edje_Message_Handler_Cb func, void *data)
-{
-   _edje_message_cb_set(ed, func, data);
-}
-
-EOLIAN void
-_edje_object_message_signal_process(Eo *obj EINA_UNUSED, Edje *ed)
+static void
+_edje_object_message_signal_process_do(Eo *obj EINA_UNUSED, Edje *ed)
 {
    Eina_List *l, *ln, *tmpq = NULL;
    Edje *lookup_ed;
@@ -129,10 +227,23 @@ end:
      tmp_msgq_restart = 1;
 }
 
-EAPI void
-edje_message_signal_process(void)
+EOLIAN void
+_edje_object_message_signal_process(Eo *obj, Edje *ed, Eina_Bool recurse)
 {
-   _edje_message_queue_process();
+   Edje *sub_ed;
+   Eina_List *l;
+   Evas_Object *o;
+
+   _edje_object_message_signal_process_do(obj, ed);
+   if (!recurse) return;
+
+   EINA_LIST_FOREACH(ed->subobjs, l, o)
+     {
+        sub_ed = _edje_fetch(o);
+        if (!sub_ed) continue;
+
+        _edje_object_message_signal_process(o, sub_ed, EINA_TRUE);
+     }
 }
 
 static Eina_Bool
@@ -351,8 +462,8 @@ _edje_message_free(Edje_Message *em)
    free(em);
 }
 
-void
-_edje_message_propornot_send(Edje *ed, Edje_Queue queue, Edje_Message_Type type, int id, void *emsg, Eina_Bool prop)
+static void
+_edje_message_propagate_send(Edje *ed, Edje_Queue queue, Edje_Message_Type type, int id, void *emsg, Eina_Bool prop)
 {
    /* FIXME: check all malloc & strdup fails and gracefully unroll and exit */
    Edje_Message *em;
@@ -542,7 +653,7 @@ _edje_message_propornot_send(Edje *ed, Edje_Queue queue, Edje_Message_Type type,
 void
 _edje_util_message_send(Edje *ed, Edje_Queue queue, Edje_Message_Type type, int id, void *emsg)
 {
-   _edje_message_propornot_send(ed, queue, type, id, emsg, EINA_FALSE);
+   _edje_message_propagate_send(ed, queue, type, id, emsg, EINA_FALSE);
 }
 
 void
@@ -887,3 +998,26 @@ _edje_message_del(Edje *ed)
      }
 }
 
+/* Legacy EAPI */
+
+EAPI void
+edje_object_message_send(Eo *obj, Edje_Message_Type type, int id, void *msg)
+{
+   _edje_object_message_propagate_send(obj, type, id, msg, EINA_FALSE);
+}
+
+EAPI void
+edje_message_signal_process(void)
+{
+   _edje_message_queue_process();
+}
+
+EAPI void
+edje_object_message_handler_set(Eo *obj, Edje_Message_Handler_Cb func, void *data)
+{
+   Edje *ed;
+
+   ed = _edje_fetch(obj);
+   if (!ed) return;
+   _edje_message_cb_set(ed, func, data);
+}

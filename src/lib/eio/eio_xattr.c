@@ -33,10 +33,16 @@ _eio_ls_xattr_heavy(void *data, Ecore_Thread *thread)
 {
    Eio_File_Char_Ls *async = data;
    Eina_Iterator *it;
+   Eina_List *pack = NULL;
    const char *tmp;
+   double start;
 
    it = eina_xattr_ls(async->ls.directory);
    if (!it) return;
+
+   eio_file_container_set(&async->ls.common, eina_iterator_container_get(it));
+
+   start = ecore_time_get();
 
    EINA_ITERATOR_FOREACH(it, tmp)
      {
@@ -49,22 +55,38 @@ _eio_ls_xattr_heavy(void *data, Ecore_Thread *thread)
                                        tmp);
           }
 
-        if (filter) ecore_thread_feedback(thread, eina_stringshare_add(tmp));
+        if (filter)
+          {
+             Eio_File_Char *send_fc;
+
+             send_fc = eio_char_malloc();
+             if (!send_fc) goto on_error;
+
+             send_fc->filename = eina_stringshare_add(tmp);
+             send_fc->associated = async->ls.common.worker.associated;
+             async->ls.common.worker.associated = NULL;
+
+             pack = eina_list_append(pack, send_fc);
+          }
+        else
+          {
+          on_error:
+             if (async->ls.common.worker.associated)
+               {
+                  eina_hash_free(async->ls.common.worker.associated);
+                  async->ls.common.worker.associated = NULL;
+               }
+          }
+
+        pack = eio_pack_send(thread, pack, &start);
 
         if (ecore_thread_check(thread))
           break;
      }
 
-   eina_iterator_free(it);
-}
+   if (pack) ecore_thread_feedback(thread, pack);
 
-static void
-_eio_ls_xattr_notify(void *data, Ecore_Thread *thread EINA_UNUSED, void *msg_data)
-{
-   Eio_File_Char_Ls *async = data;
-   const char *xattr = msg_data;
-
-   async->main_cb((void*) async->ls.common.data, &async->ls.common, xattr);
+   async->ls.ls = it;
 }
 
 static void
@@ -170,15 +192,19 @@ _eio_file_xattr_set(void *data, Ecore_Thread *thread)
      {
      case EIO_XATTR_DATA:
        failure = !eina_xattr_set(file, attribute, async->todo.xdata.xattr_data, async->todo.xdata.xattr_size, flags);
+       async->common.length = async->todo.xdata.xattr_size;
        break;
      case EIO_XATTR_STRING:
        failure = !eina_xattr_string_set(file, attribute, async->todo.xstring.xattr_string, flags);
+       async->common.length = strlen(async->todo.xstring.xattr_string) + 1;
        break;
      case EIO_XATTR_DOUBLE:
        failure = !eina_xattr_double_set(file, attribute, async->todo.xdouble.xattr_double, flags);
+       async->common.length = sizeof (double);
        break;
      case EIO_XATTR_INT:
        failure = !eina_xattr_int_set(file, attribute, async->todo.xint.xattr_int, flags);
+       async->common.length = sizeof (int);
        break;
      }
 
@@ -279,39 +305,73 @@ _eio_file_xattr_setup_set(Eio_File_Xattr *async,
  *                                   API                                      *
  *============================================================================*/
 
-EAPI Eio_File *
-eio_file_xattr(const char *path,
-	       Eio_Filter_Cb filter_cb,
-	       Eio_Main_Cb main_cb,
-	       Eio_Done_Cb done_cb,
-	       Eio_Error_Cb error_cb,
-	       const void *data)
+static Eio_File *
+_eio_file_internal_xattr(const char *path,
+                         Eio_Filter_Cb filter_cb,
+                         Eio_Main_Cb main_cb,
+                         Eio_Array_Cb main_internal_cb,
+                         Eio_Done_Cb done_cb,
+                         Eio_Error_Cb error_cb,
+                         const void *data)
 {
   Eio_File_Char_Ls *async;
 
   EINA_SAFETY_ON_NULL_RETURN_VAL(path, NULL);
-  EINA_SAFETY_ON_NULL_RETURN_VAL(main_cb, NULL);
   EINA_SAFETY_ON_NULL_RETURN_VAL(done_cb, NULL);
   EINA_SAFETY_ON_NULL_RETURN_VAL(error_cb, NULL);
 
-  async = calloc(1, sizeof (Eio_File_Char_Ls));
+  async = eio_common_alloc(sizeof (Eio_File_Char_Ls));
   EINA_SAFETY_ON_NULL_RETURN_VAL(async, NULL);
 
-  async->filter_cb = filter_cb;
-  async->main_cb = main_cb;
   async->ls.directory = eina_stringshare_add(path);
+  async->filter_cb = filter_cb;
+
+  if (main_internal_cb)
+    {
+       async->main_internal_cb = main_internal_cb;
+       async->ls.gather = EINA_TRUE;
+    }
+  else
+    {
+       async->main_cb = main_cb;
+    }
 
   if (!eio_long_file_set(&async->ls.common,
                          done_cb,
                          error_cb,
                          data,
                          _eio_ls_xattr_heavy,
-                         _eio_ls_xattr_notify,
+                         _eio_string_notify,
                          eio_async_end,
                          eio_async_error))
     return NULL;
 
   return &async->ls.common;
+}
+
+EAPI Eio_File *
+eio_file_xattr(const char *path,
+               Eio_Filter_Cb filter_cb,
+               Eio_Main_Cb main_cb,
+               Eio_Done_Cb done_cb,
+               Eio_Error_Cb error_cb,
+               const void *data)
+{
+  EINA_SAFETY_ON_NULL_RETURN_VAL(main_cb, NULL);
+
+  return _eio_file_internal_xattr(path, filter_cb, main_cb, NULL, done_cb, error_cb, data);
+}
+
+Eio_File *
+_eio_file_xattr(const char *path,
+                Eio_Array_Cb main_internal_cb,
+                Eio_Done_Cb done_cb,
+                Eio_Error_Cb error_cb,
+                const void *data)
+{
+   EINA_SAFETY_ON_NULL_RETURN_VAL(main_internal_cb, NULL);
+
+   return _eio_file_internal_xattr(path, NULL, NULL, main_internal_cb, done_cb, error_cb, data);
 }
 
 EAPI Eio_File *

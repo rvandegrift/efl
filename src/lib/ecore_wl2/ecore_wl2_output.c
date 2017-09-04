@@ -8,17 +8,40 @@ static void
 _cb_geometry(void *data, struct wl_output *wl_output EINA_UNUSED, int x, int y, int w, int h, int subpixel EINA_UNUSED, const char *make, const char *model, int transform)
 {
    Ecore_Wl2_Output *output;
+   int ot;
 
    output = data;
    if (!output) return;
+
+   eina_stringshare_replace(&output->make, make);
+   eina_stringshare_replace(&output->model, model);
 
    output->mw = w;
    output->mh = h;
    output->geometry.x = x;
    output->geometry.y = y;
-   output->transform = transform;
-   eina_stringshare_replace(&output->make, make);
-   eina_stringshare_replace(&output->model, model);
+
+   ot = output->transform;
+
+   if (transform & 0x4)
+     ERR("Cannot support output transformation");
+
+   transform &= 0x3;
+   if (output->transform != transform)
+     {
+        Ecore_Wl2_Event_Output_Transform *ev;
+
+        output->transform = transform;
+
+        ev = calloc(1, sizeof(Ecore_Wl2_Event_Output_Transform));
+        if (ev)
+          {
+             ev->output = output;
+             ev->old_transform = ot;
+             ev->transform = transform;
+             ecore_event_add(ECORE_WL2_EVENT_OUTPUT_TRANSFORM, ev, NULL, NULL);
+          }
+     }
 }
 
 static void
@@ -97,14 +120,29 @@ _ecore_wl2_output_del(Ecore_Wl2_Output *output)
 EAPI int
 ecore_wl2_output_dpi_get(Ecore_Wl2_Output *output)
 {
-   int w, mw;
+   int w, h, mw, mh, dpi;
+   double target;
 
    EINA_SAFETY_ON_NULL_RETURN_VAL(output, 75);
 
    mw = output->mw;
    if (mw <= 0) return 75;
 
-   w = output->geometry.w;
+   mh = output->mh;
+   if (mh <= 0) return 75;
 
-   return (((w * 254) / mw) + 5) / 10;
+   w = output->geometry.w;
+   h = output->geometry.h;
+
+   target = (round((sqrt(mw * mw + mh * mh) / 25.4) * 10) / 10);
+   dpi = (round((sqrt(w * w + h * h) / target) * 10) / 10);
+
+   return dpi;
+}
+
+EAPI int
+ecore_wl2_output_transform_get(Ecore_Wl2_Output *output)
+{
+   EINA_SAFETY_ON_NULL_RETURN_VAL(output, 0);
+   return output->transform;
 }

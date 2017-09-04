@@ -268,7 +268,7 @@ START_TEST(ecore_test_ecore_main_loop_fd_handler)
 END_TEST
 
 static void
-_eo_read_cb(void *data, const Eo_Event *info EINA_UNUSED)
+_eo_read_cb(void *data, const Efl_Event *info EINA_UNUSED)
 {
    Eina_Bool *did = data;
 
@@ -289,9 +289,9 @@ START_TEST(ecore_test_efl_loop_fd)
    ret = pipe(comm);
    fail_if(ret != 0);
 
-   fd = eo_add(EFL_LOOP_FD_CLASS, ecore_main_loop_get(),
-               efl_loop_fd_set(eo_self, comm[0]),
-               eo_event_callback_add(eo_self, EFL_LOOP_FD_EVENT_READ, _eo_read_cb, &did));
+   fd = efl_add(EFL_LOOP_FD_CLASS, ecore_main_loop_get(),
+               efl_loop_fd_set(efl_added, comm[0]),
+               efl_event_callback_add(efl_added, EFL_LOOP_FD_EVENT_READ, _eo_read_cb, &did));
    fail_if(fd == NULL);
 
    ret = write(comm[1], &did, 1);
@@ -309,7 +309,7 @@ START_TEST(ecore_test_efl_loop_fd)
 END_TEST
 
 static void
-_eo_del_cb(void *data, const Eo_Event *ev EINA_UNUSED)
+_efl_del_cb(void *data, const Efl_Event *ev EINA_UNUSED)
 {
    Eina_Bool *dead = data;
 
@@ -324,7 +324,7 @@ START_TEST(ecore_test_efl_loop_fd_lifecycle)
    int comm[2];
    int ret;
 
-   eo_init();
+   efl_object_init();
 
    ret = ecore_init();
    fail_if(ret < 1);
@@ -332,11 +332,11 @@ START_TEST(ecore_test_efl_loop_fd_lifecycle)
    ret = pipe(comm);
    fail_if(ret != 0);
 
-   fd = eo_add(EFL_LOOP_FD_CLASS, ecore_main_loop_get(),
-               efl_loop_fd_set(eo_self, comm[0]),
-               eo_event_callback_add(eo_self, EFL_LOOP_FD_EVENT_READ, _eo_read_cb, &did),
-               eo_event_callback_add(eo_self, EO_EVENT_DEL, _eo_del_cb, &dead));
-   eo_ref(fd);
+   fd = efl_add(EFL_LOOP_FD_CLASS, ecore_main_loop_get(),
+               efl_loop_fd_set(efl_added, comm[0]),
+               efl_event_callback_add(efl_added, EFL_LOOP_FD_EVENT_READ, _eo_read_cb, &did),
+               efl_event_callback_add(efl_added, EFL_EVENT_DEL, _efl_del_cb, &dead));
+   efl_ref(fd);
    fail_if(fd == NULL);
 
    ret = write(comm[1], &did, 1);
@@ -352,10 +352,10 @@ START_TEST(ecore_test_efl_loop_fd_lifecycle)
 
    ret = ecore_shutdown();
 
-   eo_del(fd);
+   efl_del(fd);
    fail_if(dead == EINA_FALSE);
 
-   eo_shutdown();
+   efl_object_shutdown();
 }
 END_TEST
 
@@ -822,26 +822,30 @@ END_TEST
 
 START_TEST(ecore_test_efl_loop_register)
 {
-   Eo_Base *t, *n;
+   Efl_Object *t, *n;
 
    ecore_init();
 
-   t = eo_provider_find(ecore_main_loop_get(), EFL_LOOP_CLASS);
-   fail_if(!eo_isa(t, EFL_LOOP_CLASS));
+   t = efl_provider_find(ecore_main_loop_get(), EFL_LOOP_CLASS);
+   fail_if(!efl_isa(t, EFL_LOOP_CLASS));
 
-   t = eo_provider_find(ecore_main_loop_get(), EFL_LOOP_TIMER_CLASS);
+   t = efl_provider_find(ecore_main_loop_get(), EFL_LOOP_TIMER_CLASS);
    fail_if(t != NULL);
 
-   n = eo_add(EFL_LOOP_TIMER_CLASS, ecore_main_loop_get());
+   n = efl_add(EFL_LOOP_TIMER_CLASS, ecore_main_loop_get());
+   fail_if(n != NULL);
+
+   n = efl_add(EFL_LOOP_TIMER_CLASS, ecore_main_loop_get(),
+               efl_loop_timer_interval_set(efl_added, 1.0));
    efl_loop_register(ecore_main_loop_get(), EFL_LOOP_TIMER_CLASS, n);
 
-   t = eo_provider_find(ecore_main_loop_get(), EFL_LOOP_TIMER_CLASS);
-   fail_if(!eo_isa(t, EFL_LOOP_TIMER_CLASS));
+   t = efl_provider_find(ecore_main_loop_get(), EFL_LOOP_TIMER_CLASS);
+   fail_if(!efl_isa(t, EFL_LOOP_TIMER_CLASS));
    fail_if(t != n);
 
    efl_loop_unregister(ecore_main_loop_get(), EFL_LOOP_TIMER_CLASS, n);
 
-   t = eo_provider_find(ecore_main_loop_get(), EFL_LOOP_TIMER_CLASS);
+   t = efl_provider_find(ecore_main_loop_get(), EFL_LOOP_TIMER_CLASS);
    fail_if(t != NULL);
 
    ecore_shutdown();
@@ -856,7 +860,7 @@ START_TEST(ecore_test_efl_app_version)
    ecore_init();
 
    loop = efl_loop_main_get(EFL_LOOP_CLASS);
-   fail_if(!eo_isa(loop, EFL_LOOP_CLASS));
+   fail_if(!efl_isa(loop, EFL_LOOP_CLASS));
 
    efl_build_version_set(EFL_VERSION_MAJOR, EFL_VERSION_MINOR, 0, 0, NULL, EFL_BUILD_ID);
    ver = efl_loop_app_efl_version_get(loop);

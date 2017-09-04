@@ -6,11 +6,11 @@
 #include <Elementary.hh>
 
 EAPI_MAIN int
-elm_main (int argc, char *argv[])
+elm_main (int argc EINA_UNUSED, char **argv EINA_UNUSED)
 {
    elm_policy_set(ELM_POLICY_QUIT, ELM_POLICY_QUIT_LAST_WINDOW_HIDDEN);
 
-   efl::ui::win::Standard win;
+   efl::ui::Win win;
 //    //win.title_set("Hello, World!");
 //    win.autohide_set(true);
 
@@ -23,8 +23,8 @@ elm_main (int argc, char *argv[])
    // win.title_set("Hello, World!");
    win.autohide_set(true);
 
-   ::elm::Button btn(win);
-   btn.text_set(nullptr,"Good-Bye, World!");
+   efl::ui::Button btn(win);
+   btn.text_set("Good-Bye, World!");
    btn.eo_cxx::efl::Gfx::size_set(120, 30);
    btn.eo_cxx::efl::Gfx::position_set(60, 15);
    btn.visible_set(true);

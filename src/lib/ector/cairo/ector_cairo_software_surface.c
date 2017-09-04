@@ -51,9 +51,8 @@ struct _Ector_Cairo_Software_Surface_Data
 
 EOLIAN static Eina_Bool
 _ector_cairo_software_surface_ector_buffer_pixels_set(Eo *obj, Ector_Cairo_Software_Surface_Data *pd,
-                                                              void *pixels, int width, int height, int stride,
-                                                              Efl_Gfx_Colorspace cspace, Eina_Bool writable,
-                                                              unsigned char l, unsigned char r, unsigned char t, unsigned char b)
+                                                      void *pixels, int width, int height,
+                                                      Efl_Gfx_Colorspace cspace, Eina_Bool writable)
 {
    cairo_t *ctx = NULL;
    Eina_Bool ok = EINA_FALSE;
@@ -73,7 +72,7 @@ _ector_cairo_software_surface_ector_buffer_pixels_set(Eo *obj, Ector_Cairo_Softw
      cairo_surface_destroy(pd->surface);
    pd->surface = NULL;
 
-   ok = ector_buffer_pixels_set(eo_super(obj, MY_CLASS), pixels, width, height, stride, cspace, writable, l, r, t, b);
+   ok = ector_buffer_pixels_set(efl_super(obj, MY_CLASS), pixels, width, height, cspace, writable);
 
    if (ok && pixels)
      {
@@ -99,23 +98,23 @@ _ector_cairo_software_surface_surface_get(Eo *obj EINA_UNUSED, Ector_Cairo_Softw
    if (height) *height = pd->base->generic->h;
 }
 
-static Eo_Base *
-_ector_cairo_software_surface_eo_base_constructor(Eo *obj, Ector_Cairo_Software_Surface_Data *pd)
+static Efl_Object *
+_ector_cairo_software_surface_efl_object_constructor(Eo *obj, Ector_Cairo_Software_Surface_Data *pd)
 {
-   obj = eo_constructor(eo_super(obj, MY_CLASS));
+   obj = efl_constructor(efl_super(obj, MY_CLASS));
 
    if (!obj) return NULL;
-   pd->base = eo_data_ref(obj, ECTOR_SOFTWARE_BUFFER_BASE_MIXIN);
-   pd->base->generic = eo_data_ref(obj, ECTOR_BUFFER_MIXIN);
+   pd->base = efl_data_ref(obj, ECTOR_SOFTWARE_BUFFER_BASE_MIXIN);
+   pd->base->generic = efl_data_ref(obj, ECTOR_BUFFER_MIXIN);
    pd->base->generic->eo = obj;
    return obj;
 }
 
 EOLIAN static void
-_ector_cairo_software_surface_eo_base_destructor(Eo *obj, Ector_Cairo_Software_Surface_Data *pd)
+_ector_cairo_software_surface_efl_object_destructor(Eo *obj, Ector_Cairo_Software_Surface_Data *pd)
 {
-   eo_data_unref(obj, pd->base);
-   eo_destructor(eo_super(obj, MY_CLASS));
+   efl_data_unref(obj, pd->base);
+   efl_destructor(efl_super(obj, MY_CLASS));
 }
 
 #include "ector_cairo_software_surface.eo.c"

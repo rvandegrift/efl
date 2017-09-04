@@ -68,8 +68,10 @@ EAPI void elm_code_line_split_at(Elm_Code_Line *line, unsigned int position)
    char *content;
    unsigned int length;
 
-   content = (char *) elm_code_line_text_get(line, &length);
+   content = (char *) elm_code_line_text_get(line, &length); 
+   if (!content) return;
    content = strndup(content, length);
+   if (!content) return;
    elm_code_file_line_insert(line->file, line->number + 1, "", 0, NULL);
    newline = elm_code_file_line_get(line->file, line->number + 1);
 
@@ -96,8 +98,10 @@ _elm_code_line_merge_into(Elm_Code_Line *line1, Elm_Code_Line *line2)
    text2 = elm_code_line_text_get(line2, &length2);
 
    newtext = malloc(sizeof(char) * (length1 + length2 + 1));
-   snprintf(newtext, length1 + 1, "%s", text1);
-   snprintf(newtext + length1, length2 + 1, "%s", text2);
+   if (length1 > 0)
+     snprintf(newtext, length1 + 1, "%s", text1);
+   if (length2 > 0)
+     snprintf(newtext + length1, length2 + 1, "%s", text2);
 
    tokens1 = line1->tokens;
    line1->tokens = NULL;
@@ -224,7 +228,7 @@ elm_code_line_contains_widget_cursor(Elm_Code_Line *line)
 
    EINA_LIST_FOREACH(code->widgets, item, widget)
      {
-        elm_code_widget_cursor_position_get(widget, &col, &number);
+        elm_code_widget_cursor_position_get(widget, &number, &col);
 
         if (number == line->number)
           return EINA_TRUE;

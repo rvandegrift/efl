@@ -5,7 +5,7 @@ struct Efl.Canvas.Surface.X11_Pixmap
    pixmap: ulong;  [[X11 Pixmap ID.]]
 }
 
-class Efl.Canvas.Surface.X11 (Eo.Base, Efl.Canvas.Surface)
+class Efl.Canvas.Surface.X11 (Efl.Object, Efl.Canvas.Surface)
 {
    [[Native X11 surface for Efl canvas]]
 
@@ -13,7 +13,9 @@ class Efl.Canvas.Surface.X11 (Eo.Base, Efl.Canvas.Surface)
       @property pixmap {
          [[This is a helper for @Efl.Canvas.Surface.native_buffer.]]
          get {}
-         set { return: bool; }
+         set {
+            return: bool; [[$true on success, $false otherwise]]
+         }
          values {
             visual: void_ptr; [[X11 Visual for this Pixmap.]]
             pixmap: ulong;  [[X11 Pixmap ID.]]
@@ -21,8 +23,8 @@ class Efl.Canvas.Surface.X11 (Eo.Base, Efl.Canvas.Surface)
       }
    }
    implements {
-      Eo.Base.constructor;
-      Eo.Base.destructor;
-      Efl.Canvas.Surface.native_buffer.set;
+      Efl.Object.constructor;
+      Efl.Object.destructor;
+      Efl.Canvas.Surface.native_buffer { set; }
    }
 }

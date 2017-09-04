@@ -5,9 +5,9 @@ typedef struct _Elm_Code Elm_Code;
 typedef struct _Elm_Code_File Elm_Code_File;
 
 /** Event marking that a single line has loaded or changed */
-EAPI extern const Eo_Event_Description ELM_CODE_EVENT_LINE_LOAD_DONE;
+EAPI extern const Efl_Event_Description ELM_CODE_EVENT_LINE_LOAD_DONE;
 /** Event that marks a file load has been completed */
-EAPI extern const Eo_Event_Description ELM_CODE_EVENT_FILE_LOAD_DONE;
+EAPI extern const Efl_Event_Description ELM_CODE_EVENT_FILE_LOAD_DONE;
 
 typedef enum {
    ELM_CODE_STATUS_TYPE_DEFAULT = 0,
@@ -47,6 +47,8 @@ typedef enum {
    ELM_CODE_TOKEN_TYPE_ADDED,
    ELM_CODE_TOKEN_TYPE_REMOVED,
    ELM_CODE_TOKEN_TYPE_CHANGED,
+
+   ELM_CODE_TOKEN_TYPE_MATCH,
 
    ELM_CODE_TOKEN_TYPE_COUNT
 } Elm_Code_Token_Type;

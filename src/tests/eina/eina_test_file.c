@@ -512,7 +512,7 @@ START_TEST(eina_test_file_thread)
    fail_if(!eina_init());
 
    for (i = 0; i < 4; i++)
-     fail_if(!(eina_thread_create(&th[i], EINA_THREAD_NORMAL, 0, _eina_test_file_thread, NULL)));
+     fail_if(!(eina_thread_create(&th[i], EINA_THREAD_NORMAL, -1, _eina_test_file_thread, NULL)));
 
    for (i = 0; i < 4; i++)
      fail_if(eina_thread_join(th[i]) != NULL);
@@ -824,6 +824,46 @@ START_TEST(eina_test_file_mktemp)
 }
 END_TEST
 
+int  create_file_not_empty(const char *file_name, Eina_Tmpstr **test_file_path, Eina_Bool close_file)
+{
+   const char *data = "abcdefghijklmnopqrstuvwxyz";
+   int data_size = strlen(data);
+   int wr_size;
+   int fd = eina_file_mkstemp(file_name, test_file_path);
+   fail_if(fd <= 0);
+   wr_size = write(fd, data, data_size);
+   if(close_file == EINA_TRUE)
+   {
+      close(fd);
+      fd = 0;
+   }
+   fail_if(wr_size != data_size);
+   return fd;
+}
+
+START_TEST(eina_test_file_unlink)
+{
+   int fd;
+   Eina_Tmpstr *test_file_path;
+   const char *tmpfile = "eina_file_test_XXXXXX";
+
+   eina_init();
+
+   /*If file was not opened as 'eina'*/
+   fd = create_file_not_empty(tmpfile, &test_file_path, EINA_TRUE);
+   fail_if(fd != 0);
+   fail_if(!eina_file_unlink(test_file_path));
+
+   /*If file was opened as 'eina'*/
+   fd = create_file_not_empty(tmpfile, &test_file_path, EINA_TRUE);
+   fail_if(fd != 0);
+   fail_if(!eina_file_open(test_file_path, EINA_FALSE));
+   fail_if(!eina_file_unlink(test_file_path));
+
+   eina_shutdown();
+}
+END_TEST
+
 void
 eina_test_file(TCase *tc)
 {
@@ -840,4 +880,6 @@ eina_test_file(TCase *tc)
    tcase_add_test(tc, eina_test_file_copy);
    tcase_add_test(tc, eina_test_file_statat);
    tcase_add_test(tc, eina_test_file_mktemp);
+   tcase_add_test(tc, eina_test_file_unlink);
+
 }

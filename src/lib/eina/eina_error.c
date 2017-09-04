@@ -38,6 +38,10 @@
 #include "eina_error.h"
 #include "eina_stringshare.h"
 #include "eina_lock.h"
+#include "eina_str.h"
+#ifdef EINA_HAVE_THREADS
+#include "eina_hash.h"
+#endif
 
 /* TODO
  * + add a wrapper for assert?
@@ -61,9 +65,20 @@ struct _Eina_Error_Message
    const char *string;
 };
 
+#ifdef EINA_HAVE_THREADS
+static Eina_Spinlock _eina_errno_msgs_lock;
+static Eina_Hash *_eina_errno_msgs = NULL;
+#endif
 static Eina_Error_Message *_eina_errors = NULL;
 static size_t _eina_errors_count = 0;
 static size_t _eina_errors_allocated = 0;
+
+/* used to differentiate registered errors from errno.h */
+#define EINA_ERROR_REGISTERED_BIT (1 << 30)
+#define EINA_ERROR_REGISTERED_CHECK(err) ((err) & EINA_ERROR_REGISTERED_BIT)
+
+#define EINA_ERROR_FROM_INDEX(idx) ((idx) | EINA_ERROR_REGISTERED_BIT)
+#define EINA_ERROR_TO_INDEX(err) ((err) & (~EINA_ERROR_REGISTERED_BIT))
 
 static Eina_Error _eina_last_error;
 static Eina_TLS _eina_last_key;
@@ -109,9 +124,7 @@ _eina_error_msg_alloc(void)
  * @cond LOCAL
  */
 
-EAPI Eina_Error EINA_ERROR_OUT_OF_MEMORY = 0;
-
-static const char EINA_ERROR_OUT_OF_MEMORY_STR[] = "Out of memory";
+EAPI Eina_Error EINA_ERROR_OUT_OF_MEMORY = ENOMEM;
 
 /**
  * @endcond
@@ -133,12 +146,25 @@ static const char EINA_ERROR_OUT_OF_MEMORY_STR[] = "Out of memory";
 Eina_Bool
 eina_error_init(void)
 {
-   /* TODO register the eina's basic errors */
-   EINA_ERROR_OUT_OF_MEMORY = eina_error_msg_static_register(
-         EINA_ERROR_OUT_OF_MEMORY_STR);
    if (!eina_tls_new(&_eina_last_key))
      return EINA_FALSE;
+
+#ifdef EINA_HAVE_THREADS
+   if (!eina_spinlock_new(&_eina_errno_msgs_lock)) goto failed_lock;
+   _eina_errno_msgs = eina_hash_int32_new(EINA_FREE_CB(eina_stringshare_del));
+   if (!_eina_errno_msgs) goto failed_hash;
+#endif
+
    return EINA_TRUE;
+
+#ifdef EINA_HAVE_THREADS
+ failed_hash:
+   eina_spinlock_free(&_eina_errno_msgs_lock);
+ failed_lock:
+   eina_tls_free(_eina_last_key);
+   _eina_last_error = 0;
+   return EINA_FALSE;
+#endif
 }
 
 /**
@@ -169,6 +195,12 @@ eina_error_shutdown(void)
    _eina_errors_count = 0;
    _eina_errors_allocated = 0;
 
+#ifdef EINA_HAVE_THREADS
+   eina_hash_free(_eina_errno_msgs);
+   _eina_errno_msgs = NULL;
+   eina_spinlock_free(&_eina_errno_msgs_lock);
+#endif
+
    eina_tls_free(_eina_last_key);
    _eina_last_error = 0;
 
@@ -198,7 +230,7 @@ eina_error_msg_register(const char *msg)
         return 0;
      }
 
-   return _eina_errors_count; /* identifier = index + 1 (== _count). */
+   return EINA_ERROR_FROM_INDEX(_eina_errors_count); /* identifier = index + 1 (== _count). */
 }
 
 EAPI Eina_Error
@@ -214,13 +246,15 @@ eina_error_msg_static_register(const char *msg)
 
    eem->string_allocated = EINA_FALSE;
    eem->string = msg;
-   return _eina_errors_count; /* identifier = index + 1 (== _count). */
+   return EINA_ERROR_FROM_INDEX(_eina_errors_count); /* identifier = index + 1 (== _count). */
 }
 
 EAPI Eina_Bool
 eina_error_msg_modify(Eina_Error error, const char *msg)
 {
    EINA_SAFETY_ON_NULL_RETURN_VAL(msg, EINA_FALSE);
+   EINA_SAFETY_ON_FALSE_RETURN_VAL(EINA_ERROR_REGISTERED_CHECK(error), EINA_FALSE);
+   error = EINA_ERROR_TO_INDEX(error);
    if (error < 1)
       return EINA_FALSE;
 
@@ -246,6 +280,88 @@ eina_error_msg_modify(Eina_Error error, const char *msg)
 EAPI const char *
 eina_error_msg_get(Eina_Error error)
 {
+   if (!EINA_ERROR_REGISTERED_CHECK(error))
+     {
+        const char unknown_prefix[] = "Unknown error ";
+        const char *msg;
+
+        /* original behavior of this function did not return strings
+         * for unknown errors, so skip 0 ("Success") and
+         * "Unknown error $N".
+         */
+        if (error == 0) return NULL;
+
+#ifndef EINA_HAVE_THREADS
+        msg = strerror(error);
+        if (strncmp(msg, unknown_prefix, sizeof(unknown_prefix) -1) == 0)
+          msg = NULL;
+#else /* EINA_HAVE_THREADS */
+        /* strerror() is not thread safe, so use a local buffer with
+         * strerror_r() and cache resolved strings in a hash so we can
+         * return the stringshared refernece.
+         */
+        if (eina_spinlock_take(&_eina_errno_msgs_lock) != EINA_LOCK_SUCCEED)
+          {
+             EINA_SAFETY_ERROR("could not take spinlock for errno messages hash!");
+             return NULL;
+          }
+        msg = eina_hash_find(_eina_errno_msgs, &error);
+        eina_spinlock_release(&_eina_errno_msgs_lock);
+
+        if (!msg)
+          {
+             char buf[256] = "";
+             const char *str = NULL;
+
+#ifdef HAVE_STRERROR_R
+# ifndef STRERROR_R_CHAR_P
+             int ret;
+
+             ret = strerror_r(error, buf, sizeof(buf)); /* XSI */
+             if (ret == 0)
+               str = buf;
+             else if (ret == EINVAL)
+               return NULL;
+# else /* STRERROR_R_CHAR_P */
+             str = strerror_r(error, buf, sizeof(buf)); /* GNU */
+# endif /* ! STRERROR_R_CHAR_P */
+#else
+              /* not so good fallback. Usually strerror(err) will
+               * return a const string if a known error (what we use),
+               * and will return a pointer to a global modified string
+               * formatted with "Unknown error XXXX".. which we just
+               * ignore... so while it's not super-correct, this
+               * should work well.
+               */
+             eina_strlcpy(buf, strerror(error), sizeof(buf));
+             str = buf;
+#endif /* HAVE_STRERROR_R */
+
+             if (!str)
+               EINA_SAFETY_ERROR("strerror_r() failed");
+             else
+               {
+                  if (strncmp(str, unknown_prefix, sizeof(unknown_prefix) -1) == 0)
+                    msg = NULL;
+                  else
+                    {
+                       msg = eina_stringshare_add(str);
+                       if (eina_spinlock_take(&_eina_errno_msgs_lock) != EINA_LOCK_SUCCEED)
+                         {
+                            EINA_SAFETY_ERROR("could not take spinlock for errno messages hash!");
+                            return NULL;
+                         }
+                       eina_hash_add(_eina_errno_msgs, &error, msg);
+                       eina_spinlock_release(&_eina_errno_msgs_lock);
+                    }
+               }
+          }
+#endif
+        return msg;
+     }
+
+   error = EINA_ERROR_TO_INDEX(error);
+
    if (error < 1)
       return NULL;
 
@@ -285,10 +401,16 @@ eina_error_find(const char *msg)
         if (_eina_errors[i].string_allocated)
           {
              if (_eina_errors[i].string == msg)
-               return i + 1;
+               return EINA_ERROR_FROM_INDEX(i + 1);
           }
         if (!strcmp(_eina_errors[i].string, msg))
-          return i + 1;
+          return EINA_ERROR_FROM_INDEX(i + 1);
      }
+
+   /* not bothering to lookup errno.h as we don't have a "maximum
+    * error", thus we'd need to loop up to some arbitrary constant and
+    * keep comparing if strerror() returns something meaningful.
+    */
+
    return 0;
 }

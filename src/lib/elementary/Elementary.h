@@ -7,21 +7,8 @@
 #ifndef ELEMENTARY_H
 #define ELEMENTARY_H
 
-#define ELM_ELDBUS
-#define ELM_EFREET
-#define ELM_ETHUMB
-
-#define ELM_UNIX
-#undef ELM_WIN32
-#undef ELM_EMAP
-#undef ELM_DEBUG
-#define ELM_ALLOCA_H
-#define ELM_LIBINTL_H
-#define ELM_DIRENT_H
-
-#ifdef EFL_BETA_API_SUPPORT
-# define ELM_ELOCATION
-#endif
+/* Options which can be enabled or disabled by the buildtool */
+#include "Elementary_Options.h"
 
 /* Standard headers for standard system calls etc. */
 #include <stdio.h>
@@ -83,6 +70,7 @@
 #include <Efreet_Mime.h>
 #include <Efreet_Trash.h>
 #include <Ethumb_Client.h>
+#include <Efl.h>
 
 #ifdef ELM_ELOCATION
 #include <Elocation.h>
@@ -135,8 +123,8 @@ extern "C"
 #include <elm_getting_started.h>
 #include <elm_authors.h>
 
-#define ELM_VERSION_MAJOR 1
-#define ELM_VERSION_MINOR 18
+#define ELM_VERSION_MAJOR EFL_VERSION_MAJOR
+#define ELM_VERSION_MINOR EFL_VERSION_MINOR
 
 typedef struct _Elm_Version
 {
@@ -148,11 +136,21 @@ typedef struct _Elm_Version
 
 EAPI extern Elm_Version *elm_version;
 
+
 /* include these first for general used definitions */
 #include <elm_gen.h>
 #include <elm_general.h>
 #include <elm_config.h>
 #include <elm_focus.h>
+
+#if defined (EFL_EO_API_SUPPORT) && defined (EFL_BETA_API_SUPPORT)
+# include "efl_ui_focus_object.eo.h"
+# include "efl_ui_focus_manager.eo.h"
+# include "efl_ui_focus_manager_sub.eo.h"
+# include "efl_ui_focus_manager_root_focus.eo.h"
+# include "efl_ui_focus_user.eo.h"
+#endif
+
 #include <elm_tooltip.h>
 #include <elm_object_item.h>
 #include <elm_focus_item.h>
@@ -184,11 +182,6 @@ EAPI extern Elm_Version *elm_version;
 #include <elc_naviframe.h>
 #include <elc_popup.h>
 #include <elm_actionslider.h>
-#include <elm_app_common.h>
-#include <elm_app_server.h>
-#include <elm_app_server_view.h>
-#include <elm_app_client.h>
-#include <elm_app_client_view.h>
 #include <elm_app.h>
 #include <elm_atspi_app_object.h>
 #include <elm_atspi_bridge.h>
@@ -266,20 +259,21 @@ EAPI extern Elm_Version *elm_version;
 #include <elm_view_form.h>
 #include <elm_web.h>
 #include <elm_win.h>
-#include <elm_win_standard.h>
 
 #ifdef EFL_EO_API_SUPPORT
 # include <efl_config_global.eo.h>
 # include <efl_ui_box.eo.h>
 # include <efl_ui_box_flow.eo.h>
+# include <efl_ui_box_stack.eo.h>
 # include <efl_ui_grid.eo.h>
 # include <efl_ui_grid_static.eo.h>
 # include <efl_ui_image.eo.h>
 # include <efl_ui_win.eo.h>
-# include <efl_ui_win_standard.eo.h>
 # include <efl_ui_text_interactive.eo.h>
 # include <efl_ui_text.eo.h>
 # include <efl_ui_text_editable.eo.h>
+# include <efl_ui_clock.eo.h>
+# include <efl_ui_image_factory.eo.h>
 #endif
 
 /* include deprecated calls last of all */

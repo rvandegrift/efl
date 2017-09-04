@@ -46,6 +46,10 @@
 #include <mcheck.h>
 #endif
 
+#ifdef _WIN32
+#include "Evil.h"
+#endif
+
 #include "eina_lock.h"
 #include "eina_config.h"
 #include "eina_private.h"
@@ -68,9 +72,8 @@
 #include "eina_inarray.h"
 #include "eina_value.h"
 #include "eina_evlog.h"
-/* no model for now
-#include "eina_model.h"
- */
+#include "eina_freeq.h"
+#include "eina_slstr.h"
 
 /*============================================================================*
 *                                  Local                                     *
@@ -145,7 +148,6 @@ EAPI Eina_Inlist *_eina_tracking = NULL;
    S(ustrbuf);
    S(quadtree);
    S(simple_xml);
-   S(file);
    S(prefix);
    S(value);
    S(tmpstr);
@@ -154,11 +156,9 @@ EAPI Eina_Inlist *_eina_tracking = NULL;
    S(cpu);
    S(thread_queue);
    S(rbtree);
+   S(file);
    S(safepointer);
-   S(promise);
-/* no model for now
-   S(model);
- */
+   S(slstr);
 #undef S
 
 struct eina_desc_setup
@@ -194,7 +194,6 @@ static const struct eina_desc_setup _eina_desc_setup[] = {
    S(ustrbuf),
    S(quadtree),
    S(simple_xml),
-   S(file),
    S(prefix),
    S(value),
    S(tmpstr),
@@ -203,11 +202,9 @@ static const struct eina_desc_setup _eina_desc_setup[] = {
    S(cpu),
    S(thread_queue),
    S(rbtree),
+   S(file),
    S(safepointer),
-   S(promise)
-/* no model for now
-   S(model)
- */
+   S(slstr),
 #undef S
 };
 static const size_t _eina_desc_setup_len = sizeof(_eina_desc_setup) /
@@ -266,6 +263,12 @@ eina_init(void)
      }
 #endif
 
+#ifdef EFL_HAVE_THREADS
+   _eina_main_loop = pthread_self();
+#endif
+
+   eina_freeq_main_set(eina_freeq_new(EINA_FREEQ_DEFAULT));
+
    if (!eina_log_init())
      {
         fprintf(stderr, "Could not initialize eina logging system.\n");
@@ -279,10 +282,6 @@ eina_init(void)
         eina_log_shutdown();
         return 0;
      }
-
-#ifdef EFL_HAVE_THREADS
-   _eina_main_loop = pthread_self();
-#endif
 
 #ifdef EINA_HAVE_DEBUG_THREADS
    pthread_mutex_init(&_eina_tracking_lock, NULL);
@@ -332,6 +331,7 @@ eina_shutdown(void)
 #ifdef EINA_HAVE_DEBUG_THREADS
 	pthread_mutex_destroy(&_eina_tracking_lock);
 #endif
+        eina_freeq_free(eina_freeq_main_get());
 #ifdef MT
         if (_mt_enabled)
           {

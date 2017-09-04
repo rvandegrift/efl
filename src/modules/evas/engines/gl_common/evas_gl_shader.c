@@ -28,19 +28,24 @@ typedef enum {
    SHADER_FLAG_MASKSAM12         = (1 << (SHADER_FLAG_MASKSAM_BITSHIFT + 0)),
    SHADER_FLAG_MASKSAM21         = (1 << (SHADER_FLAG_MASKSAM_BITSHIFT + 1)),
    SHADER_FLAG_MASKSAM22         = (1 << (SHADER_FLAG_MASKSAM_BITSHIFT + 2)),
-   SHADER_FLAG_IMG               = (1 << 9),
-   SHADER_FLAG_BIGENDIAN         = (1 << 10),
-   SHADER_FLAG_YUV               = (1 << 11),
-   SHADER_FLAG_YUY2              = (1 << 12),
-   SHADER_FLAG_NV12              = (1 << 13),
-   SHADER_FLAG_YUV_709           = (1 << 14),
-   SHADER_FLAG_EXTERNAL          = (1 << 15),
-   SHADER_FLAG_AFILL             = (1 << 16),
-   SHADER_FLAG_NOMUL             = (1 << 17),
-   SHADER_FLAG_ALPHA             = (1 << 18),
-   SHADER_FLAG_RGB_A_PAIR        = (1 << 19),
+   SHADER_FLAG_MASK_COLOR        = (1 << 9),
+   SHADER_FLAG_IMG               = (1 << 10),
+   SHADER_FLAG_BIGENDIAN         = (1 << 11),
+   SHADER_FLAG_YUV               = (1 << 12),
+   SHADER_FLAG_YUY2              = (1 << 13),
+   SHADER_FLAG_NV12              = (1 << 14),
+   SHADER_FLAG_YUV_709           = (1 << 15),
+   SHADER_FLAG_EXTERNAL          = (1 << 16),
+   SHADER_FLAG_AFILL             = (1 << 17),
+   SHADER_FLAG_NOMUL             = (1 << 18),
+   SHADER_FLAG_ALPHA             = (1 << 19),
+   SHADER_FLAG_RGB_A_PAIR        = (1 << 20),
+   SHADER_FLAG_FILTER_DISPLACE   = (1 << 21),
+   SHADER_FLAG_FILTER_CURVE      = (1 << 22),
+   SHADER_FLAG_FILTER_BLUR       = (1 << 23),
+   SHADER_FLAG_FILTER_DIR_Y      = (1 << 24),
 } Shader_Flag;
-#define SHADER_FLAG_COUNT 20
+#define SHADER_FLAG_COUNT 25
 
 static const char *_shader_flags[SHADER_FLAG_COUNT] = {
    "TEX",
@@ -52,6 +57,7 @@ static const char *_shader_flags[SHADER_FLAG_COUNT] = {
    "MASKSAM12",
    "MASKSAM21",
    "MASKSAM22",
+   "MASK_COLOR",
    "IMG",
    "BIGENDIAN",
    "YUV",
@@ -62,7 +68,11 @@ static const char *_shader_flags[SHADER_FLAG_COUNT] = {
    "AFILL",
    "NOMUL",
    "ALPHA",
-   "RGB_A_PAIR"
+   "RGB_A_PAIR",
+   "FILTER_DISPLACE",
+   "FILTER_CURVE",
+   "FILTER_BLUR",
+   "FILTER_DIR_Y",
 };
 
 static Eina_Bool compiler_released = EINA_FALSE;
@@ -91,6 +101,20 @@ gl_compile_link_error(GLuint target, const char *action, Eina_Bool is_shader)
              free(logtxt);
           }
      }
+}
+
+static inline void
+_attributes_bind(GLint prg)
+{
+   glBindAttribLocation(prg, SHAD_VERTEX,  "vertex");
+   glBindAttribLocation(prg, SHAD_COLOR,   "color");
+   glBindAttribLocation(prg, SHAD_TEXUV,   "tex_coord");
+   glBindAttribLocation(prg, SHAD_TEXUV2,  "tex_coord2");
+   glBindAttribLocation(prg, SHAD_TEXUV3,  "tex_coord3");
+   glBindAttribLocation(prg, SHAD_TEXA,    "tex_coorda");
+   glBindAttribLocation(prg, SHAD_TEXSAM,  "tex_sample");
+   glBindAttribLocation(prg, SHAD_MASK,    "mask_coord");
+   glBindAttribLocation(prg, SHAD_MASKSAM, "tex_masksample");
 }
 
 static Evas_GL_Program *
@@ -136,15 +160,7 @@ _evas_gl_common_shader_program_binary_load(Eet_File *ef, unsigned int flags)
 #endif
    glsym_glProgramBinary(prg, formats[0], data, length);
 
-   glBindAttribLocation(prg, SHAD_VERTEX,  "vertex");
-   glBindAttribLocation(prg, SHAD_COLOR,   "color");
-   glBindAttribLocation(prg, SHAD_TEXUV,   "tex_coord");
-   glBindAttribLocation(prg, SHAD_TEXUV2,  "tex_coord2");
-   glBindAttribLocation(prg, SHAD_TEXUV3,  "tex_coord3");
-   glBindAttribLocation(prg, SHAD_TEXA,    "tex_coorda");
-   glBindAttribLocation(prg, SHAD_TEXSAM,  "tex_sample");
-   glBindAttribLocation(prg, SHAD_MASK,    "mask_coord");
-   glBindAttribLocation(prg, SHAD_MASKSAM, "tex_masksample");
+   _attributes_bind(prg);
 
    glGetProgramiv(prg, GL_LINK_STATUS, &ok);
    if (!ok)
@@ -160,6 +176,8 @@ _evas_gl_common_shader_program_binary_load(Eet_File *ef, unsigned int flags)
    p->prog = prg;
    p->reset = EINA_TRUE;
    p->bin_saved = EINA_TRUE;
+   p->uniform.mvp = glGetUniformLocation(prg, "mvp");
+   p->uniform.rotation_id = glGetUniformLocation(prg, "rotation_id");
    evas_gl_common_shader_textures_bind(p);
 
 finish:
@@ -382,6 +400,12 @@ save:
 static inline void
 _program_del(Evas_GL_Program *p)
 {
+   if (p->filter)
+     {
+        if (p->filter->texture.tex_ids[0])
+          glDeleteTextures(1, p->filter->texture.tex_ids);
+        free(p->filter);
+     }
    if (p->prog) glDeleteProgram(p->prog);
    free(p);
 }
@@ -398,6 +422,18 @@ evas_gl_common_shader_glsl_get(unsigned int flags, const char *base)
    Eina_Strbuf *s = eina_strbuf_new();
    unsigned int k;
    char *str;
+
+   /* This is an env var to use for debugging purposes only */
+   static const char *evas_gl_shader_glsl_version = NULL;
+   if (!evas_gl_shader_glsl_version)
+     {
+        evas_gl_shader_glsl_version = getenv("EVAS_GL_SHADER_GLSL_VERSION");
+        if (!evas_gl_shader_glsl_version) evas_gl_shader_glsl_version = "";
+        else WRN("Using GLSL version tag: '%s'", evas_gl_shader_glsl_version);
+     }
+
+   if (*evas_gl_shader_glsl_version)
+     eina_strbuf_append_printf(s, "#version %s\n", evas_gl_shader_glsl_version);
 
    for (k = 0; k < SHADER_FLAG_COUNT; k++)
      {
@@ -456,15 +492,7 @@ evas_gl_common_shader_compile(unsigned int flags, const char *vertex,
    glAttachShader(prg, vtx);
    glAttachShader(prg, frg);
 
-   glBindAttribLocation(prg, SHAD_VERTEX,  "vertex");
-   glBindAttribLocation(prg, SHAD_COLOR,   "color");
-   glBindAttribLocation(prg, SHAD_TEXUV,   "tex_coord");
-   glBindAttribLocation(prg, SHAD_TEXUV2,  "tex_coord2");
-   glBindAttribLocation(prg, SHAD_TEXUV3,  "tex_coord3");
-   glBindAttribLocation(prg, SHAD_TEXA,    "tex_coorda");
-   glBindAttribLocation(prg, SHAD_TEXSAM,  "tex_sample");
-   glBindAttribLocation(prg, SHAD_MASK,    "mask_coord");
-   glBindAttribLocation(prg, SHAD_MASKSAM, "tex_masksample");
+   _attributes_bind(prg);
 
    glLinkProgram(prg);
    glGetProgramiv(prg, GL_LINK_STATUS, &ok);
@@ -566,6 +594,8 @@ evas_gl_common_shader_generate_and_compile(Evas_GL_Shared *shared, unsigned int 
    if (p)
      {
         shared->needs_shaders_flush = 1;
+        p->uniform.mvp = glGetUniformLocation(p->prog, "mvp");
+        p->uniform.rotation_id = glGetUniformLocation(p->prog, "rotation_id");
         evas_gl_common_shader_textures_bind(p);
         eina_hash_add(shared->shaders_hash, &flags, p);
      }
@@ -671,6 +701,7 @@ evas_gl_common_shaders_flush(Evas_GL_Shared *shared)
                to_delete = eina_list_append(to_delete, p);
           }
 
+        eina_iterator_free(it);
         EINA_LIST_FREE(to_delete, p)
           eina_hash_del(shared->shaders_hash, &p->flags, p);
      }
@@ -702,7 +733,7 @@ evas_gl_common_shader_flags_get(Evas_GL_Shared *shared, Shader_Type type,
                                 int sw, int sh, int w, int h, Eina_Bool smooth,
                                 Evas_GL_Texture *tex, Eina_Bool tex_only,
                                 Evas_GL_Texture *mtex, Eina_Bool mask_smooth,
-                                int mw, int mh,
+                                Eina_Bool mask_color, int mw, int mh,
                                 Shader_Sampling *psam, int *pnomul, Shader_Sampling *pmasksam)
 {
    Shader_Sampling sam = SHD_SAM11, masksam = SHD_SAM11;
@@ -735,6 +766,12 @@ evas_gl_common_shader_flags_get(Evas_GL_Shared *shared, Shader_Type type,
           flags |= (1 << (SHADER_FLAG_MASKSAM_BITSHIFT + masksam - 1));
      }
 
+   // mask color mode
+   if (mtex && mask_color)
+     {
+        flags |= SHADER_FLAG_MASK_COLOR;
+     }
+
    switch (type)
      {
       case SHD_RECT:
@@ -762,6 +799,19 @@ evas_gl_common_shader_flags_get(Evas_GL_Shared *shared, Shader_Type type,
         break;
       case SHD_RGB_A_PAIR:
       case SHD_MAP:
+        break;
+      case SHD_FILTER_DISPLACE:
+        flags |= SHADER_FLAG_FILTER_DISPLACE;
+        break;
+      case SHD_FILTER_CURVE:
+        flags |= SHADER_FLAG_FILTER_CURVE;
+        break;
+      case SHD_FILTER_BLUR_X:
+        flags |= SHADER_FLAG_FILTER_BLUR;
+        break;
+      case SHD_FILTER_BLUR_Y:
+        flags |= SHADER_FLAG_FILTER_BLUR;
+        flags |= SHADER_FLAG_FILTER_DIR_Y;
         break;
       default:
         CRI("Impossible shader type.");
@@ -834,6 +884,7 @@ evas_gl_common_shader_textures_bind(Evas_GL_Program *p)
       { "texu", 0 },
       { "texv", 0 },
       { "texuv", 0 },
+      { "tex_filter", 0 },
       { NULL, 0 }
    };
    Eina_Bool hastex = 0;
@@ -868,6 +919,13 @@ evas_gl_common_shader_textures_bind(Evas_GL_Program *p)
         textures[5].enabled = 1;
         hastex = 1;
      }
+   if ((p->flags & SHADER_FLAG_FILTER_DISPLACE) ||
+       (p->flags & SHADER_FLAG_FILTER_CURVE) ||
+       (p->flags & SHADER_FLAG_FILTER_BLUR))
+     {
+        textures[6].enabled = 1;
+        hastex = 1;
+     }
 
    if (hastex)
      {
@@ -894,7 +952,7 @@ evas_gl_common_shader_program_get(Evas_Engine_GL_Context *gc,
                                   int sw, int sh, int w, int h, Eina_Bool smooth,
                                   Evas_GL_Texture *tex, Eina_Bool tex_only,
                                   Evas_GL_Texture *mtex, Eina_Bool mask_smooth,
-                                  int mw, int mh,
+                                  Eina_Bool mask_color, int mw, int mh,
                                   Shader_Sampling *psam, int *pnomul,
                                   Shader_Sampling *pmasksam)
 {
@@ -903,7 +961,7 @@ evas_gl_common_shader_program_get(Evas_Engine_GL_Context *gc,
 
    flags = evas_gl_common_shader_flags_get(gc->shared, type, map_points, npoints, r, g, b, a,
                                            sw, sh, w, h, smooth, tex, tex_only,
-                                           mtex, mask_smooth, mw, mh,
+                                           mtex, mask_smooth, mask_color, mw, mh,
                                            psam, pnomul, pmasksam);
    p = eina_hash_find(gc->shared->shaders_hash, &flags);
    if (!p)

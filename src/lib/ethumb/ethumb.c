@@ -154,6 +154,7 @@ _ethumb_plugins_load(void)
    if (_plugins_loaded) return;
    _plugins_loaded = EINA_TRUE;
 
+#ifdef NEED_RUN_IN_TREE
 #if defined(HAVE_GETUID) && defined(HAVE_GETEUID)
    if (getuid() == geteuid())
 #endif
@@ -182,6 +183,7 @@ _ethumb_plugins_load(void)
                }
           }
      }
+#endif
 
    snprintf(buf, sizeof(buf), "%s/ethumb/modules", eina_prefix_lib_get(_pfx));
    _plugins = eina_module_arch_list_get(_plugins, buf, MODULE_ARCH);
@@ -690,73 +692,16 @@ ethumb_frame_get(const Ethumb *e, const char **theme_file, const char **group, c
      }
 }
 
-static const char *
-_ethumb_build_absolute_path(const char *path, char buf[PATH_MAX])
-{
-   char *p;
-   int len;
-
-   if (!path)
-     return NULL;
-
-   p = buf;
-
-   if (path[0] == '/')
-     {
-        strncpy(p, path, PATH_MAX - 1);
-        p[PATH_MAX - 1] = 0;
-     }
-   else if (path[0] == '~')
-     {
-#if defined(HAVE_GETUID) && defined(HAVE_GETEUID)
-        if (getuid() == geteuid())
-#endif
-          {
-             const char *home = eina_environment_home_get();
-             if (!home) return NULL;
-             strncpy(p, home, PATH_MAX - 1);
-             p[PATH_MAX - 1] = 0;
-          }
-#if defined(HAVE_GETUID) && defined(HAVE_GETEUID)
-        else
-          {
-             struct passwd *pw = getpwent();
-
-             if ((!pw) || (!pw->pw_dir)) return NULL;
-             strncpy(p, pw->pw_dir, PATH_MAX - 1);
-             p[PATH_MAX - 1] = 0;
-          }
-#endif
-        len = strlen(p);
-        p += len;
-        p[0] = '/';
-        p++;
-        strcpy(p, path + 2);
-     }
-   else
-     {
-        if (!getcwd(p, PATH_MAX))
-          return NULL;
-        len = strlen(p);
-        p += len;
-        p[0] = '/';
-        p++;
-        strncpy(p, path, PATH_MAX - 1 - len - 1);
-        p[PATH_MAX - 1 - len - 1] = 0;
-     }
-
-   return buf;
-}
-
 EAPI void
 ethumb_thumb_dir_path_set(Ethumb *e, const char *path)
 {
-   char buf[PATH_MAX];
+   char *sanitized_path;
    EINA_SAFETY_ON_NULL_RETURN(e);
 
    DBG("ethumb=%p, path=%s", e, path ? path : "");
-   path = _ethumb_build_absolute_path(path, buf);
-   eina_stringshare_replace(&e->thumb_dir, path);
+   sanitized_path = eina_file_path_sanitize(path);
+   eina_stringshare_replace(&e->thumb_dir, sanitized_path);
+   free(sanitized_path);
 }
 
 EAPI const char *
@@ -893,19 +838,24 @@ ethumb_document_page_get(const Ethumb *e)
 EAPI Eina_Bool
 ethumb_file_set(Ethumb *e, const char *path, const char *key)
 {
-   char buf[PATH_MAX];
+   char *sanitized_path;
    EINA_SAFETY_ON_NULL_RETURN_VAL(e, 0);
 
    eina_stringshare_replace(&e->thumb_path, NULL);
    eina_stringshare_replace(&e->thumb_key, NULL);
 
-   DBG("ethumb=%p, path=%s, key=%s", e, path ? path : "", key ? key : "");
-   if (path && access(path, R_OK)) return EINA_FALSE;
+   sanitized_path = eina_file_path_sanitize(path);
+   DBG("ethumb=%p, path=%s, key=%s", e, sanitized_path ? sanitized_path : "", key ? key : "");
+   if (sanitized_path && access(sanitized_path, R_OK))
+     {
+        free(sanitized_path);
+        return EINA_FALSE;
+     }
 
-   path = _ethumb_build_absolute_path(path, buf);
    eina_stringshare_replace(&e->src_hash, NULL);
-   eina_stringshare_replace(&e->src_path, path);
+   eina_stringshare_replace(&e->src_path, sanitized_path);
    eina_stringshare_replace(&e->src_key, key);
+   free(sanitized_path);
 
    return EINA_TRUE;
 }
@@ -1141,7 +1091,7 @@ ethumb_file_free(Ethumb *e)
 EAPI void
 ethumb_thumb_path_set(Ethumb *e, const char *path, const char *key)
 {
-   char buf[PATH_MAX];
+   char *sanitized_path;
 
    EINA_SAFETY_ON_NULL_RETURN(e);
    DBG("ethumb=%p, path=%s, key=%s", e, path ? path : "", key ? key : "");
@@ -1153,9 +1103,10 @@ ethumb_thumb_path_set(Ethumb *e, const char *path, const char *key)
      }
    else
      {
-        path = _ethumb_build_absolute_path(path, buf);
-        eina_stringshare_replace(&e->thumb_path, path);
+        sanitized_path = eina_file_path_sanitize(path);
+        eina_stringshare_replace(&e->thumb_path, sanitized_path);
         eina_stringshare_replace(&e->thumb_key, key);
+        free(sanitized_path);
      }
 }
 
@@ -1206,7 +1157,7 @@ ethumb_calculate_aspect_from_ratio(Ethumb *e, float ia, int *w, int *h)
    *w = e->tw;
    *h = e->th;
 
-   if (ia == 0)
+   if (EINA_FLT_EQ(ia, 0))
      return;
 
    a = e->tw / (float)e->th;
@@ -1245,7 +1196,7 @@ ethumb_calculate_fill_from_ratio(Ethumb *e, float ia, int *fx, int *fy, int *fw,
    *fx = 0;
    *fy = 0;
 
-   if (ia == 0)
+   if (EINA_FLT_EQ(ia, 0))
      return;
 
    a = e->tw / (float)e->th;
@@ -1793,10 +1744,19 @@ ethumb_dup(const Ethumb *e)
 #define CHECK_DELTA(Param)                      \
   if (e1->Param != e2->Param)                   \
     return EINA_TRUE;
+#define CHECK_FLT_DELTA(Param)                  \
+  if (!EINA_FLT_EQ(e1->Param, e2->Param))      \
+    return EINA_TRUE;
 
 EAPI Eina_Bool
 ethumb_cmp(const Ethumb *e1, const Ethumb *e2)
 {
+   CHECK_FLT_DELTA(crop_x);
+   CHECK_FLT_DELTA(crop_y);
+   CHECK_FLT_DELTA(video.start);
+   CHECK_FLT_DELTA(video.time);
+   CHECK_FLT_DELTA(video.interval);
+
    CHECK_DELTA(thumb_dir);
    CHECK_DELTA(category);
    CHECK_DELTA(tw);
@@ -1804,15 +1764,10 @@ ethumb_cmp(const Ethumb *e1, const Ethumb *e2)
    CHECK_DELTA(format);
    CHECK_DELTA(aspect);
    CHECK_DELTA(orientation);
-   CHECK_DELTA(crop_x);
-   CHECK_DELTA(crop_y);
    CHECK_DELTA(quality);
    CHECK_DELTA(compress);
    CHECK_DELTA(rw);
    CHECK_DELTA(rh);
-   CHECK_DELTA(video.start);
-   CHECK_DELTA(video.time);
-   CHECK_DELTA(video.interval);
    CHECK_DELTA(video.ntimes);
    CHECK_DELTA(video.fps);
    CHECK_DELTA(document.page);
@@ -1826,8 +1781,12 @@ ethumb_length(EINA_UNUSED const void *key)
    return sizeof (Ethumb);
 }
 
-#define CMP_PARAM(Param)			\
-  if (e1->Param != e2->Param)			\
+#define CMP_PARAM(Param)                        \
+  if (e1->Param != e2->Param)                   \
+    return e1->Param - e2->Param;
+
+#define CMP_FLT_PARAM(Param)                    \
+  if (!EINA_FLT_EQ(e1->Param, e2->Param))      \
     return e1->Param - e2->Param;
 
 EAPI int
@@ -1837,6 +1796,12 @@ ethumb_key_cmp(const void *key1, EINA_UNUSED int key1_length,
    const Ethumb *e1 = key1;
    const Ethumb *e2 = key2;
 
+   CMP_FLT_PARAM(crop_x);
+   CMP_FLT_PARAM(crop_y);
+   CMP_FLT_PARAM(video.start);
+   CMP_FLT_PARAM(video.time);
+   CMP_FLT_PARAM(video.interval);
+
    CMP_PARAM(thumb_dir);
    CMP_PARAM(category);
    CMP_PARAM(tw);
@@ -1844,15 +1809,10 @@ ethumb_key_cmp(const void *key1, EINA_UNUSED int key1_length,
    CMP_PARAM(format);
    CMP_PARAM(aspect);
    CMP_PARAM(orientation);
-   CMP_PARAM(crop_x);
-   CMP_PARAM(crop_y);
    CMP_PARAM(quality);
    CMP_PARAM(compress);
    CMP_PARAM(rw);
    CMP_PARAM(rh);
-   CMP_PARAM(video.start);
-   CMP_PARAM(video.time);
-   CMP_PARAM(video.interval);
    CMP_PARAM(video.ntimes);
    CMP_PARAM(video.fps);
    CMP_PARAM(document.page);

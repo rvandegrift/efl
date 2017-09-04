@@ -8,28 +8,82 @@
 
 #define MY_CLASS EFL_CANVAS_FILTER_INTERNAL_MIXIN
 
-#define ENFN obj->layer->evas->engine.func
-#define ENDT obj->layer->evas->engine.data.output
-
 #define FCOW_BEGIN(_pd) ({ Evas_Object_Filter_Data *_fcow = eina_cow_write(evas_object_filter_cow, (const Eina_Cow_Data**)&(_pd->data)); _state_check(_fcow); _fcow; })
 #define FCOW_END(_fcow, _pd) eina_cow_done(evas_object_filter_cow, (const Eina_Cow_Data**)&(_pd->data), _fcow, EINA_TRUE)
+#define FCOW_WRITE(pd, name, value) do { \
+   if (pd->data->name != (value)) { \
+     fcow = FCOW_BEGIN(pd); \
+     fcow->name = (value); \
+     FCOW_END(fcow, pd); \
+   }} while (0)
 
 typedef struct _Evas_Filter_Data Evas_Filter_Data;
 typedef struct _Evas_Filter_Post_Render_Data Evas_Filter_Post_Render_Data;
 
+struct _Evas_Object_Filter_Data
+{
+   Evas_Object_Protected_Data *obj;
+   Eina_Stringshare    *name;
+   Eina_Stringshare    *code;
+   Evas_Filter_Program *chain;
+   Evas_Filter_Context *context;
+   Eina_Hash           *sources; // Evas_Filter_Proxy_Binding
+   Eina_Inlist         *data; // Evas_Filter_Data_Binding
+   Eina_Rectangle       prev_obscured, obscured;
+   Evas_Filter_Padding  prev_padding, padding;
+   void                *output;
+   struct {
+      struct {
+         Eina_Stringshare *name;
+         double            value;
+      } cur;
+      struct {
+         Eina_Stringshare *name;
+         double            value;
+      } next;
+      double               pos;
+   } state;
+   int                  obscured_changes;
+   Eina_Bool            changed : 1;
+   Eina_Bool            invalid : 1; // Code parse failed
+   Eina_Bool            async : 1;
+   Eina_Bool            reuse : 1;
+};
+
 struct _Evas_Filter_Data
 {
    const Evas_Object_Filter_Data *data;
-   Eina_Bool has_cb;
-   SLK(lck);
-   Eina_List *post_data;
 };
 
 struct _Evas_Filter_Post_Render_Data
 {
+   Evas_Filter_Data *pd;
    Evas_Filter_Context *ctx;
    Eina_Bool success;
 };
+
+// FIXME: This should be enabled (with proper heuristics)
+#define FILTER_CONTEXT_REUSE EINA_FALSE
+
+static const Evas_Object_Filter_Data evas_filter_data_cow_default = {
+   .reuse = FILTER_CONTEXT_REUSE
+};
+Eina_Cow *evas_object_filter_cow = NULL;
+
+void
+evas_filter_mixin_init(void)
+{
+   evas_object_filter_cow = eina_cow_add
+         ("Evas Filter Data", sizeof(Evas_Object_Filter_Data), 8,
+          &evas_filter_data_cow_default, EINA_TRUE);
+}
+
+void
+evas_filter_mixin_shutdown(void)
+{
+   eina_cow_del(evas_object_filter_cow);
+   evas_object_filter_cow = NULL;
+}
 
 static inline void
 _state_check(Evas_Object_Filter_Data *fcow)
@@ -45,85 +99,87 @@ _filter_end_sync(Evas_Filter_Context *ctx, Evas_Object_Protected_Data *obj,
                  Evas_Filter_Data *pd, Eina_Bool success)
 {
    void *previous = pd->data->output;
+   Eina_Bool destroy = !pd->data->reuse;
+   Evas_Object_Filter_Data *fcow;
    Eo *eo_obj = obj->object;
-
-#ifdef DEBUG
-   EINA_SAFETY_ON_FALSE_RETURN(eina_main_loop_is());
-#endif
+   void *output = NULL;
 
    if (!success)
      {
         ERR("Filter failed at runtime!");
         evas_filter_invalid_set(eo_obj, EINA_TRUE);
         evas_filter_dirty(eo_obj);
+        destroy = EINA_TRUE;
      }
    else
      {
-        Evas_Object_Filter_Data *fcow;
-        void *output = evas_filter_buffer_backing_steal(ctx, EVAS_FILTER_BUFFER_OUTPUT_ID);
-
-        fcow = FCOW_BEGIN(pd);
-        fcow->output = output;
-        FCOW_END(fcow, pd);
+        output = evas_filter_buffer_backing_get(ctx, EVAS_FILTER_BUFFER_OUTPUT_ID, EINA_FALSE);
+        FCOW_WRITE(pd, output, output);
      }
 
-   // Destroy context as we won't reuse it.
-   evas_filter_buffer_backing_release(ctx, previous);
-   evas_filter_context_destroy(ctx);
+   if (previous)
+     ENFN->image_free(ENC, previous);
+
+   if (destroy)
+     {
+        evas_filter_context_destroy(ctx);
+        ctx = NULL;
+     }
+
+   FCOW_WRITE(pd, context, ctx);
+   efl_unref(eo_obj);
 }
 
 static void
-_render_post_cb(void *data, const Eo_Event *event EINA_UNUSED)
+_filter_async_post_render_cb(void *data)
 {
-   Eo *eo_obj = data;
-   Evas_Object_Protected_Data *obj = eo_data_scope_get(eo_obj, EFL_CANVAS_OBJECT_CLASS);
-   Evas_Filter_Data *pd = eo_data_scope_get(eo_obj, MY_CLASS);
-   Eina_List *post_data;
-   Evas_Filter_Post_Render_Data *task;
+   Evas_Filter_Post_Render_Data *task = data;
+   Evas_Filter_Data *pd = task->pd;
 
-   SLKL(pd->lck);
-   post_data = pd->post_data;
-   pd->post_data = NULL;
-   SLKU(pd->lck);
+#ifdef FILTERS_DEBUG
+   EINA_SAFETY_ON_FALSE_RETURN(eina_main_loop_is());
+#endif
 
-   EINA_LIST_FREE(post_data, task)
-     {
-        _filter_end_sync(task->ctx, obj, pd, task->success);
-        free(task);
-     }
+   _filter_end_sync(task->ctx, pd->data->obj, pd, task->success);
+   free(task);
 }
 
 static void
 _filter_cb(Evas_Filter_Context *ctx, void *data, Eina_Bool success)
 {
-   Eo *eo_obj = data;
-   Evas_Object_Protected_Data *obj = eo_data_scope_get(eo_obj, EFL_CANVAS_OBJECT_CLASS);
-   Evas_Filter_Data *pd = eo_data_scope_get(eo_obj, MY_CLASS);
    Evas_Filter_Post_Render_Data *post_data;
+   Evas_Object_Protected_Data *obj;
+   Evas_Filter_Data *pd = data;
+
+   obj = pd->data->obj;
+   EVAS_OBJECT_DATA_VALID_CHECK(obj);
 
    if (!pd->data->async)
      {
-        _filter_end_sync(ctx, obj, pd, success);
+        _filter_end_sync(ctx, pd->data->obj, pd, success);
         return;
      }
+
+#ifdef FILTERS_DEBUG
+   EINA_SAFETY_ON_FALSE_RETURN(!eina_main_loop_is());
+#endif
 
    post_data = calloc(1, sizeof(*post_data));
    post_data->success = success;
    post_data->ctx = ctx;
-   SLKL(pd->lck);
-   pd->post_data = eina_list_append(pd->post_data, post_data);
-   SLKU(pd->lck);
+   post_data->pd = pd;
+   evas_post_render_job_add(obj->layer->evas, _filter_async_post_render_cb, post_data);
 }
 
-static void
-_filter_source_hash_free_cb(void *data)
+void
+_evas_filter_source_hash_free_cb(void *data)
 {
    Evas_Filter_Proxy_Binding *pb = data;
    Evas_Object_Protected_Data *proxy, *source;
    Evas_Filter_Data *pd;
 
-   proxy = eo_data_scope_get(pb->eo_proxy, EFL_CANVAS_OBJECT_CLASS);
-   source = eo_data_scope_get(pb->eo_source, EFL_CANVAS_OBJECT_CLASS);
+   proxy = efl_data_scope_get(pb->eo_proxy, EFL_CANVAS_OBJECT_CLASS);
+   source = efl_data_scope_get(pb->eo_source, EFL_CANVAS_OBJECT_CLASS);
 
    if (source)
      {
@@ -133,7 +189,7 @@ _filter_source_hash_free_cb(void *data)
         EINA_COW_WRITE_END(evas_object_proxy_cow, source->proxy, source_write)
      }
 
-   pd = eo_data_scope_get(pb->eo_proxy, MY_CLASS);
+   pd = efl_data_scope_get(pb->eo_proxy, MY_CLASS);
 
    if (pd && proxy)
      {
@@ -150,223 +206,277 @@ _filter_source_hash_free_cb(void *data)
    free(pb);
 }
 
+static inline Eina_Bool
+_evas_filter_state_set_internal(Evas_Filter_Program *pgm, Evas_Filter_Data *pd)
+{
+   Efl_Canvas_Filter_State state = EFL_CANVAS_FILTER_STATE_DEFAULT;
+
+   evas_filter_state_prepare(pd->data->obj->object, &state, NULL);
+   state.cur.name = pd->data->state.cur.name;
+   state.cur.value = pd->data->state.cur.value;
+   state.next.name = pd->data->state.next.name;
+   state.next.value = pd->data->state.next.value;
+   state.pos = pd->data->state.pos;
+
+   return evas_filter_program_state_set(pgm, &state);
+}
+
+static inline Eina_Bool
+_evas_filter_obscured_region_changed(Evas_Filter_Data *pd)
+{
+   Eina_Rectangle inter;
+
+   inter = pd->data->prev_obscured;
+   if (eina_rectangle_is_empty(&pd->data->obscured) &&
+       eina_rectangle_is_empty(&inter))
+     return EINA_FALSE;
+   if (!eina_rectangle_intersection(&inter, &pd->data->obscured))
+     return EINA_TRUE;
+   if ((inter.w != pd->data->prev_obscured.w) ||
+       (inter.h != pd->data->prev_obscured.h))
+     return EINA_TRUE;
+
+   return EINA_FALSE;
+}
+
 Eina_Bool
 evas_filter_object_render(Eo *eo_obj, Evas_Object_Protected_Data *obj,
-                          void *output, void *context, void *surface,
+                          void *engine, void *output, void *context, void *surface,
                           int x, int y, Eina_Bool do_async, Eina_Bool alpha)
 {
-   Evas_Filter_Data *pd = eo_data_scope_get(eo_obj, MY_CLASS);
+   Evas_Filter_Data *pd = efl_data_scope_get(eo_obj, MY_CLASS);
+   int X, Y, W, H;
+   Evas_Filter_Context *filter;
+   void *drawctx;
+   Eina_Bool ok;
+   void *previous = pd->data->output;
+   Evas_Object_Filter_Data *fcow;
+   Eina_Bool use_map = EINA_FALSE;
+   Evas_Filter_Padding pad;
 
-   if (!pd->data->invalid && (pd->data->chain || pd->data->code))
+   if (pd->data->invalid || (!pd->data->chain && !pd->data->code))
+     return EINA_FALSE;
+
+   W = obj->cur->geometry.w;
+   H = obj->cur->geometry.h;
+   X = obj->cur->geometry.x;
+   Y = obj->cur->geometry.y;
+
+   // Prepare color multiplier
+   ENFN->context_color_set(engine, context,
+                           obj->cur->cache.clip.r,
+                           obj->cur->cache.clip.g,
+                           obj->cur->cache.clip.b,
+                           obj->cur->cache.clip.a);
+   if (obj->cur->clipper)
+     ENFN->context_multiplier_set(engine, context,
+                                  obj->cur->clipper->cur->cache.clip.r,
+                                  obj->cur->clipper->cur->cache.clip.g,
+                                  obj->cur->clipper->cur->cache.clip.b,
+                                  obj->cur->clipper->cur->cache.clip.a);
+   else
+      ENFN->context_multiplier_unset(engine, context);
+
+   if (obj->map->cur.usemap && obj->map->cur.map && (obj->map->cur.map->count >= 4))
      {
-        int X, Y, W, H, l = 0, r = 0, t = 0, b = 0;
-        Evas_Filter_Context *filter;
-        void *drawctx;
-        Eina_Bool ok;
-        void *previous = pd->data->output;
-        Evas_Object_Filter_Data *fcow;
+        int iw, ih;
 
-        /* NOTE: Filter rendering is now done ENTIRELY on CPU.
-         * So we rely on cache/cache2 to allocate a real image buffer,
-         * that we can draw to. The OpenGL texture will be created only
-         * after the rendering has been done, as we simply push the output
-         * image to GL.
-         */
+        use_map = EINA_TRUE;
+        ENFN->image_size_get(engine, previous, &iw, &ih);
+        evas_object_map_update(eo_obj, x, y, iw, ih, iw, ih);
+     }
 
-        W = obj->cur->geometry.w;
-        H = obj->cur->geometry.h;
-        X = obj->cur->geometry.x;
-        Y = obj->cur->geometry.y;
+   if (!pd->data->chain)
+     {
+        Evas_Filter_Program *pgm;
+        Eina_Bool invalid;
 
-        // Prepare color multiplier
-        ENFN->context_color_set(output, context,
-                                obj->cur->cache.clip.r,
-                                obj->cur->cache.clip.g,
-                                obj->cur->cache.clip.b,
-                                obj->cur->cache.clip.a);
-        if (obj->cur->clipper)
-          ENFN->context_multiplier_set(output, context,
-                                       obj->cur->clipper->cur->cache.clip.r,
-                                       obj->cur->clipper->cur->cache.clip.g,
-                                       obj->cur->clipper->cur->cache.clip.b,
-                                       obj->cur->clipper->cur->cache.clip.a);
-        else
-           ENFN->context_multiplier_unset(output, context);
-
-        if (!pd->data->chain)
+        pgm = evas_filter_program_new(pd->data->name, alpha);
+        evas_filter_program_source_set_all(pgm, pd->data->sources);
+        evas_filter_program_data_set_all(pgm, pd->data->data);
+        _evas_filter_state_set_internal(pgm, pd);
+        invalid = !evas_filter_program_parse(pgm, pd->data->code);
+        if (invalid)
           {
-             Evas_Filter_Program *pgm;
-             pgm = evas_filter_program_new(pd->data->name, alpha);
-             evas_filter_program_source_set_all(pgm, pd->data->sources);
-             evas_filter_program_data_set_all(pgm, pd->data->data);
-             evas_filter_program_state_set(pgm, eo_obj, obj,
-                                           pd->data->state.cur.name, pd->data->state.cur.value,
-                                           pd->data->state.next.name, pd->data->state.next.value,
-                                           pd->data->state.pos);
-             if (!evas_filter_program_parse(pgm, pd->data->code))
-               {
-                  ERR("Filter program parsing failed");
-                  evas_filter_program_del(pgm);
-
-                  if (!pd->data->invalid)
-                    {
-                       fcow = FCOW_BEGIN(pd);
-                       fcow->invalid = EINA_TRUE;
-                       FCOW_END(fcow, pd);
-                    }
-
-                  return EINA_FALSE;
-               }
-             fcow = FCOW_BEGIN(pd);
-             fcow->chain = pgm;
-             fcow->invalid = EINA_FALSE;
-             FCOW_END(fcow, pd);
+             ERR("Filter program parsing failed");
+             evas_filter_program_del(pgm);
+             pgm = NULL;
           }
-        else if (previous && !pd->data->changed)
+        fcow = FCOW_BEGIN(pd);
+        if (!invalid) evas_filter_program_padding_get(pgm, NULL, &fcow->padding);
+        fcow->chain = pgm;
+        fcow->invalid = invalid;
+        FCOW_END(fcow, pd);
+        if (invalid) return EINA_FALSE;
+     }
+   else if (previous && !pd->data->changed)
+     {
+        Eina_Bool redraw = EINA_TRUE;
+
+        if (_evas_filter_state_set_internal(pd->data->chain, pd))
+          DBG("Filter redraw by state change!");
+        else if (obj->changed)
+          DBG("Filter redraw by object content change!");
+        else if (obj->snapshot_needs_redraw)
+          DBG("Filter redraw by snapshot change!");
+        else if (_evas_filter_obscured_region_changed(pd))
+          DBG("Filter redraw by obscure regions change!");
+        else redraw = EINA_FALSE;
+
+        // Scan proxies to find if any changed
+        if (!redraw && pd->data->sources)
           {
-             Eina_Bool redraw;
+             Evas_Filter_Proxy_Binding *pb;
+             Evas_Object_Protected_Data *source;
+             Eina_Iterator *iter;
 
-             redraw = evas_filter_program_state_set(pd->data->chain, eo_obj, obj,
-                                                    pd->data->state.cur.name, pd->data->state.cur.value,
-                                                    pd->data->state.next.name, pd->data->state.next.value,
-                                                    pd->data->state.pos);
-             if (redraw)
-               DBG("Filter redraw by state change!");
-             else if (obj->changed)
+             iter = eina_hash_iterator_data_new(pd->data->sources);
+             EINA_ITERATOR_FOREACH(iter, pb)
                {
-                  // FIXME: Check that something else than X,Y changed!
-                  redraw = EINA_TRUE;
-                  DBG("Filter redraw by object content change!");
-               }
-
-             // Scan proxies to find if any changed
-             if (!redraw && pd->data->sources)
-               {
-                  Evas_Filter_Proxy_Binding *pb;
-                  Evas_Object_Protected_Data *source;
-                  Eina_Iterator *iter;
-
-                  iter = eina_hash_iterator_data_new(pd->data->sources);
-                  EINA_ITERATOR_FOREACH(iter, pb)
+                  source = efl_data_scope_get(pb->eo_source, EFL_CANVAS_OBJECT_CLASS);
+                  if (source->changed)
                     {
-                       source = eo_data_scope_get(pb->eo_source, EFL_CANVAS_OBJECT_CLASS);
-                       if (source->changed)
-                         {
-                            redraw = EINA_TRUE;
-                            break;
-                         }
+                       redraw = EINA_TRUE;
+                       break;
                     }
-                  eina_iterator_free(iter);
                }
+             eina_iterator_free(iter);
+          }
 
-             if (!redraw)
+        if (!redraw)
+          {
+             // Render this image only
+             if (use_map)
                {
-                  if (pd->has_cb)
-                    {
-                       // Post render callback is not required anymore
-                       Evas *e = obj->layer->evas->evas;
-                       eo_event_callback_del(e, EFL_CANVAS_EVENT_RENDER_POST, _render_post_cb, eo_obj);
-                       pd->has_cb = EINA_FALSE;
-                    }
-
-                  // Render this image only
-                  ENFN->image_draw(ENDT, context,
+                  ENFN->image_map_draw(engine, output, context, surface, previous,
+                                       obj->map->spans, EINA_TRUE, 0, do_async);
+               }
+             else
+               {
+                  ENFN->image_draw(engine, output, context,
                                    surface, previous,
                                    0, 0, W, H,         // src
                                    X + x, Y + y, W, H, // dst
                                    EINA_FALSE,         // smooth
                                    do_async);
-                  return EINA_TRUE;
                }
+             return EINA_TRUE;
           }
-        else
-           evas_filter_program_state_set(pd->data->chain, eo_obj, obj,
-                                         pd->data->state.cur.name, pd->data->state.cur.value,
-                                         pd->data->state.next.name, pd->data->state.next.value,
-                                         pd->data->state.pos);
+     }
+   else
+     {
+        _evas_filter_state_set_internal(pd->data->chain, pd);
+     }
 
-        filter = evas_filter_context_new(obj->layer->evas, do_async);
+   filter = pd->data->context;
+   if (filter)
+     {
+        int prev_w, prev_h;
+        Eina_Bool was_async;
+
+        was_async = evas_filter_context_async_get(filter);
+        evas_filter_context_size_get(filter, &prev_w, &prev_h);
+        if ((!pd->data->reuse) || (was_async != do_async) ||
+            (prev_w != W) || (prev_h != H))
+          {
+             evas_filter_context_destroy(filter);
+             FCOW_WRITE(pd, context, NULL);
+             filter = NULL;
+          }
+     }
+
+   if (filter)
+     {
+        ok = evas_filter_context_program_use(filter, pd->data->chain, EINA_TRUE, X, Y);
+        if (!ok)
+          {
+             evas_filter_context_destroy(filter);
+             FCOW_WRITE(pd, context, NULL);
+             filter = NULL;
+          }
+     }
+
+   if (!filter)
+     {
+        filter = evas_filter_context_new(obj->layer->evas, do_async, 0);
 
         // Run script
-        ok = evas_filter_context_program_use(filter, pd->data->chain);
+        ok = evas_filter_context_program_use(filter, pd->data->chain, EINA_FALSE, X, Y);
         if (!filter || !ok)
           {
              ERR("Parsing failed?");
              evas_filter_context_destroy(filter);
-
-             if (!pd->data->invalid)
-               {
-                  fcow = FCOW_BEGIN(pd);
-                  fcow->invalid = EINA_TRUE;
-                  FCOW_END(fcow, pd);
-               }
-             return EINA_FALSE;
-          }
-
-        // Proxies
-        evas_filter_context_proxy_render_all(filter, eo_obj, EINA_FALSE);
-
-        // Draw Context
-        drawctx = ENFN->context_new(ENDT);
-        ENFN->context_color_set(ENDT, drawctx, 255, 255, 255, 255);
-
-        // Allocate all buffers now
-        evas_filter_context_buffers_allocate_all(filter);
-        evas_filter_target_set(filter, context, surface, X + x, Y + y);
-
-        // Request rendering from the object itself (child class)
-        evas_filter_program_padding_get(pd->data->chain, &l, &r, &t, &b);
-        ok = evas_filter_input_render(eo_obj, filter, drawctx, l, r, t, b, do_async);
-        if (!ok) ERR("Filter input render failed.");
-
-        ENFN->context_free(ENDT, drawctx);
-
-        // Add post-run callback and run filter
-        if (do_async && !pd->has_cb)
-          {
-             Evas *e = obj->layer->evas->evas;
-             eo_event_callback_add(e, EFL_CANVAS_EVENT_RENDER_POST, _render_post_cb, eo_obj);
-             pd->has_cb = EINA_TRUE;
-          }
-        evas_filter_context_post_run_callback_set(filter, _filter_cb, eo_obj);
-        ok = evas_filter_run(filter);
-
-        fcow = FCOW_BEGIN(pd);
-        fcow->changed = EINA_FALSE;
-        fcow->async = do_async;
-        if (!ok) fcow->invalid = EINA_TRUE;
-        FCOW_END(fcow, pd);
-
-        if (ok)
-          {
-             DBG("Effect rendering done.");
-             return EINA_TRUE;
-          }
-        else
-          {
-             ERR("Rendering failed.");
+             FCOW_WRITE(pd, invalid, EINA_TRUE);
              return EINA_FALSE;
           }
      }
-   return EINA_FALSE;
+
+   // Proxies
+   evas_filter_context_proxy_render_all(filter, eo_obj, EINA_FALSE);
+
+   // Draw Context
+   drawctx = ENFN->context_new(engine);
+   ENFN->context_color_set(engine, drawctx, 255, 255, 255, 255);
+
+   // Set obscured region
+   evas_filter_context_obscured_region_set(filter, pd->data->obscured);
+
+   // Allocate all buffers now
+   evas_filter_context_buffers_allocate_all(filter);
+   evas_filter_target_set(filter, context, surface, X + x, Y + y,
+                          use_map ? obj->map->spans : NULL);
+
+   // Request rendering from the object itself (child class)
+   evas_filter_program_padding_get(pd->data->chain, &pad, NULL);
+   ok = evas_filter_input_render(eo_obj, filter, engine, output, drawctx, NULL,
+                                 pad.l, pad.r, pad.t, pad.b, 0, 0, do_async);
+   if (!ok) ERR("Filter input render failed.");
+
+   ENFN->context_free(engine, drawctx);
+
+   // Add post-run callback and run filter
+   evas_filter_context_post_run_callback_set(filter, _filter_cb, pd);
+
+   fcow = FCOW_BEGIN(pd);
+   fcow->context = filter;
+   fcow->changed = EINA_FALSE;
+   fcow->async = do_async;
+   fcow->prev_obscured = fcow->obscured;
+   fcow->prev_padding = fcow->padding;
+   fcow->padding = pad;
+   fcow->invalid = EINA_FALSE;
+   FCOW_END(fcow, pd);
+
+   // Run the filter now (maybe async)
+   efl_ref(eo_obj);
+   ok = evas_filter_context_run(filter);
+   if (!ok) ERR("Filter program failed to run!");
+
+   return ok;
 }
 
 EOLIAN static void
 _efl_canvas_filter_internal_efl_gfx_filter_filter_program_set(Eo *eo_obj, Evas_Filter_Data *pd,
                                                               const char *code, const char *name)
 {
-   Evas_Object_Protected_Data *obj = eo_data_scope_get(eo_obj, EFL_CANVAS_OBJECT_CLASS);
+   Evas_Object_Protected_Data *obj;
    Evas_Filter_Program *pgm = NULL;
    Evas_Object_Filter_Data *fcow;
+   Eina_Bool invalid = pd->data->invalid;
    Eina_Bool alpha;
 
-   if (!pd) return;
+   obj = efl_data_scope_get(eo_obj, EFL_CANVAS_OBJECT_CLASS);
    if (eina_streq(pd->data->code, code) && eina_streq(pd->data->name, name))
      return;
 
    evas_object_async_block(obj);
    fcow = FCOW_BEGIN(pd);
    {
+      fcow->obj = obj;
+
+      if (fcow->context)
+        evas_filter_context_destroy(fcow->context);
+
       // Parse filter program
       evas_filter_program_del(fcow->chain);
       eina_stringshare_replace(&fcow->name, name);
@@ -376,20 +486,22 @@ _efl_canvas_filter_internal_efl_gfx_filter_filter_program_set(Eo *eo_obj, Evas_F
            pgm = evas_filter_program_new(fcow->name, alpha);
            evas_filter_program_source_set_all(pgm, fcow->sources);
            evas_filter_program_data_set_all(pgm, fcow->data);
-           evas_filter_program_state_set(pgm, eo_obj, obj,
-                                         fcow->state.cur.name, fcow->state.cur.value,
-                                         fcow->state.next.name, fcow->state.next.value,
-                                         fcow->state.pos);
-           if (!evas_filter_program_parse(pgm, code))
+           _evas_filter_state_set_internal(pgm, pd);
+           invalid = !evas_filter_program_parse(pgm, code);
+           if (invalid)
              {
                 ERR("Parsing failed!");
                 evas_filter_program_del(pgm);
                 pgm = NULL;
              }
+           else
+             {
+                evas_filter_program_padding_get(pgm, NULL, &fcow->padding);
+             }
         }
       fcow->chain = pgm;
       fcow->changed = EINA_TRUE;
-      fcow->invalid = (pgm == NULL);
+      fcow->invalid = invalid;
       eina_stringshare_replace(&fcow->code, code);
    }
    FCOW_END(fcow, pd);
@@ -408,13 +520,15 @@ EOLIAN static void
 _efl_canvas_filter_internal_efl_gfx_filter_filter_source_set(Eo *eo_obj, Evas_Filter_Data *pd,
                                                              const char *name, Efl_Gfx *eo_source)
 {
-   Evas_Object_Protected_Data *obj = eo_data_scope_get(eo_obj, EFL_CANVAS_OBJECT_CLASS);
+   Evas_Object_Protected_Data *obj;
    Evas_Filter_Proxy_Binding *pb, *pb_old = NULL;
    Evas_Object_Protected_Data *source = NULL;
    Evas_Object_Filter_Data *fcow = NULL;
+   Eina_Bool invalid = pd->data->invalid;
 
+   obj = efl_data_scope_get(eo_obj, EFL_CANVAS_OBJECT_CLASS);
    if (eo_source)
-     source = eo_data_scope_get(eo_source, EFL_CANVAS_OBJECT_CLASS);
+     source = efl_data_scope_get(eo_source, EFL_CANVAS_OBJECT_CLASS);
 
    evas_object_async_block(obj);
    if (!name)
@@ -436,7 +550,7 @@ _efl_canvas_filter_internal_efl_gfx_filter_filter_source_set(Eo *eo_obj, Evas_Fi
 
    fcow = FCOW_BEGIN(pd);
    if (!fcow->sources)
-     fcow->sources = eina_hash_string_small_new(EINA_FREE_CB(_filter_source_hash_free_cb));
+     fcow->sources = eina_hash_string_small_new(_evas_filter_source_hash_free_cb);
    else if (pb_old)
      eina_hash_del(fcow->sources, name, pb_old);
 
@@ -474,13 +588,15 @@ _efl_canvas_filter_internal_efl_gfx_filter_filter_source_set(Eo *eo_obj, Evas_Fi
    eina_hash_add(fcow->sources, pb->name, pb);
    evas_filter_program_source_set_all(fcow->chain, fcow->sources);
    evas_filter_program_data_set_all(fcow->chain, fcow->data);
+   invalid = !evas_filter_program_parse(fcow->chain, fcow->code);
+   if (!invalid) evas_filter_program_padding_get(fcow->chain, NULL, &fcow->padding);
 
    // Update object
 update:
    if (fcow)
      {
         fcow->changed = EINA_TRUE;
-        fcow->invalid = EINA_FALSE;
+        fcow->invalid = invalid;
         FCOW_END(fcow, pd);
      }
 
@@ -502,12 +618,14 @@ _efl_canvas_filter_internal_efl_gfx_filter_filter_state_set(Eo *eo_obj, Evas_Fil
                                                             const char *next_state, double next_val,
                                                             double pos)
 {
-   Evas_Object_Protected_Data *obj = eo_data_scope_get(eo_obj, EFL_CANVAS_OBJECT_CLASS);
+   Evas_Object_Protected_Data *obj = efl_data_scope_get(eo_obj, EFL_CANVAS_OBJECT_CLASS);
 
    evas_object_async_block(obj);
-   if ((cur_state != pd->data->state.cur.name) || (cur_val != pd->data->state.cur.value) ||
-       (next_state != pd->data->state.next.name) || (next_val != pd->data->state.next.value) ||
-       (pos != pd->data->state.pos))
+   if ((cur_state != pd->data->state.cur.name) ||
+       (!EINA_DBL_EQ(cur_val, pd->data->state.cur.value)) ||
+       (next_state != pd->data->state.next.name) ||
+       (!EINA_DBL_EQ(next_val, pd->data->state.next.value)) ||
+       (!EINA_DBL_EQ(pos, pd->data->state.pos)))
      {
         Evas_Object_Filter_Data *fcow = FCOW_BEGIN(pd);
         fcow->changed = 1;
@@ -520,10 +638,7 @@ _efl_canvas_filter_internal_efl_gfx_filter_filter_state_set(Eo *eo_obj, Evas_Fil
 
         if (pd->data->chain)
           {
-             evas_filter_program_state_set(pd->data->chain, eo_obj, obj,
-                                           pd->data->state.cur.name, pd->data->state.cur.value,
-                                           pd->data->state.next.name, pd->data->state.next.value,
-                                           pd->data->state.pos);
+             _evas_filter_state_set_internal(pd->data->chain, pd);
           }
 
         evas_filter_dirty(eo_obj);
@@ -547,21 +662,21 @@ EOLIAN static void
 _efl_canvas_filter_internal_efl_gfx_filter_filter_padding_get(Eo *eo_obj EINA_UNUSED, Evas_Filter_Data *pd,
                                                               int *l, int *r, int *t, int *b)
 {
-   if (!pd->data->chain)
-     {
-        if (l) *l = 0;
-        if (r) *r = 0;
-        if (t) *t = 0;
-        if (b) *b = 0;
-        return;
-     }
-   evas_filter_program_padding_get(pd->data->chain, l, r, t, b);
+   Evas_Filter_Padding pad = { 0, 0, 0, 0 };
+
+   if (pd->data->chain)
+     evas_filter_program_padding_get(pd->data->chain, &pad, NULL);
+
+   if (l) *l = pad.l;
+   if (r) *r = pad.r;
+   if (t) *t = pad.t;
+   if (b) *b = pad.b;
 }
 
 EOLIAN static void
 _efl_canvas_filter_internal_filter_changed_set(Eo *eo_obj EINA_UNUSED, Evas_Filter_Data *pd, Eina_Bool val)
 {
-   if ((evas_object_filter_cow_default != pd->data) && (pd->data->changed != val))
+   if ((&evas_filter_data_cow_default != pd->data) && (pd->data->changed != val))
      {
         Evas_Object_Filter_Data *fcow = FCOW_BEGIN(pd);
         fcow->changed = val;
@@ -580,34 +695,40 @@ _efl_canvas_filter_internal_filter_invalid_set(Eo *eo_obj EINA_UNUSED, Evas_Filt
      }
 }
 
-EOLIAN static Eo_Base *
-_efl_canvas_filter_internal_eo_base_constructor(Eo *eo_obj, Evas_Filter_Data *pd)
+EOLIAN static Efl_Object *
+_efl_canvas_filter_internal_efl_object_constructor(Eo *eo_obj, Evas_Filter_Data *pd)
 {
    Eo *obj = NULL;
 
-   obj = eo_constructor(eo_super(eo_obj, MY_CLASS));
+   obj = efl_constructor(efl_super(eo_obj, MY_CLASS));
    pd->data = eina_cow_alloc(evas_object_filter_cow);
-   SLKI(pd->lck);
 
    return obj;
 }
 
 EOLIAN static void
-_efl_canvas_filter_internal_eo_base_destructor(Eo *eo_obj, Evas_Filter_Data *pd)
+_efl_canvas_filter_internal_efl_object_destructor(Eo *eo_obj, Evas_Filter_Data *pd)
 {
-   Evas_Object_Protected_Data *obj = eo_data_scope_get(eo_obj, EFL_CANVAS_OBJECT_CLASS);
+   Evas_Object_Protected_Data *obj;
    Evas_Filter_Data_Binding *db;
+   Evas_Public_Data *e;
    Eina_Inlist *il;
 
-   if (!pd->data || (evas_object_filter_cow_default == pd->data))
+   if (!pd->data || (&evas_filter_data_cow_default == pd->data))
      goto finish;
+
+   obj = efl_data_scope_get(eo_obj, EFL_CANVAS_OBJECT_CLASS);
+   e = obj->layer->evas;
+
+   if (pd->data->context)
+     evas_filter_context_destroy(pd->data->context);
 
    if (pd->data->output)
      {
         if (!pd->data->async)
-          ENFN->image_free(ENDT, pd->data->output);
+          ENFN->image_free(ENC, pd->data->output);
         else
-           evas_unref_queue_image_put(obj->layer->evas, pd->data->output);
+          evas_unref_queue_image_put(e, pd->data->output);
      }
    eina_hash_free(pd->data->sources);
    EINA_INLIST_FOREACH_SAFE(pd->data->data, il, db)
@@ -623,14 +744,8 @@ _efl_canvas_filter_internal_eo_base_destructor(Eo *eo_obj, Evas_Filter_Data *pd)
 
 finish:
    eina_cow_free(evas_object_filter_cow, (const Eina_Cow_Data **) &pd->data);
-   if (pd->has_cb)
-     {
-        Evas *e = obj->layer->evas->evas;
-        eo_event_callback_del(e, EFL_CANVAS_EVENT_RENDER_POST, _render_post_cb, eo_obj);
-     }
-   SLKD(pd->lck);
 
-   eo_destructor(eo_super(eo_obj, MY_CLASS));
+   efl_destructor(efl_super(eo_obj, MY_CLASS));
 }
 
 EOLIAN static void
@@ -640,6 +755,7 @@ _efl_canvas_filter_internal_efl_gfx_filter_filter_data_set(Eo *eo_obj, Evas_Filt
 {
    Evas_Filter_Data_Binding *db, *found = NULL;
    Evas_Object_Filter_Data *fcow;
+   Eina_Bool invalid = pd->data->invalid;
 
    EINA_SAFETY_ON_NULL_RETURN(pd->data);
    EINA_SAFETY_ON_NULL_RETURN(name);
@@ -674,7 +790,13 @@ _efl_canvas_filter_internal_efl_gfx_filter_filter_data_set(Eo *eo_obj, Evas_Filt
            db->execute = execute;
            fcow->data = eina_inlist_append(fcow->data, EINA_INLIST_GET(db));
         }
-      evas_filter_program_data_set_all(fcow->chain, fcow->data);
+      if (fcow->chain)
+        {
+           evas_filter_program_data_set_all(fcow->chain, fcow->data);
+           invalid = !evas_filter_program_parse(fcow->chain, fcow->code);
+           if (!invalid) evas_filter_program_padding_get(fcow->chain, NULL, &fcow->padding);
+        }
+      fcow->invalid = invalid;
       fcow->changed = 1;
    }
    FCOW_END(fcow, pd);
@@ -710,6 +832,92 @@ EOLIAN static void *
 _efl_canvas_filter_internal_filter_output_buffer_get(Eo *obj EINA_UNUSED, Evas_Filter_Data *pd)
 {
    return pd->data->output;
+}
+
+Eina_Bool
+_evas_filter_obscured_regions_set(Evas_Object_Protected_Data *obj, const Eina_Tiler *tiler)
+{
+   Evas_Object_Filter_Data *fcow;
+   Eina_Rectangle prev, rect = {};
+   Eina_Rectangle *r;
+   Evas_Filter_Data *pd;
+   Eina_Iterator *it;
+   Eina_Bool was_empty = EINA_FALSE, redraw = EINA_FALSE;
+   int obscured_changes = 0;
+   int area = 0;
+
+   // TODO: Can we handle more than one opaque region?
+
+   pd = efl_data_scope_get(obj->object, MY_CLASS);
+   if (!pd->data) return EINA_FALSE;
+
+   // Find largest opaque rect
+   it = eina_tiler_iterator_new(tiler);
+   EINA_ITERATOR_FOREACH(it, r)
+     {
+        int wh = r->w * r->h;
+        if (wh > area)
+          {
+             area = wh;
+             rect = *r;
+          }
+     }
+   eina_iterator_free(it);
+
+   prev = pd->data->prev_obscured;
+   if (!pd->data->changed && (!prev.w || !prev.h))
+     {
+        was_empty = EINA_TRUE;
+        obscured_changes = 0;
+     }
+   else if (memcmp(&rect, &prev, sizeof(rect)))
+     {
+        fcow = FCOW_BEGIN(pd);
+        fcow->obscured = rect;
+        obscured_changes = fcow->obscured_changes + 1;
+        if (obscured_changes > 2)
+          {
+             // Reset obscure as it changes too much
+             memset(&fcow->obscured, 0, sizeof(fcow->obscured));
+             obscured_changes = 0;
+             redraw = EINA_TRUE;
+          }
+        FCOW_END(fcow, pd);
+     }
+
+   FCOW_WRITE(pd, obscured_changes, obscured_changes);
+   if (redraw) return EINA_TRUE;
+
+   // Snapshot objects need to be redrawn if the padding has increased
+   if ((pd->data->prev_padding.l < pd->data->padding.l) ||
+       (pd->data->prev_padding.r < pd->data->padding.r) ||
+       (pd->data->prev_padding.t < pd->data->padding.t) ||
+       (pd->data->prev_padding.b < pd->data->padding.b))
+     return EINA_TRUE;
+
+   // Snapshot objects need to be redrawn if the obscured region has shrank
+   if (!was_empty && !_evas_eina_rectangle_inside(&pd->data->obscured, &prev))
+     return EINA_TRUE;
+
+   return EINA_FALSE;
+}
+
+void
+_evas_filter_radius_get(Evas_Object_Protected_Data *obj, int *l, int *r, int *t, int *b)
+{
+   Evas_Filter_Padding pad = {};
+   Evas_Filter_Data *pd;
+
+   pd = efl_data_scope_get(obj->object, MY_CLASS);
+   if (!pd->data || !pd->data->chain) goto end;
+
+   evas_filter_program_padding_get(pd->data->chain, NULL, &pad);
+
+end:
+   if (l) *l = pad.l;
+   if (r) *r = pad.r;
+   if (t) *t = pad.t;
+   if (b) *b = pad.b;
 }
 
 #include "canvas/efl_canvas_filter_internal.eo.c"

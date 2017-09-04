@@ -386,7 +386,7 @@ fetch_linear_gradient(uint32_t *buffer, Span_Data *data, int y, int x, int lengt
    uint32_t *end;
    int t_fixed, inc_fixed;
 
-   if (g_data->linear.l == 0)
+   if (EINA_DBL_EQ(g_data->linear.l, 0.0))
      {
         t = inc = 0;
      }
@@ -408,8 +408,11 @@ fetch_linear_gradient(uint32_t *buffer, Span_Data *data, int y, int x, int lengt
       }
     else
       {
-         if (t + inc*length < (float)(INT_MAX >> (FIXPT_BITS + 1)) &&
-             t+inc*length > (float)(INT_MIN >> (FIXPT_BITS + 1)))
+         const int vmax = INT_MAX >> (FIXPT_BITS + 1);
+         const int vmin = -vmax;
+         float v = t + (inc *length);
+
+         if ((v < (float)vmax) && (v > (float)(vmin)))
            {
               // we can use fixed point math
               t_fixed = (int)(t * FIXPT_SIZE);

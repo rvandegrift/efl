@@ -52,7 +52,7 @@ _elm_web_none_efl_canvas_group_group_add(Eo *obj, Elm_Web_None_Data *_pd EINA_UN
    elm_object_text_set(resize_obj, "WebKit not supported!");
    elm_widget_resize_object_set(obj, resize_obj, EINA_TRUE);
 
-   efl_canvas_group_add(eo_super(obj, MY_CLASS));
+   efl_canvas_group_add(efl_super(obj, MY_CLASS));
    elm_widget_sub_object_parent_add(obj);
 }
 
@@ -347,7 +347,7 @@ ewm_need_web(void)
    return EINA_TRUE;
 }
 
-EAPI const Eo_Class *
+EAPI const Efl_Class *
 ewm_class_get(void)
 {
    return elm_web_none_class_get();
@@ -355,5 +355,10 @@ ewm_class_get(void)
 
 #undef ELM_WEB_CLASS
 #define ELM_WEB_CLASS elm_web_class_get()
+
+/* Internal EO APIs and hidden overrides */
+
+#define ELM_WEB_NONE_EXTRA_OPS \
+   EFL_CANVAS_GROUP_ADD_OPS(elm_web_none)
 
 #include "elm_web_none.eo.c"

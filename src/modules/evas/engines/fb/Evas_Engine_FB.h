@@ -21,5 +21,3 @@ struct _Evas_Engine_Info_FB
    Evas_Engine_Render_Mode render_mode;
 };
 #endif
-
-

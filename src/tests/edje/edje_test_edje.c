@@ -252,7 +252,7 @@ START_TEST(edje_test_snapshot)
 
    /* check value of no_render flag as seen from evas land */
    sub = edje_object_part_object_get(obj, "snap");
-   fail_if(!eo_isa(sub, EFL_CANVAS_SNAPSHOT_CLASS) &&
+   fail_if(!efl_isa(sub, EFL_CANVAS_SNAPSHOT_CLASS) &&
            !evas_object_image_snapshot_get(sub));
 
    // TODO: Verify that evas snapshot actually works (and has a filter)
@@ -355,27 +355,27 @@ START_TEST(edje_test_swallows)
    Evas *evas = EDJE_TEST_INIT_EVAS();
    Evas_Object *ly, *o1, *o2;
 
-   ly = eo_add(EDJE_OBJECT_CLASS, evas);
+   ly = efl_add(EDJE_OBJECT_CLASS, evas);
    fail_unless(edje_object_file_set(ly, test_layout_get("test_swallows.edj"), "test_group"));
 
    fail_unless(edje_object_part_exists(ly, "swallow"));
 
 
-   o1 = eo_add(EDJE_OBJECT_CLASS, ly);
+   o1 = efl_add(EDJE_OBJECT_CLASS, ly);
    fail_if(!edje_object_part_swallow(ly, "swallow", o1));
-   ck_assert_ptr_eq(eo_parent_get(o1), ly);
+   ck_assert_ptr_eq(efl_parent_get(o1), ly);
 
    edje_object_part_unswallow(ly, o1);
-   ck_assert_ptr_eq(eo_parent_get(o1), evas_object_evas_get(o1));
+   ck_assert_ptr_eq(efl_parent_get(o1), evas_object_evas_get(o1));
 
    fail_if(!edje_object_part_swallow(ly, "swallow", o1));
-   ck_assert_ptr_eq(eo_parent_get(o1), ly);
+   ck_assert_ptr_eq(efl_parent_get(o1), ly);
 
-   o2 = eo_add(EDJE_OBJECT_CLASS, ly);
+   o2 = efl_add(EDJE_OBJECT_CLASS, ly);
    fail_if(!edje_object_part_swallow(ly, "swallow", o2));
-   ck_assert_ptr_eq(eo_parent_get(o2), ly);
+   ck_assert_ptr_eq(efl_parent_get(o2), ly);
    /* o1 is deleted at this point. */
-   ck_assert_ptr_eq(eo_parent_get(o1), evas_object_evas_get(o1));
+   ck_assert_ptr_eq(efl_parent_get(o1), evas_object_evas_get(o1));
 
    EDJE_TEST_FREE_EVAS();
 }
@@ -386,27 +386,27 @@ START_TEST(edje_test_swallows_eoapi)
    Evas *evas = EDJE_TEST_INIT_EVAS();
    Evas_Object *ly, *o1, *o2;
 
-   ly = eo_add(EDJE_OBJECT_CLASS, evas);
+   ly = efl_add(EDJE_OBJECT_CLASS, evas);
    fail_unless(edje_object_file_set(ly, test_layout_get("test_swallows.edj"), "test_group"));
 
    fail_unless(edje_object_part_exists(ly, "swallow"));
 
 
-   o1 = eo_add(EDJE_OBJECT_CLASS, ly);
+   o1 = efl_add(EDJE_OBJECT_CLASS, ly);
    fail_if(!efl_content_set(efl_part(ly, "swallow"), o1));
-   ck_assert_ptr_eq(eo_parent_get(o1), ly);
+   ck_assert_ptr_eq(efl_parent_get(o1), ly);
 
    efl_content_remove(ly, o1);
-   ck_assert_ptr_eq(eo_parent_get(o1), evas_object_evas_get(o1));
+   ck_assert_ptr_eq(efl_parent_get(o1), evas_object_evas_get(o1));
 
    fail_if(!efl_content_set(efl_part(ly, "swallow"), o1));
-   ck_assert_ptr_eq(eo_parent_get(o1), ly);
+   ck_assert_ptr_eq(efl_parent_get(o1), ly);
 
-   o2 = eo_add(EDJE_OBJECT_CLASS, ly);
+   o2 = efl_add(EDJE_OBJECT_CLASS, ly);
    fail_if(!efl_content_set(efl_part(ly, "swallow"), o2));
-   ck_assert_ptr_eq(eo_parent_get(o2), ly);
+   ck_assert_ptr_eq(efl_parent_get(o2), ly);
    /* o1 is deleted at this point. */
-   ck_assert_ptr_eq(eo_parent_get(o1), evas_object_evas_get(o1));
+   ck_assert_ptr_eq(efl_parent_get(o1), evas_object_evas_get(o1));
 
    EDJE_TEST_FREE_EVAS();
 }
@@ -664,7 +664,7 @@ START_TEST(edje_test_table_eoapi)
      for (k = 0; k < 2; k++)
        {
           i = l*2 + k;
-          sobjs[i] = eo_add(EFL_CANVAS_RECTANGLE_CLASS, evas);
+          sobjs[i] = efl_add(EFL_CANVAS_RECTANGLE_CLASS, evas);
           fail_if(!sobjs[i]);
           efl_pack_grid(efl_part(obj, "table"), sobjs[i], k, l + 2, 1, 1);
        }
@@ -698,14 +698,246 @@ START_TEST(edje_test_table_eoapi)
    fail_if(rows != 2);
 
    /* test multiple ops on a proxy object */
-   proxy = eo_ref(efl_part(obj, "table"));
+   proxy = efl_ref(efl_part(obj, "table"));
    fail_if(!proxy);
    fail_if(!efl_pack_clear(proxy));
    fail_if(efl_content_count(efl_part(obj, "table")) != 4);
    fail_if(!efl_pack_clear(proxy));
    fail_if(efl_content_count(efl_part(obj, "table2")) != 1);
    fail_if(efl_content_count(proxy) != 4);
-   eo_del(proxy);
+   efl_del(proxy);
+
+   EDJE_TEST_FREE_EVAS();
+}
+END_TEST
+
+START_TEST(edje_test_combine_keywords)
+{
+   Evas *evas;
+   Evas_Object *obj;
+
+   evas = EDJE_TEST_INIT_EVAS();
+
+   obj = edje_object_add(evas);
+   fail_unless(edje_object_file_set(obj, test_layout_get("test_combine_keywords.edj"), "test_group"));
+
+   EDJE_TEST_FREE_EVAS();
+}
+END_TEST
+
+static void
+_message_signal_reply_cb(void *data, Evas_Object *obj EINA_UNUSED,
+                         const char *emission, const char *source)
+{
+   int *id = data;
+
+   fprintf(stderr, "source %s emit %s id %d\n", source, emission, *id);
+   fflush(stderr);
+   ck_assert_str_eq(source, "edc");
+   ck_assert_ptr_ne(emission, NULL);
+
+   if (!strncmp(emission, "int set", 7))
+     ck_assert_str_eq(emission, "int set 7 12 42 255");
+   else if (!strncmp(emission, "int", 3))
+     ck_assert_str_eq(emission, "int 42");
+   else if (!strncmp(emission, "float", 5))
+     {
+        char buf[64];
+        sprintf(buf, "float %f", 0.12);
+        ck_assert_str_eq(emission, buf);
+     }
+   else if (!strncmp(emission, "str", 3))
+     ck_assert_str_eq(emission, "str hello world");
+   else ck_abort_msg("Invalid emission!");
+
+   (*id)++;
+}
+
+START_TEST(edje_test_message_send_legacy)
+{
+   Evas *evas;
+   Evas_Object *obj;
+   Edje_Message_Int msgi;
+   Edje_Message_Float msgf;
+   Edje_Message_String msgs;
+   Edje_Message_Int_Set *msgis;
+   int id = 0;
+
+   /* Ugly calls to process:
+    *
+    * 1. Send edje message (async)
+    * 2. Process edje message (sync)
+    * 3. EDC program emits edje signal (async)
+    * 4. Process edje signal (sync)
+    * 5. Finally reached signal cb
+    */
+
+   evas = EDJE_TEST_INIT_EVAS();
+
+   obj = edje_object_add(evas);
+   fail_unless(edje_object_file_set(obj, test_layout_get("test_messages.edj"), "test_group"));
+   edje_object_signal_callback_add(obj, "*", "edc", _message_signal_reply_cb, &id);
+
+   msgs.str = "hello world";
+   edje_object_message_send(obj, EDJE_MESSAGE_STRING, 0, &msgs);
+   edje_message_signal_process();
+   ck_assert_int_eq(id, 1);
+
+   msgi.val = 42;
+   edje_object_message_send(obj, EDJE_MESSAGE_INT, 1, &msgi);
+   edje_message_signal_process();
+   ck_assert_int_eq(id, 2);
+
+   msgf.val = 0.12;
+   edje_object_message_send(obj, EDJE_MESSAGE_FLOAT, 2, &msgf);
+   edje_message_signal_process();
+   ck_assert_int_eq(id, 3);
+
+   msgis = alloca(sizeof(*msgis) + 4 * sizeof(msgis->val));
+   msgis->count = 4;
+   msgis->val[0] = 7;
+   msgis->val[1] = 12;
+   msgis->val[2] = 42;
+   msgis->val[3] = 255;
+   edje_object_message_send(obj, EDJE_MESSAGE_INT_SET, 3, msgis);
+   edje_message_signal_process();
+   ck_assert_int_eq(id, 4);
+
+   evas_object_del(obj);
+
+   EDJE_TEST_FREE_EVAS();
+}
+END_TEST
+
+START_TEST(edje_test_message_send_eo)
+{
+   Evas *evas;
+   Evas_Object *obj;
+   Eina_Value v, *va;
+   int id = 0;
+
+   evas = EDJE_TEST_INIT_EVAS();
+
+   obj = efl_add(EDJE_OBJECT_CLASS, evas,
+                 efl_file_set(efl_added, test_layout_get("test_messages.edj"), "test_group"));
+
+   // FIXME: EO API HERE
+   edje_object_signal_callback_add(obj, "*", "edc", _message_signal_reply_cb, &id);
+
+   // NOTE: edje_object_message_signal_process may or may not be in EO (TBD)
+
+   eina_value_setup(&v, EINA_VALUE_TYPE_STRING);
+   eina_value_set(&v, "hello world");
+   edje_obj_message_send(obj, 0, v);
+   eina_value_flush(&v);
+   edje_message_signal_process();
+   edje_object_calc_force(obj);
+   ck_assert_int_eq(id, 1);
+
+   eina_value_setup(&v, EINA_VALUE_TYPE_INT);
+   eina_value_set(&v, 42);
+   edje_obj_message_send(obj, 1, v);
+   eina_value_flush(&v);
+   edje_message_signal_process();
+   edje_object_calc_force(obj);
+   ck_assert_int_eq(id, 2);
+
+   eina_value_setup(&v, EINA_VALUE_TYPE_FLOAT);
+   eina_value_set(&v, 0.12);
+   edje_obj_message_send(obj, 2, v);
+   eina_value_flush(&v);
+   edje_message_signal_process();
+   edje_object_calc_force(obj);
+   ck_assert_int_eq(id, 3);
+
+   va = eina_value_array_new(EINA_VALUE_TYPE_INT, 4);
+   eina_value_array_append(va, 7);
+   eina_value_array_append(va, 12);
+   eina_value_array_append(va, 42);
+   eina_value_array_append(va, 255);
+   edje_obj_message_send(obj, 3, *va);
+   eina_value_free(va);
+   edje_message_signal_process();
+   edje_object_calc_force(obj);
+   ck_assert_int_eq(id, 4);
+
+   efl_del(obj);
+
+   EDJE_TEST_FREE_EVAS();
+}
+END_TEST
+
+START_TEST(edje_test_signals)
+{
+   Evas *evas;
+   Evas_Object *obj;
+   const char *state;
+
+   evas = EDJE_TEST_INIT_EVAS();
+
+   obj = efl_add(EDJE_OBJECT_CLASS, evas,
+                 efl_file_set(efl_added, test_layout_get("test_signals.edj"), "level1"),
+                 efl_gfx_size_set(efl_added, 320, 240),
+                 efl_gfx_visible_set(efl_added, 1));
+
+   edje_object_signal_emit(obj, "mouse,in", "text");
+
+   edje_object_message_signal_process(obj);
+   state = edje_object_part_state_get(obj, "group:group:text", NULL);
+   ck_assert_str_eq(state, "default");
+
+   edje_object_message_signal_process(obj);
+   state = edje_object_part_state_get(obj, "group:group:text", NULL);
+   ck_assert_str_eq(state, "default");
+
+   edje_object_message_signal_recursive_process(obj);
+   state = edje_object_part_state_get(obj, "group:group:text", NULL);
+   ck_assert_str_eq(state, "over");
+
+   efl_del(obj);
+
+   EDJE_TEST_FREE_EVAS();
+}
+END_TEST
+
+static int _signal_count;
+
+static void
+_signal_callback_count_cb(void *data, Evas_Object *obj EINA_UNUSED,
+                         const char *emission EINA_UNUSED, const char *source EINA_UNUSED)
+{
+   int *_data = data;
+   _signal_count += *_data;
+}
+
+START_TEST(edje_test_signal_callback_del_full)
+{
+   Evas *evas;
+   Evas_Object *obj;
+   int data[4] = { 1, 2, 4, 8 };
+
+   evas = EDJE_TEST_INIT_EVAS();
+
+   obj = efl_add(EDJE_OBJECT_CLASS, evas,
+                 efl_file_set(efl_added,
+                 test_layout_get("test_signal_callback_del_full.edj"), "test"),
+                 efl_gfx_size_set(efl_added, 320, 240),
+                 efl_gfx_visible_set(efl_added, 1));
+
+   edje_object_signal_callback_add(obj, "some_signal", "event", _signal_callback_count_cb, &data[0]);
+   edje_object_signal_callback_add(obj, "some_signal", "event", _signal_callback_count_cb, &data[1]);
+   edje_object_signal_callback_add(obj, "some_signal", "event", _signal_callback_count_cb, &data[2]);
+   edje_object_signal_callback_add(obj, "some_signal", "event", _signal_callback_count_cb, &data[3]);
+
+   edje_object_signal_callback_del_full(obj, "some_signal", "event", _signal_callback_count_cb, &data[0]);
+   edje_object_signal_callback_del_full(obj, "some_signal", "event", _signal_callback_count_cb, &data[3]);
+
+   edje_object_signal_emit(obj, "some_signal", "event");
+
+   edje_object_message_signal_process(obj);
+   ck_assert_int_eq(_signal_count, (data[1] + data[2]));
+
+   efl_del(obj);
 
    EDJE_TEST_FREE_EVAS();
 }
@@ -731,4 +963,9 @@ void edje_test_edje(TCase *tc)
    tcase_add_test(tc, edje_test_box_eoapi);
    tcase_add_test(tc, edje_test_table);
    tcase_add_test(tc, edje_test_table_eoapi);
+   tcase_add_test(tc, edje_test_combine_keywords);
+   tcase_add_test(tc, edje_test_message_send_legacy);
+   tcase_add_test(tc, edje_test_message_send_eo);
+   tcase_add_test(tc, edje_test_signals);
+   tcase_add_test(tc, edje_test_signal_callback_del_full);
 }

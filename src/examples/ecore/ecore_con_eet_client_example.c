@@ -14,14 +14,14 @@
 #include "ecore_con_eet_descriptor_example.h"
 
 Eina_Bool
-_eet_svr_discnct_cb(void *data EINA_UNUSED, Ecore_Con_Reply *reply EINA_UNUSED, Ecore_Con_Client *conn EINA_UNUSED)
+_eet_svr_discnct_cb(void *data EINA_UNUSED, Ecore_Con_Reply *reply EINA_UNUSED, Ecore_Con_Server *conn EINA_UNUSED)
 {
    ecore_main_loop_quit();
    return EINA_FALSE;
 }
 
-Eina_Bool
-_eet_svr_cnct_cb(void *data EINA_UNUSED, Ecore_Con_Reply *reply, Ecore_Con_Client *conn EINA_UNUSED)
+static Eina_Bool
+_eet_svr_cnct_cb(void *data EINA_UNUSED, Ecore_Con_Reply *reply, Ecore_Con_Server *conn EINA_UNUSED)
 {
    /* Only id and message parameter are sent to server. not_sending, parameter
     * is not sent, as it is not added to the eet descriptor. */
@@ -36,8 +36,8 @@ static void
 _eet_raw_data_cb(void *data EINA_UNUSED, Ecore_Con_Reply *reply EINA_UNUSED, const char *protocol_name EINA_UNUSED, const char *section, void *value, size_t length EINA_UNUSED)
 {
    /* Only a perticular parameter's value is sent by Server. */
-   fprintf(stdout, "Section: %s\n", section);
-   fprintf(stdout, "Value: %s\n", (char *) value);
+   printf("Section: %s\n", section);
+   printf("Value: %s\n", (char *) value);
 }
 
 int main(int argc, const char *argv[])

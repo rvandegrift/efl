@@ -19,9 +19,10 @@ _native_bind_cb(void *image, int x EINA_UNUSED, int y EINA_UNUSED, int w EINA_UN
    struct dmabuf_attributes *a;
    int size;
    RGBA_Image *im = image;
-   Native *n = im->native.data;
 
-   if (!im || !n) return;
+   if (!im) return;
+   Native *n = im->native.data;
+   if (!n) return;
    if (n->ns.type != EVAS_NATIVE_SURFACE_WL_DMABUF)
      return;
 
@@ -34,7 +35,7 @@ _native_bind_cb(void *image, int x EINA_UNUSED, int y EINA_UNUSED, int w EINA_UN
         return;
      }
    size = a->height * a->stride[0];
-   im->image.data = mmap(NULL, size, PROT_READ | PROT_WRITE, MAP_SHARED, a->fd[0], 0);
+   im->image.data = mmap(NULL, size, PROT_READ, MAP_SHARED, a->fd[0], 0);
    if (im->image.data == MAP_FAILED) im->image.data = NULL;
    n->ns_data.wl_surface_dmabuf.size = size;
    n->ns_data.wl_surface_dmabuf.ptr = im->image.data;
@@ -44,9 +45,10 @@ static void
 _native_unbind_cb(void *image)
 {
    RGBA_Image *im = image;
-   Native *n = im->native.data;
 
-   if (!im || !n) return;
+   if (!im) return;
+   Native *n = im->native.data;
+   if (!n) return;
    if (n->ns.type != EVAS_NATIVE_SURFACE_WL_DMABUF)
      return;
 }
@@ -55,9 +57,9 @@ static void
 _native_free_cb(void *image)
 {
    RGBA_Image *im = image;
-   Native *n = im->native.data;
 
    if (!im) return;
+   Native *n = im->native.data;
 
    if (im->image.data)
      munmap(n->ns_data.wl_surface_dmabuf.ptr,
@@ -78,7 +80,30 @@ _evas_native_dmabuf_surface_image_set(void *image, void *native)
    Evas_Native_Surface *ns = native;
    RGBA_Image *im = image;
 
-   if (!im) return NULL;
+   if (!im)
+     {
+        if (ns && ns->type == EVAS_NATIVE_SURFACE_WL_DMABUF &&
+            !ns->data.wl_dmabuf.resource)
+          {
+             struct dmabuf_attributes *attr;
+
+             attr = ns->data.wl_dmabuf.attr;
+             if (attr->version != EVAS_DMABUF_ATTRIBUTE_VERSION)
+               return NULL;
+             if (attr->n_planes != 1)
+               return NULL;
+             if (attr->format != DRM_FORMAT_ARGB8888 &&
+                 attr->format != DRM_FORMAT_XRGB8888)
+               return NULL;
+
+             return evas_cache_image_data(evas_common_image_cache_get(),
+                                          attr->width, attr->height,
+                                          NULL, 1,
+                                          EVAS_COLORSPACE_ARGB8888);
+          }
+       return NULL;
+     }
+
    if (ns)
      {
         struct dmabuf_attributes *a;
@@ -105,7 +130,7 @@ _evas_native_dmabuf_surface_image_set(void *image, void *native)
         if (!n) return NULL;
 
         a = ns->data.wl_dmabuf.attr;
-        if (a->version != 1)
+        if (a->version != EVAS_DMABUF_ATTRIBUTE_VERSION)
           {
              free(n);
              return NULL;

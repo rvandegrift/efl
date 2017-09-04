@@ -1,5 +1,5 @@
 /**
- * Simple Evas example illustrating some image objects functions
+ * Example of changing fills and borders for image objects in Evas.
  *
  * You'll need at least one engine built for it (excluding the buffer
  * one) and the png image loader also built. See stdout/stderr for
@@ -58,8 +58,7 @@ _on_destroy(Ecore_Evas *ee EINA_UNUSED)
    ecore_main_loop_quit();
 }
 
-/* here just to keep our example's window size and background image's
- * size in synchrony */
+/* Keep the example's window size in sync with the background image's size */
 static void
 _canvas_resize_cb(Ecore_Evas *ee)
 {
@@ -108,8 +107,8 @@ _on_keydown(void        *data EINA_UNUSED,
 
         evas_object_image_smooth_scale_set(d.border, !smooth_scale);
 
-        fprintf(stdout, "Image's border is now %s smooth scaling\n",
-                smooth_scale ? "without" : "with");
+        printf("Image's border is now %s smooth scaling\n",
+               smooth_scale ? "without" : "with");
 
         return;
      }
@@ -127,7 +126,7 @@ _on_keydown(void        *data EINA_UNUSED,
 
         evas_object_image_border_set(d.border, l, r, t, b);
 
-        fprintf(stdout, "Image's border thickness is now %d\n", l);
+        printf("Image's border thickness is now %d\n", l);
 
         return;
      }
@@ -141,7 +140,7 @@ _on_keydown(void        *data EINA_UNUSED,
 
         evas_object_image_border_scale_set(d.border, scale);
 
-        fprintf(stdout, "Image's border scaling factor is now %f\n", scale);
+        printf("Image's border scaling factor is now %f\n", scale);
 
         return;
      }
@@ -156,8 +155,8 @@ _on_keydown(void        *data EINA_UNUSED,
 
         evas_object_image_border_center_fill_set(d.border, fill);
 
-        fprintf(stdout, "Image's border center region aspect is now \"%s\"\n",
-                _border_fill_mode_to_str(fill));
+        printf("Image's border center region aspect is now \"%s\"\n",
+               _border_fill_mode_to_str(fill));
 
         return;
      }
@@ -168,8 +167,8 @@ _on_keydown(void        *data EINA_UNUSED,
 
         evas_object_image_alpha_set(d.img1, !alpha);
 
-        fprintf(stdout, "Image's alpha channel is now %s\n",
-                alpha ? "off" : "on");
+        printf("Image's alpha channel is now %s\n",
+               alpha ? "off" : "on");
 
         return;
      }
@@ -180,8 +179,8 @@ _on_keydown(void        *data EINA_UNUSED,
 
         evas_object_image_filled_set(d.img1, !filled);
 
-        fprintf(stdout, "Image's x filled property is now %s\n",
-                filled ? "off" : "on");
+        printf("Image's x filled property is now %s\n",
+               filled ? "off" : "on");
 
         return;
      }
@@ -194,7 +193,7 @@ _on_keydown(void        *data EINA_UNUSED,
         x = (x + 20) % (WIDTH / 2);
         evas_object_image_fill_set(d.img1, x, y, w, h);
 
-        fprintf(stdout, "Image's x fill coordinate changed to %d\n", x);
+        printf("Image's x fill coordinate changed to %d\n", x);
 
         return;
      }
@@ -207,7 +206,7 @@ _on_keydown(void        *data EINA_UNUSED,
         y = (y + 20) % (HEIGHT / 2);
         evas_object_image_fill_set(d.img1, x, y, w, h);
 
-        fprintf(stdout, "Image's y fill coordinate changed to %d\n", y);
+        printf("Image's y fill coordinate changed to %d\n", y);
 
         return;
      }
@@ -222,7 +221,7 @@ _on_keydown(void        *data EINA_UNUSED,
         else w = (WIDTH / 4);
         evas_object_image_fill_set(d.img1, x, y, w, h);
 
-        fprintf(stdout, "Image's w fill size changed to %d\n", w);
+        printf("Image's w fill size changed to %d\n", w);
 
         return;
      }
@@ -237,7 +236,7 @@ _on_keydown(void        *data EINA_UNUSED,
         else h = (HEIGHT / 4);
         evas_object_image_fill_set(d.img1, x, y, w, h);
 
-        fprintf(stdout, "Image's h fill size changed to %d\n", h);
+        printf("Image's h fill size changed to %d\n", h);
 
         return;
      }
@@ -248,8 +247,8 @@ _on_keydown(void        *data EINA_UNUSED,
 
         evas_object_image_fill_get(d.img1, &x, &y, &w, &h);
 
-        fprintf(stdout, "Image has fill properties set to: %d, %d, %d, %d\n",
-                x, y, w, h);
+        printf("Image has fill properties set to: %d, %d, %d, %d\n",
+               x, y, w, h);
 
         return;
      }
@@ -292,9 +291,8 @@ main(void)
      }
    else
      {
-        fprintf(stdout,
-                "loaded image '%s' with succes! error string is \"%s\"\n",
-                valid_path, evas_load_error_str(err));
+        printf("loaded image '%s' with succes! error string is \"%s\"\n",
+               valid_path, evas_load_error_str(err));
 
         evas_object_move(d.img1, 3, 3);
         evas_object_image_fill_set(d.img1, 0, 0, WIDTH / 2, HEIGHT / 2);

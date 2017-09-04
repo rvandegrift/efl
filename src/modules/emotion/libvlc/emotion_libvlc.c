@@ -280,7 +280,7 @@ evas_resize_cb(void *data, Evas *e EINA_UNUSED, Evas_Object *obj EINA_UNUSED,
 
    evas_object_image_size_get(ev->evas_obj, &w, &h);
    _emotion_frame_resize(ev->obj, w, h, w / (double) h);
-   eo_event_callback_call(ev->obj, EMOTION_OBJECT_EVENT_FRAME_DECODE, NULL);
+   efl_event_callback_call(ev->obj, EFL_CANVAS_VIDEO_EVENT_FRAME_DECODE, NULL);
 }
 
 /* Fetch all libvlc tracks. */
@@ -1382,7 +1382,8 @@ static const Emotion_Engine em_engine =
    em_eject, /* eject */
    em_meta_get, /* meta_get */
    NULL, /* priority_set */
-   NULL /* priority_get */
+   NULL, /* priority_get */
+   NULL /* em_meta_artwork_get */
 };
 
 static void

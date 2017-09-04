@@ -21,51 +21,51 @@ struct test_data
 struct test_data d = {NULL, EINA_TRUE, EINA_TRUE};
 
 static void
-_btn_enabled_cb(void        *data,
-                Evas_Object *obj,
-                void        *event)
+_btn_enabled_cb(void        *data EINA_UNUSED,
+                Evas_Object *obj EINA_UNUSED,
+                void        *event EINA_UNUSED)
 {
    elm_object_disabled_set(d.btn, !d.btn_enabled);
 }
 
 static void
 /* focus callback */
-_btn_focus_cb(void        *data,
-              Evas_Object *obj,
-              void        *event)
+_btn_focus_cb(void        *data EINA_UNUSED,
+              Evas_Object *obj EINA_UNUSED,
+              void        *event EINA_UNUSED)
 {
    elm_object_focus_set(d.btn, EINA_TRUE);
 }
 
 static void
 /* unfocus callback */
-_btn_unfocus_cb(void        *data,
-                Evas_Object *obj,
-                void        *event)
+_btn_unfocus_cb(void        *data EINA_UNUSED,
+                Evas_Object *obj EINA_UNUSED,
+                void        *event EINA_UNUSED)
 {
    elm_object_focus_set(d.btn, EINA_FALSE);
 }
 
 static void
 /* focus allow callback */
-_btn_focus_allow_cb(void        *data,
-                    Evas_Object *obj,
-                    void        *event)
+_btn_focus_allow_cb(void        *data EINA_UNUSED,
+                    Evas_Object *obj EINA_UNUSED,
+                    void        *event EINA_UNUSED)
 {
    elm_object_focus_allow_set(d.btn, d.btn_gets_focus);
 }
 
 static void /* scaling callback */
-_btn_scale_cb(void        *data,
+_btn_scale_cb(void        *data EINA_UNUSED,
               Evas_Object *obj,
-              void        *event)
+              void        *event EINA_UNUSED)
 {
    elm_object_scale_set(d.btn, elm_slider_value_get(obj));
 }
 
 EAPI_MAIN int
-elm_main(int    argc,
-         char **argv)
+elm_main(int    argc EINA_UNUSED,
+         char **argv EINA_UNUSED)
 {
    Evas_Object *win, *box, *frame, *check, *b, *slider;
 
@@ -75,10 +75,10 @@ elm_main(int    argc,
    elm_app_compile_lib_dir_set(LIB_DIR);
    elm_app_info_set(elm_main, "elementary", "images/logo.png");
 
-   fprintf(stdout, "prefix was set to: %s\n", elm_app_prefix_dir_get());
-   fprintf(stdout, "data directory is: %s\n", elm_app_data_dir_get());
-   fprintf(stdout, "library directory is: %s\n", elm_app_lib_dir_get());
-   fprintf(stdout, "locale directory is: %s\n", elm_app_locale_dir_get());
+   printf("prefix was set to: %s\n", elm_app_prefix_dir_get());
+   printf("data directory is: %s\n", elm_app_data_dir_get());
+   printf("library directory is: %s\n", elm_app_lib_dir_get());
+   printf("locale directory is: %s\n", elm_app_locale_dir_get());
 
    win = elm_win_util_standard_add("top-level-funcs-example",
                                    "Elementary Top-level Functions Example");
@@ -105,7 +105,7 @@ elm_main(int    argc,
    d.btn = elm_button_add(win);
    elm_object_text_set(d.btn, "Click me");
    elm_object_content_set(frame, d.btn);
-   fprintf(stdout, "Elementary's finger size is set to %d pixels\n.",
+   printf("Elementary's finger size is set to %d pixels\n.",
            elm_config_finger_size_get());
    evas_object_show(d.btn);
 

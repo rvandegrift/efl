@@ -39,10 +39,10 @@ struct _Outbuf
 
    struct {
       struct {
-	 FB_Mode  *fb;
+         FB_Mode  *fb;
       } fb;
       struct {
-	 DATA32    r, g, b;
+         DATA32    r, g, b;
       } mask;
       RGBA_Image  *back_buf;
    } priv;

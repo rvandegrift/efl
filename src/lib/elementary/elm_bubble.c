@@ -7,8 +7,12 @@
 
 #include <Elementary.h>
 #include "elm_priv.h"
+#include "elm_bubble.eo.h"
 #include "elm_widget_bubble.h"
 #include "elm_widget_layout.h"
+
+#include "elm_bubble_internal_part.eo.h"
+#include "elm_part_helper.h"
 
 #define MY_CLASS ELM_BUBBLE_CLASS
 
@@ -71,7 +75,7 @@ _on_mouse_up(void *data,
    if (ev->event_flags & EVAS_EVENT_FLAG_ON_HOLD)
      return;
 
-   eo_event_callback_call(data, EFL_UI_EVENT_CLICKED, NULL);
+   efl_event_callback_legacy_call(data, EFL_UI_EVENT_CLICKED, NULL);
 }
 
 /* overriding layout's focus_next() in order to just cycle through the
@@ -112,15 +116,15 @@ _elm_bubble_elm_widget_focus_direction(Eo *obj, Elm_Bubble_Data *_pd EINA_UNUSED
             (content, base, degree, direction, direction_item, weight);
 }
 
-EOLIAN static Eina_Bool
-_elm_bubble_elm_layout_text_set(Eo *obj, Elm_Bubble_Data *_pd EINA_UNUSED, const char *part, const char *label)
+static Eina_Bool
+_elm_bubble_text_set(Eo *obj, Elm_Bubble_Data *_pd EINA_UNUSED, const char *part, const char *label)
 {
-   Eina_Bool int_ret = EINA_FALSE;
+   if (!_elm_layout_part_aliasing_eval(obj, &part, EINA_TRUE))
+     return EINA_FALSE;
 
-   int_ret = elm_obj_layout_text_set(eo_super(obj, MY_CLASS), part, label);
-   if (!int_ret) return EINA_FALSE;
+   efl_text_set(efl_part(efl_super(obj, MY_CLASS), part), label);
 
-   if (part && (!strcmp(part, "info") || !strcmp(part, "elm.info")))
+   if (!strcmp(part, "elm.info"))
      {
         if (label)
           elm_layout_signal_emit(obj, "elm,state,info,visible", "elm");
@@ -178,7 +182,7 @@ _elm_bubble_efl_canvas_group_group_add(Eo *obj, Elm_Bubble_Data *priv)
 {
    ELM_WIDGET_DATA_GET_OR_RETURN(obj, wd);
 
-   efl_canvas_group_add(eo_super(obj, MY_CLASS));
+   efl_canvas_group_add(efl_super(obj, MY_CLASS));
    elm_widget_sub_object_parent_add(obj);
 
    priv->pos = ELM_BUBBLE_POS_TOP_LEFT; //default
@@ -220,14 +224,13 @@ EAPI Evas_Object *
 elm_bubble_add(Evas_Object *parent)
 {
    EINA_SAFETY_ON_NULL_RETURN_VAL(parent, NULL);
-   Evas_Object *obj = eo_add(MY_CLASS, parent);
-   return obj;
+   return efl_add(MY_CLASS, parent, efl_canvas_object_legacy_ctor(efl_added));
 }
 
 EOLIAN static Eo *
-_elm_bubble_eo_base_constructor(Eo *obj, Elm_Bubble_Data *_pd EINA_UNUSED)
+_elm_bubble_efl_object_constructor(Eo *obj, Elm_Bubble_Data *_pd EINA_UNUSED)
 {
-   obj = eo_constructor(eo_super(obj, MY_CLASS));
+   obj = efl_constructor(efl_super(obj, MY_CLASS));
    efl_canvas_object_type_set(obj, MY_CLASS_NAME_LEGACY);
    evas_object_smart_callbacks_descriptions_set(obj, _smart_callbacks);
    elm_interface_atspi_accessible_role_set(obj, ELM_ATSPI_ROLE_FILLER);
@@ -282,9 +285,20 @@ _elm_bubble_elm_layout_content_aliases_get(Eo *obj EINA_UNUSED, Elm_Bubble_Data 
 }
 
 EOLIAN static void
-_elm_bubble_class_constructor(Eo_Class *klass)
+_elm_bubble_class_constructor(Efl_Class *klass)
 {
    evas_smart_legacy_type_register(MY_CLASS_NAME_LEGACY, klass);
 }
+
+/* Efl.Part begin */
+ELM_PART_OVERRIDE(elm_bubble, ELM_BUBBLE, ELM_LAYOUT, Elm_Bubble_Data, Elm_Part_Data)
+ELM_PART_OVERRIDE_TEXT_SET(elm_bubble, ELM_BUBBLE, ELM_LAYOUT, Elm_Bubble_Data, Elm_Part_Data)
+
+#include "elm_bubble_internal_part.eo.c"
+/* Efl.Part end */
+/* Internal EO APIs and hidden overrides */
+
+#define ELM_BUBBLE_EXTRA_OPS \
+   EFL_CANVAS_GROUP_ADD_OPS(elm_bubble)
 
 #include "elm_bubble.eo.c"

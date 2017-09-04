@@ -1,5 +1,6 @@
 enum Elm.Sys_Notify.Server
 {
+   [[System notification server types]]
    none = 0, [[No notificationserver (disables notifications)]]
    dbus = 1 << 0 [[Use DBus as a notification server]]
 }
@@ -36,12 +37,13 @@ struct Elm.Sys_Notify.Action_Invoked
      @since 1.8
    ]]
    id: uint; [[ID of the notification]]
-   action_key: char *; [[The key of the action invoked. These match the
+   action_key: ptr(char); [[The key of the action invoked. These match the
                                 keys sent over in the list of actions]]
 }
 
-class Elm.Sys_Notify (Eo.Base, Elm.Sys_Notify_Interface)
+class Elm.Sys_Notify (Efl.Object, Elm.Sys_Notify_Interface)
 {
+   [[Elementary system notification class]]
    legacy_prefix: elm_sys_notify;
    eo_prefix: elm_obj_sys_notify;
 
@@ -85,11 +87,10 @@ class Elm.Sys_Notify (Eo.Base, Elm.Sys_Notify_Interface)
 
    implements {
       class.constructor;
-      Eo.Base.constructor;
-      Eo.Base.destructor;
+      Efl.Object.constructor;
+      Efl.Object.destructor;
       Elm.Sys_Notify_Interface.send;
       Elm.Sys_Notify_Interface.simple_send;
       Elm.Sys_Notify_Interface.close;
    }
 }
-

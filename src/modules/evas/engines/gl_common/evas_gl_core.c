@@ -234,19 +234,26 @@ _texture_allocate_2d(GLuint tex, GLint ifmt, GLenum fmt, GLenum type, int w, int
 {
    //if (!(*tex))
    //   glGenTextures(1, tex);
+   GLint curr_tex = 0;
+   glGetIntegerv(GL_TEXTURE_BINDING_2D, &curr_tex);
+
    glBindTexture(GL_TEXTURE_2D, tex);
    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_S, GL_CLAMP_TO_EDGE);
    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_T, GL_CLAMP_TO_EDGE);
    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_NEAREST);
    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_NEAREST);
    glTexImage2D(GL_TEXTURE_2D, 0, ifmt, w, h, 0, fmt, type, NULL);
-   glBindTexture(GL_TEXTURE_2D, 0);
+   glBindTexture(GL_TEXTURE_2D, (GLuint)curr_tex);
 }
 
 // Destroy Texture
 static void
 _texture_destroy(GLuint *tex)
 {
+   GLint curr_tex = 0;
+   glGetIntegerv(GL_TEXTURE_BINDING_2D, &curr_tex);
+
+   if ((GLuint)curr_tex == *tex) glBindTexture(GL_TEXTURE_2D, 0);
    if (*tex)
      {
         glDeleteTextures(1, tex);
@@ -259,23 +266,25 @@ _texture_destroy(GLuint *tex)
 static void
 _texture_attach_2d(GLuint tex, GLenum attach, GLenum attach2, int samples, Evas_GL_Context_Version version)
 {
-   if (samples)
+   if (samples && (version == EVAS_GL_GLES_2_X))
      {
 #ifdef GL_GLES
-        //<<< TODO : CHECK EXTENSION SUPPORT>>>
-        EXT_FUNC(glFramebufferTexture2DMultisample)(GL_FRAMEBUFFER,
-                                                    attach,
-                                                    GL_TEXTURE_2D, tex,
-                                                    0, samples);
+        if (EXT_FUNC(glFramebufferTexture2DMultisample))
+          {
+             EXT_FUNC(glFramebufferTexture2DMultisample)(GL_FRAMEBUFFER,
+                                                         attach,
+                                                         GL_TEXTURE_2D, tex,
+                                                         0, samples);
 
-        if (attach2)
-           EXT_FUNC(glFramebufferTexture2DMultisample)(GL_FRAMEBUFFER,
-                                                       attach2,
-                                                       GL_TEXTURE_2D, tex,
-                                                       0, samples);
-#else
-        ERR("MSAA not supported.  Should not have come in here...!");
+             if (attach2)
+               EXT_FUNC(glFramebufferTexture2DMultisample)(GL_FRAMEBUFFER,
+                                                           attach2,
+                                                           GL_TEXTURE_2D, tex,
+                                                           0, samples);
+          }
+        else
 #endif
+        ERR("MSAA not supported.  Should not have come in here...!");
      }
    else if (version == EVAS_GL_GLES_1_X)
      {
@@ -428,17 +437,22 @@ _renderbuffer_allocate(GLuint buf, GLenum fmt, int w, int h, int samples)
 {
    glBindRenderbuffer(GL_RENDERBUFFER, buf);
    if (samples)
+     {
+        if (glsym_glRenderbufferStorageMultisample)
+          glsym_glRenderbufferStorageMultisample(GL_RENDERBUFFER, samples, fmt, w, h);
+        else
+          {
 #ifdef GL_GLES
-      EXT_FUNC(glRenderbufferStorageMultisample)(GL_RENDERBUFFER, samples, fmt, w, h);
-#else
-      ERR("MSAA not supported.  Should not have come in here...!");
+             if (EXT_FUNC(glRenderbufferStorageMultisample))
+               EXT_FUNC(glRenderbufferStorageMultisample)(GL_RENDERBUFFER, samples, fmt, w, h);
+             else
 #endif
+               ERR("MSAA not supported.  Should not have come in here...!");
+          }
+     }
    else
-      glRenderbufferStorage(GL_RENDERBUFFER, fmt, w, h);
+     glRenderbufferStorage(GL_RENDERBUFFER, fmt, w, h);
    glBindRenderbuffer(GL_RENDERBUFFER, 0);
-
-   return;
-   samples = 0;
 }
 
 static void
@@ -480,39 +494,49 @@ _fbo_surface_cap_test(GLint color_ifmt, GLenum color_fmt,
    int depth_stencil = 0;
    int fb_status = 0;
    int w = 2, h = 2;   // Test it with a simple (2,2) surface.  Should I test it with NPOT?
+   Evas_GL_Context_Version ver = evas_gl_common_version_check(NULL);
 
    // Gen FBO
    glGenFramebuffers(1, &fbo);
    glBindFramebuffer(GL_FRAMEBUFFER, fbo);
+
+   // FIXME: GLES 3 support for MSAA is NOT IMPLEMENTED!
+   // Needs to use RenderbufferStorageMultisample + FramebufferRenderbuffer
 
    // Color Buffer Texture
    if ((color_ifmt) && (color_fmt))
      {
         _texture_create(&color_buf);
         _texture_allocate_2d(color_buf, color_ifmt, color_fmt, GL_UNSIGNED_BYTE, w, h);
-        _texture_attach_2d(color_buf, GL_COLOR_ATTACHMENT0, 0, mult_samples, EVAS_GL_GLES_2_X);
+        _texture_attach_2d(color_buf, GL_COLOR_ATTACHMENT0, 0, mult_samples, ver);
      }
 
-   // Check Depth_Stencil Format First
+      // Check Depth_Stencil Format First
 #ifdef GL_GLES
-   if (depth_fmt == GL_DEPTH_STENCIL_OES)
+   if ((depth_fmt == GL_DEPTH_STENCIL_OES) && (!mult_samples))
      {
         _texture_create(&depth_stencil_buf);
         _texture_allocate_2d(depth_stencil_buf, depth_fmt,
                            depth_fmt, GL_UNSIGNED_INT_24_8_OES, w, h);
         _texture_attach_2d(depth_stencil_buf, GL_DEPTH_ATTACHMENT,
-                           GL_STENCIL_ATTACHMENT, mult_samples, EVAS_GL_GLES_2_X);
+                           GL_STENCIL_ATTACHMENT, mult_samples, EINA_FALSE);
         depth_stencil = 1;
      }
+   else if ((depth_fmt == GL_DEPTH24_STENCIL8_OES) && (mult_samples))
 #else
    if (depth_fmt == GL_DEPTH24_STENCIL8)
+#endif
      {
         _renderbuffer_create(&depth_stencil_buf);
         _renderbuffer_allocate(depth_stencil_buf, depth_fmt, w, h, mult_samples);
+#ifdef GL_GLES
+        _renderbuffer_attach(depth_stencil_buf, GL_DEPTH_ATTACHMENT, EINA_FALSE);
+        _renderbuffer_attach(depth_stencil_buf, GL_STENCIL_ATTACHMENT, EINA_FALSE);
+#else
         _renderbuffer_attach(depth_stencil_buf, GL_DEPTH_STENCIL_ATTACHMENT, EINA_FALSE);
+#endif
         depth_stencil = 1;
      }
-#endif
 
    // Depth Attachment
    if ((!depth_stencil) && (depth_fmt))
@@ -620,6 +644,7 @@ _surface_cap_check()
    GL_Format depth[]   = {
                            { DEPTH_NONE,   0 },
                            { DEPTH_STENCIL, GL_DEPTH_STENCIL_OES },
+                           { DEPTH_STENCIL, GL_DEPTH24_STENCIL8_OES },
                            { DEPTH_BIT_8,   GL_DEPTH_COMPONENT },
                            { DEPTH_BIT_16,  GL_DEPTH_COMPONENT16 },
                            { DEPTH_BIT_24,  GL_DEPTH_COMPONENT24_OES },
@@ -868,8 +893,10 @@ error:
 static int
 _surface_cap_init(void *eng_data)
 {
+   int gles_version;
    int ret = 0;
    int max_size = 0;
+   int max_samples = 0;
 
    // Do internal make current
    if (!_internal_resource_make_current(eng_data, NULL, NULL))
@@ -885,11 +912,17 @@ _surface_cap_init(void *eng_data)
    evgl_engine->caps.max_h = max_size;
    DBG("Max Surface Width: %d   Height: %d", evgl_engine->caps.max_w, evgl_engine->caps.max_h);
 
-   // Check for MSAA support
-#ifdef GL_GLES
-   int max_samples = 0;
+   gles_version = evas_gl_common_version_check(NULL);
 
-   if (EXTENSION_SUPPORT(IMG_multisampled_render_to_texture))
+   // Check for MSAA support
+   if (gles_version == 3)
+     {
+        glGetIntegerv(GL_MAX_SAMPLES, &max_samples);
+        INF("MSAA support for GLES 3 is not implemented yet!");
+        max_samples = 0;
+     }
+#ifdef GL_GLES
+   else if (EXTENSION_SUPPORT(IMG_multisampled_render_to_texture))
      {
         glGetIntegerv(GL_MAX_SAMPLES_IMG, &max_samples);
      }
@@ -897,6 +930,16 @@ _surface_cap_init(void *eng_data)
      {
         glGetIntegerv(GL_MAX_SAMPLES_EXT, &max_samples);
      }
+   else
+     {
+        const char *exts = (const char *) glGetString(GL_EXTENSIONS);
+
+        if (exts && strstr(exts, "EXT_multisampled_render_to_texture"))
+          glGetIntegerv(GL_MAX_SAMPLES_EXT, &max_samples);
+        else if (exts && strstr(exts, "IMG_multisampled_render_to_texture"))
+          glGetIntegerv(GL_MAX_SAMPLES_IMG, &max_samples);
+     }
+#endif
 
    if (max_samples >= 2)
      {
@@ -905,7 +948,6 @@ _surface_cap_init(void *eng_data)
         evgl_engine->caps.msaa_samples[2] = max_samples;
         evgl_engine->caps.msaa_supported  = 1;
      }
-#endif
 
    // Load Surface Cap
    if (!_surface_cap_cache_load())
@@ -977,6 +1019,20 @@ _context_ext_check(EVGL_Context *ctx)
      }
 #endif
 
+   if (ctx->version == EVAS_GL_GLES_3_X)
+     {
+        /* HACK, as of 2017/03/08:
+         * Some NVIDIA drivers pretend to support GLES 3.1 with EGL but in
+         * fact none of the new functions are available, neither through
+         * dlsym() nor eglGetProcAddress(). GLX/OpenGL should work though.
+         * This is a fixup for glGetString(GL_VERSION).
+         */
+        if (!gles3_funcs->glVertexBindingDivisor)
+          ctx->version_minor = 0;
+        else
+          ctx->version_minor = 1;
+     }
+
    ctx->extension_checked = 1;
 
    return 1;
@@ -1003,6 +1059,8 @@ _glenum_string_get(GLenum e)
          return "GL_DEPTH_COMPONENT16";
       case GL_DEPTH_COMPONENT24_OES:
          return "GL_DEPTH_COMPONENT24_OES";
+      case GL_DEPTH_COMPONENT32_OES:
+       return "GL_DEPTH_COMPONENT32_OES";
 
          // Stencil
       case GL_STENCIL_INDEX1_OES:
@@ -1015,6 +1073,8 @@ _glenum_string_get(GLenum e)
          // Depth_Stencil
       case GL_DEPTH_STENCIL_OES:
          return "GL_DEPTH_STENCIL_OES";
+      case GL_DEPTH24_STENCIL8_OES:
+         return "GL_DEPTH24_STENCIL8_OES";
 #else
          // Depth
       case GL_DEPTH_COMPONENT:
@@ -1186,10 +1246,16 @@ _surface_buffers_fbo_set(EVGL_Surface *sfc, GLuint fbo, Evas_GL_Context_Version 
    if (sfc->depth_stencil_buf)
      {
 #ifdef GL_GLES
-        _texture_attach_2d(sfc->depth_stencil_buf, GL_DEPTH_ATTACHMENT,
-                           GL_STENCIL_ATTACHMENT, sfc->msaa_samples, version);
+        if (sfc->depth_stencil_fmt == GL_DEPTH_STENCIL_OES)
+          _texture_attach_2d(sfc->depth_stencil_buf, GL_DEPTH_ATTACHMENT,
+                             GL_STENCIL_ATTACHMENT, sfc->msaa_samples, version);
+        else
+          {
+             _renderbuffer_attach(sfc->depth_stencil_buf, GL_DEPTH_ATTACHMENT, version);
+             _renderbuffer_attach(sfc->depth_stencil_buf, GL_STENCIL_ATTACHMENT, version);
+          }
 #else
-        _renderbuffer_attach(sfc->depth_stencil_buf, GL_DEPTH_STENCIL_ATTACHMENT, version);
+       _renderbuffer_attach(sfc->depth_stencil_buf, GL_DEPTH_STENCIL_ATTACHMENT, version);
 #endif
      }
 
@@ -1226,10 +1292,11 @@ _surface_buffers_create(EVGL_Surface *sfc)
    if (sfc->depth_stencil_fmt)
      {
 #ifdef GL_GLES
-        _texture_create(&sfc->depth_stencil_buf);
-#else
-        _renderbuffer_create(&sfc->depth_stencil_buf);
+        if (sfc->depth_stencil_fmt == GL_DEPTH_STENCIL_OES)
+          _texture_create(&sfc->depth_stencil_buf);
+        else
 #endif
+          _renderbuffer_create(&sfc->depth_stencil_buf);
      }
    else
      {
@@ -1248,7 +1315,7 @@ _surface_buffers_create(EVGL_Surface *sfc)
 
 
 static int
-_surface_buffers_allocate(void *eng_data EINA_UNUSED, EVGL_Surface *sfc, int w, int h, Evas_GL_Context_Version version)
+_surface_buffers_allocate(void *eng_data EINA_UNUSED, EVGL_Surface *sfc, int w, int h, Evas_GL_Context_Version version EINA_UNUSED/* unused ecept gles */)
 {
    // Create buffers
    if (sfc->color_fmt)
@@ -1270,23 +1337,28 @@ _surface_buffers_allocate(void *eng_data EINA_UNUSED, EVGL_Surface *sfc, int w, 
    if (sfc->depth_stencil_fmt)
      {
 #ifdef GL_GLES
-        if (version == EVAS_GL_GLES_3_X)
+        if (sfc->depth_stencil_fmt == GL_DEPTH_STENCIL_OES)
           {
-             _texture_allocate_2d(sfc->depth_stencil_buf, GL_DEPTH24_STENCIL8_OES,
-                sfc->depth_stencil_fmt, GL_UNSIGNED_INT_24_8_OES,
-                w, h);
+             if (version == EVAS_GL_GLES_3_X)
+               {
+                  _texture_allocate_2d(sfc->depth_stencil_buf, GL_DEPTH24_STENCIL8_OES,
+                     sfc->depth_stencil_fmt, GL_UNSIGNED_INT_24_8_OES,
+                     w, h);
+               }
+             else
+               {
+                  _texture_allocate_2d(sfc->depth_stencil_buf, sfc->depth_stencil_fmt,
+                     sfc->depth_stencil_fmt, GL_UNSIGNED_INT_24_8_OES,
+                     w, h);
+               }
           }
         else
-          {
-             _texture_allocate_2d(sfc->depth_stencil_buf, sfc->depth_stencil_fmt,
-                sfc->depth_stencil_fmt, GL_UNSIGNED_INT_24_8_OES,
-                w, h);
-          }
-#else
-        (void) version;
-        _renderbuffer_allocate(sfc->depth_stencil_buf, sfc->depth_stencil_fmt,
-                               w, h, sfc->msaa_samples);
 #endif
+          {
+             _renderbuffer_allocate(sfc->depth_stencil_buf,
+                                    sfc->depth_stencil_fmt, w, h,
+                                    sfc->msaa_samples);
+          }
         sfc->buffer_mem[3] = w * h * 4;
      }
    else
@@ -1325,10 +1397,11 @@ _surface_buffers_destroy(EVGL_Surface *sfc)
    if (sfc->depth_stencil_buf)
      {
 #ifdef GL_GLES
-        _texture_destroy(&sfc->depth_stencil_buf);
-#else
-        _renderbuffer_destroy(&sfc->depth_stencil_buf);
+        if (sfc->depth_stencil_fmt == GL_DEPTH_STENCIL_OES)
+          _texture_destroy(&sfc->depth_stencil_buf);
+        else
 #endif
+          _renderbuffer_destroy(&sfc->depth_stencil_buf);
      }
 
    return 1;
@@ -1465,7 +1538,8 @@ try_again:
 
    if (cfg_index < 0)
      {
-        ERR("Unable to find a matching config format.");
+        ERR("Unable to find a matching config format (depth:%d, stencil:%d, msaa:%d)",
+            depth_size, stencil_bit, msaa_samples);
         if ((stencil_bit > 8) || (depth_size > 24))
           {
              INF("Please note that Evas GL might not support 32-bit depth or "
@@ -1478,6 +1552,13 @@ try_again:
                }
              if (stencil_bit > 8) stencil_bit = 8; // see STENCIL_BIT_8
              DBG("Fallback to depth:%d, stencil:%d", depth_size, stencil_bit);
+             goto try_again;
+          }
+        else if (msaa_samples > 0)
+          {
+             msaa_samples /= 2;
+             if (msaa_samples == 1) msaa_samples = 0;
+             DBG("Fallback to msaa:%d", msaa_samples);
              goto try_again;
           }
         return 0;
@@ -2248,6 +2329,7 @@ evgl_context_create(void *eng_data, EVGL_Context *share_ctx,
 
    // Set default values
    ctx->version = version;
+   ctx->version_minor = 0;
    ctx->scissor_coord[0] = 0;
    ctx->scissor_coord[1] = 0;
    ctx->scissor_coord[2] = evgl_engine->caps.max_w;
@@ -2378,6 +2460,7 @@ evgl_make_current(void *eng_data, EVGL_Surface *sfc, EVGL_Context *ctx)
    Eina_Bool dbg = EINA_FALSE;
    EVGL_Resource *rsc;
    int curr_fbo = 0, curr_draw_fbo = 0, curr_read_fbo = 0;
+   Eina_Bool ctx_changed = EINA_FALSE;
 
    // Check the input validity. If either sfc is valid but ctx is NULL, it's also error.
    // sfc can be NULL as evas gl supports surfaceless make current
@@ -2468,6 +2551,10 @@ evgl_make_current(void *eng_data, EVGL_Surface *sfc, EVGL_Context *ctx)
         evas_gl_common_error_set(eng_data, EVAS_GL_BAD_CONTEXT);
         return 0;
      }
+
+   if (rsc->current_ctx != ctx)
+     ctx_changed = EINA_TRUE;
+
    rsc->current_ctx = ctx;
    rsc->current_eng = eng_data;
 
@@ -2725,7 +2812,7 @@ evgl_make_current(void *eng_data, EVGL_Surface *sfc, EVGL_Context *ctx)
                _framebuffer_create(&ctx->surface_fbo, ctx->version);
 
              // Attach fbo and the buffers
-             if ((rsc->current_ctx != ctx) || (ctx->current_sfc != sfc) || (rsc->direct.rendered))
+             if ((ctx_changed) || (ctx->current_sfc != sfc) || (rsc->direct.rendered))
                {
                   sfc->current_ctx = ctx;
                   if ((sfc->direct_mem_opt) && (sfc->direct_override))
@@ -3049,6 +3136,7 @@ Evas_GL_API *
 evgl_api_get(void *eng_data, Evas_GL_Context_Version version, Eina_Bool alloc_only)
 {
    Evas_GL_API *api = NULL;
+   int minor_version = 0;
 
    if (version == EVAS_GL_GLES_2_X)
      {
@@ -3062,10 +3150,15 @@ evgl_api_get(void *eng_data, Evas_GL_Context_Version version, Eina_Bool alloc_on
      }
    else if (version == EVAS_GL_GLES_3_X)
      {
+        if (evas_gl_common_version_check(&minor_version) < 3)
+          {
+             ERR("OpenGL ES 3.x is not supported.");
+             return NULL;
+          }
         if (!gles3_funcs) gles3_funcs = calloc(1, EVAS_GL_API_STRUCT_SIZE);
         api = gles3_funcs;
      }
-   else return NULL;
+   if (!api) return NULL;
    if (alloc_only && (api->version == EVAS_GL_API_VERSION))
      return api;
 
@@ -3087,7 +3180,14 @@ evgl_api_get(void *eng_data, Evas_GL_Context_Version version, Eina_Bool alloc_on
      }
    else if (version == EVAS_GL_GLES_3_X)
      {
-        _evgl_api_gles3_get(api, evgl_engine->api_debug_mode);
+        void *(*get_proc_address)(const char *) = NULL;
+        const char *egl_exts;
+
+        egl_exts = evgl_engine->funcs->ext_string_get(eng_data);
+        if (egl_exts && strstr(egl_exts, "EGL_KHR_get_all_proc_addresses"))
+          get_proc_address = evgl_engine->funcs->proc_address_get;
+
+        _evgl_api_gles3_get(api, get_proc_address, evgl_engine->api_debug_mode, minor_version);
         evgl_api_gles3_ext_get(api, evgl_engine->funcs->proc_address_get, evgl_engine->funcs->ext_string_get(eng_data));
      }
 

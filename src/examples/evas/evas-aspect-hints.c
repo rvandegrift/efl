@@ -1,5 +1,5 @@
 /**
- * Simple Evas example illustrating aspect control hints on objects.
+ * Example of aspect control hints on objects in Evas.
  *
  * You'll need at least one engine built for it (excluding the buffer
  * one) and the png image loader also built. See stdout/stderr for
@@ -42,8 +42,7 @@ struct test_data
 
 static struct test_data d = {0};
 
-/* here just to keep our example's window size and background image's
- * size in synchrony */
+/* Keep the example's window size in sync with the background image's size */
 static void
 _canvas_resize_cb(Ecore_Evas *ee)
 {
@@ -92,12 +91,12 @@ _on_keydown(void        *data EINA_UNUSED,
    if (evas_key_modifier_is_set(mods, "Shift") &&
        strcmp(ev->key, "h") == 0) /* print help */
      {
-        fprintf(stdout, "commands are:\n"
-                        "\tc - cycle aspect control on object\n"
-                        "\th - change horizontal aspect component\n"
-                        "\tv - change vertical aspect component\n"
-                        "\ts - print current object's status\n"
-                        "\tH - print help\n");
+        printf("commands are:\n"
+               "\tc - cycle aspect control on object\n"
+               "\th - change horizontal aspect component\n"
+               "\tv - change vertical aspect component\n"
+               "\ts - print current object's status\n"
+               "\tH - print help\n");
         return;
      }
 
@@ -108,9 +107,9 @@ _on_keydown(void        *data EINA_UNUSED,
 
         evas_object_size_hint_aspect_get(d.rect, &aspect, &w, &h);
 
-        fprintf(stdout, "Object has aspect %s, with horizontal compontent %d"
-                        " and vertical compontent %d\n",
-                _get_aspect_name(aspect), w, h);
+        printf("Object has aspect %s, with horizontal compontent %d"
+               " and vertical component %d\n",
+               _get_aspect_name(aspect), w, h);
 
         return;
      }
@@ -126,8 +125,8 @@ _on_keydown(void        *data EINA_UNUSED,
 
         evas_object_size_hint_aspect_set(d.rect, aspect, w, h);
 
-        fprintf(stdout, "Changing aspect control to %s\n",
-                _get_aspect_name(aspect));
+        printf("Changing aspect control to %s\n",
+               _get_aspect_name(aspect));
 
         return;
      }
@@ -143,7 +142,7 @@ _on_keydown(void        *data EINA_UNUSED,
 
         evas_object_size_hint_aspect_set(d.rect, aspect, w, h);
 
-        fprintf(stdout, "Changing horizontal aspect component to %d\n", w);
+        printf("Changing horizontal aspect component to %d\n", w);
 
         return;
      }
@@ -159,7 +158,7 @@ _on_keydown(void        *data EINA_UNUSED,
 
         evas_object_size_hint_aspect_set(d.rect, aspect, w, h);
 
-        fprintf(stdout, "Changing vertical aspect component to %d\n", h);
+        printf("Changing vertical aspect component to %d\n", h);
 
         return;
      }

@@ -29,6 +29,8 @@
 
 //#include <Evas_Common.h>
 
+#define EVAS_DMABUF_ATTRIBUTE_VERSION 1
+
 struct dmabuf_attributes
 {
   /* This must exactly match the struct in Enlightenment.
@@ -64,6 +66,7 @@ struct _Native
          void                     *buffer;
          void                     *config;   /* egl configuration or glx configuration */
          void                     *surface; /* egl surface or glx surface */
+         unsigned char             multiple_buffer : 1; /* whether pixmap is multiple buffer */
       } x11; /**< Set this struct fields if surface data is SW X11 based. */
 
        /*  EVAS_NATIVE_SURFACE_WL */

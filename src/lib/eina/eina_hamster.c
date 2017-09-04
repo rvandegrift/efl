@@ -35,9 +35,11 @@
  * @cond LOCAL
  */
 
-const char *_eina_hamster_time = __TIME__;
-const char *_eina_hamster_date = __DATE__;
-static int _eina_hamsters = -1;
+static const int _eina_hamster =
+  (VMAJ * 100 * 100 * 100) +
+  (VMIN * 100 * 100      ) +
+  (VMIC * 100            ) +
+  (VREV                  );
 
 /**
  * @endcond
@@ -54,58 +56,7 @@ static int _eina_hamsters = -1;
 EAPI int
 eina_hamster_count(void)
 {
-   if (_eina_hamsters < 0)
-     {
-        int hrs = 0, min = 0, sec = 0;
-        char mon[8] = "";
-        int monnum = 0, day = 0, year = 0;
-        int fields;
-
-        fields = sscanf(_eina_hamster_time, "%02d:%02d:%02d", &hrs, &min, &sec);
-        if (fields == 3)
-          {
-             _eina_hamsters = (hrs * 60) + min;
-             fields = sscanf(_eina_hamster_date, "%s %d %d", mon, &day, &year);
-             if (fields == 3)
-               {
-                  int i;
-                  const char *mons[] =
-                  {
-                     "Jan",
-                     "Feb",
-                     "Mar",
-                     "Apr",
-                     "May",
-                     "Jun",
-                     "Jul",
-                     "Aug",
-                     "Sep",
-                     "Oct",
-                     "Nov",
-                     "Dec"
-                  };
-
-                  for (i = 0; i < 12; i++)
-                    {
-                       if (!strcmp(mon, mons[i]))
-                         {
-                            monnum = i + 1;
-                            break;
-                         }
-                    }
-                  // alloc 60 for mins, 24 for hrs
-                  // alloc 1-31 (32) for days, 1-12 (13) for months
-                  // use year as-is, for 31 bits (signed) this gives us up to
-                  // 3584 years, which is good enough imho. - 1500 years from
-                  // now or so. :)
-                  _eina_hamsters +=
-                     (day + (monnum * 32) + (13 * 32 * year)) * (24 * 60);
-               }
-          }
-     }
-
-   // format: [rest - year][0-12 - month][0-31 - day][0-23 - hrs][0-59 - sec]
-   return _eina_hamsters;
+   return _eina_hamster;
 }
 
 /**

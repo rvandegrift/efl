@@ -81,6 +81,17 @@ typedef struct _Ecore_Cocoa_Event_Window_Unfocused Ecore_Cocoa_Event_Window_Unfo
 typedef struct _Ecore_Cocoa_Event_Window_Destroy Ecore_Cocoa_Event_Window_Destroy;
 
 /**
+ * @typedef Ecore_Cocoa_Terminate_Cb
+ * Callback called when a delete request is sent to the application.
+ * Such function must return EINA_TRUE for the application to terminate,
+ * and EINA_FALSE to ignore application termination.
+ * It is typically called by a CMD+Q signal.
+ * @param sender The NSApplication instance to be terminated
+ * @since 1.19
+ */
+typedef Eina_Bool (*Ecore_Cocoa_Terminate_Cb)(Ecore_Cocoa_Object *sender);
+
+/**
  * @typedef Ecore_Cocoa_Cursor
  * Values of the Cocoa cursors handled by Ecore_Cocoa
  * See https://developer.apple.com/library/mac/documentation/Cocoa/Reference/ApplicationKit/Classes/NSCursor_Class/index.html for images of each cursors.
@@ -382,7 +393,7 @@ EAPI void ecore_cocoa_window_size_max_get(const Ecore_Cocoa_Window *window,
    EINA_ARG_NONNULL(1);
 
 /**
- * Set a Cocoa window's resize increment
+ * Sets a Cocoa window's resize increment
  * @param window The Cocoa window which resize increment is to be set
  * @param w The width size increment
  * @param h The height size increment
@@ -394,7 +405,7 @@ EAPI void ecore_cocoa_window_size_step_set(Ecore_Cocoa_Window *window,
    EINA_ARG_NONNULL(1);
 
 /**
- * Get a Cocoa window's resize increment
+ * Gets a Cocoa window's resize increment
  * @param window The Cocoa window which resize increment queried
  * @param w The width size increment
  * @param h The height size increment
@@ -406,7 +417,7 @@ EAPI void ecore_cocoa_window_size_step_get(const Ecore_Cocoa_Window *window,
    EINA_ARG_NONNULL(1);
 
 /**
- * Display a Cocoa window
+ * Displays a Cocoa window
  * @param window The Cocoa window to be displayed
  * @since 1.18
  */
@@ -414,7 +425,7 @@ EAPI void ecore_cocoa_window_show(Ecore_Cocoa_Window *window)
    EINA_ARG_NONNULL(1);
 
 /**
- * Hide a Cocoa window
+ * Hides a Cocoa window
  * @param window The Cocoa window to be hid
  * @since 1.18
  */
@@ -456,7 +467,7 @@ EAPI void ecore_cocoa_window_title_set(Ecore_Cocoa_Window *window,
    EINA_ARG_NONNULL(1);
 
 /**
- * Miniaturize or deminiaturize a Cocoa window
+ * Miniaturizes or deminiaturizes a Cocoa window
  * @param window The Cocoa window which iconify status is to be changed
  * @param on If #EINA_TRUE, will miniaturize the window. Will deminiaturize it if #EINA_FALSE
  * @since 1.18
@@ -466,7 +477,7 @@ EAPI void ecore_cocoa_window_iconified_set(Ecore_Cocoa_Window *window,
    EINA_ARG_NONNULL(1);
 
 /**
- * Manage the borders of a Cocoa window
+ * Manages the borders of a Cocoa window
  * @param window The Cocoa window which borders are to be changed
  * @param on If #EINA_TRUE, will remove borders. Will restore them if #EINA_FALSE
  * @since 1.18
@@ -476,7 +487,7 @@ EAPI void ecore_cocoa_window_borderless_set(Ecore_Cocoa_Window *window,
    EINA_ARG_NONNULL(1);
 
 /**
- * Set the content view of a Cocoa window
+ * Sets the content view of a Cocoa window
  *
  * Refer to Apple's documentation of the property 'contentView' of
  * the NSWindow class for more details about the content view.
@@ -491,7 +502,7 @@ EAPI void ecore_cocoa_window_view_set(Ecore_Cocoa_Window *window,
    EINA_ARG_NONNULL(2);
 
 /**
- * Get the height of the title bar of Cocoa windows
+ * Gets the height of the title bar of Cocoa windows
  * @return The height of the title bar of Cocoa windows
  * @since 1.18
  */
@@ -509,7 +520,7 @@ EAPI Ecore_Cocoa_Object *ecore_cocoa_window_get(const Ecore_Cocoa_Window *window
 
 
 /**
- * Set the Cocoa cursor for a given Cocoa window
+ * Sets the Cocoa cursor for a given Cocoa window
  * @param win The Cocoa window on which the cursor is to be changed.
  * @param c The cursor to be set
  * @since 1.18
@@ -519,7 +530,7 @@ EAPI void ecore_cocoa_window_cursor_set(Ecore_Cocoa_Window *win,
    EINA_ARG_NONNULL(1);
 
 /**
- * Hide or show the Cocoa cursor for a given Cocoa window
+ * Hides or shows the Cocoa cursor for a given Cocoa window
  * @param win The Cocoa window on which the cursor is to be hid
  * @param show Shows the cursor if EINA_TRUE. Hides it if EINA_FALSE
  * @since 1.18
@@ -527,6 +538,17 @@ EAPI void ecore_cocoa_window_cursor_set(Ecore_Cocoa_Window *win,
 EAPI void ecore_cocoa_window_cursor_show(Ecore_Cocoa_Window *win, Eina_Bool show);
    EINA_ARG_NONNULL(1);
 
+/**
+ * Overrides the default behaviour in response to an application delete
+ * request. When an application receives a delete request (i.e. CMD+Q)
+ * the termination callback will be called and its result will determine
+ * whether the application should terminate or not
+ * @param cb The custom termination callback to set
+ * @see Ecore_Cocoa_Terminate_Cb
+ * @since 1.19
+ */
+EAPI void ecore_cocoa_terminate_cb_set(Ecore_Cocoa_Terminate_Cb cb)
+   EINA_ARG_NONNULL(1);
 
 
 /*
@@ -536,7 +558,7 @@ EAPI void ecore_cocoa_window_cursor_show(Ecore_Cocoa_Window *win, Eina_Bool show
 #ifdef EFL_BETA_API_SUPPORT
 
 /*
- * Set the clipboard of Cocoa (NSPasteboard)
+ * Sets the clipboard of Cocoa (NSPasteboard)
  * @param data The contents to be set in the clipboard
  * @param size The size in bytes of @c data
  * @param type
@@ -547,7 +569,7 @@ EAPI Eina_Bool ecore_cocoa_clipboard_set(const void *data,
                                                    Ecore_Cocoa_Cnp_Type type);
 
 /*
- * Get the contents of the Cocoa clipboard
+ * Gets the contents of the Cocoa clipboard
  * @param size Pointer used to retrieve the size of the received contents
  * @param type The type of object to retrieve from the clipboard
  * @param retrieved_types The types of objects retrieved from the clipboard

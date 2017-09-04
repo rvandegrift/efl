@@ -84,7 +84,7 @@ struct _Vertex3
  */
 
 #define EFL_UI_FLIP_DATA_GET(o, sd) \
-  Efl_Ui_Flip_Data * sd = eo_data_scope_get(o, EFL_UI_FLIP_CLASS)
+  Efl_Ui_Flip_Data * sd = efl_data_scope_get(o, EFL_UI_FLIP_CLASS)
 
 #define EFL_UI_FLIP_DATA_GET_OR_RETURN(o, ptr)          \
   EFL_UI_FLIP_DATA_GET(o, ptr);                         \
@@ -104,8 +104,8 @@ struct _Vertex3
        return val;                                   \
     }
 
-#define ELM_FLIP_CHECK(obj)                              \
-  if (EINA_UNLIKELY(!eo_isa((obj), EFL_UI_FLIP_CLASS))) \
+#define EFL_UI_FLIP_CHECK(obj)                           \
+  if (EINA_UNLIKELY(!efl_isa((obj), EFL_UI_FLIP_CLASS))) \
     return
 
 #endif

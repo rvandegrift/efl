@@ -176,6 +176,12 @@ struct _Elm_Cursor
       Ecore_Cocoa_Window *win;
    } cocoa;
 #endif
+   struct
+   {
+      Evas_Object *obj;
+      int layer;
+      int x, y;
+   } prev;
 
    Eina_Bool visible:1;
    Eina_Bool use_engine:1;
@@ -197,14 +203,11 @@ _elm_cursor_obj_del(void *data, Evas *evas EINA_UNUSED, Evas_Object *obj EINA_UN
 }
 
 static void
-_elm_cursor_set_hot_spots(void *data)
+_elm_cursor_set_hot_spots(Elm_Cursor *cur)
 {
-   Elm_Cursor *cur = data;
    const char *str;
    Evas_Coord cx, cy, cw, ch, x, y, w, h;
    int prev_hot_x, prev_hot_y;
-
-   cur->hotupdate_job = NULL;
 
    prev_hot_x = cur->hot_x;
    prev_hot_y = cur->hot_y;
@@ -229,11 +232,21 @@ _elm_cursor_set_hot_spots(void *data)
 }
 
 static void
+_elm_cursor_set_hot_spots_job(void *data)
+{
+   Elm_Cursor *cur = data;
+
+   cur->hotupdate_job = NULL;
+
+   _elm_cursor_set_hot_spots(cur);
+}
+
+static void
 _elm_cursor_hot_change(void *data, Evas *evas EINA_UNUSED, Evas_Object *obj EINA_UNUSED, void *event_info EINA_UNUSED)
 {
    Elm_Cursor *cur = data;
    if (cur->hotupdate_job) ecore_job_del(cur->hotupdate_job);
-   cur->hotupdate_job = ecore_job_add(_elm_cursor_set_hot_spots, data);
+   cur->hotupdate_job = ecore_job_add(_elm_cursor_set_hot_spots_job, data);
 }
 
 static Eina_Bool
@@ -241,8 +254,17 @@ _elm_cursor_obj_add(Evas_Object *obj, Elm_Cursor *cur)
 {
    int x, y;
 
-   cur->obj = edje_object_add(cur->evas);
+#ifdef HAVE_ELEMENTARY_WL2
+   const char *engine_name;
 
+   engine_name = ecore_evas_engine_name_get(cur->ee);
+   if ((engine_name) &&
+       ((!strcmp(engine_name, ELM_WAYLAND_SHM)) ||
+           (!strcmp(engine_name, ELM_WAYLAND_EGL))))
+     return EINA_FALSE;
+#endif
+
+   cur->obj = edje_object_add(cur->evas);
    if (!cur->obj) return EINA_FALSE;
 
    if (!_elm_theme_object_set(obj, cur->obj, "cursor", cur->cursor_name,
@@ -251,6 +273,7 @@ _elm_cursor_obj_add(Evas_Object *obj, Elm_Cursor *cur)
         ELM_SAFE_FREE(cur->obj, evas_object_del);
         return EINA_FALSE;
      }
+   evas_object_data_set(cur->obj, "elm-cursor", (void*)1);
    cur->hotobj = evas_object_rectangle_add(cur->evas);
    evas_object_color_set(cur->hotobj, 0, 0, 0, 0);
    evas_object_event_callback_add(cur->obj, EVAS_CALLBACK_MOVE,
@@ -261,7 +284,16 @@ _elm_cursor_obj_add(Evas_Object *obj, Elm_Cursor *cur)
                                   _elm_cursor_hot_change, cur);
    evas_object_event_callback_add(cur->hotobj, EVAS_CALLBACK_RESIZE,
                                   _elm_cursor_hot_change, cur);
-   edje_object_part_swallow(cur->obj, "elm.content.hotspot", cur->hotobj);
+   if (edje_object_part_exists(cur->obj, "elm.swallow.hotspot"))
+     edje_object_part_swallow(cur->obj, "elm.swallow.hotspot", cur->hotobj);
+   else if (edje_object_part_exists(cur->obj, "elm.content.hotspot"))
+     edje_object_part_swallow(cur->obj, "elm.content.hotspot", cur->hotobj);
+   else
+     {
+        ELM_SAFE_FREE(cur->hotobj, evas_object_del);
+        ELM_SAFE_FREE(cur->obj, evas_object_del);
+        return EINA_FALSE;
+     }
 
    evas_object_event_callback_add(cur->obj, EVAS_CALLBACK_DEL,
                                   _elm_cursor_obj_del, cur);
@@ -279,17 +311,27 @@ _elm_cursor_obj_add(Evas_Object *obj, Elm_Cursor *cur)
 static void
 _elm_cursor_set(Elm_Cursor *cur)
 {
-   if (cur->visible) return;
-
    evas_event_freeze(cur->evas);
    if (!cur->use_engine)
      {
+        if (cur->visible) goto end;
+
         if (!cur->obj)
           _elm_cursor_obj_add(cur->owner, cur);
         if (cur->obj)
-          ecore_evas_object_cursor_set(cur->ee, cur->obj,
+          {
+             ecore_evas_cursor_get(cur->ee, &cur->prev.obj, &cur->prev.layer, &cur->prev.x, &cur->prev.y);
+             if (cur->prev.obj)
+               {
+                  if (evas_object_data_get(cur->prev.obj, "elm-cursor"))
+                    memset(&cur->prev, 0, sizeof(cur->prev));
+                  else
+                    ecore_evas_cursor_unset(cur->ee);
+               }
+             ecore_evas_object_cursor_set(cur->ee, cur->obj,
                                        ELM_OBJECT_LAYER_CURSOR, cur->hot_x,
                                        cur->hot_y);
+          }
         cur->visible = !!cur->obj;
      }
    else
@@ -307,7 +349,13 @@ _elm_cursor_set(Elm_Cursor *cur)
 #endif
 #ifdef HAVE_ELEMENTARY_WL2
         if (cur->wl.win)
-          ecore_wl2_window_cursor_from_name_set(cur->wl.win, cur->cursor_name);
+          {
+             Evas_Object *top;
+
+             top = elm_widget_top_get(cur->owner);
+             if ((top) && (efl_isa(top, EFL_UI_WIN_CLASS)))
+               _elm_win_wl_cursor_set(top, cur->cursor_name);
+          }
 #endif
 
 #ifdef HAVE_ELEMENTARY_COCOA
@@ -320,6 +368,7 @@ _elm_cursor_set(Elm_Cursor *cur)
           ecore_win32_window_cursor_set(cur->win32.win, cur->win32.cursor);
 #endif
      }
+end:
    evas_event_thaw(cur->evas);
 }
 
@@ -365,8 +414,15 @@ _elm_cursor_mouse_out(void *data, Evas *evas EINA_UNUSED, Evas_Object *obj EINA_
      }
 
    if (!cur->use_engine)
-     ecore_evas_object_cursor_set(cur->ee, NULL, ELM_OBJECT_LAYER_CURSOR,
-                                  cur->hot_x, cur->hot_y);
+     {
+        if (cur->prev.obj)
+          ecore_evas_object_cursor_set(cur->ee, cur->prev.obj, cur->prev.layer,
+                                       cur->prev.x, cur->prev.y);
+        else
+          ecore_evas_object_cursor_set(cur->ee, NULL, ELM_OBJECT_LAYER_CURSOR,
+                                       cur->hot_x, cur->hot_y);
+        memset(&cur->prev, 0, sizeof(cur->prev));
+     }
    else
      {
 #ifdef HAVE_ELEMENTARY_X
@@ -375,7 +431,13 @@ _elm_cursor_mouse_out(void *data, Evas *evas EINA_UNUSED, Evas_Object *obj EINA_
 #endif
 #ifdef HAVE_ELEMENTARY_WL2
         if (cur->wl.win)
-          ecore_wl2_window_cursor_from_name_set(cur->wl.win, NULL);
+          {
+             Evas_Object *top;
+
+             top = elm_widget_top_get(cur->owner);
+             if ((top) && (efl_isa(top, EFL_UI_WIN_CLASS)))
+               _elm_win_wl_cursor_set(top, NULL);
+          }
 #endif
 
 #ifdef HAVE_ELEMENTARY_COCOA
@@ -440,7 +502,7 @@ _elm_cursor_cur_set(Elm_Cursor *cur)
         Evas_Object *top;
 
         top = elm_widget_top_get(cur->owner);
-        if ((top) && (eo_isa(top, EFL_UI_WIN_CLASS)))
+        if ((top) && (efl_isa(top, EFL_UI_WIN_CLASS)))
           {
 #ifdef HAVE_ELEMENTARY_X
              cur->x.win = elm_win_xwindow_get(top);
@@ -480,7 +542,6 @@ _elm_cursor_cur_set(Elm_Cursor *cur)
                     cur->cocoa.cursor = cur_id->cid;
                }
 #endif
-
 #ifdef HAVE_ELEMENTARY_WL2
              cur->wl.win = elm_win_wl_window_get(top);
 #endif
@@ -506,10 +567,7 @@ _elm_cursor_cur_set(Elm_Cursor *cur)
           }
      }
 
-   Evas_Coord x, y, w, h, px, py;
-   evas_object_geometry_get(cur->eventarea, &x, &y, &w, &h);
-   evas_pointer_canvas_xy_get(cur->evas, &px, &py);
-   if (IS_INSIDE(px, py, x, y, w, h))
+   if (efl_canvas_object_pointer_in_get(cur->eventarea))
      _elm_cursor_set(cur);
 }
 
@@ -557,6 +615,7 @@ elm_object_sub_cursor_set(Evas_Object *eventarea, Evas_Object *owner, const char
    cur->eventarea = eventarea;
    cur->theme_search = !_elm_config->cursor_engine_only;
    cur->visible = EINA_FALSE;
+   cur->style = eina_stringshare_add("default");
 
    cur->cursor_name = eina_stringshare_add(cursor);
    if (!cur->cursor_name)
@@ -629,7 +688,13 @@ elm_object_cursor_unset(Evas_Object *obj)
 #endif
 #ifdef HAVE_ELEMENTARY_WL2
         else if (cur->wl.win)
-          ecore_wl2_window_cursor_from_name_set(cur->wl.win, NULL);
+          {
+             Evas_Object *top;
+
+             top = elm_widget_top_get(cur->owner);
+             if ((top) && (efl_isa(top, EFL_UI_WIN_CLASS)))
+               _elm_win_wl_cursor_set(top, NULL);
+          }
 #endif
 #ifdef HAVE_ELEMENTARY_WIN32
         else
@@ -689,7 +754,7 @@ void
 elm_cursor_theme(Elm_Cursor *cur)
 {
    if ((!cur) || (!cur->obj)) return;
-   if (!_elm_theme_object_set(cur->eventarea, cur->obj, "cursor",
+   if (!_elm_theme_object_set(cur->owner, cur->obj, "cursor",
                               cur->cursor_name, cur->style))
      ERR("Could not apply the theme to the cursor style=%s", cur->style);
    else

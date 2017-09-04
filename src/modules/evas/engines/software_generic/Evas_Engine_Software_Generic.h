@@ -1,6 +1,8 @@
 #ifndef EVAS_ENGINE_SOFTWARE_GENERIC_H_
 # define EVAS_ENGINE_SOFTWARE_GENERIC_H_
 
+#include "Evas_Engine_Software_Shared.h"
+
 typedef enum _Outbuf_Depth
 {
    OUTBUF_DEPTH_NONE,
@@ -25,16 +27,6 @@ typedef enum _Outbuf_Depth
 
 typedef enum 
 {
-   MODE_FULL,
-   MODE_COPY,
-   MODE_DOUBLE,
-   MODE_TRIPLE,
-   MODE_QUADRUPLE,
-   MODE_AUTO
-} Render_Engine_Swap_Mode;
-
-typedef enum 
-{
    MERGE_BOUNDING,
    MERGE_FULL,
    MERGE_SMART
@@ -46,13 +38,15 @@ typedef struct _Outbuf Outbuf;
 typedef Render_Engine_Swap_Mode (*Outbuf_Swap_Mode_Get)(Outbuf *ob);
 typedef void (*Outbuf_Reconfigure)(Outbuf *ob, int w, int h, int rot, Outbuf_Depth depth);
 typedef Eina_Bool (*Outbuf_Region_First_Rect)(Outbuf *ob);
+typedef void (*Outbuf_Damage_Region_Set)(Outbuf *ob, Tilebuf_Rect *rects);
 typedef void *(*Outbuf_New_Region_For_Update)(Outbuf *ob, int x, int y, int w, int h, int *cx, int *cy, int *cw, int *ch);
 typedef void (*Outbuf_Push_Updated_Region)(Outbuf *ob, RGBA_Image *update, int x, int y, int w, int h);
 typedef void (*Outbuf_Idle_Flush)(Outbuf *ob);
 typedef void (*Outbuf_Free_Region_For_Update)(Outbuf *ob, RGBA_Image *update);
 typedef void (*Outbuf_Free)(Outbuf *ob);
 typedef int (*Outbuf_Get_Rot)(Outbuf *ob);
-typedef void (*Outbuf_Flush)(Outbuf *ob, Tilebuf_Rect *rects, Evas_Render_Mode render_mode);
+typedef void (*Outbuf_Flush)(Outbuf *ob, Tilebuf_Rect *surface_damage, Tilebuf_Rect *buffer_damage, Evas_Render_Mode render_mode);
+typedef void (*Outbuf_Redraws_Clear)(Outbuf *ob);
 
 struct _Render_Engine_Software_Generic
 {
@@ -66,12 +60,14 @@ struct _Render_Engine_Software_Generic
    Outbuf_Get_Rot outbuf_get_rot;
    Outbuf_Reconfigure outbuf_reconfigure;
    Outbuf_Region_First_Rect outbuf_region_first_rect;
+   Outbuf_Damage_Region_Set outbuf_damage_region_set;
    Outbuf_New_Region_For_Update outbuf_new_region_for_update;
    Outbuf_Push_Updated_Region outbuf_push_updated_region;
    Outbuf_Idle_Flush outbuf_idle_flush;
    Outbuf_Free_Region_For_Update outbuf_free_region_for_update;
    Outbuf_Free outbuf_free;
    Outbuf_Flush outbuf_flush;
+   Outbuf_Redraws_Clear outbuf_redraws_clear;
 
    unsigned int w, h;
 
@@ -90,11 +86,13 @@ evas_render_engine_software_generic_init(Render_Engine_Software_Generic *re,
                                          Outbuf_Get_Rot outbuf_get_rot,
                                          Outbuf_Reconfigure outbuf_reconfigure,
                                          Outbuf_Region_First_Rect outbuf_region_first_rect,
+                                         Outbuf_Damage_Region_Set outbuf_damage_region_set,
                                          Outbuf_New_Region_For_Update outbuf_new_region_for_update,
                                          Outbuf_Push_Updated_Region outbuf_push_updated_region,
                                          Outbuf_Free_Region_For_Update outbuf_free_region_for_update,
                                          Outbuf_Idle_Flush outbuf_idle_flush,
                                          Outbuf_Flush outbuf_flush,
+                                         Outbuf_Redraws_Clear outbuf_redraws_clear,
                                          Outbuf_Free outbuf_free,
                                          int w, int h)
 {
@@ -105,12 +103,14 @@ evas_render_engine_software_generic_init(Render_Engine_Software_Generic *re,
    re->outbuf_get_rot = outbuf_get_rot;
    re->outbuf_reconfigure = outbuf_reconfigure;
    re->outbuf_region_first_rect = outbuf_region_first_rect;
+   re->outbuf_damage_region_set = outbuf_damage_region_set;
    re->outbuf_new_region_for_update = outbuf_new_region_for_update;
    re->outbuf_push_updated_region = outbuf_push_updated_region;
    re->outbuf_idle_flush = outbuf_idle_flush;
    re->outbuf_free_region_for_update = outbuf_free_region_for_update;
    re->outbuf_free = outbuf_free;
    re->outbuf_flush = outbuf_flush;
+   re->outbuf_redraws_clear = outbuf_redraws_clear;
 
    re->rects = NULL;
    for (i = 0; i < 4; i++)
@@ -169,7 +169,7 @@ evas_render_engine_software_generic_update(Render_Engine_Software_Generic *re,
                                            Outbuf *ob,
                                            int w, int h)
 {
-   if (re->ob) re->outbuf_free(re->ob);
+   if ((re->ob) && (re->ob != ob)) re->outbuf_free(re->ob);
    re->ob = ob;
 
    evas_common_tilebuf_free(re->tb);

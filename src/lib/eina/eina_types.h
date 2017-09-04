@@ -45,12 +45,15 @@
 # else
 #  define EAPI __declspec(dllimport)
 # endif /* ! EFL_EINA_BUILD */
+# define EAPI_WEAK
 #else
 # ifdef __GNUC__
 #  if __GNUC__ >= 4
 #   define EAPI __attribute__ ((visibility("default")))
+#   define EAPI_WEAK __attribute__ ((weak))
 #  else
 #   define EAPI
+#   define EAPI_WEAK
 #  endif
 # else
 /**
@@ -60,6 +63,9 @@
 #  define EAPI
 # endif
 #endif
+
+/* Weak symbols part of EFL API - Note: not weak on all platforms */
+#define EWAPI EAPI EAPI_WEAK
 
 #ifdef _WIN32
 # ifdef DLL_EXPORT
@@ -127,6 +133,21 @@
 #ifdef EINA_SENTINEL
 # undef EINA_SENTINEL
 #endif
+#ifdef EINA_FALLTHROUGH
+# undef EINA_FALLTHROUGH
+#endif
+#ifdef EINA_PREFETCH
+# undef EINA_PREFETCH
+#endif
+#ifdef EINA_PREFETCH_WRITE
+# undef EINA_PREFETCH_WRITE
+#endif
+#ifdef EINA_PREFETCH_NOCACHE
+# undef EINA_PREFETCH_NOCACHE
+#endif
+#ifdef EINA_PREFETCH_NOCACHE_WRITE
+# undef EINA_PREFETCH_NOCACHE_WRITE
+#endif
 
 #ifdef __GNUC__
 
@@ -175,6 +196,24 @@
 #  define EINA_UNLIKELY(exp)    __builtin_expect((exp), 0)
 #  define EINA_LIKELY(exp)      __builtin_expect((exp), 1)
 #  define EINA_SENTINEL __attribute__((__sentinel__))
+#  ifndef __clang__
+#   if __GNUC__ >= 7
+#    define EINA_FALLTHROUGH __attribute__ ((fallthrough));
+#   else
+#    define EINA_FALLTHROUGH
+#   endif
+#   define EINA_PREFETCH(arg) (arg ? __builtin_prefetch(arg) : (void) arg)
+#   define EINA_PREFETCH_WRITE(arg) (arg ? __builtin_prefetch(arg, 1) : (void) arg)
+#   define EINA_PREFETCH_NOCACHE(arg) (arg ? __builtin_prefetch(arg, 0, 0) : (void) arg)
+#   define EINA_PREFETCH_NOCACHE_WRITE(arg) (arg ? __builtin_prefetch(arg, 1, 0) : (void) arg)
+#  else
+/* LLVM Clang workaround (crash on compilation) */
+#   define EINA_FALLTHROUGH
+#   define EINA_PREFETCH(arg) ((void) (arg))
+#   define EINA_PREFETCH_WRITE(arg) ((void) (arg))
+#   define EINA_PREFETCH_NOCACHE(arg) ((void) (arg))
+#   define EINA_PREFETCH_NOCACHE_WRITE(arg) ((void) (arg))
+#  endif
 # else
 #  define EINA_PRINTF(fmt, arg)
 #  define EINA_SCANF(fmt, arg)
@@ -184,6 +223,11 @@
 #  define EINA_UNLIKELY(exp) exp
 #  define EINA_LIKELY(exp)   exp
 #  define EINA_SENTINEL
+#  define EINA_FALLTHROUGH
+#  define EINA_PREFETCH(arg) ((void) (arg))
+#  define EINA_PREFETCH_WRITE(arg) ((void) (arg))
+#  define EINA_PREFETCH_NOCACHE(arg) ((void) (arg))
+#  define EINA_PREFETCH_NOCACHE_WRITE(arg) ((void) (arg))
 # endif
 
 #elif defined(_MSC_VER)
@@ -205,6 +249,11 @@
 # define EINA_UNLIKELY(exp) exp
 # define EINA_LIKELY(exp)   exp
 # define EINA_SENTINEL
+# define EINA_FALLTHROUGH
+# define EINA_PREFETCH(arg) ((void) (arg))
+# define EINA_PREFETCH_WRITE(arg) ((void) (arg))
+# define EINA_PREFETCH_NOCACHE(arg) ((void) (arg))
+# define EINA_PREFETCH_NOCACHE_WRITE(arg) ((void) (arg))
 
 #elif defined(__SUNPRO_C)
 # define EINA_UNUSED
@@ -230,6 +279,11 @@
 # define EINA_UNLIKELY(exp) exp
 # define EINA_LIKELY(exp)   exp
 # define EINA_SENTINEL
+# define EINA_FALLTHROUGH
+# define EINA_PREFETCH(arg) ((void) (arg))
+# define EINA_PREFETCH_WRITE(arg) ((void) (arg))
+# define EINA_PREFETCH_NOCACHE(arg) ((void) (arg))
+# define EINA_PREFETCH_NOCACHE_WRITE(arg) ((void) (arg))
 
 #else /* ! __GNUC__ && ! _MSC_VER && ! __SUNPRO_C */
 
@@ -251,7 +305,7 @@
  *
  * @param ... Oridnals of the parameters to check for nullity (1..n)
  *
- * @returns Nothing, but Doxygen will complain if it's not documented :-P
+ * @return Nothing, but Doxygen will complain if it's not documented :-P
  *
  */
 # define EINA_ARG_NONNULL(...)
@@ -316,9 +370,67 @@
  * @def EINA_SENTINEL
  * @brief Attribute from gcc to prevent calls without the necessary NULL
  * sentinel in certain variadic functions
- * @since 1.7.0
+ * @since 1.7
  */
 # define EINA_SENTINEL
+
+/**
+ * @def EINA_FALLTHROUGH
+ * @brief Attribute from gcc to prevent warning and indicate that we expect
+ * to actually go to the next switch statement
+ * @since 1.20
+ */
+# define EINA_FALLTHROUGH
+
+/**
+ * @def EINA_PREFETCH
+ * @brief Hints that the pointer @parg needs to be pre-fetched into cache
+ * This hints to the compiler to probably issue a prefetch command for the
+ * memory address @p arg and ensure it goes into all levels of cache. For
+ * just writing to an address look at EINA_PREFETCH_WRITE().
+ * Note that the pointer @p arg does not have to be a valid pointer and
+ * will not cause any exceptions (like segfaults) if it is invalid.
+ * @since 1.19
+ */
+# define EINA_PREFETCH(arg)
+
+/**
+ * @def EINA_PREFETCH_WRITE
+ * @brief Hints that the pointer @parg needs to be pre-fetched into cache
+ * This hints to the compiler to probably issue a prefetch command for the
+ * memory address @p arg and ensure it goes into all levels of cache. This
+ * specifically indicates that the address is going to be written to as
+ * opposed to being read from as with EINA_PREFETCH().
+ * Note that the pointer @p arg does not have to be a valid pointer and
+ * will not cause any exceptions (like segfaults) if it is invalid.
+ * @since 1.19
+ */
+# define EINA_PREFETCH_WRITE(arg)
+
+/**
+ * @def EINA_PREFETCH_NOCACHE
+ * @brief Hints that the pointer @parg needs to be pre-fetched into cache
+ * This hints to the compiler to probably issue a prefetch command for the
+ * memory address @p arg and ensure it goes into just the closest(l1) cache.
+ * For just writing to an address look at EINA_PREFETCH_WRITE_NOCACHE().
+ * Note that the pointer @p arg does not have to be a valid pointer and
+ * will not cause any exceptions (like segfaults) if it is invalid.
+ * @since 1.19
+ */
+# define EINA_PREFETCH_NOCACHE(arg)
+/**
+ * @def EINA_PREFETCH_WRITE_NOCACHE
+ * @brief Hints that the pointer @parg needs to be pre-fetched into cache
+ * This hints to the compiler to probably issue a prefetch command for the
+ * memory address @p arg and ensure it goes into just the closest(l1) cache.
+ * This specifically indicates that the address is going to be written to as
+ * opposed to being read from as with EINA_PREFETCH_NOCACHE().
+ * Note that the pointer @p arg does not have to be a valid pointer and
+ * will not cause any exceptions (like segfaults) if it is invalid.
+ * @since 1.19
+ */
+# define EINA_PREFETCH_NOCACHE_WRITE(arg)
+
 #endif /* ! __GNUC__ && ! _WIN32 && ! __SUNPRO_C */
 
 /**
@@ -362,7 +474,7 @@ typedef int (*Eina_Compare_Cb)(const void *data1, const void *data2);
 
 /**
  * @typedef Eina_Random_Cb
- * Function used in shuffling functions. An integer betwen min and max
+ * Function used in shuffling functions. An integer between min and max
  * inclusive must be returned.
  *
  * @since 1.8

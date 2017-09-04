@@ -164,6 +164,45 @@ struct _Edje_Part_Collection_Parser
    Eina_Bool inherit_only;
 };
 
+typedef enum
+{
+   EDJE_PART_ANCHOR_LINE_RELATIVE = -1,
+   EDJE_PART_ANCHOR_LINE_NONE,
+   EDJE_PART_ANCHOR_LINE_TOP,
+   EDJE_PART_ANCHOR_LINE_BOTTOM,
+   EDJE_PART_ANCHOR_LINE_LEFT,
+   EDJE_PART_ANCHOR_LINE_RIGHT,
+   EDJE_PART_ANCHOR_LINE_VERTICAL_CENTER,
+   EDJE_PART_ANCHOR_LINE_HORIZONTAL_CENTER
+} Edje_Part_Anchor_Line;
+
+typedef enum
+{
+   EDJE_PART_ANCHOR_FILL_BOTH,
+   EDJE_PART_ANCHOR_FILL_HORIZONTAL,
+   EDJE_PART_ANCHOR_FILL_VERTICAL
+} Edje_Part_Anchor_Fill;
+
+typedef struct
+{
+   union {
+      Edje_Part_Anchor_Line line;
+      Edje_Part_Anchor_Fill fill;
+   } base;
+   Eina_Bool set : 1;
+} Edje_Part_Anchor;
+
+typedef struct
+{
+   Edje_Part_Anchor top;
+   Edje_Part_Anchor bottom;
+   Edje_Part_Anchor left;
+   Edje_Part_Anchor right;
+   Edje_Part_Anchor vertical_center;
+   Edje_Part_Anchor horizontal_center;
+   Edje_Part_Anchor fill;
+} Edje_Part_Description_Anchors;
+
 /* global fn calls */
 void    data_setup(void);
 void    data_write(void);
@@ -180,7 +219,7 @@ void    data_queue_copied_part_lookup(Edje_Part_Collection *pc, int *src, int *d
 void   *data_queue_program_lookup(Edje_Part_Collection *pc, const char *name, int *dest);
 void    program_lookup_rename(void *p, const char *name);
 void    copied_program_lookup_delete(Edje_Part_Collection *pc, const char *name);
-void    data_queue_copied_program_lookup(Edje_Part_Collection *pc, int *src, int *dest);
+Eina_Bool     data_queue_copied_program_lookup(Edje_Part_Collection *pc, int *src, int *dest);
 void    copied_program_anonymous_lookup_delete(Edje_Part_Collection *pc, int *dest);
 void    data_queue_anonymous_lookup(Edje_Part_Collection *pc, Edje_Program *ep, int *dest);
 void    data_queue_copied_anonymous_lookup(Edje_Part_Collection *pc, int *src, int *dest);
@@ -247,7 +286,8 @@ void    using_file(const char *filename, const char type);
 void    error_and_abort(Eet_File *ef, const char *fmt, ...);
 
 void stack_push_quick(const char *str);
-void stack_pop_quick(Eina_Bool check_last, Eina_Bool do_free);
+char *stack_pop_quick(Eina_Bool check_last, Eina_Bool do_free);
+void stack_replace_quick(const char *token);
 Eina_Bool edje_cc_handlers_wildcard(void);
 void edje_cc_handlers_hierarchy_alloc(void);
 void edje_cc_handlers_hierarchy_free(void);

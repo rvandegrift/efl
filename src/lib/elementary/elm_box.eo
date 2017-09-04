@@ -1,8 +1,8 @@
 import evas_box;
-import ecore_types;
 
 class Elm.Box (Elm.Widget)
 {
+   [[Elementary box class]]
    legacy_prefix: elm_box;
    eo_prefix: elm_obj_box;
    event_prefix: elm_box;
@@ -88,45 +88,8 @@ class Elm.Box (Elm.Widget)
             ]]
          }
          values {
-            horizontal: Evas.Coord; [[The horizontal space between elements]]
-            vertical: Evas.Coord; [[The vertical space between elements]]
-         }
-      }
-      @property layout {
-         set {
-            [[Set the layout defining function to be used by the box
-
-              Whenever anything changes that requires the box in $obj to recalculate
-              the size and position of its elements, the function $cb will be called
-              to determine what the layout of the children will be.
-
-              Once a custom function is set, everything about the children layout
-              is defined by it. The flags set by @.horizontal.set and
-              @.homogeneous.set no longer have any meaning, and the values
-              given by @.padding.set and @.align.set are up to this
-              layout function to decide if they are used and how. These last two
-              will be found in the $priv parameter, of type $Evas_Object_Box_Data,
-              passed to $cb. The $Evas_Object the function receives is not the
-              Elementary widget, but the internal Evas Box it uses, so none of the
-              functions described here can be used on it.
-
-              Any of the layout functions in $Evas can be used here, as well as the
-              special \@ref elm_box_layout_transition.
-
-              The final $data argument received by $cb is the same $data passed
-              here, and the $free_data function will be called to free it
-              whenever the box is destroyed or another layout function is set.
-
-              Setting $cb to $null will revert back to the default layout function.
-
-              See also \@ref elm_box_layout_transition.
-
-            ]]
-         }
-         values {
-            cb: Evas_Object_Box_Layout @nullable; [[The callback function used for layout]]
-            data: const(void_ptr) @optional; [[Data that will be passed to layout function]]
-            free_data: Ecore_Cb @optional; [[Function called to free $data]]
+            horizontal: int; [[The horizontal space between elements]]
+            vertical: int; [[The vertical space between elements]]
          }
       }
       @property children {
@@ -139,7 +102,7 @@ class Elm.Box (Elm.Widget)
               You must free this list with eina_list_free() once you are done with it.
 
             ]]
-            return: free(own(list<Efl.Canvas.Object>), eina_list_free) @warn_unused;
+            return: free(own(list<Efl.Canvas.Object>), eina_list_free) @warn_unused; [[List of children]]
          }
       }
       pack_end {
@@ -284,9 +247,7 @@ class Elm.Box (Elm.Widget)
    }
    implements {
       class.constructor;
-      Eo.Base.constructor;
-      Efl.Canvas.Group.group_add;
-      Efl.Canvas.Group.group_del;
+      Efl.Object.constructor;
       Efl.Canvas.Group.group_calculate;
       Elm.Widget.focus_direction;
       Elm.Widget.focus_next_manager_is;
@@ -294,10 +255,10 @@ class Elm.Box (Elm.Widget)
       Elm.Widget.focus_next;
       Elm.Widget.theme_apply;
       Elm.Widget.sub_object_del;
+      Elm.Widget.focus_register;
    }
    events {
-      child,added;
-      child,removed;
+      child,added; [[Called when child was added]]
+      child,removed; [[Called when child was removed]]
    }
-
 }

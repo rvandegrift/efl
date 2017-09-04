@@ -159,4 +159,76 @@ EAPI const char *elm_slider_unit_format_get(const Evas_Object *obj);
  */
 EAPI void elm_slider_units_format_function_set(Evas_Object *obj, slider_func_type func, slider_freefunc_type free_func);
 
-#include "elm_slider.eo.legacy.h"
+/**
+ * @brief Set the minimum and maximum values for the slider.
+ *
+ * Define the allowed range of values to be selected by the user.
+ *
+ * If actual value is less than @c min, it will be updated to @c min. If it is
+ * bigger then @c max, will be updated to @c max. Actual value can be get with
+ * @ref Efl.Ui.Progress.progress_value.get
+ *
+ * By default, min is equal to 0.0, and max is equal to 1.0.
+ *
+ * @warning maximum must be greater than minimum, otherwise behavior is
+ * undefined.
+ *
+ * @param[in] min The minimum value.
+ * @param[in] max The maximum value.
+ *
+ * @ingroup Efl_Ui_Slider
+ */
+EAPI void elm_slider_min_max_set(Evas_Object *obj, double min, double max);
+
+/**
+ * @brief Get the minimum and maximum values of the slider.
+ *
+ * @note If only one value is needed, the other pointer can be passed as
+ * @c null.
+ *
+ * @param[out] min The minimum value.
+ * @param[out] max The maximum value.
+ *
+ * @ingroup Efl_Ui_Slider
+ */
+EAPI void elm_slider_min_max_get(const Evas_Object *obj, double *min, double *max);
+
+/**
+ * @brief This enables two indicators in slider.
+ *
+ * @param[in] enable @c true if two indicators are enabled, @c false otherwise
+ *
+ * @since 1.18
+ */
+EAPI void elm_slider_range_enabled_set(Evas_Object *obj, Eina_Bool enable);
+
+/**
+ * @brief This enables two indicators in slider.
+ *
+ * @return @c true if two indicators are enabled, @c false otherwise
+ *
+ * @since 1.18
+ */
+EAPI Eina_Bool elm_slider_range_enabled_get(const Evas_Object *obj);
+
+/**
+ * @brief Sets up a start and end range point for the slider
+ *
+ * @param[in] from Range minimum value
+ * @param[in] to Range maximum value
+ *
+ * @since 1.18
+ */
+EAPI void elm_slider_range_set(Evas_Object *obj, double from, double to);
+
+/**
+ * @brief Sets up a start and end range point for the slider
+ *
+ * @param[out] from Range minimum value
+ * @param[out] to Range maximum value
+ *
+ * @since 1.18
+ */
+EAPI void elm_slider_range_get(const Evas_Object *obj, double *from, double *to);
+
+#include "efl_ui_slider.eo.legacy.h"

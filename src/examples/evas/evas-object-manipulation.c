@@ -1,5 +1,12 @@
 /**
- * Simple Evas example illustrating basic objects manipulation.
+ * Example of basic object manipulation in Evas.
+ *
+ * This example shows how to manipulate objects within an Ecore-Evas
+ * canvas.
+ *
+ * Please note that this example uses Evas' legacy API.  Compare this
+ * implementation with evas-object-manipulation-eo.c to learn how the
+ * new Eo API is used.
  *
  * You'll need at least one engine built for it (excluding the buffer
  * one) and the png image loader also built. See stdout/stderr for
@@ -18,6 +25,7 @@
 
 #include <Ecore.h>
 #include <Ecore_Evas.h>
+
 #include <stdio.h>
 #include <errno.h>
 #include "evas-common.h"
@@ -37,8 +45,7 @@ struct test_data
 
 static struct test_data d = {0};
 
-/* here just to keep our example's window size and background image's
- * size in synchrony */
+/* Keep the example's window size in sync with the background image's size */
 static void
 _canvas_resize_cb(Ecore_Evas *ee)
 {
@@ -48,6 +55,9 @@ _canvas_resize_cb(Ecore_Evas *ee)
    evas_object_resize(d.bg, w, h);
 }
 
+/* Keyboard event callback routine, to enable the user to toggle various
+ * object properties on the clipper object.
+ */
 static void
 _on_keydown(void        *data EINA_UNUSED,
             Evas        *evas EINA_UNUSED,
@@ -56,18 +66,20 @@ _on_keydown(void        *data EINA_UNUSED,
 {
    Evas_Event_Key_Down *ev = einfo;
 
-   if (strcmp(ev->key, "h") == 0) /* print help */
+   if (strcmp(ev->key, "h") == 0)
      {
-        fprintf(stdout, "commands are:\n"
-                        "\to - change clipper's opacity\n"
-                        "\tr - toggle clipper's color between red and white\n"
-                        "\tc - toggle clipper's clipping function\n"
-                        "\tv - toggle clipper's visibility\n");
+        /* h - print help */
+        printf("commands are:\n"
+               "\to - change clipper's opacity\n"
+               "\tr - toggle clipper's color between red and white\n"
+               "\tc - toggle clipper's clipping function\n"
+               "\tv - toggle clipper's visibility\n");
         return;
      }
 
-   if (strcmp(ev->key, "o") == 0) /* change clipper's opacity */
+   if (strcmp(ev->key, "o") == 0)
      {
+        /* o - Change clipper's opacity */
         int alpha, r, g, b;
 
         evas_object_color_get(d.clipper, &r, &g, &b, &alpha);
@@ -80,29 +92,29 @@ _on_keydown(void        *data EINA_UNUSED,
         evas_color_argb_premul(alpha, &r, &g, &b);
         evas_object_color_set(d.clipper, r, g, b, alpha);
 
-        fprintf(stdout, "Changing clipper's opacity: %d%%\n",
+        printf("Changing clipper's opacity: %d%%\n",
                 (int)((alpha / 255.0) * 100));
         return;
      }
 
-   if (strcmp(ev->key, "r") == 0) /* toggle clipper's color
-                                       * between red and white */
+   if (strcmp(ev->key, "r") == 0)
      {
+        /* r - Toggle clipper's color between red and white */
         int alpha, r, g, b;
 
-        fprintf(stdout, "Changing clipper's color to");
+        printf("Changing clipper's color to");
 
         evas_object_color_get(d.clipper, &r, &g, &b, &alpha);
         evas_color_argb_unpremul(alpha, &r, &g, &b);
 
         if (g > 0)
           {
-             fprintf(stdout, "red\n");
+             printf("red\n");
              g = b = 0;
           }
         else
           {
-             fprintf(stdout, "white\n");
+             printf("white\n");
              g = b = 255;
           }
 
@@ -111,36 +123,38 @@ _on_keydown(void        *data EINA_UNUSED,
         return;
      }
 
-   if (strcmp(ev->key, "c") == 0) /* toggle clipper's clipping function */
+   if (strcmp(ev->key, "c") == 0)
      {
-        fprintf(stdout, "Toggling clipping ");
+        /* o - Toggle clipper's clipping function */
+        printf("Toggling clipping ");
 
         if (evas_object_clip_get(d.img) == d.clipper)
           {
              evas_object_clip_unset(d.img);
-             fprintf(stdout, "off\n");
+             printf("off\n");
           }
         else
           {
              evas_object_clip_set(d.img, d.clipper);
-             fprintf(stdout, "on\n");
+             printf("on\n");
           }
         return;
      }
 
-   if (strcmp(ev->key, "v") == 0) /* toggle clipper's visibility */
+   if (strcmp(ev->key, "v") == 0)
      {
-        fprintf(stdout, "Clipper is now ");
+        /* v - Toggle clipper's visibility */
+        printf("Clipper is now ");
 
         if (evas_object_visible_get(d.clipper))
           {
              evas_object_hide(d.clipper);
-             fprintf(stdout, "hidden\n");
+             printf("hidden\n");
           }
         else
           {
              evas_object_show(d.clipper);
-             fprintf(stdout, "visible\n");
+             printf("visible\n");
           }
         return;
      }
@@ -154,8 +168,6 @@ main(void)
    if (!ecore_evas_init())
      return EXIT_FAILURE;
 
-   /* this will give you a window with an Evas canvas under the first
-    * engine available */
    d.ee = ecore_evas_new(NULL, 10, 10, WIDTH, HEIGHT, NULL);
    if (!d.ee)
      goto error;
@@ -163,9 +175,12 @@ main(void)
    ecore_evas_callback_resize_set(d.ee, _canvas_resize_cb);
    ecore_evas_show(d.ee);
 
-   /* the canvas pointer, de facto */
    d.canvas = ecore_evas_get(d.ee);
 
+   /* Create background.  As mentioned earlier, the evas_object_*
+    * routines are part of the legacy Evas API; with the new API
+    * you should use code as shown in evas-object-manipulation-eo.c.
+    */
    d.bg = evas_object_rectangle_add(d.canvas);
    evas_object_name_set(d.bg, "background rectangle");
    evas_object_color_set(d.bg, 255, 255, 255, 255); /* white bg */
@@ -177,6 +192,9 @@ main(void)
    evas_object_event_callback_add(
      d.bg, EVAS_CALLBACK_KEY_DOWN, _on_keydown, NULL);
 
+   /* Load enlightenment.png as an image object, then make it fill the
+    * whole canvas area.
+    */
    d.img = evas_object_image_filled_add(d.canvas);
    evas_object_image_file_set(d.img, img_path, NULL);
    err = evas_object_image_load_error_get(d.img);
@@ -190,11 +208,13 @@ main(void)
         evas_object_resize(d.img, WIDTH, HEIGHT);
         evas_object_show(d.img);
 
-        fprintf(stdout, "Image object added, type is: %s\n",
+        printf("Image object added, type is: %s\n",
                 evas_object_type_get(d.img));
      }
 
-   /* border on the image's clipper, here just to emphasize its position */
+   /* Add a second image to the canvas - a red square this time.  It
+    * will be given a border to emphasize its position.
+    */
    d.clipper_border = evas_object_image_filled_add(d.canvas);
    evas_object_image_file_set(d.clipper_border, border_img_path, NULL);
    err = evas_object_image_load_error_get(d.clipper_border);
@@ -213,9 +233,9 @@ main(void)
         evas_object_show(d.clipper_border);
      }
 
-   /* solid white clipper (note that it's the default color for a
-    * rectangle) - it won't change clippees' colors, then (multiplying
-    * by 255) */
+   /* Lastly, add a rectangle.  It will be white (the default color for
+    * rectangles) and so won't change the color of anything it clips.
+    */
    d.clipper = evas_object_rectangle_add(d.canvas);
    evas_object_move(d.clipper, WIDTH / 4, HEIGHT / 4);
    evas_object_resize(d.clipper, WIDTH / 2, HEIGHT / 2);

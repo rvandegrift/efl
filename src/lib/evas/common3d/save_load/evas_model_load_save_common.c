@@ -26,7 +26,7 @@
 
 /* create new header */
 Evas_Model_Load_Save_Header
-evas_model_load_save_header_new()
+evas_model_load_save_header_new(void)
 {
    Evas_Model_Load_Save_Header header;
 
@@ -161,7 +161,7 @@ evas_model_load_aabb_add_to_frame(Evas_Canvas3D_Mesh *mesh,
                                    Evas_Model_Load_Save_Stride stride)
 {
    Evas_Canvas3D_Mesh_Data *pd;
-   pd = eo_data_scope_get(mesh, EVAS_CANVAS3D_MESH_CLASS);
+   pd = efl_data_scope_get(mesh, EVAS_CANVAS3D_MESH_CLASS);
 
    if (!evas_canvas3d_mesh_aabb_add_to_frame(pd, frame, stride.positions))
      {

@@ -36,7 +36,7 @@ static Evas_Object *before_bt, *after_bt;
 static void
 _horizontal_grid(void        *data,
                  Evas_Object *obj,
-                 void        *event_info)
+                 void        *event_info EINA_UNUSED)
 {
    Evas_Object *grid = data;
 
@@ -47,7 +47,7 @@ _horizontal_grid(void        *data,
 static void
 _always_select_change(void        *data,
                       Evas_Object *obj,
-                      void        *event_info)
+                      void        *event_info EINA_UNUSED)
 {
    Evas_Object *grid = data;
    Eina_Bool always = elm_check_state_get(obj);
@@ -57,7 +57,7 @@ _always_select_change(void        *data,
    else
      elm_gengrid_select_mode_set(grid, ELM_OBJECT_SELECT_MODE_DEFAULT);
 
-   fprintf(stdout, "\"Always select\" mode for gengrid items is now %s\n",
+   printf("\"Always select\" mode for gengrid items is now %s\n",
            always ? "on" : "off");
 }
 
@@ -65,14 +65,14 @@ _always_select_change(void        *data,
 static void
 _bouncing_change(void        *data,
                  Evas_Object *obj,
-                 void        *event_info)
+                 void        *event_info EINA_UNUSED)
 {
    Evas_Object *grid = data;
    Eina_Bool bounce = elm_check_state_get(obj);
 
    elm_scroller_bounce_set(grid, bounce, bounce);
 
-   fprintf(stdout, "Bouncing effect for gengrid is now %s\n",
+   printf("Bouncing effect for gengrid is now %s\n",
            bounce ? "on" : "off");
 }
 
@@ -80,14 +80,14 @@ _bouncing_change(void        *data,
 static void
 _multi_change(void        *data,
               Evas_Object *obj,
-              void        *event_info)
+              void        *event_info EINA_UNUSED)
 {
    Evas_Object *grid = data;
    Eina_Bool multi = elm_check_state_get(obj);
 
    elm_gengrid_multi_select_set(grid, multi);
 
-   fprintf(stdout, "Multi-selection for gengrid is now %s\n",
+   printf("Multi-selection for gengrid is now %s\n",
            multi ? "on" : "off");
 
    elm_object_disabled_set(before_bt, multi);
@@ -106,7 +106,7 @@ _multi_change(void        *data,
 static void
 _no_sel_change(void        *data,
                Evas_Object *obj,
-               void        *event_info)
+               void        *event_info EINA_UNUSED)
 {
    Evas_Object *grid = data;
    Eina_Bool no_sel = elm_check_state_get(obj);
@@ -116,14 +116,14 @@ _no_sel_change(void        *data,
    else
      elm_gengrid_select_mode_set(grid, ELM_OBJECT_SELECT_MODE_DEFAULT);
 
-   fprintf(stdout, "Selection for gengrid items is now %s\n",
+   printf("Selection for gengrid items is now %s\n",
            no_sel ? "disabled" : "enabled");
 }
 
 /* item selection callback */
 static void
 _grid_sel(void        *data,
-          Evas_Object *obj,
+          Evas_Object *obj EINA_UNUSED,
           void        *event_info)
 {
    unsigned int x, y;
@@ -131,7 +131,7 @@ _grid_sel(void        *data,
 
    elm_gengrid_item_pos_get(event_info, &x, &y);
 
-   fprintf(stdout, "Item [%p], with data [%p], path %s, at position (%d, %d),"
+   printf("Item [%p], with data [%p], path %s, at position (%d, %d),"
            " has been selected\n", event_info, data, it->path, x, y);
 }
 
@@ -150,8 +150,8 @@ _item_new(void)
 /* "insert before" callback */
 static void
 _before_bt_clicked(void        *data,
-                   Evas_Object *obj,
-                   void        *event_info)
+                   Evas_Object *obj EINA_UNUSED,
+                   void        *event_info EINA_UNUSED)
 {
    Example_Item *it;
    Evas_Object *grid = data;
@@ -168,8 +168,8 @@ _before_bt_clicked(void        *data,
 /* "insert after" callback */
 static void
 _after_bt_clicked(void        *data,
-                  Evas_Object *obj,
-                  void        *event_info)
+                  Evas_Object *obj EINA_UNUSED,
+                  void        *event_info EINA_UNUSED)
 {
    Example_Item *it;
    Evas_Object *grid = data;
@@ -186,8 +186,8 @@ _after_bt_clicked(void        *data,
 /* prepend an item */
 static void
 _prepend_bt_clicked(void        *data,
-                    Evas_Object *obj,
-                    void        *event_info)
+                    Evas_Object *obj EINA_UNUSED,
+                    void        *event_info EINA_UNUSED)
 {
    Example_Item *it;
    Evas_Object *grid = data;
@@ -199,8 +199,8 @@ _prepend_bt_clicked(void        *data,
 /* append an item */
 static void
 _append_bt_clicked(void        *data,
-                   Evas_Object *obj,
-                   void        *event_info)
+                   Evas_Object *obj EINA_UNUSED,
+                   void        *event_info EINA_UNUSED)
 {
    Evas_Object *grid = data;
    Example_Item *it = _item_new();
@@ -211,19 +211,19 @@ _append_bt_clicked(void        *data,
 /* delete items */
 static void
 _clear_cb(void        *data,
-          Evas_Object *obj,
-          void        *event_info)
+          Evas_Object *obj EINA_UNUSED,
+          void        *event_info EINA_UNUSED)
 {
    elm_gengrid_clear(data);
 
-   fprintf(stdout, "Clearing the grid!\n");
+   printf("Clearing the grid!\n");
 }
 
 /* bring in 1st item */
 static void
 _bring_1st_clicked(void        *data,
-                   Evas_Object *obj,
-                   void        *event_info)
+                   Evas_Object *obj EINA_UNUSED,
+                   void        *event_info EINA_UNUSED)
 {
    Elm_Object_Item *gg_it = elm_gengrid_first_item_get(data);
 
@@ -235,8 +235,8 @@ _bring_1st_clicked(void        *data,
 /* show last item */
 static void
 _show_last_clicked(void        *data,
-                   Evas_Object *obj,
-                   void        *event_info)
+                   Evas_Object *obj EINA_UNUSED,
+                   void        *event_info EINA_UNUSED)
 {
    Elm_Object_Item *gg_it = elm_gengrid_last_item_get(data);
 
@@ -248,8 +248,8 @@ _show_last_clicked(void        *data,
 /* disable selected item */
 static void
 _toggle_disabled_cb(void        *data,
-                    Evas_Object *obj,
-                    void        *event_info)
+                    Evas_Object *obj EINA_UNUSED,
+                    void        *event_info EINA_UNUSED)
 {
    Elm_Object_Item *gg_it = elm_gengrid_selected_item_get(data);
 
@@ -263,7 +263,7 @@ _toggle_disabled_cb(void        *data,
 static void
 _size_changed(void        *data,
               Evas_Object *obj,
-              void        *event_info)
+              void        *event_info EINA_UNUSED)
 {
    Evas_Object *grid = data;
    int size = elm_spinner_value_get(obj);
@@ -273,27 +273,27 @@ _size_changed(void        *data,
 
 /* item double click callback */
 static void
-_double_click(void        *data,
-              Evas_Object *obj,
+_double_click(void        *data EINA_UNUSED,
+              Evas_Object *obj EINA_UNUSED,
               void        *event_info)
 {
-   fprintf(stdout, "Double click on item with handle %p\n", event_info);
+   printf("Double click on item with handle %p\n", event_info);
 }
 
 /* item long press callback */
 static void
-_long_pressed(void        *data,
-              Evas_Object *obj,
+_long_pressed(void        *data EINA_UNUSED,
+              Evas_Object *obj EINA_UNUSED,
               void        *event_info)
 {
-   fprintf(stdout, "Long press on item with handle %p\n", event_info);
+   printf("Long press on item with handle %p\n", event_info);
 }
 
 /* label fetching callback */
 static char *
 _grid_label_get(void        *data,
-                Evas_Object *obj,
-                const char  *part)
+                Evas_Object *obj EINA_UNUSED,
+                const char  *part EINA_UNUSED)
 {
    const Example_Item *it = data;
    char buf[256];
@@ -338,9 +338,9 @@ _grid_content_get(void        *data,
 
 /* state fetching callback */
 static Eina_Bool
-_grid_state_get(void        *data,
-                Evas_Object *obj,
-                const char  *part)
+_grid_state_get(void        *data EINA_UNUSED,
+                Evas_Object *obj EINA_UNUSED,
+                const char  *part EINA_UNUSED)
 {
    return EINA_FALSE;
 }
@@ -348,7 +348,7 @@ _grid_state_get(void        *data,
 /* deletion callback */
 static void
 _grid_del(void        *data,
-          Evas_Object *obj)
+          Evas_Object *obj EINA_UNUSED)
 {
    Example_Item *it = data;
 
@@ -358,13 +358,13 @@ _grid_del(void        *data,
 
 /* scrolling animation stopped callback */
 static void
-_grid_scroll_stopped_cb(void        *data,
+_grid_scroll_stopped_cb(void        *data EINA_UNUSED,
                         Evas_Object *obj,
-                        void        *event_info)
+                        void        *event_info EINA_UNUSED)
 {
    int h_pagenumber = 0, v_pagenumber = 0;
    elm_scroller_current_page_get(obj, &h_pagenumber, &v_pagenumber);
-   fprintf(stdout, "Grid current horiz page is %d, vert page is %d\n",
+   printf("Grid current horiz page is %d, vert page is %d\n",
            h_pagenumber, v_pagenumber);
 }
 
@@ -372,28 +372,28 @@ _grid_scroll_stopped_cb(void        *data,
 static void
 _h_align_change_cb(void        *data,
                    Evas_Object *obj,
-                   void        *event_info)
+                   void        *event_info EINA_UNUSED)
 {
    double v_align;
    double val = elm_slider_value_get(obj);
 
    elm_gengrid_align_get(data, NULL, &v_align);
 
-   fprintf(stdout, "Setting horizontal alignment to %f\n", val);
+   printf("Setting horizontal alignment to %f\n", val);
    elm_gengrid_align_set(data, val, v_align);
 }
 
 static void
 _v_align_change_cb(void        *data,
                    Evas_Object *obj,
-                   void        *event_info)
+                   void        *event_info EINA_UNUSED)
 {
    double h_align;
    double val = elm_slider_value_get(obj);
 
    elm_gengrid_align_get(data, &h_align, NULL);
 
-   fprintf(stdout, "Setting vertical alignment to %f\n", val);
+   printf("Setting vertical alignment to %f\n", val);
    elm_gengrid_align_set(data, h_align, val);
 }
 
@@ -401,18 +401,18 @@ _v_align_change_cb(void        *data,
 static void
 _page_change_cb(void        *data,
                 Evas_Object *obj,
-                void        *event_info)
+                void        *event_info EINA_UNUSED)
 {
    double val = elm_slider_value_get(obj);
 
    elm_scroller_page_relative_set(data, val, val);
 
-   fprintf(stdout, "Setting grid page's relative size to %f\n", val);
+   printf("Setting grid page's relative size to %f\n", val);
 }
 
 EAPI_MAIN int
-elm_main(int    argc,
-         char **argv)
+elm_main(int    argc EINA_UNUSED,
+         char **argv EINA_UNUSED)
 {
    Evas_Object *win, *grid, *bx, *hbx_1, *hbx_2, *hbx_3, *bt, *ck, *sl, *sp;
    Eina_Bool bounce;

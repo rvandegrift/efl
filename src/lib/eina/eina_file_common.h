@@ -94,7 +94,6 @@ struct _Eina_File
    int fd; /**< The file descriptor. */
 #else
    HANDLE handle;  /**< A Win32 file handle for this file. */
-   HANDLE fm;      /**< A Win32 file handle to a file mapping object for this file.  */
 #endif
 
    Eina_List *dead_map;          /**< Tracks regions that get a failure from mmap(2). */
@@ -103,6 +102,7 @@ struct _Eina_File
    Eina_Bool delete_me : 1;      /**< Indicates that this file should be deleted */
    Eina_Bool global_faulty : 1;  /**< Indicates whether #global_map is bad */
    Eina_Bool virtual : 1;        /**< Indicates that this is a virtual file */
+   Eina_Bool copied : 1;         /**< Indicates whether this file has copied data */
 };
 
 /**

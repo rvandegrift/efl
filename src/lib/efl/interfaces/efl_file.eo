@@ -1,6 +1,7 @@
 import eina_types;
 
 interface Efl.File {
+   [[Efl file interface]]
    methods {
       @property mmap {
          set {
@@ -13,7 +14,7 @@ interface Efl.File {
 
               @since 1.8]]
 
-            return: bool; [[$true = success, $false = error]]
+            return: bool; [[$true on success, $false otherwise]]
          }
          get {
             [[Get the source mmaped file from where an image object must fetch the real
@@ -26,7 +27,7 @@ interface Efl.File {
               @since 1.10]]
          }
          values {
-            f: const(Eina.File)*; [[The handler to an Eina_File that will be used as image source]]
+            f: ptr(const(Eina.File)); [[The handler to an Eina_File that will be used as image source]]
             key: string @optional; [[The group that the image belongs to, in case 
                                            it's an EET(including Edje case) file. This can be used
                                            as a key inside evas image cache if this is a normal image
@@ -62,7 +63,7 @@ interface Efl.File {
              * @endcode
              */
 
-            return: bool;
+            return: bool; [[$true on success, $false otherwise]]
          }
          get {
             [[Retrieve the source file from where an image object is to fetch the
@@ -79,24 +80,6 @@ interface Efl.File {
                                  $null, otherwise.]]
          }
       }
-      @property async {
-         set {
-            [[If true, file open will happen asynchronously allowing for better
-              performance in some situations. The file will be opened from a
-              different thread. Classes implementing async open might then block
-              and wait when querying information from the file (eg. image size).
-
-              Only a few objects implement this feature, and this flag may
-              be ignored by EFL. In that case, get() will always return false.]]
-         }
-         get {
-            [[Retrieves the asynchronous open flag, which will be true only if
-              enabled and supported by the object.]]
-         }
-         values {
-            async: bool; [[Flag for asynchronous open.]]
-         }
-      }
       save @const {
          [[Save the given image object's contents to an (image) file.
 
@@ -109,7 +92,7 @@ interface Efl.File {
            acceptable flags are $quality and $compress. Eg.:
            "quality=100 compress=9"]]
 
-         return: bool;
+         return: bool;  [[$true on success, $false otherwise]]
          params {
             @in file: string @nonull; [[The filename to be used to save the image (extension
                                               obligatory).]]
@@ -119,20 +102,5 @@ interface Efl.File {
                                        none).]]
          }
       }
-      eject @const {
-           [[Eject the represented object.
-
-             Get rid of and clean the pointed resource.]]
-      }
-      async_wait @const {
-         [[Block and wait until all asynchronous operations are completed. Unless
-           the async flag was set on this object, this method has no effect.]]
-
-         return: bool;[[$false if an error occurred, else $true]]
-      }
-   }
-   events {
-      async,opened; [[The file was successfully opened asynchronously]]
-      async,error; [[Error occurred in asynchronous file operation]]
    }
 }

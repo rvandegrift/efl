@@ -1,5 +1,5 @@
 /**
- * Simple Evas example illustrating some image objects functions
+ * Example saving data for modified image objects to disk with Evas.
  *
  * You'll need at least one engine built for it (excluding the buffer
  * one) and the png image loader/saver also built. See stdout/stderr
@@ -52,8 +52,7 @@ _on_destroy(Ecore_Evas *ee EINA_UNUSED)
    ecore_main_loop_quit();
 }
 
-/* here just to keep our example's window size and background image's
- * size in synchrony */
+/* Keep the example's window size in sync with the background image's size */
 static void
 _canvas_resize_cb(Ecore_Evas *ee)
 {

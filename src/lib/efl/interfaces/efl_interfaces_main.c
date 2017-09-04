@@ -14,6 +14,11 @@
 #include "interfaces/efl_player.eo.c"
 #include "interfaces/efl_text.eo.c"
 #include "interfaces/efl_text_properties.eo.c"
+#include "interfaces/efl_text_font.eo.c"
+#include "interfaces/efl_text_style.eo.c"
+#include "interfaces/efl_text_format.eo.c"
+#include "interfaces/efl_text_cursor.eo.c"
+#include "interfaces/efl_text_annotate.eo.c"
 
 #include "interfaces/efl_gfx.eo.c"
 #include "interfaces/efl_gfx_buffer.eo.c"
@@ -34,12 +39,6 @@
 
 #include "interfaces/efl_screen.eo.c"
 
-EAPI const Eo_Event_Description _EFL_GFX_CHANGED =
-  EO_EVENT_DESCRIPTION("Graphics changed");
-
-EAPI const Eo_Event_Description _EFL_GFX_PATH_CHANGED =
-  EO_EVENT_DESCRIPTION("Graphics path changed");
-
 /* Packing & containers */
 #include "interfaces/efl_container.eo.c"
 #include "interfaces/efl_pack.eo.c"
@@ -51,12 +50,17 @@ EAPI const Eo_Event_Description _EFL_GFX_PATH_CHANGED =
 #include "interfaces/efl_animator.eo.c"
 #include "interfaces/efl_orientation.eo.c"
 #include "interfaces/efl_flipable.eo.c"
+#include "interfaces/efl_ui_base.eo.c"
+#include "interfaces/efl_ui_drag.eo.c"
 #include "interfaces/efl_ui_spin.eo.c"
-#include "interfaces/efl_ui_progress.eo.c"
-
-#include "interfaces/efl_event.eo.c"
-#include "interfaces/efl_input_state.eo.c"
-#include "interfaces/efl_input_interface.eo.c"
+#include "interfaces/efl_ui_range.eo.c"
+#include "interfaces/efl_ui_menu.eo.c"
+#include "interfaces/efl_ui_autorepeat.eo.c"
+#include "interfaces/efl_ui_item.eo.c"
+#include "interfaces/efl_ui_view.eo.c"
+#include "interfaces/efl_ui_model_connect.eo.c"
+#include "interfaces/efl_ui_factory.eo.c"
+#include "interfaces/efl_ui_model_factory_connect.eo.c"
 
 EAPI void
 __efl_internal_init(void)

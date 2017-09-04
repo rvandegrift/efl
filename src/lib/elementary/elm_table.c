@@ -14,6 +14,15 @@
 #define MY_CLASS_NAME "Elm_Table"
 #define MY_CLASS_NAME_LEGACY "elm_table"
 
+static void
+_focus_order_flush(Eo *obj)
+{
+   Elm_Widget_Smart_Data *wpd = efl_data_scope_get(obj, ELM_WIDGET_CLASS);
+   Eina_List *order = evas_object_table_children_get(wpd->resize_obj);
+
+   efl_ui_focus_manager_update_order(wpd->focus.manager, obj, order);
+}
+
 EOLIAN static Eina_Bool
 _elm_table_elm_widget_focus_next_manager_is(Eo *obj EINA_UNUSED, void *_pd EINA_UNUSED)
 {
@@ -110,10 +119,10 @@ EOLIAN static Elm_Theme_Apply
 _elm_table_elm_widget_theme_apply(Eo *obj, void *sd EINA_UNUSED)
 {
    Elm_Theme_Apply int_ret = ELM_THEME_APPLY_FAILED;
-   int_ret = elm_obj_widget_theme_apply(eo_super(obj, MY_CLASS));
+   int_ret = elm_obj_widget_theme_apply(efl_super(obj, MY_CLASS));
    if (!int_ret) return ELM_THEME_APPLY_FAILED;
 
-   _mirrored_set(obj, elm_widget_mirrored_get(obj));
+   _mirrored_set(obj, efl_ui_mirrored_get(obj));
 
    return int_ret;
 }
@@ -121,14 +130,12 @@ _elm_table_elm_widget_theme_apply(Eo *obj, void *sd EINA_UNUSED)
 static void
 _sizing_eval(Evas_Object *obj)
 {
-   Evas_Coord minw = 0, minh = 0, maxw = -1, maxh = -1;
+   Evas_Coord minw = 0, minh = 0;
 
    ELM_WIDGET_DATA_GET_OR_RETURN(obj, wd);
 
    efl_gfx_size_hint_combined_min_get(wd->resize_obj, &minw, &minh);
-   evas_object_size_hint_max_get(wd->resize_obj, &maxw, &maxh);
    evas_object_size_hint_min_set(obj, minw, minh);
-   evas_object_size_hint_max_set(obj, maxw, maxh);
 }
 
 static void
@@ -145,7 +152,7 @@ _elm_table_elm_widget_sub_object_del(Eo *obj, void *_pd EINA_UNUSED, Evas_Object
 {
    Eina_Bool int_ret = EINA_FALSE;
 
-   int_ret = elm_obj_widget_sub_object_del(eo_super(obj, MY_CLASS), child);
+   int_ret = elm_obj_widget_sub_object_del(efl_super(obj, MY_CLASS), child);
    if (!int_ret) return EINA_FALSE;
 
    _sizing_eval(obj);
@@ -166,7 +173,7 @@ _elm_table_efl_canvas_group_group_add(Eo *obj, void *_pd EINA_UNUSED)
    evas_object_event_callback_add
      (table, EVAS_CALLBACK_CHANGED_SIZE_HINTS, _on_size_hints_changed, obj);
 
-   efl_canvas_group_add(eo_super(obj, MY_CLASS));
+   efl_canvas_group_add(efl_super(obj, MY_CLASS));
 
    elm_widget_can_focus_set(obj, EINA_FALSE);
    elm_widget_highlight_ignore_set(obj, EINA_FALSE);
@@ -198,21 +205,20 @@ _elm_table_efl_canvas_group_group_del(Eo *obj, void *_pd EINA_UNUSED)
           }
      }
 
-   efl_canvas_group_del(eo_super(obj, MY_CLASS));
+   efl_canvas_group_del(efl_super(obj, MY_CLASS));
 }
 
 EAPI Evas_Object *
 elm_table_add(Evas_Object *parent)
 {
    EINA_SAFETY_ON_NULL_RETURN_VAL(parent, NULL);
-   Evas_Object *obj = eo_add(MY_CLASS, parent);
-   return obj;
+   return efl_add(MY_CLASS, parent, efl_canvas_object_legacy_ctor(efl_added));
 }
 
 EOLIAN static Eo *
-_elm_table_eo_base_constructor(Eo *obj, void *_pd EINA_UNUSED)
+_elm_table_efl_object_constructor(Eo *obj, void *_pd EINA_UNUSED)
 {
-   obj = eo_constructor(eo_super(obj, MY_CLASS));
+   obj = efl_constructor(efl_super(obj, MY_CLASS));
    efl_canvas_object_type_set(obj, MY_CLASS_NAME_LEGACY);
    elm_interface_atspi_accessible_role_set(obj, ELM_ATSPI_ROLE_FILLER);
 
@@ -317,6 +323,7 @@ _elm_table_pack(Eo *obj, void *_pd EINA_UNUSED, Evas_Object *subobj, int col, in
 
    elm_widget_sub_object_add(obj, subobj);
    evas_object_table_pack(wd->resize_obj, subobj, col, row, colspan, rowspan);
+   _focus_order_flush(obj);
 }
 
 EOLIAN static void
@@ -347,6 +354,7 @@ _elm_table_pack_set(Eo *obj, void *_pd EINA_UNUSED, Evas_Object *subobj, int col
    ELM_WIDGET_DATA_GET_OR_RETURN(obj, wd);
 
    evas_object_table_pack(wd->resize_obj, subobj, col, row, colspan, rowspan);
+   _focus_order_flush(obj);
 }
 
 EAPI void
@@ -381,6 +389,7 @@ _elm_table_clear(Eo *obj, void *_pd EINA_UNUSED, Eina_Bool clear)
    ELM_WIDGET_DATA_GET_OR_RETURN(obj, wd);
 
    evas_object_table_clear(wd->resize_obj, clear);
+   _focus_order_flush(obj);
 }
 
 EOLIAN static Evas_Object*
@@ -392,7 +401,7 @@ _elm_table_child_get(const Eo *obj, void *_pd EINA_UNUSED, int col, int row)
 }
 
 EOLIAN static void
-_elm_table_class_constructor(Eo_Class *klass)
+_elm_table_class_constructor(Efl_Class *klass)
 {
    evas_smart_legacy_type_register(MY_CLASS_NAME_LEGACY, klass);
 }
@@ -404,5 +413,22 @@ _elm_table_efl_canvas_group_group_calculate(Eo *obj, void *pd EINA_UNUSED)
 
    evas_object_smart_calculate(wd->resize_obj);
 }
+
+EOLIAN Eina_Bool
+_elm_table_elm_widget_focus_register(Eo *obj, void *pd EINA_UNUSED, Efl_Ui_Focus_Manager *manager, Efl_Ui_Focus_Object *logical, Eina_Bool *logical_flag)
+{
+   Eina_Bool result = elm_obj_widget_focus_register(efl_super(obj, MY_CLASS), manager, logical, logical_flag);
+
+   //later registering children are automatically set into the order of the internal table
+   _focus_order_flush(obj);
+
+   return result;
+}
+
+
+/* Internal EO APIs and hidden overrides */
+
+#define ELM_TABLE_EXTRA_OPS \
+   EFL_CANVAS_GROUP_ADD_DEL_OPS(elm_table)
 
 #include "elm_table.eo.c"

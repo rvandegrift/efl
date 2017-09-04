@@ -71,6 +71,7 @@ evas_gl_font_texture_draw(void *context, void *surface EINA_UNUSED, void *draw_c
    int sx, sy, sw, sh;
    double mx = 0.0, my = 0.0, mw = 0.0, mh = 0.0;
    Eina_Bool mask_smooth = EINA_FALSE;
+   Eina_Bool mask_color = EINA_FALSE;
 
    if (dc != gc->dc) return;
    tex = fg->ext_dat;
@@ -94,6 +95,7 @@ evas_gl_font_texture_draw(void *context, void *surface EINA_UNUSED, void *draw_c
              mw = mask->w;
              mh = mask->h;
              mask_smooth = mask->scaled.smooth;
+             mask_color = gc->dc->clip.mask_color;
           }
         else mtex = NULL;
      }
@@ -117,7 +119,7 @@ evas_gl_font_texture_draw(void *context, void *surface EINA_UNUSED, void *draw_c
                                                    0.0, 0.0, 0.0, 0.0,
 //                                                   sx, sy, sw, sh,
                                                    x, y, tex->w, tex->h,
-                                                   mtex, mx, my, mw, mh, mask_smooth,
+                                                   mtex, mx, my, mw, mh, mask_smooth, mask_color,
                                                    r, g, b, a);
                   return;
                }
@@ -128,7 +130,7 @@ evas_gl_font_texture_draw(void *context, void *surface EINA_UNUSED, void *draw_c
              evas_gl_common_context_font_push(gc, tex,
                                               ssx, ssy, ssw, ssh,
                                               nx, ny, nw, nh,
-                                              mtex, mx, my, mw, mh, mask_smooth,
+                                              mtex, mx, my, mw, mh, mask_smooth, mask_color,
                                               r, g, b, a);
           }
         else
@@ -137,7 +139,7 @@ evas_gl_font_texture_draw(void *context, void *surface EINA_UNUSED, void *draw_c
                                               0.0, 0.0, 0.0, 0.0,
 //                                              sx, sy, sw, sh,
                                               x, y, tex->w, tex->h,
-                                              mtex, mx, my, mw, mh, mask_smooth,
+                                              mtex, mx, my, mw, mh, mask_smooth, mask_color,
                                               r, g, b, a);
           }
         return;
@@ -167,7 +169,7 @@ evas_gl_font_texture_draw(void *context, void *surface EINA_UNUSED, void *draw_c
                                               0.0, 0.0, 0.0, 0.0,
 //                                              sx, sy, sw, sh,
                                               x, y, tex->w, tex->h,
-                                              mtex, mx, my, mw, mh, mask_smooth,
+                                              mtex, mx, my, mw, mh, mask_smooth, mask_color,
                                               r, g, b, a);
              continue;
           }
@@ -178,10 +180,51 @@ evas_gl_font_texture_draw(void *context, void *surface EINA_UNUSED, void *draw_c
         evas_gl_common_context_font_push(gc, tex,
                                          ssx, ssy, ssw, ssh,
                                          nx, ny, nw, nh,
-                                         mtex, mx, my, mw, mh, mask_smooth,
+                                         mtex, mx, my, mw, mh, mask_smooth, mask_color,
                                          r, g, b, a);
      }
    evas_common_draw_context_cutouts_free(_evas_gl_common_cutout_rects);
    /* restore clip info */
    gc->dc->clip.use = c; gc->dc->clip.x = cx; gc->dc->clip.y = cy; gc->dc->clip.w = cw; gc->dc->clip.h = ch;
+}
+
+void *
+evas_gl_font_image_new(void *gc, RGBA_Font_Glyph *fg, int alpha, Evas_Colorspace cspace)
+{
+   Evas_Engine_GL_Context *context = (Evas_Engine_GL_Context *)gc;
+   Evas_GL_Image *im = evas_gl_common_image_new_from_data(context,
+                                                          (unsigned int)fg->glyph_out->bitmap.width,
+                                                          (unsigned int)fg->glyph_out->bitmap.rows,
+                                                          (DATA32 *)fg->glyph_out->bitmap.buffer,
+                                                          alpha,
+                                                          cspace);
+
+   if (im)
+     {
+        im->fglyph = fg;
+        context->font_glyph_images = eina_list_append(context->font_glyph_images, im);
+     }
+
+   return (void *)im;
+}
+
+void
+evas_gl_font_image_free(void *im)
+{
+   evas_gl_common_image_free((Evas_GL_Image *)im);
+}
+
+void
+evas_gl_font_image_draw(void *gc, void *gl_image, int dx, int dy, int dw, int dh, int smooth)
+{
+   Evas_GL_Image *im = (Evas_GL_Image *)gl_image;
+
+   if (!im || !im->fglyph) return;
+
+   evas_gl_common_image_draw((Evas_Engine_GL_Context *)gc,
+                             im, 0, 0,
+                             (unsigned int)im->fglyph->glyph_out->bitmap.width,
+                             (unsigned int)im->fglyph->glyph_out->bitmap.rows,
+                             dx, dy, dw, dh,
+                             smooth);
 }

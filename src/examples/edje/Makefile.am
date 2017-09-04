@@ -13,45 +13,51 @@ MO_DIR = -md $(top_builddir)/src/examples/edje/
 
 #put here all EDCs one needs to the examples
 EDCS = \
-edje-group.edc \
-edje-threshold.edc \
-animations2.edc \
 animations.edc \
-basic2.edc \
+animations2.edc \
 basic.edc \
+basic2.edc \
+bezier-transition-example.edc \
 box.edc \
+box_example.edc \
 codegen.edc \
 color-class.edc \
 drag.edc \
-edje_example.edc \
+dynamic_multiseat.edc \
+edje-group.edc \
 edje-nested.edc \
+edje-threshold.edc \
+edje_example.edc \
 embryo_custom_state.edc \
 embryo_pong.edc \
 embryo_run_program.edc \
 embryo_set_state.edc \
+embryo_set_state_anim.edc \
 embryo_set_text.edc \
 embryo_timer.edc \
+embryo_tween_anim.edc \
+entry.edc \
 external_elm_anchorblock.edc \
 external_elm_button.edc \
 external_elm_check.edc \
 external_elm_panes.edc \
 external_emotion_elm.edc \
+focus.edc \
 lua_script.edc \
 messages_echo.edc \
+multiseat.edc \
+multiseat_custom_names.edc \
+multiseat_filter.edc \
 perspective.edc \
-signalsBubble.edc \
 signals-messages.edc \
+signalsBubble.edc \
 sigtest.edc \
+svg.edc \
 swallow.edc \
 table.edc \
 text.edc \
-toggle_using_filter.edc \
-box_example.edc \
-embryo_tween_anim.edc \
-embryo_set_state_anim.edc \
-bezier-transition-example.edc \
 textblock-hyphen.edc \
-svg.edc
+toggle_using_filter.edc
 
 DIST_EDCS = $(EDCS)
 
@@ -80,12 +86,17 @@ EDJE_CC_FLAGS += -beta
 	$(AM_V_EDJ)$(EDJE_CC) $(EDJE_CC_FLAGS) $(SND_DIR) $(MO_DIR) $< $(builddir)/$(@F)
 
 text.edj: text.edc
-	@cp -ua $(top_srcdir)/src/examples/edje/en_IN/ $(top_builddir)/src/examples/edje/ || true
-	@cp -ua $(top_srcdir)/src/examples/edje/hi_IN/ $(top_builddir)/src/examples/edje/ || true
-	@cp -ua $(top_srcdir)/src/examples/edje/ta_IN/ $(top_builddir)/src/examples/edje/ || true
-	@chmod -R +w $(top_builddir)/src/examples/edje/en_IN/ || true
-	@chmod -R +w $(top_builddir)/src/examples/edje/hi_IN/ || true
-	@chmod -R +w $(top_builddir)/src/examples/edje/ta_IN/ || true
+	@if [ "x$(top_builddir)" != "x$(top_srcdir)" ]; then \
+	  rm -rf $(top_builddir)/src/examples/edje/en_IN/; \
+	  rm -rf $(top_builddir)/src/examples/edje/hi_IN/; \
+	  rm -rf $(top_builddir)/src/examples/edje/ta_IN/; \
+	  cp -a $(top_srcdir)/src/examples/edje/en_IN/ $(top_builddir)/src/examples/edje/en_IN/; \
+	  cp -a $(top_srcdir)/src/examples/edje/hi_IN/ $(top_builddir)/src/examples/edje/hi_IN/; \
+	  cp -a $(top_srcdir)/src/examples/edje/ta_IN/ $(top_builddir)/src/examples/edje/ta_IN/; \
+	  chmod -R +w $(top_builddir)/src/examples/edje/en_IN/; \
+	  chmod -R +w $(top_builddir)/src/examples/edje/hi_IN/; \
+	  chmod -R +w $(top_builddir)/src/examples/edje/ta_IN/; \
+        fi
 	$(AM_V_EDJ)$(EDJE_CC) $(EDJE_CC_FLAGS) $(SND_DIR) $(MO_DIR) $(top_srcdir)/src/examples/edje/text.edc $(top_builddir)/src/examples/edje/text.edj
 
 EDJS = $(EDCS:%.edc=%.edj)
@@ -128,27 +139,33 @@ ta_IN/domain_name.mo \
 Makefile.examples
 
 SRCS = \
-edje-codegen-example.c \
-edje_example.c \
+animations2.c \
+edje-animations.c \
 edje-basic.c \
-edje-swallow.c \
-edje-text.c \
-edje-table.c \
+edje-basic2.c \
 edje-box.c \
 edje-box2.c \
-edje-drag.c \
-edje-signals-messages.c \
+edje-codegen-example.c \
 edje-color-class.c \
-edje-perspective.c \
-edje-animations.c \
-sigtest.c \
-animations2.c \
-edje-basic2.c \
-signals2.c \
-edje-swallow2.c \
-edje-multisense.c \
+edje-drag.c \
+edje-dynamic-multiseat.c \
 edje-edit-part-box.c \
+edje-entry.c \
+edje-focus.c \
+edje-multiseat.c \
+edje-multiseat-custom-names.c \
+edje-multiseat-filter.c \
+edje-multisense.c \
+edje-perspective.c \
+edje-signals-messages.c \
+edje-swallow.c \
+edje-swallow2.c \
+edje-table.c \
+edje-text.c \
 edje-textblock-hyphenation.c \
+edje_example.c \
+signals2.c \
+sigtest.c \
 svg-test.c
 
 EXTRA_DIST = $(DIST_EDCS) $(DATA_FILES)
@@ -200,26 +217,32 @@ codegen_example_generated.c \
 codegen_example_generated.h
 
 EXTRA_PROGRAMS = \
-edje_example \
+animations2 \
 edje-animations \
 edje-basic \
+edje-basic2 \
 edje-box \
 edje-box2 \
 edje-codegen-example \
 edje-color-class \
-edje-drag\
+edje-drag \
+edje-dynamic-multiseat \
+edje-edit-part-box \
+edje-entry \
+edje-focus \
+edje-multiseat \
+edje-multiseat-custom-names \
+edje-multiseat-filter \
 edje-perspective \
 edje-signals-messages \
 edje-swallow \
+edje-swallow2 \
 edje-table \
 edje-text \
-sigtest \
-animations2 \
-edje-basic2 \
-signals2 \
-edje-swallow2 \
-edje-edit-part-box \
 edje-textblock-hyphenation \
+edje_example \
+signals2 \
+sigtest \
 svg-test
 
 if ENABLE_MULTISENSE

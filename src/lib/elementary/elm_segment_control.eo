@@ -1,5 +1,6 @@
 class Elm.Segment_Control (Elm.Layout)
 {
+   [[Elementary segment control class]]
    legacy_prefix: elm_segment_control;
    eo_prefix: elm_obj_segment_control;
    event_prefix: elm_segment_control;
@@ -134,9 +135,7 @@ class Elm.Segment_Control (Elm.Layout)
    }
    implements {
       class.constructor;
-      Eo.Base.constructor;
-      Efl.Canvas.Group.group_add;
-      Efl.Canvas.Group.group_del;
+      Efl.Object.constructor;
       Elm.Widget.theme_apply;
       Elm.Widget.focus_next_manager_is;
       Elm.Widget.focus_next;
@@ -147,7 +146,6 @@ class Elm.Segment_Control (Elm.Layout)
       Elm.Layout.sizing_eval;
    }
    events {
-      changed;
+      changed; [[Called when segment control changed]]
    }
-
 }

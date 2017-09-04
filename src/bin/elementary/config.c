@@ -3929,7 +3929,7 @@ _cb_accel(void *data, Evas_Object *obj EINA_UNUSED, void *info EINA_UNUSED)
    const char *val = data;
    const char *ss = elm_config_accel_preference_get();
 
-   if ((!ss) || (ss && (strcasecmp(ss, val))))
+   if ((!ss) || (strcasecmp(ss, val)))
      {
         elm_config_accel_preference_set(val);
         elm_config_all_flush();
@@ -4346,7 +4346,8 @@ elm_main(int    argc,
 
         web_backend = elm_object_text_get(web_backend_entry);
         fprintf(stderr, "[%s] vs [%s]\n", web_backend, web_backend_set);
-        if (strcmp(web_backend, web_backend_set))
+        if (web_backend_set != web_backend ||
+           (web_backend && web_backend_set && !!strcmp(web_backend, web_backend_set)))
           {
              elm_config_web_backend_set(web_backend);
              fprintf(stderr, "web backend set to : [%s]\n", elm_config_web_backend_get());

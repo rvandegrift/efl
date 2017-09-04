@@ -1,7 +1,7 @@
 /**
- * This example shows how the work of events with callback of the mouse could be useful in node rotation.
+ * Example of using mouse callback events for node rotation in Evas-3D.
  *
- * After clicking the mouse on cube callbacks began to emit autmatically,
+ * After clicking the mouse on cube callbacks began to emit automatically,
  * depending on mouse's position change the cube rotates with a certain
  * speed while mouse is still on the cube, also rotation slows down when
  * leaving the boundaries of the cube, all this goes on while the mouse
@@ -76,13 +76,14 @@ static Eina_Bool
 _continue_scene(void *data)
 {
    Scene_Data *d = (Scene_Data *)data;
+
    if (d->mouse_indicator == 1)
      {
         evas_event_feed_mouse_down(evas, 1, EVAS_BUTTON_NONE, 0, &data);
      }
+
    return EINA_TRUE;
 }
-
 
 static void
 _rotate_x_reload(Evas_Canvas3D_Scene *eo_scene, Evas_Event_Mouse_Down *ev, Evas_Canvas3D_Node *node, Evas_Canvas3D_Mesh *mesh,
@@ -133,6 +134,7 @@ static void
 _stop_scene(void *data, Evas *_evas EINA_UNUSED, Evas_Object *eo EINA_UNUSED, void *event_info EINA_UNUSED)
 {
     Scene_Data *d = (Scene_Data *)data;
+
     d->angle = 0.0;
     d->mouse_indicator = 2;
 }
@@ -152,10 +154,10 @@ _animate_scene(void *data)
 static void
 _camera_setup(Scene_Data *data)
 {
-   data->camera = eo_add(EVAS_CANVAS3D_CAMERA_CLASS, evas);
+   data->camera = efl_add(EVAS_CANVAS3D_CAMERA_CLASS, evas);
    evas_canvas3d_camera_projection_perspective_set(data->camera, 20.0, 1.0, 2.0, 50.0);
 
-   data->camera_node = eo_add(EVAS_CANVAS3D_NODE_CLASS, evas, evas_canvas3d_node_constructor(eo_self, EVAS_CANVAS3D_NODE_TYPE_CAMERA));
+   data->camera_node = efl_add(EVAS_CANVAS3D_NODE_CLASS, evas, evas_canvas3d_node_constructor(efl_added, EVAS_CANVAS3D_NODE_TYPE_CAMERA));
    evas_canvas3d_node_camera_set(data->camera_node, data->camera);
    evas_canvas3d_node_position_set(data->camera_node, 3.0, 3.0, 10.0);
    evas_canvas3d_node_look_at_set(data->camera_node, EVAS_CANVAS3D_SPACE_PARENT, 0.0, 0.0, 0.0, EVAS_CANVAS3D_SPACE_PARENT, 0.0, 1.0, 0.0);
@@ -166,13 +168,13 @@ _camera_setup(Scene_Data *data)
 static void
 _light_setup(Scene_Data *data)
 {
-   data->light = eo_add(EVAS_CANVAS3D_LIGHT_CLASS, evas);
+   data->light = efl_add(EVAS_CANVAS3D_LIGHT_CLASS, evas);
 
    evas_canvas3d_light_ambient_set(data->light, 0.2, 0.2, 0.2, 1.0);
    evas_canvas3d_light_diffuse_set(data->light, 1.0, 1.0, 1.0, 1.0);
    evas_canvas3d_light_specular_set(data->light, 1.0, 1.0, 1.0, 1.0);
 
-   data->light_node = eo_add(EVAS_CANVAS3D_NODE_CLASS, evas, evas_canvas3d_node_constructor(eo_self, EVAS_CANVAS3D_NODE_TYPE_LIGHT));
+   data->light_node = efl_add(EVAS_CANVAS3D_NODE_CLASS, evas, evas_canvas3d_node_constructor(efl_added, EVAS_CANVAS3D_NODE_TYPE_LIGHT));
 
    evas_canvas3d_node_light_set(data->light_node, data->light);
    evas_canvas3d_node_position_set(data->light_node, 5.0, 5.0, 10.0);
@@ -185,7 +187,7 @@ static void
 _mesh_setup(Scene_Data *data)
 {
    /* Setup material. */
-   data->material = eo_add(EVAS_CANVAS3D_MATERIAL_CLASS, evas);
+   data->material = efl_add(EVAS_CANVAS3D_MATERIAL_CLASS, evas);
 
    evas_canvas3d_material_enable_set(data->material, EVAS_CANVAS3D_MATERIAL_ATTRIB_AMBIENT, EINA_TRUE);
    evas_canvas3d_material_enable_set(data->material, EVAS_CANVAS3D_MATERIAL_ATTRIB_DIFFUSE, EINA_TRUE);
@@ -196,16 +198,16 @@ _mesh_setup(Scene_Data *data)
    evas_canvas3d_material_shininess_set(data->material, 100.0);
 
    /* Setup primitive */
-   data->cube = eo_add(EVAS_CANVAS3D_PRIMITIVE_CLASS, evas);
+   data->cube = efl_add(EVAS_CANVAS3D_PRIMITIVE_CLASS, evas);
    evas_canvas3d_primitive_form_set(data->cube, EVAS_CANVAS3D_MESH_PRIMITIVE_CUBE);
 
    /* Setup mesh. */
-   data->mesh = eo_add(EVAS_CANVAS3D_MESH_CLASS, evas);
+   data->mesh = efl_add(EVAS_CANVAS3D_MESH_CLASS, evas);
    evas_canvas3d_mesh_from_primitive_set(data->mesh, 0, data->cube);
    evas_canvas3d_mesh_shader_mode_set(data->mesh, EVAS_CANVAS3D_SHADER_MODE_PHONG);
    evas_canvas3d_mesh_frame_material_set(data->mesh, 0, data->material);
 
-   data->mesh_node = eo_add(EVAS_CANVAS3D_NODE_CLASS, evas, evas_canvas3d_node_constructor(eo_self, EVAS_CANVAS3D_NODE_TYPE_MESH));
+   data->mesh_node = efl_add(EVAS_CANVAS3D_NODE_CLASS, evas, evas_canvas3d_node_constructor(efl_added, EVAS_CANVAS3D_NODE_TYPE_MESH));
    evas_canvas3d_node_member_add(data->root_node, data->mesh_node);
    evas_canvas3d_node_mesh_add(data->mesh_node, data->mesh);
 }
@@ -213,8 +215,8 @@ _mesh_setup(Scene_Data *data)
 static void
 _scene_setup(Scene_Data *data)
 {
-   scene = eo_add(EVAS_CANVAS3D_SCENE_CLASS, evas);
-   data->root_node = eo_add(EVAS_CANVAS3D_NODE_CLASS, evas, evas_canvas3d_node_constructor(eo_self, EVAS_CANVAS3D_NODE_TYPE_NODE));
+   scene = efl_add(EVAS_CANVAS3D_SCENE_CLASS, evas);
+   data->root_node = efl_add(EVAS_CANVAS3D_NODE_CLASS, evas, evas_canvas3d_node_constructor(efl_added, EVAS_CANVAS3D_NODE_TYPE_NODE));
 
    evas_canvas3d_scene_size_set(scene, WIDTH, HEIGHT);
    evas_canvas3d_scene_background_color_set(scene, 0.0, 0.0, 0.0, 0.0);
@@ -251,7 +253,7 @@ main(void)
    memset(&data, 0, sizeof(Scene_Data));
    _scene_setup(&data);
 
-   /* Add a background rectangle objects. */
+   /* Add a background rectangle object. */
    background = evas_object_rectangle_add(evas);
    evas_object_color_set(background, 0, 0, 0, 255);
    evas_object_move(background, 0, 0);
@@ -259,7 +261,7 @@ main(void)
    evas_object_show(background);
 
    /* Add an image object for 3D scene rendering. */
-   image = eo_add(EFL_CANVAS_SCENE3D_CLASS, evas);
+   image = efl_add(EFL_CANVAS_SCENE3D_CLASS, evas);
    efl_gfx_geometry_set(image, 0, 0, WIDTH, HEIGHT);
    evas_object_show(image);
 

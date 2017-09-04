@@ -15,6 +15,8 @@ _menu_show_cb(void *data, Evas *e EINA_UNUSED, Evas_Object *obj EINA_UNUSED,
               void *event_info)
 {
    Evas_Event_Mouse_Down *ev = event_info;
+
+   if (evas_object_visible_get(data)) return;
    elm_menu_move(data, ev->canvas.x, ev->canvas.y);
    evas_object_show(data);
 }
@@ -209,7 +211,7 @@ _open_bt_clicked(void *data, Evas_Object *obj EINA_UNUSED,
    Evas_Object *mn = data;
    if (!mn) return;
 
-   evas_object_show(mn);
+   elm_menu_open(mn);
 }
 
 static void

@@ -123,17 +123,6 @@ _eina_name_max(DIR *dirp)
    return name_max;
 }
 
-static size_t
-_eina_dirent_buffer_size(DIR *dirp)
-{
-   long name_max = _eina_name_max(dirp);
-   size_t name_end;
-
-   name_end = (size_t) offsetof(struct dirent, d_name) + name_max + 1;
-
-   return (name_end > sizeof (struct dirent) ? name_end : sizeof (struct dirent));
-}
-
 static Eina_Bool
 _eina_file_ls_iterator_next(Eina_File_Iterator *it, void **data)
 {
@@ -141,12 +130,9 @@ _eina_file_ls_iterator_next(Eina_File_Iterator *it, void **data)
    char *name;
    size_t length;
 
-   dp = alloca(_eina_dirent_buffer_size(it->dirp));
-
    do
      {
-        if (readdir_r(it->dirp, dp, &dp))
-          return EINA_FALSE;
+        dp = readdir(it->dirp);
         if (dp == NULL)
           return EINA_FALSE;
      }
@@ -203,14 +189,11 @@ _eina_file_direct_ls_iterator_next(Eina_File_Direct_Iterator *it, void **data)
    struct dirent *dp;
    size_t length;
 
-   dp = alloca(_eina_dirent_buffer_size(it->dirp));
-
    do
      {
-        if (readdir_r(it->dirp, dp, &dp))
-           return EINA_FALSE;
-        if (!dp)
-           return EINA_FALSE;
+        dp = readdir(it->dirp);
+        if (dp == NULL)
+          return EINA_FALSE;
 
 #ifdef _DIRENT_HAVE_D_NAMLEN
         length = dp->d_namlen;
@@ -312,10 +295,12 @@ eina_file_real_close(Eina_File *file)
         free(map);
      }
 
-   if (file->global_map != MAP_FAILED)
-     munmap(file->global_map, file->length);
-
-   if (file->fd != -1) close(file->fd);
+   if (file->fd != -1)
+     {
+        if (file->global_map != MAP_FAILED)
+          munmap(file->global_map, file->length);
+        close(file->fd);
+     }
 }
 
 static void
@@ -327,10 +312,10 @@ _eina_file_map_close(Eina_File_Map *map)
 
 #ifndef MAP_POPULATE
 static unsigned int
-_eina_file_map_populate(char *map, unsigned int size, Eina_Bool hugetlb)
+_eina_file_map_populate(char *map, unsigned long int size, Eina_Bool hugetlb)
 {
    unsigned int r = 0xDEADBEEF;
-   unsigned int i;
+   unsigned long int i;
    unsigned int s;
 
    if (size == 0) return 0;
@@ -433,30 +418,28 @@ _eina_file_mmap_faulty_one(void *addr, long page_size,
    return EINA_FALSE;
 }
 
-void
+Eina_Bool
 eina_file_mmap_faulty(void *addr, long page_size)
 {
    Eina_File_Map *m;
    Eina_File *f;
    Eina_Iterator *itf;
    Eina_Iterator *itm;
+   Eina_Bool faulty = EINA_FALSE;
 
-   /* NOTE: I actually don't know if other thread are running, I will try to take the lock.
-      It may be possible that if other thread are not running and they were in the middle of
-      accessing an Eina_File this lock are still taken and we will result as a deadlock. */
    eina_lock_take(&_eina_file_lock_cache);
 
    itf = eina_hash_iterator_data_new(_eina_file_cache);
    EINA_ITERATOR_FOREACH(itf, f)
      {
-        Eina_Bool faulty = EINA_FALSE;
-
         eina_lock_take(&f->lock);
 
         if (f->global_map != MAP_FAILED)
           {
-             if ((unsigned char *) addr < (((unsigned char *)f->global_map) + f->length) &&
-                 (((unsigned char *) addr) + page_size) >= (unsigned char *) f->global_map)
+             if ((unsigned char *)addr <
+                 (((unsigned char *)f->global_map) + f->length) &&
+                 (((unsigned char *)addr) + page_size) >=
+                  (unsigned char *)f->global_map)
                {
                   f->global_faulty = EINA_TRUE;
                   faulty = EINA_TRUE;
@@ -492,6 +475,7 @@ eina_file_mmap_faulty(void *addr, long page_size)
    eina_iterator_free(itf);
 
    eina_lock_release(&_eina_file_lock_cache);
+   return faulty;
 }
 
 /* ================================================================ *
@@ -780,9 +764,6 @@ eina_file_open(const char *path, Eina_Bool shared)
    char *filename;
    struct stat file_stat;
    int fd = -1;
-#ifdef HAVE_FCNTL
-   int flags;
-#endif
 
    EINA_SAFETY_ON_NULL_RETURN_VAL(path, NULL);
 
@@ -800,15 +781,8 @@ eina_file_open(const char *path, Eina_Bool shared)
 
    if (fd < 0) goto on_error;
 
-#ifdef HAVE_FCNTL
-   flags = fcntl(fd, F_GETFD);
-   if (flags == -1)
+   if (!eina_file_close_on_exec(fd, EINA_TRUE))
      goto on_error;
-
-   flags |= FD_CLOEXEC;
-   if (fcntl(fd, F_SETFD, flags) == -1)
-     goto on_error;
-#endif
 
    if (fstat(fd, &file_stat))
      goto on_error;
@@ -913,6 +887,16 @@ eina_file_refresh(Eina_File *file)
    file->inode = file_stat.st_ino;
 
    return r;
+}
+
+EAPI Eina_Bool
+eina_file_unlink(const char *pathname)
+{
+   if ( unlink(pathname) < 0)
+     {
+        return EINA_FALSE;
+     }
+   return EINA_TRUE;
 }
 
 EAPI void *

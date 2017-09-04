@@ -13,7 +13,6 @@
 
 typedef struct {
    Ector_Software_Buffer_Base_Data *base;
-   Evas *evas;
    RGBA_Image *image;
 } Evas_Ector_Software_Buffer_Data;
 
@@ -21,73 +20,74 @@ typedef struct {
 // eg. in the filters.
 
 EOLIAN static void
-_evas_ector_software_buffer_evas_ector_buffer_engine_image_set(Eo *obj, Evas_Ector_Software_Buffer_Data *pd,
-                                                               Evas *evas, void *image)
+_evas_ector_software_buffer_evas_ector_buffer_engine_image_set(Eo *obj,
+                                                               Evas_Ector_Software_Buffer_Data *pd,
+                                                               void *engine EINA_UNUSED,
+                                                               void *image)
 {
    RGBA_Image *im = image;
 
    EINA_SAFETY_ON_NULL_RETURN(image);
-   if (eo_finalized_get(obj))
-     {
-        CRI("engine_image must be set at construction time only");
-        return;
-     }
+   EINA_SAFETY_ON_FALSE_RETURN(!efl_finalized_get(obj));
+   EINA_SAFETY_ON_NULL_RETURN(im->image.data);
 
-   if (!im->image.data)
-     {
-        CRI("image has no pixels yet");
-        return;
-     }
-
-   pd->evas = eo_xref(evas, obj);
    evas_cache_image_ref(&im->cache_entry);
    pd->image = im;
 
-   ector_buffer_pixels_set(obj, im->image.data, im->cache_entry.w, im->cache_entry.h, 0, (Efl_Gfx_Colorspace) im->cache_entry.space, EINA_TRUE, 0, 0, 0, 0);
+   ector_buffer_pixels_set(obj, im->image.data, im->cache_entry.w, im->cache_entry.h, im->cache_entry.space, EINA_TRUE);
 }
 
-EOLIAN static void
-_evas_ector_software_buffer_evas_ector_buffer_engine_image_get(Eo *obj EINA_UNUSED,
-                                                               Evas_Ector_Software_Buffer_Data *pd,
-                                                               Evas **evas, void **image)
+EOLIAN static void *
+_evas_ector_software_buffer_evas_ector_buffer_drawable_image_get(Eo *obj EINA_UNUSED,
+                                                                 Evas_Ector_Software_Buffer_Data *pd)
 {
-   Evas_Public_Data *e = eo_data_scope_get(pd->evas, EVAS_CANVAS_CLASS);
+   evas_cache_image_ref(&pd->image->cache_entry);
+   return pd->image;
+}
 
-   if (evas) *evas = pd->evas;
-   if (e->engine.func->gl_surface_read_pixels)
-     {
-        ERR("Invalid: requesting engine_image from a GL image from a simple SW buffer!");
-        if (image) *image = NULL;
-        return;
-     }
+EOLIAN static void *
+_evas_ector_software_buffer_evas_ector_buffer_render_image_get(Eo *obj EINA_UNUSED,
+                                                               Evas_Ector_Software_Buffer_Data *pd)
+{
+   evas_cache_image_ref(&pd->image->cache_entry);
+   return pd->image;
+}
 
-   if (image) *image = pd->image;
+EOLIAN static Eina_Bool
+_evas_ector_software_buffer_evas_ector_buffer_engine_image_release(Eo *obj EINA_UNUSED,
+                                                                   Evas_Ector_Software_Buffer_Data *pd,
+                                                                   void *image)
+{
+   EINA_SAFETY_ON_NULL_RETURN_VAL(image, EINA_FALSE);
+   EINA_SAFETY_ON_FALSE_RETURN_VAL(pd->image == image, EINA_FALSE);
+
+   evas_cache_image_drop(&pd->image->cache_entry);
+   return EINA_TRUE;
 }
 
 EOLIAN static Eo *
-_evas_ector_software_buffer_eo_base_constructor(Eo *obj, Evas_Ector_Software_Buffer_Data *pd)
+_evas_ector_software_buffer_efl_object_constructor(Eo *obj, Evas_Ector_Software_Buffer_Data *pd)
 {
-   obj = eo_constructor(eo_super(obj, MY_CLASS));
-   pd->base = eo_data_xref(obj, ECTOR_SOFTWARE_BUFFER_BASE_MIXIN, obj);
+   obj = efl_constructor(efl_super(obj, MY_CLASS));
+   pd->base = efl_data_xref(obj, ECTOR_SOFTWARE_BUFFER_BASE_MIXIN, obj);
    return obj;
 }
 
 EOLIAN static Eo *
-_evas_ector_software_buffer_eo_base_finalize(Eo *obj, Evas_Ector_Software_Buffer_Data *pd)
+_evas_ector_software_buffer_efl_object_finalize(Eo *obj, Evas_Ector_Software_Buffer_Data *pd)
 {
    EINA_SAFETY_ON_NULL_RETURN_VAL(pd->base, NULL);
    EINA_SAFETY_ON_NULL_RETURN_VAL(pd->image, NULL);
    pd->base->generic->immutable = EINA_TRUE;
-   return eo_finalize(eo_super(obj, MY_CLASS));
+   return efl_finalize(efl_super(obj, MY_CLASS));
 }
 
 EOLIAN static void
-_evas_ector_software_buffer_eo_base_destructor(Eo *obj, Evas_Ector_Software_Buffer_Data *pd)
+_evas_ector_software_buffer_efl_object_destructor(Eo *obj, Evas_Ector_Software_Buffer_Data *pd)
 {
-   eo_data_xunref(obj, pd->base, obj);
+   efl_data_xunref(obj, pd->base, obj);
    evas_cache_image_drop(&pd->image->cache_entry);
-   eo_xunref(pd->evas, obj);
-   eo_destructor(eo_super(obj, MY_CLASS));
+   efl_destructor(efl_super(obj, MY_CLASS));
 }
 
 #include "evas_ector_buffer.eo.c"

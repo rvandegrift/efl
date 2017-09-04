@@ -34,64 +34,64 @@ _display_info(Evas_Object *o)
 }
 
 static void
-_playback_started_cb(void *data EINA_UNUSED, const Eo_Event *ev)
+_playback_started_cb(void *data EINA_UNUSED, const Efl_Event *ev)
 {
    printf(">>> Emotion object started playback.\n");
    _display_info(ev->object);
 }
 
 static void
-_playback_finished_cb(void *data EINA_UNUSED, const Eo_Event *ev)
+_playback_finished_cb(void *data EINA_UNUSED, const Efl_Event *ev)
 {
    printf(">>> Emotion object finished playback.\n");
    _display_info(ev->object);
 }
 
 static void
-_open_done_cb(void *data EINA_UNUSED, const Eo_Event *ev)
+_open_done_cb(void *data EINA_UNUSED, const Efl_Event *ev)
 {
    printf(">>> Emotion object open done.\n");
    _display_info(ev->object);
 }
 
 static void
-_position_update_cb(void *data EINA_UNUSED, const Eo_Event *ev)
+_position_update_cb(void *data EINA_UNUSED, const Efl_Event *ev)
 {
    printf(">>> Emotion object first position update.\n");
-   eo_event_callback_del(ev->object, EMOTION_OBJECT_EVENT_POSITION_UPDATE, _position_update_cb, NULL);
+   efl_event_callback_del(ev->object, EFL_CANVAS_VIDEO_EVENT_POSITION_CHANGE, _position_update_cb, NULL);
    _display_info(ev->object);
 }
 
 static void
-_frame_decode_cb(void *data EINA_UNUSED, const Eo_Event *ev)
+_frame_decode_cb(void *data EINA_UNUSED, const Efl_Event *ev)
 {
    printf(">>> Emotion object first frame decode.\n");
-   eo_event_callback_del(ev->object, EMOTION_OBJECT_EVENT_FRAME_DECODE, _frame_decode_cb, NULL);
+   efl_event_callback_del(ev->object, EFL_CANVAS_VIDEO_EVENT_FRAME_DECODE, _frame_decode_cb, NULL);
    _display_info(ev->object);
 }
 
 static void
-_decode_stop_cb(void *data EINA_UNUSED, const Eo_Event *ev)
+_decode_stop_cb(void *data EINA_UNUSED, const Efl_Event *ev)
 {
    printf(">>> Emotion object decode stop.\n");
    _display_info(ev->object);
 }
 
 static void
-_frame_resize_cb(void *data EINA_UNUSED, const Eo_Event *ev)
+_frame_resize_cb(void *data EINA_UNUSED, const Efl_Event *ev)
 {
    printf(">>> Emotion object frame resize.\n");
    _display_info(ev->object);
 }
 
-EO_CALLBACKS_ARRAY_DEFINE(emotion_object_example_callbacks,
-       { EMOTION_OBJECT_EVENT_PLAYBACK_STARTED, _playback_started_cb },
-       { EMOTION_OBJECT_EVENT_PLAYBACK_FINISHED, _playback_finished_cb },
-       { EMOTION_OBJECT_EVENT_OPEN_DONE, _open_done_cb },
-       { EMOTION_OBJECT_EVENT_POSITION_UPDATE, _position_update_cb },
-       { EMOTION_OBJECT_EVENT_FRAME_DECODE, _frame_decode_cb },
-       { EMOTION_OBJECT_EVENT_DECODE_STOP, _decode_stop_cb },
-       { EMOTION_OBJECT_EVENT_FRAME_RESIZE, _frame_resize_cb });
+EFL_CALLBACKS_ARRAY_DEFINE(emotion_object_example_callbacks,
+       { EFL_CANVAS_VIDEO_EVENT_PLAYBACK_START, _playback_started_cb },
+       { EFL_CANVAS_VIDEO_EVENT_PLAYBACK_STOP, _playback_finished_cb },
+       { EFL_CANVAS_VIDEO_EVENT_OPEN_DONE, _open_done_cb },
+       { EFL_CANVAS_VIDEO_EVENT_POSITION_CHANGE, _position_update_cb },
+       { EFL_CANVAS_VIDEO_EVENT_FRAME_DECODE, _frame_decode_cb },
+       { EFL_CANVAS_VIDEO_EVENT_PLAYBACK_STOP, _decode_stop_cb },
+       { EFL_CANVAS_VIDEO_EVENT_FRAME_RESIZE, _frame_resize_cb });
 
 int
 main(int argc, const char *argv[])
@@ -144,7 +144,7 @@ main(int argc, const char *argv[])
      fprintf(stderr, "Emotion: \"%s\" module could not be initialized.\n", module);
 
    _display_info(em);
-   eo_event_callback_array_add(em, emotion_object_example_callbacks(), NULL);
+   efl_event_callback_array_add(em, emotion_object_example_callbacks(), NULL);
 
    if (!emotion_object_file_set(em, filename))
      fprintf(stderr, "Emotion: Could not load the file \"%s\"\n", filename);

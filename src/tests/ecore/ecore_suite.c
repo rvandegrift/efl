@@ -17,7 +17,7 @@ static const Efl_Test_Case etc[] = {
   { "Ecore_Timers", ecore_test_timer },
   { "Ecore_Evas", ecore_test_ecore_evas },
   { "Ecore_Animators", ecore_test_animator },
-  { "Ecore_Test_Ccore_Thread_Eina_Thread_Queue", ecore_test_ecore_thread_eina_thread_queue },
+  { "Eina_Thread_Queue", ecore_test_ecore_thread_eina_thread_queue },
 #if HAVE_ECORE_DRM
   { "Ecore_Drm", ecore_test_ecore_drm },
 #endif
@@ -40,7 +40,9 @@ main(int argc, char **argv)
    if (!_efl_test_option_disp(argc, argv, etc))
      return 0;
 
+#ifdef NEED_RUN_IN_TREE
    putenv("EFL_RUN_IN_TREE=1");
+#endif
 
    failed_count = _efl_suite_build_and_run(argc - 1, (const char **)argv + 1,
                                            "Ecore", etc);

@@ -1,6 +1,6 @@
 import eldbus_types;
 
-class Eldbus.Model.Proxy (Eo.Base, Efl.Model) {
+class Eldbus.Model.Proxy (Efl.Object, Efl.Model) {
     [[Eldbus model proxy class]]
 
     methods {
@@ -9,8 +9,8 @@ class Eldbus.Model.Proxy (Eo.Base, Efl.Model) {
 
               @since 1.16]]
             params {
-                @in object: Eldbus.Object *; [[Eldbus object]]
-                @in interface: const(Eldbus.Introspection.Interface)*; [[The introspected interface]]
+                @in object: ptr(Eldbus.Object); [[Eldbus object]]
+                @in interface: ptr(const(Eldbus.Introspection.Interface)); [[The introspected interface]]
             }
         }
     @property name {
@@ -22,9 +22,9 @@ class Eldbus.Model.Proxy (Eo.Base, Efl.Model) {
         }
     }
     implements {
-        Eo.Base.constructor;
-        Eo.Base.destructor;
-        Efl.Model.properties.get;
+        Efl.Object.constructor;
+        Efl.Object.destructor;
+        Efl.Model.properties { get; }
         Efl.Model.property_set;
         Efl.Model.property_get;
         Efl.Model.child_add;

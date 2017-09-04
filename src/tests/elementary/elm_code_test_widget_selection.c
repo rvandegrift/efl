@@ -346,13 +346,14 @@ START_TEST (elm_code_test_widget_selection_delete_twoline)
    file = elm_code_file_new(code);
    elm_code_file_line_append(file, "text", 4, NULL);
    elm_code_file_line_append(file, "TEXT", 4, NULL);
+   elm_code_file_line_append(file, "remove", 6, NULL);
 
    win = elm_win_add(NULL, "code", ELM_WIN_BASIC);
    widget = elm_code_widget_add(win, code);
    line = elm_code_file_line_get(file, 1);
    text = elm_code_line_text_get(line, NULL);
    ck_assert_str_eq("text", text);
-   ck_assert_int_eq(2, elm_code_file_lines_get(file));
+   ck_assert_int_eq(3, elm_code_file_lines_get(file));
 
    elm_code_widget_selection_start(widget, 1, 3);
    elm_code_widget_selection_end(widget, 2, 2);
@@ -361,6 +362,15 @@ START_TEST (elm_code_test_widget_selection_delete_twoline)
    line = elm_code_file_line_get(file, 1);
    text = elm_code_line_text_get(line, &length);
    ck_assert_strn_eq("teXT", text, length);
+   ck_assert_int_eq(2, elm_code_file_lines_get(file));
+
+   elm_code_widget_selection_start(widget, 1, 5);
+   elm_code_widget_selection_end(widget, 2, 1);
+   elm_code_widget_selection_delete(widget);
+
+   line = elm_code_file_line_get(file, 1);
+   text = elm_code_line_text_get(line, &length);
+   ck_assert_strn_eq("teXTemove", text, length);
    ck_assert_int_eq(1, elm_code_file_lines_get(file));
 
    elm_code_free(code);
@@ -383,13 +393,14 @@ START_TEST (elm_code_test_widget_selection_reverse_delete_twoline)
    file = elm_code_file_new(code);
    elm_code_file_line_append(file, "text", 4, NULL);
    elm_code_file_line_append(file, "TEXT", 4, NULL);
+   elm_code_file_line_append(file, "remove", 6, NULL);
 
    win = elm_win_add(NULL, "code", ELM_WIN_BASIC);
    widget = elm_code_widget_add(win, code);
    line = elm_code_file_line_get(file, 1);
    text = elm_code_line_text_get(line, NULL);
    ck_assert_str_eq("text", text);
-   ck_assert_int_eq(2, elm_code_file_lines_get(file));
+   ck_assert_int_eq(3, elm_code_file_lines_get(file));
 
    elm_code_widget_selection_start(widget, 2, 2);
    elm_code_widget_selection_end(widget, 1, 3);
@@ -398,6 +409,15 @@ START_TEST (elm_code_test_widget_selection_reverse_delete_twoline)
    line = elm_code_file_line_get(file, 1);
    text = elm_code_line_text_get(line, &length);
    ck_assert_strn_eq("teXT", text, length);
+   ck_assert_int_eq(2, elm_code_file_lines_get(file));
+
+   elm_code_widget_selection_start(widget, 2, 1);
+   elm_code_widget_selection_end(widget, 1, 5);
+   elm_code_widget_selection_delete(widget);
+
+   line = elm_code_file_line_get(file, 1);
+   text = elm_code_line_text_get(line, &length);
+   ck_assert_strn_eq("teXTemove", text, length);
    ck_assert_int_eq(1, elm_code_file_lines_get(file));
 
    elm_code_free(code);
@@ -421,13 +441,15 @@ START_TEST (elm_code_test_widget_selection_delete_multiline)
    elm_code_file_line_append(file, "text", 4, NULL);
    elm_code_file_line_append(file, "remove", 6, NULL);
    elm_code_file_line_append(file, "TEXT", 4, NULL);
+   elm_code_file_line_append(file, "delete", 6, NULL);
+   elm_code_file_line_append(file, "REMOVE", 6, NULL);
 
    win = elm_win_add(NULL, "code", ELM_WIN_BASIC);
    widget = elm_code_widget_add(win, code);
    line = elm_code_file_line_get(file, 1);
    text = elm_code_line_text_get(line, NULL);
    ck_assert_str_eq("text", text);
-   ck_assert_int_eq(3, elm_code_file_lines_get(file));
+   ck_assert_int_eq(5, elm_code_file_lines_get(file));
 
    elm_code_widget_selection_start(widget, 1, 3);
    elm_code_widget_selection_end(widget, 3, 2);
@@ -436,6 +458,15 @@ START_TEST (elm_code_test_widget_selection_delete_multiline)
    line = elm_code_file_line_get(file, 1);
    text = elm_code_line_text_get(line, &length);
    ck_assert_strn_eq("teXT", text, length);
+   ck_assert_int_eq(3, elm_code_file_lines_get(file));
+
+   elm_code_widget_selection_start(widget, 1, 5);
+   elm_code_widget_selection_end(widget, 3, 1);
+   elm_code_widget_selection_delete(widget);
+
+   line = elm_code_file_line_get(file, 1);
+   text = elm_code_line_text_get(line, &length);
+   ck_assert_strn_eq("teXTEMOVE", text, length);
    ck_assert_int_eq(1, elm_code_file_lines_get(file));
 
    elm_code_free(code);
@@ -459,13 +490,15 @@ START_TEST (elm_code_test_widget_selection_reverse_delete_multiline)
    elm_code_file_line_append(file, "text", 4, NULL);
    elm_code_file_line_append(file, "remove", 6, NULL);
    elm_code_file_line_append(file, "TEXT", 4, NULL);
+   elm_code_file_line_append(file, "delete", 6, NULL);
+   elm_code_file_line_append(file, "REMOVE", 6, NULL);
 
    win = elm_win_add(NULL, "code", ELM_WIN_BASIC);
    widget = elm_code_widget_add(win, code);
    line = elm_code_file_line_get(file, 1);
    text = elm_code_line_text_get(line, NULL);
    ck_assert_str_eq("text", text);
-   ck_assert_int_eq(3, elm_code_file_lines_get(file));
+   ck_assert_int_eq(5, elm_code_file_lines_get(file));
 
    elm_code_widget_selection_start(widget, 3, 2);
    elm_code_widget_selection_end(widget, 1, 3);
@@ -474,6 +507,15 @@ START_TEST (elm_code_test_widget_selection_reverse_delete_multiline)
    line = elm_code_file_line_get(file, 1);
    text = elm_code_line_text_get(line, &length);
    ck_assert_strn_eq("teXT", text, length);
+   ck_assert_int_eq(3, elm_code_file_lines_get(file));
+
+   elm_code_widget_selection_start(widget, 3, 1);
+   elm_code_widget_selection_end(widget, 1, 5);
+   elm_code_widget_selection_delete(widget);
+
+   line = elm_code_file_line_get(file, 1);
+   text = elm_code_line_text_get(line, &length);
+   ck_assert_strn_eq("teXTEMOVE", text, length);
    ck_assert_int_eq(1, elm_code_file_lines_get(file));
 
    elm_code_free(code);
@@ -524,6 +566,7 @@ START_TEST (elm_code_test_widget_selection_select_word)
    file = elm_code_file_new(code);
    elm_code_file_line_append(file, "word selection test", 19, NULL);
    elm_code_file_line_append(file, "more stuff\tto test", 18, NULL);
+   elm_code_file_line_append(file, "word \"symbols\" test", 19, NULL);
 
    win = elm_win_add(NULL, "entry", ELM_WIN_BASIC);
    widget = elm_code_widget_add(win, code);
@@ -541,6 +584,11 @@ START_TEST (elm_code_test_widget_selection_select_word)
    elm_code_widget_selection_select_word(widget, 2, 9);
    selection = elm_code_widget_selection_text_get(widget);
    ck_assert_str_eq("stuff", selection);
+   free(selection);
+
+   elm_code_widget_selection_select_word(widget, 3, 9);
+   selection = elm_code_widget_selection_text_get(widget);
+   ck_assert_str_eq("symbols", selection);
    free(selection);
    elm_shutdown();
 }

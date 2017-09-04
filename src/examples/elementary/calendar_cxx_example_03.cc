@@ -6,18 +6,25 @@
 #include <Elementary.hh>
 
 EAPI_MAIN int
-elm_main (int argc, char *argv[])
+elm_main (int argc EINA_UNUSED, char **argv EINA_UNUSED)
 {
+   Efl_Time min, max;
+
    elm_policy_set(ELM_POLICY_QUIT, ELM_POLICY_QUIT_LAST_WINDOW_HIDDEN);
 
-   efl::ui::win::Standard win;
+   efl::ui::Win win;
    //win.title_set("Calendar Min/Max Year Example");
    win.autohide_set(true);
 
    elm::Calendar cal(win);
+
+   min.tm_year = 2020 - 1900;
+   max.tm_year = 2022 - 1900;
+
    //cal.size_hint_weight_set(EVAS_HINT_EXPAND, EVAS_HINT_EXPAND);
    //win.resize_object_add(cal);
-   cal.min_max_year_set(2020, 2022);
+   cal.date_min_set(min);
+   cal.date_max_set(max);
    cal.visible_set(true);
 
    cal.eo_cxx::efl::Gfx::size_set(140,140);

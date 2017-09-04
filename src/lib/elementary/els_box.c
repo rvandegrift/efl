@@ -23,7 +23,7 @@ _box_object_aspect_calc(int *ow, int *oh, int minw, int minh, int maxw, int maxh
         /* set height using aspect+width */
         if (fw) *ow = ww;
         if ((maxw >= 0) && (maxw < *ow)) *ow = maxw;
-        *oh = ratio / *ow;
+        *oh = (1 / ratio) * *ow;
         /* apply min/max */
         if ((maxh >= 0) && (maxh < *oh)) *oh = maxh;
         else if ((minh >= 0) && (minh > *oh)) *oh = minh;
@@ -53,7 +53,7 @@ _box_object_aspect_calc(int *ow, int *oh, int minw, int minh, int maxw, int maxh
         /* set height using aspect+width */
         if (fw) *ow = ww;
         if ((maxw >= 0) && (maxw < *ow)) *ow = maxw;
-        *oh = ratio / *ow;
+        *oh = (1 / ratio) * *ow;
         /* apply min/max */
         if ((maxh >= 0) && (maxh < *oh)) *oh = maxh;
         else if ((minh >= 0) && (minh > *oh)) *oh = minh;
@@ -155,7 +155,8 @@ _smart_extents_non_homogeneous_calc(Evas_Object_Box_Data *priv, int w, int h, in
         *rminh += *rh;
 
         evas_object_size_hint_aspect_get(opt->obj, &aspect, &asx, &asy);
-        if (aspect && ((asx < 1) || (asy < 1)))
+        if (aspect && ((!EINA_DBL_NONZERO(asx)) || (asx < 0.0) ||
+          (!EINA_DBL_NONZERO(asy)) || (asy < 0.0)))
           {
              aspect = EVAS_ASPECT_CONTROL_NONE;
              ERR("Invalid aspect specified!");
@@ -183,7 +184,7 @@ _smart_extents_non_homogeneous_calc(Evas_Object_Box_Data *priv, int w, int h, in
              if (horizontal)
                {
                   /* use min size to start */
-                  ww = *rw;
+                  ww = mnw;
                   if ((expand > 0) && (wx > 0.0))
                     {
                        /* add remaining container value after applying weight hint */
@@ -194,7 +195,7 @@ _smart_extents_non_homogeneous_calc(Evas_Object_Box_Data *priv, int w, int h, in
                }
              else
                {
-                  hh = *rh;
+                  hh = mnh;
                   if ((expand > 0) && (wy > 0.0))
                     {
                        oh = ((h - cminh) * wy) / expand;
@@ -237,7 +238,7 @@ _smart_extents_calculate(Evas_Object *box, Evas_Object_Box_Data *priv, int w, in
    maxw = -1;
    maxh = -1;
    c = eina_list_count(priv->children);
-   if (homogeneous)
+   if (homogeneous || (c == 1))
      {
         Evas_Aspect_Control paspect = -1; //causes overflow
         int pasx = -1, pasy = -1;
@@ -277,13 +278,13 @@ _smart_extents_calculate(Evas_Object *box, Evas_Object_Box_Data *priv, int w, in
              evas_object_size_hint_max_get(opt->obj, &mnw, &mnh);
              if (mnh >= 0)
                {
-                  if (mnh >= 0) mnh += pad_t + pad_b;
+                  mnh += pad_t + pad_b;
                   if (maxh == -1) maxh = mnh;
                   else if (maxh > mnh) maxh = mnh;
                }
              if (mnw >= 0)
                {
-                  if (mnw >= 0) mnw += pad_l + pad_r;
+                  mnw += pad_l + pad_r;
                   if (maxw == -1) maxw = mnw;
                   else if (maxw > mnw) maxw = mnw;
                }
@@ -333,8 +334,12 @@ _smart_extents_calculate(Evas_Object *box, Evas_Object_Box_Data *priv, int w, in
              /* aspect can only be accurately calculated after the full (non-aspected) min size of the box has
               * been calculated due to the use of this min size during aspect calculations
               */
+             int aminw = minw;
+             int aminh = minh;
              _smart_extents_padding_calc(priv, &minw, &minh, &maxw, &maxh, horizontal);
-             _smart_extents_non_homogeneous_calc(priv, w, h, &minw, &minh, &maxw, &maxh, expand, horizontal, 1);
+             _smart_extents_non_homogeneous_calc(priv, w, h, &aminw, &aminh, &maxw, &maxh, expand, horizontal, 1);
+             if (horizontal) minh = aminh;
+             else minw = aminw;
           }
      }
    _smart_extents_padding_calc(priv, &minw, &minh, &maxw, &maxh, horizontal);

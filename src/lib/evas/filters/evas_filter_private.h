@@ -8,10 +8,6 @@
 extern int _evas_filter_log_dom;
 #define EVAS_FILTER_LOG_COLOR EINA_COLOR_LIGHTBLUE
 
-#ifdef DEBUG
-# define FILTERS_DEBUG
-#endif
-
 #ifdef ERR
 # undef ERR
 #endif
@@ -79,8 +75,16 @@ extern int _evas_filter_log_dom;
 #endif
 
 // Helpers
+#undef ENFN
+#undef ENDT
+#undef ENC
 #define ENFN ctx->evas->engine.func
-#define ENDT ctx->evas->engine.data.output
+#define ENDT _evas_default_output_get(ctx->evas)
+#define ENC _evas_engine_context(ctx->evas)
+
+#define CMD_ENDT _evas_default_output_get(cmd->ctx->evas)
+#define CMD_ENC _evas_engine_context(cmd->ctx->evas)
+#define FB_ENC _evas_engine_context(fb->ctx->evas)
 
 #define BUFFERS_LOCK() do { if (cmd->input) cmd->input->locked = 1; if (cmd->output) cmd->output->locked = 1; if (cmd->mask) cmd->mask->locked = 1; } while (0)
 #define BUFFERS_UNLOCK() do { if (cmd->input) cmd->input->locked = 0; if (cmd->output) cmd->output->locked = 0; if (cmd->mask) cmd->mask->locked = 0; } while (0)
@@ -109,6 +113,9 @@ extern int _evas_filter_log_dom;
 
 typedef enum _Evas_Filter_Interpolation_Mode Evas_Filter_Interpolation_Mode;
 
+typedef Evas_Filter_Buffer * (*evas_filter_buffer_scaled_get_func)(Evas_Filter_Context *ctx, Evas_Filter_Buffer *src, unsigned w, unsigned h);
+
+
 struct _Evas_Filter_Context
 {
    Evas_Public_Data *evas;
@@ -116,10 +123,24 @@ struct _Evas_Filter_Context
    Eina_List *buffers; // Evas_Filter_Buffer *
    int last_buffer_id;
    int last_command_id;
+   void *user_data; // used by textblock
+
+   // ugly hack (dlsym fail)
+   evas_filter_buffer_scaled_get_func buffer_scaled_get;
 
    // Variables changing at each run
+   int x, y; // Position of the object (for GL downscaling of snapshots)
    int w, h; // Dimensions of the input/output buffers
-   int padl, padt, padr, padb; // Padding in the current input/output buffers
+
+   struct {
+      // Padding in the current input/output buffers
+      Evas_Filter_Padding calculated, final;
+   } pad;
+
+   struct {
+      // Useless region: obscured by other objects
+      Eina_Rectangle real, effective;
+   } obscured;
 
    struct
    {
@@ -130,19 +151,26 @@ struct _Evas_Filter_Context
 
    struct
    {
-      int bufid;
+      void *surface;
       int x, y;
       int cx, cy, cw, ch; // clip
       int r, g, b, a; // clip color
       void *mask; // mask
       int mask_x, mask_y; // mask offset
+      Evas_Render_Op rop;
+      RGBA_Map *map;
       Eina_Bool clip_use : 1;
       Eina_Bool color_use : 1;
    } target;
 
-   Eina_Bool async : 1;
+   int          run_count;
+
    Eina_Bool running : 1;
+   Eina_Bool delete_me : 1;
+   Eina_Bool async : 1;
    Eina_Bool has_proxies : 1;
+   Eina_Bool gl : 1;
+
 };
 
 struct _Evas_Filter_Command
@@ -161,7 +189,7 @@ struct _Evas_Filter_Command
    {
       struct
       {
-         int dx, dy;
+         float dx, dy;
          int count;
          Evas_Filter_Blur_Type type;
          Eina_Bool auto_count : 1; // If true, BOX blur will be smooth using
@@ -211,10 +239,16 @@ struct _Evas_Filter_Command
             int l, r, t, b;
          };
       } clip;
+      struct {
+         int factor_x, factor_y;
+         int pad_x, pad_y;
+         Eina_Bool down;
+      } scale;
       Evas_Filter_Fill_Mode fillmode;
       Eina_Bool clip_use : 1;
       Eina_Bool clip_mode_lrtb : 1;
       Eina_Bool need_temp_buffer : 1;
+      Eina_Bool output_was_dirty : 1;
    } draw;
 };
 
@@ -230,11 +264,13 @@ struct _Evas_Filter_Buffer
    Ector_Buffer *buffer;
    int w, h;
 
+   Eina_Bool used : 1;        // This buffer is in use (useful for reuse of context)
    Eina_Bool alpha_only : 1;  // 1 channel (A) instead of 4 (RGBA)
    Eina_Bool transient : 1;   // temporary buffer (automatic allocation)
    Eina_Bool locked : 1;      // internal flag
-   Eina_Bool delete_me : 1;   // request delete asap (after released by client)
    Eina_Bool dirty : 1;       // Marked as dirty as soon as a command writes to it
+   Eina_Bool is_render : 1;   // Is render target of a filter using engine functions (ie. needs FBO in GL)
+   Eina_Bool cleanup : 1;     // Needs cleaning up if not allocated
 };
 
 enum _Evas_Filter_Interpolation_Mode
@@ -243,32 +279,29 @@ enum _Evas_Filter_Interpolation_Mode
    EVAS_FILTER_INTERPOLATION_MODE_LINEAR
 };
 
-void                     evas_filter_context_clear(Evas_Filter_Context *ctx);
-void                     evas_filter_context_source_set(Evas_Filter_Context *ctx, Evas_Object *eo_proxy, Evas_Object *eo_source, int bufid, Eina_Stringshare *name);
+enum _Evas_Filter_Support
+{
+   EVAS_FILTER_SUPPORT_NONE = 0,
+   EVAS_FILTER_SUPPORT_CPU,
+   EVAS_FILTER_SUPPORT_GL
+};
 
-/* FIXME: CPU filters entry points. Move these to the Evas Engine itself. */
-Evas_Filter_Apply_Func   evas_filter_blend_cpu_func_get(Evas_Filter_Command *cmd);
-Evas_Filter_Apply_Func   evas_filter_blur_cpu_func_get(Evas_Filter_Command *cmd);
-Evas_Filter_Apply_Func   evas_filter_bump_map_cpu_func_get(Evas_Filter_Command *cmd);
-Evas_Filter_Apply_Func   evas_filter_curve_cpu_func_get(Evas_Filter_Command *cmd);
-Evas_Filter_Apply_Func   evas_filter_displace_cpu_func_get(Evas_Filter_Command *cmd);
-Evas_Filter_Apply_Func   evas_filter_fill_cpu_func_get(Evas_Filter_Command *cmd);
-Evas_Filter_Apply_Func   evas_filter_mask_cpu_func_get(Evas_Filter_Command *cmd);
-Evas_Filter_Apply_Func   evas_filter_transform_cpu_func_get(Evas_Filter_Command *cmd);
+void                     evas_filter_mixin_init(void);
+void                     evas_filter_mixin_shutdown(void);
+
+void                     evas_filter_context_clear(Evas_Filter_Context *ctx, Eina_Bool keep_buffers);
+void                     evas_filter_context_source_set(Evas_Filter_Context *ctx, Evas_Object *eo_proxy, Evas_Object *eo_source, int bufid, Eina_Stringshare *name);
 
 /* Utility functions */
 void _clip_to_target(int *sx, int *sy, int sw, int sh, int ox, int oy, int dw, int dh, int *dx, int *dy, int *rows, int *cols);
 Eina_Bool evas_filter_buffer_alloc(Evas_Filter_Buffer *fb, int w, int h);
 Evas_Filter_Buffer *_filter_buffer_get(Evas_Filter_Context *ctx, int bufid);
-Eina_Bool           _filter_buffer_data_set(Evas_Filter_Context *ctx, int bufid, void *data, int w, int h, Eina_Bool alpha_only);
-Evas_Filter_Buffer *_filter_buffer_data_new(Evas_Filter_Context *ctx, void *data, int w, int h, Eina_Bool alpha_only);
-#define             evas_filter_buffer_alloc_new(ctx, w, h, a) _filter_buffer_data_new(ctx, NULL, w, h, a)
-Evas_Filter_Buffer *evas_filter_temporary_buffer_get(Evas_Filter_Context *ctx, int w, int h, Eina_Bool alpha_only);
+Evas_Filter_Buffer *evas_filter_temporary_buffer_get(Evas_Filter_Context *ctx, int w, int h, Eina_Bool alpha_only, Eina_Bool clean);
 Evas_Filter_Buffer *evas_filter_buffer_scaled_get(Evas_Filter_Context *ctx, Evas_Filter_Buffer *src, unsigned w, unsigned h);
 Eina_Bool           evas_filter_interpolate(DATA8* output /* 256 values */, int *points /* 256 values */, Evas_Filter_Interpolation_Mode mode);
-Evas_Filter_Command *_evas_filter_command_get(Evas_Filter_Context *ctx, int cmdid);
 int evas_filter_smallest_pow2_larger_than(int val);
 
+void _evas_filter_context_program_reuse(Evas_Filter_Context *ctx);
 void evas_filter_parser_shutdown(void);
 
 #define E_READ  ECTOR_BUFFER_ACCESS_FLAG_READ
