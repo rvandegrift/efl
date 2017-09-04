@@ -31,6 +31,24 @@
 static Elm_Version _version = { VMAJ, VMIN, VMIC, VREV };
 EAPI Elm_Version *elm_version = &_version;
 
+void
+_efl_ui_focus_manager_redirect_events_del(Efl_Ui_Focus_Manager *manager, Eo *obj)
+{
+   efl_event_callback_forwarder_del(manager, EFL_UI_FOCUS_MANAGER_EVENT_FLUSH_PRE, obj);
+   efl_event_callback_forwarder_del(manager, EFL_UI_FOCUS_MANAGER_EVENT_REDIRECT_CHANGED, obj);
+   efl_event_callback_forwarder_del(manager, EFL_UI_FOCUS_MANAGER_EVENT_FOCUSED , obj);
+   efl_event_callback_forwarder_del(manager, EFL_UI_FOCUS_MANAGER_EVENT_COORDS_DIRTY, obj);
+}
+
+void
+_efl_ui_focus_manager_redirect_events_add(Efl_Ui_Focus_Manager *manager, Eo *obj)
+{
+   efl_event_callback_forwarder_add(manager, EFL_UI_FOCUS_MANAGER_EVENT_FLUSH_PRE, obj);
+   efl_event_callback_forwarder_add(manager, EFL_UI_FOCUS_MANAGER_EVENT_REDIRECT_CHANGED, obj);
+   efl_event_callback_forwarder_add(manager, EFL_UI_FOCUS_MANAGER_EVENT_FOCUSED , obj);
+   efl_event_callback_forwarder_add(manager, EFL_UI_FOCUS_MANAGER_EVENT_COORDS_DIRTY, obj);
+}
+
 Eina_Bool
 _elm_dangerous_call_check(const char *call)
 {
@@ -219,16 +237,38 @@ static struct {
      void (*shutdown)(void);
      Eina_Bool (*app_connect)(const char *appname);
      Eina_Bool is_init;
+} _clouseau_old_info;
+
+static struct {
+     Eina_Module *handle;
+     Eina_Bool (*init)(void);
+     Eina_Bool (*shutdown)(void);
+     Eina_Bool is_init;
 } _clouseau_info;
+
+#define _CLOUSEAU_OLD_LOAD_SYMBOL(cls_struct, sym) \
+   do \
+     { \
+        if ((cls_struct).handle) \
+          (cls_struct).sym = eina_module_symbol_get((cls_struct).handle, "clouseau_" #sym); \
+        if (!(cls_struct).sym) \
+          { \
+             WRN("Failed loading symbol '%s' from the clouseau library.", "clouseau_" #sym); \
+             if ((cls_struct).handle) eina_module_free((cls_struct).handle); \
+             (cls_struct).handle = NULL; \
+          } \
+     } \
+   while (0)
 
 #define _CLOUSEAU_LOAD_SYMBOL(cls_struct, sym) \
    do \
      { \
-        (cls_struct).sym = eina_module_symbol_get((cls_struct).handle, "clouseau_" #sym); \
+        if ((cls_struct).handle) \
+          (cls_struct).sym = eina_module_symbol_get((cls_struct).handle, "clouseau_debug_" #sym); \
         if (!(cls_struct).sym) \
           { \
-             WRN("Failed loading symbol '%s' from the clouseau library.", "clouseau_" #sym); \
-             eina_module_free((cls_struct).handle); \
+             WRN("Failed loading symbol '%s' from the clouseau library.", "clouseau_debug_" #sym); \
+             if ((cls_struct).handle) eina_module_free((cls_struct).handle); \
              (cls_struct).handle = NULL; \
              return EINA_FALSE; \
           } \
@@ -238,21 +278,32 @@ static struct {
 static void
 _elm_clouseau_unload()
 {
-   if (!_clouseau_info.is_init)
-      return;
-
-   if (_clouseau_info.shutdown)
+   if (_clouseau_old_info.is_init)
      {
-        _clouseau_info.shutdown();
+        if (_clouseau_old_info.shutdown)
+          {
+             _clouseau_old_info.shutdown();
+          }
+        if (_clouseau_old_info.handle)
+          {
+             eina_module_free(_clouseau_old_info.handle);
+             _clouseau_old_info.handle = NULL;
+          }
+        _clouseau_old_info.is_init = EINA_FALSE;
      }
-
-   if (_clouseau_info.handle)
+   if (_clouseau_info.is_init)
      {
-        eina_module_free(_clouseau_info.handle);
-        _clouseau_info.handle = NULL;
+        if (_clouseau_info.shutdown)
+          {
+             _clouseau_info.shutdown();
+          }
+        if (_clouseau_info.handle)
+          {
+             eina_module_free(_clouseau_info.handle);
+             _clouseau_info.handle = NULL;
+          }
+        _clouseau_info.is_init = EINA_FALSE;
      }
-
-   _clouseau_info.is_init = EINA_FALSE;
 }
 
 Eina_Bool
@@ -264,30 +315,53 @@ _elm_clouseau_reload()
         return EINA_TRUE;
      }
 
-   if (_clouseau_info.is_init)
-      return EINA_TRUE;
-
-   _clouseau_info.handle = eina_module_new(
-         PACKAGE_LIB_DIR "/libclouseau" LIBEXT);
-   if (!_clouseau_info.handle || !eina_module_load(_clouseau_info.handle))
+   if (!_clouseau_old_info.is_init)
      {
-        WRN("Failed loading the clouseau library.");
-        if (_clouseau_info.handle) eina_module_free(_clouseau_info.handle);
-        _clouseau_info.handle = NULL;
-        return EINA_FALSE;
+        _clouseau_old_info.handle = eina_module_new(
+              PACKAGE_LIB_DIR "/libclouseau" LIBEXT);
+        if (!_clouseau_old_info.handle || !eina_module_load(_clouseau_old_info.handle))
+          {
+             WRN("Failed loading the clouseau_old library.");
+             if (_clouseau_old_info.handle) eina_module_free(_clouseau_old_info.handle);
+             _clouseau_old_info.handle = NULL;
+          }
+
+        _CLOUSEAU_OLD_LOAD_SYMBOL(_clouseau_old_info, init);
+        _CLOUSEAU_OLD_LOAD_SYMBOL(_clouseau_old_info, shutdown);
+        _CLOUSEAU_OLD_LOAD_SYMBOL(_clouseau_old_info, app_connect);
+
+        if (_clouseau_old_info.handle)
+          {
+             _clouseau_old_info.init();
+             if (!_clouseau_old_info.app_connect(elm_app_name_get()))
+               {
+                  ERR("Failed connecting to the clouseau server.");
+               }
+             _clouseau_old_info.is_init = EINA_TRUE;
+          }
      }
 
-   _CLOUSEAU_LOAD_SYMBOL(_clouseau_info, init);
-   _CLOUSEAU_LOAD_SYMBOL(_clouseau_info, shutdown);
-   _CLOUSEAU_LOAD_SYMBOL(_clouseau_info, app_connect);
-
-   _clouseau_info.init();
-   if (!_clouseau_info.app_connect(elm_app_name_get()))
+   if (!_clouseau_info.is_init)
      {
-        ERR("Failed connecting to the clouseau server.");
-     }
+        _clouseau_info.handle = eina_module_new(
+              PACKAGE_LIB_DIR "/libclouseau_debug" LIBEXT);
+        if (!_clouseau_info.handle || !eina_module_load(_clouseau_info.handle))
+          {
+             WRN("Failed loading the clouseau library.");
+             if (_clouseau_info.handle) eina_module_free(_clouseau_info.handle);
+             _clouseau_info.handle = NULL;
+             return EINA_FALSE;
+          }
 
-   _clouseau_info.is_init = EINA_TRUE;
+        _CLOUSEAU_LOAD_SYMBOL(_clouseau_info, init);
+        _CLOUSEAU_LOAD_SYMBOL(_clouseau_info, shutdown);
+
+        if (_clouseau_info.handle)
+          {
+             _clouseau_info.init();
+             _clouseau_info.is_init = EINA_TRUE;
+          }
+     }
 
    return EINA_TRUE;
 }
@@ -347,6 +421,7 @@ elm_init(int argc, char **argv)
      _elm_config->web_backend = "none";
    if (!_elm_web_init(_elm_config->web_backend))
      _elm_config->web_backend = "none";
+   _elm_code_parse_setup();
 
    return _elm_init_count;
 }
@@ -662,7 +737,6 @@ elm_quicklaunch_init(int    argc,
 
    eet_init();
    ecore_init();
-   edje_init();
 
 #ifdef HAVE_ELEMENTARY_EMAP
    emap_init();
@@ -671,11 +745,11 @@ elm_quicklaunch_init(int    argc,
 
    memset(_elm_policies, 0, sizeof(_elm_policies));
    if (!ELM_EVENT_POLICY_CHANGED)
-     ELM_EVENT_POLICY_CHANGED = ecore_event_type_new();
-   if (!ELM_EVENT_PROCESS_BACKGROUND)
-     ELM_EVENT_PROCESS_BACKGROUND = ecore_event_type_new();
-   if (!ELM_EVENT_PROCESS_FOREGROUND)
-     ELM_EVENT_PROCESS_FOREGROUND = ecore_event_type_new();
+     {
+        ELM_EVENT_POLICY_CHANGED = ecore_event_type_new();
+        ELM_EVENT_PROCESS_BACKGROUND = ecore_event_type_new();
+        ELM_EVENT_PROCESS_FOREGROUND = ecore_event_type_new();
+     }
 
    if (!ecore_file_init())
      ERR("Elementary cannot init ecore_file");
@@ -719,26 +793,26 @@ elm_quicklaunch_sub_init(int    argc,
    if (_elm_sub_init_count > 1) return _elm_sub_init_count;
    if (quicklaunch_on)
      {
-        _elm_config_init();
-#ifdef SEMI_BROKEN_QUICKLAUNCH
-        return _elm_sub_init_count;
-#endif
+//        _elm_config_init();
+//#ifdef SEMI_BROKEN_QUICKLAUNCH
+//        return _elm_sub_init_count;
+//#endif
      }
 
    if (!quicklaunch_on)
      {
         ecore_app_args_set(argc, (const char **)argv);
-        evas_init();
+        ecore_evas_init(); // FIXME: check errors
+        edje_init();
+        elm_color_class_init();
         _elm_module_init();
         _elm_config_init();
         _elm_config_sub_init();
-        ecore_evas_init(); // FIXME: check errors
         ecore_imf_init();
         ecore_con_init();
         ecore_con_url_init();
         _elm_prefs_initted = _elm_prefs_init();
         _elm_ews_wm_init();
-        elm_color_class_init();
      }
    return _elm_sub_init_count;
 }
@@ -750,23 +824,25 @@ elm_quicklaunch_sub_shutdown(void)
    if (_elm_sub_init_count > 0) return _elm_sub_init_count;
    if (quicklaunch_on)
      {
-#ifdef SEMI_BROKEN_QUICKLAUNCH
-        return _elm_sub_init_count;
-#endif
+//#ifdef SEMI_BROKEN_QUICKLAUNCH
+//        return _elm_sub_init_count;
+//#endif
      }
    if (!quicklaunch_on)
      {
         _elm_win_shutdown();
-        _elm_module_shutdown();
-        if (_elm_prefs_initted)
-          _elm_prefs_shutdown();
         _elm_ews_wm_shutdown();
         ecore_con_url_shutdown();
         ecore_con_shutdown();
         ecore_imf_shutdown();
+        edje_shutdown();
         ecore_evas_shutdown();
         _elm_config_sub_shutdown();
-        evas_shutdown();
+        _elm_config_shutdown();
+        _elm_module_shutdown();
+        if (_elm_prefs_initted)
+          _elm_prefs_shutdown();
+        elm_color_class_shutdown();
      }
    return _elm_sub_init_count;
 }
@@ -779,14 +855,15 @@ elm_quicklaunch_shutdown(void)
 
    eina_log_timing(_elm_log_dom, EINA_LOG_STATE_STOP, EINA_LOG_STATE_SHUTDOWN);
 
+   ecore_event_type_flush(ELM_EVENT_POLICY_CHANGED,
+                          ELM_EVENT_PROCESS_BACKGROUND,
+                          ELM_EVENT_PROCESS_FOREGROUND);
+
    if (pfx) eina_prefix_free(pfx);
    pfx = NULL;
    ELM_SAFE_FREE(_elm_data_dir, eina_stringshare_del);
    ELM_SAFE_FREE(_elm_lib_dir, eina_stringshare_del);
    ELM_SAFE_FREE(_elm_appname, free);
-
-   _elm_config_shutdown();
-   elm_color_class_shutdown();
 
    ELM_SAFE_FREE(_elm_exit_handler, ecore_event_handler_del);
 
@@ -799,15 +876,14 @@ elm_quicklaunch_shutdown(void)
    _elm_unneed_elocation();
    _elm_unneed_ethumb();
    _elm_unneed_web();
-   eio_shutdown();
-   ecore_file_shutdown();
 
 #ifdef HAVE_ELEMENTARY_EMAP
    emap_shutdown();
 #endif
    _elm_emotion_shutdown();
 
-   edje_shutdown();
+   ecore_file_shutdown();
+   eio_init();
    ecore_shutdown();
    eet_shutdown();
 
@@ -853,7 +929,7 @@ static void *qr_handle = NULL;
 static int (*qr_main)(int    argc,
                       char **argv) = NULL;
 static void (*qre_main)(void *data,
-                        const Eo_Event *ev) = NULL;
+                        const Efl_Event *ev) = NULL;
 
 EAPI Eina_Bool
 elm_quicklaunch_prepare(int    argc,
@@ -1134,7 +1210,7 @@ elm_quicklaunch_fork(int    argc,
 
    if (qre_main)
      {
-        eo_event_callback_add(ecore_main_loop_get(), EFL_LOOP_EVENT_ARGUMENTS, qre_main, NULL);
+        efl_event_callback_add(ecore_main_loop_get(), EFL_LOOP_EVENT_ARGUMENTS, qre_main, NULL);
         ret = efl_loop_begin(ecore_main_loop_get());
         elm_shutdown();
         exit(ret);
@@ -1192,7 +1268,7 @@ efl_quicklaunch_fallback(int    argc,
    elm_quicklaunch_sub_init(argc, argv);
    if (efl_quicklaunch_prepare(argc, argv, getcwd(cwd, sizeof(cwd))))
      {
-        eo_event_callback_add(ecore_main_loop_get(), EFL_LOOP_EVENT_ARGUMENTS, qre_main, NULL);
+        efl_event_callback_add(ecore_main_loop_get(), EFL_LOOP_EVENT_ARGUMENTS, qre_main, NULL);
         return efl_loop_begin(ecore_main_loop_get());
      }
 
@@ -1322,28 +1398,28 @@ EAPI Eina_Bool
 elm_object_mirrored_get(const Evas_Object *obj)
 {
    EINA_SAFETY_ON_NULL_RETURN_VAL(obj, EINA_FALSE);
-   return elm_widget_mirrored_get(obj);
+   return efl_ui_mirrored_get(obj);
 }
 
 EAPI void
 elm_object_mirrored_set(Evas_Object *obj, Eina_Bool mirrored)
 {
    EINA_SAFETY_ON_NULL_RETURN(obj);
-   elm_widget_mirrored_set(obj, mirrored);
+   efl_ui_mirrored_set(obj, mirrored);
 }
 
 EAPI Eina_Bool
 elm_object_mirrored_automatic_get(const Evas_Object *obj)
 {
    EINA_SAFETY_ON_NULL_RETURN_VAL(obj, EINA_FALSE);
-   return elm_widget_mirrored_automatic_get(obj);
+   return efl_ui_mirrored_automatic_get(obj);
 }
 
 EAPI void
 elm_object_mirrored_automatic_set(Evas_Object *obj, Eina_Bool automatic)
 {
    EINA_SAFETY_ON_NULL_RETURN(obj);
-   elm_widget_mirrored_automatic_set(obj, automatic);
+   efl_ui_mirrored_automatic_set(obj, automatic);
 }
 
 /**
@@ -1355,14 +1431,14 @@ elm_object_scale_set(Evas_Object *obj,
                      double       scale)
 {
    EINA_SAFETY_ON_NULL_RETURN(obj);
-   elm_widget_scale_set(obj, scale);
+   efl_ui_scale_set(obj, scale);
 }
 
 EAPI double
 elm_object_scale_get(const Evas_Object *obj)
 {
    EINA_SAFETY_ON_NULL_RETURN_VAL(obj, 0.0);
-   return elm_widget_scale_get(obj);
+   return efl_ui_scale_get(obj);
 }
 
 EAPI void
@@ -1494,7 +1570,8 @@ elm_cache_all_flush(void)
         Evas *e = evas_object_evas_get(obj);
         evas_image_cache_flush(e);
         evas_font_cache_flush(e);
-        evas_render_dump(e);
+// this is up for debate if we should dump as well
+//        evas_render_dump(e);
      }
 }
 
@@ -1516,7 +1593,7 @@ elm_object_focus_set(Evas_Object *obj,
         if (focus == elm_widget_focus_get(obj)) return;
 
         // ugly, but, special case for inlined windows
-        if (eo_isa(obj, EFL_UI_WIN_CLASS))
+        if (efl_isa(obj, EFL_UI_WIN_CLASS))
           {
              Evas_Object *inlined = elm_win_inlined_image_object_get(obj);
 

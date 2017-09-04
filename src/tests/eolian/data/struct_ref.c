@@ -1,5 +1,5 @@
-#ifndef _TYPES_OUTPUT_C_
-#define _TYPES_OUTPUT_C_
+#ifndef _EOLIAN_TYPEDEF_H_
+#define _EOLIAN_TYPEDEF_H_
 
 #ifndef _STRUCT_EO_CLASS_TYPE
 #define _STRUCT_EO_CLASS_TYPE
@@ -30,7 +30,7 @@ typedef struct _Opaque Opaque;
 #endif
 #define STRUCT_CLASS struct_class_get()
 
-EWAPI const Eo_Class *struct_class_get(void);
+EWAPI const Efl_Class *struct_class_get(void);
 
 /**
  * @brief Foo docs. This is @c monospace. This is alone-standing $.
@@ -42,6 +42,5 @@ EWAPI const Eo_Class *struct_class_get(void);
 EOAPI char *struct_foo(Eo *obj, int idx);
 
 EOAPI Named *struct_bar(Eo *obj);
-
 
 #endif

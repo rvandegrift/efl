@@ -133,6 +133,7 @@ native       set_min_size     (Float:w, Float:h);
 native       set_max_size     (Float:w, Float:h);
 native       set_mouse_events (part_id, ev);
 native       get_mouse_events (part_id);
+native       set_pointer_mode(part_id, mode);
 native       set_repeat_events(part_id, rep);
 native       get_repeat_events(part_id);
 native       set_ignore_flags (part_id, flags);
@@ -140,6 +141,12 @@ native       get_ignore_flags (part_id);
 native       set_mask_flags   (part_id, flags);
 native       get_mask_flags   (part_id);
 native       part_swallow     (part_id, GROUP:str[]);
+
+/* set_focus() and unset_focus() may receive an optional parameter
+   seat_name[], as set_focus(part_id, seat_name[]) and
+   unset_focus(seat_name[]) */
+native       set_focus        (part_id, ...);
+native       unset_focus      (...);
 
 native       external_param_get_int(id, param_name[]);
 native       external_param_set_int(id, param_name[], value);
@@ -329,3 +336,4 @@ enum Anim_Param
 
 native       set_tween_state_anim  (part_id, state1[], Float:state1_val, state2[], Float:state2_val, Anim_Param:p, Float:tween, ...);
 native       set_state_anim  (part_id, state[], Float:state1_val, Anim_Param:p, Float:tween, ...);
+native       swallow_has_content (part_id);

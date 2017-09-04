@@ -1349,7 +1349,7 @@ eet_data_get_value(const Eet_Dictionary *ed,
         Eina_Value **value = dst;
 
         *value = eina_value_new(eina_type);
-        eina_value_pset(*value, tmp);
+        if (!eina_value_pset(*value, tmp)) return -1;
 
         return eet_size + type_size;
      }
@@ -1946,6 +1946,8 @@ eet_eina_stream_data_descriptor_class_set(Eet_Data_Descriptor_Class *eddc,
    eddc->func.mem_free = _eet_mem_free;
    eddc->func.str_alloc = (char *(*)(const char *))eina_stringshare_add;
    eddc->func.str_free = eina_stringshare_del;
+   eddc->func.str_direct_alloc = NULL;
+   eddc->func.str_direct_free = NULL;
    eddc->func.list_next = (void *(*)(void *))eina_list_next;
    eddc->func.list_append = (void *(*)(void *, void *))eina_list_append;
    eddc->func.list_data = (void *(*)(void *))eina_list_data_get;
@@ -2395,6 +2397,7 @@ eet_data_write_cipher(Eet_File            *ef,
    int val;
 
    EINA_SAFETY_ON_NULL_RETURN_VAL(edd, 0);
+   EINA_SAFETY_ON_NULL_RETURN_VAL(data, 0);
 
    ed = eet_dictionary_get(ef);
 
@@ -5279,6 +5282,7 @@ eet_data_descriptor_encode_cipher(Eet_Data_Descriptor *edd,
    int size;
 
    EINA_SAFETY_ON_NULL_RETURN_VAL(edd, NULL);
+   EINA_SAFETY_ON_NULL_RETURN_VAL(data_in, NULL);
 
    ret = _eet_data_descriptor_encode(NULL, edd, data_in, &size);
    if (cipher_key && ret)

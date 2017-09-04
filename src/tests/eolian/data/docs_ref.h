@@ -1,5 +1,5 @@
-#ifndef _EOLIAN_OUTPUT_H_
-#define _EOLIAN_OUTPUT_H_
+#ifndef _EOLIAN_DOCS_H_
+#define _EOLIAN_DOCS_H_
 
 #ifndef _DOCS_EO_CLASS_TYPE
 #define _DOCS_EO_CLASS_TYPE
@@ -29,9 +29,9 @@ typedef Eo Docs;
  */
 typedef struct _Foo
 {
-  int field1; /** Field documentation. */
+  int field1; /**< Field documentation. */
   float field2;
-  short field3; /** Another field documentation. */
+  short field3; /**< Another field documentation. */
 } Foo;
 
 /** Docs for enum Bar.
@@ -41,8 +41,8 @@ typedef struct _Foo
 typedef enum
 {
   BAR_BLAH = 0,
-  BAR_FOO = 1, /** Docs for foo. */
-  BAR_BAR = 2 /** Docs for bar. */
+  BAR_FOO = 1, /**< Docs for foo. */
+  BAR_BAR = 2 /**< Docs for bar. */
 } Bar;
 
 /**
@@ -55,6 +55,12 @@ typedef enum
  * @ingroup Alias
  */
 typedef Bar Alias;
+
+/** Docs for var.
+ *
+ * @ingroup pants
+ */
+EWAPI extern int PANTS;
 
 /** Opaque struct docs. See @ref Foo for another struct.
  *
@@ -69,7 +75,7 @@ typedef struct _Opaque Opaque;
  *
  * More docs for class. Testing references now. @ref Foo @ref Bar @ref Alias
  * @ref pants @ref docs_meth @ref docs_prop_get @ref docs_prop_get
- * @ref docs_prop_set @ref Foo.field1 @ref Bar.BAR_FOO @ref Docs
+ * @ref docs_prop_set @ref Foo.field1 @ref BAR_FOO @ref Docs
  *
  * @since 1.18
  *
@@ -77,7 +83,22 @@ typedef struct _Opaque Opaque;
  */
 #define DOCS_CLASS docs_class_get()
 
-EWAPI const Eo_Class *docs_class_get(void);
+EWAPI const Efl_Class *docs_class_get(void);
+
+/**
+ * @brief Method documentation.
+ *
+ * @param[in] a Param documentation.
+ * @param[out] b
+ * @param[out] c Another param documentation.
+ *
+ * @return Return documentation.
+ *
+ * @since 1.18
+ *
+ * @ingroup Docs
+ */
+EOAPI int docs_meth(Eo *obj, int a, float *b, long *c);
 
 /**
  * @brief Property common documentation.
@@ -105,22 +126,7 @@ EOAPI void docs_prop_set(Eo *obj, int val);
  */
 EOAPI int docs_prop_get(const Eo *obj);
 
-/**
- * @brief Method documentation.
- *
- * @param[in] a Param documentation.
- * @param[out] b
- * @param[out] c Another param documentation.
- *
- * @return Return documentation.
- *
- * @since 1.18
- *
- * @ingroup Docs
- */
-EOAPI int docs_meth(Eo *obj, int a, float *b, long *c);
-
-EOAPI extern const Eo_Event_Description _DOCS_EVENT_CLICKED;
+EWAPI extern const Efl_Event_Description _DOCS_EVENT_CLICKED;
 
 /** Event docs.
  *

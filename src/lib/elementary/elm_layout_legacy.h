@@ -102,6 +102,32 @@ EAPI Eina_Bool elm_layout_file_set(Eo *obj, const char *file, const char *group)
 EAPI void elm_layout_file_get(Eo *obj, const char **file, const char **group);
 
 /**
+ * Set the mmap file that will be used as layout
+ *
+ * @return (1 = success, 0 = error)
+ *
+ * @ingroup Elm_Layout
+ *
+ * @param[in] file Eina_File (edj) that will be used as layout
+ * @param[in] group The group that the layout belongs in edje file
+ *
+ * @since 1.19
+ */
+EAPI Eina_Bool elm_layout_mmap_set(Eo *obj, const Eina_File *file, const char *group);
+
+/**
+ * Get the loaded mmap file
+ *
+ * @ingroup Elm_Layout
+ *
+ * @param file Eina_File (edj) used as layout
+ * @param group The group that the layout belongs in edje file
+ *
+ * @since 1.19
+ */
+EAPI void elm_layout_mmap_get(Eo *obj, const Eina_File **file, const char **group);
+
+/**
  * @brief Append child to layout box part.
  *
  * Once the object is appended, it will become child of the layout. Its
@@ -341,5 +367,28 @@ EAPI int elm_layout_freeze(Evas_Object *obj);
  * @ingroup Elm_Layout
  */
 EAPI int elm_layout_thaw(Evas_Object *obj);
+
+/**
+ * @brief Set the text of the given part.
+ *
+ * @param[in] part The TEXT part where to set the text.
+ * @param[in] text The text to set.
+ *
+ * @return @c true on success, @c false otherwise
+ *
+ * @ingroup Elm_Layout
+ */
+EAPI Eina_Bool elm_layout_text_set(Evas_Object *obj, const char * part, const char *text);
+
+/**
+ * @brief Get the text set in the given part.
+ *
+ * @param[in] part The TEXT part where to set the text.
+ *
+ * @return The text to set.
+ *
+ * @ingroup Elm_Layout
+ */
+EAPI const char *elm_layout_text_get(const Evas_Object *obj, const char * part);
 
 #include "elm_layout.eo.legacy.h"

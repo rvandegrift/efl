@@ -86,7 +86,17 @@ struct _Efl_Loop_Data
 {
    Eina_Hash *providers;
 
+   Ecore_Timer *poll_high;
+   Ecore_Timer *poll_medium;
+   Ecore_Timer *poll_low;
+
    int idlers;
+
+   struct {
+      int high;
+      int medium;
+      int low;
+   } pollers;
 };
 
 #define EVAS_FRAME_QUEUING        1 /* for test */
@@ -163,12 +173,12 @@ int          _efl_loop_timers_exists(void);
 
 int          _efl_loop_timer_expired_call(double when);
 
-Ecore_Factorized_Idle *_ecore_factorized_idle_add(const Eo_Callback_Array_Item*desc,
+Ecore_Factorized_Idle *_ecore_factorized_idle_add(const Efl_Callback_Array_Item*desc,
                                                   Ecore_Task_Cb func,
                                                   const void   *data);
 void        *_ecore_factorized_idle_del(Ecore_Idler *idler);
-void    _ecore_factorized_idle_process(void *data, const Eo_Event *event);
-void    _ecore_factorized_idle_event_del(void *data, const Eo_Event *event);
+void    _ecore_factorized_idle_process(void *data, const Efl_Event *event);
+void    _ecore_factorized_idle_event_del(void *data, const Efl_Event *event);
 
 void         _ecore_idler_all_call(Eo *loop);
 int          _ecore_idler_exist(Eo *loop);
@@ -213,8 +223,6 @@ Ecore_Fd_Handler *
                                       Eina_Bool is_file);
 void      *_ecore_main_fd_handler_del(Ecore_Fd_Handler *fd_handler);
 
-void       _ecore_fd_close_on_exec(int fd);
-
 void       _ecore_main_shutdown(void);
 
 #if defined (_WIN32) || defined (__lv2ppu__) || defined (HAVE_EXOTIC)
@@ -245,6 +253,7 @@ void       _ecore_exe_event_del_free(void *data,
                                      void *ev);
 #endif
 
+void _ecore_animator_init(void);
 void _ecore_animator_shutdown(void);
 void _ecore_animator_run_reset(void);
 Eina_Bool _ecore_animator_run_get(void);
@@ -274,7 +283,6 @@ void _ecore_coroutine_shutdown(void);
 void _ecore_throttle(void);
 
 void _ecore_main_call_flush(void);
-
 
 static inline Eina_Bool
 _ecore_call_task_cb(Ecore_Task_Cb func,
@@ -366,10 +374,13 @@ GENERIC_ALLOC_FREE_HEADER(Ecore_Win32_Handler, ecore_win32_handler);
 #undef GENERIC_ALLOC_FREE_HEADER
 
 extern Eo *_mainloop_singleton;
-extern Eo *_ecore_parent;
 extern Efl_Version _app_efl_version;
-#define ECORE_PARENT_CLASS ecore_parent_class_get()
-EAPI const Eo_Class *ecore_parent_class_get(void) EINA_CONST;
+
+void ecore_loop_future_register(Efl_Loop *l, Efl_Future *f);
+void ecore_loop_future_unregister(Efl_Loop *l, Efl_Future *f);
+void ecore_loop_promise_register(Efl_Loop *l, Efl_Promise *p);
+void ecore_loop_promise_unregister(Efl_Loop *l, Efl_Promise *p);
+void ecore_loop_promise_fulfill(Efl_Promise *p);
 
 // access to direct input cb
 #define ECORE_EVAS_INTERNAL

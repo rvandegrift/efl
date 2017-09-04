@@ -1,5 +1,6 @@
 class Elm.Table (Elm.Widget)
 {
+   [[Elementary table class]]
    legacy_prefix: elm_table;
    eo_prefix: elm_obj_table;
    data: null;
@@ -21,8 +22,8 @@ class Elm.Table (Elm.Widget)
             [[Get padding between cells.]]
          }
          values {
-            horizontal: Evas.Coord; [[The horizontal padding.]]
-            vertical: Evas.Coord; [[The vertical padding.]]
+            horizontal: int; [[The horizontal padding.]]
+            vertical: int; [[The vertical padding.]]
          }
       }
       @property align {
@@ -46,7 +47,7 @@ class Elm.Table (Elm.Widget)
       clear {
          [[Faster way to remove all child objects from a table object.]]
          params {
-            @in clear: bool; [[If true, will delete children, else just remove from table.]]
+            @in clear: bool; [[If $true, will delete children, else just remove from table.]]
          }
       }
       child_get @const {
@@ -118,9 +119,7 @@ class Elm.Table (Elm.Widget)
    }
    implements {
       class.constructor;
-      Eo.Base.constructor;
-      Efl.Canvas.Group.group_add;
-      Efl.Canvas.Group.group_del;
+      Efl.Object.constructor;
       Efl.Canvas.Group.group_calculate;
       Elm.Widget.focus_direction;
       Elm.Widget.focus_next_manager_is;
@@ -128,6 +127,6 @@ class Elm.Table (Elm.Widget)
       Elm.Widget.focus_direction_manager_is;
       Elm.Widget.theme_apply;
       Elm.Widget.sub_object_del;
+      Elm.Widget.focus_register;
    }
-
 }

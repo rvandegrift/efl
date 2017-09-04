@@ -39,7 +39,7 @@ elm_validator_regexp_status_get(Elm_Validator_Regexp *validator)
 }
 
 EAPI void
-elm_validator_regexp_helper(void *data, const Eo_Event *event)
+elm_validator_regexp_helper(void *data, const Efl_Event *event)
 {
    Elm_Validate_Content *vc = event->info;
    Elm_Validator_Regexp *validator = (Elm_Validator_Regexp *)data;
@@ -47,5 +47,5 @@ elm_validator_regexp_helper(void *data, const Eo_Event *event)
    validator->status = regexec(&validator->regex, vc->text, (size_t)0, NULL, 0) ? ELM_REG_NOMATCH : ELM_REG_NOERROR;
    vc->signal = validator->signal;
    if (validator->status)
-      eo_event_callback_stop(event->object);
+      efl_event_callback_stop(event->object);
 }

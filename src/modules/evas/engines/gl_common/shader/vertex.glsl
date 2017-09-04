@@ -9,6 +9,9 @@ VERTEX_SHADER
 attribute vec4 vertex;
 uniform mat4 mvp;
 
+/* Window rotation by id 0,1,2,3 (represents 0,90,180,270) */
+uniform int rotation_id;
+
 /* All except nomul */
 #ifndef SHD_NOMUL
 attribute vec4 color;
@@ -63,6 +66,16 @@ attribute vec2 tex_masksample;
 varying float maskdiv_s;
 varying vec2 masktex_s[4];
 # endif
+#endif
+
+/* Gfx Filters: displace */
+#ifdef SHD_FILTER_DISPLACE
+attribute vec2 filter_data_0;
+attribute vec2 filter_data_1;
+attribute vec2 filter_data_2;
+varying vec2 displace_vector;
+varying vec2 displace_min;
+varying vec2 displace_max;
 #endif
 
 
@@ -130,8 +143,18 @@ void main()
 #ifdef SHD_MASK
    // mask_coord.w contains the Y-invert flag
    // position on screen in [0..1] range of current pixel
-   vec4 mask_Position = mvp * vertex * vec4(0.5, sign(mask_coord.w) * 0.5, 0.5, 0.5) + vec4(0.5, 0.5, 0, 0);
-   tex_m = mask_Position.xy * abs(mask_coord.zw) + mask_coord.xy;
+   vec4 window_Position = mvp * vertex * vec4(0.5, sign(mask_coord.w) * 0.5, 0.5, 0.5) + vec4(0.5, 0.5, 0, 0);
+   vec2 pos[4];
+   pos[0] = vec2(window_Position.xy);
+   pos[1] = vec2(1.0 - window_Position.y, window_Position.x);
+   pos[2] = vec2(1.0 - window_Position.xy);
+   pos[3] = vec2(window_Position.y, 1.0 - window_Position.x);
+   tex_m = pos[rotation_id] * abs(mask_coord.zw) + mask_coord.xy;
+#endif
+
+#ifdef SHD_FILTER_DISPLACE
+   displace_vector = filter_data_0;
+   displace_min = filter_data_1;
+   displace_max = filter_data_2;
 #endif
 }
-

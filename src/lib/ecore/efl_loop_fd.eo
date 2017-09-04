@@ -11,9 +11,9 @@ class Efl.Loop.Fd (Efl.Loop_User)
 
    methods {
       @property fd {
-         [[Define which file descriptor to watch. If it is a file, use file_fd variant.]]
+         [[Defines which file descriptor to watch. If it is a file, use file_fd variant.]]
 	 set {
-	    [[Define the fd to watch on.]]
+	    [[Defines the fd to watch on.]]
 	 }
 	 get {
 	 }
@@ -22,9 +22,9 @@ class Efl.Loop.Fd (Efl.Loop_User)
 	 }
       }
       @property fd_file {
-         [[Define which file descriptor to watch when watching a file.]]
+         [[Defines which file descriptor to watch when watching a file.]]
 	 set {
-	    [[Define the fd to watch on.]]
+	    [[Defines the fd to watch on.]]
 	 }
 	 get {
 	 }
@@ -34,13 +34,13 @@ class Efl.Loop.Fd (Efl.Loop_User)
       }
    }
    events {
-      read;
-      write;
-      error;
+      read; [[Called when a read happened on the file descriptor]]
+      write; [[Called when a write happened on the file descriptor]]
+      error; [[Called when a error occurred on the file descriptor]]
    }
    implements {
-      Eo.Base.constructor;
-      Eo.Base.destructor;
-      Eo.Base.parent.set;
+      Efl.Object.constructor;
+      Efl.Object.destructor;
+      Efl.Object.parent { set; }
    }
 }

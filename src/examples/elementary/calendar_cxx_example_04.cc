@@ -8,14 +8,14 @@
 #define SECS_DAY 86400
 
 EAPI_MAIN int
-elm_main (int argc, char *argv[])
+elm_main (int argc EINA_UNUSED, char **argv EINA_UNUSED)
 {
    struct tm selected_time;
    time_t current_time;
 
    elm_policy_set(ELM_POLICY_QUIT, ELM_POLICY_QUIT_LAST_WINDOW_HIDDEN);
 
-   efl::ui::win::Standard win;
+   efl::ui::Win win;
    //win.title_set("Calendar Day Selection Example");
    win.autohide_set(true);
 

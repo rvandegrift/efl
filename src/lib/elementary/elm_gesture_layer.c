@@ -56,7 +56,7 @@ _glayer_buf_dup(void *buf, size_t size)
   ((sd->gesture[T]) ? sd->gesture[T]->test : EINA_FALSE)
 
 #define ELM_GESTURE_LAYER_DATA_GET(o, sd) \
-  Elm_Gesture_Layer_Data * sd = eo_data_scope_get(o, MY_CLASS)
+  Elm_Gesture_Layer_Data * sd = efl_data_scope_get(o, MY_CLASS)
 
 #define ELM_GESTURE_LAYER_DATA_GET_OR_RETURN(o, ptr) \
   ELM_GESTURE_LAYER_DATA_GET(o, ptr);                \
@@ -77,7 +77,7 @@ _glayer_buf_dup(void *buf, size_t size)
     }
 
 #define ELM_GESTURE_LAYER_CHECK(obj)                                      \
-  if (!obj || !eo_isa(obj, MY_CLASS)) \
+  if (!obj || !efl_isa(obj, MY_CLASS)) \
     return
 
 /**
@@ -1498,17 +1498,14 @@ static void
 _zoom_test_reset(Gesture_Info *gesture)
 {
    Zoom_Type *st;
-   Evas_Modifier_Mask mask;
 
    EINA_SAFETY_ON_NULL_RETURN(gesture);
    if (!gesture->data) return;
    ELM_GESTURE_LAYER_DATA_GET(gesture->obj, sd);
 
    st = gesture->data;
-   mask = evas_key_modifier_mask_get(
-       evas_object_evas_get(sd->target), "Control");
-   evas_object_key_ungrab(sd->target, "Control_L", mask, 0);
-   evas_object_key_ungrab(sd->target, "Control_R", mask, 0);
+   efl_canvas_object_key_ungrab(sd->target, "Control_L", EFL_INPUT_MODIFIER_CONTROL, 0);
+   efl_canvas_object_key_ungrab(sd->target, "Control_R", EFL_INPUT_MODIFIER_CONTROL, 0);
 
    memset(st, 0, sizeof(Zoom_Type));
    st->zoom_distance_tolerance = sd->zoom_distance_tolerance;
@@ -1666,8 +1663,8 @@ _tap_gesture_check_finish(Gesture_Info *gesture, Evas_Coord tap_finger_size)
    Taps_Type *st = gesture->data;
    Eina_List *l;
    Eina_List *pe_list;
-   Evas_Coord_Rectangle base;
-   Evas_Coord_Rectangle tmp;
+   Evas_Coord_Rectangle base = {0, 0, 0, 0};
+   Evas_Coord_Rectangle tmp = {0, 0, 0, 0};
    if (!tap_finger_size)  /* Use system default if not set by user */
      tap_finger_size = elm_config_finger_size_get();
 
@@ -2533,6 +2530,7 @@ _momentum_test(Evas_Object *obj,
         st->line_end.y = pe_local.y;
         st->t_end = pe_local.timestamp;
 
+        // FIXME: mx,my are int while the momentum is float. Fishy logic here.
         if ((abs(st->info.mx) > ELM_GESTURE_MINIMUM_MOMENTUM) ||
             (abs(st->info.my) > ELM_GESTURE_MINIMUM_MOMENTUM))
           state_to_report = ELM_GESTURE_STATE_END;
@@ -3265,16 +3263,16 @@ _zoom_with_wheel_test(Evas_Object *obj,
            }
          else
            { /* On first wheel event, report START */
-             Evas_Modifier_Mask mask = evas_key_modifier_mask_get(
-                 evas_object_evas_get(sd->target), "Control");
              force = EINA_FALSE;
              s = ELM_GESTURE_STATE_START;
-             if (!evas_object_key_grab
-                   (sd->target, "Control_L", mask, 0, EINA_FALSE))
-               ERR("Failed to Grabbed CTRL_L");
-             if (!evas_object_key_grab
-                   (sd->target, "Control_R", mask, 0, EINA_FALSE))
-               ERR("Failed to Grabbed CTRL_R");
+             if (!efl_canvas_object_key_grab(sd->target, "Control_L",
+                                             EFL_INPUT_MODIFIER_CONTROL, 0,
+                                             EINA_FALSE))
+               ERR("Failed to grab left Ctrl");
+             if (!efl_canvas_object_key_grab(sd->target, "Control_R",
+                                             EFL_INPUT_MODIFIER_CONTROL, 0,
+                                             EINA_FALSE))
+               ERR("Failed to grab right Ctrl");
            }
 
          st->zoom_distance_tolerance = 0; /* Cancel tolerance */
@@ -3358,6 +3356,7 @@ _zoom_test(Evas_Object *obj,
         if ((!sd->glayer_continues_enable) &&
             (!st->zoom_st.timestamp))
           return;
+        EINA_FALLTHROUGH;
         // fallthrough is intentional
       case EVAS_CALLBACK_MOUSE_DOWN:
       case EVAS_CALLBACK_MULTI_DOWN:
@@ -3603,6 +3602,7 @@ _rotate_test(Evas_Object *obj,
         if ((!sd->glayer_continues_enable) &&
             (!st->rotate_st.timestamp))
           return;
+        EINA_FALLTHROUGH;
         // fallthrough is intentional
       case EVAS_CALLBACK_MOUSE_DOWN:
       case EVAS_CALLBACK_MULTI_DOWN:
@@ -3736,7 +3736,7 @@ _elm_gesture_layer_elm_widget_disable(Eo *obj, Elm_Gesture_Layer_Data *_pd EINA_
 EOLIAN static void
 _elm_gesture_layer_efl_canvas_group_group_add(Eo *obj, Elm_Gesture_Layer_Data *priv)
 {
-   efl_canvas_group_add(eo_super(obj, MY_CLASS));
+   efl_canvas_group_add(efl_super(obj, MY_CLASS));
    elm_widget_sub_object_parent_add(obj);
 
    priv->line_min_length =
@@ -3810,21 +3810,20 @@ _elm_gesture_layer_efl_canvas_group_group_del(Eo *obj, Elm_Gesture_Layer_Data *s
    if (!elm_widget_disabled_get(obj))
      _callbacks_unregister(obj);
 
-   efl_canvas_group_del(eo_super(obj, MY_CLASS));
+   efl_canvas_group_del(efl_super(obj, MY_CLASS));
 }
 
 EAPI Evas_Object *
 elm_gesture_layer_add(Evas_Object *parent)
 {
    EINA_SAFETY_ON_NULL_RETURN_VAL(parent, NULL);
-   Evas_Object *obj = eo_add(MY_CLASS, parent);
-   return obj;
+   return efl_add(MY_CLASS, parent, efl_canvas_object_legacy_ctor(efl_added));
 }
 
 EOLIAN static Eo *
-_elm_gesture_layer_eo_base_constructor(Eo *obj, Elm_Gesture_Layer_Data *_pd EINA_UNUSED)
+_elm_gesture_layer_efl_object_constructor(Eo *obj, Elm_Gesture_Layer_Data *_pd EINA_UNUSED)
 {
-   obj = eo_constructor(eo_super(obj, MY_CLASS));
+   obj = efl_constructor(efl_super(obj, MY_CLASS));
    efl_canvas_object_type_set(obj, MY_CLASS_NAME_LEGACY);
 
    return obj;
@@ -4095,7 +4094,7 @@ elm_gesture_layer_long_tap_start_timeout_set(Evas_Object *obj, double long_tap_s
 {
    ELM_GESTURE_LAYER_CHECK(obj);
    ELM_GESTURE_LAYER_DATA_GET(obj, sd);
-   sd->long_tap_start_timeout = long_tap_start_timeout;
+   sd->long_tap_start_timeout = ((long_tap_start_timeout > 0) ? long_tap_start_timeout : 0);
 }
 
 EAPI double
@@ -4127,7 +4126,7 @@ elm_gesture_layer_double_tap_timeout_set(Evas_Object *obj, double double_tap_tim
 {
    ELM_GESTURE_LAYER_CHECK(obj);
    ELM_GESTURE_LAYER_DATA_GET(obj, sd);
-   sd->double_tap_timeout = double_tap_timeout;
+   sd->double_tap_timeout = ((double_tap_timeout > 0) ? double_tap_timeout : 0);
 }
 
 EAPI double
@@ -4154,9 +4153,14 @@ _elm_gesture_layer_tap_finger_size_get(Eo *obj EINA_UNUSED, Elm_Gesture_Layer_Da
 }
 
 static void
-_elm_gesture_layer_class_constructor(Eo_Class *klass)
+_elm_gesture_layer_class_constructor(Efl_Class *klass)
 {
    evas_smart_legacy_type_register(MY_CLASS_NAME_LEGACY, klass);
 }
+
+/* Internal EO APIs and hidden overrides */
+
+#define ELM_GESTURE_LAYER_EXTRA_OPS \
+   EFL_CANVAS_GROUP_ADD_DEL_OPS(elm_gesture_layer)
 
 #include "elm_gesture_layer.eo.c"

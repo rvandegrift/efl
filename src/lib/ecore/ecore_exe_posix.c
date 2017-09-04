@@ -13,7 +13,7 @@
 #include <sys/time.h>
 #include <sys/resource.h>
 
-#ifdef HAVE_SYS_PRCTL_H
+#ifdef HAVE_PRCTL
 # include <sys/prctl.h>
 #endif
 
@@ -228,7 +228,7 @@ _impl_ecore_exe_run_priority_get(void)
 }
 
 Eo *
-_impl_ecore_exe_eo_base_finalize(Eo *obj, Ecore_Exe_Data *exe)
+_impl_ecore_exe_efl_object_finalize(Eo *obj, Ecore_Exe_Data *exe)
 {
    int statusPipe[2] = { -1, -1 };
    int errorPipe[2] = { -1, -1 };
@@ -339,7 +339,7 @@ _impl_ecore_exe_eo_base_finalize(Eo *obj, Ecore_Exe_Data *exe)
          {
             /* Setup the status pipe. */
              E_NO_ERRNO(result, close(statusPipe[0]), ok);
-             E_IF_NO_ERRNO(result, fcntl(statusPipe[1], F_SETFD, FD_CLOEXEC), ok) /* close on exec shows success */
+             E_IF_NO_ERRNO(result, eina_file_close_on_exec(statusPipe[1], EINA_TRUE), ok) /* close on exec shows success */
              {
                 /* Run the actual command. */
                  _ecore_exe_exec_it(exe_cmd, flags); /* no return */
@@ -422,12 +422,12 @@ _impl_ecore_exe_eo_base_finalize(Eo *obj, Ecore_Exe_Data *exe)
                                     O_NONBLOCK), ok) {
                 }
                 E_IF_NO_ERRNO(result,
-                              fcntl(exe->child_fd_error, F_SETFD,
-                                    FD_CLOEXEC), ok) {
+                              eina_file_close_on_exec(exe->child_fd_error, EINA_TRUE),
+                              ok) {
                 }
                 E_IF_NO_ERRNO(result,
-                              fcntl(exe->child_fd_error_x, F_SETFD,
-                                    FD_CLOEXEC), ok) {
+                              eina_file_close_on_exec(exe->child_fd_error_x, EINA_TRUE),
+                              ok) {
                 }
                 {
                    exe->error_fd_handler =
@@ -446,12 +446,12 @@ _impl_ecore_exe_eo_base_finalize(Eo *obj, Ecore_Exe_Data *exe)
                                     O_NONBLOCK), ok) {
                 }
                 E_IF_NO_ERRNO(result,
-                              fcntl(exe->child_fd_read, F_SETFD,
-                                    FD_CLOEXEC), ok) {
+                              eina_file_close_on_exec(exe->child_fd_read, EINA_TRUE),
+                              ok) {
                 }
                 E_IF_NO_ERRNO(result,
-                              fcntl(exe->child_fd_read_x, F_SETFD,
-                                    FD_CLOEXEC), ok) {
+                              eina_file_close_on_exec(exe->child_fd_read_x, EINA_TRUE),
+                              ok) {
                 }
                 {
                    exe->read_fd_handler =
@@ -470,12 +470,12 @@ _impl_ecore_exe_eo_base_finalize(Eo *obj, Ecore_Exe_Data *exe)
                                     O_NONBLOCK), ok) {
                 }
                 E_IF_NO_ERRNO(result,
-                              fcntl(exe->child_fd_write, F_SETFD,
-                                    FD_CLOEXEC), ok) {
+                              eina_file_close_on_exec(exe->child_fd_write, EINA_TRUE),
+                              ok) {
                 }
                 E_IF_NO_ERRNO(result,
-                              fcntl(exe->child_fd_write_x, F_SETFD,
-                                    FD_CLOEXEC), ok) {
+                              eina_file_close_on_exec(exe->child_fd_write_x, EINA_TRUE),
+                              ok) {
                 }
                 {
                    exe->write_fd_handler =
@@ -668,9 +668,17 @@ _impl_ecore_exe_event_data_get(Ecore_Exe      *obj,
             {
                if (count >= max)
                {
+                  Ecore_Exe_Event_Data_Line *lines;
+
                   /* In testing, the lines seem to arrive in batches of 500 to 1000 lines at most, roughly speaking. */
                    max += 10; /* FIXME: Maybe keep track of the largest number of lines ever sent, and add half that many instead of 10. */
-                   e->lines = realloc(e->lines, sizeof(Ecore_Exe_Event_Data_Line) * (max + 1)); /* Allow room for the NULL termination. */
+                   lines = realloc(e->lines, sizeof(Ecore_Exe_Event_Data_Line) * (max + 1)); /* Allow room for the NULL termination. */
+                   if (!lines)
+                   {
+                      ERR("Out of memory adding exe data lines to event");
+                      break;
+                   }
+                   e->lines = lines;
                }
                /* raster said to leave the line endings as line endings, however -
                 * This is line buffered mode, we are not dealing with binary here, but lines.
@@ -699,15 +707,23 @@ _impl_ecore_exe_event_data_get(Ecore_Exe      *obj,
             if (count != 0) e->size = last;
             if (flags & ECORE_EXE_PIPE_READ)
             {
-               exe->read_data_size = i - last;
                exe->read_data_buf = malloc(exe->read_data_size);
-               memcpy(exe->read_data_buf, c, exe->read_data_size);
+               if (exe->read_data_buf)
+                 {
+                    exe->read_data_size = i - last;
+                    memcpy(exe->read_data_buf, c, exe->read_data_size);
+                 }
+               else ERR("Out of memory in allocating exe pipe data");
             }
             else
             {
-               exe->error_data_size = i - last;
                exe->error_data_buf = malloc(exe->error_data_size);
-               memcpy(exe->error_data_buf, c, exe->error_data_size);
+               if (exe->error_data_buf)
+                 {
+                    exe->error_data_size = i - last;
+                    memcpy(exe->error_data_buf, c, exe->error_data_size);
+                 }
+               else ERR("Out of memory in allocating exe pipe data");
             }
          }
          if (count == 0) /* No lines to send, cancel the event. */
@@ -727,7 +743,7 @@ _impl_ecore_exe_event_data_get(Ecore_Exe      *obj,
 }
 
 void
-_impl_ecore_exe_eo_base_destructor(Eo *obj, Ecore_Exe_Data *exe)
+_impl_ecore_exe_efl_object_destructor(Eo *obj, Ecore_Exe_Data *exe)
 {
    void *data;
    int ok = 0;
@@ -884,29 +900,32 @@ _ecore_exe_make_sure_its_dead(void *data)
 
    dead = data;
    if (dead)
-   {
-      Ecore_Exe *obj = NULL;
+     {
+        Ecore_Exe *obj = NULL;
 
-      if ((obj = _ecore_exe_is_it_alive(dead->pid)))
-      {
-         Ecore_Exe_Data *exe = eo_data_scope_get(obj, MY_CLASS);
-         if (dead->cmd)
-           INF("Sending KILL signal to allegedly dead %s (%d).",
-               dead->cmd, dead->pid);
-         else
-           INF("Sending KILL signal to allegedly dead PID %d.",
-               dead->pid);
-         exe->doomsday_clock =
-           ecore_timer_add(10.0, _ecore_exe_make_sure_its_really_dead,
-                           dead);
-         kill(dead->pid, SIGKILL);
-      }
-      else
-      {
-         IF_FREE(dead->cmd);
-         free(dead);
-      }
-   }
+        if ((obj = _ecore_exe_is_it_alive(dead->pid)))
+          {
+             Ecore_Exe_Data *exe = efl_data_scope_get(obj, MY_CLASS);
+             if (exe)
+               {
+                  if (dead->cmd)
+                    INF("Sending KILL signal to allegedly dead %s (%d).",
+                        dead->cmd, dead->pid);
+                  else
+                    INF("Sending KILL signal to allegedly dead PID %d.",
+                        dead->pid);
+                  exe->doomsday_clock =
+                    ecore_timer_add(10.0, _ecore_exe_make_sure_its_really_dead,
+                                    dead);
+                  kill(dead->pid, SIGKILL);
+               }
+          }
+        else
+          {
+             IF_FREE(dead->cmd);
+             free(dead);
+          }
+     }
    return ECORE_CALLBACK_CANCEL;
 }
 
@@ -917,29 +936,34 @@ _ecore_exe_make_sure_its_really_dead(void *data)
 
    dead = data;
    if (dead)
-   {
-      Ecore_Exe *obj = NULL;
+     {
+        Ecore_Exe *obj = NULL;
 
-      if ((obj = _ecore_exe_is_it_alive(dead->pid)))
-      {
-         Ecore_Exe_Data *exe = eo_data_scope_get(obj, MY_CLASS);
-         ERR("RUN!  The zombie wants to eat your brains!  And your CPU!");
-         if (dead->cmd)
-           INF("%s (%d) is not really dead.", dead->cmd, dead->pid);
-         else
-           INF("PID %d is not really dead.", dead->pid);
-         exe->doomsday_clock = NULL;
-      }
-      IF_FREE(dead->cmd);
-      free(dead);
-   }
+        if ((obj = _ecore_exe_is_it_alive(dead->pid)))
+          {
+             Ecore_Exe_Data *exe = efl_data_scope_get(obj, MY_CLASS);
+
+             if (exe)
+               {
+                  ERR("RUN!  The zombie wants to eat your brains!  And your CPU!");
+                  if (dead->cmd)
+                    INF("%s (%d) is not really dead.", dead->cmd, dead->pid);
+                  else
+                    INF("PID %d is not really dead.", dead->pid);
+                  exe->doomsday_clock = NULL;
+               }
+             IF_FREE(dead->cmd);
+             free(dead);
+          }
+     }
    return ECORE_CALLBACK_CANCEL;
 }
 
 Ecore_Timer *
 _ecore_exe_doomsday_clock_get(Ecore_Exe *obj)
 {
-   Ecore_Exe_Data *exe = eo_data_scope_get(obj, MY_CLASS);
+   Ecore_Exe_Data *exe = efl_data_scope_get(obj, MY_CLASS);
+   if (!exe) return NULL;
    return exe->doomsday_clock;
 }
 
@@ -947,7 +971,8 @@ void
 _ecore_exe_doomsday_clock_set(Ecore_Exe   *obj,
                               Ecore_Timer *dc)
 {
-   Ecore_Exe_Data *exe = eo_data_scope_get(obj, MY_CLASS);
+   Ecore_Exe_Data *exe = efl_data_scope_get(obj, MY_CLASS);
+   if (!exe) return;
    exe->doomsday_clock = dc;
 }
 
@@ -1017,11 +1042,11 @@ _ecore_exe_exec_it(const char     *exe_cmd,
       }
    }
 
-#ifdef HAVE_SYS_PRCTL_H
+#ifdef HAVE_PRCTL
    if ((flags & ECORE_EXE_TERM_WITH_PARENT))
-   {
-      prctl(PR_SET_PDEATHSIG, SIGTERM);
-   }
+     {
+        prctl(PR_SET_PDEATHSIG, SIGTERM);
+     }
 #endif
 
    if (!(flags & ECORE_EXE_NOT_LEADER)) setsid();
@@ -1068,9 +1093,10 @@ _ecore_exe_data_generic_handler(void             *data,
    Ecore_Exe *obj = data;
    int child_fd;
    int event_type;
-   const Eo_Event_Description *eo_event = NULL;
+   const Efl_Event_Description *eo_event = NULL;
 
-   Ecore_Exe_Data *exe = eo_data_scope_get(obj, MY_CLASS);
+   Ecore_Exe_Data *exe = efl_data_scope_get(obj, MY_CLASS);
+   if (!exe) return EINA_FALSE;
 
    /* Sort out what sort of handler we are. */
    if (flags & ECORE_EXE_PIPE_READ)
@@ -1139,7 +1165,10 @@ _ecore_exe_data_generic_handler(void             *data,
                  inbuf_num += num;
               }
             else // realloc fails and returns NULL.
-               inbuf = temp;
+              {
+                 ERR("Out of memory in exe generic data handler");
+                 inbuf = temp;
+              }
          }
          else
          { /* No more data to read. */
@@ -1167,7 +1196,7 @@ _ecore_exe_data_generic_handler(void             *data,
                        ecore_event_add(event_type, e,
                              _ecore_exe_event_exe_data_free,
                              NULL);
-                       eo_event_callback_call(obj, eo_event, e);
+                       efl_event_callback_call(obj, eo_event, e);
                     }
                }
             }
@@ -1223,28 +1252,30 @@ _ecore_exe_data_write_handler(void             *data,
                               Ecore_Fd_Handler *fd_handler EINA_UNUSED)
 {
    Ecore_Exe *obj = data;
-   Ecore_Exe_Data *exe = eo_data_scope_get(obj, MY_CLASS);
+   Ecore_Exe_Data *exe = efl_data_scope_get(obj, MY_CLASS);
+
+   if (!exe) return EINA_FALSE;
 
    if ((exe->write_fd_handler) &&
        (ecore_main_fd_handler_active_get
-          (exe->write_fd_handler, ECORE_FD_WRITE)))
+        (exe->write_fd_handler, ECORE_FD_WRITE)))
      _ecore_exe_flush(obj);
 
    /* If we have sent all there is to send, and we need to close the pipe, then close it. */
-   if ((exe->close_stdin == 1)
-       && (exe->write_data_size == exe->write_data_offset))
-   {
-      int ok = 0;
-      int result;
+   if ((exe->close_stdin == 1) &&
+       (exe->write_data_size == exe->write_data_offset))
+     {
+        int ok = 0;
+        int result;
 
-      INF("Closing stdin for %s", exe->cmd);
-      /* if (exe->child_fd_write != -1)  E_NO_ERRNO(result, fsync(exe->child_fd_write), ok);   This a) doesn't work, and b) isn't needed. */
-      IF_FN_DEL(ecore_main_fd_handler_del, exe->write_fd_handler);
-      if (exe->child_fd_write != -1)
-        E_NO_ERRNO(result, close(exe->child_fd_write), ok);
-      exe->child_fd_write = -1;
-      IF_FREE(exe->write_data_buf);
-   }
+        INF("Closing stdin for %s", exe->cmd);
+        /* if (exe->child_fd_write != -1)  E_NO_ERRNO(result, fsync(exe->child_fd_write), ok);   This a) doesn't work, and b) isn't needed. */
+        IF_FN_DEL(ecore_main_fd_handler_del, exe->write_fd_handler);
+        if (exe->child_fd_write != -1)
+          E_NO_ERRNO(result, close(exe->child_fd_write), ok);
+        exe->child_fd_write = -1;
+        IF_FREE(exe->write_data_buf);
+     }
 
    return ECORE_CALLBACK_RENEW;
 }
@@ -1253,55 +1284,55 @@ static void
 _ecore_exe_flush(Ecore_Exe *obj)
 {
    int count;
-   Ecore_Exe_Data *exe = eo_data_scope_get(obj, MY_CLASS);
+   Ecore_Exe_Data *exe = efl_data_scope_get(obj, MY_CLASS);
 
+   if (!exe) return;
    /* check whether we need to write anything at all. */
-   if ((exe->child_fd_write == -1) || (!exe->write_data_buf))
-     return;
-   if (exe->write_data_size == exe->write_data_offset)
-     return;
+   if ((exe->child_fd_write == -1) || (!exe->write_data_buf)) return;
+   if (exe->write_data_size == exe->write_data_offset) return;
 
    count = write(exe->child_fd_write,
                  (char *)exe->write_data_buf + exe->write_data_offset,
                  exe->write_data_size - exe->write_data_offset);
    if (count < 1)
-   {
-      if (errno == EIO || errno == EBADF || errno == EPIPE || errno == EINVAL || errno == ENOSPC) /* we lost our exe! */
-      {
-         ecore_exe_terminate(obj);
-         if (exe->write_fd_handler)
-           ecore_main_fd_handler_active_set(exe->write_fd_handler, 0);
-      }
-   }
+     {
+        if (errno == EIO || errno == EBADF || errno == EPIPE || errno == EINVAL || errno == ENOSPC) /* we lost our exe! */
+          {
+             ecore_exe_terminate(obj);
+             if (exe->write_fd_handler)
+               ecore_main_fd_handler_active_set(exe->write_fd_handler, 0);
+          }
+     }
    else
-   {
-      exe->write_data_offset += count;
-      if (exe->write_data_offset >= exe->write_data_size) /* Nothing left to write, clean up. */
-      {
-         exe->write_data_size = 0;
-         exe->write_data_offset = 0;
-         IF_FREE(exe->write_data_buf);
-         if (exe->write_fd_handler)
-           ecore_main_fd_handler_active_set(exe->write_fd_handler, 0);
-      }
-   }
+     {
+        exe->write_data_offset += count;
+        if (exe->write_data_offset >= exe->write_data_size) /* Nothing left to write, clean up. */
+          {
+             exe->write_data_size = 0;
+             exe->write_data_offset = 0;
+             IF_FREE(exe->write_data_buf);
+             if (exe->write_fd_handler)
+               ecore_main_fd_handler_active_set(exe->write_fd_handler, 0);
+          }
+     }
 }
 
 static void
 _ecore_exe_dead_attach(Ecore_Exe *obj)
 {
    struct _ecore_exe_dead_exe *dead;
-   Ecore_Exe_Data *exe = eo_data_scope_get(obj, MY_CLASS);
+   Ecore_Exe_Data *exe = efl_data_scope_get(obj, MY_CLASS);
 
+   if (!exe) return;
    if (exe->doomsday_clock_dead) return;
    dead = calloc(1, sizeof(struct _ecore_exe_dead_exe));
    if (dead)
-   {
-      dead->pid = exe->pid;
-      if (exe->cmd) dead->cmd = strdup(exe->cmd);
-      IF_FN_DEL(ecore_timer_del, exe->doomsday_clock);
-      exe->doomsday_clock =
-        ecore_timer_add(10.0, _ecore_exe_make_sure_its_dead, dead);
-      exe->doomsday_clock_dead = dead;
-   }
+     {
+        dead->pid = exe->pid;
+        if (exe->cmd) dead->cmd = strdup(exe->cmd);
+        IF_FN_DEL(ecore_timer_del, exe->doomsday_clock);
+        exe->doomsday_clock =
+          ecore_timer_add(10.0, _ecore_exe_make_sure_its_dead, dead);
+        exe->doomsday_clock_dead = dead;
+     }
 }

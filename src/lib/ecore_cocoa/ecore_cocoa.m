@@ -84,6 +84,11 @@ ecore_cocoa_shutdown(void)
 
    DBG("Ecore Cocoa shutdown");
 
+   ecore_event_type_flush(ECORE_COCOA_EVENT_WINDOW_UNFOCUSED,
+                          ECORE_COCOA_EVENT_WINDOW_FOCUSED,
+                          ECORE_COCOA_EVENT_WINDOW_RESIZE_REQUEST,
+                          ECORE_COCOA_EVENT_WINDOW_DESTROY);
+
    eina_log_domain_unregister(_ecore_cocoa_log_domain);
    ecore_event_shutdown();
 
@@ -125,13 +130,13 @@ _ecore_cocoa_event_key(NSEvent     *event,
 
    DBG("Event Key, keyType : %lu", keyType);
 
-   ev = calloc(1, sizeof (Ecore_Event_Key));
-   if (!ev) return NULL;
+   ev = calloc(1, sizeof(*ev));
+   if (EINA_UNLIKELY(!ev)) return NULL;
 
    if (compose && (keyType == NSEventTypeKeyDown))
      {
         [edit interpretKeyEvents:[NSArray arrayWithObject:event]];
-        compose=EINA_FALSE;
+        compose = EINA_FALSE;
      }
 
    ev->timestamp = time;
@@ -155,7 +160,7 @@ _ecore_cocoa_event_key(NSEvent     *event,
 
    if (kchar >= 0)
      {
-        for (i = 0; i < sizeof (keystable) / sizeof (struct _ecore_cocoa_keys_s); ++i)
+        for (i = 0; i < EINA_C_ARRAY_LENGTH(keystable); ++i)
           {
              if (keystable[i].code == kchar)
                {
@@ -173,10 +178,10 @@ _ecore_cocoa_event_key(NSEvent     *event,
         ev->key = "";
      }
 
-   if (([keycharRaw length] == 0)  && (keyType == NSEventTypeKeyDown))
+   if (([keycharRaw length] == 0) && (keyType == NSEventTypeKeyDown))
      {
-        compose=EINA_TRUE;
-        edit = [[event window]  fieldEditor:YES forObject:nil];
+        compose = EINA_TRUE;
+        edit = [[event window] fieldEditor:YES forObject:nil];
         [edit interpretKeyEvents:[NSArray arrayWithObject:event]];
         free(ev);
         return NULL;
@@ -194,7 +199,7 @@ _ecore_cocoa_feed_events(void *anEvent)
    unsigned int time = (unsigned int)((unsigned long long)(ecore_time_get() * 1000.0) & 0xffffffff);
    Eina_Bool pass = EINA_FALSE;
 
-   DBG("Feed events, event type ; %lu", [event type]);
+   DBG("Feed events, event type ; %lx", [event type]);
 
    switch ([event type])
      {
@@ -215,6 +220,18 @@ _ecore_cocoa_feed_events(void *anEvent)
       case NSEventTypeKeyDown:
         {
            Ecore_Event_Key *ev;
+           NSUInteger flags = [event modifierFlags];
+
+           if (flags & NSEventModifierFlagCommand)
+             {
+                NSString *keychar = [event charactersIgnoringModifiers];
+                if ([keychar characterAtIndex:0] == 'q')
+                  {
+                     [NSApp performSelector:@selector(terminate:)
+                                            withObject:nil afterDelay:0.0];
+                     return EINA_TRUE;
+                  }
+             }
 
            ev = _ecore_cocoa_event_key(event, NSEventTypeKeyDown, time);
            if (ev == NULL) return EINA_TRUE;
@@ -294,7 +311,7 @@ _ecore_cocoa_feed_events(void *anEvent)
 
            if (evUp->key)
              {
-                evUp->keyname = evDown->key;
+                evUp->keyname = evUp->key;
                 evUp->timestamp = time;
                 evUp->string = NULL;
                 ecore_event_add(ECORE_EVENT_KEY_UP, evUp, NULL, NULL);
@@ -386,4 +403,11 @@ ecore_cocoa_titlebar_height_get(void)
         DBG("Titlebar Heigt : %d", height);
      }
    return height;
+}
+
+EAPI void
+ecore_cocoa_terminate_cb_set(Ecore_Cocoa_Terminate_Cb cb)
+{
+   EINA_SAFETY_ON_NULL_RETURN(cb);
+   [NSApp setTerminateCb: cb];
 }

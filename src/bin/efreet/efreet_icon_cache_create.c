@@ -85,6 +85,7 @@ cache_fallback_scan_dir(Eina_Hash *icons, Eina_Hash *dirs, const char *dir)
         char *name;
         char *ext;
         unsigned int i;
+        void *p;
 
         if (entry->type == EINA_FILE_DIR)
             continue;
@@ -114,7 +115,13 @@ cache_fallback_scan_dir(Eina_Hash *icons, Eina_Hash *dirs, const char *dir)
         if (i != icon->icons_count)
             continue;
 
-        icon->icons = realloc(icon->icons, sizeof (char *) * (icon->icons_count + 1));
+        p = realloc(icon->icons, sizeof (char *) * (icon->icons_count + 1));
+        if (!p)
+          {
+             ERR("Out of memory");
+             exit(1);
+          }
+        icon->icons = p;
         icon->icons[icon->icons_count] = eina_stringshare_add(entry->path);
         eina_array_push(strs, icon->icons[icon->icons_count++]);
     }
@@ -230,6 +237,7 @@ cache_scan_path_dir(Efreet_Icon_Theme *theme,
         Efreet_Cache_Icon *icon;
         char *name;
         char *ext;
+        const char **tmp;
         unsigned int i;
 
         if (entry->type == EINA_FILE_DIR)
@@ -302,8 +310,16 @@ cache_scan_path_dir(Efreet_Icon_Theme *theme,
          */
         else if (!strcmp(icon->theme, theme->name.internal))
         {
-            icon->icons = realloc(icon->icons,
-                                  sizeof (Efreet_Cache_Icon_Element*) * (++icon->icons_count));
+            Efreet_Cache_Icon_Element **tmp2;
+
+            tmp2 = realloc(icon->icons,
+                          sizeof(Efreet_Cache_Icon_Element *) * (++icon->icons_count));
+            if (!tmp2)
+            {
+               ERR("Out of memory");
+               exit(1);
+            }
+            icon->icons = tmp2;
             icon->icons[i] = NEW(Efreet_Cache_Icon_Element, 1);
             icon->icons[i]->type = dir->type;
             icon->icons[i]->normal = dir->size.normal;
@@ -318,8 +334,14 @@ cache_scan_path_dir(Efreet_Icon_Theme *theme,
         }
 
         /* and finally store the path */
-        icon->icons[i]->paths = realloc(icon->icons[i]->paths,
-                                        sizeof (char*) * (icon->icons[i]->paths_count + 1));
+        tmp = realloc(icon->icons[i]->paths,
+                      sizeof(char *) * (icon->icons[i]->paths_count + 1));
+        if (!tmp)
+        {
+           ERR("Out of memory");
+           exit(1);
+        }
+        icon->icons[i]->paths = tmp;
         icon->icons[i]->paths[icon->icons[i]->paths_count] = eina_stringshare_add(entry->path);
         eina_array_push(strs, icon->icons[i]->paths[icon->icons[i]->paths_count++]);
     }
@@ -907,9 +929,9 @@ main(int argc, char **argv)
         icon_ef = eet_open(efreet_icon_cache_file(theme->theme.name.internal), EET_FILE_MODE_READ_WRITE);
         if (!icon_ef) goto on_error_efreet;
         icon_version = eet_data_read(icon_ef, efreet_version_edd(), EFREET_CACHE_VERSION);
-        if (theme->changed || !icon_version || (icon_version &&
+        if ((theme->changed) || (!icon_version) ||
             ((icon_version->major != EFREET_ICON_CACHE_MAJOR) ||
-             (icon_version->minor != EFREET_ICON_CACHE_MINOR))))
+             (icon_version->minor != EFREET_ICON_CACHE_MINOR)))
         {
             // delete old cache
             eet_close(icon_ef);

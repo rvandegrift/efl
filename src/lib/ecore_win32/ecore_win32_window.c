@@ -567,7 +567,7 @@ ecore_win32_window_configure(Ecore_Win32_Window        *window,
  * @param x The x coordinate of the destination position.
  * @param y The y coordinate of the destination position.
  *
- * This function move @p window to the new position of coordinates @p x
+ * This function moves @p window to the new position of coordinates @p x
  * and @p y. If @p window is @c NULL, or if it is fullscreen, or on
  * error, this function does nothing.
  */
@@ -605,7 +605,7 @@ ecore_win32_window_move(Ecore_Win32_Window *window,
  * @param width The new width.
  * @param height The new height.
  *
- * This function resize @p window to the new @p width and @p height.
+ * This function resizes @p window to the new @p width and @p height.
  * If @p window is @c NULL, or if it is fullscreen, or on error, this
  * function does nothing.
  */
@@ -669,7 +669,7 @@ ecore_win32_window_resize(Ecore_Win32_Window *window,
  * @param width The new width.
  * @param height The new height.
  *
- * This function resize @p window to the new position of coordinates @p x
+ * This function resizes @p window to the new position of coordinates @p x
  * and @p y and the new @p width and @p height. If @p window is @c NULL,
  * or if it is fullscreen, or on error, this function does nothing.
  */
@@ -1238,11 +1238,11 @@ ecore_win32_window_focus_get(void)
  * @param window The window.
  * @param on @c EINA_TRUE to iconify the window, @c EINA_FALSE to restore it.
  *
- * This function iconify or restore @p window. If @p on is set to @c EINA_TRUE,
- * the window will be iconified, if it is set to @c EINA_FALSE, it will be
- * restored. If @p window is @c NULL or if the state does not change (like
- * iconifying the window while it is already iconified), this function does
- * nothing.
+ * This function iconifies or restores @p window. If @p on is set to
+ * @c EINA_TRUE, the window will be iconified, if it is set to @c EINA_FALSE,
+ * it will be restored. If @p window is @c NULL or if the state does not change
+ * (like iconifying the window while it is already iconified), this function
+ * does nothing.
  */
 EAPI void
 ecore_win32_window_iconified_set(Ecore_Win32_Window *window,
@@ -1266,7 +1266,7 @@ ecore_win32_window_iconified_set(Ecore_Win32_Window *window,
  * @param window The window.
  * @param on @c EINA_TRUE to remove the border, @c EINA_FALSE to restore it.
  *
- * This function remove or restore the border of @p window. If @p on is set to
+ * This function removes or restores the border of @p window. If @p on is set to
  * @c EINA_TRUE, the window will have no border, if it is set to @c EINA_FALSE,
  * it will have a border. If @p window is @c NULL or if the state does not
  * change (like setting to borderless while the window has no border), this
@@ -1342,7 +1342,7 @@ ecore_win32_window_borderless_set(Ecore_Win32_Window *window,
  * @param window The window.
  * @param on @c EINA_TRUE for fullscreen mode, @c EINA_FALSE for windowed mode.
  *
- * This function set @p window to fullscreen or windowed mode. If @p on is set
+ * This function sets @p window to fullscreen or windowed mode. If @p on is set
  * to @c EINA_TRUE, the window will be fullscreen, if it is set to
  * @c EINA_FALSE, it will be windowed. If @p window is @c NULL or if the state
  * does not change (like setting to fullscreen while the window is already
@@ -1361,6 +1361,7 @@ ecore_win32_window_fullscreen_set(Ecore_Win32_Window *window,
    INF("setting fullscreen: %s", on ? "yes" : "no");
 
    window->fullscreen = !!on;
+   window->state.fullscreen = !!on;
 
    if (on)
      {
@@ -1465,7 +1466,7 @@ ecore_win32_window_cursor_set(Ecore_Win32_Window *window,
  * @param state An array of the new states.
  * @param num The number of states in the array.
  *
- * This function set the state of @p window. @p state is an array of
+ * This function sets the state of @p window. @p state is an array of
  * states of size @p num. If @p window or @p state are @c NULL, or if
  * @p num is less or equal than 0, the function does nothing.
  */
@@ -1479,7 +1480,7 @@ ecore_win32_window_state_set(Ecore_Win32_Window       *window,
    if (!window || !state || (num <= 0))
      return;
 
-   INF("setting cursor state");
+   INF("setting window state");
 
    for (i = 0; i < num; i++)
      {
@@ -1527,6 +1528,97 @@ ecore_win32_window_state_set(Ecore_Win32_Window       *window,
             break;
           }
      }
+}
+
+ /**
+ * @brief Get the states of the given window.
+ *
+ * @param window The window to retrieve the state from.
+ * @param state A pointer to an array of the states.
+ * @param num A pointer to the number of states in the array.
+ *
+ * This function gets the states of @p window. @p state is a pointer to an array
+ * of states of size @p num. If @p window is @c NULL, @p state and @p num must
+ * not be @c NULL and point to respectively @c NULL and 0.
+ *
+ * @since 1.20
+ */
+EAPI void
+ecore_win32_window_state_get(Ecore_Win32_Window        *window,
+                             Ecore_Win32_Window_State **state,
+                             unsigned int              *num)
+{
+   Ecore_Win32_Window_State *st;
+   unsigned int i;
+
+   *state = NULL;
+   *num = 0;
+
+   if (!window)
+     return;
+
+   INF("getting window state");
+
+   i = 0;
+   /* we get the number of states which are set */
+   if (window->state.iconified)
+     i++;
+   if (window->state.modal)
+     i++;
+   if (window->state.sticky)
+     i++;
+   if (window->state.maximized_vert)
+     i++;
+   if (window->state.maximized_horz)
+     i++;
+   if (window->state.maximized)
+     i++;
+   if (window->state.shaded)
+     i++;
+   if (window->state.hidden)
+     i++;
+   if (window->state.fullscreen)
+     i++;
+   if (window->state.above)
+     i++;
+   if (window->state.below)
+     i++;
+   if (window->state.demands_attention)
+     i++;
+
+   st = (Ecore_Win32_Window_State *)malloc(i * sizeof(Ecore_Win32_Window_State));
+   if (!st)
+     return;
+
+   *num = i;
+   *state = st;
+
+   i = 0;
+
+   if (window->state.iconified)
+     st[i++] = ECORE_WIN32_WINDOW_STATE_ICONIFIED;
+   if (window->state.modal)
+     st[i++] = ECORE_WIN32_WINDOW_STATE_MODAL;
+   if (window->state.sticky)
+     st[i++] = ECORE_WIN32_WINDOW_STATE_STICKY;
+   if (window->state.maximized_vert)
+     st[i++] = ECORE_WIN32_WINDOW_STATE_MAXIMIZED_VERT;
+   if (window->state.maximized_horz)
+     st[i++] = ECORE_WIN32_WINDOW_STATE_MAXIMIZED_HORZ;
+   if (window->state.maximized)
+     st[i++] = ECORE_WIN32_WINDOW_STATE_MAXIMIZED;
+   if (window->state.shaded)
+     st[i++] = ECORE_WIN32_WINDOW_STATE_SHADED;
+   if (window->state.hidden)
+     st[i++] = ECORE_WIN32_WINDOW_STATE_HIDDEN;
+   if (window->state.fullscreen)
+     st[i++] = ECORE_WIN32_WINDOW_STATE_FULLSCREEN;
+   if (window->state.above)
+     st[i++] = ECORE_WIN32_WINDOW_STATE_ABOVE;
+   if (window->state.below)
+     st[i++] = ECORE_WIN32_WINDOW_STATE_BELOW;
+   if (window->state.demands_attention)
+     st[i++] = ECORE_WIN32_WINDOW_STATE_DEMANDS_ATTENTION;
 }
 
 /**
@@ -1680,7 +1772,7 @@ ecore_win32_window_state_request_send(Ecore_Win32_Window      *window,
  * @param window The window to modify the type.
  * @param type The nwindow types.
  *
- * This function set the type of @p window to @p type. If
+ * This function sets the type of @p window to @p type. If
  * @p window is @c NULL, the function does nothing.
  */
 EAPI void

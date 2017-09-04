@@ -22,11 +22,13 @@
 # include <linux/input.h>
 # include <libinput.h>
 # include <xkbcommon/xkbcommon.h>
+# include <xkbcommon/xkbcommon-compose.h>
 
 # ifdef HAVE_SYSTEMD
 #  include <systemd/sd-login.h>
 # endif
 
+#ifndef ELPUT_NODEFS
 # ifdef ELPUT_DEFAULT_LOG_COLOR
 #  undef ELPUT_DEFAULT_LOG_COLOR
 # endif
@@ -58,14 +60,7 @@ extern int _elput_log_dom;
 #  undef CRIT
 # endif
 # define CRIT(...) EINA_LOG_DOM_CRIT(_elput_log_dom, __VA_ARGS__)
-
-typedef enum _Elput_Device_Capability
-{
-   EVDEV_SEAT_POINTER = (1 << 0),
-   EVDEV_SEAT_KEYBOARD = (1 << 1),
-   EVDEV_SEAT_TOUCH = (1 << 2)
-} Elput_Device_Capability;
-
+#endif
 typedef struct _Elput_Interface
 {
    Eina_Bool (*connect)(Elput_Manager **manager, const char *seat, unsigned int tty);
@@ -91,15 +86,19 @@ typedef struct _Elput_Input
    Eina_Bool suspended : 1;
 } Elput_Input;
 
+typedef enum _Elput_Leds
+{
+   ELPUT_LED_NUM = (1 << 0),
+   ELPUT_LED_CAPS = (1 << 1),
+   ELPUT_LED_SCROLL = (1 << 2)
+} Elput_Leds;
+
 typedef struct _Elput_Keyboard_Info
 {
    int refs;
 
    struct
      {
-        int fd;
-        size_t size;
-        char *area;
         struct xkb_keymap *map;
      } keymap;
 
@@ -107,11 +106,19 @@ typedef struct _Elput_Keyboard_Info
      {
         xkb_mod_index_t shift;
         xkb_mod_index_t caps;
+        xkb_mod_index_t num;
         xkb_mod_index_t ctrl;
         xkb_mod_index_t alt;
         xkb_mod_index_t altgr;
         xkb_mod_index_t super;
      } mods;
+
+   struct
+     {
+        xkb_led_index_t num;
+        xkb_led_index_t caps;
+        xkb_led_index_t scroll;
+     } leds;
 } Elput_Keyboard_Info;
 
 struct _Elput_Keyboard
@@ -131,22 +138,27 @@ struct _Elput_Keyboard
      } grab;
 
    Elput_Keyboard_Info *info;
+   unsigned int key_count;
 
    struct xkb_state *state;
-   struct xkb_keymap *pending_map;
+   struct xkb_state *maskless_state;
    struct xkb_context *context;
    struct xkb_rule_names names;
+   struct xkb_compose_table *compose_table;
+   struct xkb_compose_state *compose_state;
+
+   Elput_Leds leds;
 
    Elput_Seat *seat;
 
-   Eina_Bool external_map : 1;
+   Eina_Bool pending_keymap : 1;
 };
 
 struct _Elput_Pointer
 {
-   double x, y;
    int buttons;
    unsigned int timestamp;
+   double pressure;
 
    int minx, miny;
    int hotx, hoty;
@@ -172,9 +184,10 @@ struct _Elput_Pointer
 
 struct _Elput_Touch
 {
-   double x, y;
    int slot;
    unsigned int points;
+   unsigned int timestamp;
+   double pressure;
 
    struct
      {
@@ -188,12 +201,18 @@ struct _Elput_Touch
 
 struct _Elput_Seat
 {
+   int refs; //for events
    const char *name;
 
    struct
      {
         int kbd, ptr, touch;
      } count;
+
+   struct
+     {
+        double x, y;
+     } pointer;
 
    unsigned int modifiers;
 
@@ -203,24 +222,32 @@ struct _Elput_Seat
 
    Eina_List *devices;
    Elput_Manager *manager;
+   Eina_Bool pending_motion : 1;
 };
 
 struct _Elput_Device
 {
    Elput_Seat *seat;
+   int refs; //for events
 
    uint32_t ow, oh;
+
+   double absx, absy;
 
    const char *path;
    const char *output_name;
    struct libinput_device *device;
 
-   Elput_Device_Capability caps;
+   Elput_Device_Caps caps;
 
    Eina_Hash *key_remap_hash;
+   Eo *evas_device;
 
    Eina_Bool left_handed : 1;
    Eina_Bool key_remap : 1;
+   Eina_Bool swap : 1;
+   Eina_Bool invert_x : 1;
+   Eina_Bool invert_y : 1;
 };
 
 struct _Elput_Manager
@@ -251,7 +278,11 @@ struct _Elput_Manager
      {
         struct xkb_keymap *keymap;
         struct xkb_context *context;
+        int group;
      } cached;
+   int output_w, output_h;
+
+   int drm_opens;
 
    Elput_Input input;
    Eina_Bool del : 1;
@@ -281,5 +312,10 @@ Elput_Keyboard *_evdev_keyboard_get(Elput_Seat *seat);
 Elput_Touch *_evdev_touch_get(Elput_Seat *seat);
 
 extern Elput_Interface _logind_interface;
+
+void _keyboard_keymap_update(Elput_Seat *seat);
+void _keyboard_group_update(Elput_Seat *seat);
+
+void _udev_seat_destroy(Elput_Seat *eseat);
 
 #endif

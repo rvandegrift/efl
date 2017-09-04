@@ -4,21 +4,19 @@
 # include <unistd.h>
 # include "Ecore_Wl2.h"
 # include "Ecore_Input.h"
-# include "www-protocol.h"
+#include <xkbcommon/xkbcommon-compose.h>
+# include "www-client-protocol.h"
 
 #define EFL_TEAMWORK_VERSION 2
-# include "teamwork_protocol.h"
+# include "teamwork-client-protocol.h"
 
-/* NB: Test if subsurface protocol is part of wayland code, if not then
- * include our own copy */
-# ifndef WL_SUBSURFACE_ERROR_ENUM
-#  include "subsurface-client-protocol.h"
-# endif
+# include "xdg-shell-unstable-v5-client-protocol.h"
+# define XDG_V5_UNSTABLE_VERSION 5
 
-# include "xdg-shell-client-protocol.h"
-# define XDG_VERSION 5
+# include "session-recovery-client-protocol.h"
 
-# include "session-recovery.h"
+# include "xdg-shell-unstable-v6-client-protocol.h"
+# include "efl-aux-hints-client-protocol.h"
 
 extern int _ecore_wl2_log_dom;
 extern Eina_Bool no_session_recovery;
@@ -67,6 +65,15 @@ extern Eina_Bool no_session_recovery;
 # endif
 # define CRI(...) EINA_LOG_DOM_CRIT(_ecore_wl2_log_dom, __VA_ARGS__)
 
+typedef struct _Ecore_Wl2_Input_Devices
+{
+   Eo *pointer_dev;
+   Eo *keyboard_dev;
+   Eo *touch_dev;
+   Eo *seat_dev;
+   int window_id;
+} Ecore_Wl2_Input_Devices;
+
 struct _Ecore_Wl2_Display
 {
    int refs;
@@ -83,10 +90,11 @@ struct _Ecore_Wl2_Display
         int data_device_manager_version;
         struct wl_shm *shm;
         struct zwp_linux_dmabuf_v1 *dmabuf;
-        struct wl_shell *wl_shell;
         struct xdg_shell *xdg_shell;
+        struct zxdg_shell_v6 *zxdg_shell;
         struct www *www;
         struct zwp_e_session_recovery *session_recovery;
+        struct efl_aux_hints *efl_aux_hints;
         struct zwp_teamwork *teamwork;
         int compositor_version;
      } wl;
@@ -107,6 +115,7 @@ struct _Ecore_Wl2_Display
    Eina_Inlist *seats;
 
    Eina_Bool sync_done : 1;
+   Eina_Bool shell_done : 1;
 };
 
 struct _Ecore_Wl2_Subsurface
@@ -126,30 +135,43 @@ struct _Ecore_Wl2_Subsurface
    Eina_Bool sync : 1;
 };
 
+struct _Ecore_Wl2_Aux_Hint
+{
+   EINA_INLIST;
+
+   int id;
+   const char *hint, *val;
+};
+
 struct _Ecore_Wl2_Window
 {
    EINA_INLIST;
 
    Ecore_Wl2_Display *display;
-   Ecore_Wl2_Input *input;
 
    Ecore_Wl2_Window *parent;
+   Ecore_Wl2_Input *grab;
 
    int id, rotation, surface_id;
    const char *title;
    const char *class;
-   const char *cursor;
+   const char *role;
 
    struct wl_surface *surface;
-   struct wl_shell_surface *wl_shell_surface;
    struct xdg_surface *xdg_surface;
    struct xdg_popup *xdg_popup;
    struct www_surface *www_surface;
+   struct zxdg_surface_v6 *zxdg_surface;
+   struct zxdg_toplevel_v6 *zxdg_toplevel;
+   struct zxdg_popup_v6 *zxdg_popup;
 
    Eina_Stringshare *uuid;
 
    uint32_t configure_serial;
    void (*configure_ack)(struct xdg_surface *surface, uint32_t serial);
+   void (*zxdg_configure_ack)(struct zxdg_surface_v6 *surface, uint32_t serial);
+   void (*zxdg_set_min_size)(struct zxdg_toplevel_v6 *toplevel, int32_t w, int32_t h);
+   void (*zxdg_set_max_size)(struct zxdg_toplevel_v6 *toplevel, int32_t w, int32_t h);
 
    Eina_Rectangle saved;
    Eina_Rectangle geometry;
@@ -159,6 +181,7 @@ struct _Ecore_Wl2_Window
    Ecore_Wl2_Window_Type type;
 
    Eina_Inlist *subsurfs;
+   Eina_List *supported_aux_hints;
 
    Eina_Bool moving : 1;
    Eina_Bool minimized : 1;
@@ -168,6 +191,28 @@ struct _Ecore_Wl2_Window
    Eina_Bool resizing : 1;
    Eina_Bool alpha : 1;
    Eina_Bool transparent : 1;
+
+   Eina_Bool input_set : 1;
+   Eina_Bool opaque_set : 1;
+
+   Eina_Bool focus_skip : 1;
+   Eina_Bool floating : 1;
+
+   struct
+     {
+        Eina_Bool configure : 1;
+        Eina_Bool min : 1;
+        Eina_Bool max : 1;
+     } pending;
+
+   struct
+     {
+        Eina_Bool supported : 1;
+        Eina_Bool app_set : 1;
+        int preferred_rot;
+        int *available_rots;
+        unsigned int count;
+     } wm_rot;
 };
 
 struct _Ecore_Wl2_Output
@@ -214,17 +259,6 @@ struct _Ecore_Wl2_Pointer
    double sx, sy;
    unsigned int button;
    unsigned int enter_serial;
-
-   struct
-     {
-        const char *name, *theme_name;
-        unsigned int index, size;
-        struct wl_cursor *wl_cursor;
-        struct wl_cursor_theme *theme;
-        struct wl_surface *surface;
-        struct wl_callback *frame_cb;
-        Ecore_Timer *timer;
-     } cursor;
 
    struct
      {
@@ -343,19 +377,27 @@ struct _Ecore_Wl2_Input
    struct
      {
         struct wl_data_device *device;
-        struct wl_data_source *source;
-        struct wl_array types;
+        struct
+        {
+           struct wl_data_source *source;
+           struct wl_array types;
+           uint32_t serial;
+        } selection;
+        struct
+        {
+           struct wl_data_source *source;
+           struct wl_array types;
+           uint32_t action;
+           uint32_t serial;
+        } drag;
      } data;
 
    struct
      {
-        const char *name, *theme_name;
-        unsigned int index, size;
-        struct wl_cursor *wl_cursor;
-        struct wl_cursor_theme *theme;
+        const char *name;
+        unsigned int size;
         struct wl_surface *surface;
-        struct wl_callback *frame_cb;
-        Ecore_Timer *timer;
+        int hot_x, hot_y;
      } cursor;
 
    struct
@@ -389,6 +431,8 @@ struct _Ecore_Wl2_Input
         struct xkb_keymap *keymap;
         struct xkb_state *state;
         struct xkb_state *maskless_state;
+        struct xkb_compose_table *compose_table;
+        struct xkb_compose_state *compose_state;
         xkb_mod_mask_t control_mask;
         xkb_mod_mask_t alt_mask;
         xkb_mod_mask_t shift_mask;
@@ -413,11 +457,19 @@ struct _Ecore_Wl2_Input
      } repeat;
 
    struct
-     {
-        Ecore_Wl2_Dnd_Source *source;
-     } drag, selection;
+   {
+      Ecore_Wl2_Offer *offer;
+      uint32_t enter_serial;
+      Ecore_Window window_id;
+   } drag, selection;
 
    unsigned int seat_version;
+   unsigned int id;
+   Eina_Stringshare *name;
+
+   Ecore_Event_Handler *dev_add_handler;
+   Ecore_Event_Handler *dev_remove_handler;
+   Eina_List *devices_list;
 };
 
 typedef struct Ecore_Wl2_Event_Window_WWW
@@ -435,6 +487,7 @@ typedef struct Ecore_Wl2_Event_Window_WWW_Drag
 } Ecore_Wl2_Event_Window_WWW_Drag;
 
 Ecore_Wl2_Window *_ecore_wl2_display_window_surface_find(Ecore_Wl2_Display *display, struct wl_surface *wl_surface);
+void _display_event_free(void *d, void *event EINA_UNUSED);
 
 void _ecore_wl2_output_add(Ecore_Wl2_Display *display, unsigned int id);
 void _ecore_wl2_output_del(Ecore_Wl2_Output *output);
@@ -446,7 +499,8 @@ void _ecore_wl2_input_ungrab(Ecore_Wl2_Input *input);
 void _ecore_wl2_input_grab(Ecore_Wl2_Input *input, Ecore_Wl2_Window *window, unsigned int button);
 
 void _ecore_wl2_input_cursor_set(Ecore_Wl2_Input *input, const char *cursor);
-void _ecore_wl2_input_cursor_update_stop(Ecore_Wl2_Input *input);
+Eina_Bool _ecore_wl2_input_cursor_update(void *data);
+void _ecore_wl2_input_window_remove(Ecore_Wl2_Input *input, Ecore_Wl2_Window *window);
 
 void _ecore_wl2_dnd_add(Ecore_Wl2_Input *input, struct wl_data_offer *offer);
 void _ecore_wl2_dnd_enter(Ecore_Wl2_Input *input, struct wl_data_offer *offer, struct wl_surface *surface, int x, int y, uint32_t serial);
@@ -459,8 +513,13 @@ void _ecore_wl2_dnd_del(Ecore_Wl2_Dnd_Source *source);
 void _ecore_wl2_subsurf_unmap(Ecore_Wl2_Subsurface *subsurf);
 void _ecore_wl2_subsurf_free(Ecore_Wl2_Subsurface *subsurf);
 
+void _ecore_wl2_window_surface_create(Ecore_Wl2_Window *window);
 void _ecore_wl2_window_shell_surface_init(Ecore_Wl2_Window *window);
 void _ecore_wl2_window_www_surface_init(Ecore_Wl2_Window *window);
+void _ecore_wl2_window_semi_free(Ecore_Wl2_Window *window);
+
+void _ecore_wl2_offer_unref(Ecore_Wl2_Offer *offer);
+Eina_Bool _ecore_wl2_display_sync_get(void);
 
 EAPI extern int _ecore_wl2_event_window_www;
 EAPI extern int _ecore_wl2_event_window_www_drag;

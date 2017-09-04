@@ -72,11 +72,17 @@ static void _elm_code_file_line_insert_data(Elm_Code_File *file, const char *con
 
 EAPI const char *elm_code_file_filename_get(Elm_Code_File *file)
 {
+   if (!file->file)
+     return NULL;
+
    return basename((char *)eina_file_filename_get(file->file));
 }
 
 EAPI const char *elm_code_file_path_get(Elm_Code_File *file)
 {
+   if (!file->file)
+     return NULL;
+
    return eina_file_filename_get(file->file);
 }
 
@@ -122,6 +128,7 @@ EAPI Elm_Code_File *elm_code_file_open(Elm_Code *code, const char *path)
    ret = elm_code_file_new(code);
    file = eina_file_open(path, EINA_FALSE);
    ret->file = file;
+   ret->mime = efreet_mime_type_get(path);
    lastindex = 1;
 
    ret->map = eina_file_map_all(file, EINA_FILE_POPULATE);
@@ -185,8 +192,10 @@ EAPI void elm_code_file_save(Elm_Code_File *file)
           elm_code_line_text_trailing_whitespace_strip(line_item);
         content = elm_code_line_text_get(line_item, &length);
 
-        fwrite(content, sizeof(char), length, out);
-        fwrite(crchars, sizeof(char), crlength, out);
+        if (fwrite(content, sizeof(char), length, out) != (size_t)length)
+          break;
+        if (fwrite(crchars, sizeof(char), crlength, out) != (size_t)crlength)
+          break;
      }
    fclose(out);
 
@@ -210,19 +219,20 @@ EAPI void elm_code_file_free(Elm_Code_File *file)
         elm_code_line_free(l);
      }
 
-   if (file->file)
-     {
-        if (file->map)
-          eina_file_map_free(file->file, file->map);
-
-        eina_file_close(file->file);
-     }
+   elm_code_file_close(file);
    free(file);
 }
 
 EAPI void elm_code_file_close(Elm_Code_File *file)
 {
+   if (!file->file)
+     return;
+
+   if (file->map)
+     eina_file_map_free(file->file, file->map);
+
    eina_file_close(file->file);
+   file->file = NULL;
 }
 
 EAPI Elm_Code_File_Line_Ending elm_code_file_line_ending_get(Elm_Code_File *file)

@@ -1,3 +1,5 @@
+import efl_text_types;
+
 struct Efl.Ui.Text.Interactive.Change_Info {
    [[This structure includes all the information about content changes.
 
@@ -10,7 +12,8 @@ struct Efl.Ui.Text.Interactive.Change_Info {
    merge: bool; [[$true if can be merged with the previous one. Used for example with insertion when something is already selected]]
 }
 
-interface Efl.Ui.Text.Interactive ()
+interface Efl.Ui.Text.Interactive (Efl.Text, Efl.Text.Font,
+   Efl.Text.Format, Efl.Text.Style)
 {
    [[This is an interface interactive text inputs should implement]]
    methods {
@@ -19,13 +22,13 @@ interface Efl.Ui.Text.Interactive ()
          set {}
          get {}
          values {
-            allowed: bool; [[$true if enabled]]
+            allowed: bool; [[$true if enabled, $false otherwise]]
          }
       }
       @property selection_cursors {
          [[The cursors used for selection handling.
 
-           If the cursors are equal (@Efl.Canvas.Text.Cursor.equal), there is
+           If the cursors are equal, there is
            no selection.
 
            You are allowed to retain and modify them. Modifying them modifies
@@ -33,16 +36,8 @@ interface Efl.Ui.Text.Interactive ()
          ]]
          get {}
          values {
-            start: Efl.Canvas.Text.Cursor; [[The start of the selection]]
-            end: Efl.Canvas.Text.Cursor; [[The end of the selection]]
-         }
-      }
-      @property multiline {
-         [[Whether or not this textblock is allowed to be multiline]]
-         set {}
-         get {}
-         values {
-            enabled: bool; [[$true if enabled]]
+            start: ptr(Efl.Text.Cursor.Cursor); [[The start of the selection]]
+            end: ptr(Efl.Text.Cursor.Cursor); [[The end of the selection]]
          }
       }
       @property editable {

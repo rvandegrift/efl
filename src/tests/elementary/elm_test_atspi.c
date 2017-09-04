@@ -29,7 +29,7 @@ START_TEST (elm_atspi_app_obj_name_get)
 {
    elm_init(0, NULL);
 
-   Eo* root = eo_add(ELM_ATSPI_APP_OBJECT_CLASS, NULL);
+   Eo* root = efl_add(ELM_ATSPI_APP_OBJECT_CLASS, NULL);
 
    ck_assert(root != NULL);
 
@@ -41,7 +41,7 @@ START_TEST (elm_atspi_app_obj_name_get)
 
    ck_assert_str_eq(ret, "Test name");
 
-   eo_unref(root);
+   efl_unref(root);
    elm_shutdown();
 }
 END_TEST
@@ -51,15 +51,13 @@ START_TEST (elm_atspi_name_get)
    elm_init(0, NULL);
    generate_app();
 
-   char *name;
+   const char *name;
 
    name = elm_interface_atspi_accessible_name_get(g_btn);
 
    if (name && name[0]) {
       ck_assert(0);
    }
-
-   free(name);
 
    // Set name with additional text tags
    elm_object_text_set(g_btn, "Some<br>text");
@@ -70,7 +68,6 @@ START_TEST (elm_atspi_name_get)
    ck_assert(name != NULL);
    ck_assert_str_eq(name, "Some\ntext");
 
-   free(name);
    elm_shutdown();
 }
 END_TEST
@@ -80,7 +77,7 @@ START_TEST (elm_atspi_name_set)
    elm_init(0, NULL);
    generate_app();
 
-   char *name;
+   const char *name;
 
    elm_object_text_set(g_btn, "Other text");
    elm_interface_atspi_accessible_name_set(g_btn, "Test name");
@@ -90,15 +87,11 @@ START_TEST (elm_atspi_name_set)
    ck_assert(name != NULL);
    ck_assert_str_eq(name, "Test name");
 
-   free(name);
-
    elm_interface_atspi_accessible_name_set(g_btn, NULL);
    name = elm_interface_atspi_accessible_name_get(g_btn);
 
    ck_assert(name != NULL);
    ck_assert_str_eq(name, "Other text");
-
-   free(name);
 
    elm_shutdown();
 }
@@ -108,7 +101,7 @@ START_TEST (elm_atspi_role_get)
 {
    elm_init(0, NULL);
 
-   Eo* root = eo_add(ELM_ATSPI_APP_OBJECT_CLASS, NULL);
+   Eo* root = efl_add(ELM_ATSPI_APP_OBJECT_CLASS, NULL);
 
    Elm_Atspi_Role role;
 
@@ -116,7 +109,7 @@ START_TEST (elm_atspi_role_get)
 
    ck_assert(role == ELM_ATSPI_ROLE_APPLICATION);
 
-   eo_unref(root);
+   efl_unref(root);
    elm_shutdown();
 }
 END_TEST
@@ -149,7 +142,7 @@ START_TEST (elm_atspi_role_name_get)
 {
    elm_init(0, NULL);
 
-   Eo* root = eo_add(ELM_ATSPI_APP_OBJECT_CLASS, NULL);
+   Eo* root = efl_add(ELM_ATSPI_APP_OBJECT_CLASS, NULL);
 
    const char *ret = NULL;
 
@@ -157,7 +150,7 @@ START_TEST (elm_atspi_role_name_get)
 
    ck_assert(ret != NULL);
 
-   eo_unref(root);
+   efl_unref(root);
    elm_shutdown();
 }
 END_TEST
@@ -166,7 +159,7 @@ START_TEST (elm_atspi_localized_role_name_get)
 {
    elm_init(0, NULL);
 
-   Eo* root = eo_add(ELM_ATSPI_APP_OBJECT_CLASS, NULL);
+   Eo* root = efl_add(ELM_ATSPI_APP_OBJECT_CLASS, NULL);
 
    const char *ret = NULL;
 
@@ -174,7 +167,7 @@ START_TEST (elm_atspi_localized_role_name_get)
 
    ck_assert(ret != NULL);
 
-   eo_unref(root);
+   efl_unref(root);
    elm_shutdown();
 }
 END_TEST
@@ -183,7 +176,7 @@ START_TEST (elm_atspi_description_set)
 {
    elm_init(0, NULL);
 
-   Eo* root = eo_add(ELM_ATSPI_APP_OBJECT_CLASS, NULL);
+   Eo* root = efl_add(ELM_ATSPI_APP_OBJECT_CLASS, NULL);
 
    const char *ret = NULL;
 
@@ -204,7 +197,7 @@ START_TEST (elm_atspi_description_set)
 
    ck_assert(ret == NULL);
 
-   eo_unref(root);
+   efl_unref(root);
    elm_shutdown();
 }
 END_TEST
@@ -229,7 +222,7 @@ START_TEST (elm_atspi_children_and_parent)
    elm_init(0, NULL);
 
    generate_app();
-   Eo* root = eo_add(ELM_ATSPI_APP_OBJECT_CLASS, NULL);
+   Eo* root = efl_add(ELM_ATSPI_APP_OBJECT_CLASS, NULL);
 
    Eina_List *child_list = NULL;
 
@@ -246,7 +239,7 @@ START_TEST (elm_atspi_children_and_parent)
    ck_assert(win != NULL);
    ck_assert(win == g_win);
 
-   eo_unref(root);
+   efl_unref(root);
    elm_shutdown();
 }
 END_TEST
@@ -256,7 +249,7 @@ START_TEST (elm_atspi_children_and_parent2)
    elm_init(0, NULL);
 
    generate_app();
-   Eo* root = eo_add(ELM_ATSPI_APP_OBJECT_CLASS, NULL);
+   Eo* root = efl_add(ELM_ATSPI_APP_OBJECT_CLASS, NULL);
 
    Eo *win = NULL;
 
@@ -275,7 +268,7 @@ START_TEST (elm_atspi_children_and_parent2)
    ck_assert(btn != NULL);
    ck_assert(btn == g_btn);
 
-   eo_unref(root);
+   efl_unref(root);
    elm_shutdown();
 }
 END_TEST
@@ -438,7 +431,7 @@ START_TEST (elm_atspi_relationship_remove)
    /* Test if relationship is implicity removed when object is deleted */
    elm_interface_atspi_accessible_relationship_append(g_btn, ELM_ATSPI_RELATION_FLOWS_TO, g_bg);
    elm_interface_atspi_accessible_relationship_append(g_btn, ELM_ATSPI_RELATION_FLOWS_FROM, g_bg);
-   eo_del(g_bg);
+   efl_del(g_bg);
    set = elm_interface_atspi_accessible_relation_set_get(g_btn);
 
    rel_to = rel_from = NULL;

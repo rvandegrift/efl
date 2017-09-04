@@ -1,5 +1,6 @@
-class Elm.View.Form (Eo.Base)
+class Elm.View.Form (Efl.Object)
 {
+    [[Elementary view form class]]
     methods {
         model_set {
              [[Set model
@@ -22,8 +23,8 @@ class Elm.View.Form (Eo.Base)
         }
     }
     implements {
-        Eo.Base.destructor;
-        Eo.Base.constructor;
+        Efl.Object.destructor;
+        Efl.Object.constructor;
     }
     constructors {
         .model_set;

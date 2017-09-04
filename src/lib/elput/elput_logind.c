@@ -84,6 +84,7 @@ _cb_device_paused(void *data, const Eldbus_Message *msg)
    uint32_t maj, min;
 
    em = data;
+   if (!em->drm_opens) return;
 
    if (eldbus_message_error_get(msg, &errname, &errmsg))
      {
@@ -93,6 +94,20 @@ _cb_device_paused(void *data, const Eldbus_Message *msg)
 
    if (eldbus_message_arguments_get(msg, "uus", &maj, &min, &type))
      {
+        /* If we opened a device during probing then we're still going
+         * to get a "gone" callback when we release it, so we'd better
+         * eat that instead of treating it like losing the drm device
+         * we currently have open, and crapping up libinput's internals
+         * for a nice deferred explosion at shutdown...
+         *
+         * FIXME: do this better?
+         */
+        if ((em->drm_opens > 1) && (maj == 226) && !strcmp(type, "gone"))
+          {
+             em->drm_opens--;
+             return;
+          }
+
         if (!strcmp(type, "pause"))
           _logind_device_pause_complete(em, maj, min);
 
@@ -162,14 +177,62 @@ _logind_dbus_close(Eldbus_Connection *conn)
 }
 
 static Eina_Bool
+_logind_session_object_path_get(Elput_Manager *em)
+{
+   Eldbus_Message *msg, *reply;
+   Eldbus_Object *obj;
+   Eldbus_Proxy *proxy;
+   const char *errname, *errmsg;
+   char *str;
+   Eina_Bool ret = EINA_FALSE;
+
+   obj =
+     eldbus_object_get(em->dbus.conn, "org.freedesktop.login1",
+                       "/org/freedesktop/login1");
+   if (!obj) return EINA_FALSE;
+
+   proxy = eldbus_proxy_get(obj, "org.freedesktop.login1.Manager");
+   if (!proxy) goto proxy_fail;
+
+   msg = eldbus_proxy_method_call_new(proxy, "GetSession");
+   if (!msg)
+     {
+        ERR("Could not create method call for proxy");
+        goto message_fail;
+     }
+
+   eldbus_message_arguments_append(msg, "s", em->sid);
+
+   reply = eldbus_proxy_send_and_block(proxy, msg, -1);
+   if (eldbus_message_error_get(reply, &errname, &errmsg))
+     {
+        ERR("Eldbus Message Error: %s %s", errname, errmsg);
+        eldbus_message_unref(reply);
+        goto message_fail;
+     }
+   if (!eldbus_message_arguments_get(reply, "o", &str))
+     {
+        eldbus_message_unref(reply);
+        goto message_fail;
+     }
+
+   em->dbus.path = strdup(str);
+   eldbus_message_unref(reply);
+   ret = EINA_TRUE;
+
+message_fail:
+   eldbus_proxy_unref(proxy);
+proxy_fail:
+   eldbus_object_unref(obj);
+   return ret;
+}
+
+static Eina_Bool
 _logind_dbus_setup(Elput_Manager *em)
 {
    Eldbus_Proxy *proxy;
-   int ret = 0;
 
-   ret = asprintf(&em->dbus.path,
-                  "/org/freedesktop/login1/session/%s", em->sid);
-   if (ret < 0) return EINA_FALSE;
+   if (!_logind_session_object_path_get(em)) return EINA_FALSE;
 
    em->dbus.obj =
      eldbus_object_get(em->dbus.conn, "org.freedesktop.login1",
@@ -233,6 +296,7 @@ _logind_control_take(Elput_Manager *em)
    if (eldbus_message_error_get(reply, &errname, &errmsg))
      {
         ERR("Eldbus Message Error: %s %s", errname, errmsg);
+        eldbus_message_unref(reply);
         return EINA_FALSE;
      }
 
@@ -276,7 +340,19 @@ _logind_device_release(Elput_Manager *em, uint32_t major, uint32_t minor)
 static void
 _logind_pipe_write_fd(Elput_Manager *em, int fd)
 {
-   write(em->input.pipe, &fd, sizeof(int));
+   int ret;
+
+   while (1)
+     {
+        ret = write(em->input.pipe, &fd, sizeof(int));
+        if (ret < 0)
+          {
+             if ((errno == EAGAIN) || (errno == EINTR))
+               continue;
+             WRN("Failed to write to input pipe");
+          }
+        break;
+     }
    close(em->input.pipe);
    em->input.pipe = -1;
 }
@@ -380,6 +456,7 @@ _logind_device_take(Elput_Manager *em, uint32_t major, uint32_t minor)
    if (eldbus_message_error_get(reply, &errname, &errmsg))
      {
         ERR("Eldbus Message Error: %s %s", errname, errmsg);
+        eldbus_message_unref(reply);
         return -1;
      }
 
@@ -513,6 +590,8 @@ _logind_disconnect(Elput_Manager *em)
    _logind_dbus_close(em->dbus.conn);
    eina_stringshare_del(em->seat);
    free(em->sid);
+   if (em->cached.context) xkb_context_unref(em->cached.context);
+   if (em->cached.keymap) xkb_keymap_unref(em->cached.keymap);
    free(em);
 }
 
@@ -543,6 +622,9 @@ _logind_open(Elput_Manager *em, const char *path, int flags)
    fd = _logind_device_take(em, major(st.st_rdev), minor(st.st_rdev));
    if (fd < 0) return fd;
 
+   if (major(st.st_rdev) == 226) //DRM_MAJOR
+     em->drm_opens++;
+
    fl = fcntl(fd, F_GETFL);
    if (fl < 0) goto err;
 
@@ -567,6 +649,7 @@ _logind_close(Elput_Manager *em, int fd)
    int ret;
 
    ret = fstat(fd, &st);
+   close(fd);
    if (ret < 0) return;
 
    if (!S_ISCHR(st.st_mode)) return;
@@ -586,7 +669,10 @@ _logind_vt_set(Elput_Manager *em, int vt)
    if (!msg) return EINA_FALSE;
 
    if (!eldbus_message_arguments_append(msg, "u", vt))
-     return EINA_FALSE;
+     {
+        eldbus_message_unref(msg);
+        return EINA_FALSE;
+     }
 
    eldbus_connection_send(em->dbus.conn, msg, NULL, NULL, -1);
 

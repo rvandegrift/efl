@@ -56,6 +56,7 @@ struct _Extn
       Eina_Bool alpha : 1;
    } b[NBUF];
    int cur_b; // current buffer (b) being displayed or rendered to
+   int prev_b; // the last buffer (b) that was rendered
    struct {
       Eina_Bool   done : 1; /* need to send change done event to the client(plug) */
    } profile;
@@ -750,8 +751,11 @@ _ecore_evas_extn_cb_focus_in(void *data, Evas *e EINA_UNUSED, Evas_Object *obj E
    Ecore_Evas *ee = data;
    Ecore_Evas_Engine_Buffer_Data *bdata = ee->engine.data;
    Extn *extn;
+   Evas_Device *dev;
 
-   ee->prop.focused = EINA_TRUE;
+   dev = evas_default_device_get(ee->evas, EFL_INPUT_DEVICE_TYPE_SEAT);
+   if (ecore_evas_focus_device_get(ee, dev)) return;
+   ee->prop.focused_by = eina_list_append(ee->prop.focused_by, dev);
    extn = bdata->data;
    if (!extn) return;
    if (!extn->ipc.server) return;
@@ -765,7 +769,8 @@ _ecore_evas_extn_cb_focus_out(void *data, Evas *e EINA_UNUSED, Evas_Object *obj 
    Ecore_Evas_Engine_Buffer_Data *bdata = ee->engine.data;
    Extn *extn;
 
-   ee->prop.focused = EINA_FALSE;
+   ee->prop.focused_by = eina_list_remove(ee->prop.focused_by,
+                                          evas_default_device_get(ee->evas, EFL_INPUT_DEVICE_TYPE_SEAT));
    extn = bdata->data;
    if (!extn) return;
    if (!extn->ipc.server) return;
@@ -913,7 +918,17 @@ static const Ecore_Evas_Engine_Func _ecore_extn_plug_engine_func =
    NULL, // aux_hints_set
 
    NULL, // fn_animator_register
-   NULL  // fn_animator_unregister
+   NULL, // fn_animator_unregister
+
+   NULL, // fn_evas_changed
+   NULL, //fn_focus_device_set
+   NULL, //fn_callback_focus_device_in_set
+   NULL, //fn_callback_focus_device_out_set
+   NULL, //fn_callback_device_mouse_in_set
+   NULL, //fn_callback_device_mouse_out_set
+   NULL, //fn_pointer_device_xy_get
+   NULL, //fn_prepare
+   NULL, //fn_last_tick_get
 };
 
 static Eina_Bool
@@ -1009,6 +1024,21 @@ _ipc_server_data(void *data, int type EINA_UNUSED, void *event)
            {
               Ipc_Data_Update *ipc;
               int n = e->response;
+
+              /* b->lockfd is not enough to ensure the size is same 
+               * between what server knows, and client knows.
+               * So should check file lock also. */
+              if ((n >= 0) && (n < NBUF))
+                {
+                   if (extn->b[n].buf && (!_extnbuf_lock_file_get(extn->b[n].buf)))
+                     {
+                        EINA_LIST_FREE(extn->file.updates, ipc)
+                          {
+                             free(ipc);
+                          }
+                        break;
+                     }
+                }
 
               EINA_LIST_FREE(extn->file.updates, ipc)
                 {
@@ -1193,11 +1223,11 @@ ecore_evas_extn_plug_new_internal(Ecore_Evas *ee_target)
    ee->req.w = ee->w;
    ee->req.h = ee->h;
    ee->profile_supported = 1;
+   ee->can_async_render = 0;
 
    ee->prop.max.w = 0;
    ee->prop.max.h = 0;
    ee->prop.layer = 0;
-   ee->prop.focused = EINA_FALSE;
    ee->prop.borderless = EINA_TRUE;
    ee->prop.override = EINA_TRUE;
    ee->prop.maximized = EINA_FALSE;
@@ -1263,7 +1293,7 @@ ecore_evas_extn_plug_new_internal(Ecore_Evas *ee_target)
 
 
    extn_ee_list = eina_list_append(extn_ee_list, ee);
-   ee_target->sub_ecore_evas = eina_list_append(ee_target->sub_ecore_evas, ee);
+   _ecore_evas_subregister(ee_target, ee);
 
    evas_event_callback_add(ee_target->evas, EVAS_CALLBACK_RENDER_PRE,
                            _ecore_evas_extn_plug_render_pre, ee);
@@ -1470,6 +1500,7 @@ _ecore_evas_socket_switch(void *data, void *dest_buf EINA_UNUSED)
    Ecore_Evas_Engine_Buffer_Data *bdata = ee->engine.data;
    Extn *extn = bdata->data;
 
+   extn->prev_b = extn->cur_b;
    extn->cur_b++;
    if (extn->cur_b >= NBUF) extn->cur_b = 0;
    bdata->pixels = _extnbuf_data_get(extn->b[extn->cur_b].buf,
@@ -1477,65 +1508,62 @@ _ecore_evas_socket_switch(void *data, void *dest_buf EINA_UNUSED)
    return bdata->pixels;
 }
 
-int
-_ecore_evas_extn_socket_render(Ecore_Evas *ee)
+static Eina_Bool
+_ecore_evas_extn_socket_prepare(Ecore_Evas *ee)
 {
-   Eina_List *updates = NULL, *l, *ll;
-   Ecore_Evas *ee2;
-   int rend = 0;
-   Eina_Rectangle *r;
    Extn *extn;
-   Ecore_Ipc_Client *client;
    Ecore_Evas_Engine_Buffer_Data *bdata = ee->engine.data;
    int cur_b;
 
    extn = bdata->data;
-   if (!extn) return rend;
-   EINA_LIST_FOREACH(ee->sub_ecore_evas, ll, ee2)
-     {
-        if (ee2->func.fn_pre_render) ee2->func.fn_pre_render(ee2);
-        if (ee2->engine.func->fn_render)
-          rend |= ee2->engine.func->fn_render(ee2);
-        if (ee2->func.fn_post_render) ee2->func.fn_post_render(ee2);
-     }
-   if (ee->func.fn_pre_render) ee->func.fn_pre_render(ee);
+   if (!extn) return EINA_FALSE;
 
-   cur_b = extn->cur_b;
    if (bdata->pixels)
      {
+        cur_b = extn->cur_b;
         bdata->pixels = _extnbuf_lock(extn->b[cur_b].buf, NULL, NULL, NULL);
-        updates = evas_render_updates(ee->evas);
-        _extnbuf_unlock(extn->b[cur_b].buf);
+        return EINA_TRUE;
      }
-   if (updates)
+   return EINA_FALSE;
+}
+
+static void
+_ecore_evas_ews_update_image(void *data, Evas *e EINA_UNUSED, void *event_info)
+{
+   Evas_Event_Render_Post *post = event_info;
+   Ecore_Evas *ee = data;
+   Ecore_Evas_Engine_Buffer_Data *bdata = ee->engine.data;
+   Extn *extn = bdata->data;
+   Ecore_Ipc_Client *client;
+   Eina_Rectangle *r;
+   Eina_List *l;
+   int prev_b;
+
+   prev_b = extn->prev_b;
+   _extnbuf_unlock(extn->b[prev_b].buf);
+
+   EINA_LIST_FOREACH(post->updated_area, l, r)
      {
-        EINA_LIST_FOREACH(updates, l, r)
-          {
-             Ipc_Data_Update ipc;
+        Ipc_Data_Update ipc;
+        Eina_List *ll;
 
-
-             ipc.x = r->x;
-             ipc.y = r->y;
-             ipc.w = r->w;
-             ipc.h = r->h;
-             EINA_LIST_FOREACH(extn->ipc.clients, ll, client)
-               ecore_ipc_client_send(client, MAJOR, OP_UPDATE, 0, 0, 0, &ipc,
-                                     sizeof(ipc));
-          }
-        evas_render_updates_free(updates);
-        _ecore_evas_idle_timeout_update(ee);
+        ipc.x = r->x;
+        ipc.y = r->y;
+        ipc.w = r->w;
+        ipc.h = r->h;
         EINA_LIST_FOREACH(extn->ipc.clients, ll, client)
-           ecore_ipc_client_send(client, MAJOR, OP_UPDATE_DONE, 0, 0,
-                                 cur_b, NULL, 0);
-        if (extn->profile.done)
-          {
-             _ecore_evas_extn_socket_window_profile_change_done_send(ee);
-             extn->profile.done = EINA_FALSE;
-          }
+          ecore_ipc_client_send(client, MAJOR, OP_UPDATE, 0, 0, 0, &ipc,
+                                sizeof(ipc));
      }
 
-   if (ee->func.fn_post_render) ee->func.fn_post_render(ee);
-   return updates ? 1 : rend;
+   EINA_LIST_FOREACH(extn->ipc.clients, l, client)
+     ecore_ipc_client_send(client, MAJOR, OP_UPDATE_DONE, 0, 0,
+                           prev_b, NULL, 0);
+   if (extn->profile.done)
+     {
+        _ecore_evas_extn_socket_window_profile_change_done_send(ee);
+        extn->profile.done = EINA_FALSE;
+     }
 }
 
 static Eina_Bool
@@ -1580,8 +1608,7 @@ _ipc_client_add(void *data, int type EINA_UNUSED, void *event)
    ipc2.x = 0; ipc2.y = 0; ipc2.w = ee->w; ipc2.h = ee->h;
    ecore_ipc_client_send(e->client, MAJOR, OP_UPDATE, 0, 0, 0, &ipc2,
                          sizeof(ipc2));
-   prev_b = extn->cur_b - 1;
-   if (prev_b < 0) prev_b = NBUF - 1;
+   prev_b = extn->prev_b;
    ecore_ipc_client_send(e->client, MAJOR, OP_UPDATE_DONE, 0, 0,
                          prev_b, NULL, 0);
    _ecore_evas_extn_event(ee, ECORE_EVAS_EXTN_CLIENT_ADD);
@@ -1658,20 +1685,10 @@ _ipc_client_data(void *data, int type EINA_UNUSED, void *event)
            }
          break;
       case OP_FOCUS:
-         if (!ee->prop.focused)
-           {
-              ee->prop.focused = EINA_TRUE;
-              evas_focus_in(ee->evas);
-              if (ee->func.fn_focus_in) ee->func.fn_focus_in(ee);
-           }
+         if (!ecore_evas_focus_device_get(ee, NULL)) _ecore_evas_focus_device_set(ee, NULL, EINA_TRUE);
          break;
       case OP_UNFOCUS:
-         if (ee->prop.focused)
-           {
-              ee->prop.focused = EINA_FALSE;
-              evas_focus_out(ee->evas);
-              if (ee->func.fn_focus_out) ee->func.fn_focus_out(ee);
-           }
+         if (ecore_evas_focus_device_get(ee, NULL)) _ecore_evas_focus_device_set(ee, NULL, EINA_FALSE);
          break;
       case OP_EV_MOUSE_IN:
          if (ee->events_block) break;
@@ -2059,7 +2076,7 @@ static const Ecore_Evas_Engine_Func _ecore_extn_socket_engine_func =
    NULL,
    NULL,
 
-   _ecore_evas_extn_socket_render, // render
+   NULL, // render
    NULL,  // screen_geometry_get
    NULL,  // screen_dpi_get
    NULL,
@@ -2078,6 +2095,15 @@ static const Ecore_Evas_Engine_Func _ecore_extn_socket_engine_func =
 
    NULL, // fn_animator_register
    NULL, // fn_animator_unregister
+
+   NULL, // fn_evas_changed
+   NULL, //fn_focus_device_set
+   NULL, //fn_callback_focus_device_in_set
+   NULL, //fn_callback_focus_device_out_set
+   NULL, //fn_callback_device_mouse_in_set
+   NULL, //fn_callback_device_mouse_out_set
+   NULL, //fn_pointer_device_xy_get
+   _ecore_evas_extn_socket_prepare,
 };
 
 EAPI Ecore_Evas *
@@ -2121,7 +2147,6 @@ ecore_evas_extn_socket_new_internal(int w, int h)
    ee->prop.max.w = 0;
    ee->prop.max.h = 0;
    ee->prop.layer = 0;
-   ee->prop.focused = EINA_FALSE;
    ee->prop.borderless = EINA_TRUE;
    ee->prop.override = EINA_TRUE;
    ee->prop.maximized = EINA_FALSE;
@@ -2135,6 +2160,7 @@ ecore_evas_extn_socket_new_internal(int w, int h)
    evas_output_method_set(ee->evas, rmethod);
    evas_output_size_set(ee->evas, w, h);
    evas_output_viewport_set(ee->evas, 0, 0, w, h);
+   evas_event_callback_add(ee->evas, EVAS_CALLBACK_RENDER_POST, _ecore_evas_ews_update_image, ee);
 
    einfo = (Evas_Engine_Info_Buffer *)evas_engine_info_get(ee->evas);
    if (einfo)

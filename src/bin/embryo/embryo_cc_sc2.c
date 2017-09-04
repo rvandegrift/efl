@@ -941,7 +941,7 @@ command(void)
 		error(8);	/* invalid/non-constant expression */
 	     fline = (int)val;
 
-	     while (*lptr == ' ' && *lptr != '\0')
+	     while (*lptr == ' ')
 	        lptr++;			/* skip whitespace */
 	     if (*lptr == '"')
                {
@@ -1005,7 +1005,7 @@ command(void)
 			    int                 i;
 
 			    for (i = 0; 
-                                 (i < (int)(sizeof(name))) && 
+                                 (i < (int)(sizeof(name)) - 1) && 
                                  (alphanum(*lptr));
 				 i++, lptr++)
 			       name[i] = *lptr;

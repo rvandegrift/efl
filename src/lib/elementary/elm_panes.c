@@ -61,7 +61,7 @@ _elm_panes_elm_widget_theme_apply(Eo *obj, Elm_Panes_Data *sd)
    elm_coords_finger_size_adjust(1, &minw, 1, &minh);
    evas_object_size_hint_min_set(sd->event, minw, minh);
 
-   int_ret = elm_obj_widget_theme_apply(eo_super(obj, MY_CLASS));
+   int_ret = elm_obj_widget_theme_apply(efl_super(obj, MY_CLASS));
    if (!int_ret) return ELM_THEME_APPLY_FAILED;
 
    size = elm_panes_content_left_size_get(obj);
@@ -83,56 +83,45 @@ _elm_panes_elm_widget_theme_apply(Eo *obj, Elm_Panes_Data *sd)
 }
 
 EOLIAN static Eina_Bool
-_elm_panes_elm_widget_focus_next(Eo *obj, Elm_Panes_Data *sd, Elm_Focus_Direction dir, Evas_Object **next, Elm_Object_Item **next_item)
+_elm_panes_elm_widget_focus_next(Eo *obj, Elm_Panes_Data *sd EINA_UNUSED, Elm_Focus_Direction dir, Evas_Object **next, Elm_Object_Item **next_item)
 {
-   double w, h;
-   unsigned char i;
-   Evas_Object *to_focus;
-   Evas_Object *chain[2];
-   Evas_Object *left, *right;
-   Elm_Object_Item *to_focus_item;
+   Eina_Bool int_ret = EINA_FALSE;
 
-   ELM_WIDGET_DATA_GET_OR_RETURN(obj, wd, EINA_FALSE);
+   Eina_List *items = NULL;
+   Eina_List *(*list_free)(Eina_List *list);
+   void *(*list_data_get)(const Eina_List *list);
+   Evas_Object *left = NULL;
+   Evas_Object *right = NULL;
 
-   edje_object_part_drag_value_get
-     (wd->resize_obj, "elm.bar", &w, &h);
-
-   left = elm_layout_content_get(obj, "left");
-   right = elm_layout_content_get(obj, "right");
-
-   if (((sd->orientation == EFL_ORIENT_HORIZONTAL) && (h == 0.0)) ||
-       ((sd->orientation == EFL_ORIENT_VERTICAL) && (w == 0.0)))
+   /* Focus chain */
+   /* TODO: Change this to use other chain */
+   if ((items = (Eina_List *)elm_widget_focus_custom_chain_get(obj)))
      {
-       return elm_widget_focus_next_get(right, dir, next, next_item);
+        list_data_get = eina_list_data_get;
+        list_free = NULL;
+     }
+   else
+     {
+        left = elm_layout_content_get(obj, "left");
+        if (left)
+          items = eina_list_append(items, left);
+
+        right = elm_layout_content_get(obj, "right");
+        if (right)
+          items = eina_list_append(items, right);
+
+        list_data_get = eina_list_data_get;
+        list_free = eina_list_free;
+
+        if (!items) return EINA_FALSE;
      }
 
-   /* Direction */
-   if (dir == ELM_FOCUS_PREVIOUS)
-     {
-        chain[0] = right;
-        chain[1] = left;
-     }
-   else if (dir == ELM_FOCUS_NEXT)
-     {
-        chain[0] = left;
-        chain[1] = right;
-     }
-   else return EINA_FALSE;
+   int_ret = elm_widget_focus_list_next_get
+      (obj, (const Eina_List *)items, list_data_get, dir, next, next_item);
 
-   i = elm_widget_focus_get(chain[1]);
+   if (list_free) list_free((Eina_List *)items);
 
-   if (elm_widget_focus_next_get(chain[i], dir, next, next_item)) return EINA_TRUE;
-
-   i = !i;
-
-   if (elm_widget_focus_next_get(chain[i], dir, &to_focus, &to_focus_item))
-     {
-        *next = to_focus;
-        *next_item = to_focus_item;
-        return !!i;
-     }
-
-   return EINA_FALSE;
+   return int_ret;
 }
 
 static void
@@ -141,7 +130,7 @@ _on_clicked(void *data,
             const char *emission EINA_UNUSED,
             const char *source EINA_UNUSED)
 {
-   eo_event_callback_call(data, EFL_UI_EVENT_CLICKED, NULL);
+   efl_event_callback_legacy_call(data, EFL_UI_EVENT_CLICKED, NULL);
 }
 
 static void
@@ -161,7 +150,7 @@ _on_pressed(void *data,
             const char *emission EINA_UNUSED,
             const char *source EINA_UNUSED)
 {
-   eo_event_callback_call(data, ELM_PANES_EVENT_PRESS, NULL);
+   efl_event_callback_legacy_call(data, ELM_PANES_EVENT_PRESS, NULL);
 }
 
 static void
@@ -171,11 +160,11 @@ _on_unpressed(void *data,
               const char *source EINA_UNUSED)
 {
    ELM_PANES_DATA_GET(data, sd);
-   eo_event_callback_call(data, ELM_PANES_EVENT_UNPRESS, NULL);
+   efl_event_callback_legacy_call(data, ELM_PANES_EVENT_UNPRESS, NULL);
 
    if (sd->double_clicked)
      {
-        eo_event_callback_call(data, EFL_UI_EVENT_CLICKED_DOUBLE, NULL);
+        efl_event_callback_legacy_call(data, EFL_UI_EVENT_CLICKED_DOUBLE, NULL);
         sd->double_clicked = EINA_FALSE;
      }
 }
@@ -267,7 +256,7 @@ _elm_panes_efl_canvas_group_group_add(Eo *obj, Elm_Panes_Data *_pd EINA_UNUSED)
    ELM_WIDGET_DATA_GET_OR_RETURN(obj, wd);
    ELM_PANES_DATA_GET(obj, sd);
 
-   efl_canvas_group_add(eo_super(obj, MY_CLASS));
+   efl_canvas_group_add(efl_super(obj, MY_CLASS));
    elm_widget_sub_object_parent_add(obj);
 
    if (!elm_layout_theme_set
@@ -323,14 +312,13 @@ EAPI Evas_Object *
 elm_panes_add(Evas_Object *parent)
 {
    EINA_SAFETY_ON_NULL_RETURN_VAL(parent, NULL);
-   Evas_Object *obj = eo_add(MY_CLASS, parent);
-   return obj;
+   return efl_add(MY_CLASS, parent, efl_canvas_object_legacy_ctor(efl_added));
 }
 
 EOLIAN static Eo *
-_elm_panes_eo_base_constructor(Eo *obj, Elm_Panes_Data *_pd EINA_UNUSED)
+_elm_panes_efl_object_constructor(Eo *obj, Elm_Panes_Data *_pd EINA_UNUSED)
 {
-   obj = eo_constructor(eo_super(obj, MY_CLASS));
+   obj = efl_constructor(efl_super(obj, MY_CLASS));
    efl_canvas_object_type_set(obj, MY_CLASS_NAME_LEGACY);
    evas_object_smart_callbacks_descriptions_set(obj, _smart_callbacks);
    elm_interface_atspi_accessible_role_set(obj, ELM_ATSPI_ROLE_SPLIT_PANE);
@@ -565,9 +553,14 @@ _elm_panes_elm_layout_content_aliases_get(Eo *obj EINA_UNUSED, Elm_Panes_Data *_
 }
 
 static void
-_elm_panes_class_constructor(Eo_Class *klass)
+_elm_panes_class_constructor(Efl_Class *klass)
 {
    evas_smart_legacy_type_register(MY_CLASS_NAME_LEGACY, klass);
 }
+
+/* Internal EO APIs and hidden overrides */
+
+#define ELM_PANES_EXTRA_OPS \
+   EFL_CANVAS_GROUP_ADD_OPS(elm_panes)
 
 #include "elm_panes.eo.c"

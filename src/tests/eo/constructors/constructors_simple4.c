@@ -9,16 +9,15 @@
 
 #define MY_CLASS SIMPLE4_CLASS
 
-static const Eo_Class_Description class_desc = {
+static const Efl_Class_Description class_desc = {
      EO_VERSION,
      "Simple4",
-     EO_CLASS_TYPE_REGULAR,
-     EO_CLASS_DESCRIPTION_NOOPS(),
-     NULL,
+     EFL_CLASS_TYPE_REGULAR,
      0,
+     NULL,
      NULL,
      NULL
 };
 
-EO_DEFINE_CLASS(simple4_class_get, &class_desc, SIMPLE_CLASS, MIXIN_CLASS, NULL);
+EFL_DEFINE_CLASS(simple4_class_get, &class_desc, SIMPLE_CLASS, MIXIN_CLASS, NULL);
 

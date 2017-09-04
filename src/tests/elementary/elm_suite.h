@@ -69,13 +69,17 @@ void elm_test_panes(TCase *tc);
 void elm_test_slideshow(TCase *tc);
 void elm_test_spinner(TCase *tc);
 void elm_test_plug(TCase *tc);
+void elm_test_focus(TCase *tc);
+void elm_test_focus_sub(TCase *tc);
 
 void elm_code_file_test_load(TCase *tc);
 void elm_code_file_test_memory(TCase *tc);
 void elm_code_test_basic(TCase *tc);
 void elm_code_test_line(TCase *tc);
 void elm_code_test_parse(TCase *tc);
+void elm_code_test_syntax(TCase *tc);
 void elm_code_test_text(TCase *tc);
+void elm_code_test_indent(TCase *tc);
 void elm_code_test_widget(TCase *tc);
 void elm_code_test_widget_text(TCase *tc);
 void elm_code_test_widget_selection(TCase *tc);

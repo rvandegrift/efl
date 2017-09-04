@@ -3,26 +3,18 @@
 #include "evas_engine.h"
 #include "Evas_Engine_FB.h"
 
+#include <Ecore.h>
+#include <Eina.h>
+
 int _evas_engine_fb_log_dom = -1;
+
+static Eina_List *_outbufs = NULL;
 
 /* function tables - filled in later (func and parent func) */
 static Evas_Func func, pfunc;
 
 /* engine struct data */
-typedef struct _Render_Engine Render_Engine;
-
-struct _Render_Engine
-{
-   Render_Engine_Software_Generic generic;
-};
-
-/* prototypes we will use here */
-static void *_output_setup(int w, int h, int rot, int vt, int dev, int refresh);
-
-static void *eng_info(Evas *eo_e);
-static void eng_info_free(Evas *eo_e, void *info);
-static int eng_setup(Evas *eo_e, void *info);
-static void eng_output_free(void *data);
+typedef Render_Engine_Software_Generic Render_Engine;
 
 /* internal engine routines */
 static void *
@@ -34,8 +26,6 @@ _output_setup(int w, int h, int rot, int vt, int dev, int refresh)
    re = calloc(1, sizeof(Render_Engine));
    if (!re)
      return NULL;
-   /* if we haven't initialized - init (automatic abort if already done) */
-   evas_common_init();
 
    evas_fb_outbuf_fb_init();
 
@@ -43,13 +33,15 @@ _output_setup(int w, int h, int rot, int vt, int dev, int refresh)
    ob = evas_fb_outbuf_fb_setup_fb(w, h, rot, OUTBUF_DEPTH_INHERIT, vt, dev, refresh);
    if (!ob) goto on_error;
 
-   if (!evas_render_engine_software_generic_init(&re->generic, ob, NULL,
+   if (!evas_render_engine_software_generic_init(re, ob, NULL,
                                                  evas_fb_outbuf_fb_get_rot,
                                                  evas_fb_outbuf_fb_reconfigure,
+                                                 NULL,
                                                  NULL,
                                                  evas_fb_outbuf_fb_new_region_for_update,
                                                  evas_fb_outbuf_fb_push_updated_region,
                                                  evas_fb_outbuf_fb_free_region_for_update,
+                                                 NULL,
                                                  NULL,
                                                  NULL,
                                                  evas_fb_outbuf_fb_free,
@@ -59,12 +51,12 @@ _output_setup(int w, int h, int rot, int vt, int dev, int refresh)
 
    /* no backbuf! */
    evas_fb_outbuf_fb_set_have_backbuf(ob, 0);
+   _outbufs = eina_list_append(_outbufs, ob);
    return re;
 
  on_error:
    if (ob) evas_fb_outbuf_fb_free(ob);
    free(re);
-   evas_common_shutdown();
    return NULL;
 }
 
@@ -88,49 +80,40 @@ eng_info_free(Evas *eo_e EINA_UNUSED, void *info)
    free(in);
 }
 
-static int
-eng_setup(Evas *eo_e, void *in)
+static void *
+eng_setup(void *engine EINA_UNUSED, void *in, unsigned int w, unsigned int h)
 {
-   Evas_Public_Data *e = eo_data_scope_get(eo_e, EVAS_CANVAS_CLASS);
-   Render_Engine *re;
-   Evas_Engine_Info_FB *info;
+   Evas_Engine_Info_FB *info = in;
 
-   info = (Evas_Engine_Info_FB *)in;
-   re = _output_setup(e->output.w,
-		      e->output.h,
-		      info->info.rotation,
-		      info->info.virtual_terminal,
-		      info->info.device_number,
-		      info->info.refresh);
-   e->engine.data.output = re;
-   if (!e->engine.data.output) return 0;
-   e->engine.data.context = e->engine.func->context_new(e->engine.data.output);
-
-   return 1;
+   return _output_setup(w,
+                        h,
+                        info->info.rotation,
+                        info->info.virtual_terminal,
+                        info->info.device_number,
+                        info->info.refresh);
 }
 
 static void
-eng_output_free(void *data)
+eng_output_free(void *engine EINA_UNUSED, void *data)
 {
    Render_Engine *re;
 
    re = (Render_Engine *)data;
    if (re)
      {
-        evas_render_engine_software_generic_clean(&re->generic);
+        _outbufs = eina_list_remove(_outbufs, re->ob);
+        evas_render_engine_software_generic_clean(re);
         free(re);
      }
-
-   evas_common_shutdown();
 }
 
 static Eina_Bool
-eng_canvas_alpha_get(void *data, void *context EINA_UNUSED)
+eng_canvas_alpha_get(void *data)
 {
    Render_Engine *re;
 
    re = (Render_Engine *)data;
-   return (re->generic.ob->priv.fb.fb->fb_var.transp.length > 0);
+   return (re->ob->priv.fb.fb->fb_var.transp.length > 0);
 }
 
 /* module advertising code */
@@ -165,7 +148,11 @@ module_open(Evas_Module *em)
 static void
 module_close(Evas_Module *em EINA_UNUSED)
 {
-  eina_log_domain_unregister(_evas_engine_fb_log_dom);
+   if (_evas_engine_fb_log_dom >= 0)
+     {
+        eina_log_domain_unregister(_evas_engine_fb_log_dom);
+        _evas_engine_fb_log_dom = -1;
+     }
 }
 
 static Evas_Module_Api evas_modapi =

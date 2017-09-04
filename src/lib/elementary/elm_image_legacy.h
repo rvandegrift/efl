@@ -383,18 +383,18 @@ EAPI void elm_image_preload_disabled_set(Evas_Object *obj, Eina_Bool disabled);
  */
 typedef enum _Elm_Image_Orient_Type
 {
-  ELM_IMAGE_ORIENT_NONE = 0 /* Evas.Image_Orient.orient_none */,
-  ELM_IMAGE_ORIENT_0 = 0 /* Evas.Image_Orient.orient_0 */,
-  ELM_IMAGE_ROTATE_90 = 1 /* Evas.Image_Orient.orient_90 */,
-  ELM_IMAGE_ORIENT_90 = 1 /* Evas.Image_Orient.orient_90 */,
-  ELM_IMAGE_ROTATE_180 = 2 /* Evas.Image_Orient.orient_180 */,
-  ELM_IMAGE_ORIENT_180 = 2 /* Evas.Image_Orient.orient_180 */,
-  ELM_IMAGE_ROTATE_270 = 3 /* Evas.Image_Orient.orient_270 */,
-  ELM_IMAGE_ORIENT_270 = 3 /* Evas.Image_Orient.orient_270 */,
-  ELM_IMAGE_FLIP_HORIZONTAL = 4 /* Evas.Image_Orient.flip_horizontal */,
-  ELM_IMAGE_FLIP_VERTICAL = 5 /* Evas.Image_Orient.flip_vertical */,
-  ELM_IMAGE_FLIP_TRANSPOSE = 6 /* Evas.Image_Orient.flip_transpose */,
-  ELM_IMAGE_FLIP_TRANSVERSE = 7 /* Evas.Image_Orient.flip_transverse */
+  ELM_IMAGE_ORIENT_NONE = 0,      /**< no orientation change */
+  ELM_IMAGE_ORIENT_0 = 0,         /**< no orientation change */
+  ELM_IMAGE_ROTATE_90 = 1,        /**< rotate 90 degrees clockwise */
+  ELM_IMAGE_ORIENT_90 = 1,        /**< rotate 90 degrees clockwise */
+  ELM_IMAGE_ROTATE_180 = 2,       /**< rotate 180 degrees clockwise */
+  ELM_IMAGE_ORIENT_180 = 2,       /**< rotate 180 degrees clockwise */
+  ELM_IMAGE_ROTATE_270 = 3,       /**< rotate 90 degrees counter-clockwise (i.e. 270 degrees clockwise) */
+  ELM_IMAGE_ORIENT_270 = 3,       /**< rotate 90 degrees counter-clockwise (i.e. 270 degrees clockwise) */
+  ELM_IMAGE_FLIP_HORIZONTAL = 4,  /**< flip image horizontally (along the x = width / 2 line) */
+  ELM_IMAGE_FLIP_VERTICAL = 5,    /**< flip image vertically (along the y = height / 2 line) */
+  ELM_IMAGE_FLIP_TRANSPOSE = 6,   /**< flip image along the y = (width - x) line (bottom-left to top-right) */
+  ELM_IMAGE_FLIP_TRANSVERSE = 7   /**< flip image along the y = x line (top-left to bottom-right) */
 } Elm_Image_Orient;
 
 /**
@@ -486,7 +486,7 @@ EAPI void elm_image_resizable_get(const Evas_Object *obj, Eina_Bool *up, Eina_Bo
  * This function disables scaling of the elm_image widget through the function
  * elm_object_scale_set(). However, this does not affect the widget size/resize
  * in any way. For that effect, take a look at @ref elm_image_resizable_get and
- * @ref elm_widget_scale_get
+ * @ref efl_ui_scale_get
  *
  * @param[in] no_scale @c true if the object is not scalable, @c false
  * otherwise. Default is @c false.
@@ -501,7 +501,7 @@ EAPI void elm_image_no_scale_set(Evas_Object *obj, Eina_Bool no_scale);
  * This function disables scaling of the elm_image widget through the function
  * elm_object_scale_set(). However, this does not affect the widget size/resize
  * in any way. For that effect, take a look at @ref elm_image_resizable_get and
- * @ref elm_widget_scale_get
+ * @ref efl_ui_scale_get
  *
  * @return @c true if the object is not scalable, @c false otherwise. Default
  * is @c false.
@@ -529,5 +529,18 @@ EAPI void elm_image_aspect_fixed_set(Evas_Object *obj, Eina_Bool fixed);
  * @ingroup Elm_Image
  */
 EAPI Eina_Bool elm_image_aspect_fixed_get(const Evas_Object *obj);
+
+/**
+ * @brief Enable asynchronous file I/O for elm_image_file_set.
+ *
+ * If @c true, this will make elm_image_file_set() an asynchronous operation.
+ * Use of this function is not recommended and the standard EO-based
+ * asynchronous I/O API should be preferred instead.
+ *
+ * @since 1.19
+ *
+ * @ingroup Elm_Image
+ */
+EAPI void elm_image_async_open_set(Evas_Object *obj, Eina_Bool async);
 
 #include "efl_ui_image.eo.legacy.h"

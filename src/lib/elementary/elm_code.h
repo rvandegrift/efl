@@ -6,8 +6,10 @@
 #include "elm_code_common.h"
 #include "elm_code_line.h"
 #include "elm_code_text.h"
+#include "elm_code_indent.h"
 #include "elm_code_file.h"
 #include "elm_code_parse.h"
+#include "elm_code_syntax.h"
 #include "elm_code_widget.eo.h"
 #include "elm_code_widget_legacy.h"
 #include "elm_code_widget_selection.h"
@@ -41,34 +43,6 @@ extern "C" {
  */
 
 /**
- * Initialize Elm Code.
- *
- * Initializes Elm Code, its dependencies and modules. Should be the first
- * function of Elm Code to be called.
- *
- * @return The init counter value.
- *
- * @see elm_code_shutdown().
- *
- * @ingroup Init
- */
-EAPI int elm_code_init(void);
-
-/**
- * Shutdown Elm Code
- *
- * Shutdown Elm Code. If init count reaches 0, all the internal structures will
- * be freed. Any Elm Code library call after this point will leads to an error.
- *
- * @return Elm Code's init counter value.
- *
- * @see elm_code_init()
- *
- * @ingroup Init
- */
-EAPI int elm_code_shutdown(void);
-
-/**
  * Create a new Elm Code instance
  *
  * This method creates a new Elm Code instance using an in-memory file for backing changes.
@@ -99,7 +73,7 @@ EAPI void elm_code_free(Elm_Code *code);
  */
 
 
-EAPI void elm_code_callback_fire(Elm_Code *code, const Eo_Event_Description *signal, void *data);
+EAPI void elm_code_callback_fire(Elm_Code *code, const Efl_Event_Description *signal, void *data);
 
 
 /**

@@ -61,6 +61,7 @@ struct _Evas_Object_Image_Pixels
       Evas_Object_Image_Pixels_Get_Cb  get_pixels;
       void                            *get_pixels_data;
    } func;
+   Eina_Hash       *images_to_free; /* pixel void* -> Evas_Image_Legacy_Pixels_Entry */
 
    Evas_Video_Surface video;
    unsigned int video_caps;
@@ -107,7 +108,10 @@ struct _Evas_Image_Data
    const Evas_Object_Image_Pixels *pixels;
 
    void             *engine_data;
+   void             *engine_data_prep;
    Efl_Vpath_File   *file_obj;
+
+   void             *plane;
 
    int               pixels_checked_out;
    int               load_error;
@@ -116,6 +120,10 @@ struct _Evas_Image_Data
    Efl_Image_Content_Hint content_hint;
    Efl_Flip               flip_value;
    Efl_Orient             orient_value;
+
+   struct {
+      short          w, h;
+   } file_size;
 
    Eina_Bool         changed : 1;
    Eina_Bool         dirty_pixels : 1;
@@ -140,12 +148,15 @@ struct _Evas_Image_Data
       Eina_Bool      video_hide : 1;
    } delayed;
    Eina_Bool         legacy_type : 1;
+   Eina_Bool         skip_head : 1;
+   Eina_Bool         can_scanout : 1;
 };
 
 /* shared functions between legacy and new eo classes */
 void _evas_image_init_set(const Eina_File *f, const char *file, const char *key, Eo *eo_obj, Evas_Object_Protected_Data *obj, Evas_Image_Data *o, Evas_Image_Load_Opts *lo);
 void _evas_image_done_set(Eo *eo_obj, Evas_Object_Protected_Data *obj, Evas_Image_Data *o);
 void _evas_image_cleanup(Evas_Object *eo_obj, Evas_Object_Protected_Data *obj, Evas_Image_Data *o);
+void *_evas_image_pixels_get(Eo *eo_obj, Evas_Object_Protected_Data *obj, void *engine, void *output, void *context, void *surface, int x, int y, int *imagew, int *imageh, int *uvw, int *uvh, Eina_Bool filtered, Eina_Bool needs_post_render);
 
 /* Efl.Gfx.Fill */
 void _evas_image_fill_set(Eo *eo_obj, Evas_Image_Data *o, int x, int y, int w, int h);
@@ -158,6 +169,7 @@ void _evas_image_file_get(const Eo *eo_obj, const char **file, const char **key)
 
 /* Efl.Image.Load */
 Efl_Image_Load_Error _evas_image_load_error_get(const Eo *eo_obj);
+void _evas_image_load_post_update(Evas_Object *eo_obj, Evas_Object_Protected_Data *obj);
 void _evas_image_load_async_start(Eo *eo_obj);
 void _evas_image_load_async_cancel(Eo *eo_obj);
 void _evas_image_load_dpi_set(Eo *eo_obj, double dpi);
@@ -168,6 +180,8 @@ void _evas_image_load_scale_down_set(Eo *eo_obj, int scale_down);
 int _evas_image_load_scale_down_get(const Eo *eo_obj);
 void _evas_image_load_region_set(Eo *eo_obj, int x, int y, int w, int h);
 void _evas_image_load_region_get(const Eo *eo_obj, int *x, int *y, int *w, int *h);
+void _evas_image_load_head_skip_set(const Eo *eo_obj, Eina_Bool skip);
+Eina_Bool _evas_image_load_head_skip_get(const Eo *eo_obj);
 void _evas_image_load_orientation_set(Eo *eo_obj, Eina_Bool enable);
 Eina_Bool _evas_image_load_orientation_get(const Eo *eo_obj);
 Eina_Bool _evas_image_load_region_support_get(const Eo *eo_obj);
@@ -185,7 +199,7 @@ int _evas_image_animated_frame_get(const Eo *eo_obj);
 /* Efl.Canvas.Proxy */
 void _evas_image_proxy_unset(Evas_Object *proxy, Evas_Object_Protected_Data *obj, Evas_Image_Data *o);
 void _evas_image_proxy_set(Evas_Object *proxy, Evas_Object *src);
-void _evas_image_proxy_error(Evas_Object *proxy, void *context, void *output, void *surface, int x, int y, Eina_Bool do_async);
+void _evas_image_proxy_error(Evas_Object *proxy, void *engine, void *output, void *context, void *surface, int x, int y, Eina_Bool do_async);
 Eina_Bool _evas_image_proxy_source_set(Eo *eo_obj, Evas_Object *eo_src);
 Evas_Object *_evas_image_proxy_source_get(const Eo *eo_obj);
 void _evas_image_proxy_source_clip_set(Eo *eo_obj, Eina_Bool source_clip);
@@ -194,7 +208,7 @@ void _evas_image_proxy_source_events_set(Eo *eo_obj, Eina_Bool source_events);
 Eina_Bool _evas_image_proxy_source_events_get(const Eo *eo_obj);
 
 /* Efl.Canvas.Scene3d */
-void _evas_image_3d_render(Evas *eo_e, Evas_Object *eo_obj, Evas_Object_Protected_Data *obj, Evas_Image_Data *o, Evas_Canvas3D_Scene *scene);
+void _evas_image_3d_render(Evas *eo_e, Evas_Object *eo_obj, Evas_Object_Protected_Data *obj, Evas_Image_Data *o, Evas_Canvas3D_Scene *scene, void *engine, void *output);
 void _evas_image_3d_set(Evas_Object *eo_obj, Evas_Canvas3D_Scene *scene);
 void _evas_image_3d_unset(Evas_Object *eo_obj, Evas_Object_Protected_Data *image, Evas_Image_Data *o);
 
@@ -206,10 +220,6 @@ Evas_Native_Surface *_evas_image_native_surface_get(const Evas_Object *eo_obj);
 void *_evas_image_data_convert_internal(Evas_Image_Data *o, void *data, Evas_Colorspace to_cspace);
 void _evas_image_unload(Evas_Object *eo_obj, Evas_Object_Protected_Data *obj, Eina_Bool dirty);
 void _evas_image_load(Evas_Object *eo_obj, Evas_Object_Protected_Data *obj, Evas_Image_Data *o);
-
-/* save typing */
-#define ENFN obj->layer->evas->engine.func
-#define ENDT obj->layer->evas->engine.data.output
 
 # define EINA_COW_IMAGE_STATE_WRITE_BEGIN(Obj, Write) \
   EINA_COW_WRITE_BEGIN(evas_object_image_state_cow, Obj->cur, Evas_Object_Image_State, Write)

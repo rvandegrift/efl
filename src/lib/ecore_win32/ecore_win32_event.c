@@ -1180,7 +1180,11 @@ _ecore_win32_event_keystroke_get(Ecore_Win32_Callback_Data *msg,
            else if (res == 0)
              {
                 INF("No translatable character found, skipping");
-                return NULL;
+                if (msg->window_param >= 0x30 && msg->window_param <= 0x39)
+                  {
+                     buf[0] = msg->window_param;
+                  }
+                else  return NULL;
              }
            else if (res >= 2)
              {
@@ -1224,7 +1228,11 @@ _ecore_win32_event_keystroke_get(Ecore_Win32_Callback_Data *msg,
            else if (res == 0)
              {
                 INF("No translatable character found, skipping");
-                return NULL;
+                if (msg->window_param >= 0x30 && msg->window_param <= 0x39)
+                  {
+                     buf[0] = msg->window_param;
+                  }
+                else  return NULL;
              }
            else if (res >= 2)
              {
@@ -1291,7 +1299,11 @@ _ecore_win32_event_keystroke_get(Ecore_Win32_Callback_Data *msg,
            else if (res == 0)
              {
                 INF("No translatable character found, skipping");
-                return NULL;
+                if (msg->window_param >= 0x30 && msg->window_param <= 0x39)
+                  {
+                     buf[0] = msg->window_param;
+                  }
+                else  return NULL;
              }
            else if (res >= 2)
              {
@@ -1879,6 +1891,22 @@ _ecore_win32_event_handle_resize(Ecore_Win32_Callback_Data *msg)
    e->timestamp = _ecore_win32_event_last_time;
 
    ecore_event_add(ECORE_WIN32_EVENT_WINDOW_RESIZE, e, NULL, NULL);
+}
+
+void
+_ecore_win32_event_handle_property_notify(Ecore_Win32_Callback_Data *msg)
+{
+   Ecore_Win32_Event_Window_Property *e;
+
+   INF("window property");
+
+   e = calloc(1, sizeof(Ecore_Win32_Event_Window_Property));
+   if (!e) return;
+
+   e->window = (void *)GetWindowLongPtr(msg->window, GWLP_USERDATA);
+   e->timestamp = _ecore_win32_event_last_time;
+
+   ecore_event_add(ECORE_WIN32_EVENT_WINDOW_PROPERTY, e, NULL, NULL);
 }
 
 void

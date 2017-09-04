@@ -2,6 +2,7 @@
 # include "elementary_config.h"
 #endif
 
+#define ELM_INTERFACE_ATSPI_ACCESSIBLE_PROTECTED
 #define ELM_INTERFACE_ATSPI_WIDGET_ACTION_PROTECTED
 
 #include <Elementary.h>
@@ -36,10 +37,17 @@ static Evas_Object * _elm_access_add(Evas_Object *parent);
 
 static void _access_object_unregister(Evas_Object *obj);
 
+static const char SIG_ACTIVATED[] = "access,activated";
+static const Evas_Smart_Cb_Description _smart_callbacks[] =
+{
+   {SIG_ACTIVATED, ""},
+   {NULL, NULL}
+};
+
 EOLIAN static void
 _elm_access_efl_canvas_group_group_add(Eo *obj, void *_pd EINA_UNUSED)
 {
-   efl_canvas_group_add(eo_super(obj, MY_CLASS));
+   efl_canvas_group_add(efl_super(obj, MY_CLASS));
    elm_widget_sub_object_parent_add(obj);
 }
 
@@ -161,12 +169,14 @@ static void
 _access_init(void)
 {
    Elm_Module *m;
-   initted++;
-   if (initted > 1) return;
+
+   if (initted > 0) return;
    if (!(m = _elm_module_find_as("access/api"))) return;
+   if (m->init_func(m) < 0) return;
+   initted++;
+
    m->api = malloc(sizeof(Mod_Api));
    if (!m->api) return;
-   m->init_func(m);
    ((Mod_Api *)(m->api)      )->out_read = // called to read out some text
       _elm_module_symbol_get(m, "out_read");
    ((Mod_Api *)(m->api)      )->out_read_done = // called to set a done marker so when it is reached the done callback is called
@@ -927,6 +937,11 @@ _access_object_register(Evas_Object *obj, Evas_Object *parent)
 
    if (!obj) return NULL;
 
+   /* check previous access object */
+   ao = evas_object_data_get(obj, "_part_access_obj");
+   if (ao)
+     _access_object_unregister(obj);
+
    /* create access object */
    ao = _elm_access_add(parent);
    if (!ao) return NULL;
@@ -1143,11 +1158,6 @@ _elm_access_object_unregister(Evas_Object *obj, Evas_Object *hoverobj)
    evas_object_data_del(obj, "_elm_access");
    if (ac)
      {
-        /* widget could delete VIEW(it) only and register item again,
-           in this case _elm_access_widget_item_register could try to delete
-           access object again in _elm_access_widget_item_unregister */
-        if (ac->widget_item) ac->widget_item->access_obj = NULL;
-
         _elm_access_clear(ac);
         free(ac);
      }
@@ -1237,15 +1247,15 @@ static Evas_Object *
 _elm_access_add(Evas_Object *parent)
 {
    EINA_SAFETY_ON_NULL_RETURN_VAL(parent, NULL);
-   Evas_Object *obj = eo_add(MY_CLASS, parent);
-   return obj;
+   return efl_add(MY_CLASS, parent, efl_canvas_object_legacy_ctor(efl_added));
 }
 
 EOLIAN static Eo *
-_elm_access_eo_base_constructor(Eo *obj, void *_pd EINA_UNUSED)
+_elm_access_efl_object_constructor(Eo *obj, void *_pd EINA_UNUSED)
 {
-   obj = eo_constructor(eo_super(obj, MY_CLASS));
+   obj = efl_constructor(efl_super(obj, MY_CLASS));
    efl_canvas_object_type_set(obj, MY_CLASS_NAME_LEGACY);
+   evas_object_smart_callbacks_descriptions_set(obj, _smart_callbacks);
 
    return obj;
 }
@@ -1447,7 +1457,7 @@ elm_access_highlight_next_set(Evas_Object *obj, Elm_Highlight_Direction dir, Eva
 }
 
 EOLIAN static void
-_elm_access_class_constructor(Eo_Class *klass)
+_elm_access_class_constructor(Efl_Class *klass)
 {
    evas_smart_legacy_type_register(MY_CLASS_NAME_LEGACY, klass);
 }
@@ -1467,7 +1477,10 @@ _access_atspi_action_do(Evas_Object *obj, const char *params)
    else if (!strcmp(params, "highlight,prev"))
       ret = _access_action_callback_call(obj, ELM_ACCESS_ACTION_HIGHLIGHT_PREV, NULL);
    else if (!strcmp(params, "activate"))
-      ret = _access_action_callback_call(obj, ELM_ACCESS_ACTION_ACTIVATE, NULL);
+     {
+        evas_object_smart_callback_call(obj, SIG_ACTIVATED, NULL);
+        ret = _access_action_callback_call(obj, ELM_ACCESS_ACTION_ACTIVATE, NULL);
+     }
    else if (!strcmp(params, "value,up"))
       ret = _access_action_callback_call(obj, ELM_ACCESS_ACTION_UP, NULL);
    else if (!strcmp(params, "value,down"))
@@ -1494,5 +1507,26 @@ _elm_access_elm_interface_atspi_widget_action_elm_actions_get(Eo *obj EINA_UNUSE
    };
    return &atspi_actions[0];
 }
+
+EOLIAN static Elm_Atspi_State_Set
+_elm_access_elm_interface_atspi_accessible_state_set_get(Eo *obj, void *pd EINA_UNUSED)
+{
+   Elm_Atspi_State_Set ret;
+   ret = elm_interface_atspi_accessible_state_set_get(efl_super(obj, ELM_ACCESS_CLASS));
+
+   Elm_Access_Info *info = _elm_access_info_get(obj);
+   if (info && !evas_object_visible_get(info->part_object))
+     {
+        STATE_TYPE_UNSET(ret, ELM_ATSPI_STATE_VISIBLE);
+        STATE_TYPE_UNSET(ret, ELM_ATSPI_STATE_SHOWING);
+     }
+
+   return ret;
+}
+
+/* Internal EO APIs and hidden overrides */
+
+#define ELM_ACCESS_EXTRA_OPS \
+   EFL_CANVAS_GROUP_ADD_OPS(elm_access)
 
 #include "elm_access.eo.c"

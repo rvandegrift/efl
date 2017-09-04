@@ -22,6 +22,8 @@ typedef struct
    double gravity_x, gravity_y;
 
    unsigned int cursor_line, cursor_col;
+   Evas_Object *cursor_rect;
+
    Eina_Bool editable, focussed;
    Eina_Bool show_line_numbers;
    unsigned int line_width_marker, tabstop;
@@ -32,6 +34,8 @@ typedef struct
    /* Undo stack */
    Eina_List *undo_stack;
    Eina_List *undo_stack_ptr;
+
+   Evas_Object *hoversel;
 } Elm_Code_Widget_Data;
 
 typedef struct
@@ -47,8 +51,7 @@ typedef struct
 
 void _elm_code_widget_cell_size_get(Elm_Code_Widget *widget, Evas_Coord *width, Evas_Coord *height);
 
-void _elm_code_widget_text_at_cursor_insert(Elm_Code_Widget *widget, const char *text, int length);
-void _elm_code_widget_text_at_cursor_insert_no_undo(Elm_Code_Widget *widget, const char *text, int length);
+void _elm_code_widget_text_at_cursor_insert_no_undo(Elm_Code_Widget *widget, const char *text, unsigned int length);
 
 void _elm_code_widget_newline(Elm_Code_Widget *widget);
 
@@ -62,6 +65,10 @@ void _elm_code_widget_tooltip_add(Evas_Object *widget);
 
 EAPI Elm_Code_Widget_Selection_Data *elm_code_widget_selection_normalized_get(Evas_Object *widget);
 
+void _elm_code_widget_selection_delete_no_undo(Elm_Code_Widget *widget);
+
 void _elm_code_widget_undo_change_add(Evas_Object *widget, Elm_Code_Widget_Change_Info *info);
+
+void _elm_code_widget_change_selection_add(Evas_Object *widget);
 
 #endif

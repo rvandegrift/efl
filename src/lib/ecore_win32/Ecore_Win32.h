@@ -62,6 +62,7 @@ extern "C" {
  */
 typedef enum
 {
+   ECORE_WIN32_WINDOW_STATE_UNKNOWN, /**< Unknown state */
    ECORE_WIN32_WINDOW_STATE_ICONIFIED, /**< iconified window */
    ECORE_WIN32_WINDOW_STATE_MODAL, /**< modal dialog box */
    ECORE_WIN32_WINDOW_STATE_STICKY, /**< sticky window */
@@ -73,8 +74,7 @@ typedef enum
    ECORE_WIN32_WINDOW_STATE_FULLSCREEN, /**< fullscreen window */
    ECORE_WIN32_WINDOW_STATE_ABOVE, /**< above window */
    ECORE_WIN32_WINDOW_STATE_BELOW, /**< below window */
-   ECORE_WIN32_WINDOW_STATE_DEMANDS_ATTENTION, /**< To document */
-   ECORE_WIN32_WINDOW_STATE_UNKNOWN /**< Unknown state */
+   ECORE_WIN32_WINDOW_STATE_DEMANDS_ATTENTION /**< To document */
 } Ecore_Win32_Window_State;
 
 /**
@@ -308,6 +308,13 @@ typedef struct _Ecore_Win32_Event_Window_Configure      Ecore_Win32_Event_Window
 typedef struct _Ecore_Win32_Event_Window_Resize         Ecore_Win32_Event_Window_Resize;
 
 /**
+ * @typedef Ecore_Win32_Event_Window_Property
+ * Event sent when the window properties are changed.
+ * @since 1.20
+ */
+typedef struct _Ecore_Win32_Event_Window_Property         Ecore_Win32_Event_Window_Property;
+
+/**
  * @typedef Ecore_Win32_Event_Window_Delete_Request
  * Event sent when the window is deleted.
  */
@@ -457,6 +464,17 @@ struct _Ecore_Win32_Event_Window_Resize
 };
 
 /**
+ * @struct _Ecore_Win32_Event_Window_Property
+ * Event sent when the window properties are changed.
+ * @since 1.20
+ */
+struct _Ecore_Win32_Event_Window_Property
+{
+   Ecore_Win32_Window *window; /**< The window that received the event */
+   unsigned long       timestamp; /**< The time the event occurred */
+};
+
+/**
  * @struct _Ecore_Win32_Event_Window_Delete_Request
  * Event sent when the window is deleted.
  */
@@ -510,6 +528,7 @@ EAPI extern int ECORE_WIN32_EVENT_WINDOW_HIDE; /**< Ecore_Event for the Ecore_Wi
 EAPI extern int ECORE_WIN32_EVENT_WINDOW_SHOW; /**< Ecore_Event for the Ecore_Win32_Event_Show event */
 EAPI extern int ECORE_WIN32_EVENT_WINDOW_CONFIGURE; /**< Ecore_Event for the Ecore_Win32_Event_Configure event */
 EAPI extern int ECORE_WIN32_EVENT_WINDOW_RESIZE; /**< Ecore_Event for the Ecore_Win32_Event_Resize event */
+EAPI extern int ECORE_WIN32_EVENT_WINDOW_PROPERTY; /**< Ecore_Event for the Ecore_Win32_Event_Property event @since 1.20 */
 EAPI extern int ECORE_WIN32_EVENT_WINDOW_DELETE_REQUEST; /**< Ecore_Event for the #Ecore_Win32_Event_Window_Delete_Request event */
 EAPI extern int ECORE_WIN32_EVENT_SELECTION_CLEAR; /**< Ecore_Event for the #Ecore_Win32_Event_Selection_Clear event @since 1.16 */
 EAPI extern int ECORE_WIN32_EVENT_SELECTION_NOTIFY; /**< Ecore_Event for the #Ecore_Win32_Event_Selection_Notify event @since 1.16 */
@@ -628,6 +647,10 @@ EAPI void ecore_win32_window_state_set(Ecore_Win32_Window       *window,
                                        Ecore_Win32_Window_State *state,
                                        unsigned int              num);
 
+EAPI void ecore_win32_window_state_get(Ecore_Win32_Window        *window,
+                                       Ecore_Win32_Window_State **state,
+                                       unsigned int              *num);
+
 EAPI void ecore_win32_window_state_request_send(Ecore_Win32_Window      *window,
                                                 Ecore_Win32_Window_State state,
                                                 unsigned int             set);
@@ -651,6 +674,8 @@ EAPI Ecore_Win32_Cursor *ecore_win32_cursor_shaped_new(Ecore_Win32_Cursor_Shape 
 EAPI const Ecore_Win32_Cursor *ecore_win32_cursor_x11_shaped_get(Ecore_Win32_Cursor_X11_Shape shape);
 
 EAPI void                ecore_win32_cursor_size_get(int *width, int *height);
+
+EAPI void                ecore_win32_cursor_show(Eina_Bool show);
 
 
 
@@ -716,6 +741,35 @@ EAPI Eina_Bool ecore_win32_clipboard_get(const Ecore_Win32_Window *window,
  * @since 1.16
  */
 EAPI Eina_Bool ecore_win32_clipboard_clear(const Ecore_Win32_Window *window);
+
+/**
+ * @typedef Ecore_Win32_Monitor
+ * Desktop geometry and dpi of a monitor.
+ *
+ * @since 1.20
+ */
+typedef struct
+{
+   Eina_Rectangle desktop; /**< Coordinates and size of the desktop */
+   struct
+   {
+      unsigned int x; /**< DPI along the X axis */
+      unsigned int y; /**< DPI along the Y axis */
+   } dpi;
+} Ecore_Win32_Monitor;
+
+/**
+ * @brief Return the coordinates, sizes DPI's of the monitors.
+ *
+ * @return An iterator of an Eina list, with #Ecore_Win32_Monitor
+ * as data.
+ *
+ * This function returns the coordinates, sizes and DPI's of the
+ * monitors as an iterator of a list of #Ecore_Win32_Monitor.
+ *
+ * @since 1.20
+ */
+EAPI Eina_Iterator *ecore_win32_monitors_get(void);
 
 /**
  * @}

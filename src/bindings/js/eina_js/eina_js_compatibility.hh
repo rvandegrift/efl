@@ -158,14 +158,14 @@ T container_wrap(T&& v)
 inline ::efl::eo::concrete container_wrap(Eo* v)
 {
   if(v)
-    eo_ref(v);
+    efl_ref(v);
   return ::efl::eo::concrete{v};
 }
 
 inline ::efl::eo::concrete container_wrap(Eo const* v)
 {
   if (v)
-    eo_ref(v);
+    efl_ref(v);
   return ::efl::eo::concrete{const_cast<Eo*>(v)};
 }
 
@@ -306,6 +306,12 @@ template <typename R, typename T, typename... U>
 R wrap_value(T v, value_tag<eina::js::complex_tag<T, U...>>)
 {
    return R {v};
+}
+
+template <typename R, typename T, typename... U>
+R wrap_value(T const& v, value_tag<eina::js::complex_tag<T*, U...>>)
+{
+   return R {const_cast<T*>(&v)};
 }
 
 template <typename T = v8::External>
@@ -884,7 +890,7 @@ inline v8::Handle<v8::Function> get_class_constructor(std::string const& class_n
 {
   auto it = constructors_map_.find(class_name);
   if (it == constructors_map_.end())
-    throw std::runtime_error("Class not found");
+    throw std::runtime_error("Class not found: " + class_name);
   return it->second;
 }
 
@@ -917,25 +923,32 @@ compatibility_return_type cast_function(compatibility_callback_info_type args)
   auto isolate = args.GetIsolate();
   compatibility_handle_scope scope(isolate);
   v8::Local<v8::Value> type;
-  if(args.Length() == 1 && (type = args[0])->IsString())
+  try
     {
-      v8::Local<v8::Object> self = args.This();
-      v8::Local<v8::Value> external = self->GetInternalField(0);
-      Eo* eo = static_cast<Eo*>(v8::External::Cast(*external)->Value());
+      if(args.Length() == 1 && (type = args[0])->IsString())
+        {
+          v8::Local<v8::Object> self = args.This();
+          v8::Local<v8::Value> external = self->GetInternalField(0);
+          Eo* eo = static_cast<Eo*>(v8::External::Cast(*external)->Value());
 
-      v8::String::Utf8Value str(type->ToString());
-      char* class_name = *str;
+          v8::String::Utf8Value str(type->ToString());
+          char* class_name = *str;
 
-      auto ctor = ::efl::eina::js::get_class_constructor(class_name);
-      auto obj = new_v8_external_instance(ctor, ::eo_ref(eo), isolate);
-      efl::eina::js::make_weak(isolate, obj, [eo]{ ::eo_unref(eo); });
-      return compatibility_return(obj, args);
+          auto ctor = ::efl::eina::js::get_class_constructor(class_name);
+          auto obj = new_v8_external_instance(ctor, ::efl_ref(eo), isolate);
+          efl::eina::js::make_weak(isolate, obj, [eo]{ ::efl_unref(eo); });
+          return compatibility_return(obj, args);
+        }
+      else
+        {
+          throw std::runtime_error("Type expected is different. Expected String type");
+        }
     }
-  else
+  catch (std::runtime_error const& error)
     {
       eina::js::compatibility_throw
         (isolate, v8::Exception::TypeError
-         (eina::js::compatibility_new<v8::String>(isolate, "Type expected is different. Expected String type")));
+         (eina::js::compatibility_new<v8::String>(isolate, error.what())));
       return compatibility_return();
     }
 }

@@ -57,9 +57,7 @@ static FILE *_ecore_memory_statistic_file = NULL;
 #endif
 #endif
 
-static Eina_Bool _no_system_modules = EINA_FALSE;
-
-Eo *_ecore_parent = NULL;
+static Eina_Bool _no_system_modules = 0xff;
 
 static const char *_ecore_magic_string_get(Ecore_Magic m);
 static int _ecore_init_count = 0;
@@ -79,7 +77,8 @@ struct _Ecore_Safe_Call
    Eina_Lock      m;
    Eina_Condition c;
 
-   int            current_id;
+   Efl_Domain_Data *eo_domain_data;
+   int              current_id;
 
    Eina_Bool      sync : 1;
    Eina_Bool      suspend : 1;
@@ -138,6 +137,7 @@ ecore_system_modules_load(void)
 {
    char buf[PATH_MAX] = "";
 
+#ifdef NEED_RUN_IN_TREE
 #if defined(HAVE_GETUID) && defined(HAVE_GETEUID)
    if (getuid() == geteuid())
 #endif
@@ -174,6 +174,7 @@ ecore_system_modules_load(void)
                }
           }
      }
+#endif
 
    snprintf(buf, sizeof(buf), "%s/ecore/system",
             eina_prefix_lib_get(_ecore_pfx));
@@ -226,12 +227,14 @@ ecore_init(void)
 #endif
    if (!eina_init())
      goto shutdown_evil;
+   eina_evlog(">RUN", NULL, 0.0, NULL);
    _ecore_log_dom = eina_log_domain_register("ecore", ECORE_DEFAULT_LOG_COLOR);
    if (_ecore_log_dom < 0)
      {
         EINA_LOG_ERR("Ecore was unable to create a log domain.");
         goto shutdown_log_dom;
      }
+   _ecore_animator_init();
 
    _ecore_pfx = eina_prefix_new(NULL, ecore_init,
                                 "ECORE", "ecore", "checkme",
@@ -243,17 +246,17 @@ ecore_init(void)
         goto shutdown_log_dom;
      }
 
-   eo_init();
+   efl_object_init();
 
    if (getenv("ECORE_FPS_DEBUG")) _ecore_fps_debug = 1;
    if (_ecore_fps_debug) _ecore_fps_debug_init();
    if (!ecore_mempool_init()) goto shutdown_mempool;
    _ecore_main_loop_init();
 
-   vpath = eo_add(EFL_VPATH_CORE_CLASS, NULL);
+   vpath = efl_add(EFL_VPATH_CORE_CLASS, NULL);
    if (vpath) efl_vpath_manager_register(EFL_VPATH_MANAGER_CLASS, 0, vpath);
 
-   _mainloop_singleton = eo_add(EFL_LOOP_CLASS, NULL);
+   _mainloop_singleton = efl_add(EFL_LOOP_CLASS, NULL);
 
    _ecore_signal_init();
 #ifndef HAVE_EXOTIC
@@ -277,7 +280,6 @@ ecore_init(void)
 #if defined(GLIB_INTEGRATION_ALWAYS)
    if (_ecore_glib_always_integrate) ecore_main_loop_glib_integrate();
 #endif
-   _ecore_parent = eo_add(ECORE_PARENT_CLASS, NULL);
 
 #if defined(HAVE_MALLINFO) || defined(HAVE_MALLOC_INFO)
    if (getenv("ECORE_MEM_STAT"))
@@ -310,6 +312,13 @@ ecore_init(void)
      }
 #endif
 
+   if (_no_system_modules == 0xff)
+     {
+        const char *s = getenv("ECORE_NO_SYSTEM_MODULES");
+        if (s) _no_system_modules = atoi(s);
+        else _no_system_modules = EINA_FALSE;
+     }
+
    if (!_no_system_modules)
      ecore_system_modules_load();
 
@@ -323,7 +332,7 @@ ecore_init(void)
 
 shutdown_mempool:
    ecore_mempool_shutdown();
-   eo_shutdown();
+   efl_object_shutdown();
 shutdown_log_dom:
    eina_shutdown();
 shutdown_evil:
@@ -363,7 +372,7 @@ ecore_shutdown(void)
        }
 #endif
 
-     eo_del(_mainloop_singleton);
+     efl_del(_mainloop_singleton);
      _mainloop_singleton = NULL;
 
      if (_ecore_fps_debug) _ecore_fps_debug_shutdown();
@@ -409,7 +418,7 @@ ecore_shutdown(void)
 
    if (vpath)
      {
-        eo_del(vpath);
+        efl_del(vpath);
         vpath = NULL;
      }
 
@@ -439,9 +448,9 @@ ecore_shutdown(void)
      eina_prefix_free(_ecore_pfx);
      _ecore_pfx = NULL;
 
-     eo_unref(_ecore_parent);
-     eo_shutdown();
+     efl_object_shutdown();
 
+     eina_evlog("<RUN", NULL, 0.0, NULL);
      eina_shutdown();
 #ifdef HAVE_EVIL
      evil_shutdown();
@@ -610,6 +619,8 @@ ecore_main_loop_thread_safe_call_wait(double wait)
    ecore_pipe_wait(_thread_call, 1, wait);
 }
 
+static Efl_Id_Domain _ecore_main_domain = EFL_ID_DOMAIN_INVALID;
+
 EAPI int
 ecore_thread_main_loop_begin(void)
 {
@@ -635,12 +646,22 @@ ecore_thread_main_loop_begin(void)
    eina_lock_new(&order->m);
    eina_condition_new(&order->c, &order->m);
    order->suspend = EINA_TRUE;
+   order->eo_domain_data = NULL;
 
    _ecore_main_loop_thread_safe_call(order);
 
    eina_lock_take(&order->m);
    while (order->current_id != _thread_id)
      eina_condition_wait(&order->c);
+
+   if (order->eo_domain_data)
+     {
+        _ecore_main_domain =
+          efl_domain_data_adopt(order->eo_domain_data);
+        if (_ecore_main_domain == EFL_ID_DOMAIN_INVALID)
+          ERR("Cannot adopt mainloop eo domain");
+     }
+
    eina_lock_release(&order->m);
 
    eina_main_loop_define();
@@ -671,6 +692,12 @@ ecore_thread_main_loop_end(void)
    _thread_loop--;
    if (_thread_loop > 0)
      return _thread_loop;
+
+   if (_ecore_main_domain != EFL_ID_DOMAIN_INVALID)
+     {
+        efl_domain_data_return(_ecore_main_domain);
+        _ecore_main_domain = EFL_ID_DOMAIN_INVALID;
+     }
 
    current_id = _thread_id;
 
@@ -974,6 +1001,7 @@ _ecore_main_call_flush(void)
 
              eina_lock_take(&call->m);
              _thread_id = call->current_id;
+             call->eo_domain_data = efl_domain_data_get();
              eina_condition_broadcast(&call->c);
              eina_lock_release(&call->m);
 
@@ -1043,5 +1071,3 @@ ecore_memory_state_set(Ecore_Memory_State state)
    _ecore_memory_state = state;
    ecore_event_add(ECORE_EVENT_MEMORY_STATE, NULL, NULL, NULL);
 }
-
-#include "ecore_parent.eo.c"

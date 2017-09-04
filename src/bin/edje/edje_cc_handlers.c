@@ -167,6 +167,8 @@ Eina_Bool script_override = EINA_FALSE;
 static Edje_Program *sequencing = NULL;
 static Eina_List *sequencing_lookups = NULL;
 static int *anonymous_delete = NULL;
+static Edje_Part_Description_Anchors *current_anchors = NULL;
+static Eina_Bool has_relatives = EINA_FALSE;
 
 Eina_List *po_files;
 
@@ -195,6 +197,9 @@ static void _program_target_add(char *name);
 static void _program_after(const char *name);
 static void _program_free(Edje_Program *pr);
 
+static void check_has_anchors(void);
+
+static void st_efl_version(void);
 static void st_externals_external(void);
 
 static void st_images_image(void);
@@ -262,6 +267,7 @@ static void st_collections_group_broadcast_signal(void);
 static void st_collections_group_data_item(void);
 static void st_collections_group_orientation(void);
 static void st_collections_group_mouse_events(void);
+static void st_collections_group_use_custom_seat_names(void);
 
 static void st_collections_group_limits_vertical(void);
 static void st_collections_group_limits_horizontal(void);
@@ -312,6 +318,7 @@ static void st_collections_group_parts_part_dragable_y(void);
 static void st_collections_group_parts_part_dragable_confine(void);
 static void st_collections_group_parts_part_dragable_threshold(void);
 static void st_collections_group_parts_part_dragable_events(void);
+static void st_collections_group_parts_part_allowed_seats(void);
 
 /* box and table items share these */
 static void ob_collections_group_parts_part_box_items_item(void);
@@ -340,6 +347,7 @@ static void st_collections_group_parts_part_description_link_base(void);
 static void st_collections_group_parts_part_description_source(void);
 static void st_collections_group_parts_part_description_state(void);
 static void st_collections_group_parts_part_description_visible(void);
+static void st_collections_group_parts_part_description_no_render(void);
 static void st_collections_group_parts_part_description_limit(void);
 static void st_collections_group_parts_part_description_align(void);
 static void st_collections_group_parts_part_description_fixed(void);
@@ -364,6 +372,14 @@ static void st_collections_group_parts_part_description_rel2_to_set(const char *
 static void st_collections_group_parts_part_description_rel2_to(void);
 static void st_collections_group_parts_part_description_rel2_to_x(void);
 static void st_collections_group_parts_part_description_rel2_to_y(void);
+static void st_collections_group_parts_part_description_anchors_top(void);
+static void st_collections_group_parts_part_description_anchors_bottom(void);
+static void st_collections_group_parts_part_description_anchors_left(void);
+static void st_collections_group_parts_part_description_anchors_right(void);
+static void st_collections_group_parts_part_description_anchors_vertical_center(void);
+static void st_collections_group_parts_part_description_anchors_horizontal_center(void);
+static void st_collections_group_parts_part_description_anchors_fill(void);
+static void st_collections_group_parts_part_description_anchors_margin(void);
 static void st_collections_group_parts_part_description_clip_to_id(void);
 static void st_collections_group_parts_part_description_size_class(void);
 static void st_collections_group_parts_part_description_image_normal(void);
@@ -378,7 +394,6 @@ static void st_collections_group_parts_part_description_fill_origin_relative(voi
 static void st_collections_group_parts_part_description_fill_origin_offset(void);
 static void st_collections_group_parts_part_description_fill_size_relative(void);
 static void st_collections_group_parts_part_description_fill_size_offset(void);
-static void st_collections_group_parts_part_description_fill_spread(void);
 static void st_collections_group_parts_part_description_fill_type(void);
 static void st_collections_group_parts_part_description_color_class(void);
 static void st_collections_group_parts_part_description_color(void);
@@ -541,6 +556,7 @@ static void _handle_vector_image(void);
 
 /*****/
 
+#define STRDUP(x) eina_strdup(x)
 
 #define IMAGE_STATEMENTS(PREFIX) \
      {PREFIX"images.image", st_images_image}, \
@@ -680,6 +696,7 @@ static void _handle_vector_image(void);
 
 New_Statement_Handler statement_handlers[] =
 {
+     {"efl_version", st_efl_version},
      {"externals.external", st_externals_external},
      IMAGE_STATEMENTS("")
      FONT_STYLE_CC_STATEMENTS("")
@@ -716,6 +733,7 @@ New_Statement_Handler statement_handlers[] =
      {"collections.group.program_source", st_collections_group_program_source},
      {"collections.group.inherit", st_collections_group_inherit},
      {"collections.group.inherit_only", st_collections_group_inherit_only},
+     {"collections.group.use_custom_seat_names", st_collections_group_use_custom_seat_names},
      {"collections.group.target_group", st_collections_group_target_group}, /* dup */
      {"collections.group.part_remove", st_collections_group_part_remove},
      {"collections.group.program_remove", st_collections_group_program_remove},
@@ -787,6 +805,7 @@ New_Statement_Handler statement_handlers[] =
      {"collections.group.parts.part.cursor_mode", st_collections_group_parts_part_cursor_mode},
      {"collections.group.parts.part.multiline", st_collections_group_parts_part_multiline},
      {"collections.group.parts.part.access", st_collections_group_parts_part_access},
+     {"collections.group.parts.part.allowed_seats", st_collections_group_parts_part_allowed_seats},
      IMAGE_SET_STATEMENTS("collections.group.parts.part")
      IMAGE_STATEMENTS("collections.group.parts.part.")
      {"collections.group.parts.part.font", st_fonts_font}, /* dup */
@@ -831,6 +850,7 @@ New_Statement_Handler statement_handlers[] =
      {"collections.group.parts.part.description.state", st_collections_group_parts_part_description_state},
      {"collections.group.parts.part.description.visible", st_collections_group_parts_part_description_visible},
      {"collections.group.parts.part.description.limit", st_collections_group_parts_part_description_limit},
+     {"collections.group.parts.part.description.no_render", st_collections_group_parts_part_description_no_render},
      {"collections.group.parts.part.description.align", st_collections_group_parts_part_description_align},
      {"collections.group.parts.part.description.fixed", st_collections_group_parts_part_description_fixed},
      {"collections.group.parts.part.description.min", st_collections_group_parts_part_description_min},
@@ -852,6 +872,14 @@ New_Statement_Handler statement_handlers[] =
      {"collections.group.parts.part.description.rel2.to", st_collections_group_parts_part_description_rel2_to},
      {"collections.group.parts.part.description.rel2.to_x", st_collections_group_parts_part_description_rel2_to_x},
      {"collections.group.parts.part.description.rel2.to_y", st_collections_group_parts_part_description_rel2_to_y},
+     {"collections.group.parts.part.description.anchors.top", st_collections_group_parts_part_description_anchors_top},
+     {"collections.group.parts.part.description.anchors.bottom", st_collections_group_parts_part_description_anchors_bottom},
+     {"collections.group.parts.part.description.anchors.left", st_collections_group_parts_part_description_anchors_left},
+     {"collections.group.parts.part.description.anchors.right", st_collections_group_parts_part_description_anchors_right},
+     {"collections.group.parts.part.description.anchors.vertical_center", st_collections_group_parts_part_description_anchors_vertical_center},
+     {"collections.group.parts.part.description.anchors.horizontal_center", st_collections_group_parts_part_description_anchors_horizontal_center},
+     {"collections.group.parts.part.description.anchors.fill", st_collections_group_parts_part_description_anchors_fill},
+     {"collections.group.parts.part.description.anchors.margin", st_collections_group_parts_part_description_anchors_margin},
      {"collections.group.parts.part.description.clip_to", st_collections_group_parts_part_description_clip_to_id},
      {"collections.group.parts.part.description.size_class", st_collections_group_parts_part_description_size_class},
      {"collections.group.parts.part.description.image.normal", st_collections_group_parts_part_description_image_normal},
@@ -868,7 +896,6 @@ New_Statement_Handler statement_handlers[] =
      {"collections.group.parts.part.description.fill.origin.offset", st_collections_group_parts_part_description_fill_origin_offset},
      {"collections.group.parts.part.description.fill.size.relative", st_collections_group_parts_part_description_fill_size_relative},
      {"collections.group.parts.part.description.fill.size.offset", st_collections_group_parts_part_description_fill_size_offset},
-     {"collections.group.parts.part.description.fill.spread", st_collections_group_parts_part_description_fill_spread},
      {"collections.group.parts.part.description.fill.type", st_collections_group_parts_part_description_fill_type},
      {"collections.group.parts.part.description.color_class", st_collections_group_parts_part_description_color_class},
      {"collections.group.parts.part.description.color", st_collections_group_parts_part_description_color},
@@ -1073,6 +1100,9 @@ New_Statement_Handler statement_handlers[] =
              pointer -> pointer_mode
              alt_font -> use_alternate_font_metrics
              clip -> clip_to
+             desc {
+                clip -> clip_to
+             }
           }
        }
     }
@@ -1097,6 +1127,7 @@ New_Statement_Handler statement_handlers_short[] =
      {"collections.group.parts.part.pointer", st_collections_group_parts_part_pointer_mode},
      {"collections.group.parts.part.alt_font", st_collections_group_parts_part_use_alternate_font_metrics},
      {"collections.group.parts.part.clip", st_collections_group_parts_part_clip_to_id},
+     {"collections.group.parts.part.description.clip", st_collections_group_parts_part_description_clip_to_id},
 };
 
 /** @edcsubsection{lazedc_shorthand,
@@ -1123,7 +1154,7 @@ New_Statement_Handler statement_handlers_short[] =
              render; -> no_render: 0;
              norender; -> no_render: 1;
              required; -> required: 1;
-             norequired; -> norequired: 0;
+             norequired; -> required: 0;
              scale; -> scale: 1;
              noscale; -> scale: 0;
              desc {
@@ -1275,6 +1306,7 @@ st_collections_group_parts_part_description_params_smart(void)
         if (!strcmp(param->name, name))
           {
              found = 1;
+             free(name);
              break;
           }
      }
@@ -1318,8 +1350,8 @@ st_collections_group_parts_part_description_params_smart(void)
 
    if (!found)
      ed->external_params = eina_list_append(ed->external_params, param);
+
    free(token);
-   free(name);
 }
 
 #define PROGRAM_OBJECTS(PREFIX) \
@@ -1460,6 +1492,7 @@ New_Object_Handler object_handlers[] =
      {"collections.group.parts.part.description.link", ob_collections_group_parts_part_description_link},
      {"collections.group.parts.part.description.rel1", NULL},
      {"collections.group.parts.part.description.rel2", NULL},
+     {"collections.group.parts.part.description.anchors", NULL},
      {"collections.group.parts.part.description.image", NULL}, /* dup */
      {"collections.group.parts.part.description.image.set", ob_images_set}, /* dup */
      {"collections.group.parts.part.description.image.set.image", ob_images_set_image}, /* dup */
@@ -1561,6 +1594,7 @@ New_Object_Handler object_handlers_short[] =
      {"collections.group.parts.external", ob_collections_group_parts_part_short},
      {"collections.group.parts.proxy", ob_collections_group_parts_part_short},
      {"collections.group.parts.spacer", ob_collections_group_parts_part_short},
+     {"collections.group.parts.snapshot", ob_collections_group_parts_part_short},
      {"collections.group.parts.part.desc", ob_collections_group_parts_part_desc},
      {"collections.group.parts.vector", ob_collections_group_parts_part_short},
 };
@@ -1640,8 +1674,6 @@ _edje_part_description_fill(Edje_Part_Description_Spec_Fill *fill)
    fill->pos_abs_y = 0;
    fill->rel_y = FROM_DOUBLE(1.0);
    fill->abs_y = 0;
-   fill->angle = 0;
-   fill->spread = 0;
    fill->type = EDJE_FILL_TYPE_SCALE;
 }
 
@@ -2020,7 +2052,6 @@ _edje_program_copy(Edje_Program *ep, Edje_Program *ep2)
 
    pc = eina_list_data_get(eina_list_last(edje_collections));
 
-   #define STRDUP(x) x ? strdup(x) : NULL
    ep->name = STRDUP(ep2->name);
 
    _edje_program_remove(pc, current_program);
@@ -2033,6 +2064,7 @@ _edje_program_copy(Edje_Program *ep, Edje_Program *ep2)
    ep->in.from = ep2->in.from;
    ep->in.range = ep2->in.range;
    ep->action = ep2->action;
+   ep->seat = STRDUP(ep2->seat);
    ep->state = STRDUP(ep2->state);
    ep->state2 = STRDUP(ep2->state2);
    ep->value = ep2->value;
@@ -2094,7 +2126,8 @@ _edje_program_copy(Edje_Program *ep, Edje_Program *ep2)
         ep->after = eina_list_append(ep->after, pa);
         copy = (char*) (pa + 1);
         memcpy(copy, name, strlen(name) + 1);
-        data_queue_copied_program_lookup(pc, &(pa2->id), &(pa->id));
+        if (!data_queue_copied_program_lookup(pc, &(pa2->id), &(pa->id)))
+          data_queue_program_lookup(pc, copy, &(pa->id));
      }
 
    ep->api.name = STRDUP(ep2->api.name);
@@ -2104,13 +2137,34 @@ _edje_program_copy(Edje_Program *ep, Edje_Program *ep2)
 
    epp = (Edje_Program_Parser *)ep;
    epp->can_override = EINA_TRUE;
-
-   #undef STRDUP
 }
 
 /*****/
 
 /** @edcsection{toplevel,Top-Level blocks} */
+
+/** @edcsubsection{toplevel_efl_version,
+ *                 Efl_version} */
+
+/**
+    @page edcref
+
+    @property
+        efl_version
+    @parameters
+        [major] [minor]
+    @effect
+        Used to show which version of EFL is used for developing a edje file.
+    @endproperty
+ */
+static void
+st_efl_version(void)
+{
+   check_arg_count(2);
+
+   edje_file->efl_version.major = parse_int(0);
+   edje_file->efl_version.minor = parse_int(1);
+}
 
 /** @edcsubsection{toplevel_externals,
  *                 Externals} */
@@ -2209,6 +2263,8 @@ st_externals_external(void)
         included inside other blocks, normally "collections", "group" and
         "part", easing maintenance of the file list when the theme is split
         among multiple files.
+        @note if svg file use as image, not vector, it will be converted to bitmap
+        and '.png' will be add to file name.
     @endblock
 
     @property
@@ -2358,7 +2414,7 @@ _handle_vector_image(void)
     @block
         images
     @context
-        vector {
+        images {
             vector: "filename1.svg";
             vector: "filename2.svg";
             vector: "filename3.svg";
@@ -3077,6 +3133,36 @@ st_color_class_name(void)
      }
 }
 
+static void
+parse_color(void *base)
+{
+   Edje_Color *color = (Edje_Color *)base;
+   int r, g, b, a;
+   char *str;
+
+   switch (get_arg_count())
+     {
+      case 1:
+         str = parse_str(0);
+         convert_color_code(str, &r, &g, &b, &a);
+         color->r = r;
+         color->g = g;
+         color->b = b;
+         color->a = a;
+         break;
+      case 4:
+         color->r = parse_int_range(0, 0, 255);
+         color->g = parse_int_range(1, 0, 255);
+         color->b = parse_int_range(2, 0, 255);
+         color->a = parse_int_range(3, 0, 255);
+         break;
+      default:
+         ERR("%s:%i. color code should be a string or a set of 4 integers.",
+             file_in, line - 1);
+         exit(-1);
+     }
+}
+
 /**
     @page edcref
     @property
@@ -3091,34 +3177,10 @@ static void
 st_color_class_color(void)
 {
    Edje_Color_Class *cc;
-   int nargs = get_arg_count();
 
    cc = eina_list_data_get(eina_list_last(edje_file->color_classes));
 
-   if (nargs == 1)
-     {
-        int r, g, b, a;
-        char *str = parse_str(0);
-
-        convert_color_code(str, &r, &g, &b, &a);
-        cc->r = r;
-        cc->g = g;
-        cc->b = b;
-        cc->a = a;
-     }
-   else if (nargs == 4)
-     {
-        cc->r = parse_int_range(0, 0, 255);
-        cc->g = parse_int_range(1, 0, 255);
-        cc->b = parse_int_range(2, 0, 255);
-        cc->a = parse_int_range(3, 0, 255);
-     }
-   else
-     {
-        ERR("%s:%i. color code should be a string or a set of 4 integers.",
-            file_in, line - 1);
-        exit(-1);
-     }
+   parse_color(&(cc->r));
 }
 
 /**
@@ -3135,34 +3197,10 @@ static void
 st_color_class_color2(void)
 {
    Edje_Color_Class *cc;
-   int nargs = get_arg_count();
 
    cc = eina_list_data_get(eina_list_last(edje_file->color_classes));
 
-   if (nargs == 1)
-     {
-        int r, g, b, a;
-        char *str = parse_str(0);
-
-        convert_color_code(str, &r, &g, &b, &a);
-        cc->r2 = r;
-        cc->g2 = g;
-        cc->b2 = b;
-        cc->a2 = a;
-     }
-   else if (nargs == 4)
-     {
-        cc->r2 = parse_int_range(0, 0, 255);
-        cc->g2 = parse_int_range(1, 0, 255);
-        cc->b2 = parse_int_range(2, 0, 255);
-        cc->a2 = parse_int_range(3, 0, 255);
-     }
-   else
-     {
-        ERR("%s:%i. color code should be a string or a set of 4 integers.",
-            file_in, line - 1);
-        exit(-1);
-     }
+   parse_color(&(cc->r2));
 }
 
 /**
@@ -3179,34 +3217,10 @@ static void
 st_color_class_color3(void)
 {
    Edje_Color_Class *cc;
-   int nargs = get_arg_count();
 
    cc = eina_list_data_get(eina_list_last(edje_file->color_classes));
 
-   if (nargs == 1)
-     {
-        int r, g, b, a;
-        char *str = parse_str(0);
-
-        convert_color_code(str, &r, &g, &b, &a);
-        cc->r3 = r;
-        cc->g3 = g;
-        cc->b3 = b;
-        cc->a3 = a;
-     }
-   else if (nargs == 4)
-     {
-        cc->r3 = parse_int_range(0, 0, 255);
-        cc->g3 = parse_int_range(1, 0, 255);
-        cc->b3 = parse_int_range(2, 0, 255);
-        cc->a3 = parse_int_range(3, 0, 255);
-     }
-   else
-     {
-        ERR("%s:%i. color code should be a string or a set of 4 integers.",
-            file_in, line - 1);
-        exit(-1);
-     }
+   parse_color(&(cc->r3));
 }
 
 /**
@@ -4144,8 +4158,8 @@ _link_combine(void)
                   if (fabs(ell->ed->state.value - el->ed->state.value) > DBL_EPSILON) continue;
                   if ((!!ell->ed->state.name) != (!!el->ed->state.name))
                     {
-                      if (((!!ell->ed->state.name) && strcmp(el->ed->state.name, "default")) ||
-                         ((!!el->ed->state.name) && strcmp(ell->ed->state.name, "default")))
+                      if (((!!ell->ed->state.name) && strcmp(ell->ed->state.name, "default")) ||
+                         ((!!el->ed->state.name) && strcmp(el->ed->state.name, "default")))
                            continue;
                     }
                   else if (ell->ed->state.name && strcmp(ell->ed->state.name, el->ed->state.name))
@@ -4336,7 +4350,6 @@ _edje_data_item_list_foreach(const Eina_Hash *hash EINA_UNUSED, const void *key,
    return EINA_TRUE;
 }
 
-#define STRDUP(x) x ? strdup(x) : NULL
 static void
 _filter_copy(Edje_Part_Description_Spec_Filter *ed, const Edje_Part_Description_Spec_Filter *parent)
 {
@@ -4365,6 +4378,63 @@ _filter_copy(Edje_Part_Description_Spec_Filter *ed, const Edje_Part_Description_
           }
      }
    else memset(ed, 0, sizeof(*ed));
+}
+
+static void
+_parts_count_update(unsigned int type, int inc)
+{
+   switch (type)
+     {
+      case EDJE_PART_TYPE_RECTANGLE:
+         current_de->count.RECTANGLE += inc;
+         break;
+      case EDJE_PART_TYPE_TEXT:
+         current_de->count.TEXT += inc;
+         break;
+      case EDJE_PART_TYPE_IMAGE:
+         current_de->count.IMAGE += inc;
+         break;
+      case EDJE_PART_TYPE_SWALLOW:
+         current_de->count.SWALLOW += inc;
+         break;
+      case EDJE_PART_TYPE_TEXTBLOCK:
+         current_de->count.TEXTBLOCK += inc;
+         break;
+      case EDJE_PART_TYPE_GROUP:
+         current_de->count.GROUP += inc;
+         break;
+      case EDJE_PART_TYPE_BOX:
+         current_de->count.BOX += inc;
+         break;
+      case EDJE_PART_TYPE_TABLE:
+         current_de->count.TABLE += inc;
+         break;
+      case EDJE_PART_TYPE_EXTERNAL:
+         current_de->count.EXTERNAL += inc;
+         break;
+      case EDJE_PART_TYPE_PROXY:
+         current_de->count.PROXY += inc;
+         break;
+      case EDJE_PART_TYPE_MESH_NODE:
+         current_de->count.MESH_NODE += inc;
+         break;
+      case EDJE_PART_TYPE_LIGHT:
+         current_de->count.LIGHT += inc;
+         break;
+      case EDJE_PART_TYPE_CAMERA:
+         current_de->count.CAMERA += inc;
+         break;
+      case EDJE_PART_TYPE_SPACER:
+         current_de->count.SPACER += inc;
+         break;
+      case EDJE_PART_TYPE_SNAPSHOT:
+         current_de->count.SNAPSHOT += inc;
+         break;
+      case EDJE_PART_TYPE_VECTOR:
+         current_de->count.VECTOR += inc;
+         break;
+     }
+   current_de->count.part += inc;
 }
 
 static void
@@ -4415,6 +4485,36 @@ _part_copy(Edje_Part *ep, Edje_Part *ep2)
    ep->dragable.count_y = ep2->dragable.count_y;
    ep->nested_children_count = ep2->nested_children_count;
 
+   if (ep2->allowed_seats)
+     {
+        Edje_Part_Allowed_Seat *seat;
+        unsigned int s;
+
+        ep->allowed_seats_count = ep2->allowed_seats_count;
+        ep->allowed_seats = calloc(ep2->allowed_seats_count,
+                                   sizeof(Edje_Part_Allowed_Seat *));
+        if (!ep->allowed_seats)
+          {
+             ERR("Not enough memory.");
+             exit(-1);
+          }
+
+        for (s = 0; s < ep->allowed_seats_count; s++)
+          {
+             seat = mem_alloc(SZ(Edje_Part_Allowed_Seat));
+             if (ep2->allowed_seats[s]->name)
+               {
+                  seat->name = strdup(ep2->allowed_seats[s]->name);
+                  if (!seat->name)
+                    {
+                       ERR("Not enough memory.");
+                       exit(-1);
+                    }
+               }
+             ep->allowed_seats[s] = seat;
+          }
+     }
+
    data_queue_copied_part_lookup(pc, &(ep2->dragable.confine_id), &(ep->dragable.confine_id));
    data_queue_copied_part_lookup(pc, &(ep2->dragable.threshold_id), &(ep->dragable.threshold_id));
    data_queue_copied_part_lookup(pc, &(ep2->dragable.event_id), &(ep->dragable.event_id));
@@ -4460,6 +4560,8 @@ _part_copy(Edje_Part *ep, Edje_Part *ep2)
 
         pitem = (Edje_Pack_Element_Parser *)item;
         pitem->can_override = EINA_TRUE;
+
+        _parts_count_update(item->type, 1);
      }
 
    ep->api.name = STRDUP(ep2->api.name);
@@ -4511,6 +4613,43 @@ st_collections_group_inherit_only(void)
 
    pcp = eina_list_data_get(eina_list_last(edje_collections));
    pcp->inherit_only = parse_bool(0);
+}
+
+/**
+    @page edcref
+    @property
+        use_custom_seat_names
+    @parameters
+        [1 or 0]
+    @effect
+        This flags a group as designed to listen for multiseat signals
+        following a custom naming instead of default Edje naming.
+        Seats are named on Edje as "seat1", "seat2", etc, in an incremental
+        way and never are changed.
+
+        But on Evas, names may be set on different places
+        (Evas, Ecore Evas backends, the application itself)
+        and name changes are allowed.
+        So custom names come from system at first, but can be overriden with
+        evas_device_name_set().
+        Also Evas seat names don't need to follow any pattern.
+
+        It's useful for cases where there is control of the
+        system, as seat names, or when the application
+        sets the devices names to guarantee they'll match
+        seat names on EDC.
+    @since 1.19
+    @endproperty
+*/
+static void
+st_collections_group_use_custom_seat_names(void)
+{
+   Edje_Part_Collection *pc;
+
+   check_arg_count(1);
+
+   pc = eina_list_data_get(eina_list_last(edje_collections));
+   pc->use_custom_seat_names = parse_bool(0);
 }
 
 /**
@@ -4649,7 +4788,7 @@ st_collections_group_inherit(void)
 
    if (pc2->alias)
      {
-        char *key, *alias;
+        char *key;
 
         memset(&fdata, 0, sizeof(Edje_List_Foreach_Data));
         eina_hash_foreach(pc2->alias,
@@ -4657,8 +4796,9 @@ st_collections_group_inherit(void)
         if (!pc->alias) pc->alias = eina_hash_string_small_new(free);
         EINA_LIST_FREE(fdata.list, key)
           {
-             alias = eina_hash_find(pc2->alias, key);
-             eina_hash_direct_add(pc->alias, key, alias);
+             char *tmp;
+             tmp = eina_hash_find(pc2->alias, key);
+             eina_hash_direct_add(pc->alias, key, tmp);
           }
      }
    if (pc2->aliased)
@@ -4690,6 +4830,7 @@ st_collections_group_inherit(void)
    pc->prop.orientation = pc2->prop.orientation;
 
    pc->lua_script_only = pc2->lua_script_only;
+   pc->use_custom_seat_names = pc2->use_custom_seat_names;
 
    pcp = (Edje_Part_Collection_Parser *)pc;
    pcp2 = (Edje_Part_Collection_Parser *)pc2;
@@ -4820,9 +4961,22 @@ st_collections_group_inherit(void)
    cd = eina_list_data_get(eina_list_last(codes));
 
    cd->is_lua = cd2->is_lua;
-   cd->shared = STRDUP(cd2->shared);
-   cd->original = STRDUP(cd2->original);
-   script_override = EINA_TRUE;
+   if (cd2->shared)
+     {
+        if (cd->shared)
+          {
+             WRN("%s:%i. script block in group \"%s\" will be overwritten by inheriting "
+                 "from group \"%s\".", file_in, line - 1, pc->part, pc2->part);
+             free(cd->shared);
+          }
+        if (cd->original)
+          free(cd->original);
+
+        cd->shared = STRDUP(cd2->shared);
+        cd->original = STRDUP(cd2->original);
+
+        script_override = EINA_TRUE;
+     }
 
    EINA_LIST_FOREACH(cd2->programs, l, cp2)
      {
@@ -4837,7 +4991,6 @@ st_collections_group_inherit(void)
      }
 
    free(parent_name);
-   #undef STRDUP
 }
 
 /**
@@ -5174,8 +5327,10 @@ st_collections_group_program_source(void)
 static void
 ob_collections_group_script(void)
 {
+   Edje_Part_Collection *pc;
    Code *cd;
 
+   pc = eina_list_last_data_get(edje_collections);
    cd = eina_list_data_get(eina_list_last(codes));
 
    if (!is_verbatim()) track_verbatim(1);
@@ -5195,6 +5350,9 @@ ob_collections_group_script(void)
                        free(cd->shared);
                        free(cd->original);
                        script_override = EINA_FALSE;
+
+                       WRN("%s:%i. Inherited script block in group \"%s\" is redefined. "
+                           "This can break inherited edje programs.", file_in, line - 1, pc->part);
                     }
                   else
                     {
@@ -5307,35 +5465,59 @@ st_collections_group_data_item(void)
         // collections
         // collections.group
         filters {
-            filter.script: "key" "Lua script here";
-            filter.file: "other" "filename.lua";
-            ..
+            // Inline as script block:
+            filter {
+               name: "myfilter1";
+               script {
+                  -- Some Lua code here, eg:
+                  blend { color = 'red' }
+               }
+            // Imported from an external file:
+            filter {
+               name: "myfilter2";
+               file: "filename.lua";
+            }
         }
     @description
         The "filter" block lets you embed filter scripts into an EDC group,
-        that can then be referred to in the @ref sec_collections_group_parts_description_filter "Text.Filter"
-        or @ref sec_collections_group_parts_description_filter "Image.Filter" statements.
+        that can then be referred to in the
+        @ref sec_collections_group_parts_description_filter "Text.Filter"
+        or @ref sec_collections_group_parts_description_filter "Image.Filter"
+        statements.
 
         In a similar way to the toplevel @ref sec_toplevel_data "Data" section,
         it is possible to embed filters from a external file inside the final EDJ.
+
+        Note that filters are defined globally, even if they appear inside a
+        specific group (as of EFL 1.19).
 
         Please also refer to @ref evasfiltersref "Evas filters reference".
     @endblock
 
     @property
-        inline
+        name
     @parameters
-        [name] [Lua script]
+        [name]
     @effect
-        Defines a new Lua script used for filtering.
+        Creates a new named filter. This filter can then be used in image, text
+        or textblock parts by name.
+    @endproperty
+
+    @property
+        script
+    @parameters
+        [Lua script]
+    @effect
+        A block of Lua code contained inside {}. Example: script { blur{5} }
     @endproperty
 
     @property
         file
     @parameters
-        [name] [Lua script filename]
+        [Path to Lua file]
     @effect
         Includes an external file to define a new Lua script used for filtering.
+        The file must be in the data path passed to edje_cc (-dd argument).
     @endproperty
 */
 
@@ -5785,6 +5967,9 @@ edje_cc_handlers_part_make(int id)
    ep->items = NULL;
    ep->nested_children_count = 0;
 
+   ep->allowed_seats = NULL;
+   ep->allowed_seats_count = 0;
+
    epp = (Edje_Part_Parser *)ep;
    epp->reorder.insert_before = NULL;
    epp->reorder.insert_after = NULL;
@@ -5911,6 +6096,8 @@ _part_type_set(unsigned int type)
         free(dummy);
         current_desc = cur;
      }
+
+   _parts_count_update(current_part->type, 1);
 }
 
 static void
@@ -5950,8 +6137,7 @@ ob_collections_group_parts_part_short(void)
                   "vector", EDJE_PART_TYPE_VECTOR,
                   NULL);
 
-   stack_pop_quick(EINA_TRUE, EINA_TRUE);
-   stack_push_quick("part");
+   stack_replace_quick("part");
    _part_create();
    _part_type_set(type);
 }
@@ -5980,6 +6166,13 @@ _part_free(Edje_Part_Collection *pc, Edje_Part *ep)
    for (j = 0 ; j < ep->items_count ; j++)
      free(ep->items[j]);
    free(ep->items);
+
+   for (j = 0 ; j < ep->allowed_seats_count; j++)
+     {
+        free((void*)(ep->allowed_seats[j]->name));
+        free(ep->allowed_seats[j]);
+     }
+   free(ep->allowed_seats);
 
    free((void*)ep->name);
    free((void*)ep->source);
@@ -6067,6 +6260,7 @@ _program_free(Edje_Program *pr)
    free((void*)pr->source);
    free((void*)pr->filter.part);
    free((void*)pr->filter.state);
+   free((void*)pr->seat);
    free((void*)pr->state);
    free((void*)pr->state2);
    free((void*)pr->sample_name);
@@ -6093,6 +6287,17 @@ _program_remove(const char *name, Edje_Program **pgrms, unsigned int count)
      if (pgrms[i]->name && (!strcmp(name, pgrms[i]->name)))
        {
           Edje_Program *pr = pgrms[i];
+
+          if (pr->after)
+            {
+               Eina_List *l;
+               Edje_Program_After *pa;
+
+               EINA_LIST_FOREACH(pr->after, l, pa)
+                 {
+                    copied_program_lookup_delete(pc, (char *)(pa + 1));
+                 }
+            }
 
           _edje_program_remove(pc, pr);
 
@@ -6149,7 +6354,6 @@ st_collections_group_program_remove(void)
         success |= _program_remove(name, pc->programs.strrncmp, pc->programs.strrncmp_count);
         success |= _program_remove(name, pc->programs.nocmp, pc->programs.nocmp_count);
 
-        copied_program_lookup_delete(pc, name);
         if (anonymous_delete)
           {
              copied_program_anonymous_lookup_delete(pc, anonymous_delete);
@@ -6221,7 +6425,7 @@ _part_name_check(void)
 static void
 st_collections_group_part_remove(void)
 {
-   unsigned int n, argc, orig_count;
+   unsigned int n, argc, orig_count, part_type;
    Edje_Part_Collection *pc;
 
    check_min_arg_count(1);
@@ -6248,6 +6452,7 @@ st_collections_group_part_remove(void)
 
              if (strcmp(pc->parts[j]->name, name)) continue;
 
+             part_type = pc->parts[j]->type;
              pc->parts[j] = _part_free(pc, pc->parts[j]);
              for (i = j; i < pc->parts_count - 1; i++)
                {
@@ -6255,6 +6460,7 @@ st_collections_group_part_remove(void)
                   pc->parts[i] = pc->parts[i + 1];
                }
              pc->parts_count--;
+             _parts_count_update(part_type, -1);
              break;
           }
         if (cur_count == pc->parts_count)
@@ -7345,6 +7551,53 @@ st_collections_group_parts_part_dragable_events(void)
      }
 }
 
+/**
+    @page edcref
+    @property
+        allowed_seats
+    @parameters
+        [seat1] [seat2] [seat3] ...
+    @effect
+        List of seat names allowed to interact with the part.
+
+        If no list is defined all seats are allowed. It's the
+        default behaviour.
+
+        If a seat isn't allowed, no signals will be emitted
+        related to its actions, as mouse and focus events.
+        Also it won't be able to focus this part.
+    @since 1.19
+    @endproperty
+*/
+static void
+st_collections_group_parts_part_allowed_seats(void)
+{
+   Edje_Part_Allowed_Seat *seat;
+   Edje_Part *ep;
+   int n, argc;
+
+   check_min_arg_count(1);
+
+   ep = current_part;
+   argc = get_arg_count();
+
+   ep->allowed_seats = calloc(argc, sizeof(Edje_Part_Allowed_Seat *));
+   if (!ep->allowed_seats)
+     {
+        ERR("Not enough memory.");
+        exit(-1);
+     }
+
+   for (n = 0; n < argc; n++)
+     {
+        seat = mem_alloc(SZ(Edje_Part_Allowed_Seat));
+        seat->name = parse_str(n);
+        ep->allowed_seats[n] = seat;
+     }
+
+   ep->allowed_seats_count = argc;
+}
+
 /** @edcsubsection{collections_group_parts_items,
  *                 Group.Parts.Part.Box/Table.Items} */
 
@@ -7830,7 +8083,7 @@ _copied_map_colors_get(Edje_Part_Description_Common *parent)
    int i;
 
    if (parent->map.colors_count == 0) return NULL;
-   colors = malloc(sizeof(Edje_Map_Color *) * parent->map.colors_count);
+   colors = mem_alloc(sizeof(Edje_Map_Color *) * parent->map.colors_count);
 
    for (i = 0; i < (int)parent->map.colors_count; i++)
      {
@@ -7839,7 +8092,7 @@ _copied_map_colors_get(Edje_Part_Description_Common *parent)
         Edje_Map_Color *c = mem_alloc(SZ(Edje_Map_Color));
         if (!color)
           {
-             ERR("not enough memory");
+             ERR("Could not find allocated source when copying map colors");
              exit(-1);
              return NULL;
           }
@@ -7868,6 +8121,7 @@ _copied_map_colors_get(Edje_Part_Description_Common *parent)
             step: 0 0;
             aspect: 1 1;
             clip_to: "clip_override_part_name";
+            no_render: 0;
 
             rel1 {
                 ..
@@ -7923,6 +8177,7 @@ ob_collections_group_parts_part_description(void)
 
    ed->visible = 1;
    ed->limit = 0;
+   ed->no_render = 0;
    ed->align.x = FROM_DOUBLE(0.5);
    ed->align.y = FROM_DOUBLE(0.5);
    ed->min.w = 0;
@@ -7976,8 +8231,7 @@ ob_collections_group_parts_part_description(void)
 static void
 ob_collections_group_parts_part_desc(void)
 {
-   stack_pop_quick(EINA_TRUE, EINA_TRUE);
-   stack_push_quick("description");
+   stack_replace_quick("description");
    ob_collections_group_parts_part_description();
 }
 
@@ -8032,6 +8286,7 @@ st_collections_group_parts_part_description_inherit(void)
              break;
            case 2:
              parent_val = parse_float_range(1, 0.0, 1.0);
+             EINA_FALLTHROUGH;
            case 1:
              parent_name = parse_str(0);
              break;
@@ -8113,7 +8368,6 @@ st_collections_group_parts_part_description_inherit(void)
    /* make sure all the allocated memory is getting copied, not just
     * referenced
     */
-#define STRDUP(x) x ? strdup(x) : NULL
 
    ed->size_class = STRDUP(ed->size_class);
    ed->color_class = STRDUP(ed->color_class);
@@ -8198,6 +8452,8 @@ st_collections_group_parts_part_description_inherit(void)
               Edje_Part_Description_Proxy *pparent = (Edje_Part_Description_Proxy*) parent;
 
               data_queue_copied_part_lookup(pc, &(pparent->proxy.id), &(ped->proxy.id));
+              ped->proxy.source_clip = pparent->proxy.source_clip;
+              ped->proxy.source_visible = pparent->proxy.source_visible;
               _filter_copy(&ped->filter, &pparent->filter);
 
               break;
@@ -8288,8 +8544,6 @@ st_collections_group_parts_part_description_inherit(void)
               break;
            }
      }
-
-#undef STRDUP
 }
 
 /**
@@ -8483,6 +8737,35 @@ st_collections_group_parts_part_description_hid(void)
 /**
     @page edcref
     @property
+        visible
+    @parameters
+        [0 or 1]
+    @effect
+        Takes a boolean value specifying whether part is visible (1) or not
+        (0). Non-visible parts do not emit signals. The default value is 1.
+
+    @since 1.19
+    @endproperty
+*/
+static void
+st_collections_group_parts_part_description_no_render(void)
+{
+   if (current_part->type == EDJE_PART_TYPE_SPACER)
+     {
+       ERR("parse error %s:%i. SPACER part can't be marked as no_render",
+           file_in, line - 1);
+       exit(-1);
+     }
+
+   if (check_range_arg_count(0, 1) == 1)
+     EDJE_DESC_NO_RENDER_SET(current_desc, parse_bool(0));
+   else /* lazEDC form */
+     EDJE_DESC_NO_RENDER_SET(current_desc, 1);
+}
+
+/**
+    @page edcref
+    @property
         limit
     @parameters
         [mode]
@@ -8544,6 +8827,8 @@ st_collections_group_parts_part_description_limit(void)
 static void
 st_collections_group_parts_part_description_align(void)
 {
+   check_has_anchors();
+
    if (get_arg_count() == 2)
      {
         current_desc->align.x = FROM_DOUBLE(parse_float_range(0, 0.0, 1.0));
@@ -8574,6 +8859,7 @@ st_collections_group_parts_part_description_align(void)
 static void
 st_collections_group_parts_part_description_fixed(void)
 {
+   check_has_anchors();
    check_arg_count(2);
 
    current_desc->fixed.w = parse_float_range(0, 0, 1);
@@ -8812,8 +9098,6 @@ st_collections_group_parts_part_description_color_class(void)
 static void
 st_collections_group_parts_part_description_color(void)
 {
-   int nargs = get_arg_count();
-
    if (current_part->type == EDJE_PART_TYPE_SPACER)
      {
        ERR("parse error %s:%i. SPACER part can't have a color defined",
@@ -8821,30 +9105,7 @@ st_collections_group_parts_part_description_color(void)
        exit(-1);
      }
 
-   if (nargs == 1)
-     {
-        int r, g, b, a;
-        char *str = parse_str(0);
-
-        convert_color_code(str, &r, &g, &b, &a);
-        current_desc->color.r = r;
-        current_desc->color.g = g;
-        current_desc->color.b = b;
-        current_desc->color.a = a;
-     }
-   else if (nargs == 4)
-     {
-        current_desc->color.r = parse_int_range(0, 0, 255);
-        current_desc->color.g = parse_int_range(1, 0, 255);
-        current_desc->color.b = parse_int_range(2, 0, 255);
-        current_desc->color.a = parse_int_range(3, 0, 255);
-     }
-   else
-     {
-        ERR("%s:%i. color code should be a string or a set of 4 integers.",
-            file_in, line - 1);
-        exit(-1);
-     }
+   parse_color(&(current_desc->color.r));
 }
 
 /**
@@ -8860,8 +9121,6 @@ st_collections_group_parts_part_description_color(void)
 static void
 st_collections_group_parts_part_description_color2(void)
 {
-   int nargs = get_arg_count();
-
    if (current_part->type == EDJE_PART_TYPE_SPACER)
      {
        ERR("parse error %s:%i. SPACER part can't have a color defined",
@@ -8869,30 +9128,7 @@ st_collections_group_parts_part_description_color2(void)
        exit(-1);
      }
 
-   if (nargs == 1)
-     {
-        int r, g, b, a;
-        char *str = parse_str(0);
-
-        convert_color_code(str, &r, &g, &b, &a);
-        current_desc->color2.r = r;
-        current_desc->color2.g = g;
-        current_desc->color2.b = b;
-        current_desc->color2.a = a;
-     }
-   else if (nargs == 4)
-     {
-        current_desc->color2.r = parse_int_range(0, 0, 255);
-        current_desc->color2.g = parse_int_range(1, 0, 255);
-        current_desc->color2.b = parse_int_range(2, 0, 255);
-        current_desc->color2.a = parse_int_range(3, 0, 255);
-     }
-   else
-     {
-        ERR("%s:%i. color code should be a string or a set of 4 integers.",
-            file_in, line - 1);
-        exit(-1);
-     }
+   parse_color(&(current_desc->color2.r));
 }
 
 /**
@@ -8910,7 +9146,6 @@ st_collections_group_parts_part_description_color3(void)
 {
    Edje_Part_Collection *pc;
    Edje_Part_Description_Text *ed;
-   int nargs = get_arg_count();
 
    pc = eina_list_data_get(eina_list_last(edje_collections));
 
@@ -8924,30 +9159,7 @@ st_collections_group_parts_part_description_color3(void)
 
    ed = (Edje_Part_Description_Text*)current_desc;
 
-   if (nargs == 1)
-     {
-        int r, g, b, a;
-        char *str = parse_str(0);
-
-        convert_color_code(str, &r, &g, &b, &a);
-        ed->text.color3.r = r;
-        ed->text.color3.g = g;
-        ed->text.color3.b = b;
-        ed->text.color3.a = a;
-     }
-   else if (nargs == 4)
-     {
-        ed->text.color3.r = parse_int_range(0, 0, 255);
-        ed->text.color3.g = parse_int_range(1, 0, 255);
-        ed->text.color3.b = parse_int_range(2, 0, 255);
-        ed->text.color3.a = parse_int_range(3, 0, 255);
-     }
-   else
-     {
-        ERR("%s:%i. color code should be a string or a set of 4 integers.",
-            file_in, line - 1);
-        exit(-1);
-     }
+   parse_color(&(ed->text.color3.r));
 }
 
 /**
@@ -9026,6 +9238,7 @@ st_collections_group_parts_part_description_clip_to_id(void)
 static void
 st_collections_group_parts_part_description_rel1_relative(void)
 {
+   check_has_anchors();
    check_arg_count(2);
 
    current_desc->rel1.relative_x = FROM_DOUBLE(parse_float(0));
@@ -9045,6 +9258,7 @@ st_collections_group_parts_part_description_rel1_relative(void)
 static void
 st_collections_group_parts_part_description_rel1_offset(void)
 {
+   check_has_anchors();
    check_arg_count(2);
 
    current_desc->rel1.offset_x = parse_int(0);
@@ -9075,6 +9289,7 @@ st_collections_group_parts_part_description_rel1_to_set(const char *name)
 static void
 st_collections_group_parts_part_description_rel_to(void)
 {
+   check_has_anchors();
    check_arg_count(1);
 
    {
@@ -9089,6 +9304,7 @@ st_collections_group_parts_part_description_rel_to(void)
 static void
 st_collections_group_parts_part_description_rel1_to(void)
 {
+   check_has_anchors();
    check_arg_count(1);
 
    {
@@ -9116,6 +9332,7 @@ st_collections_group_parts_part_description_rel_to_x(void)
 {
    Edje_Part_Collection *pc;
 
+   check_has_anchors();
    check_arg_count(1);
 
    pc = eina_list_data_get(eina_list_last(edje_collections));
@@ -9135,6 +9352,7 @@ st_collections_group_parts_part_description_rel1_to_x(void)
 {
    Edje_Part_Collection *pc;
 
+   check_has_anchors();
    check_arg_count(1);
 
    pc = eina_list_data_get(eina_list_last(edje_collections));
@@ -9165,6 +9383,7 @@ st_collections_group_parts_part_description_rel_to_y(void)
 {
    Edje_Part_Collection *pc;
 
+   check_has_anchors();
    check_arg_count(1);
 
    pc = eina_list_data_get(eina_list_last(edje_collections));
@@ -9184,6 +9403,7 @@ st_collections_group_parts_part_description_rel1_to_y(void)
 {
    Edje_Part_Collection *pc;
 
+   check_has_anchors();
    check_arg_count(1);
 
    pc = eina_list_data_get(eina_list_last(edje_collections));
@@ -9200,6 +9420,7 @@ st_collections_group_parts_part_description_rel1_to_y(void)
 static void
 st_collections_group_parts_part_description_rel2_relative(void)
 {
+   check_has_anchors();
    check_arg_count(2);
 
    current_desc->rel2.relative_x = FROM_DOUBLE(parse_float(0));
@@ -9209,6 +9430,7 @@ st_collections_group_parts_part_description_rel2_relative(void)
 static void
 st_collections_group_parts_part_description_rel2_offset(void)
 {
+   check_has_anchors();
    check_arg_count(2);
 
    current_desc->rel2.offset_x = parse_int(0);
@@ -9227,6 +9449,7 @@ st_collections_group_parts_part_description_rel2_to_set(const char *name)
 static void
 st_collections_group_parts_part_description_rel2_to(void)
 {
+   check_has_anchors();
    check_arg_count(1);
 
    {
@@ -9242,6 +9465,7 @@ st_collections_group_parts_part_description_rel2_to_x(void)
 {
    Edje_Part_Collection *pc;
 
+   check_has_anchors();
    check_arg_count(1);
 
    pc = eina_list_data_get(eina_list_last(edje_collections));
@@ -9260,6 +9484,7 @@ st_collections_group_parts_part_description_rel2_to_y(void)
 {
    Edje_Part_Collection *pc;
 
+   check_has_anchors();
    check_arg_count(1);
 
    pc = eina_list_data_get(eina_list_last(edje_collections));
@@ -9271,6 +9496,582 @@ st_collections_group_parts_part_description_rel2_to_y(void)
       data_queue_part_lookup(pc, name, &(current_desc->rel2.id_y));
       free(name);
    }
+}
+
+/** @edcsubsection{collections_group_parts_description_anchors,
+ *                 Group.Parts.Part.Description.Anchors} */
+
+/**
+    @page edcref
+    @block
+        anchors
+    @context
+        // This part will be expanded from the top-left corner of edje group
+        part { name : "part1";
+            description { state: "default" 0.0;
+                anchors {
+                    top: GROUP TOP;
+                    left: GROUP; // This means 'left: GROUP LEFT;'
+                }
+                min: 50 50;
+            }
+        }
+        // This part will be expanded from the bottom-right corner of "part1"
+        // to the bottom-right
+        part { name: "part2";
+            description { state: "default" 0.0;
+                anchors {
+                    top: "part1" BOTTOM;
+                    left: "part1"; // This means 'left: "part1" RIGHT;'
+                }
+                min: 50 50;
+            }
+        }
+        // This part will be expanded from the right edje of "part2" to the right
+        part { name: "part3";
+            description { state: "default" 0.0;
+                anchors {
+                    left: "part2";
+                    fill: "part2" VERTICAL;
+                }
+                min: 100 0; // The height will be determined by the height of "part2"
+            }
+        }
+        // This part will be expanded from the center of right edge of "part3"
+        // to the bottom-right corner of edje group
+        part { name: "part4";
+            description { state: "default" 0.0;
+                anchors {
+                    top: "part3" VERTICAL_CENTER;
+                    left: "part3";
+                    right: GROUP;
+                    bottom: GROUP;
+                }
+            }
+        }
+    @description
+        The anchors blocks are used to define the position of each edge of
+        the part's container. Anchors will change relative, align and fixed
+        attributes internally, so setting both of them is not allowed.
+        When the second parameter of position enumeration is omitted, anchoring
+        a part to the other part will put the part adjacent to the given part.
+        However, if the part is anchored to edje group, the part will be contained
+        inside the group.
+    @endblock
+
+    @property
+        anchors
+    @parameters
+        [partname] [the edge of other part]
+    @effect
+        Moves an edge of the part to the position of the edge of given part or
+        whole edje group. (GROUP means edje group that the part belong to)
+    @endproperty
+*/
+
+static void
+check_has_anchors(void)
+{
+   if (current_anchors)
+     {
+        ERR("parse error %s:%i. Anchors and Relatives(rel/align/fixed) cannot be used at the same time.",
+            file_in, line - 1);
+        exit(-1);
+     }
+
+   has_relatives = EINA_TRUE;
+}
+
+static void
+check_has_relatives(void)
+{
+   if (!beta)
+     error_and_abort(NULL, "Anchors are currently a beta feature, please enable them by running edje_cc with -beta.");
+
+   if (has_relatives)
+     {
+        ERR("parse error %s:%i. Anchors and Relatives(rel/align/fixed) cannot be used at the same time.",
+            file_in, line - 1);
+        exit(-1);
+     }
+
+   current_desc->offset_is_scaled = EINA_TRUE;
+}
+
+static void
+parse_anchor_line(Edje_Part_Anchor *anchor, Edje_Part_Anchor_Line undefined)
+{
+   int nargs;
+   char *name;
+
+   nargs = get_arg_count();
+   if (!nargs || (nargs > 2))
+     {
+        ERR("parse error %s:%i. Anchors should have a name of part and base line.",
+            file_in, line - 1);
+        exit(-1);
+     }
+
+   name = parse_str(0);
+   anchor->set = EINA_TRUE;
+
+   if (nargs == 2)
+     anchor->base.line = parse_enum(1,
+                                    "TOP", EDJE_PART_ANCHOR_LINE_TOP,
+                                    "BOTTOM", EDJE_PART_ANCHOR_LINE_BOTTOM,
+                                    "LEFT", EDJE_PART_ANCHOR_LINE_LEFT,
+                                    "RIGHT", EDJE_PART_ANCHOR_LINE_RIGHT,
+                                    "VERTICAL_CENTER", EDJE_PART_ANCHOR_LINE_VERTICAL_CENTER,
+                                    "HORIZONTAL_CENTER", EDJE_PART_ANCHOR_LINE_HORIZONTAL_CENTER,
+                                    "*", EDJE_PART_ANCHOR_LINE_RELATIVE,
+                                    NULL);
+   else if (strcmp(name, "GROUP") || param_had_quote(0))
+     anchor->base.line = undefined;
+
+   free(name);
+}
+
+static void
+parse_anchor_fill(Edje_Part_Anchor *anchor)
+{
+   int nargs;
+
+   nargs = get_arg_count();
+   if (!nargs || (nargs > 2))
+     {
+        ERR("parse error %s:%i. Anchors should have a name of part and base line.",
+            file_in, line - 1);
+        exit(-1);
+     }
+
+   anchor->set = EINA_TRUE;
+
+   if (nargs == 2)
+     anchor->base.fill = parse_enum(1,
+                                    "BOTH", EDJE_PART_ANCHOR_FILL_BOTH,
+                                    "HORIZONTAL", EDJE_PART_ANCHOR_FILL_HORIZONTAL,
+                                    "VERTICAL", EDJE_PART_ANCHOR_FILL_VERTICAL,
+                                    NULL);
+   else
+     anchor->base.fill = EDJE_PART_ANCHOR_FILL_BOTH;
+}
+
+static void
+anchor_queue_part_lookup(int *part, int *counterpart, Eina_Bool counterpart_is_set)
+{
+   Edje_Part_Collection *pc;
+   char *name;
+
+   pc = eina_list_data_get(eina_list_last(edje_collections));
+
+   name = parse_str(0);
+   if (!strcmp(name, "GROUP") && !param_had_quote(0))
+     goto end;
+
+   data_queue_part_lookup(pc, name, part);
+
+   if (!counterpart_is_set)
+     data_queue_part_lookup(pc, name, counterpart);
+
+end:
+   free(name);
+}
+
+static void
+anchor_dequeue_part_lookup(int *part, Eina_Bool counterpart_is_set)
+{
+   Edje_Part_Collection *pc;
+
+   pc = eina_list_data_get(eina_list_last(edje_collections));
+
+   if (counterpart_is_set && part)
+     part_lookup_del(pc, part);
+}
+
+static void
+anchor_adjust_align(FLOAT_T *align, FLOAT_T val, unsigned char *fixed, Eina_Bool counterpart_is_set)
+{
+   if (counterpart_is_set)
+     {
+        *align = 0.5;
+        *fixed = 0;
+     }
+   else
+     {
+        *align = val;
+        *fixed = 1;
+     }
+}
+
+static void
+anchor_adjust_relative(const Edje_Part_Anchor_Line *anchor_lines, FLOAT_T *rel, FLOAT_T *relc, Edje_Part_Anchor_Line anchor_line, Edje_Part_Anchor_Line base, Eina_Bool counterpart_is_set)
+{
+   if (anchor_line == EDJE_PART_ANCHOR_LINE_NONE)
+     anchor_line = base;
+
+   if (anchor_line == anchor_lines[0])
+     {
+        *rel = FROM_DOUBLE(0.0);
+        if (!counterpart_is_set)
+          *relc = FROM_DOUBLE(0.0);
+     }
+   else if (anchor_line == anchor_lines[1])
+     {
+        *rel = FROM_DOUBLE(1.0);
+        if (!counterpart_is_set)
+          *relc = FROM_DOUBLE(1.0);
+     }
+   else if (anchor_line == anchor_lines[2])
+     {
+        *rel = FROM_DOUBLE(0.5);
+        if (!counterpart_is_set)
+          *relc = FROM_DOUBLE(0.5);
+     }
+   else if (anchor_line == EDJE_PART_ANCHOR_LINE_RELATIVE)
+     {
+        *rel = FROM_DOUBLE(parse_float(1));
+        if (!counterpart_is_set)
+          *relc = FROM_DOUBLE(parse_float(1));
+     }
+   else
+     {
+        ERR("parse error %s:%i. Edje part is anchored to wrong position.",
+            file_in, line - 1);
+        exit(-1);
+     }
+}
+
+static void
+anchor_adjust_relative_vertical(FLOAT_T *rel, FLOAT_T *relc, Edje_Part_Anchor_Line anchor_line, Edje_Part_Anchor_Line base, Eina_Bool counterpart_is_set)
+{
+   static const Edje_Part_Anchor_Line anchor_lines[] = {
+      EDJE_PART_ANCHOR_LINE_TOP,
+      EDJE_PART_ANCHOR_LINE_BOTTOM,
+      EDJE_PART_ANCHOR_LINE_VERTICAL_CENTER
+   };
+
+   anchor_adjust_relative(anchor_lines, rel, relc, anchor_line, base, counterpart_is_set);
+}
+
+static void
+anchor_adjust_relative_horizontal(FLOAT_T *rel, FLOAT_T *relc, Edje_Part_Anchor_Line anchor_line, Edje_Part_Anchor_Line base, Eina_Bool counterpart_is_set)
+{
+   static const Edje_Part_Anchor_Line anchor_lines[] = {
+      EDJE_PART_ANCHOR_LINE_LEFT,
+      EDJE_PART_ANCHOR_LINE_RIGHT,
+      EDJE_PART_ANCHOR_LINE_HORIZONTAL_CENTER
+   };
+
+   anchor_adjust_relative(anchor_lines, rel, relc, anchor_line, base, counterpart_is_set);
+}
+
+/**
+    @page edcref
+    @property
+        top
+    @parameters
+        [partname] [TOP/BOTTOM/VERTICAL_CENTER]
+    @effect
+        Causes top edge to be positioned to the edge of another part's container.
+        Setting to GROUP will indicate edje group instead of another part.
+        If bottom anchor is not set, edje part will be expanded to the bottom.
+        The second parameter of position enumeration can be omitted. (Default
+        value is BOTTOM, but TOP when the part is anchored to edje group)
+    @endproperty
+*/
+static void
+st_collections_group_parts_part_description_anchors_top(void)
+{
+   Eina_Bool counterpart_is_set;
+
+   check_has_relatives();
+
+   if (!current_anchors)
+     current_anchors = mem_alloc(SZ(Edje_Part_Description_Anchors));
+
+   counterpart_is_set = current_anchors->bottom.set;
+
+   parse_anchor_line(&(current_anchors->top), EDJE_PART_ANCHOR_LINE_BOTTOM);
+
+   anchor_dequeue_part_lookup(&(current_desc->rel1.id_y), counterpart_is_set);
+   anchor_queue_part_lookup(&(current_desc->rel1.id_y), &(current_desc->rel2.id_y), counterpart_is_set);
+
+   anchor_adjust_align(&(current_desc->align.y), 0.0, &(current_desc->fixed.h), counterpart_is_set);
+   anchor_adjust_relative_vertical(&(current_desc->rel1.relative_y), &(current_desc->rel2.relative_y), current_anchors->top.base.line, EDJE_PART_ANCHOR_LINE_TOP, counterpart_is_set);
+}
+
+/**
+    @page edcref
+    @property
+        bottom
+    @parameters
+        [partname] [TOP/BOTTOM/VERTICAL_CENTER]
+    @effect
+        Causes bottom edge to be positioned to the edge of another part's container.
+        Setting to GROUP will indicate edje group instead of another part.
+        If top anchor is not set, edje part will be expanded to the top.
+        The second parameter of position enumeration can be omitted. (Default
+        value is TOP, but BOTTOM when the part is anchored to edje group)
+    @endproperty
+*/
+static void
+st_collections_group_parts_part_description_anchors_bottom(void)
+{
+   Eina_Bool counterpart_is_set;
+
+   check_has_relatives();
+
+   if (!current_anchors)
+     current_anchors = mem_alloc(SZ(Edje_Part_Description_Anchors));
+
+   counterpart_is_set = current_anchors->top.set;
+
+   parse_anchor_line(&(current_anchors->bottom), EDJE_PART_ANCHOR_LINE_TOP);
+
+   anchor_dequeue_part_lookup(&(current_desc->rel2.id_y), counterpart_is_set);
+   anchor_queue_part_lookup(&(current_desc->rel2.id_y), &(current_desc->rel1.id_y), counterpart_is_set);
+
+   anchor_adjust_align(&(current_desc->align.y), 1.0, &(current_desc->fixed.h), counterpart_is_set);
+   anchor_adjust_relative_vertical(&(current_desc->rel2.relative_y), &(current_desc->rel1.relative_y), current_anchors->bottom.base.line, EDJE_PART_ANCHOR_LINE_BOTTOM, counterpart_is_set);
+}
+
+/**
+    @page edcref
+    @property
+        left
+    @parameters
+        [partname] [LEFT/RIGHT/HORIZONTAL_CENTER]
+    @effect
+        Causes left edge to be positioned to the edge of another part's container.
+        Setting to GROUP will indicate edje group instead of another part.
+        If right anchor is not set, edje part will be expanded to the right.
+        The second parameter of position enumeration can be omitted. (Default
+        value is RIGHT, but LEFT when the part is anchored to edje group)
+    @endproperty
+*/
+static void
+st_collections_group_parts_part_description_anchors_left(void)
+{
+   Eina_Bool counterpart_is_set;
+
+   check_has_relatives();
+
+   if (!current_anchors)
+     current_anchors = mem_alloc(SZ(Edje_Part_Description_Anchors));
+
+   counterpart_is_set = current_anchors->right.set;
+
+   parse_anchor_line(&(current_anchors->left), EDJE_PART_ANCHOR_LINE_RIGHT);
+
+   anchor_dequeue_part_lookup(&(current_desc->rel1.id_x), counterpart_is_set);
+   anchor_queue_part_lookup(&(current_desc->rel1.id_x), &(current_desc->rel2.id_x), counterpart_is_set);
+
+   anchor_adjust_align(&(current_desc->align.x), 0.0, &(current_desc->fixed.w), counterpart_is_set);
+   anchor_adjust_relative_horizontal(&(current_desc->rel1.relative_x), &(current_desc->rel2.relative_x), current_anchors->left.base.line, EDJE_PART_ANCHOR_LINE_LEFT, counterpart_is_set);
+}
+
+/**
+    @page edcref
+    @property
+        right
+    @parameters
+        [partname] [LEFT/RIGHT/HORIZONTAL_CENTER]
+    @effect
+        Causes right edge to be positioned to the edge of another part's container.
+        Setting to GROUP will indicate edje group instead of another part.
+        If left anchor is not set, edje part will be expanded to the left.
+        The second parameter of position enumeration can be omitted. (Default
+        value is LEFT, but RIGHT when the part is anchored to edje group)
+    @endproperty
+*/
+static void
+st_collections_group_parts_part_description_anchors_right(void)
+{
+   Eina_Bool counterpart_is_set;
+
+   check_has_relatives();
+
+   if (!current_anchors)
+     current_anchors = mem_alloc(SZ(Edje_Part_Description_Anchors));
+
+   counterpart_is_set = current_anchors->left.set;
+
+   parse_anchor_line(&(current_anchors->right), EDJE_PART_ANCHOR_LINE_LEFT);
+
+   anchor_dequeue_part_lookup(&(current_desc->rel2.id_x), counterpart_is_set);
+   anchor_queue_part_lookup(&(current_desc->rel2.id_x), &(current_desc->rel1.id_x), counterpart_is_set);
+
+   anchor_adjust_align(&(current_desc->align.x), 1.0, &(current_desc->fixed.w), counterpart_is_set);
+   anchor_adjust_relative_horizontal(&(current_desc->rel2.relative_x), &(current_desc->rel1.relative_x), current_anchors->right.base.line, EDJE_PART_ANCHOR_LINE_RIGHT, counterpart_is_set);
+}
+
+/**
+    @page edcref
+    @property
+        vertical_center
+    @parameters
+        [partname] [TOP/BOTTOM/VERTICAL_CENTER]
+    @effect
+        Causes (virtual) vertical center line to be positioned to the edge of
+        another part's container. Setting to GROUP will indicate edje group instead
+        of another part.
+        This part will be expanded vertically in both directions, so do not
+        set top or bottom anchor with vertical_center anchor.
+        The second parameter of position enumeration can be omitted. (Default
+        value is VERTICAL_CENTER)
+    @endproperty
+*/
+static void
+st_collections_group_parts_part_description_anchors_vertical_center(void)
+{
+   check_has_relatives();
+
+   if (!current_anchors)
+     current_anchors = mem_alloc(SZ(Edje_Part_Description_Anchors));
+
+   parse_anchor_line(&(current_anchors->vertical_center), EDJE_PART_ANCHOR_LINE_VERTICAL_CENTER);
+
+   anchor_queue_part_lookup(&(current_desc->rel1.id_y), &(current_desc->rel2.id_y), EINA_FALSE);
+
+   anchor_adjust_align(&(current_desc->align.y), 0.5, &(current_desc->fixed.h), EINA_FALSE);
+   anchor_adjust_relative_vertical(&(current_desc->rel1.relative_y), &(current_desc->rel2.relative_y), current_anchors->vertical_center.base.line, EDJE_PART_ANCHOR_LINE_VERTICAL_CENTER, EINA_FALSE);
+}
+
+/**
+    @page edcref
+    @property
+        horizontal_center
+    @parameters
+        [partname] [LEFT/RIGHT/HORIZONTAL_CENTER]
+    @effect
+        Causes (virtual) horizontal center line to be positioned to the edge of
+        another part's container. Setting to GROUP will indicate edje group instead
+        of another part.
+        This part will be expanded horizontally in both directions, so do not
+        set left or right anchor with vertical_center anchor.
+        The second parameter of position enumeration can be omitted. (Default
+        value is HORIZONTAL_CENTER)
+    @endproperty
+*/
+static void
+st_collections_group_parts_part_description_anchors_horizontal_center(void)
+{
+   check_has_relatives();
+
+   if (!current_anchors)
+     current_anchors = mem_alloc(SZ(Edje_Part_Description_Anchors));
+
+   parse_anchor_line(&(current_anchors->horizontal_center), EDJE_PART_ANCHOR_LINE_HORIZONTAL_CENTER);
+
+   anchor_queue_part_lookup(&(current_desc->rel1.id_x), &(current_desc->rel2.id_x), EINA_FALSE);
+
+   anchor_adjust_align(&(current_desc->align.x), 0.5, &(current_desc->fixed.w), EINA_FALSE);
+   anchor_adjust_relative_horizontal(&(current_desc->rel1.relative_x), &(current_desc->rel2.relative_x), current_anchors->horizontal_center.base.line, EDJE_PART_ANCHOR_LINE_HORIZONTAL_CENTER, EINA_FALSE);
+}
+
+/**
+    @page edcref
+    @property
+        fill
+    @parameters
+        [partname] [BOTH/HORIZONTAL/VERTICAL]
+    @effect
+        Causes the part's container to expand to the width or height of another
+        part's container. Setting to GROUP will indicate edje group instead of another part.
+        Setting horizontal fill has same effect to setting top and bottom anchors
+        to the same part.
+        (setting vertical fill means left and right anchors to the same part)
+        The second parameter of direction enumeration can be omitted. (Default
+        value is BOTH)
+    @endproperty
+*/
+static void
+st_collections_group_parts_part_description_anchors_fill(void)
+{
+   Edje_Part_Collection *pc;
+   char *name;
+
+   pc = eina_list_last_data_get(edje_collections);
+
+   check_has_relatives();
+
+   if (!current_anchors)
+     current_anchors = mem_alloc(SZ(Edje_Part_Description_Anchors));
+
+   parse_anchor_fill(&(current_anchors->fill));
+
+   name = parse_str(0);
+
+   switch (current_anchors->fill.base.fill)
+     {
+      case EDJE_PART_ANCHOR_FILL_BOTH:
+         if (strcmp("GROUP", name) || param_had_quote(0))
+           {
+              data_queue_part_lookup(pc, name, &(current_desc->rel1.id_x));
+              data_queue_part_lookup(pc, name, &(current_desc->rel2.id_x));
+              data_queue_part_lookup(pc, name, &(current_desc->rel1.id_y));
+              data_queue_part_lookup(pc, name, &(current_desc->rel2.id_y));
+           }
+         current_desc->align.x = 0.5;
+         current_desc->align.y = 0.5;
+         current_desc->fixed.w = 0;
+         current_desc->fixed.h = 0;
+         break;
+      case EDJE_PART_ANCHOR_FILL_HORIZONTAL:
+         if (strcmp("GROUP", name) || param_had_quote(0))
+           {
+              data_queue_part_lookup(pc, name, &(current_desc->rel1.id_x));
+              data_queue_part_lookup(pc, name, &(current_desc->rel2.id_x));
+           }
+         current_desc->align.x = 0.5;
+         current_desc->fixed.w = 0;
+         break;
+      case EDJE_PART_ANCHOR_FILL_VERTICAL:
+         if (strcmp("GROUP", name) || param_had_quote(0))
+           {
+              data_queue_part_lookup(pc, name, &(current_desc->rel1.id_y));
+              data_queue_part_lookup(pc, name, &(current_desc->rel2.id_y));
+           }
+         current_desc->align.y = 0.5;
+         current_desc->fixed.h = 0;
+         break;
+     }
+
+   free(name);
+}
+
+/**
+    @page edcref
+    @property
+        margin
+    @parameters
+        [left] [right] [top] [bottom]
+    @effect
+        Affects the edge position a fixed number of pixels along each direction.
+        Margins will scale its size with an edje scaling factor.
+    @endproperty
+*/
+static void
+st_collections_group_parts_part_description_anchors_margin(void)
+{
+   check_has_relatives();
+   check_arg_count(4);
+
+   current_desc->rel1.offset_x = parse_int(0);
+   current_desc->rel2.offset_x = -parse_int(1) - 1;
+   current_desc->rel1.offset_y = parse_int(2);
+   current_desc->rel2.offset_y = -parse_int(3) - 1;
+}
+
+static void
+free_anchors(void)
+{
+   has_relatives = EINA_FALSE;
+
+   if (!current_anchors) return;
+
+   free(current_anchors);
+   current_anchors = NULL;
 }
 
 /** @edcsubsection{collections_group_parts_description_image,
@@ -9333,7 +10134,8 @@ st_collections_group_parts_part_description_image_normal(void)
    {
       char *name;
 
-      ed->image.set = EINA_TRUE;
+      if (current_part->type == EDJE_PART_TYPE_MESH_NODE)
+        ed->image.set = EINA_TRUE;
 
       name = parse_str(0);
       data_queue_image_remove(&(ed->image.id), &(ed->image.set));
@@ -9647,54 +10449,6 @@ st_collections_group_parts_part_description_fill_smooth(void)
      }
 
    fill->smooth = parse_bool(0);
-}
-
-/**
-    @page edcref
-
-    @property
-        spread
-    @parameters
-        TODO
-    @effect
-        TODO
-    @endproperty
-*/
-static void
-st_collections_group_parts_part_description_fill_spread(void)
-{
-#if 0
-   Edje_Part_Collection *pc;
-   Edje_Part *ep;
-   Edje_Part_Description_Image *ed;
-#endif
-
-   check_arg_count(1);
-
-   /* XXX this will need to include IMAGES when spread support is added to evas images */
-   {
-      ERR("parse error %s:%i. fill.spread not supported yet.",
-	  file_in, line - 1);
-      exit(-1);
-   }
-
-#if 0
-   pc = eina_list_data_get(eina_list_last(edje_collections));
-
-   ep = pc->parts[pc->parts_count - 1];
-
-   if (ep->type != EDJE_PART_TYPE_IMAGE)
-     {
-        ERR("parse error %s:%i. image attributes in non-IMAGE part.",
-            file_in, line - 1);
-        exit(-1);
-     }
-
-   ed = (Edje_Part_Description_Image*) ep->default_desc;
-   if (ep->other.desc_count) ed = (Edje_Part_Description_Image*)  ep->other.desc[ep->other.desc_count - 1];
-
-   ed->image.fill.spread = parse_int_range(0, 0, 1);
-#endif
 }
 
 /**
@@ -10382,6 +11136,9 @@ st_collections_group_parts_part_description_text_min(void)
 
    ed->text.min_x = parse_bool(0);
    ed->text.min_y = parse_bool(1);
+
+   if (current_part->type == EDJE_PART_TYPE_TEXTBLOCK)
+     edje_file->has_textblock_min_max = EINA_TRUE;
 }
 
 /**
@@ -10416,6 +11173,9 @@ st_collections_group_parts_part_description_text_max(void)
 
    ed->text.max_x = parse_bool(0);
    ed->text.max_y = parse_bool(1);
+
+   if (current_part->type == EDJE_PART_TYPE_TEXTBLOCK)
+     edje_file->has_textblock_min_max = EINA_TRUE;
 }
 
 /**
@@ -11297,6 +12057,7 @@ st_collections_group_parts_part_description_properties_specular(void)
            ed->light.properties.specular.g = parse_int_range(1, 0, 255);
            ed->light.properties.specular.b = parse_int_range(2, 0, 255);
            ed->light.properties.specular.a = parse_int_range(3, 0, 255);
+           break;
         }
       case EDJE_PART_TYPE_MESH_NODE:
         {
@@ -14096,7 +14857,8 @@ st_collections_group_programs_program_in(void)
         @li DRAG_VAL_SET 0.5 0.0
         @li DRAG_VAL_STEP 1.0 0.0
         @li DRAG_VAL_PAGE 0.0 0.0
-        @li FOCUS_SET
+        @li FOCUS_SET ("seat")
+        @li FOCUS_OBJECT ("seat")
         @li PARAM_COPY "src_part" "src_param" "dst_part" "dst_param"
         @li PARAM_SET "part" "param" "value"
         @li PLAY_SAMPLE "sample name" speed (channel)
@@ -14113,7 +14875,7 @@ st_collections_group_programs_program_in(void)
         @li PHYSICS_ROT_SET 0.707 0 0 0.707
 
         Only one action can be specified per program.
-        
+
         PLAY_SAMPLE (optional) channel can be one of:
         @li EFFECT/FX
         @li BACKGROUND/BG
@@ -14170,6 +14932,14 @@ st_collections_group_programs_program_action(void)
 	  ep->value = 0.0;
 	else
 	  ep->value = parse_float_range(2, 0.0, 1.0);
+     }
+   else if ((ep->action == EDJE_ACTION_TYPE_FOCUS_SET) ||
+            (ep->action == EDJE_ACTION_TYPE_FOCUS_OBJECT))
+     {
+        if (get_arg_count() == 1)
+          ep->seat = NULL;
+        else
+          ep->seat = parse_str(1);
      }
    else if (ep->action == EDJE_ACTION_TYPE_SIGNAL_EMIT)
      {
@@ -14312,8 +15082,6 @@ st_collections_group_programs_program_action(void)
 	 * completeness */
 	break;
       case EDJE_ACTION_TYPE_ACTION_STOP:
-      case EDJE_ACTION_TYPE_FOCUS_OBJECT:
-      case EDJE_ACTION_TYPE_FOCUS_SET:
       case EDJE_ACTION_TYPE_PHYSICS_FORCES_CLEAR:
       case EDJE_ACTION_TYPE_PHYSICS_STOP:
         check_arg_count(1);
@@ -14336,6 +15104,10 @@ st_collections_group_programs_program_action(void)
         break;
       case EDJE_ACTION_TYPE_STATE_SET:
         check_min_arg_count(2);
+        break;
+      case EDJE_ACTION_TYPE_FOCUS_SET:
+      case EDJE_ACTION_TYPE_FOCUS_OBJECT:
+        check_min_arg_count(1);
         break;
       default:
 	check_arg_count(3);
@@ -15044,7 +15816,7 @@ edje_cc_handlers_pop_notify(const char *token)
      {
         current_program = sequencing;
         ((Edje_Program_Parser*)sequencing)->can_override = EINA_TRUE;
-        current_program_lookups = eina_list_free(current_program_lookups);
+        eina_list_free(current_program_lookups);
         current_program_lookups = sequencing_lookups;
         sequencing_lookups = NULL;
         sequencing = NULL;
@@ -15053,6 +15825,8 @@ edje_cc_handlers_pop_notify(const char *token)
      current_program = NULL;
    else if (current_de && (!strcmp(token, "group")))
      _link_combine();
+   else if (current_desc && (!strcmp(token, "description")))
+     free_anchors();
 }
 
 static void
@@ -15185,7 +15959,6 @@ edje_cc_handlers_wildcard(void)
              Eina_Bool ret;
 
              if (!had_quote) return EINA_FALSE;
-             free((void*)current_part->name);
              current_part->name = token;
              ret = _part_name_check();
              if (ret)

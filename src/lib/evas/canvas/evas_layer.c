@@ -1,8 +1,6 @@
 #include "evas_common_private.h"
 #include "evas_private.h"
 
-static void _evas_layer_free(Evas_Layer *lay);
-
 void
 evas_object_inject(Evas_Object *eo_obj, Evas_Object_Protected_Data *obj, Evas *e)
 {
@@ -12,7 +10,7 @@ evas_object_inject(Evas_Object *eo_obj, Evas_Object_Protected_Data *obj, Evas *e
    if (!obj) return;
    if (!e) return;
    if (obj->in_layer) return;
-   evas = eo_data_scope_get(e, EVAS_CANVAS_CLASS);
+   evas = efl_data_scope_get(e, EVAS_CANVAS_CLASS);
    if (!evas) return;
    evas_canvas_async_block(evas);
    lay = evas_layer_find(e, obj->cur->layer);
@@ -22,7 +20,7 @@ evas_object_inject(Evas_Object *eo_obj, Evas_Object_Protected_Data *obj, Evas *e
         lay->layer = obj->cur->layer;
         evas_layer_add(lay);
      }
-   eo_data_ref(eo_obj, NULL);
+   efl_data_ref(eo_obj, EFL_CANVAS_OBJECT_CLASS);
    lay->objects = (Evas_Object_Protected_Data *)eina_inlist_append(EINA_INLIST_GET(lay->objects), EINA_INLIST_GET(obj));
    lay->usage++;
    obj->layer = lay;
@@ -35,7 +33,7 @@ evas_object_release(Evas_Object *eo_obj, Evas_Object_Protected_Data *obj, int cl
    if (!obj->in_layer) return;
    if (!obj->layer->walking_objects)
      obj->layer->objects = (Evas_Object_Protected_Data *)eina_inlist_remove(EINA_INLIST_GET(obj->layer->objects), EINA_INLIST_GET(obj));
-   eo_data_unref(eo_obj, obj);
+   efl_data_unref(eo_obj, obj);
    if (!obj->layer->walking_objects)
      {
         obj->layer->usage--;
@@ -44,7 +42,6 @@ evas_object_release(Evas_Object *eo_obj, Evas_Object_Protected_Data *obj, int cl
              if (obj->layer->usage <= 0)
                {
                   evas_layer_del(obj->layer);
-                  _evas_layer_free(obj->layer);
                }
           }
         obj->layer = NULL;
@@ -57,19 +54,13 @@ evas_object_release(Evas_Object *eo_obj, Evas_Object_Protected_Data *obj, int cl
 Evas_Layer *
 evas_layer_new(Evas *eo_e)
 {
-   Evas_Public_Data *e = eo_data_ref(eo_e, EVAS_CANVAS_CLASS);
+   Evas_Public_Data *e = efl_data_ref(eo_e, EVAS_CANVAS_CLASS);
    Evas_Layer *lay;
 
    lay = calloc(1, sizeof(Evas_Layer));
    if (!lay) return NULL;
    lay->evas = e;
    return lay;
-}
-
-static void
-_evas_layer_free(Evas_Layer *lay)
-{
-   free(lay);
 }
 
 void
@@ -90,7 +81,6 @@ _evas_layer_flush_removes(Evas_Layer *lay)
    if (lay->usage <= 0)
      {
         evas_layer_del(lay);
-        _evas_layer_free(lay);
      }
 }
 
@@ -116,28 +106,27 @@ evas_layer_free_objects(Evas_Layer *lay)
 
    EINA_INLIST_FREE(lay->objects, obj)
      {
-        evas_object_free(obj->object, 0);
+        evas_object_free(obj->object, EINA_FALSE);
      }
 }
 
 void
 evas_layer_clean(Evas *eo_e)
 {
-   Evas_Public_Data *e = eo_data_scope_get(eo_e, EVAS_CANVAS_CLASS);
+   Evas_Public_Data *e = efl_data_scope_get(eo_e, EVAS_CANVAS_CLASS);
    Evas_Layer *tmp;
 
    while (e->layers)
      {
         tmp = e->layers;
         evas_layer_del(tmp);
-        _evas_layer_free(tmp);
      }
 }
 
 Evas_Layer *
 evas_layer_find(Evas *eo_e, short layer_num)
 {
-   Evas_Public_Data *e = eo_data_scope_get(eo_e, EVAS_CANVAS_CLASS);
+   Evas_Public_Data *e = efl_data_scope_get(eo_e, EVAS_CANVAS_CLASS);
    Evas_Layer *layer;
 
    EINA_INLIST_FOREACH(e->layers, layer)
@@ -172,20 +161,26 @@ evas_layer_del(Evas_Layer *lay)
 
    e = lay->evas;
    e->layers = (Evas_Layer *)eina_inlist_remove(EINA_INLIST_GET(e->layers), EINA_INLIST_GET(lay));
-
-   eo_data_unref(e->evas, e);
-   lay->evas = NULL;
+   efl_data_unref(e->evas, e);
+   eina_freeq_ptr_main_add(lay, free, sizeof(*lay));
 }
 
 static void
-_evas_object_layer_set_child(Evas_Object *eo_obj, Evas_Object *par, short l)
+_evas_object_layer_set_child(Evas_Object_Protected_Data *obj, Evas_Object_Protected_Data *par_obj, short l)
 {
-   Evas_Object_Protected_Data *obj = eo_data_scope_get(eo_obj, EFL_CANVAS_OBJECT_CLASS);
-   Evas_Object_Protected_Data *par_obj = eo_data_scope_get(par, EFL_CANVAS_OBJECT_CLASS);
-
    if (obj->delete_me) return;
    if (obj->cur->layer == l) return;
-   evas_object_release(eo_obj, obj, 1);
+   if (EINA_UNLIKELY(obj->in_layer))
+     {
+        ERR("Invalid internal state of object %p (child marked as being a "
+            "top-level object)!", obj->object);
+        evas_object_release(obj->object, obj, 1);
+     }
+   else if ((--obj->layer->usage) == 0)
+     {
+        evas_layer_del(obj->layer);
+     }
+
    EINA_COW_STATE_WRITE_BEGIN(obj, state_write, cur)
      {
        state_write->layer = l;
@@ -199,10 +194,10 @@ _evas_object_layer_set_child(Evas_Object *eo_obj, Evas_Object *par, short l)
         Eina_Inlist *contained;
         Evas_Object_Protected_Data *member;
 
-        contained = (Eina_Inlist *)evas_object_smart_members_get_direct(eo_obj);
+        contained = (Eina_Inlist *)evas_object_smart_members_get_direct(obj->object);
         EINA_INLIST_FOREACH(contained, member)
           {
-             _evas_object_layer_set_child(member->object, eo_obj, l);
+             _evas_object_layer_set_child(member, obj, l);
           }
      }
 }
@@ -216,15 +211,13 @@ evas_object_layer_set(Evas_Object *obj, short l)
 }
 
 EOLIAN void
-_efl_canvas_object_efl_gfx_stack_layer_set(Eo *eo_obj,
-                                     Evas_Object_Protected_Data *obj,
-                                     short l)
+_efl_canvas_object_efl_gfx_stack_layer_set(Eo *eo_obj, Evas_Object_Protected_Data *obj, short l)
 {
    Evas *eo_e;
 
    if (obj->delete_me) return;
    evas_object_async_block(obj);
-   if (evas_object_intercept_call_layer_set(eo_obj, obj, l)) return;
+   if (_evas_object_intercept_call_evas(obj, EVAS_OBJECT_INTERCEPT_CB_LAYER_SET, 1, l)) return;
    if (obj->smart.parent) return;
    if (obj->cur->layer == l)
      {
@@ -248,20 +241,13 @@ _efl_canvas_object_efl_gfx_stack_layer_set(Eo *eo_obj,
         return;
      }
    evas_object_change(eo_obj, obj);
-   if (!obj->is_smart)
+   if (!obj->is_smart && obj->cur->visible)
      {
-        if (evas_object_is_in_output_rect(eo_obj, obj,
-                                          obj->layer->evas->pointer.x,
-                                          obj->layer->evas->pointer.y, 1, 1) &&
-            obj->cur->visible)
-          if (eina_list_data_find(obj->layer->evas->pointer.object.in, obj))
-            evas_event_feed_mouse_move(obj->layer->evas->evas,
-                                       obj->layer->evas->pointer.x,
-                                       obj->layer->evas->pointer.y,
-                                       obj->layer->evas->last_timestamp,
-                                       NULL);
+        _evas_canvas_event_pointer_in_rect_mouse_move_feed(obj->layer->evas, eo_obj, obj,
+                                                           1, 1, EINA_TRUE,
+                                                           NULL);
      }
-   else
+   else if (obj->is_smart)
      {
         Eina_Inlist *contained;
         Evas_Object_Protected_Data *member;
@@ -269,7 +255,7 @@ _efl_canvas_object_efl_gfx_stack_layer_set(Eo *eo_obj,
         contained = (Eina_Inlist *)evas_object_smart_members_get_direct(eo_obj);
         EINA_INLIST_FOREACH(contained, member)
           {
-            _evas_object_layer_set_child(member->object, eo_obj, l);
+            _evas_object_layer_set_child(member, obj, l);
           }
      }
    evas_object_inform_call_restack(eo_obj);
@@ -287,7 +273,7 @@ _efl_canvas_object_efl_gfx_stack_layer_get(Eo *eo_obj EINA_UNUSED,
 {
    if (obj->smart.parent)
      {
-        Evas_Object_Protected_Data *smart_parent_obj = eo_data_scope_get(obj->smart.parent, EFL_CANVAS_OBJECT_CLASS);
+        Evas_Object_Protected_Data *smart_parent_obj = efl_data_scope_get(obj->smart.parent, EFL_CANVAS_OBJECT_CLASS);
         return smart_parent_obj->cur->layer;
      }
    return obj->cur->layer;

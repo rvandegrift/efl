@@ -59,6 +59,7 @@ eluaappsdir = $(datadir)/elua/apps
 eluaapps_DATA = \
 	scripts/elua/apps/lualian.lua \
 	scripts/elua/apps/gendoc.lua \
+	scripts/elua/apps/gendoc.sh \
 	scripts/elua/apps/README-docgen.md
 
 EXTRA_DIST2 += $(eluaapps_DATA)
@@ -68,8 +69,6 @@ eluadocgendir = $(datadir)/elua/apps/docgen
 eluadocgen_DATA = \
 	scripts/elua/apps/docgen/doctree.lua \
 	scripts/elua/apps/docgen/keyref.lua \
-	scripts/elua/apps/docgen/mappings.lua \
-	scripts/elua/apps/docgen/serializers.lua \
 	scripts/elua/apps/docgen/stats.lua \
 	scripts/elua/apps/docgen/util.lua \
 	scripts/elua/apps/docgen/writer.lua

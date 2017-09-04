@@ -45,6 +45,7 @@
 #include <Eet.h>
 #include <Eo.h>
 #include <Evas.h>
+#include <Evas_Internal.h>
 #include <Ecore.h>
 #include <Ecore_Evas.h>
 #include <Ecore_File.h>
@@ -65,6 +66,7 @@
 #endif
 
 #include "Edje.h"
+
 #ifdef EAPI
 # undef EAPI
 #endif
@@ -148,10 +150,13 @@ EAPI extern int _edje_default_log_dom ;
 #define FROM_DOUBLE(a) eina_f32p32_double_from(a)
 #define FROM_INT(a) eina_f32p32_int_from(a)
 #define TO_INT(a) eina_f32p32_int_to(a)
+#define TO_INT_ROUND(a) eina_f32p32_int_to(ADD(a, FROM_DOUBLE(0.5)))
 #define ZERO 0
 #define COS(a) eina_f32p32_cos(a)
 #define SIN(a) eina_f32p32_sin(a)
 #define PI EINA_F32P32_PI
+#define EQ(a, b) a == b
+#define NEQ(a, b) a != b
 
 #else
 
@@ -168,10 +173,13 @@ EAPI extern int _edje_default_log_dom ;
 #define FROM_DOUBLE(a) (a)
 #define FROM_INT(a) (double)(a)
 #define TO_INT(a) (int)(a)
+#define TO_INT_ROUND(a) (int)(a + 0.5)
 #define ZERO 0.0
 #define COS(a) cos(a)
 #define SIN(a) sin(a)
 #define PI 3.14159265358979323846
+#define EQ(a, b) EINA_DBL_EQ(a, b)
+#define NEQ(a, b) !EINA_DBL_EQ(a, b)
 
 #endif
 
@@ -371,6 +379,7 @@ typedef struct _Edje_Part_Box_Animation              Edje_Part_Box_Animation;
 typedef struct _Edje_Part_Limit                      Edje_Part_Limit;
 typedef struct _Edje_Part_Description_Vector         Edje_Part_Description_Vector;
 typedef struct _Edje_Part_Description_Spec_Svg       Edje_Part_Description_Spec_Svg;
+typedef struct _Edje_Part_Allowed_Seat               Edje_Part_Allowed_Seat;
 typedef struct _Edje_Real_Part_Vector                Edje_Real_Part_Vector;
 typedef struct _Edje_Vector_Data                     Edje_Vector_Data;
 
@@ -526,6 +535,10 @@ typedef struct _Edje_Signal_Callback_Custom Edje_Signal_Callback_Custom;
 #define FLAG_Y    0x02
 #define FLAG_XY   (FLAG_X | FLAG_Y)
 
+#define EDJE_DESC_NO_RENDER_IS_SET(d) (((d)->no_render & 0x2) != 0)
+#define EDJE_DESC_NO_RENDER_SET(d, v) do { (d)->no_render = (!!v) | 0x2; } while (0)
+#define EDJE_DESC_NO_RENDER_VALUE(d) (((d)->no_render & 0x1) != 0)
+
 /*----------*/
 
 struct _AABB {
@@ -579,6 +592,11 @@ struct _Edje_File
    int                             version;
    int                             minor;
    int                             feature_ver;
+   struct {
+      int                          major;
+      int                          minor;
+   } efl_version;
+
    FLOAT_T                         base_scale;
 
    char                            fid[8+8+8+2];
@@ -587,6 +605,7 @@ struct _Edje_File
    unsigned char                   allocated_strings : 1;
    unsigned char                   dangling : 1;
    unsigned char                   warning : 1;
+   unsigned char                   has_textblock_min_max : 1;
 };
 
 struct _Edje_Style
@@ -799,6 +818,8 @@ struct _Edje_Program /* a conditional program to be run */
       double   range;
    } in;
 
+   const char *seat; /* which seat to focus, NULL = default seat */
+
    const char *state; /* what state of alternates to apply, NULL = default */
    const char *state2; /* what other state to use - for signal emit action */
    double      value; /* value of state to apply (if multiple names match) */
@@ -880,19 +901,10 @@ struct _Edje_Limit
       TYPE      SNAPSHOT;         \
       TYPE      VECTOR;
 
-struct _Edje_Part_Collection_Directory_Entry
+typedef struct _Edje_Part_Collection_Directory_Entry_Mp Edje_Part_Collection_Directory_Entry_Mp;
+
+struct _Edje_Part_Collection_Directory_Entry_Mp
 {
-   const char *entry; /* the nominal name of the part collection */
-   Edje_Part_Collection *ref;
-
-   struct
-   {
-      PART_TYPE_FIELDS(int)
-      int      part;
-   } count;
-
-   int         id; /* the id of this named part collection */
-
    struct
    {
       PART_TYPE_FIELDS(Eina_Mempool *)
@@ -903,6 +915,22 @@ struct _Edje_Part_Collection_Directory_Entry
    {
       PART_TYPE_FIELDS(Eina_Mempool *)
    } mp_rtl; /* For Right To Left interface */
+};
+
+struct _Edje_Part_Collection_Directory_Entry
+{
+   const char *entry; /* the nominal name of the part collection */
+   Edje_Part_Collection *ref;
+
+   Edje_Part_Collection_Directory_Entry_Mp *mp;
+
+   struct
+   {
+      PART_TYPE_FIELDS(int)
+      int      part;
+   } count;
+
+   int         id; /* the id of this named part collection */
 
    Eina_Bool group_alias;
 };
@@ -1122,6 +1150,7 @@ struct _Edje_Part_Collection
    unsigned char    broadcast_signal;
    unsigned char    physics_enabled; /* will be 1 if a body is declared */
    unsigned char    script_recursion; /* permits unsafe Embryo->EDC->Embryo scripting */
+   unsigned char    use_custom_seat_names;
    unsigned char    checked : 1;
 };
 
@@ -1175,6 +1204,8 @@ struct _Edje_Part
    unsigned int           items_count;
    Edje_3D_Vec            scale_3d;
    Edje_Part_Api          api;
+   Edje_Part_Allowed_Seat **allowed_seats;
+   unsigned int           allowed_seats_count;
    unsigned char          type; /* what type (image, rect, text) */
 #ifdef HAVE_EPHYSICS
    unsigned char          physics_body; /* body (none, rigid box, soft circle, ...) */
@@ -1307,8 +1338,11 @@ struct _Edje_Part_Description_Common
 #endif
 
    Edje_3D_Vec       align_3d;
+
    unsigned char     visible; /* is it shown */
    unsigned char     limit; /* 0 == no, 1 = width, 2 = height, 3 = both */
+   unsigned char     no_render; /* no_render override @since 1.19 */
+   unsigned char     offset_is_scaled;
 };
 
 struct _Edje_Part_Description_Spec_Fill
@@ -1321,8 +1355,6 @@ struct _Edje_Part_Description_Spec_Fill
    int            abs_x; /* size of fill added to relative fill */
    int            pos_abs_y; /* fill offset y added to fill offset */
    int            abs_y; /* size of fill added to relative fill */
-   int            angle; /* angle of fill -- currently only used by grads */
-   int            spread; /* spread of fill -- currently only used by grads */
    char           smooth; /* fill with smooth scaling or not */
    unsigned char  type; /* fill coordinate from container (SCALE) or from source image (TILE) */
 };
@@ -1609,6 +1641,12 @@ struct _Edje_Part_Description_Vector
    Edje_Part_Description_Spec_Svg vg;
 };
 
+struct _Edje_Part_Allowed_Seat
+{
+   const char *name;
+};
+
+
 /*----------*/
 
 struct _Edje_Signal_Source_Char
@@ -1628,6 +1666,8 @@ struct _Edje
 	Evas_Object          *clipper; // a big rect to clip this Edje to
 	Evas                 *evas; // the Evas this Edje belongs to
    */
+   EINA_INLIST;
+
    const char           *path;
    const char           *group;
    const char           *parent;
@@ -1645,7 +1685,7 @@ struct _Edje
    Edje_Var_Pool        *var_pool;
    /* for faster lookups to avoid nth list walks */
    Edje_Real_Part      **table_parts;
-   Edje_Real_Part       *focused_part;
+   Eina_List            *seats;
    Eina_List            *subobjs;
    Eina_List            *text_insert_filter_callbacks;
    Eina_List            *markup_filter_callbacks;
@@ -1703,6 +1743,8 @@ struct _Edje
    unsigned short        block;
    unsigned short        state;
 
+   unsigned short        seats_count;
+
    unsigned char         load_error;
 
    Eina_Bool          is_rtl : 1;
@@ -1733,6 +1775,7 @@ struct _Edje
    Eina_Bool          recalc_hints : 1;
    Eina_Bool          need_map_update : 1;
    Eina_Bool          canvas_animator : 1;
+   Eina_Bool          has_state_clip : 1;
 };
 
 struct _Edje_Calc_Params_Map
@@ -1794,55 +1837,73 @@ struct _Edje_Calc_Params_Physics
    unsigned char ignore_part_pos; //1
 };
 
+typedef struct _Edje_Calc_Params_Type_Common Edje_Calc_Params_Type_Common;
+typedef struct _Edje_Calc_Params_Type_Text Edje_Calc_Params_Type_Text;
+typedef struct _Edje_Calc_Params_Type_Node Edje_Calc_Params_Type_Node;
+
+struct _Edje_Calc_Params_Type_Common
+{
+   struct {
+      int           x, y, w, h; // 16
+   } fill; // 16
+   union {
+      struct {
+         unsigned short l, r, t, b; // 8
+         FLOAT_T        border_scale_by; // 8
+      } image; // 16
+   } spec; // 16
+}; // 32
+
+struct _Edje_Calc_Params_Type_Text
+{
+   Edje_Alignment align; /* text alignment within bounds */ // 16
+   double         ellipsis; // 8
+   int            size; // 4
+   Edje_Color     color2, color3; // 8
+}; // 36
+
+struct _Edje_Calc_Params_Type_Node
+{
+   FLOAT_T        data[6]; // 48
+   Edje_3D_Vec    point; // 24
+   Edje_3D_Vec    scale_3d; // 24
+   int            frame; // 4
+}; // 100
+
+typedef struct _Edje_Calc_Params_Ext Edje_Calc_Params_Ext;
+
+struct _Edje_Calc_Params_Ext
+{
+   Edje_Rectangle                  req_drag; // 16
+   const Edje_Calc_Params_Map     *map; // 4/8
+#ifdef HAVE_EPHYSICS
+   const Edje_Calc_Params_Physics *physics; // 4/8
+#endif
+   Edje_Real_Part                 *clip_to; /* clip override @since 1.15 */ // 4/8
+};
+
 struct _Edje_Calc_Params
 {
-   //   int              x, y, w, h; // 16
+   union {
+      Edje_Calc_Params_Type_Common *common;
+      Edje_Calc_Params_Type_Text *text;
+      Edje_Calc_Params_Type_Node *node;
+   } type; // 4/8
+   Edje_Calc_Params_Ext *ext; // 4/8
    struct {
       FLOAT_T       x, y, w, h; // 32
    } eval;
    Edje_Rectangle   final; // 16
    Edje_Rectangle   req; // 16
-   Edje_Rectangle   req_drag; // 16
    Edje_Color       color; // 4
-   union {
-      struct {
-	 struct {
-	    int           x, y, w, h; // 16
-	    int           angle; // 4
-	    int           spread; // 4
-	 } fill; // 24
-
-	 union {
-	    struct {
-	       int           l, r, t, b; // 16
-               FLOAT_T       border_scale_by;
-	    } image; // 16
-	 } spec; // 16
-      } common; // 40
-      struct {
-	 Edje_Alignment align; /* text alignment within bounds */ // 16
-	 double         ellipsis; // 8
-	 int            size; // 4
-	 Edje_Color     color2, color3; // 8
-      } text; // 36
-      struct {
-	 int            frame; //4
-	 FLOAT_T        data[6];
-         Edje_3D_Vec    point;
-         Edje_3D_Vec    scale_3d;
-      } node; // 4
-   } type; // 40
-   const Edje_Calc_Params_Map *map; // 88
-#ifdef HAVE_EPHYSICS
-   const Edje_Calc_Params_Physics *physics; // 90
-#endif
-   Edje_Real_Part  *clip_to; /* state clip override @since 1.15 */
    unsigned char    persp_on : 1;
    unsigned char    lighted : 1;
    unsigned char    mapped : 1;
    unsigned char    visible : 1;
    unsigned char    smooth : 1; // 1
-}; // 271
+   unsigned char    no_render : 1;
+   unsigned char    no_render_apply : 1;
+}; // 77/85(rounded up for alignment: 80/88)
 
 struct _Edje_Real_Part_Set
 {
@@ -1959,8 +2020,8 @@ struct _Edje_Real_Part
    // WITH EDJE_CALC_CACHE: 307
    Edje_Running_Program     *program; // 4
    Edje_Calc_Params         *current; // 4
-#ifdef HAVE_EPHYSICS
    Edje_Part_Description_Common *prev_description; // 4
+#ifdef HAVE_EPHYSICS
    EPhysics_Body            *body; // 4
    Eina_List                *body_faces; // 4
 #endif
@@ -1973,14 +2034,19 @@ struct _Edje_Real_Part
    FLOAT_T                   description_pos; // 8
    Edje_Rectangle            req; // 16
    int                       x, y, w, h; // 16
+   Evas_Object_Pointer_Mode  pointer_mode;
 #ifdef EDJE_CALC_CACHE
    unsigned short            state; // 2
 #endif
    char                      clicked_button; // 1
    unsigned char             type; // 1
+   Evas_Event_Flags          ignore_flags;
+   Evas_Event_Flags          mask_flags;
    unsigned char             calculated : 2; // 1
    unsigned char             calculating : 2; // 0
    Eina_Bool                 still_in   : 1; // 0
+   unsigned char             mouse_events : 1;
+   unsigned char             repeat_events : 1;
 #ifdef EDJE_CALC_CACHE
    Eina_Bool                 invalidate : 1; // 0
 #endif
@@ -1992,6 +2058,7 @@ struct _Edje_Running_Program
    Edje           *edje;
    Edje_Program   *program;
    double          start_time;
+   unsigned short  ref;
    Eina_Bool       delete_me : 1;
 };
 
@@ -2005,6 +2072,13 @@ struct _Edje_Signal_Callback
    Eina_Bool       delete_me : 1;
    Eina_Bool       propagate : 1;
 };
+
+typedef enum
+{
+   EDJE_TEXT_TYPE_NORMAL,
+   EDJE_TEXT_TYPE_ESCAPED,
+   EDJE_TEXT_TYPE_UNESCAPED
+} Edje_Text_Type;
 
 struct _Edje_Text_Insert_Filter_Callback
 {
@@ -2195,6 +2269,7 @@ struct _Edje_User_Defined
    union {
       struct {
          const char *text;
+         Edje_Text_Type type;
       } string;
       struct {
          Evas_Object *child;
@@ -2231,6 +2306,14 @@ struct _Edje_Font
 {
    char *name;
    char *file;
+};
+
+typedef struct _Edje_Seat Edje_Seat;
+struct _Edje_Seat
+{
+   Edje_Real_Part *focused_part;
+   Efl_Input_Device *device;
+   Eina_Stringshare *name;
 };
 
 Edje_Patterns   *edje_match_collection_dir_init(const Eina_List *lst);
@@ -2284,7 +2367,7 @@ EAPI extern Eet_Data_Descriptor *_edje_edd_edje_file;
 EAPI extern Eet_Data_Descriptor *_edje_edd_edje_part_collection;
 
 extern Eina_List       *_edje_animators;
-extern Eina_List       *_edje_edjes;
+extern Eina_Inlist     *_edje_edjes;
 
 extern char            *_edje_fontset_append;
 extern FLOAT_T          _edje_scale;
@@ -2324,6 +2407,42 @@ EAPI extern Eina_Mempool *_emp_SNAPSHOT;
 EAPI extern Eina_Mempool *_emp_part;
 EAPI extern Eina_Mempool *_emp_VECTOR;
 
+static inline void
+_edje_calc_params_need_type_common(Edje_Calc_Params *p)
+{
+   if (p->type.common) return;
+   p->type.common = calloc(1, sizeof(Edje_Calc_Params_Type_Common));
+}
+
+static inline void
+_edje_calc_params_need_type_text(Edje_Calc_Params *p)
+{
+   if (p->type.text) return;
+   p->type.text = calloc(1, sizeof(Edje_Calc_Params_Type_Text));
+}
+
+static inline void
+_edje_calc_params_need_type_node(Edje_Calc_Params *p)
+{
+   if (p->type.node) return;
+   p->type.node = calloc(1, sizeof(Edje_Calc_Params_Type_Node));
+}
+
+static inline void
+_edje_calc_params_need_ext(Edje_Calc_Params *p)
+{
+   if (p->ext) return;
+   p->ext = calloc(1, sizeof(Edje_Calc_Params_Ext));
+   if (!p->ext) return;
+#ifdef EDJE_CALC_CACHE
+   p->ext->map = eina_cow_alloc(_edje_calc_params_map_cow);
+# ifdef HAVE_EPHYSICS
+   p->ext->physics = eina_cow_alloc(_edje_calc_params_physics_cow);
+# endif
+#endif
+}
+
+void _edje_calc_params_clear(Edje_Calc_Params *p);
 void  _edje_part_pos_set(Edje *ed, Edje_Real_Part *ep, int mode, FLOAT_T pos, FLOAT_T v1, FLOAT_T v2, FLOAT_T v3, FLOAT_T v4);
 
 /** Find the description of the part by state name and state value.
@@ -2341,7 +2460,7 @@ void  _edje_recalc_do(Edje *ed);
 int   _edje_part_dragable_calc(Edje *ed, Edje_Real_Part *ep, FLOAT_T *x, FLOAT_T *y);
 void  _edje_dragable_pos_set(Edje *ed, Edje_Real_Part *ep, FLOAT_T x, FLOAT_T y);
 
-void _edje_timer_cb(void *data, const Eo_Event *event);
+void _edje_timer_cb(void *data, const Efl_Event *event);
 Eina_Bool _edje_pending_timer_cb(void *data);
 void  _edje_callbacks_add(Evas_Object *obj, Edje *ed, Edje_Real_Part *rp);
 void  _edje_callbacks_focus_add(Evas_Object *obj, Edje *ed, Edje_Real_Part *rp);
@@ -2391,9 +2510,19 @@ void  _edje_program_run(Edje *ed, Edje_Program *pr, Eina_Bool force, const char 
 void _edje_programs_patterns_clean(Edje_Part_Collection *ed);
 void _edje_programs_patterns_init(Edje_Part_Collection *ed);
 void  _edje_emit(Edje *ed, const char *sig, const char *src);
+void _edje_seat_emit(Edje *ed, Efl_Input_Device *dev, const char *sig, const char *src);
 void _edje_emit_full(Edje *ed, const char *sig, const char *src, void *data, void (*free_func)(void *));
 void _edje_emit_handle(Edje *ed, const char *sig, const char *src, Edje_Message_Signal_Data *data, Eina_Bool prop);
 void  _edje_signals_sources_patterns_clean(Edje_Signals_Sources_Patterns *ssp);
+const char * _edje_object_part_state_get(Edje *ed, const char *part, double *val_ret);
+
+void _edje_focused_part_set(Edje *ed, const char *seat_name, Edje_Real_Part *rp);
+Edje_Real_Part *_edje_focused_part_get(Edje *ed, const char *seat_name);
+void _edje_part_focus_set(Edje *ed, const char *seat_name, Edje_Real_Part *rp);
+
+Eina_Stringshare *_edje_seat_name_get(Edje *ed, Efl_Input_Device *device);
+Efl_Input_Device *_edje_seat_get(Edje *ed, Eina_Stringshare *name);
+Eina_Bool _edje_part_allowed_seat_find(Edje_Real_Part *rp, const char *seat_name);
 
 const Edje_Signals_Sources_Patterns *_edje_signal_callback_patterns_ref(const Edje_Signal_Callback_Group *gp);
 void _edje_signal_callback_patterns_unref(const Edje_Signals_Sources_Patterns *essp);
@@ -2422,26 +2551,14 @@ Edje_Real_Part   *_edje_real_part_get(const Edje *ed, const char *part);
 Edje_Real_Part   *_edje_real_part_recursive_get(Edje **ed, const char *part);
 Edje_Color_Class *_edje_color_class_find(const Edje *ed, const char *color_class);
 Edje_Color_Class *_edje_color_class_recursive_find(const Edje *ed, const char *color_class);
-void              _edje_color_class_member_add(Edje *ed, const char *color_class);
-void              _edje_color_class_member_del(Edje *ed, const char *color_class);
-void              _edje_color_class_member_clean(Edje *ed);
 void              _edje_color_class_on_del(Edje *ed, Edje_Part *ep);
-void              _edje_color_class_members_free(void);
 void              _edje_color_class_hash_free(void);
 
 const char       * _edje_find_alias(Eina_Hash *aliased, char *src, int *length);
 Edje_Text_Class  *_edje_text_class_find(Edje *ed, const char *text_class);
-void              _edje_text_class_member_add(Edje *ed, const char *text_class);
-void              _edje_text_class_member_del(Edje *ed, const char *text_class);
-void              _edje_text_class_members_free(void);
 void              _edje_text_class_hash_free(void);
-void              _edje_text_class_members_clean(Edje *ed);
 Edje_Size_Class  *_edje_size_class_find(Edje *ed, const char *size_class);
-void              _edje_size_class_member_add(Edje *ed, const char *size_class);
-void              _edje_size_class_member_del(Edje *ed, const char *size_class);
-void              _edje_size_class_members_free(void);
 void              _edje_size_class_hash_free(void);
-void              _edje_size_class_members_clean(Edje *ed);
 Edje             *_edje_fetch(const Evas_Object *obj) EINA_PURE;
 int               _edje_util_freeze(Edje *ed);
 int               _edje_util_thaw(Edje *ed);
@@ -2479,6 +2596,7 @@ void              _edje_real_part_table_clear(Edje *ed, Edje_Real_Part *rp, Eina
 Evas_Object      *_edje_children_get(Edje_Real_Part *rp, const char *partid);
 
 Eina_Bool         _edje_object_part_text_raw_set(Edje *ed, Evas_Object *obj, Edje_Real_Part *rp, const char *part, const char *text);
+void _edje_user_define_string(Edje *ed, const char *part, const char *raw_text, Edje_Text_Type type);
 char             *_edje_text_escape(const char *text);
 char             *_edje_text_unescape(const char *text);
 
@@ -2543,7 +2661,6 @@ void          _edje_message_shutdown        (void);
 void          _edje_message_cb_set          (Edje *ed, void (*func) (void *data, Evas_Object *obj, Edje_Message_Type type, int id, void *msg), void *data);
 Edje_Message *_edje_message_new             (Edje *ed, Edje_Queue queue, Edje_Message_Type type, int id);
 void          _edje_message_free            (Edje_Message *em);
-void          _edje_message_propornot_send  (Edje *ed, Edje_Queue queue, Edje_Message_Type type, int id, void *emsg, Eina_Bool prop);
 void          _edje_util_message_send       (Edje *ed, Edje_Queue queue, Edje_Message_Type type, int id, void *emsg);
 void          _edje_message_parameters_push (Edje_Message *em);
 void          _edje_message_process         (Edje_Message *em);
@@ -2729,6 +2846,7 @@ void _edje_entry_input_panel_return_key_disabled_set(Edje_Real_Part *rp, Eina_Bo
 Eina_Bool _edje_entry_input_panel_return_key_disabled_get(Edje_Real_Part *rp);
 void _edje_entry_input_panel_show_on_demand_set(Edje_Real_Part *rp, Eina_Bool ondemand);
 Eina_Bool _edje_entry_input_panel_show_on_demand_get(Edje_Real_Part *rp);
+void _edje_entry_prediction_hint_set(Edje_Real_Part *rp, const char *prediction_hint);
 Eina_Bool _edje_entry_hide_visible_password(Edje *edje, Edje_Real_Part *rp);
 
 void _edje_external_init(void);
@@ -2820,6 +2938,13 @@ void _edje_part_recalc(Edje *ed, Edje_Real_Part *ep, int flags, Edje_Calc_Params
 
 void _edje_user_definition_remove(Edje_User_Defined *eud, Evas_Object *child);
 void _edje_user_definition_free(Edje_User_Defined *eud);
+
+extern Efl_Observable *_edje_color_class_member;
+extern Efl_Observable *_edje_text_class_member;
+extern Efl_Observable *_edje_size_class_member;
+
+void _edje_class_init(void);
+void _edje_class_shutdown(void);
 
 void _scale_set(Eo *obj, void *_pd, va_list *list);
 void _scale_get(Eo *obj, void *_pd, va_list *list);
@@ -2971,14 +3096,31 @@ void _animation_get(Eo *obj, void *_pd, va_list *list);
 void edje_signal_init(void);
 void edje_signal_shutdown(void);
 
-Eina_Bool _edje_part_mouse_events_get(Edje *ed, Edje_Real_Part *rp);
-void _edje_part_mouse_events_set(Edje *ed, Edje_Real_Part *rp, Eina_Bool mouse_events);
-Eina_Bool _edje_part_repeat_events_get(Edje *ed, Edje_Real_Part *rp);
-void _edje_part_repeat_events_set(Edje *ed, Edje_Real_Part *rp, Eina_Bool repeat_events);
-Evas_Event_Flags _edje_part_ignore_flags_get(Edje *ed, Edje_Real_Part *rp);
-void _edje_part_ignore_flags_set(Edje *ed, Edje_Real_Part *rp, Evas_Event_Flags ignore_flags);
-Evas_Event_Flags _edje_part_mask_flags_get(Edje *ed, Edje_Real_Part *rp);
-void _edje_part_mask_flags_set(Edje *ed, Edje_Real_Part *rp, Evas_Event_Flags mask_flags);
+Eina_Bool _edje_real_part_mouse_events_get(Edje *ed, Edje_Real_Part *rp);
+void _edje_real_part_mouse_events_set(Edje *ed, Edje_Real_Part *rp, Eina_Bool mouse_events);
+Eina_Bool _edje_real_part_repeat_events_get(Edje *ed, Edje_Real_Part *rp);
+void _edje_real_part_repeat_events_set(Edje *ed, Edje_Real_Part *rp, Eina_Bool repeat_events);
+void _edje_real_part_pointer_mode_set(Edje *ed, Edje_Real_Part *rp, Evas_Object_Pointer_Mode mode);
+Evas_Event_Flags _edje_real_part_ignore_flags_get(Edje *ed, Edje_Real_Part *rp);
+void _edje_real_part_ignore_flags_set(Edje *ed, Edje_Real_Part *rp, Evas_Event_Flags ignore_flags);
+Evas_Event_Flags _edje_real_part_mask_flags_get(Edje *ed, Edje_Real_Part *rp);
+void _edje_real_part_mask_flags_set(Edje *ed, Edje_Real_Part *rp, Evas_Event_Flags mask_flags);
+
+/* part drag apis */
+Edje_Drag_Dir _edje_object_part_drag_dir_get(Edje *ed, const char *part);
+Eina_Bool _edje_object_part_drag_value_set(Edje *ed, const char *part, double dx, double dy);
+Eina_Bool _edje_object_part_drag_value_get(Edje *ed, const char *part, double *dx, double *dy);
+Eina_Bool _edje_object_part_drag_size_set(Edje *ed, const char *part, double dw, double dh);
+Eina_Bool _edje_object_part_drag_size_get(Edje *ed, const char *part, double *dw, double *dh);
+Eina_Bool _edje_object_part_drag_step_set(Edje *ed, const char *part, double dx, double dy);
+Eina_Bool _edje_object_part_drag_step_get(Edje *ed, const char *part, double *dx, double *dy);
+Eina_Bool _edje_object_part_drag_page_set(Edje *ed, const char *part, double dx, double dy);
+Eina_Bool _edje_object_part_drag_page_get(Edje *ed, const char *part, double *dx, double *dy);
+Eina_Bool _edje_object_part_drag_step(Edje *ed, const char *part, double dx, double dy);
+Eina_Bool _edje_object_part_drag_page(Edje *ed, const char *part, double dx, double dy);
+
+/* part proxy */
+Eo *_edje_other_internal_proxy_get(Edje_Object *obj, Edje *ed, Edje_Real_Part *rp);
 
 /* part containers: box */
 Eo *_edje_box_internal_proxy_get(Edje_Object *obj, Edje *ed, Edje_Real_Part *rp);
@@ -3004,6 +3146,34 @@ Eina_Bool _edje_part_table_clear(Edje *ed, const char *part, Eina_Bool clear);
 Eo *_edje_swallow_internal_proxy_get(Edje_Object *obj, Edje *ed, Edje_Real_Part *rp);
 Efl_Gfx *_edje_efl_container_content_get(Edje *ed, const char *part);
 Eina_Bool _edje_efl_container_content_set(Edje *ed, const char *part, Efl_Gfx *obj_swallow);
+
+/* part containers: external */
+Eo *_edje_external_internal_proxy_get(Edje_Object *obj, Edje *ed, Edje_Real_Part *rp);
+Eina_Bool _edje_object_part_external_param_set(Edje *ed, const char *part, const Edje_External_Param *param);
+Eina_Bool _edje_object_part_external_param_get(Edje *ed, const char *part, Edje_External_Param *param);
+Edje_External_Param_Type _edje_object_part_external_param_type_get(Edje *ed, const char *part, const char *param);
+Evas_Object *_edje_object_part_external_object_get(Edje *ed, const char *part);
+Evas_Object *_edje_object_part_external_content_get(Edje *ed, const char *part, const char *content);
+
+/* part text */
+Eo *_edje_text_internal_proxy_get(Edje_Object *obj, Edje *ed, Edje_Real_Part *rp);
+Eina_Bool   _edje_efl_text_set(Eo *obj, Edje *ed, const char *part, const char *text);
+const char *_edje_efl_text_get(Eo *obj, Edje *ed, const char *part);
+Evas_Textblock_Cursor *_edje_text_cursor_get(Edje_Real_Part *rp, Edje_Cursor cur);
+void _edje_text_cursor_begin(Edje_Real_Part *rp, Efl_Text_Cursor_Cursor *cur);
+void _edje_text_cursor_end(Edje_Real_Part *rp, Efl_Text_Cursor_Cursor *cur);
+void _edje_text_cursor_pos_set(Edje_Real_Part *rp, Efl_Text_Cursor_Cursor *cur, int pos);
+int _edje_text_cursor_pos_get(Edje_Real_Part *rp, Efl_Text_Cursor_Cursor *cur);
+Eina_Bool _edje_text_cursor_coord_set(Edje_Real_Part *rp, Efl_Text_Cursor_Cursor *cur, int x, int y);
+void _edje_text_cursor_line_begin(Edje_Real_Part *rp, Efl_Text_Cursor_Cursor *cur);
+void _edje_text_cursor_line_end(Edje_Real_Part *rp, Efl_Text_Cursor_Cursor *cur);
+Eina_Bool _edje_text_cursor_next(Edje_Real_Part *rp, Efl_Text_Cursor_Cursor *cur);
+Eina_Bool _edje_text_cursor_prev(Edje_Real_Part *rp, Efl_Text_Cursor_Cursor *cur);
+Eina_Bool _edje_text_cursor_up(Edje_Real_Part *rp, Efl_Text_Cursor_Cursor *cur);
+Eina_Bool _edje_text_cursor_down(Edje_Real_Part *rp, Efl_Text_Cursor_Cursor *cur);
+void _edje_text_cursor_copy(Edje_Real_Part *rp, Efl_Text_Cursor_Cursor *dst, Efl_Text_Cursor_Cursor *cur);
+char * _edje_text_cursor_content_get(Edje_Real_Part *rp, Efl_Text_Cursor_Cursor *cur);
+void _edje_object_part_text_insert(Edje *ed, Edje_Real_Part *rp, const char *text);
 
 void _edje_internal_proxy_shutdown(void);
 

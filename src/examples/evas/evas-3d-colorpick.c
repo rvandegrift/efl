@@ -1,11 +1,12 @@
 /**
- * This example shows how to use color pick algorithm for finding node at scene.
+ * Example of finding nodes by color or geometry in an Evas-3D scene.
+ *
  * Enable color pick mode of meshes and scene objects.
  * Click (left for color pick, right for geometry pick) on 3D object and see
  * in terminal time response of the found node.
  * Use key UP/DOWN for changing z coordinate of camera
  * Use key LEFT/RIGHT for scale each node
- * Use shortcut parameters of commanline: r - rows of objects, c - columns of objects,
+ * Use shortcut parameters of commandline: r - rows of objects, c - columns of objects,
  * p - precision of the spheres, t - path for a texture.
  *
  * @verbatim
@@ -63,8 +64,8 @@ Ecore_Getopt optdesc = {
     }
 };
 
- typedef struct _Object
- {
+typedef struct _Object
+{
    Eo *primitive;
    Eo *node;
    Eo *mesh;
@@ -76,7 +77,7 @@ Ecore_Getopt optdesc = {
    Eina_Bool (*sphere_init)(void *sphere, const char *texture);
    Eina_Bool (*sphere_animate)(void *data);
 
- } Test_object;
+} Test_object;
 
 typedef struct _Scene
 {
@@ -110,9 +111,9 @@ _on_delete(Ecore_Evas *ee EINA_UNUSED)
      }
    eina_list_free(globalscene.spheres);
 
-
    ecore_main_loop_quit();
 }
+
 static void
 _on_canvas_resize(Ecore_Evas *ee)
 {
@@ -129,9 +130,11 @@ _animate_sphere(void *data)
    static int angle = 0.0;
    Eo *n = (Eo*)(((Test_object *)data)->node);
    Evas_Real s = ((Test_object *)data)->speed;
+
    evas_canvas3d_node_orientation_angle_axis_set(n, angle, s, s - 1, s + 1);
    angle++;
    if (angle > 360) angle = 0.0;
+
    return EINA_TRUE;
 }
 
@@ -156,6 +159,7 @@ void _recalculate_position()
           }
      }
 }
+
 static void
 _on_key_down(void *data EINA_UNUSED, Evas *e EINA_UNUSED,
              Evas_Object *eo EINA_UNUSED, void *event_info)
@@ -164,6 +168,7 @@ _on_key_down(void *data EINA_UNUSED, Evas *e EINA_UNUSED,
    Evas_Real x, y, z;
    Eina_List *l;
    Test_object * item;
+
    if (!strcmp(ev->key, "Down"))
      {
         evas_canvas3d_node_position_get(globalscene.camera_node, EVAS_CANVAS3D_SPACE_PARENT, &x, &y, &z);
@@ -193,8 +198,9 @@ _on_key_down(void *data EINA_UNUSED, Evas *e EINA_UNUSED,
         _recalculate_position();
      }
    else
-     fprintf(stdout, "Down, Up for position of camera; Left, Right for scale of each node");
+     printf("Down, Up for position of camera; Left, Right for scale of each node");
 }
+
 static void
 _on_mouse_down(void *data EINA_UNUSED, Evas *e EINA_UNUSED, Evas_Object *eo EINA_UNUSED, void *event_info)
 {
@@ -215,7 +221,7 @@ _on_mouse_down(void *data EINA_UNUSED, Evas *e EINA_UNUSED, Evas_Object *eo EINA
         diff_sec = ((float)time) / CLOCKS_PER_SEC / 10;
         if (flag)
           {
-             fprintf(stdout, "Boom! Time expended for color pick: %2.7f .\n", diff_sec);
+             printf("Boom! Time expended for color pick: %2.7f .\n", diff_sec);
              evas_canvas3d_node_scale_set(n, VEC_3(SMALL_SCALE));
           }
      }
@@ -227,7 +233,7 @@ _on_mouse_down(void *data EINA_UNUSED, Evas *e EINA_UNUSED, Evas_Object *eo EINA
         diff_sec = ((float)time) / CLOCKS_PER_SEC / 10;
         if (flag)
           {
-             fprintf(stdout, "Boom! Time expended for geometry pick: %2.7f .\n", diff_sec);
+             printf("Boom! Time expended for geometry pick: %2.7f .\n", diff_sec);
              evas_canvas3d_node_scale_set(n, VEC_3(BIG_SCALE));
           }
       }
@@ -237,9 +243,10 @@ Eina_Bool
 _init_sphere(void *this, const char *texture)
 {
    Test_object *sphere  = (Test_object *)this;
-   sphere->primitive = eo_add(EVAS_CANVAS3D_PRIMITIVE_CLASS, evas);
-   sphere->mesh = eo_add(EVAS_CANVAS3D_MESH_CLASS, evas);
-   sphere->material = eo_add(EVAS_CANVAS3D_MATERIAL_CLASS, evas);
+
+   sphere->primitive = efl_add(EVAS_CANVAS3D_PRIMITIVE_CLASS, evas);
+   sphere->mesh = efl_add(EVAS_CANVAS3D_MESH_CLASS, evas);
+   sphere->material = efl_add(EVAS_CANVAS3D_MATERIAL_CLASS, evas);
    evas_canvas3d_primitive_form_set(sphere->primitive, EVAS_CANVAS3D_MESH_PRIMITIVE_SPHERE);
    evas_canvas3d_primitive_precision_set(sphere->primitive, 50);
    evas_canvas3d_mesh_from_primitive_set(sphere->mesh, 0, sphere->primitive);
@@ -248,7 +255,7 @@ _init_sphere(void *this, const char *texture)
 
    evas_canvas3d_mesh_color_pick_enable_set(sphere->mesh, EINA_TRUE);
 
-   sphere->texture = eo_add(EVAS_CANVAS3D_TEXTURE_CLASS, evas);
+   sphere->texture = efl_add(EVAS_CANVAS3D_TEXTURE_CLASS, evas);
    evas_canvas3d_texture_file_set(sphere->texture, texture, NULL);
    evas_canvas3d_texture_filter_set(sphere->texture, EVAS_CANVAS3D_TEXTURE_FILTER_NEAREST, EVAS_CANVAS3D_TEXTURE_FILTER_NEAREST);
    evas_canvas3d_texture_wrap_set(sphere->texture, EVAS_CANVAS3D_WRAP_MODE_REPEAT, EVAS_CANVAS3D_WRAP_MODE_REPEAT);
@@ -261,9 +268,9 @@ _init_sphere(void *this, const char *texture)
    evas_canvas3d_material_color_set(sphere->material, EVAS_CANVAS3D_MATERIAL_ATTRIB_DIFFUSE, 1.0, 1.0, 1.0, 1.0);
    evas_canvas3d_material_color_set(sphere->material, EVAS_CANVAS3D_MATERIAL_ATTRIB_SPECULAR, 1.0, 1.0, 1.0, 1.0);
    evas_canvas3d_material_shininess_set(sphere->material, 50.0);
+
    return EINA_TRUE;
 }
-
 
 Eina_Bool
 _init_scene(const char *texture)
@@ -272,27 +279,27 @@ _init_scene(const char *texture)
    Evas_Real tmp;
    Test_object *m;
 
-   globalscene.scene = eo_add(EVAS_CANVAS3D_SCENE_CLASS, evas);
+   globalscene.scene = efl_add(EVAS_CANVAS3D_SCENE_CLASS, evas);
 
-   globalscene.root_node = eo_add(EVAS_CANVAS3D_NODE_CLASS, evas, evas_canvas3d_node_constructor(eo_self, EVAS_CANVAS3D_NODE_TYPE_NODE));
+   globalscene.root_node = efl_add(EVAS_CANVAS3D_NODE_CLASS, evas, evas_canvas3d_node_constructor(efl_added, EVAS_CANVAS3D_NODE_TYPE_NODE));
 
-   globalscene.camera = eo_add(EVAS_CANVAS3D_CAMERA_CLASS, evas);
+   globalscene.camera = efl_add(EVAS_CANVAS3D_CAMERA_CLASS, evas);
    evas_canvas3d_camera_projection_perspective_set(globalscene.camera, 30.0, 1.0, 1.0, 1000.0);
 
    globalscene.camera_node =
-      eo_add(EVAS_CANVAS3D_NODE_CLASS, evas, evas_canvas3d_node_constructor(eo_self, EVAS_CANVAS3D_NODE_TYPE_CAMERA));
+      efl_add(EVAS_CANVAS3D_NODE_CLASS, evas, evas_canvas3d_node_constructor(efl_added, EVAS_CANVAS3D_NODE_TYPE_CAMERA));
    evas_canvas3d_node_camera_set(globalscene.camera_node, globalscene.camera);
    evas_canvas3d_node_member_add(globalscene.root_node, globalscene.camera_node);
    evas_canvas3d_node_position_set(globalscene.camera_node, 0.0, 30.0, 800.0);
    evas_canvas3d_node_look_at_set(globalscene.camera_node, EVAS_CANVAS3D_SPACE_PARENT, 0.0, 0.0, -1000.0, EVAS_CANVAS3D_SPACE_PARENT, 0.0, 1.0, 0.0);
-   globalscene.light = eo_add(EVAS_CANVAS3D_LIGHT_CLASS, evas);
+   globalscene.light = efl_add(EVAS_CANVAS3D_LIGHT_CLASS, evas);
    evas_canvas3d_light_ambient_set(globalscene.light, 1.0, 1.0, 1.0, 1.0);
    evas_canvas3d_light_diffuse_set(globalscene.light, 1.0, 1.0, 1.0, 1.0);
    evas_canvas3d_light_specular_set(globalscene.light, 1.0, 1.0, 1.0, 1.0);
    evas_canvas3d_light_directional_set(globalscene.light, EINA_TRUE);
 
    globalscene.light_node =
-      eo_add(EVAS_CANVAS3D_NODE_CLASS, evas, evas_canvas3d_node_constructor(eo_self, EVAS_CANVAS3D_NODE_TYPE_LIGHT));
+      efl_add(EVAS_CANVAS3D_NODE_CLASS, evas, evas_canvas3d_node_constructor(efl_added, EVAS_CANVAS3D_NODE_TYPE_LIGHT));
    evas_canvas3d_node_light_set(globalscene.light_node, globalscene.light);
    evas_canvas3d_node_position_set(globalscene.light_node, 100.0, 50.0, 300.0);
    evas_canvas3d_node_look_at_set(globalscene.light_node, EVAS_CANVAS3D_SPACE_PARENT, 0.0, 0.0, 0.0, EVAS_CANVAS3D_SPACE_PARENT, 1.0, 1.0, 1.0);
@@ -302,6 +309,7 @@ _init_scene(const char *texture)
    for (i = 0; i < globalscene.col * globalscene.row; i++)
      {
         Test_object *spheretmp;
+
         m = malloc(sizeof(Test_object));
         m->sphere_init = _init_sphere;
         if (!i)
@@ -313,7 +321,7 @@ _init_scene(const char *texture)
              m->material = spheretmp->material;
              m->texture = spheretmp->texture;
           }
-        m->node = eo_add(EVAS_CANVAS3D_NODE_CLASS, evas, evas_canvas3d_node_constructor(eo_self, EVAS_CANVAS3D_NODE_TYPE_MESH));
+        m->node = efl_add(EVAS_CANVAS3D_NODE_CLASS, evas, evas_canvas3d_node_constructor(efl_added, EVAS_CANVAS3D_NODE_TYPE_MESH));
         m->speed = tmp;
         m->sphere_animate = _animate_sphere;
         m->animate = ecore_timer_add(m->speed, m->sphere_animate, m);
@@ -329,6 +337,7 @@ _init_scene(const char *texture)
    evas_canvas3d_scene_root_node_set(globalscene.scene, globalscene.root_node);
    evas_canvas3d_scene_camera_node_set(globalscene.scene, globalscene.camera_node);
    evas_canvas3d_scene_size_set(globalscene.scene, WIDTH, HEIGHT);
+
    return EINA_TRUE;
 }
 
@@ -356,8 +365,8 @@ int main(int argc, char **argv)
    if (!precision) precision = 30;
    if (!texture) texture = (char *)image_path;
 
-   fprintf(stdout, "row - %d, col - %d, precision of spheres - %d, texture - %s\n",
-           row, col, precision, texture);
+   printf("row - %d, col - %d, precision of spheres - %d, texture - %s\n",
+          row, col, precision, texture);
 
    ecore_evas = ecore_evas_new("opengl_x11", 10, 10, WIDTH, HEIGHT, NULL);
 
@@ -381,7 +390,7 @@ int main(int argc, char **argv)
    globalscene.precision = precision;
    globalscene.scene_init(texture);
 
-   image = eo_add(EFL_CANVAS_SCENE3D_CLASS, evas);
+   image = efl_add(EFL_CANVAS_SCENE3D_CLASS, evas);
 
    efl_gfx_size_set(image, WIDTH, HEIGHT);
    efl_gfx_visible_set(image, EINA_TRUE);

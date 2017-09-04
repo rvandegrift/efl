@@ -14,6 +14,7 @@ AM_CPPFLAGS = \
 -I$(top_srcdir)/src/lib/ecore_imf \
 -I$(top_srcdir)/src/lib/ecore_imf_evas \
 -I$(top_srcdir)/src/lib/ecore_con \
+-I$(top_srcdir)/src/lib/ecore_ipc \
 -I$(top_srcdir)/src/lib/ecore_evas \
 -I$(top_srcdir)/src/lib/ecore_audio \
 -I$(top_builddir)/src/lib/eina \
@@ -29,6 +30,7 @@ AM_CPPFLAGS = \
 -I$(top_builddir)/src/lib/ecore_imf \
 -I$(top_builddir)/src/lib/ecore_imf_evas \
 -I$(top_builddir)/src/lib/ecore_con \
+-I$(top_builddir)/src/lib/ecore_ipc \
 -I$(top_builddir)/src/lib/ecore_evas \
 -I$(top_builddir)/src/lib/ecore_audio \
 -DPACKAGE_EXAMPLES_DIR=\".\" \
@@ -51,15 +53,19 @@ ecore_con_server_simple_example \
 ecore_con_url_cookies_example \
 ecore_con_url_download_example \
 ecore_con_url_headers_example \
+ecore_con_url_ftp_example \
 ecore_evas_basics_example \
 ecore_evas_buffer_example_01 \
 ecore_evas_buffer_example_02 \
+ecore_evas_callbacks \
+ecore_evas_cursor_example \
 ecore_evas_extn_socket_example \
 ecore_evas_extn_plug_example \
-ecore_evas_callbacks \
 ecore_evas_ews_example \
 ecore_evas_object_example \
+ecore_evas_wayland_multiseat_example \
 ecore_evas_window_sizes_example \
+ecore_evas_vnc_example \
 ecore_event_example_01 \
 ecore_event_example_02 \
 ecore_exe_example \
@@ -76,7 +82,26 @@ ecore_time_functions_example \
 ecore_timer_example \
 ecore_getopt_example \
 ecore_con_eet_client_example \
-ecore_con_eet_server_example
+ecore_con_eet_server_example \
+efl_io_copier_example \
+efl_io_copier_simple_example \
+efl_io_queue_example \
+efl_io_buffered_stream_example \
+efl_net_server_example \
+efl_net_server_simple_example \
+efl_net_dialer_http_example \
+efl_net_dialer_websocket_example \
+efl_net_dialer_websocket_autobahntestee \
+efl_net_dialer_udp_example \
+efl_net_dialer_simple_example \
+efl_net_socket_ssl_dialer_example \
+efl_net_socket_ssl_server_example \
+efl_net_session_example \
+efl_net_control_example \
+efl_net_ip_address_example \
+ecore_ipc_server_example \
+ecore_ipc_client_example
+
 
 ECORE_COMMON_LDADD = \
 $(top_builddir)/src/lib/ecore/libecore.la \
@@ -113,6 +138,10 @@ $(ECORE_COMMON_LDADD)
 ECORE_CON_COMMON_LDADD = \
 $(top_builddir)/src/lib/ecore_con/libecore_con.la \
 $(ECORE_COMMON_LDADD)
+
+ECORE_IPC_COMMON_LDADD = \
+$(top_builddir)/src/lib/ecore_ipc/libecore_ipc.la \
+$(ECORE_CON_COMMON_LDADD)
 
 ecore_animator_example_SOURCES = ecore_animator_example.c
 ecore_animator_example_LDADD = $(ECORE_EVAS_COMMON_LDADD)
@@ -169,6 +198,9 @@ ecore_con_url_download_example_LDADD = $(ECORE_CON_COMMON_LDADD)
 ecore_con_url_headers_example_SOURCES = ecore_con_url_headers_example.c
 ecore_con_url_headers_example_LDADD = $(ECORE_CON_COMMON_LDADD)
 
+ecore_con_url_ftp_example_SOURCES = ecore_con_url_ftp_example.c
+ecore_con_url_ftp_example_LDADD = $(ECORE_CON_COMMON_LDADD)
+
 ecore_evas_basics_example_SOURCES = ecore_evas_basics_example.c
 ecore_evas_basics_example_LDADD = $(ECORE_EVAS_COMMON_LDADD)
 
@@ -178,14 +210,17 @@ ecore_evas_buffer_example_01_LDADD = $(ECORE_EVAS_COMMON_LDADD)
 ecore_evas_buffer_example_02_SOURCES = ecore_evas_buffer_example_02.c
 ecore_evas_buffer_example_02_LDADD = $(ECORE_EVAS_COMMON_LDADD)
 
+ecore_evas_callbacks_SOURCES = ecore_evas_callbacks.c
+ecore_evas_callbacks_LDADD = $(ECORE_EVAS_COMMON_LDADD)
+
+ecore_evas_cursor_example_SOURCES = ecore_evas_cursor_example.c
+ecore_evas_cursor_example_LDADD = $(ECORE_EVAS_COMMON_LDADD)
+
 ecore_evas_extn_socket_example_SOURCES = ecore_evas_extn_socket_example.c
 ecore_evas_extn_socket_example_LDADD = $(ECORE_EVAS_COMMON_LDADD)
 
 ecore_evas_extn_plug_example_SOURCES = ecore_evas_extn_plug_example.c
 ecore_evas_extn_plug_example_LDADD = $(ECORE_EVAS_COMMON_LDADD)
-
-ecore_evas_callbacks_SOURCES = ecore_evas_callbacks.c
-ecore_evas_callbacks_LDADD = $(ECORE_EVAS_COMMON_LDADD)
 
 ecore_evas_ews_example_SOURCES = ecore_evas_ews_example.c
 ecore_evas_ews_example_LDADD = $(ECORE_EVAS_COMMON_LDADD)
@@ -193,8 +228,16 @@ ecore_evas_ews_example_LDADD = $(ECORE_EVAS_COMMON_LDADD)
 ecore_evas_object_example_SOURCES = ecore_evas_object_example.c
 ecore_evas_object_example_LDADD = $(ECORE_EVAS_COMMON_LDADD)
 
+ecore_evas_wayland_multiseat_example_SOURCES = ecore_evas_wayland_multiseat_example.c
+ecore_evas_wayland_multiseat_example_LDADD = $(ECORE_EVAS_COMMON_LDADD) \
+$(top_builddir)/src/lib/ecore_input/libecore_input.la
+
 ecore_evas_window_sizes_example_SOURCES = ecore_evas_window_sizes_example.c
 ecore_evas_window_sizes_example_LDADD = $(ECORE_EVAS_COMMON_LDADD)
+
+ecore_evas_vnc_example_SOURCES = ecore_evas_vnc_example.c
+ecore_evas_vnc_example_LDADD = $(ECORE_EVAS_COMMON_LDADD) \
+$(top_builddir)/src/lib/ecore_input/libecore_input.la
 
 ecore_event_example_01_SOURCES = ecore_event_example_01.c
 ecore_event_example_01_LDADD = $(ECORE_COMMON_LDADD)
@@ -276,6 +319,71 @@ ecore_con_eet_server_example_SOURCES = ecore_con_eet_server_example.c \
 ecore_con_eet_server_example_LDADD = $(ECORE_CON_COMMON_LDADD) \
 $(top_builddir)/src/lib/eet/libeet.la
 
+
+efl_io_copier_example_SOURCES = efl_io_copier_example.c
+efl_io_copier_example_LDADD = $(ECORE_CON_COMMON_LDADD)
+
+efl_io_copier_simple_example_SOURCES = efl_io_copier_simple_example.c
+efl_io_copier_simple_example_LDADD = $(ECORE_COMMON_LDADD)
+
+efl_io_queue_example_SOURCES = efl_io_queue_example.c
+efl_io_queue_example_LDADD = $(ECORE_CON_COMMON_LDADD)
+
+efl_io_buffered_stream_example_SOURCES = efl_io_buffered_stream_example.c
+efl_io_buffered_stream_example_LDADD = $(ECORE_CON_COMMON_LDADD)
+
+efl_net_server_example_SOURCES = efl_net_server_example.c
+efl_net_server_example_LDADD = $(ECORE_CON_COMMON_LDADD)
+
+efl_net_server_simple_example_SOURCES = efl_net_server_simple_example.c
+efl_net_server_simple_example_LDADD = $(ECORE_CON_COMMON_LDADD)
+
+efl_net_dialer_http_example_SOURCES = efl_net_dialer_http_example.c
+efl_net_dialer_http_example_LDADD = $(ECORE_CON_COMMON_LDADD)
+
+efl_net_dialer_websocket_example_SOURCES = efl_net_dialer_websocket_example.c
+efl_net_dialer_websocket_example_LDADD = $(ECORE_CON_COMMON_LDADD)
+
+efl_net_dialer_websocket_autobahntestee_SOURCES = efl_net_dialer_websocket_autobahntestee.c
+efl_net_dialer_websocket_autobahntestee_LDADD = $(ECORE_CON_COMMON_LDADD)
+
+efl_net_dialer_udp_example_SOURCES = efl_net_dialer_udp_example.c
+efl_net_dialer_udp_example_LDADD = $(ECORE_CON_COMMON_LDADD)
+
+efl_net_dialer_simple_example_SOURCES = efl_net_dialer_simple_example.c
+efl_net_dialer_simple_example_LDADD = $(ECORE_CON_COMMON_LDADD)
+
+if HAVE_WINDOWS
+EXTRA_PROGRAMS += efl_net_dialer_windows_example
+efl_net_dialer_windows_example_SOURCES = efl_net_dialer_windows_example.c
+efl_net_dialer_windows_example_LDADD = $(ECORE_CON_COMMON_LDADD)
+else
+EXTRA_PROGRAMS += efl_net_dialer_unix_example
+efl_net_dialer_unix_example_SOURCES = efl_net_dialer_unix_example.c
+efl_net_dialer_unix_example_LDADD = $(ECORE_CON_COMMON_LDADD)
+endif
+
+efl_net_socket_ssl_dialer_example_SOURCES = efl_net_socket_ssl_dialer_example.c
+efl_net_socket_ssl_dialer_example_LDADD = $(ECORE_CON_COMMON_LDADD)
+
+efl_net_socket_ssl_server_example_SOURCES = efl_net_socket_ssl_server_example.c
+efl_net_socket_ssl_server_example_LDADD = $(ECORE_CON_COMMON_LDADD)
+
+efl_net_session_example_SOURCES = efl_net_session_example.c
+efl_net_session_example_LDADD = $(ECORE_CON_COMMON_LDADD)
+
+efl_net_control_example_SOURCES = efl_net_control_example.c
+efl_net_control_example_LDADD = $(ECORE_CON_COMMON_LDADD)
+
+efl_net_ip_address_example_SOURCES = efl_net_ip_address_example.c
+efl_net_ip_address_example_LDADD = $(ECORE_CON_COMMON_LDADD)
+
+ecore_ipc_server_example_SOURCES = ecore_ipc_server_example.c
+ecore_ipc_server_example_LDADD = $(ECORE_IPC_COMMON_LDADD)
+
+ecore_ipc_client_example_SOURCES = ecore_ipc_client_example.c
+ecore_ipc_client_example_LDADD = $(ECORE_IPC_COMMON_LDADD)
+
 SRCS = \
 ecore_animator_example.c \
 ecore_buffer_example.c \
@@ -292,6 +400,7 @@ ecore_con_server_simple_example.c \
 ecore_con_url_cookies_example.c \
 ecore_con_url_download_example.c \
 ecore_con_url_headers_example.c \
+ecore_con_url_ftp_example.c \
 ecore_evas_basics_example.c \
 ecore_evas_buffer_example_01.c \
 ecore_evas_buffer_example_02.c \
@@ -300,7 +409,9 @@ ecore_evas_extn_plug_example.c \
 ecore_evas_callbacks.c \
 ecore_evas_ews_example.c \
 ecore_evas_object_example.c \
+ecore_evas_wayland_multiseat_example.c \
 ecore_evas_window_sizes_example.c \
+ecore_evas_vnc_example.c \
 ecore_event_example_01.c \
 ecore_event_example_02.c \
 ecore_exe_example.c \
@@ -321,7 +432,27 @@ ecore_timer_example.c \
 ecore_getopt_example.c \
 ecore_con_eet_client_example.c \
 ecore_con_eet_server_example.c \
-ecore_con_eet_descriptor_example.c 
+ecore_con_eet_descriptor_example.c \
+efl_io_copier_example.c \
+efl_io_copier_simple_example.c \
+efl_io_queue_example.c \
+efl_io_buffered_stream_example.c \
+efl_net_server_example.c \
+efl_net_server_simple_example.c \
+efl_net_dialer_http_example.c \
+efl_net_dialer_websocket_example.c \
+efl_net_dialer_websocket_autobahntestee.c \
+efl_net_dialer_udp_example.c \
+efl_net_dialer_simple_example.c \
+efl_net_socket_ssl_dialer_example.c \
+efl_net_socket_ssl_server_example.c \
+efl_net_session_example.c \
+efl_net_control_example.c \
+ecore_ipc_server_example.c \
+ecore_ipc_client_example.c
+
+%.pem:
+	echo -e "US\nOR\nPortland\nXPTO Ltd\n\nlocalhost\nroot@localhost\n" | openssl req -new -x509 -days 30 -nodes -out $@ -keyout $@
 
 DATA_FILES = red.png Makefile.examples
 

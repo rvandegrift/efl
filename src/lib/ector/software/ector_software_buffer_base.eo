@@ -8,10 +8,8 @@ mixin Ector.Software.Buffer.Base (Ector.Buffer)
       }
    }
    implements {
-      Ector.Buffer.flags.get;
+      Ector.Buffer.flags { get; }
       Ector.Buffer.pixels_set;
-      Ector.Buffer.span_get;
-      Ector.Buffer.span_free;
       Ector.Buffer.map;
       Ector.Buffer.unmap;
    }

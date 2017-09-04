@@ -1,8 +1,10 @@
 /**
- * Simple Evas example illustrating <b>alignment, minimum size, maximum
- * size, padding and weight</b> hints on objects.
+ * Example of setting hints on objects in Evas.
  *
- * To exemplify those hints, whe use the Evas box object, one of the
+ * Object hints shown include <b>alignment, minimum size, maximum size,
+ * padding and weight</b>.
+ *
+ * To exemplify those hints, we use the Evas box object, one of the
  * managers using size hints to layout its children.
  *
  * You'll need at least one engine built for it (excluding the buffer
@@ -90,8 +92,7 @@ struct test_data
 
 static struct test_data d = {0};
 
-/* here just to keep our example's window size and background image's
- * size in synchrony */
+/* Keep the example's window size in sync with the background image's size */
 static void
 _canvas_resize_cb(Ecore_Evas *ee)
 {
@@ -114,20 +115,24 @@ _print_rect_stats(Evas_Object *rect)
    double x, y;
 
    evas_object_size_hint_align_get(rect, &x, &y);
-   fprintf(stdout, "\talign hints: h(%f), v(%f)\n", x, y);
+   printf("\talign hints: h(%f), v(%f)\n",
+          x, y);
 
    efl_gfx_size_hint_combined_min_get(rect, &w, &h);
-   fprintf(stdout, "\tmin. size hints: h(%d), v(%d)\n", w, h);
+   printf("\tmin. size hints: h(%d), v(%d)\n",
+          w, h);
 
    evas_object_size_hint_max_get(rect, &w, &h);
-   fprintf(stdout, "\tmax. size hints: h(%d), v(%d)\n", w, h);
+   printf("\tmax. size hints: h(%d), v(%d)\n",
+          w, h);
 
    evas_object_size_hint_padding_get(rect, &l, &r, &t, &b);
-   fprintf(stdout, "\tpadding hints: l(%d), r(%d), t(%d), b(%d)\n",
-           l, r, t, b);
+   printf("\tpadding hints: l(%d), r(%d), t(%d), b(%d)\n",
+          l, r, t, b);
 
    evas_object_size_hint_weight_get(rect, &x, &y);
-   fprintf(stdout, "\tweight hints: h(%f), v(%f)\n", x, y);
+   printf("\tweight hints: h(%f), v(%f)\n",
+          x, y);
 }
 
 /* use the following commands to interact with this example - 'h' is
@@ -159,17 +164,17 @@ _on_keydown(void        *data EINA_UNUSED,
      }
    else if (strcmp(ev->key, "h") == 0) /* print help */
      {
-        fprintf(stdout, commands);
+        printf(commands);
         return;
      }
    else if (strcmp(ev->key, "s") == 0) /* get aspect status of the
                                             * rectangles WRT size
                                             * hints */
      {
-        fprintf(stdout, "Top rectangle:\n");
+        printf("Top rectangle:\n");
         _print_rect_stats(d.t_rect);
 
-        fprintf(stdout, "\nBottom rectangle:\n");
+        printf("\nBottom rectangle:\n");
         _print_rect_stats(d.b_rect);
 
         return;
@@ -189,8 +194,8 @@ _on_keydown(void        *data EINA_UNUSED,
         evas_object_size_hint_align_set(
           rect, r_data->align_ptr->x, r_data->align_ptr->y);
 
-        fprintf(stdout, "Changing align hints for %s rect. to (%f, %f)\n",
-                name, r_data->align_ptr->x, r_data->align_ptr->y);
+        printf("Changing align hints for %s rect. to (%f, %f)\n",
+               name, r_data->align_ptr->x, r_data->align_ptr->y);
         return;
      }
 
@@ -206,8 +211,8 @@ _on_keydown(void        *data EINA_UNUSED,
         evas_object_size_hint_min_set(
           rect, r_data->min_ptr->w, r_data->min_ptr->h);
 
-        fprintf(stdout, "Changing min. size hints for %s rect. to (%d, %d)\n",
-                name, r_data->min_ptr->w, r_data->min_ptr->h);
+        printf("Changing min. size hints for %s rect. to (%d, %d)\n",
+               name, r_data->min_ptr->w, r_data->min_ptr->h);
         return;
      }
 
@@ -223,8 +228,8 @@ _on_keydown(void        *data EINA_UNUSED,
         evas_object_size_hint_max_set(
           rect, r_data->max_ptr->w, r_data->max_ptr->h);
 
-        fprintf(stdout, "Changing max. size hints for %s rect. to (%d, %d)\n",
-                name, r_data->max_ptr->w, r_data->max_ptr->h);
+        printf("Changing max. size hints for %s rect. to (%d, %d)\n",
+               name, r_data->max_ptr->w, r_data->max_ptr->h);
         return;
      }
 
@@ -241,10 +246,9 @@ _on_keydown(void        *data EINA_UNUSED,
           rect, r_data->padding_ptr->l, r_data->padding_ptr->r,
           r_data->padding_ptr->t, r_data->padding_ptr->b);
 
-        fprintf(stdout, "Changing padding size hints for %s rect."
-                        " to (%d, %d, %d, %d)\n",
-                name, r_data->padding_ptr->l, r_data->padding_ptr->r,
-                r_data->padding_ptr->t, r_data->padding_ptr->b);
+        printf("Changing padding size hints for %s rect. to (%d, %d, %d, %d)\n",
+               name, r_data->padding_ptr->l, r_data->padding_ptr->r,
+               r_data->padding_ptr->t, r_data->padding_ptr->b);
         return;
      }
 
@@ -263,8 +267,8 @@ _on_keydown(void        *data EINA_UNUSED,
         evas_object_size_hint_weight_set(
           rect, r_data->weight_ptr->x, r_data->weight_ptr->y);
 
-        fprintf(stdout, "Changing weight hints for %s rect. to (%f, %f)\n",
-                name, r_data->weight_ptr->x, r_data->weight_ptr->y);
+        printf("Changing weight hints for %s rect. to (%f, %f)\n",
+               name, r_data->weight_ptr->x, r_data->weight_ptr->y);
         return;
      }
 }
@@ -364,7 +368,7 @@ main(void)
 
    _canvas_resize_cb(d.ee);
 
-   fprintf(stdout, commands);
+   printf(commands);
    ecore_main_loop_begin();
    ecore_evas_shutdown();
    return 0;
@@ -374,4 +378,3 @@ error:
                    " up to ecore-evas for this example to run properly.\n");
    return -1;
 }
-

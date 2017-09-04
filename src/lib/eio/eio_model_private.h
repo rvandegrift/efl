@@ -40,7 +40,7 @@ typedef struct _Eio_Property_Promise _Eio_Property_Promise;
 struct _Eio_Property_Promise
 {
   _Eio_Property_Name property;
-  Eina_Promise_Owner* promise;
+  Efl_Promise* promise;
 };
 
 typedef struct _Eio_Children_Slice_Promise _Eio_Children_Slice_Promise;
@@ -48,7 +48,7 @@ struct _Eio_Children_Slice_Promise
 {
   unsigned start;
   unsigned count;
-  Eina_Promise_Owner* promise;
+  Efl_Promise* promise;
 };
 
 typedef struct _Eio_Model_Data _Eio_Model_Data;
@@ -74,6 +74,8 @@ struct _Eio_Model_Data
    Eio_Filter_Direct_Cb filter_cb;
    void *filter_userdata;
    Eina_Spinlock filter_lock; /**< filter callback is called from another thread */
+
+   Eina_List *fetching_mime;
 };
 
 #endif

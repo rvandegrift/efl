@@ -187,14 +187,23 @@
  * //set_effect(part_id, Effect:fx)
  * set_mouse_events(part_id, ev)
  * get_mouse_events(part_id)
+ *
+ * Pointer_Mode {
+ *   POINTER_MODE_AUTOGRAB = 0,
+ *   POINTER_MODE_NOGRAB = 1,
+ *   POINTER_MODE_NOGREP = 2,
+ * }
+ * 
+ * set_pointer_mode(part_id, mode)
  * set_repeat_events(part_id, rep)
  * get_repeat_events(part_id)
  * set_ignore_flags(part_id, flags)
  * get_ignore_flags(part_id)
  * set_mask_flags(part_id, flags)
  * get_mask_flags(part_id)
- * set_clip(part_id, clip_part_id)
- * get_clip(part_id)
+ *
+ * set_focus(part_id, seat_name[])
+ * unset_focus(seat_name[])
  *
  * part_swallow(part_id, group_name)
  *
@@ -2124,11 +2133,6 @@ case EDJE_PART_TYPE_##Short:                               \
 
    memset(rp->custom, 0, sizeof (Edje_Real_Part_State));
 
-   rp->custom->p.map = eina_cow_alloc(_edje_calc_params_map_cow);
-#ifdef HAVE_EPHYSICS
-   rp->custom->p.physics = eina_cow_alloc(_edje_calc_params_physics_cow);
-#endif
-
    *d = *parent;
 
    d->state.name = (char *)eina_stringshare_add("custom");
@@ -3576,7 +3580,7 @@ _edje_embryo_fn_set_mouse_events(Embryo_Program *ep, Embryo_Cell *params)
    rp = ed->table_parts[part_id % ed->table_parts_size];
 
    if (rp)
-     _edje_part_mouse_events_set(ed, rp, params[2]);
+     _edje_real_part_mouse_events_set(ed, rp, params[2]);
 
    return 0;
 }
@@ -3598,10 +3602,32 @@ _edje_embryo_fn_get_mouse_events(Embryo_Program *ep, Embryo_Cell *params)
    rp = ed->table_parts[part_id % ed->table_parts_size];
 
    if (rp)
-     return (Embryo_Cell)_edje_var_int_get(ed, (int)_edje_part_mouse_events_get(ed, rp));
+     return (Embryo_Cell)_edje_var_int_get(ed, (int)_edje_real_part_mouse_events_get(ed, rp));
 
    return 0;
 
+}
+
+/* set_pointer_mode(part_id, mode) */
+static Embryo_Cell
+_edje_embryo_fn_set_pointer_mode(Embryo_Program *ep, Embryo_Cell *params)
+{
+   int part_id = 0;
+   Edje *ed;
+   Edje_Real_Part *rp;
+
+   CHKPARAM(2);
+
+   part_id = params[1];
+   if (part_id < 0) return 0;
+
+   ed = embryo_program_data_get(ep);
+   rp = ed->table_parts[part_id % ed->table_parts_size];
+
+   if (rp)
+     _edje_real_part_pointer_mode_set(ed, rp, params[2]);
+
+   return 0;
 }
 
 /* set_repeat_events(part_id, rep) */
@@ -3621,7 +3647,7 @@ _edje_embryo_fn_set_repeat_events(Embryo_Program *ep, Embryo_Cell *params)
    rp = ed->table_parts[part_id % ed->table_parts_size];
 
    if (rp)
-     _edje_part_repeat_events_set(ed, rp, params[2]);
+     _edje_real_part_repeat_events_set(ed, rp, params[2]);
 
    return 0;
 }
@@ -3643,7 +3669,7 @@ _edje_embryo_fn_get_repeat_events(Embryo_Program *ep, Embryo_Cell *params)
    rp = ed->table_parts[part_id % ed->table_parts_size];
 
    if (rp)
-     return (Embryo_Cell)_edje_var_int_get(ed, (int)_edje_part_repeat_events_get(ed, rp));
+     return (Embryo_Cell)_edje_var_int_get(ed, (int)_edje_real_part_repeat_events_get(ed, rp));
 
    return 0;
 
@@ -3666,7 +3692,7 @@ _edje_embryo_fn_set_ignore_flags(Embryo_Program *ep, Embryo_Cell *params)
    rp = ed->table_parts[part_id % ed->table_parts_size];
 
    if (rp)
-     _edje_part_ignore_flags_set(ed, rp, params[2]);
+     _edje_real_part_ignore_flags_set(ed, rp, params[2]);
 
    return 0;
 }
@@ -3688,7 +3714,7 @@ _edje_embryo_fn_get_ignore_flags(Embryo_Program *ep, Embryo_Cell *params)
    rp = ed->table_parts[part_id % ed->table_parts_size];
 
    if (rp)
-     return (Embryo_Cell)_edje_var_int_get(ed, (int)_edje_part_ignore_flags_get(ed, rp));
+     return (Embryo_Cell)_edje_var_int_get(ed, (int)_edje_real_part_ignore_flags_get(ed, rp));
 
    return 0;
 
@@ -3711,7 +3737,7 @@ _edje_embryo_fn_set_mask_flags(Embryo_Program *ep, Embryo_Cell *params)
    rp = ed->table_parts[part_id % ed->table_parts_size];
 
    if (rp)
-     _edje_part_mask_flags_set(ed, rp, params[2]);
+     _edje_real_part_mask_flags_set(ed, rp, params[2]);
 
    return 0;
 }
@@ -3733,7 +3759,7 @@ _edje_embryo_fn_get_mask_flags(Embryo_Program *ep, Embryo_Cell *params)
    rp = ed->table_parts[part_id % ed->table_parts_size];
 
    if (rp)
-     return (Embryo_Cell)_edje_var_int_get(ed, (int)_edje_part_mask_flags_get(ed, rp));
+     return (Embryo_Cell)_edje_var_int_get(ed, (int)_edje_real_part_mask_flags_get(ed, rp));
 
    return 0;
 
@@ -3772,6 +3798,59 @@ _edje_embryo_fn_part_swallow(Embryo_Program *ep, Embryo_Cell *params)
      }
    edje_object_part_swallow(ed->obj, rp->part->name, new_obj);
    _edje_subobj_register(ed, new_obj);
+
+   return 0;
+}
+
+/* set_focus(part_id, seat_name[]) */
+static Embryo_Cell
+_edje_embryo_fn_set_focus(Embryo_Program *ep, Embryo_Cell *params)
+{
+   Edje *ed;
+   int part_id;
+   Edje_Real_Part *rp;
+   char *seat_name = NULL;
+
+   if (!(HASNPARAMS(1) || HASNPARAMS(2))) return -1;
+   ed = embryo_program_data_get(ep);
+
+   part_id = params[1];
+   if (part_id < 0) return 0;
+   rp = ed->table_parts[part_id % ed->table_parts_size];
+   if (!rp) return 0;
+
+   /* if no seat name is passed, that's fine. it means
+      it should be applied to default seat */
+   if (HASNPARAMS(2))
+     {
+        GETSTR(seat_name, params[2]);
+        if (!seat_name) return 0;
+     }
+
+   _edje_part_focus_set(ed, seat_name, rp);
+
+   return 0;
+}
+
+/* unset_focus(seat_name[]) */
+static Embryo_Cell
+_edje_embryo_fn_unset_focus(Embryo_Program *ep, Embryo_Cell *params)
+{
+   Edje *ed;
+   char *seat_name = NULL;
+
+   if (!(HASNPARAMS(0) || HASNPARAMS(1))) return -1;
+   ed = embryo_program_data_get(ep);
+
+   /* seat name is optional. no seat means
+      it should be applied to default seat */
+   if (HASNPARAMS(1))
+     {
+        GETSTR(seat_name, params[1]);
+        if (!seat_name) return 0;
+     }
+
+   _edje_part_focus_set(ed, seat_name, NULL);
 
    return 0;
 }
@@ -4397,6 +4476,30 @@ _edje_embryo_fn_physics_get_rotation(Embryo_Program *ep, Embryo_Cell *params)
 
 #endif
 
+/* swallow_has_content(part_id) */
+static Embryo_Cell
+_edje_embryo_fn_swallow_has_content(Embryo_Program *ep, Embryo_Cell *params)
+{
+   Edje *ed;
+   int part_id = 0;
+   Edje_Real_Part *rp;
+
+   CHKPARAM(1);
+   ed = embryo_program_data_get(ep);
+   part_id = params[1];
+   if (part_id < 0) return 0;
+   rp = ed->table_parts[part_id % ed->table_parts_size];
+
+   if ((!rp) ||
+       (!rp->part) ||
+       (rp->part->type != EDJE_PART_TYPE_SWALLOW) ||
+       (!rp->typedata.swallow) ||
+       (!rp->typedata.swallow->swallowed_object))
+      return 0;
+
+   return 1;
+}
+
 void
 _edje_embryo_script_init(Edje_Part_Collection *edc)
 {
@@ -4484,12 +4587,16 @@ _edje_embryo_script_init(Edje_Part_Collection *edc)
 
    embryo_program_native_call_add(ep, "set_mouse_events", _edje_embryo_fn_set_mouse_events);
    embryo_program_native_call_add(ep, "get_mouse_events", _edje_embryo_fn_get_mouse_events);
+   embryo_program_native_call_add(ep, "set_pointer_mode", _edje_embryo_fn_set_pointer_mode);
    embryo_program_native_call_add(ep, "set_repeat_events", _edje_embryo_fn_set_repeat_events);
    embryo_program_native_call_add(ep, "get_repeat_events", _edje_embryo_fn_get_repeat_events);
    embryo_program_native_call_add(ep, "set_ignore_flags", _edje_embryo_fn_set_ignore_flags);
    embryo_program_native_call_add(ep, "get_ignore_flags", _edje_embryo_fn_get_ignore_flags);
    embryo_program_native_call_add(ep, "set_mask_flags", _edje_embryo_fn_set_mask_flags);
    embryo_program_native_call_add(ep, "get_mask_flags", _edje_embryo_fn_get_mask_flags);
+
+   embryo_program_native_call_add(ep, "set_focus", _edje_embryo_fn_set_focus);
+   embryo_program_native_call_add(ep, "unset_focus", _edje_embryo_fn_unset_focus);
 
    embryo_program_native_call_add(ep, "part_swallow", _edje_embryo_fn_part_swallow);
 
@@ -4522,6 +4629,8 @@ _edje_embryo_script_init(Edje_Part_Collection *edc)
    embryo_program_native_call_add(ep, "physics_set_rotation", _edje_embryo_fn_physics_set_rotation);
    embryo_program_native_call_add(ep, "physics_get_rotation", _edje_embryo_fn_physics_get_rotation);
 #endif
+
+   embryo_program_native_call_add(ep, "swallow_has_content", _edje_embryo_fn_swallow_has_content);
 }
 
 void

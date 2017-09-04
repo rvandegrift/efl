@@ -48,7 +48,7 @@ struct _OBJ_Counts
 
 /* create new counter */
 static inline OBJ_Counts
-_new_count_elements()
+_new_count_elements(void)
 {
    OBJ_Counts counts;
 
@@ -405,6 +405,8 @@ evas_model_load_file_obj(Evas_Canvas3D_Mesh *mesh, Eina_File *file)
           {
              float *p, *n, *t;
 
+             n = NULL;
+             t = NULL;
              p = (float *)((char *)pos + stride_pos * (j * 3 + k));
              if (counts.existence_of_normal)
                n = (float *)((char *)nor + stride_nor * (j * 3 + k));
@@ -415,14 +417,14 @@ evas_model_load_file_obj(Evas_Canvas3D_Mesh *mesh, Eina_File *file)
              p[1] = ARRAY_2D(_vertices_obj, (ARRAY_2D(_triangles, j, (3 * k), 9) - 1), 1, 3);
              p[2] = ARRAY_2D(_vertices_obj, (ARRAY_2D(_triangles, j, (3 * k), 9) - 1), 2, 3);
 
-             if (counts.existence_of_normal)
+             if (n)
                {
                   n[0] = ARRAY_2D(_normales_obj, (ARRAY_2D(_triangles, j, (3 * k + 2), 9) - 1), 0, 3);
                   n[1] = ARRAY_2D(_normales_obj, (ARRAY_2D(_triangles, j, (3 * k + 2), 9) - 1), 1, 3);
                   n[2] = ARRAY_2D(_normales_obj, (ARRAY_2D(_triangles, j, (3 * k + 2), 9) - 1), 2, 3);
                }
 
-             if (counts.existence_of_tex_point)
+             if (t)
                {
                   t[0] = ARRAY_2D(_tex_coords_obj, (ARRAY_2D(_triangles, j, (3 * k + 1), 9) - 1), 0, 3);
                   t[1] = ARRAY_2D(_tex_coords_obj, (ARRAY_2D(_triangles, j, (3 * k + 1), 9) - 1), 1, 3);
@@ -444,7 +446,7 @@ evas_model_load_file_obj(Evas_Canvas3D_Mesh *mesh, Eina_File *file)
    if (counts.existence_of_tex_point)
      evas_canvas3d_mesh_frame_vertex_data_unmap(mesh, 0, EVAS_CANVAS3D_VERTEX_ATTRIB_TEXCOORD);
 
-   Evas_Canvas3D_Mesh_Data *pd = eo_data_scope_get(mesh, EVAS_CANVAS3D_MESH_CLASS);
+   Evas_Canvas3D_Mesh_Data *pd = efl_data_scope_get(mesh, EVAS_CANVAS3D_MESH_CLASS);
 
    if (!evas_canvas3d_mesh_aabb_add_to_frame(pd, 0, stride_pos))
      {

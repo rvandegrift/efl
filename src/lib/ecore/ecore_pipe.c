@@ -66,6 +66,12 @@
 
 #else
 
+# ifdef HAVE_SYS_EPOLL_H
+#  include <sys/epoll.h>
+# endif /* HAVE_SYS_EPOLL_H */
+# ifdef HAVE_SYS_TIMERFD_H
+#  include <sys/timerfd.h>
+# endif
 # include <unistd.h>
 # include <fcntl.h>
 
@@ -95,6 +101,10 @@ struct _Ecore_Pipe
    unsigned int      already_read;
    void             *passed_data;
    int               message;
+#ifndef _WIN32
+   int               pollfd;
+   int               timerfd;
+#endif
    Eina_Bool         delete_me : 1;
 };
 GENERIC_ALLOC_SIZE_DECLARE(Ecore_Pipe);
@@ -350,11 +360,27 @@ ecore_pipe_full_add(Ecore_Pipe_Cb handler,
    p->data = data;
 
    if (!read_survive_fork)
-     _ecore_fd_close_on_exec(fd_read);
+     eina_file_close_on_exec(fd_read, EINA_TRUE);
    if (!write_survive_fork)
-     _ecore_fd_close_on_exec(fd_write);
+     eina_file_close_on_exec(fd_write, EINA_TRUE);
 
-   if (fcntl(p->fd_read, F_SETFL, O_NONBLOCK) < 0) ERR("can't set pipe to NONBLOCK");
+#if defined(HAVE_SYS_EPOLL_H) && defined(HAVE_SYS_TIMERFD_H)
+   struct epoll_event pollev = { 0 };
+   p->pollfd = epoll_create(1);
+   p->timerfd = timerfd_create(CLOCK_MONOTONIC, TFD_NONBLOCK | TFD_CLOEXEC);
+   eina_file_close_on_exec(p->pollfd, EINA_TRUE);
+
+   pollev.data.ptr = &(p->fd_read);
+   pollev.events = EPOLLIN;
+   epoll_ctl(p->pollfd, EPOLL_CTL_ADD, p->fd_read, &pollev);
+
+   pollev.data.ptr = &(p->timerfd);
+   pollev.events = EPOLLIN;
+   epoll_ctl(p->pollfd, EPOLL_CTL_ADD, p->timerfd, &pollev);
+#endif
+
+   if (fcntl(p->fd_read, F_SETFL, O_NONBLOCK) < 0)
+     ERR("can't set pipe to NONBLOCK");
    p->fd_handler = ecore_main_fd_handler_add(p->fd_read,
                                              ECORE_FD_READ,
                                              _ecore_pipe_read,
@@ -384,6 +410,14 @@ _ecore_pipe_del(Ecore_Pipe *p)
         ECORE_MAGIC_FAIL(p, ECORE_MAGIC_PIPE, "ecore_pipe_del");
         return NULL;
      }
+#if defined(HAVE_SYS_EPOLL_H) && defined(HAVE_SYS_TIMERFD_H)
+   epoll_ctl(p->pollfd, EPOLL_CTL_DEL, p->fd_read, NULL);
+   epoll_ctl(p->pollfd, EPOLL_CTL_DEL, p->timerfd, NULL);
+   if (p->timerfd >= 0) close(p->timerfd);
+   if (p->pollfd >= 0) close(p->pollfd);
+   p->timerfd = PIPE_FD_INVALID;
+   p->pollfd = PIPE_FD_INVALID;
+#endif
    p->delete_me = EINA_TRUE;
    if (p->handling > 0) return (void *)p->data;
    if (p->fd_handler) _ecore_main_fd_handler_del(p->fd_handler);
@@ -397,6 +431,17 @@ _ecore_pipe_del(Ecore_Pipe *p)
    return data;
 }
 
+static void
+_ecore_pipe_unhandle(Ecore_Pipe *p)
+{
+   p->handling--;
+   if (p->delete_me)
+     {
+        _ecore_pipe_del(p);
+     }
+}
+
+#if ! defined(HAVE_SYS_EPOLL_H) || ! defined(HAVE_SYS_TIMERFD_H)
 int
 _ecore_pipe_wait(Ecore_Pipe *p,
                  int         message_count,
@@ -427,26 +472,23 @@ _ecore_pipe_wait(Ecore_Pipe *p,
         if (wait >= 0.0)
           {
              /* finite() tests for NaN, too big, too small, and infinity.  */
-              if ((!ECORE_FINITE(timeout)) || (timeout == 0.0))
-                {
-                   tv.tv_sec = 0;
-                   tv.tv_usec = 0;
-                }
-              else if (timeout > 0.0)
-                {
-                   int sec, usec;
+             if ((!ECORE_FINITE(timeout)) || (EINA_DBL_EQ(timeout, 0.0)))
+               {
+                  tv.tv_sec = 0;
+                  tv.tv_usec = 0;
+               }
+             else if (timeout > 0.0)
+               {
+                  int sec, usec;
 #ifdef FIX_HZ
-                   timeout += (0.5 / HZ);
-                   sec = (int)timeout;
-                   usec = (int)((timeout - (double)sec) * 1000000);
-#else
-                   sec = (int)timeout;
-                   usec = (int)((timeout - (double)sec) * 1000000);
+                  timeout += (0.5 / HZ);
 #endif
-                   tv.tv_sec = sec;
-                   tv.tv_usec = usec;
-                }
-              t = &tv;
+                  sec = (int)timeout;
+                  usec = (int)((timeout - (double)sec) * 1000000);
+                  tv.tv_sec = sec;
+                  tv.tv_usec = usec;
+               }
+             t = &tv;
           }
         else
           {
@@ -457,10 +499,12 @@ _ecore_pipe_wait(Ecore_Pipe *p,
 
         if (ret > 0)
           {
+             p->handling++;
              _ecore_pipe_read(p, NULL);
              message_count -= p->message;
              total += p->message;
              p->message = 0;
+             _ecore_pipe_unhandle(p);
           }
         else if (ret == 0)
           {
@@ -483,16 +527,107 @@ _ecore_pipe_wait(Ecore_Pipe *p,
    return total;
 }
 
-static void
-_ecore_pipe_unhandle(Ecore_Pipe *p)
+#else
+int
+_ecore_pipe_wait(Ecore_Pipe *p,
+                 int         message_count,
+                 double      wait)
 {
-   p->handling--;
-   if (p->delete_me)
+   int64_t timerfdbuf;
+   struct epoll_event pollincoming[2];
+   double timeout;
+   int ret;
+   int total = 0;
+   int time_exit=-1;
+   Eina_Bool fd_read_found;
+   Eina_Bool fd_timer_found;
+   struct itimerspec tspec_new;
+
+   EINA_MAIN_LOOP_CHECK_RETURN_VAL(-1);
+   if (p->fd_read == PIPE_FD_INVALID)
+     return -1;
+
+   timeout = wait;
+   int sec, usec;
+   if ( wait >= 0.0)
      {
-        _ecore_pipe_del(p);
+        if ((!ECORE_FINITE(timeout)) || (EINA_DBL_EQ(timeout, 0.0)))
+          {
+             tspec_new.it_value.tv_sec = 0;
+             tspec_new.it_value.tv_nsec = 0;
+             tspec_new.it_interval.tv_sec = 0;
+             tspec_new.it_interval.tv_nsec = 0;
+             time_exit = 0;
+          }
+        else
+          {
+#ifdef FIX_HZ
+             timeout += (0.5 / HZ);
+#endif
+             sec = (int)timeout;
+             usec = (int)((timeout - (double)sec) * 1000000000);
+             tspec_new.it_value.tv_sec = sec;
+             tspec_new.it_value.tv_nsec = (int)(usec) % 1000000000;
+             tspec_new.it_interval.tv_sec = 0;
+             tspec_new.it_interval.tv_nsec = 0;
+             timerfd_settime(p->timerfd, 0, &tspec_new, NULL);
+           }
      }
+
+   while ((ret = epoll_wait(p->pollfd, pollincoming, 2, time_exit)) > 0)
+     {
+         fd_read_found  = EINA_FALSE;
+         fd_timer_found = EINA_FALSE;
+
+         for (int i = 0; i < ret;i++)
+         {
+            if ((&p->fd_read == pollincoming[i].data.ptr))
+              fd_read_found  = EINA_TRUE;
+            if ((&p->timerfd == pollincoming[i].data.ptr))
+              fd_timer_found = EINA_TRUE;
+         }
+
+         p->handling++;
+         if (fd_read_found)
+         {
+            _ecore_pipe_read(p, NULL);
+            message_count -= p->message;
+            total += p->message;
+            p->message = 0;
+            if (message_count <= 0)
+             {
+                _ecore_pipe_unhandle(p);
+                break;
+             }
+         }
+
+         if ((fd_timer_found) && (p->timerfd != PIPE_FD_INVALID))
+         {
+            if (pipe_read(p->timerfd, &timerfdbuf, sizeof(timerfdbuf))
+                < (int)sizeof(int64_t))
+              WRN("Could not read timerfd data");
+            _ecore_pipe_unhandle(p);
+            break;
+         }
+         _ecore_pipe_unhandle(p);
+     }
+   if (ret < 0)
+     {
+        if (errno != EBADF)
+          WRN("epoll file descriptor is not a valid");
+        else if (errno != EINVAL)
+          WRN("epoll file descriptor is not an epoll file descriptor, or maxevents is less than or equal to zero.");
+        else if (errno != EFAULT)
+          WRN("The memory area pointed to by epoll_event is not accessible with write permissions.");
+        else if (errno != EINTR)
+          WRN("The call was interrupted by a signal handler before any of the requested epoll_event "
+              "occurred or the timeout expired; see signal(7).");
+     }
+
+   return total;
 }
 
+#endif
 static void
 _ecore_pipe_handler_call(Ecore_Pipe *p,
                          unsigned char *buf,
@@ -535,13 +670,13 @@ _ecore_pipe_read(void             *data,
              /* read the len of the passed data */
               ret = pipe_read(p->fd_read, &p->len, sizeof(p->len));
 
-     /* catch the non error case first */
+             /* catch the non error case first */
               /* read amount ok - nothing more to do */
               if (ret == sizeof(p->len))
                 ;
               else if (ret > 0)
                 {
-     /* we got more data than we asked for - definite error */
+                   /* we got more data than we asked for - definite error */
                     ERR("Only read %i bytes from the pipe, although"
                         " we need to read %i bytes.",
                         (int)ret, (int)sizeof(p->len));
@@ -550,10 +685,10 @@ _ecore_pipe_read(void             *data,
                 }
               else if (ret == 0)
                 {
-     /* we got no data */
+                   /* we got no data */
                     if (i == 0)
                       {
-     /* no data on first try through means an error */
+                         /* no data on first try through means an error */
                           _ecore_pipe_handler_call(p, NULL, 0);
                           pipe_close(p->fd_read);
                           p->fd_read = PIPE_FD_INVALID;
@@ -563,7 +698,7 @@ _ecore_pipe_read(void             *data,
                       }
                     else
                       {
-     /* no data after first loop try is ok */
+                         /* no data after first loop try is ok */
                           _ecore_pipe_unhandle(p);
                           return ECORE_CALLBACK_RENEW;
                       }
@@ -617,7 +752,7 @@ _ecore_pipe_read(void             *data,
              if (!p->passed_data)
                {
                   _ecore_pipe_handler_call(p, NULL, 0);
-     /* close the pipe */
+                  /* close the pipe */
                   pipe_close(p->fd_read);
                   p->fd_read = PIPE_FD_INVALID;
                   p->fd_handler = NULL;
@@ -633,7 +768,7 @@ _ecore_pipe_read(void             *data,
 
         /* catch the non error case first */
         /* if we read enough data to finish the message/buffer */
-        if (ret == (p->len - p->already_read))
+        if (ret == (ssize_t)(p->len - p->already_read))
           _ecore_pipe_handler_call(p, p->passed_data, p->len);
         else if (ret > 0)
           {

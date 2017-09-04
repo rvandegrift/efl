@@ -216,7 +216,7 @@ _socketfd_handler(int fd EINA_UNUSED, Fd_Flags flags EINA_UNUSED, void *data EIN
    /* TODO: when porting to windows, do:
     * SetHandleInformation(s, HANDLE_FLAG_INHERIT, 0)
     */
-   if (fcntl(s, F_SETFD, FD_CLOEXEC) < 0) ERR("Cannot set CLOEXEC on fd");
+   if (!eina_file_close_on_exec(s, EINA_TRUE)) ERR("Cannot set CLOEXEC on fd");
 
    cserve2_client_accept(s);
 }
@@ -238,23 +238,6 @@ _socket_path_set(char *path)
    /* FIXME: check we can actually create this socket */
    strcpy(path, buf);
    return;
-#if 0   
-   env = getenv("XDG_RUNTIME_DIR");
-   if (!env || !env[0])
-     {
-        env = getenv("HOME");
-        if (!env || !env[0])
-          {
-             env = getenv("TMPDIR");
-             if (!env || !env[0])
-               env = "/tmp";
-          }
-     }
-
-   snprintf(buf, sizeof(buf), "%s/evas-cserve2-%x.socket", env, getuid());
-   /* FIXME: check we can actually create this socket */
-   strcpy(path, buf);
-#endif   
 }
 
 static int

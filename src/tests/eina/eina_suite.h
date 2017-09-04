@@ -21,7 +21,6 @@
 
 #include <check.h>
 
-void eina_test_stringshare(TCase *tc);
 void eina_test_ustringshare(TCase *tc);
 void eina_test_binshare(TCase *tc);
 void eina_test_inarray(TCase *tc);
@@ -72,5 +71,8 @@ void eina_test_vector(TCase *tc);
 void eina_test_promise(TCase *tc);
 void eina_test_bezier(TCase *tc);
 void eina_test_safepointer(TCase *tc);
+void eina_test_slice(TCase *tc);
+void eina_test_freeq(TCase *tc);
+void eina_test_slstr(TCase *tc);
 
 #endif /* EINA_SUITE_H_ */

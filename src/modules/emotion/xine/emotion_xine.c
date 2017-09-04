@@ -196,7 +196,7 @@ _em_slave(void *par)
 		       
 		       pos = *((double *)eev->xine_event);
 		       if ((xine_get_param(ev->stream, XINE_PARAM_SPEED) == XINE_SPEED_PAUSE) &&
-			   (pos == ev->pos) &&
+			   (EINA_DBL_EQ(pos, ev->pos)) &&
 			   (!ev->just_loaded))
 			 {
 			    xine_set_param(ev->stream, XINE_PARAM_SPEED, XINE_SPEED_NORMAL);
@@ -1324,7 +1324,7 @@ _em_fd_ev_active(void *data EINA_UNUSED, Ecore_Fd_Handler *fdh)
 		       ev->play_ok = 1;
 		       break;
                      case 15: /* get pos done */
-                       if (ev->last_pos != ev->pos)
+                       if (!EINA_DBL_EQ(ev->last_pos, ev->pos))
                          {
                             ev->last_pos = ev->pos;
                             _emotion_video_pos_update(ev->obj, ev->pos, ev->len);
@@ -1556,7 +1556,8 @@ static const Emotion_Engine em_engine =
      em_eject, /* eject */
      em_meta_get, /* meta_get */
      NULL, /* priority_set */
-     NULL /* priority_get */
+     NULL, /* priority_get */
+     NULL /* em_meta_artwork_get */
 };
 
 Eina_Bool

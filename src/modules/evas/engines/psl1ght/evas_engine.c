@@ -40,31 +40,6 @@ struct _Render_Engine
 /* prototypes we will use here */
 static void *_output_setup(int w, int h);
 
-static void *eng_info(Evas *e);
-static void
-             eng_info_free(Evas *e, void *info);
-static int
-             eng_setup(Evas *e, void *info);
-static void
-             eng_output_free(void *data);
-static void
-             eng_output_resize(void *data, int w, int h);
-static void
-             eng_output_tile_size_set(void *data, int w, int h);
-static void
-             eng_output_redraws_rect_add(void *data, int x, int y, int w, int h);
-static void
-             eng_output_redraws_rect_del(void *data, int x, int y, int w, int h);
-static void
-             eng_output_redraws_clear(void *data);
-static void *eng_output_redraws_next_update_get(void *data, int *x, int *y, int *w, int *h, int *cx, int *cy, int *cw, int *ch);
-static void
-             eng_output_redraws_next_update_push(void *data, void *surface, int x, int y, int w, int h, Evas_Render_Mode render_mode);
-static void
-             eng_output_flush(void *data, Evas_Render_Mode render_mode);
-static void
-             eng_output_idle_flush(void *data);
-
 /* internal engine routines */
 static void *
 _output_setup(int w, int h)
@@ -106,9 +81,6 @@ _output_setup(int w, int h)
      makeBuffer (&re->buffers[i], width, height, i);
 
    flipBuffer(re->context, MAX_BUFFERS - 1);
-
-   /* if we haven't initialized - init (automatic abort if already done) */
-   evas_common_init();
 
    re->tb = evas_common_tilebuf_new(w, h);
 
@@ -152,27 +124,18 @@ eng_info_free(Evas *e EINA_UNUSED, void *info)
    free(in);
 }
 
-static int
-eng_setup(Evas *eo_e, void *in)
+static void *
+eng_setup(void *engine EINA_UNUSED, void *in, unsigned int w, unsigned int h)
 {
-   Evas_Public_Data *e = eo_data_scope_get(eo_e, EVAS_CANVAS_CLASS);
-   Evas_Engine_Info_PSL1GHT *info;
+   Evas_Engine_Info_PSL1GHT *info = in;
 
    printf ("eng_setup called\n");
-   info = (Evas_Engine_Info_PSL1GHT *)in;
 
-   e->engine.data.output = _output_setup(e->output.w, e->output.h);
-   if (!e->engine.data.output)
-     return 0;
-
-   e->engine.func = &func;
-   e->engine.data.context = e->engine.func->context_new(e->engine.data.output);
-
-   return 1;
+   return _output_setup(w, h);
 }
 
 static void
-eng_output_free(void *data)
+eng_output_free(void *engine EINA_UNUSED, void *data)
 {
    Render_Engine *re;
    int i;
@@ -201,12 +164,10 @@ eng_output_free(void *data)
      evas_common_tilebuf_free_render_rects(re->rects);
 
    free(re);
-
-   evas_common_shutdown();
 }
 
 static void
-eng_output_resize(void *data, int w, int h)
+eng_output_resize(void *engine EINA_UNUSED, void *data, int w, int h)
 {
    Render_Engine *re;
    int i;
@@ -252,7 +213,7 @@ eng_output_resize(void *data, int w, int h)
 }
 
 static void
-eng_output_tile_size_set(void *data, int w, int h)
+eng_output_tile_size_set(void *engine EINA_UNUSED, void *data, int w, int h)
 {
    Render_Engine *re;
 
@@ -262,7 +223,7 @@ eng_output_tile_size_set(void *data, int w, int h)
 }
 
 static void
-eng_output_redraws_rect_add(void *data, int x, int y, int w, int h)
+eng_output_redraws_rect_add(void *engine EINA_UNUSED, void *data, int x, int y, int w, int h)
 {
    Render_Engine *re;
 
@@ -272,7 +233,7 @@ eng_output_redraws_rect_add(void *data, int x, int y, int w, int h)
 }
 
 static void
-eng_output_redraws_rect_del(void *data, int x, int y, int w, int h)
+eng_output_redraws_rect_del(void *engine EINA_UNUSED, void *data, int x, int y, int w, int h)
 {
    Render_Engine *re;
 
@@ -282,7 +243,7 @@ eng_output_redraws_rect_del(void *data, int x, int y, int w, int h)
 }
 
 static void
-eng_output_redraws_clear(void *data)
+eng_output_redraws_clear(void *engine EINA_UNUSED, void *data)
 {
    Render_Engine *re;
 
@@ -292,7 +253,7 @@ eng_output_redraws_clear(void *data)
 }
 
 static void *
-eng_output_redraws_next_update_get(void *data, int *x, int *y, int *w, int *h, int *cx, int *cy, int *cw, int *ch)
+eng_output_redraws_next_update_get(void *engine EINA_UNUSED, void *data, int *x, int *y, int *w, int *h, int *cx, int *cy, int *cw, int *ch)
 {
    Render_Engine *re;
    Tilebuf_Rect *rect;
@@ -335,13 +296,13 @@ eng_output_redraws_next_update_get(void *data, int *x, int *y, int *w, int *h, i
 }
 
 static void
-eng_output_redraws_next_update_push(void *data EINA_UNUSED, void *surface EINA_UNUSED, int x EINA_UNUSED, int y EINA_UNUSED, int w EINA_UNUSED, int h EINA_UNUSED, Evas_Render_Mode render_mode EINA_UNUSED)
+eng_output_redraws_next_update_push(void *engine EINA_UNUSED, void *data EINA_UNUSED, void *surface EINA_UNUSED, int x EINA_UNUSED, int y EINA_UNUSED, int w EINA_UNUSED, int h EINA_UNUSED, Evas_Render_Mode render_mode EINA_UNUSED)
 {
    /* Don't do anything, we'll just coy the whole buffer when it's time to flush */
 }
 
 static void
-eng_output_flush(void *data, Evas_Render_Mode render_mode)
+eng_output_flush(void *engine EINA_UNUSED, void *data, Evas_Render_Mode render_mode)
 {
    Render_Engine *re;
    rsxBuffer *buffer;
@@ -422,7 +383,7 @@ eng_output_flush(void *data, Evas_Render_Mode render_mode)
 }
 
 static void
-eng_output_idle_flush(void *data)
+eng_output_idle_flush(void *engine EINA_UNUSED, void *data)
 {
    Render_Engine *re;
 
@@ -431,12 +392,12 @@ eng_output_idle_flush(void *data)
 }
 
 static Eina_Bool
-eng_canvas_alpha_get(void *data, void *context EINA_UNUSED)
+eng_canvas_alpha_get(void *engine)
 {
    Render_Engine *re;
 
    // printf ("eng_output_alpha_get called\n");
-   re = (Render_Engine *)data;
+   re = (Render_Engine *)engine;
    return EINA_TRUE;
 }
 
@@ -482,7 +443,11 @@ module_open(Evas_Module *em)
 static void
 module_close(Evas_Module *em EINA_UNUSED)
 {
-   eina_log_domain_unregister(_evas_engine_psl1ght_log_dom);
+   if (_evas_engine_psl1ght_log_dom >= 0)
+     {
+        eina_log_domain_unregister(_evas_engine_psl1ght_log_dom);
+        _evas_engine_psl1ght_log_dom = -1;
+     }
 }
 
 static Evas_Module_Api evas_modapi =

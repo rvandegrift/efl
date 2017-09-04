@@ -20,9 +20,15 @@
 # include "config.h"
 #endif
 
+#include <stdlib.h>
+#include <stdio.h>
+#include <string.h>
+#include <time.h>
+
 #include <Eina.h>
 
 #include "eina_suite.h"
+#include "eina_suite.x"
 #include "../efl_check.h"
 
 static const Efl_Test_Case etc[] = {
@@ -62,8 +68,6 @@ static const Efl_Test_Case etc[] = {
    { "Simple Xml Parser", eina_test_simple_xml_parser},
    { "Value", eina_test_value },
    { "COW", eina_test_cow },
-   // Disabling Eina_Model test
-   //   { "Model", eina_test_model },
    { "Barrier", eina_test_barrier },
    { "Tmp String", eina_test_tmpstr },
    { "Locking", eina_test_locking },
@@ -77,9 +81,12 @@ static const Efl_Test_Case etc[] = {
    { "Matrix", eina_test_matrix },
    { "Quaternion", eina_test_quaternion },
    { "Vector", eina_test_vector },
-   { "Promise", eina_test_promise },
    { "Bezier", eina_test_bezier },
    { "SafePointer", eina_test_safepointer },
+   { "Slice", eina_test_slice },
+   { "Free Queue", eina_test_freeq },
+   { "Util", eina_test_util },
+   { "Short Lived Strings", eina_test_slstr },
    { NULL, NULL }
 };
 
@@ -122,7 +129,9 @@ main(int argc, char **argv)
    if (!_efl_test_option_disp(argc, argv, etc))
      return 0;
 
+#ifdef NEED_RUN_IN_TREE
    putenv("EFL_RUN_IN_TREE=1");
+#endif
 
    _mempool_init();
 

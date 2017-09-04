@@ -1,5 +1,5 @@
 /**
- * Simple Evas example illustrating the use of Evas_VG animation
+ * Example of animation using Evas_VG.
  *
  * You'll need at least one engine built for it (excluding the buffer
  * one). See stdout/stderr for output.
@@ -17,10 +17,6 @@
 
 #define WIDTH 800
 #define HEIGHT 600
-
-#ifndef EFL_BETA_API_SUPPORT
-#define EFL_BETA_API_SUPPORT 1
-#endif
 
 #include <Eo.h>
 #include <Efl.h>
@@ -79,7 +75,7 @@ _animator(void *data EINA_UNUSED, double pos)
 {
    int next = (animation_position + 1) % (sizeof (batmans_path) / sizeof (batmans_path[0]));
 
-   evas_vg_shape_shape_interpolate(batman,   
+   evas_vg_shape_interpolate(batman,
                                    batmans_vg[animation_position],
                                    batmans_vg[next],
                                    ecore_animator_pos_map(pos, ECORE_POS_MAP_SINUSOIDAL, 0.0, 0.0));
@@ -140,7 +136,7 @@ main(void)
           evas_vg_node_color_set(batmans_vg[i], 120, 120, 120, 255);
           evas_vg_shape_stroke_join_set(batmans_vg[i], EFL_GFX_JOIN_ROUND);
        }
-        evas_vg_shape_shape_append_svg_path(batmans_vg[i], batmans_path[i]);
+        evas_vg_shape_append_svg_path(batmans_vg[i], batmans_path[i]);
      }
 
    animation = ecore_animator_timeline_add(1, _animator, NULL);
@@ -154,7 +150,7 @@ main(void)
 
 
    circle = evas_vg_shape_add(root);
-   evas_vg_shape_shape_append_circle(circle, WIDTH / 2, HEIGHT / 2, 200);
+   evas_vg_shape_append_circle(circle, WIDTH / 2, HEIGHT / 2, 200);
    evas_vg_node_color_set(circle, 255, 255, 255, 255);
    evas_vg_shape_stroke_width_set(circle, 1);
    evas_vg_shape_stroke_color_set(circle, 255, 0, 0, 255);
@@ -162,8 +158,8 @@ main(void)
    batman = evas_vg_shape_add(root);
    evas_vg_node_color_set(batman, 0, 0, 0, 255);
    evas_vg_node_origin_set(batman, 100, 150);
-   evas_vg_shape_shape_append_move_to(batman, 256, 213);
-   evas_vg_shape_shape_dup(batman, batmans_vg[0]);
+   evas_vg_shape_append_move_to(batman, 256, 213);
+   evas_vg_shape_dup(batman, batmans_vg[0]);
 
    ecore_main_loop_begin();
 

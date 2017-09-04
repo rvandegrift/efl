@@ -9,7 +9,7 @@
 #define EO_FREED_EINA_MAGIC 0xa186bb32
 #define EO_FREED_EINA_MAGIC_STR "Eo - Freed object"
 #define EO_CLASS_EINA_MAGIC 0xa186ba32
-#define EO_CLASS_EINA_MAGIC_STR "Eo Class"
+#define EO_CLASS_EINA_MAGIC_STR "Efl Class"
 
 #define EO_MAGIC_RETURN_VAL(d, magic, ret) \
    do { \
@@ -58,20 +58,15 @@ extern int _eo_log_dom;
 #define DBG(...) EINA_LOG_DOM_DBG(_eo_log_dom, __VA_ARGS__)
 
 typedef uintptr_t Eo_Id;
-typedef struct _Eo_Class _Eo_Class;
+typedef struct _Efl_Class _Efl_Class;
 typedef struct _Eo_Header Eo_Header;
-
-/* Retrieves the pointer to the object from the id */
-static inline _Eo_Object *_eo_obj_pointer_get(const Eo_Id obj_id);
+typedef struct _Efl_Object_Optional Efl_Object_Optional;
 
 /* Allocates an entry for the given object */
-static inline Eo_Id _eo_id_allocate(const _Eo_Object *obj);
+static inline Eo_Id _eo_id_allocate(const _Eo_Object *obj, const Eo *parent_id);
 
 /* Releases an entry by the object id */
 static inline void _eo_id_release(const Eo_Id obj_id);
-
-/* Free all the entries and the tables */
-static inline void _eo_free_ids_tables(void);
 
 void _eo_condtor_done(Eo *obj);
 
@@ -88,26 +83,28 @@ void _vtable_func_clean_all(Eo_Vtable *vtable);
 
 struct _Eo_Header
 {
-#ifndef HAVE_EO_ID
-     EINA_MAGIC
-#endif
      Eo_Id id;
+};
+
+struct _Efl_Object_Optional
+{
+   Eo_Vtable          *vtable;
+   Eina_List          *composite_objects;
+   Efl_Del_Intercept   del_intercept;
 };
 
 struct _Eo_Object
 {
      Eo_Header header;
      EINA_INLIST;
-     const _Eo_Class *klass;
+     const _Efl_Class *klass;
 #ifdef EO_DEBUG
      Eina_Inlist *xrefs;
      Eina_Inlist *data_xrefs;
 #endif
 
-     Eo_Vtable *vtable;
-
-     Eina_List *composite_objects;
-     Eo_Del_Intercept del_intercept;
+     const Efl_Object_Optional *opt; // eina cow
+     _Efl_Class *cur_klass;
 
      short refcount;
      short user_refcount;
@@ -117,45 +114,69 @@ struct _Eo_Object
 
      Eina_Bool condtor_done:1;
      Eina_Bool finalized:1;
+     Eina_Bool super:1;
 
      Eina_Bool del_triggered:1;
      Eina_Bool destructed:1;
      Eina_Bool manual_free:1;
 };
 
-/* FIXME: Change the type to something generic that makes sense for eo */
-typedef void (*eo_op_func_type)(Eo *, void *class_data, va_list *list);
+/* How we search and store the implementations in classes. */
+#define DICH_CHAIN_LAST_BITS 5
+#define DICH_CHAIN_LAST_SIZE (1 << DICH_CHAIN_LAST_BITS)
+#define DICH_CHAIN1(x) ((x) >> DICH_CHAIN_LAST_BITS)
+#define DICH_CHAIN_LAST(x) ((x) & ((1 << DICH_CHAIN_LAST_BITS) - 1))
+
+extern Eina_Cow *efl_object_optional_cow;
+#define EO_OPTIONAL_COW_WRITE(_obj) ({ Efl_Object_Optional *_cow = eina_cow_write(efl_object_optional_cow, (const Eina_Cow_Data**)&(_obj->opt)); _cow; })
+#define EO_OPTIONAL_COW_END(_cow, _obj) eina_cow_done(efl_object_optional_cow, (const Eina_Cow_Data**)&(_obj->opt), _cow, EINA_TRUE)
+#define EO_OPTIONAL_COW_SET(_obj, _field, _value) do { \
+   typeof (_value) _val = _value; \
+   if (_obj->opt->_field != _val) {\
+      Efl_Object_Optional *_obj##_cow = EO_OPTIONAL_COW_WRITE(_obj); \
+      _obj##_cow->_field = _val; \
+      EO_OPTIONAL_COW_END(_obj##_cow, _obj); \
+   }} while (0)
+#define EO_VTABLE(_obj) ((_obj)->opt->vtable ?: &((_obj)->klass->vtable))
+
+typedef void (*Eo_Op_Func_Type)(Eo *, void *class_data);
 
 typedef struct
 {
-   eo_op_func_type func;
-   const _Eo_Class *src;
+   Eo_Op_Func_Type func;
+   const _Efl_Class *src;
 } op_type_funcs;
+
+typedef struct _Dich_Chain2
+{
+   op_type_funcs funcs[DICH_CHAIN_LAST_SIZE];
+   unsigned short refcount;
+} Dich_Chain2;
 
 struct _Dich_Chain1
 {
-   op_type_funcs *funcs;
+   Dich_Chain2 *chain2;
 };
 
 typedef struct
 {
-   const _Eo_Class *klass;
+   const _Efl_Class *klass;
    size_t offset;
 } Eo_Extension_Data_Offset;
 
-struct _Eo_Class
+struct _Efl_Class
 {
    Eo_Header header;
 
-   const _Eo_Class *parent;
-   const Eo_Class_Description *desc;
+   const _Efl_Class *parent;
+   const Efl_Class_Description *desc;
    Eo_Vtable vtable;
 
-   const _Eo_Class **extensions;
+   const _Efl_Class **extensions;
 
    Eo_Extension_Data_Offset *extn_data_off;
 
-   const _Eo_Class **mro;
+   const _Efl_Class **mro;
 
    /* cached object for faster allocation */
    struct {
@@ -174,8 +195,10 @@ struct _Eo_Class
    unsigned int obj_size; /**< size of an object of this class */
    unsigned int base_id;
    unsigned int data_offset; /* < Offset of the data within object data. */
+   unsigned int ops_count; /* < Offset of the data within object data. */
 
    Eina_Bool constructed : 1;
+   Eina_Bool functions_set : 1;
    /* [extensions*] + NULL */
    /* [mro*] + NULL */
    /* [extensions data offset] + NULL */
@@ -185,22 +208,27 @@ typedef struct
 {
    EINA_INLIST;
    const Eo *ref_obj;
+   const char *data_klass;
    const char *file;
    int line;
 } Eo_Xref_Node;
 
+/* provide valgrind-like tracking of object allocationg and deletion */
+void _eo_log_obj_report(const Eo_Id id, int log_level, const char *func_name, const char *file, int line);
+
+void _efl_object_parent_sink_set(Eo *obj, Eina_Bool sink);
+
 static inline
 Eo *_eo_header_id_get(const Eo_Header *header)
 {
-#ifdef HAVE_EO_ID
    return (Eo *) header->id;
-#else
-   return (Eo *) header;
-#endif
 }
 
+/* Retrieves the pointer to the object from the id */
+_Eo_Object *_eo_obj_pointer_get(const Eo_Id obj_id, const char *func_name, const char *file, int line);
+
 static inline
-Eo_Class *_eo_class_id_get(const _Eo_Class *klass)
+Efl_Class *_eo_class_id_get(const _Efl_Class *klass)
 {
    return _eo_header_id_get((Eo_Header *) klass);
 }
@@ -218,32 +246,32 @@ _eo_condtor_reset(_Eo_Object *obj)
 }
 
 static inline void
-_eo_del_internal(const char *file, int line, _Eo_Object *obj)
+_efl_del_internal(_Eo_Object *obj, const char *func_name, const char *file, int line)
 {
    /* We need that for the event callbacks that may ref/unref. */
    obj->refcount++;
 
-   const _Eo_Class *klass = obj->klass;
+   const _Efl_Class *klass = obj->klass;
 
-   eo_event_callback_call(_eo_obj_id_get(obj), EO_EVENT_DEL, NULL);
+   efl_event_callback_call(_eo_obj_id_get(obj), EFL_EVENT_DEL, NULL);
 
    _eo_condtor_reset(obj);
 
-   eo_destructor(_eo_obj_id_get(obj));
+   efl_destructor(_eo_obj_id_get(obj));
 
    if (!obj->condtor_done)
      {
-        ERR("in %s:%d: Object of class '%s' - Not all of the object destructors have been executed.",
-            file, line, klass->desc->name);
+        ERR("in %s:%d: func '%s' Object of class '%s' - Not all of the object destructors have been executed.",
+            file, line, func_name, klass->desc->name);
      }
    /*FIXME: add eo_class_unref(klass) ? - just to clear the caches. */
 
      {
         Eina_List *itr, *itr_n;
         Eo *emb_obj;
-        EINA_LIST_FOREACH_SAFE(obj->composite_objects, itr, itr_n, emb_obj)
+        EINA_LIST_FOREACH_SAFE(obj->opt->composite_objects, itr, itr_n, emb_obj)
           {
-             eo_composite_detach(_eo_obj_id_get(obj), emb_obj);
+             efl_composite_detach(_eo_obj_id_get(obj), emb_obj);
           }
      }
 
@@ -254,109 +282,100 @@ _eo_del_internal(const char *file, int line, _Eo_Object *obj)
 static inline Eina_Bool
 _obj_is_override(_Eo_Object *obj)
 {
-   return (obj->vtable != &obj->klass->vtable);
+   return obj->opt->vtable != NULL;
 }
 
-static inline void
-_eo_free(_Eo_Object *obj)
-{
-   _Eo_Class *klass = (_Eo_Class*) obj->klass;
-
-#ifdef EO_DEBUG
-   if (obj->datarefcount)
-     {
-        ERR("Object %p data still referenced %d time(s).", obj, obj->datarefcount);
-     }
-#endif
-   if (_obj_is_override(obj))
-     {
-        _vtable_func_clean_all(obj->vtable);
-        free(obj->vtable);
-        obj->vtable = &klass->vtable;
-     }
-
-   _eo_id_release((Eo_Id) _eo_obj_id_get(obj));
-
-   eina_spinlock_take(&klass->objects.trash_lock);
-   if (klass->objects.trash_count <= 8)
-     {
-        eina_trash_push(&klass->objects.trash, obj);
-        klass->objects.trash_count++;
-     }
-   else
-     {
-        free(obj);
-     }
-   eina_spinlock_release(&klass->objects.trash_lock);
-}
+void _eo_free(_Eo_Object *obj, Eina_Bool manual_free);
 
 static inline _Eo_Object *
-_eo_ref(_Eo_Object *obj)
+_efl_ref(_Eo_Object *obj)
 {
    obj->refcount++;
    return obj;
 }
 
+#define _efl_unref(obj) _efl_unref_internal(obj, __FUNCTION__, __FILE__, __LINE__)
 static inline void
-_eo_unref(_Eo_Object *obj)
+_efl_unref_internal(_Eo_Object *obj, const char *func_name, const char *file, int line)
 {
    --(obj->refcount);
    if (EINA_UNLIKELY(obj->refcount <= 0))
      {
         if (obj->refcount < 0)
           {
-             ERR("Obj:%p. Refcount (%d) < 0. Too many unrefs.", obj, obj->refcount);
+             ERR("in %s:%d: func '%s' Obj:%p. Refcount (%d) < 0. Too many unrefs.", file, line, func_name, obj, obj->refcount);
+             _eo_log_obj_report((Eo_Id)_eo_obj_id_get(obj), EINA_LOG_LEVEL_ERR, __FUNCTION__, __FILE__, __LINE__);
              return;
           }
 
         if (obj->destructed)
           {
-             ERR("Object %p already destructed.", _eo_obj_id_get(obj));
+             ERR("in %s:%d: func '%s' Object %p already destructed.", file, line, func_name, _eo_obj_id_get(obj));
+             _eo_log_obj_report((Eo_Id)_eo_obj_id_get(obj), EINA_LOG_LEVEL_ERR, __FUNCTION__, __FILE__, __LINE__);
              return;
           }
 
         if (obj->del_triggered)
           {
-             ERR("Object %p deletion already triggered. You wrongly call eo_unref() within a destructor.", _eo_obj_id_get(obj));
+             ERR("in %s:%d: func '%s' Object %p deletion already triggered. You wrongly call efl_unref() within a destructor.", file, line, func_name, _eo_obj_id_get(obj));
+             _eo_log_obj_report((Eo_Id)_eo_obj_id_get(obj), EINA_LOG_LEVEL_ERR, __FUNCTION__, __FILE__, __LINE__);
              return;
           }
 
-        if (obj->del_intercept)
+        if (obj->opt->del_intercept)
           {
              Eo *obj_id = _eo_obj_id_get(obj);
-             eo_ref(obj_id);
-             obj->del_intercept(obj_id);
+             efl_ref(obj_id);
+             obj->opt->del_intercept(obj_id);
              return;
           }
 
         obj->del_triggered = EINA_TRUE;
 
-        _eo_del_internal(__FILE__, __LINE__, obj);
-#ifdef EO_DEBUG
-        /* If for some reason it's not empty, clear it. */
-        while (obj->xrefs)
-          {
-             ERR("obj->xrefs is not empty, possibly a bug, please report. - An error will be reported for each xref in the stack.");
-             Eina_Inlist *nitr = obj->xrefs->next;
-             free(EINA_INLIST_CONTAINER_GET(obj->xrefs, Eo_Xref_Node));
-             obj->xrefs = nitr;
-          }
-        while (obj->data_xrefs)
-          {
-             Eina_Inlist *nitr = obj->data_xrefs->next;
-             Eo_Xref_Node *xref = EINA_INLIST_CONTAINER_GET(obj->data_xrefs, Eo_Xref_Node);
-             ERR("Data of object 0x%lx is still referenced by object %p", (unsigned long) _eo_obj_id_get(obj), xref->ref_obj);
+        _efl_del_internal(obj, func_name, file, line);
 
-             free(xref);
-             obj->data_xrefs = nitr;
-          }
+        if (EINA_LIKELY(!obj->manual_free))
+          {
+#ifdef EO_DEBUG
+             /* If for some reason it's not empty, clear it. */
+             Eo *obj_id = _eo_obj_id_get(obj);
+             while (obj->xrefs)
+               {
+                  Eina_Inlist *nitr = obj->xrefs->next;
+                  Eo_Xref_Node *xref = EINA_INLIST_CONTAINER_GET(obj->data_xrefs, Eo_Xref_Node);
+                  ERR("in %s:%d: func '%s' Object %p is still referenced by object %p. Origin: %s:%d",
+                      file, line, func_name, obj_id, xref->ref_obj, xref->file, xref->line);
+                  eina_freeq_ptr_main_add(xref, free, sizeof(*xref));
+                  obj->xrefs = nitr;
+               }
+             while (obj->data_xrefs)
+               {
+                  Eina_Inlist *nitr = obj->data_xrefs->next;
+                  Eo_Xref_Node *xref = EINA_INLIST_CONTAINER_GET(obj->data_xrefs, Eo_Xref_Node);
+                  if (obj_id == xref->ref_obj)
+                    {
+                       WRN("in %s:%d: func '%s' Object %p still has a reference to its own data (subclass: %s). Origin: %s:%d",
+                           file, line, func_name, obj_id, xref->data_klass, xref->file, xref->line);
+                    }
+                  else
+                    {
+                       ERR("in %s:%d: func '%s' Data of object %p (subclass: %s) is still referenced by object %p. Origin: %s:%d",
+                           file, line, func_name, obj_id, xref->data_klass, xref->ref_obj, xref->file, xref->line);
+                    }
+
+                  eina_freeq_ptr_main_add(xref, free, sizeof(*xref));
+                  obj->data_xrefs = nitr;
+               }
 #endif
 
-        if (!obj->manual_free)
-          _eo_free(obj);
+             _eo_free(obj, EINA_FALSE);
+          }
         else
-          _eo_ref(obj); /* If we manual free, we keep a phantom ref. */
+          _efl_ref(obj); /* If we manual free, we keep a phantom ref. */
      }
 }
+
+Eina_Bool efl_future_init(void);
+Eina_Bool efl_future_shutdown(void);
 
 #endif

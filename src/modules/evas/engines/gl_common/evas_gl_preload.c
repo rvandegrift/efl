@@ -300,7 +300,7 @@ evas_gl_preload_render_relax(evas_gl_make_current_cb make_current, void *engine_
 }
 
 static void
-_evas_gl_preload_target_die(void *data, const Eo_Event *event)
+_evas_gl_preload_target_die(void *data, const Efl_Event *event)
 {
    Evas_GL_Texture *tex = data;
 
@@ -312,7 +312,7 @@ evas_gl_preload_target_register(Evas_GL_Texture *tex, Eo *target)
 {
    EINA_SAFETY_ON_NULL_RETURN(tex);
 
-   eo_event_callback_add(target, EO_EVENT_DEL, _evas_gl_preload_target_die, tex);
+   efl_event_callback_add(target, EFL_EVENT_DEL, _evas_gl_preload_target_die, tex);
    tex->targets = eina_list_append(tex->targets, target);
    tex->references++;
 }
@@ -325,7 +325,7 @@ evas_gl_preload_target_unregister(Evas_GL_Texture *tex, Eo *target)
 
    EINA_SAFETY_ON_NULL_RETURN(tex);
 
-   eo_event_callback_del(target, EO_EVENT_DEL, _evas_gl_preload_target_die, tex);
+   efl_event_callback_del(target, EFL_EVENT_DEL, _evas_gl_preload_target_die, tex);
 
    EINA_LIST_FOREACH(tex->targets, l, o)
      if (o == target)
@@ -353,7 +353,7 @@ evas_gl_preload_init(void)
    eina_lock_new(&async_loader_lock);
    eina_condition_new(&async_loader_cond, &async_loader_lock);
 
-   if (!eina_thread_create(&async_loader_thread, EINA_THREAD_BACKGROUND, 0, _evas_gl_preload_tile_async, NULL))
+   if (!eina_thread_create(&async_loader_thread, EINA_THREAD_BACKGROUND, -1, _evas_gl_preload_tile_async, NULL))
      {
         // FIXME: handle error case
      }

@@ -1,5 +1,3 @@
-import ecore_types;
-
 class Efl.Loop.Timer (Efl.Loop_User)
 {
    [[Timers are objects that will call a given callback at some point
@@ -19,13 +17,13 @@ class Efl.Loop.Timer (Efl.Loop_User)
          get {
          }
          values {
-            in: double(-1); [[The new interval in seconds]]
+            in: double(-1.0); [[The new interval in seconds]]
          }
       }
       @property pending {
          [[Pending time regarding a timer.]]
          get {
-            return: double;
+            return: double; [[Pending time]]
          }
       }
       reset {
@@ -35,7 +33,7 @@ class Efl.Loop.Timer (Efl.Loop_User)
           * ecore_timer_delay(timer, ecore_timer_interval_get(timer) - ecore_timer_pending_get(timer));
           * @endcode
           */
-          [[Reset a timer to its full interval. This effectively makes the
+          [[Resets a timer to its full interval. This effectively makes the
             timer start ticking off from zero now.
 
             @since 1.2
@@ -47,7 +45,7 @@ class Efl.Loop.Timer (Efl.Loop_User)
 	 ]]
       }
       delay {
-         [[Add some delay for the next occurrence of a timer.
+         [[Adds some delay for the next occurrence of a timer.
            This doesn't affect the interval of a timer.
          ]]
          params {
@@ -59,11 +57,11 @@ class Efl.Loop.Timer (Efl.Loop_User)
       tick; [[Event triggered when the specified time as passed.]]
    }
    implements {
-      Eo.Base.constructor;
-      Eo.Base.destructor;
-      Eo.Base.finalize;
-      Eo.Base.event_freeze;
-      Eo.Base.parent.set;
+      Efl.Object.constructor;
+      Efl.Object.destructor;
+      Efl.Object.finalize;
+      Efl.Object.event_freeze;
+      Efl.Object.parent { set; }
       /* XXX: can't document overridden methods
        * Pauses a running timer.
        *
@@ -78,8 +76,8 @@ class Efl.Loop.Timer (Efl.Loop_User)
        *
        * @see ecore_timer_thaw()
        */
-      Eo.Base.event_freeze_count.get;
-      Eo.Base.event_thaw;
+      Efl.Object.event_freeze_count { get; }
+      Efl.Object.event_thaw;
       /* XXX: can't document overridden methods
        * Resumes a frozen (paused) timer.
        *

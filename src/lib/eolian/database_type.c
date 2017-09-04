@@ -117,7 +117,7 @@ database_type_to_str(const Eolian_Type *tp, Eina_Strbuf *buf, const char *name)
      }
    if (tp->type == EOLIAN_TYPE_COMPLEX || tp->type == EOLIAN_TYPE_CLASS)
      _buf_add_suffix(buf, "*");
-   if (tp->is_ref)
+   if (tp->is_ptr)
      _buf_add_suffix(buf, "*");
    _buf_add_suffix(buf, name);
 }
@@ -147,7 +147,8 @@ _stype_to_str(const Eolian_Typedecl *tp, Eina_Strbuf *buf)
 }
 
 static void
-_etype_to_str(const Eolian_Typedecl *tp, Eina_Strbuf *buf)
+_etype_to_str(const Eolian_Unit *src, const Eolian_Typedecl *tp,
+              Eina_Strbuf *buf)
 {
    Eolian_Enum_Type_Field *ef;
    Eina_List *l;
@@ -165,7 +166,7 @@ _etype_to_str(const Eolian_Typedecl *tp, Eina_Strbuf *buf)
         eina_strbuf_append(buf, ef->name);
         if (ef->value)
           {
-             Eolian_Value val = eolian_expression_eval(ef->value,
+             Eolian_Value val = eolian_expression_eval(src, ef->value,
                  EOLIAN_MASK_INT);
              const char *ret;
              eina_strbuf_append(buf, " = ");
@@ -198,13 +199,15 @@ _atype_to_str(const Eolian_Typedecl *tp, Eina_Strbuf *buf)
 {
    eina_strbuf_append(buf, "typedef ");
 
-   if (tp->base_type->type == EOLIAN_TYPE_REGULAR &&
-       !strcmp(tp->base_type->name, "__builtin_event_cb"))
+   if (tp->base_type->type == EOLIAN_TYPE_REGULAR)
      {
-        eina_strbuf_append(buf, "void (*");
-        _append_name(tp, buf);
-        eina_strbuf_append(buf, ")(void *data, const Eo_Event *event)");
-        return;
+        if (!strcmp(tp->base_type->name, "__builtin_free_cb"))
+          {
+             eina_strbuf_append(buf, "void (*");
+             _append_name(tp, buf);
+             eina_strbuf_append(buf, ")(void *data)");
+             return;
+          }
      }
 
    Eina_Strbuf *fulln = eina_strbuf_new();
@@ -214,7 +217,8 @@ _atype_to_str(const Eolian_Typedecl *tp, Eina_Strbuf *buf)
 }
 
 void
-database_typedecl_to_str(const Eolian_Typedecl *tp, Eina_Strbuf *buf)
+database_typedecl_to_str(const Eolian_Unit *src, const Eolian_Typedecl *tp,
+                         Eina_Strbuf *buf)
 {
    switch (tp->type)
      {
@@ -222,7 +226,7 @@ database_typedecl_to_str(const Eolian_Typedecl *tp, Eina_Strbuf *buf)
         _atype_to_str(tp, buf);
         break;
       case EOLIAN_TYPEDECL_ENUM:
-        _etype_to_str(tp, buf);
+        _etype_to_str(src, tp, buf);
         break;
       case EOLIAN_TYPEDECL_STRUCT:
       case EOLIAN_TYPEDECL_STRUCT_OPAQUE:

@@ -1,20 +1,21 @@
 abstract Ector.Renderer.Cairo (Ector.Renderer)
 {
+   [[Ector cairo renderer abstract class]]
    methods {
-      fill @virtual_pure {
-         return: bool;
+      fill @pure_virtual {
+      	 [[Fill operation]]
+         return: bool; [[$true on success, $false otherwise]]
          params {
-            @in mul_col: uint;
+            @in mul_col: uint; [[Premultiplied color]]
          }
       }
    }
    implements {
       Ector.Renderer.prepare;
       Ector.Renderer.draw;
-      Ector.Renderer.color.set;
-      Ector.Renderer.color.get;
-      Eo.Base.constructor;
-      Eo.Base.finalize;
-      Eo.Base.destructor;
+      Ector.Renderer.color { get; set; }
+      Efl.Object.constructor;
+      Efl.Object.finalize;
+      Efl.Object.destructor;
    }
 }

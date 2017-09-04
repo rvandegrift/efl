@@ -467,6 +467,7 @@ _eldbus_message_arguments_vappend(Eldbus_Message *msg, const char *signature, va
                                    EINA_FALSE);
 
    iter = eldbus_message_iter_get(msg);
+   EINA_SAFETY_ON_NULL_RETURN_VAL(iter, EINA_FALSE);
    EINA_SAFETY_ON_FALSE_RETURN_VAL(iter->writable, EINA_FALSE);
 
    dbus_signature_iter_init(&signature_iter, signature);
@@ -818,7 +819,8 @@ _eldbus_message_iter_arguments_vget(Eldbus_Message_Iter *iter, const char *signa
           }
 
         dbus_message_iter_next(&iter->dbus_iterator);
-        dbus_signature_iter_next(&sig_iter);
+        if (!dbus_signature_iter_next(&sig_iter))
+          break;
         iter_type = dbus_message_iter_get_arg_type(&iter->dbus_iterator);
      }
 
@@ -886,6 +888,8 @@ eldbus_message_method_return_new(const Eldbus_Message *msg)
    ELDBUS_MESSAGE_CHECK_RETVAL(msg, NULL);
 
    reply = eldbus_message_new(EINA_TRUE);
+   EINA_SAFETY_ON_NULL_RETURN_VAL(reply, NULL);
+
    reply->dbus_msg = dbus_message_new_method_return(msg->dbus_msg);
 
    dbus_message_iter_init_append(reply->dbus_msg,

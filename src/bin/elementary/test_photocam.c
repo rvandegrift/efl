@@ -133,8 +133,26 @@ my_bt_open(void *data, Evas_Object *obj EINA_UNUSED, void *event_info)
    Evas_Object *ph = data;
    const char *file = event_info;
 
-   if (file)
+   if (file && !eina_str_has_extension(file, ".edj"))
      elm_photocam_file_set(ph, file);
+   else if (file)
+     {
+        Eina_List *grps = edje_file_collection_list(file);
+
+        if (eina_list_count(grps) > 0)
+          {
+             const char *grp = eina_list_nth(grps, 0);
+             efl_file_set(ph, file, grp);
+             printf("Successfully set the edje file: %s, group: %s\n", file, grp);
+          }
+        else printf("Failed to set edje file\n");
+
+        eina_list_free(grps);
+     }
+
+   if (file && eina_str_has_extension(file, ".gif")
+       && efl_player_playable_get(ph))
+     efl_player_play_set(ph, EINA_TRUE);
 }
 
 static void
@@ -613,4 +631,228 @@ test_photocam_remote(void *data EINA_UNUSED, Evas_Object *obj EINA_UNUSED, void 
 
    evas_object_resize(win, 800, 800);
    evas_object_show(win);
+}
+
+static const struct {
+     unsigned char val;
+     const char *name;
+} photocam_icons[] = {
+       {0, "home"},
+       {1, "folder"},
+       {2, "network-server"},
+       {3, "folder-music"},
+       {4, "user-trash"},
+       {5, "start-here"},
+       {6, "folder-download"},
+       {7, "emblem-system"},
+       {8, "emblem-mail"},
+       {9, "None"},
+       {0, NULL}
+};
+
+static void
+_radio_changed_cb(void *data, Evas_Object *obj, void *event_info EINA_UNUSED)
+{
+   unsigned char index = efl_ui_radio_value_get(obj);
+   efl_ui_image_icon_set(data, photocam_icons[index].name);
+   printf("icon is %s\n", efl_ui_image_icon_get(data));
+}
+
+void
+test_photocam_icon(void *data EINA_UNUSED, Evas_Object *obj EINA_UNUSED, void *event_info EINA_UNUSED)
+{
+   Evas_Object *win, *ph, *tb2, *bt, *bx, *rd;
+   Evas_Object *rdg = NULL;
+   Evas_Object *rect = NULL;
+   int i;
+
+   win = elm_win_util_standard_add("photocam", "PhotoCam");
+   elm_win_autodel_set(win, EINA_TRUE);
+
+   ph = elm_photocam_add(win);
+   evas_object_size_hint_weight_set(ph, EVAS_HINT_EXPAND, EVAS_HINT_EXPAND);
+   efl_ui_image_icon_set(ph, "home");
+   elm_win_resize_object_add(win, ph);
+
+   rect = evas_object_rectangle_add(evas_object_evas_get(win));
+   evas_object_color_set(rect, 0, 0, 0, 0);
+   evas_object_repeat_events_set(rect, EINA_TRUE);
+   evas_object_show(rect);
+   evas_object_event_callback_add(rect, EVAS_CALLBACK_MOUSE_WHEEL, _photocam_mouse_wheel_cb, ph);
+   evas_object_raise(rect);
+
+   evas_object_event_callback_add(ph, EVAS_CALLBACK_RESIZE, _photocam_move_resize_cb, rect);
+   evas_object_event_callback_add(ph, EVAS_CALLBACK_MOVE, _photocam_move_resize_cb, rect);
+
+   evas_object_smart_callback_add(ph, "clicked", my_ph_clicked, win);
+   evas_object_smart_callback_add(ph, "press", my_ph_press, win);
+   evas_object_smart_callback_add(ph, "longpressed", my_ph_longpressed, win);
+   evas_object_smart_callback_add(ph, "clicked,double", my_ph_clicked_double, win);
+   evas_object_smart_callback_add(ph, "load", my_ph_load, win);
+   evas_object_smart_callback_add(ph, "loaded", my_ph_loaded, win);
+   evas_object_smart_callback_add(ph, "load,details", my_ph_load_details, win);
+   evas_object_smart_callback_add(ph, "loaded,details", my_ph_loaded_details, win);
+   evas_object_smart_callback_add(ph, "zoom,start", my_ph_zoom_start, win);
+   evas_object_smart_callback_add(ph, "zoom,stop", my_ph_zoom_stop, win);
+   evas_object_smart_callback_add(ph, "zoom,change", my_ph_zoom_change, win);
+   evas_object_smart_callback_add(ph, "scroll,anim,start", my_ph_anim_start, win);
+   evas_object_smart_callback_add(ph, "scroll,anim,stop", my_ph_anim_stop, win);
+   evas_object_smart_callback_add(ph, "scroll,drag,start", my_ph_drag_start, win);
+   evas_object_smart_callback_add(ph, "scroll,drag,stop", my_ph_drag_stop, win);
+   evas_object_smart_callback_add(ph, "scroll", my_ph_scroll, win);
+
+   evas_object_show(ph);
+
+   tb2 = elm_table_add(win);
+   evas_object_size_hint_weight_set(tb2, EVAS_HINT_EXPAND, EVAS_HINT_EXPAND);
+   elm_win_resize_object_add(win, tb2);
+
+   bt = elm_button_add(win);
+   elm_object_text_set(bt, "Z -");
+   evas_object_smart_callback_add(bt, "clicked", my_bt_zoom_out, ph);
+   evas_object_size_hint_weight_set(bt, EVAS_HINT_EXPAND, EVAS_HINT_EXPAND);
+   evas_object_size_hint_align_set(bt, 0.1, 0.1);
+   elm_table_pack(tb2, bt, 0, 0, 1, 1);
+   evas_object_show(bt);
+
+   bt = elm_button_add(win);
+   elm_object_text_set(bt, "Z +");
+   evas_object_smart_callback_add(bt, "clicked", my_bt_zoom_in, ph);
+   evas_object_size_hint_weight_set(bt, EVAS_HINT_EXPAND, EVAS_HINT_EXPAND);
+   evas_object_size_hint_align_set(bt, 0.9, 0.1);
+   elm_table_pack(tb2, bt, 2, 0, 1, 1);
+   evas_object_show(bt);
+
+   evas_object_show(tb2);
+
+   bx = elm_box_add(win);
+   evas_object_size_hint_weight_set(bx, EVAS_HINT_EXPAND, EVAS_HINT_EXPAND);
+   elm_box_horizontal_set(bx, EINA_TRUE);
+   elm_table_pack(tb2, bx, 1, 2, 1, 1);
+   evas_object_show(bx);
+
+   for (i = 0; photocam_icons[i].name; ++i)
+     {
+        rd = elm_radio_add(win);
+        evas_object_size_hint_weight_set(rd, EVAS_HINT_EXPAND, EVAS_HINT_EXPAND);
+        elm_object_text_set(rd, photocam_icons[i].name);
+        efl_ui_radio_state_value_set(rd, photocam_icons[i].val);
+        elm_box_pack_end(bx, rd);
+        evas_object_smart_callback_add(rd, "changed", _radio_changed_cb, ph);
+        if(!rdg)
+          rdg = rd;
+        else
+          elm_radio_group_add(rd, rdg);
+        evas_object_show(rd);
+     }
+
+   evas_object_resize(win, 150, 150);
+   evas_object_show(win);
+}
+
+static void
+_zoomable_clicked_cb(void *data EINA_UNUSED, const Efl_Event *ev)
+{
+   Eina_Bool play;
+
+   play = !efl_player_play_get(ev->object);
+   printf("image clicked! play = %d\n", play);
+   efl_player_play_set(ev->object, play);
+}
+
+static void
+_zoomable_move_resize_cb(void *data, const Efl_Event *ev)
+{
+   int x, y, w, h;
+
+   efl_gfx_geometry_get(ev->object, &x, &y, &w, &h);
+
+   efl_gfx_size_set(data, w, h);
+   efl_gfx_position_set(data, x, y);
+}
+
+static void
+_zoomable_mouse_wheel_cb(void *data, const Efl_Event *e)
+{
+   Eo *zoomable = data;
+   Efl_Input_Pointer *ev = e->info;
+   int zoom, _zoom, delta, val;
+
+   zoom = efl_ui_zoom_get(zoomable);
+   delta = efl_input_pointer_wheel_delta_get(ev);
+   if ((delta > 0) && (zoom == 1)) return;
+
+   if (delta > 0)
+     zoom /= 2;
+   else
+     zoom *= 2;
+
+   val = 1;
+   _zoom = zoom;
+   while (_zoom>1)
+     {
+        _zoom /= 2;
+        val++;
+     }
+
+   efl_ui_zoom_mode_set(zoomable, EFL_UI_ZOOM_MODE_MANUAL);
+   if (zoom >= 1) efl_ui_zoom_set(zoomable, zoom);
+}
+
+void
+test_image_zoomable_animated(void *data EINA_UNUSED, Evas_Object *obj EINA_UNUSED, void *event_info EINA_UNUSED)
+{
+   Eo *win, *bx, *zoomable, *rect;
+   char buf[PATH_MAX];
+
+   win = efl_add(EFL_UI_WIN_CLASS, NULL,
+                 efl_ui_win_type_set(efl_added, EFL_UI_WIN_BASIC),
+                 efl_text_set(efl_added, "Efl.Ui.Image.Zoomable animation"),
+                 efl_ui_win_autodel_set(efl_added, EINA_TRUE));
+
+   bx = efl_add(EFL_UI_BOX_CLASS, win,
+                efl_orientation_set(efl_added, EFL_ORIENT_DOWN),
+                efl_gfx_size_hint_weight_set(efl_added, EFL_GFX_SIZE_HINT_EXPAND, EFL_GFX_SIZE_HINT_EXPAND),
+                efl_content_set(win, efl_added),
+                efl_gfx_visible_set(efl_added, EINA_TRUE)
+               );
+
+   efl_add(EFL_UI_TEXT_CLASS, bx,
+           efl_text_set(efl_added, "Clicking the image will play/pause animation."),
+           efl_ui_text_interactive_editable_set(efl_added, EINA_FALSE),
+           efl_canvas_text_style_set(efl_added, NULL, "DEFAULT='align=center font=Sans font_size=10 color=#fff wrap=word'"),
+           efl_gfx_visible_set(efl_added, EINA_TRUE),
+           efl_pack(bx, efl_added)
+          );
+
+   snprintf(buf, sizeof(buf), "%s/images/animated_logo.gif", elm_app_data_dir_get());
+   zoomable = efl_add(EFL_UI_IMAGE_ZOOMABLE_CLASS, win,
+                      efl_file_set(efl_added, buf, NULL),
+                      efl_gfx_size_hint_weight_set(efl_added, EFL_GFX_SIZE_HINT_EXPAND, EFL_GFX_SIZE_HINT_EXPAND),
+                      efl_gfx_size_hint_align_set(efl_added, EFL_GFX_SIZE_HINT_FILL, EFL_GFX_SIZE_HINT_FILL),
+                      efl_gfx_visible_set(efl_added, EINA_TRUE),
+                      efl_pack(bx, efl_added),
+                      efl_event_callback_add(efl_added, EFL_UI_EVENT_CLICKED, _zoomable_clicked_cb, NULL)
+                     );
+
+   if (efl_player_playable_get(zoomable))
+     {
+        printf("animation is available for this image.\n");
+        efl_player_play_set(zoomable, EINA_TRUE);
+     }
+
+   rect = efl_add(EFL_CANVAS_RECTANGLE_CLASS, win,
+                  efl_gfx_color_set(efl_added, 0, 0, 0, 0),
+                  efl_gfx_visible_set(efl_added, EINA_TRUE),
+                  efl_gfx_stack_raise(efl_added),
+                  efl_canvas_object_repeat_events_set(efl_added, EINA_TRUE),
+                  efl_event_callback_add(efl_added, EFL_EVENT_POINTER_WHEEL, _zoomable_mouse_wheel_cb, zoomable)
+                 );
+
+   // add move/resize callbacks to resize rect manually
+   efl_event_callback_add(zoomable, EFL_GFX_EVENT_RESIZE, _zoomable_move_resize_cb, rect);
+   efl_event_callback_add(zoomable, EFL_GFX_EVENT_MOVE, _zoomable_move_resize_cb, rect);
+
+   efl_gfx_size_set(win, 300, 320);
+   efl_gfx_visible_set(win, EINA_TRUE);
 }

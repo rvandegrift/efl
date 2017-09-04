@@ -6,9 +6,6 @@
 extern "C" {
 #endif
 
-/* logging messages macros */
-extern int _ecore_win32_log_dom_global;
-
 #ifdef ECORE_WIN32_DEFAULT_LOG_COLOR
 # undef ECORE_WIN32_DEFAULT_LOG_COLOR
 #endif
@@ -84,6 +81,7 @@ struct _Ecore_Win32_Window
       unsigned int sticky            : 1;
       unsigned int maximized_vert    : 1;
       unsigned int maximized_horz    : 1;
+      unsigned int maximized         : 1;
       unsigned int shaded            : 1;
       unsigned int hidden            : 1;
       unsigned int fullscreen        : 1;
@@ -133,12 +131,16 @@ struct _Ecore_Win32_Window
 };
 
 
+/* logging messages macros */
+extern int _ecore_win32_log_dom_global;
+
 extern HINSTANCE           _ecore_win32_instance;
 extern double              _ecore_win32_double_click_time;
 extern unsigned long       _ecore_win32_event_last_time;
 extern Ecore_Win32_Window *_ecore_win32_event_last_window;
 extern Ecore_Win32_Cursor *_ecore_win32_cursor_x[77];
 
+extern HWND ecore_win32_monitor_window;
 
 void  _ecore_win32_event_handle_key_press(Ecore_Win32_Callback_Data *msg);
 void  _ecore_win32_event_handle_key_release(Ecore_Win32_Callback_Data *msg);
@@ -156,6 +158,7 @@ void  _ecore_win32_event_handle_map_notify(Ecore_Win32_Callback_Data *msg);
 void  _ecore_win32_event_handle_unmap_notify(Ecore_Win32_Callback_Data *msg);
 void  _ecore_win32_event_handle_configure_notify(Ecore_Win32_Callback_Data *msg);
 void  _ecore_win32_event_handle_resize(Ecore_Win32_Callback_Data *msg);
+  void _ecore_win32_event_handle_property_notify(Ecore_Win32_Callback_Data *msg);
 void  _ecore_win32_event_handle_delete_request(Ecore_Win32_Callback_Data *msg);
 void  _ecore_win32_event_handle_selection_notify(Ecore_Win32_Callback_Data *msg);
 
@@ -170,6 +173,10 @@ void _ecore_win32_dnd_unregister_drop_window(HWND hwnd, void *drop_target);
 Eina_Bool ecore_win32_window_drag(Ecore_Win32_Window *w, int ptx, int pty);
 
 Ecore_Win32_Cursor *_ecore_win32_cursor_x11_shaped_new(Ecore_Win32_Cursor_X11_Shape shape);
+
+void ecore_win32_monitor_init(void);
+void ecore_win32_monitor_shutdown(void);
+void ecore_win32_monitor_update(int d);
 
 
 #ifdef __cplusplus

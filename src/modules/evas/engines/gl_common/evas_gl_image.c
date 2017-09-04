@@ -14,8 +14,8 @@ evas_gl_common_image_alloc_ensure(Evas_GL_Image *im)
                                                         im->w, im->h);
    else
 #endif
-   im->im = (RGBA_Image *)evas_cache_image_size_set(&im->im->cache_entry,
-                                                    im->w, im->h);
+     im->im = (RGBA_Image *)evas_cache_image_size_set(&im->im->cache_entry,
+                                                      im->w, im->h);
 }
 
 EAPI void
@@ -150,6 +150,84 @@ _evas_gl_cspace_list_fill(Evas_Engine_GL_Context *gc)
    CS_APPEND(EVAS_COLORSPACE_ARGB8888);
 }
 
+static void
+preload_done(void *data)
+{
+   Evas_GL_Image *im = data;
+
+   if (im->im)
+     {
+        Evas_Colorspace cspace = EVAS_COLORSPACE_ARGB8888;
+
+        if (im->im->cache_entry.cspaces)
+          {
+             Evas_Colorspace cs;
+             unsigned int i;
+             Eina_List *l2;
+             void *ldata;
+
+             cspace = EVAS_COLORSPACE_ARGB8888;
+             for (i = 0;
+                  im->im->cache_entry.cspaces[i] != EVAS_COLORSPACE_ARGB8888;
+                  i++)
+               {
+                  EINA_LIST_FOREACH(im->gc->shared->info.cspaces, l2, ldata)
+                    {
+                       cs = (Evas_Colorspace) (intptr_t) ldata;
+                       if (cs == im->im->cache_entry.cspaces[i])
+                         {
+                            cspace = cs;
+                            goto found_cspace;
+                         }
+                    }
+               }
+found_cspace:
+             if (cspace == EVAS_COLORSPACE_ETC1 && im->gc->shared->info.etc2)
+               cspace = EVAS_COLORSPACE_RGB8_ETC2;
+             im->im->cache_entry.space = cspace;
+          }
+        im->cs.space = cspace;
+        im->orient = EVAS_IMAGE_ORIENT_NONE;
+        im->alpha = im->im->cache_entry.flags.alpha;
+        im->w = im->im->cache_entry.w;
+        im->h = im->im->cache_entry.h;
+     }
+   evas_gl_common_image_preload_unwatch(im);
+}
+
+void
+evas_gl_common_image_preload_watch(Evas_GL_Image *im)
+{
+   Evas_Cache_Target *tg;
+
+   if (!im->im) return;
+   tg = calloc(1, sizeof(Evas_Cache_Target));
+   if (tg)
+     {
+        tg->simple_cb = preload_done;
+        tg->simple_data = im;
+        im->im->cache_entry.targets =  (Evas_Cache_Target *)
+          eina_inlist_append(EINA_INLIST_GET(im->im->cache_entry.targets),
+                             EINA_INLIST_GET(tg));
+     }
+}
+
+void
+evas_gl_common_image_preload_unwatch(Evas_GL_Image *im)
+{
+   Eina_Inlist *l2;
+   Evas_Cache_Target *tg;
+
+   if (!im->im) return;
+   EINA_INLIST_FOREACH_SAFE(im->im->cache_entry.targets, l2, tg)
+     {
+        if ((tg->simple_cb != preload_done) || (tg->simple_data != im))
+          continue;
+        tg->delete_me = EINA_TRUE;
+        break;
+     }
+}
+
 Evas_GL_Image *
 evas_gl_common_image_new_from_rgbaimage(Evas_Engine_GL_Context *gc, RGBA_Image *im_im,
                                         Evas_Image_Load_Opts *lo, int *error)
@@ -169,6 +247,8 @@ evas_gl_common_image_new_from_rgbaimage(Evas_Engine_GL_Context *gc, RGBA_Image *
         return NULL;
      }
     */
+
+   if (error) *error = EVAS_LOAD_ERROR_NONE;
 
    // FIXME: keep unreffed shared images around
    EINA_LIST_FOREACH(gc->shared->images, l, im)
@@ -360,13 +440,11 @@ evas_gl_common_image_new_from_data(Evas_Engine_GL_Context *gc, unsigned int w, u
         break;
       case EVAS_COLORSPACE_YCBCR422P601_PL:
       case EVAS_COLORSPACE_YCBCR422P709_PL:
-        if (im->tex) evas_gl_common_texture_free(im->tex, EINA_TRUE);
-	im->tex = NULL;
 	im->cs.data = data;
 	im->cs.no_free = 1;
 	break;
       default:
-	abort();
+        ERR("color space not supported: %d", cspace);
 	break;
      }
    return im;
@@ -414,16 +492,13 @@ evas_gl_common_image_new_from_copied_data(Evas_Engine_GL_Context *gc, unsigned i
         break;
       case EVAS_COLORSPACE_YCBCR422P601_PL:
       case EVAS_COLORSPACE_YCBCR422P709_PL:
-        if (im->tex) evas_gl_common_texture_free(im->tex, EINA_TRUE);
-        im->tex = NULL;
-        im->cs.no_free = 0;
         if (im->im->cache_entry.h > 0)
           im->cs.data = calloc(1, im->im->cache_entry.h * sizeof(unsigned char *) * 2);
         if ((data) && (im->cs.data))
           memcpy(im->cs.data, data, im->im->cache_entry.h * sizeof(unsigned char *) * 2);
         break;
       default:
-        abort();
+        ERR("color space not supported: %d", cspace);
         break;
      }
    return im;
@@ -693,7 +768,20 @@ evas_gl_common_image_free(Evas_GL_Image *im)
 {
    im->references--;
    if (im->references > 0) return;
+
+   if (im->gc && (im->gc->pipe[0].shader.surface == im))
+     evas_gl_common_context_target_surface_set(im->gc, im->gc->def_surface);
+
+   if (im->fglyph)
+     {
+        im->gc->font_glyph_images = eina_list_remove(im->gc->font_glyph_images, im);
+        im->fglyph->ext_dat = NULL;
+        im->fglyph->ext_dat_free = NULL;
+     }
+
    evas_gl_common_context_flush(im->gc);
+
+   evas_gl_common_image_preload_unwatch(im);
 
    if (im->scaled.origin)
      {
@@ -727,7 +815,7 @@ evas_gl_common_image_free(Evas_GL_Image *im)
 }
 
 Evas_GL_Image *
-evas_gl_common_image_surface_new(Evas_Engine_GL_Context *gc, unsigned int w, unsigned int h, int alpha)
+evas_gl_common_image_surface_new(Evas_Engine_GL_Context *gc, unsigned int w, unsigned int h, int alpha, int stencil)
 {
    Evas_GL_Image *im;
 
@@ -743,7 +831,29 @@ evas_gl_common_image_surface_new(Evas_Engine_GL_Context *gc, unsigned int w, uns
    im->alpha = alpha;
    im->w = w;
    im->h = h;
-   im->tex = evas_gl_common_texture_render_new(gc, w, h, alpha);
+   im->tex = evas_gl_common_texture_render_new(gc, w, h, alpha, stencil);
+   im->tex_only = 1;
+   return im;
+}
+
+Evas_GL_Image *
+evas_gl_common_image_surface_noscale_new(Evas_Engine_GL_Context *gc, unsigned int w, unsigned int h, int alpha)
+{
+   Evas_GL_Image *im;
+
+   if (((int)w > gc->shared->info.max_texture_size) ||
+       ((int)h > gc->shared->info.max_texture_size))
+     return NULL;
+
+   im = calloc(1, sizeof(Evas_GL_Image));
+   if (!im) return NULL;
+   im->references = 1;
+   im->gc = gc;
+   im->cs.space = EVAS_COLORSPACE_ARGB8888;
+   im->alpha = alpha;
+   im->w = w;
+   im->h = h;
+   im->tex = evas_gl_common_texture_render_noscale_new(gc, w, h, alpha);
    im->tex_only = 1;
    return im;
 }
@@ -774,11 +884,16 @@ evas_gl_common_image_update(Evas_Engine_GL_Context *gc, Evas_GL_Image *im)
 {
    Image_Entry *ie;
    if (!im->im) return;
-   evas_gl_common_image_alloc_ensure(im);
 
    // alloc ensure can change im->im, so only get the local variable later.
    ie = &im->im->cache_entry;
-
+   if (!im->tex)
+     {
+        if (ie->preload) return;
+        im->w = ie->w;
+        im->h = ie->h;
+     }
+   evas_gl_common_image_alloc_ensure(im);
 /*
    if ((im->cs.space == EVAS_COLORSPACE_YCBCR422P601_PL) ||
        (im->cs.space == EVAS_COLORSPACE_YCBCR422P709_PL))
@@ -929,6 +1044,157 @@ evas_gl_common_image_update(Evas_Engine_GL_Context *gc, Evas_GL_Image *im)
     }
 }
 
+Evas_GL_Image *
+evas_gl_common_image_surface_update(Evas_GL_Image *im)
+{
+   Evas_Engine_GL_Context *gc;
+   Evas_GL_Image *glim = NULL;
+   Eina_Bool alpha;
+   int w, h;
+
+   if (!im || !im->gc || !im->im || !im->im->image.data)
+     goto fail;
+
+   if (im->im->cache_entry.space == EFL_GFX_COLORSPACE_ARGB8888)
+     alpha = EINA_FALSE;
+   else if (im->im->cache_entry.space == EFL_GFX_COLORSPACE_GRY8)
+     alpha = EINA_TRUE;
+   else goto fail;
+
+   gc = im->gc;
+   w = im->im->cache_entry.w;
+   h = im->im->cache_entry.h;
+   glim = evas_gl_common_image_surface_new(gc, w, h, EINA_TRUE, EINA_FALSE);
+   if (!glim) goto fail;
+
+   if (alpha)
+     {
+        RGBA_Image *image;
+        uint32_t *rgba;
+        uint8_t *gry8;
+        int k;
+
+        image = evas_common_image_new(w, h, EINA_TRUE);
+        if (!image) goto fail;
+
+        rgba = image->image.data;
+        gry8 = im->im->image.data8;
+        for (k = 0; k < (w * h); k++)
+          {
+             const int c = *gry8++;
+             *rgba++ = ARGB_JOIN(c, c, c, c);
+          }
+
+        glim->im = image;
+     }
+   else
+     {
+        evas_cache_image_ref(&im->im->cache_entry);
+        glim->im = im->im;
+     }
+
+   glim->dirty = EINA_TRUE;
+   evas_gl_common_image_update(gc, glim);
+   evas_gl_common_image_free(im);
+
+   return glim;
+
+fail:
+   ERR("Failed to update surface pixels!");
+   if (glim) evas_gl_common_image_free(glim);
+   return NULL;
+}
+
+Evas_GL_Image *
+evas_gl_common_image_surface_detach(Evas_GL_Image *im)
+{
+   if (!im || !im->im) return im;
+
+   evas_cache_image_drop(&im->im->cache_entry);
+   im->im = NULL;
+
+   return im;
+}
+
+Evas_GL_Image *
+evas_gl_common_image_virtual_scaled_get(Evas_GL_Image *scaled, Evas_GL_Image *image,
+                                        int dst_w, int dst_h, Eina_Bool smooth)
+{
+   Evas_GL_Image *dst = scaled, *newdst;
+   Evas_GL_Image *src = image;
+   Evas_Engine_GL_Context *gc;
+   Eina_Bool reffed = EINA_FALSE;
+
+   if (!src) return NULL;
+
+   // masking will work only with single texture images
+   switch (src->cs.space)
+     {
+      case EVAS_COLORSPACE_AGRY88:
+      case EVAS_COLORSPACE_ARGB8888:
+      case EVAS_COLORSPACE_GRY8:
+      case EVAS_COLORSPACE_RGBA8_ETC2_EAC:
+      case EVAS_COLORSPACE_RGBA_S3TC_DXT1:
+      case EVAS_COLORSPACE_RGBA_S3TC_DXT2:
+      case EVAS_COLORSPACE_RGBA_S3TC_DXT3:
+      case EVAS_COLORSPACE_RGBA_S3TC_DXT4:
+      case EVAS_COLORSPACE_RGBA_S3TC_DXT5:
+        break;
+      default:
+        DBG("cspace %d can't be used for masking's fast path", src->cs.space);
+        return NULL;
+     }
+
+   gc = src->gc;
+   if (dst && (dst->scaled.origin == src) &&
+       (dst->w == dst_w) && (dst->h == dst_h))
+     return dst;
+
+   evas_gl_common_image_update(gc, src);
+   if (!src->tex)
+     {
+        ERR("No source texture.");
+        return NULL;
+     }
+
+   newdst = calloc(1, sizeof(Evas_GL_Image));
+   if (!newdst) return NULL;
+
+   if (dst)
+     {
+        if (dst->scaled.origin == src)
+          {
+             if (dst->references == 1)
+               {
+                  dst->w = dst_w;
+                  dst->h = dst_h;
+                  dst->scaled.smooth = smooth;
+                  free(newdst);
+                  return dst;
+               }
+             src->references++;
+             reffed = EINA_TRUE;
+          }
+        evas_gl_common_image_free(dst);
+     }
+
+   newdst->references = 1;
+   newdst->gc = gc;
+   newdst->cs.space = src->cs.space;
+   newdst->alpha = src->alpha;
+   newdst->w = dst_w;
+   newdst->h = dst_h;
+   newdst->tex = src->tex;
+   newdst->tex->references++;
+   newdst->tex_only = 1;
+
+   if (!reffed) src->references++;
+   newdst->scaled.origin = src;
+   newdst->scaled.smooth = smooth;
+
+   return newdst;
+}
+
 void
 evas_gl_common_image_map_draw(Evas_Engine_GL_Context *gc, Evas_GL_Image *im,
                               int npoints, RGBA_Map_Point *p, int smooth, int level EINA_UNUSED)
@@ -938,8 +1204,10 @@ evas_gl_common_image_map_draw(Evas_Engine_GL_Context *gc, Evas_GL_Image *im,
    Eina_Bool mask_smooth = EINA_FALSE;
    Evas_GL_Image *mask = dc->clip.mask;
    Evas_GL_Texture *mtex = NULL;
+   Eina_Bool mask_color = EINA_FALSE;
    int r, g, b, a;
    int c, cx, cy, cw, ch;
+   int offset = 0;
 
    if (dc->mul.use)
      {
@@ -973,15 +1241,21 @@ evas_gl_common_image_map_draw(Evas_Engine_GL_Context *gc, Evas_GL_Image *im,
              mw = mask->w;
              mh = mask->h;
              mask_smooth = mask->scaled.smooth;
+             mask_color = dc->clip.mask_color;
           }
         else mtex = NULL;
      }
 
-   evas_gl_common_context_image_map_push(gc, im->tex, npoints, p,
-                                         c, cx, cy, cw, ch,
-                                         mtex, mx, my, mw, mh, mask_smooth,
-                                         r, g, b, a, smooth, im->tex_only,
-                                         im->cs.space);
+   while (npoints >= 4)
+     {
+        evas_gl_common_context_image_map_push(gc, im->tex, npoints, &p[offset],
+                                              c, cx, cy, cw, ch,
+                                              mtex, mx, my, mw, mh, mask_smooth, mask_color,
+                                              r, g, b, a, smooth, im->tex_only,
+                                              im->cs.space);
+        offset += 4;
+        npoints -= 4;
+     }
 }
 
 static void
@@ -1000,6 +1274,7 @@ _evas_gl_common_image_push(Evas_Engine_GL_Context *gc, Evas_GL_Image *im,
    double ssx, ssy, ssw, ssh;
    Evas_GL_Texture *mtex = NULL;
    Eina_Bool mask_smooth = EINA_FALSE;
+   Eina_Bool mask_color = EINA_FALSE;
    int nx, ny, nw, nh;
 
    nx = dx; ny = dy; nw = dw; nh = dh;
@@ -1020,6 +1295,7 @@ _evas_gl_common_image_push(Evas_Engine_GL_Context *gc, Evas_GL_Image *im,
              mw = mask->w;
              mh = mask->h;
              mask_smooth = mask->scaled.smooth;
+             mask_color = gc->dc->clip.mask_color;
           }
         else mtex = NULL;
      }
@@ -1031,7 +1307,7 @@ _evas_gl_common_image_push(Evas_Engine_GL_Context *gc, Evas_GL_Image *im,
                                           im->tex,
                                           sx, sy, sw, sh,
                                           dx, dy, dw, dh,
-                                          mtex, mx, my, mw, mh, mask_smooth,
+                                          mtex, mx, my, mw, mh, mask_smooth, mask_color,
                                           r, g, b, a,
                                           smooth);
         else if (yuv_709)
@@ -1039,7 +1315,7 @@ _evas_gl_common_image_push(Evas_Engine_GL_Context *gc, Evas_GL_Image *im,
                                               im->tex,
                                               sx, sy, sw, sh,
                                               dx, dy, dw, dh,
-                                              mtex, mx, my, mw, mh, mask_smooth,
+                                              mtex, mx, my, mw, mh, mask_smooth, mask_color,
                                               r, g, b, a,
                                               smooth);
         else if (yuy2)
@@ -1047,7 +1323,7 @@ _evas_gl_common_image_push(Evas_Engine_GL_Context *gc, Evas_GL_Image *im,
                                            im->tex,
                                            sx, sy, sw, sh,
                                            dx, dy, dw, dh,
-                                           mtex, mx, my, mw, mh, mask_smooth,
+                                           mtex, mx, my, mw, mh, mask_smooth, mask_color,
                                            r, g, b, a,
                                            smooth);
         else if (nv12)
@@ -1055,7 +1331,7 @@ _evas_gl_common_image_push(Evas_Engine_GL_Context *gc, Evas_GL_Image *im,
                                            im->tex,
                                            sx, sy, sw, sh,
                                            dx, dy, dw, dh,
-                                           mtex, mx, my, mw, mh, mask_smooth,
+                                           mtex, mx, my, mw, mh, mask_smooth, mask_color,
                                            r, g, b, a,
                                            smooth);
         else if (rgb_a_pair)
@@ -1063,7 +1339,7 @@ _evas_gl_common_image_push(Evas_Engine_GL_Context *gc, Evas_GL_Image *im,
                                                  im->tex,
                                                  sx, sy, sw, sh,
                                                  dx, dy, dw, dh,
-                                                 mtex, mx, my, mw, mh, mask_smooth,
+                                                 mtex, mx, my, mw, mh, mask_smooth, mask_color,
                                                  r, g, b, a,
                                                  smooth);
         else
@@ -1071,7 +1347,7 @@ _evas_gl_common_image_push(Evas_Engine_GL_Context *gc, Evas_GL_Image *im,
                                             im->tex,
                                             sx, sy, sw, sh,
                                             dx, dy, dw, dh,
-                                            mtex, mx, my, mw, mh, mask_smooth,
+                                            mtex, mx, my, mw, mh, mask_smooth, mask_color,
                                             r, g, b, a,
                                             smooth, im->tex_only);
         return;
@@ -1087,7 +1363,7 @@ _evas_gl_common_image_push(Evas_Engine_GL_Context *gc, Evas_GL_Image *im,
                                      im->tex,
                                      ssx, ssy, ssw, ssh,
                                      nx, ny, nw, nh,
-                                     mtex, mx, my, mw, mh, mask_smooth,
+                                     mtex, mx, my, mw, mh, mask_smooth, mask_color,
                                      r, g, b, a,
                                      smooth);
    else if (yuv_709)
@@ -1095,7 +1371,7 @@ _evas_gl_common_image_push(Evas_Engine_GL_Context *gc, Evas_GL_Image *im,
                                          im->tex,
                                          ssx, ssy, ssw, ssh,
                                          nx, ny, nw, nh,
-                                         mtex, mx, my, mw, mh, mask_smooth,
+                                         mtex, mx, my, mw, mh, mask_smooth, mask_color,
                                          r, g, b, a,
                                          smooth);
    else if (yuy2)
@@ -1103,7 +1379,7 @@ _evas_gl_common_image_push(Evas_Engine_GL_Context *gc, Evas_GL_Image *im,
                                       im->tex,
                                       ssx, ssy, ssw, ssh,
                                       nx, ny, nw, nh,
-                                      mtex, mx, my, mw, mh, mask_smooth,
+                                      mtex, mx, my, mw, mh, mask_smooth, mask_color,
                                       r, g, b, a,
                                       smooth);
    else if (nv12)
@@ -1111,7 +1387,7 @@ _evas_gl_common_image_push(Evas_Engine_GL_Context *gc, Evas_GL_Image *im,
                                       im->tex,
                                       ssx, ssy, ssw, ssh,
                                       nx, ny, nw, nh,
-                                      mtex, mx, my, mw, mh, mask_smooth,
+                                      mtex, mx, my, mw, mh, mask_smooth, mask_color,
                                       r, g, b, a,
                                       smooth);
    else if (rgb_a_pair)
@@ -1119,7 +1395,7 @@ _evas_gl_common_image_push(Evas_Engine_GL_Context *gc, Evas_GL_Image *im,
                                             im->tex,
                                             ssx, ssy, ssw, ssh,
                                             nx, ny, nw, nh,
-                                            mtex, mx, my, mw, mh, mask_smooth,
+                                            mtex, mx, my, mw, mh, mask_smooth, mask_color,
                                             r, g, b, a,
                                             smooth);
    else
@@ -1127,7 +1403,7 @@ _evas_gl_common_image_push(Evas_Engine_GL_Context *gc, Evas_GL_Image *im,
                                        im->tex,
                                        ssx, ssy, ssw, ssh,
                                        nx, ny, nw, nh,
-                                       mtex, mx, my, mw, mh, mask_smooth,
+                                       mtex, mx, my, mw, mh, mask_smooth, mask_color,
                                        r, g, b, a,
                                        smooth, im->tex_only);
 }
@@ -1252,30 +1528,4 @@ evas_gl_common_image_draw(Evas_Engine_GL_Context *gc, Evas_GL_Image *im, int sx,
    evas_common_draw_context_cutouts_free(_evas_gl_common_cutout_rects);
    /* restore clip info */
    gc->dc->clip.use = c; gc->dc->clip.x = cx; gc->dc->clip.y = cy; gc->dc->clip.w = cw; gc->dc->clip.h = ch;
-}
-
-void *
-evas_gl_image_new_from_data(void *gc, unsigned int w, unsigned int h, DATA32 *data, int alpha, Evas_Colorspace cspace)
-{
-   return (void *)evas_gl_common_image_new_from_data((Evas_Engine_GL_Context *)gc,
-                                                     w, h,
-                                                     data,
-                                                     alpha,
-                                                     cspace);
-}
-
-void
-evas_gl_image_free(void *im)
-{
-   evas_gl_common_image_free((Evas_GL_Image *)im);
-}
-
-void
-evas_gl_image_draw(void *gc, void *im, int sx, int sy, int sw, int sh, int dx, int dy, int dw, int dh, int smooth)
-{
-   evas_gl_common_image_draw((Evas_Engine_GL_Context *)gc,
-                             (Evas_GL_Image *)im,
-                             sx, sy, sw, sh,
-                             dx, dy, dw, dh,
-                             smooth);
 }

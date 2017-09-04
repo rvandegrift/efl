@@ -4,8 +4,9 @@
 
 #include "Ecore_Fb.h"
 #include "ecore_fb_private.h"
+#include <limits.h>
 
-static void _ecore_fb_size_get(int *w, int *h);
+static void _ecore_fb_size_get(const char *name, int *w, int *h);
 
 static int _ecore_fb_init_count = 0;
 static int _ecore_fb_console_w = 0;
@@ -38,20 +39,26 @@ nosigint(int val EINA_UNUSED)
  * the Ecore_Fb library.
  */
 EAPI int
-ecore_fb_init(const char *name EINA_UNUSED)
+ecore_fb_init(const char *name)
 {
+   const char *s;
+
    if (++_ecore_fb_init_count != 1)
       return _ecore_fb_init_count;
 
-   if (!ecore_fb_vt_init())
-      return --_ecore_fb_init_count;
+   s = getenv("ECORE_FB_NO_VT");
+   if ((!s) || (atoi(s) == 0))
+     {
+        if (!ecore_fb_vt_init())
+          return --_ecore_fb_init_count;
+     }
 
    if (!oldhand)
      {
         oldhand = signal(SIGINT, nosigint);
      }
    
-   _ecore_fb_size_get(&_ecore_fb_console_w, &_ecore_fb_console_h);
+   _ecore_fb_size_get(name, &_ecore_fb_console_w, &_ecore_fb_console_h);
 
    return _ecore_fb_init_count;
 }
@@ -68,6 +75,8 @@ ecore_fb_init(const char *name EINA_UNUSED)
 EAPI int
 ecore_fb_shutdown(void)
 {
+   const char *s;
+
    if (--_ecore_fb_init_count != 0)
       return _ecore_fb_init_count;
 
@@ -76,8 +85,12 @@ ecore_fb_shutdown(void)
         signal(SIGINT, oldhand);
         oldhand = NULL;
      }
-   
-   ecore_fb_vt_shutdown();
+
+   s = getenv("ECORE_FB_NO_VT");
+   if ((!s) || (atoi(s) == 0))
+     {
+        ecore_fb_vt_shutdown();
+     }
 
    return _ecore_fb_init_count;
 }
@@ -103,28 +116,50 @@ ecore_fb_size_get(int *w, int *h)
 }
 
 static void
-_ecore_fb_size_get(int *w, int *h)
+_ecore_fb_size_get(const char *name, int *w, int *h)
 {
    struct fb_var_screeninfo fb_var;
    int fb;
+   const char *s;
 
-   if (
-#if defined(HAVE_GETUID) && defined(HAVE_GETEUID)
-       (getuid() == geteuid()) &&
-#endif
-       (getenv("EVAS_FB_DEV")))
-     fb = open(getenv("EVAS_FB_DEV"), O_RDWR);
+   if ((s = getenv("EVAS_FB_DEV")) &&
+       (((!strncmp(s, "/dev/fb", 7)) &&
+         ((s[7] >= '0' && s[7] <= '9') || (s[7] == 0))) ||
+           ((!strncmp(s, "/dev/fb/", 8)) && (s[8] != '.'))))
+     {
+        fb = open(s, O_RDWR);
+        if (fb < 0)
+          fprintf(stderr, "[ecore_fb] error opening $EVAS_FB_DEV=%s: %s\n", s, strerror(errno));
+     }
    else
      {
-        fb = open("/dev/fb/0", O_RDWR);
+        char dev[PATH_MAX];
+        int device;
+
+        /* consistent with ecore_evas_default_display in ecore_evas_fb.c */
+        if (!name) name = "0";
+
+        /* consistent with ecore_evas_fb.c -> evas_fb_main.c */
+        device = strtol(name, NULL, 10);
+
+        snprintf(dev, sizeof(dev), "/dev/fb/%i", device);
+        fb = open(dev, O_RDWR);
         if (fb == -1)
-          fb = open("/dev/fb0", O_RDWR);
+          {
+             snprintf(dev, sizeof(dev), "/dev/fb%i", device);
+             fb = open(dev, O_RDWR);
+             if (fb < 0)
+               fprintf(stderr, "[ecore_fb] error opening /dev/fb/%i and /dev/fb%i: %s\n", device, device, strerror(errno));
+          }
      }
    if (fb < 0)
       goto exit;
 
    if (ioctl(fb, FBIOGET_VSCREENINFO, &fb_var) == -1)
-      goto err_ioctl;
+     {
+        perror("[ecore_fb] ioctl FBIOGET_VSCREENINFO");
+        goto err_ioctl;
+     }
 
    *w = fb_var.xres;
    *h = fb_var.yres;

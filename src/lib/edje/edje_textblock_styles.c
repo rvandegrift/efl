@@ -220,7 +220,7 @@ _edje_textblock_style_update(Edje *ed, Edje_Style *stl, Eina_Bool force)
              eina_strbuf_append(txt, "font_source=");
              eina_strbuf_append(txt, fontsource);
           }
-        if (tag->font_size != 0)
+        if (!EINA_DBL_EQ(tag->font_size, 0))
           {
              char font_size[32];
 
@@ -310,7 +310,7 @@ _edje_textblock_style_member_add(Edje *ed, Edje_Style *stl)
      {
         if (tag->text_class)
           {
-             _edje_text_class_member_add(ed, tag->text_class);
+             efl_observable_observer_add(_edje_text_class_member, tag->text_class, ed->obj);
 
              /* Newly added text_class member should be updated
                 according to the latest text_class's status. */
@@ -377,7 +377,7 @@ _edje_textblock_styles_del(Edje *ed, Edje_Part *pt)
         EINA_LIST_FOREACH(stl->tags, l, tag)
           {
              if (tag->text_class)
-               _edje_text_class_member_del(ed, tag->text_class);
+               efl_observable_observer_del(_edje_text_class_member, tag->text_class, ed->obj);
           }
      }
 
@@ -403,7 +403,7 @@ _edje_textblock_styles_del(Edje *ed, Edje_Part *pt)
              EINA_LIST_FOREACH(stl->tags, l, tag)
                {
                   if (tag->text_class)
-                    _edje_text_class_member_del(ed, tag->text_class);
+                    efl_observable_observer_del(_edje_text_class_member, tag->text_class, ed->obj);
                }
           }
      }

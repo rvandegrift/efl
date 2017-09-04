@@ -11,14 +11,14 @@
 
 #define EFL_GFX_FILTER_BETA
 
-#include <Evas.h>
+#include "../../lib/evas/include/evas_common_private.h"
 #include "../../lib/evas/include/evas_filter.h"
 #include <Ecore_Evas.h>
 
 #include "evas_suite.h"
 
 #define TEST_FONT_NAME "DejaVuSans,UnDotum"
-#define TEST_FONT_SOURCE TESTS_SRC_DIR "/TestFont.eet"
+#define TEST_FONT_SOURCE TESTS_SRC_DIR "/fonts/TestFont.eet"
 #define EVAS_DATA_DIR TESTS_SRC_DIR "/../../lib/evas"
 
 #define START_FILTER_TEST() \

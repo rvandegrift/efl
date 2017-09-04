@@ -1,5 +1,5 @@
 /**
- * Evas example illustrating work with GL APIs.
+ * Example of working with OpenGL APIs in Evas.
  *
  * Evas_GL.h should be added for Evas GL APIs access.
  *
@@ -256,8 +256,8 @@ img_pixel_cb(void *data, Evas_Object *obj)
    float model[16], mvp[16];
    GLData *gl_data = data;
    Evas_GL_API *glapi = gl_data->glapi;
-
    Evas_Coord w, h;
+
    evas_object_image_size_get(obj, &w, &h);
 
    //Set up the context and surface as the current one
@@ -377,6 +377,7 @@ _win_resize_cb(void *data, Evas *e EINA_UNUSED, Evas_Object *obj, void *event_in
 {
    float aspect;
    Evas_Coord w,h;
+
    evas_object_geometry_get( obj, NULL, NULL, &w, &h);
 
    GLData *gl_data = data;
@@ -428,7 +429,7 @@ evas_gl_exam(Evas_Object *win)
    evas_object_event_callback_add(gldata.img, EVAS_CALLBACK_DEL, img_del_cb, &gldata);
 
    //Set up an actual pixel size for the buffer data. It may be different to the
-   //output size. Any windowing sysmtem has something like this, just evas has 2
+   //output size. Any windowing system has something like this, just evas has 2
    //sizes, a pixel size and the output object size.
    evas_object_image_size_set(gldata.img, w, h);
 

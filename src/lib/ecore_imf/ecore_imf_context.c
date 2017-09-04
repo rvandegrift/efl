@@ -524,7 +524,7 @@ ecore_imf_context_input_mode_get(Ecore_IMF_Context *ctx)
    if (!ECORE_MAGIC_CHECK(ctx, ECORE_MAGIC_CONTEXT))
      {
         ECORE_MAGIC_FAIL(ctx, ECORE_MAGIC_CONTEXT,
-                         "ecore_imf_context_input_mode_set");
+                         "ecore_imf_context_input_mode_get");
         return 0;
      }
    return ctx->input_mode;
@@ -649,6 +649,8 @@ ecore_imf_context_preedit_start_event_add(Ecore_IMF_Context *ctx)
      }
 
    ev = malloc(sizeof(Ecore_IMF_Event_Preedit_Start));
+   EINA_SAFETY_ON_NULL_RETURN(ev);
+
    ev->ctx = ctx;
    ecore_event_add(ECORE_IMF_EVENT_PREEDIT_START,
                    ev, _ecore_imf_event_free_preedit, NULL);
@@ -667,6 +669,8 @@ ecore_imf_context_preedit_end_event_add(Ecore_IMF_Context *ctx)
      }
 
    ev = malloc(sizeof(Ecore_IMF_Event_Preedit_End));
+   EINA_SAFETY_ON_NULL_RETURN(ev);
+
    ev->ctx = ctx;
    ecore_event_add(ECORE_IMF_EVENT_PREEDIT_END,
                    ev, _ecore_imf_event_free_preedit, NULL);
@@ -685,6 +689,8 @@ ecore_imf_context_preedit_changed_event_add(Ecore_IMF_Context *ctx)
      }
 
    ev = malloc(sizeof(Ecore_IMF_Event_Preedit_Changed));
+   EINA_SAFETY_ON_NULL_RETURN(ev);
+
    ev->ctx = ctx;
    ecore_event_add(ECORE_IMF_EVENT_PREEDIT_CHANGED,
                    ev, _ecore_imf_event_free_preedit, NULL);
@@ -713,6 +719,8 @@ ecore_imf_context_commit_event_add(Ecore_IMF_Context *ctx, const char *str)
      }
 
    ev = malloc(sizeof(Ecore_IMF_Event_Commit));
+   EINA_SAFETY_ON_NULL_RETURN(ev);
+
    ev->ctx = ctx;
    ev->str = str ? strdup(str) : NULL;
    ecore_event_add(ECORE_IMF_EVENT_COMMIT,
@@ -1391,3 +1399,49 @@ ecore_imf_context_bidi_direction_get(Ecore_IMF_Context *ctx)
    return ctx->bidi_direction;
 }
 
+EAPI Ecore_IMF_Input_Panel_Keyboard_Mode
+ecore_imf_context_keyboard_mode_get(Ecore_IMF_Context *ctx)
+{
+   Ecore_IMF_Input_Panel_Keyboard_Mode mode = ECORE_IMF_INPUT_PANEL_SW_KEYBOARD_MODE;
+   if (!ECORE_MAGIC_CHECK(ctx, ECORE_MAGIC_CONTEXT))
+     {
+        ECORE_MAGIC_FAIL(ctx, ECORE_MAGIC_CONTEXT,
+                         "ecore_imf_context_keyboard_mode_get");
+        return ECORE_IMF_INPUT_PANEL_SW_KEYBOARD_MODE;
+     }
+
+   if (ctx->klass->keyboard_mode_get)
+     mode = ctx->klass->keyboard_mode_get(ctx);
+
+   return mode;
+}
+
+EAPI void
+ecore_imf_context_prediction_hint_set(Ecore_IMF_Context *ctx, const char *prediction_hint)
+{
+   if (!ECORE_MAGIC_CHECK(ctx, ECORE_MAGIC_CONTEXT))
+     {
+        ECORE_MAGIC_FAIL(ctx, ECORE_MAGIC_CONTEXT,
+                         "ecore_imf_context_prediction_hint_set");
+        return;
+     }
+
+   if (ctx->klass->prediction_hint_set)
+     ctx->klass->prediction_hint_set(ctx, prediction_hint);
+}
+
+EAPI void
+ecore_imf_context_mime_type_accept_set(Ecore_IMF_Context *ctx, const char *mime_type)
+{
+   if (!ECORE_MAGIC_CHECK(ctx, ECORE_MAGIC_CONTEXT))
+     {
+        ECORE_MAGIC_FAIL(ctx, ECORE_MAGIC_CONTEXT,
+                         "ecore_imf_context_mime_type_accept_set");
+        return;
+     }
+
+   if (!mime_type) return;
+
+   if (ctx->klass->mime_type_accept_set)
+     ctx->klass->mime_type_accept_set(ctx, mime_type);
+}

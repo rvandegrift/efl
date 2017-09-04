@@ -7,7 +7,7 @@
 #include "class_simple.h"
 
 static void
-_cb(void *data EINA_UNUSED, const Eo_Event *event EINA_UNUSED)
+_cb(void *data EINA_UNUSED, const Efl_Event *event EINA_UNUSED)
 {
 }
 
@@ -16,14 +16,14 @@ static void
 bench_eo_callbacks_add(int request)
 {
    int i;
-   Eo *obj = eo_add(SIMPLE_CLASS, NULL);
+   Eo *obj = efl_add(SIMPLE_CLASS, NULL);
 
    for (i = 0 ; i < request ; i++)
      {
-        eo_event_callback_priority_add(obj, SIMPLE_FOO, (short) i, _cb, NULL);
+        efl_event_callback_priority_add(obj, SIMPLE_FOO, (short) i, _cb, NULL);
      }
 
-   eo_unref(obj);
+   efl_unref(obj);
 }
 
 static void
@@ -52,11 +52,11 @@ bench_eo_callbacks_call(int request)
    Eo *obj[len];
    for (i = 0 ; i < len ; i++)
      {
-        obj[i] = eo_add(SIMPLE_CLASS, NULL);
+        obj[i] = efl_add(SIMPLE_CLASS, NULL);
 
         for (j = 0 ; j < i ; j++)
           {
-             eo_event_callback_priority_add(obj[i], SIMPLE_FOO, (short) j, _cb, NULL);
+             efl_event_callback_priority_add(obj[i], SIMPLE_FOO, (short) j, _cb, NULL);
           }
      }
 
@@ -65,13 +65,13 @@ bench_eo_callbacks_call(int request)
         for (j = 0 ; j < (int) (distribution[i] * request) ; j++)
           {
              /* Miss finding the callbacks on purpose, so we measure worst case scenario. */
-             eo_event_callback_call(obj[i], SIMPLE_BAR, NULL);
+             efl_event_callback_call(obj[i], SIMPLE_BAR, NULL);
           }
      }
 
    for (i = 0 ; i < len ; i++)
      {
-        eo_unref(obj[i]);
+        efl_unref(obj[i]);
      }
 }
 

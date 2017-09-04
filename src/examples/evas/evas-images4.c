@@ -1,5 +1,5 @@
 /**
- * Simple Evas example illustrating some image objects functions
+ * Example of rotating and flipping image objects in Evas.
  *
  * You'll need at least one engine built for it (excluding the buffer
  * one) and the png image loader/saver also built. See stdout/stderr
@@ -58,8 +58,7 @@ _on_destroy(Ecore_Evas *ee EINA_UNUSED)
    ecore_main_loop_quit();
 }
 
-/* here just to keep our example's window size and background image's
- * size in synchrony */
+/* Keep the example's window size in sync with the background image's size */
 static void
 _canvas_resize_cb(Ecore_Evas *ee)
 {
@@ -89,8 +88,8 @@ _on_keydown(void        *data EINA_UNUSED,
           fprintf(stderr, "Cannot save image to '%s' (flags '%s')\n",
                   file_path, quality_str);
         else
-          fprintf(stdout, "Image saved to '%s' (flags '%s'), check it out with "
-                          "an image viewer\n", file_path, quality_str);
+          printf("Image saved to '%s' (flags '%s'), check it out with "
+                 "an image viewer\n", file_path, quality_str);
 
         return;
      }
@@ -100,7 +99,7 @@ _on_keydown(void        *data EINA_UNUSED,
         Evas_Coord w, h;
 
         evas_object_image_size_get(d.img, &w, &h);
-        fprintf(stdout, "Image has size set to: w=%d, h=%d\n", w, h);
+        printf("Image has size set to: w=%d, h=%d\n", w, h);
         return;
      }
 
@@ -108,8 +107,8 @@ _on_keydown(void        *data EINA_UNUSED,
    if (key_val >= 0 && key_val <= 7)
      {
         evas_object_image_orient_set(d.img, key_val);
-        fprintf(stdout, "Set %i and got %i\n", key_val,
-                evas_object_image_orient_get(d.img));
+        printf("Set %i and got %i\n", key_val,
+               evas_object_image_orient_get(d.img));
 
         return;
      }
@@ -152,9 +151,8 @@ main(void)
      }
    else
      {
-        fprintf(stdout, 
-                "loaded image '%s' with succes! error string is \"%s\"\n",
-                img_path, evas_load_error_str(err));
+        printf("loaded image '%s' with success! error string is \"%s\"\n",
+               img_path, evas_load_error_str(err));
 
         evas_object_move(d.img, WIDTH / 2, HEIGHT / 2);
         evas_object_image_fill_set(d.img, 0, 0, WIDTH / 2, HEIGHT / 2);

@@ -174,21 +174,12 @@ _eio_inotify_handler(void *data EINA_UNUSED, Ecore_Fd_Handler *fdh)
 void eio_monitor_backend_init(void)
 {
    int fd;
-#ifdef HAVE_FCNTL
-   int flags, rc;
-#endif
 
    fd = inotify_init();
    if (fd < 0)
      return;
 
-#ifdef HAVE_FCNTL
-   flags = fcntl(fd, F_GETFD);
-   flags |= FD_CLOEXEC;
-   rc = fcntl(fd, F_SETFD, flags);
-   if (rc < 0)
-     return;
-#endif
+   eina_file_close_on_exec(fd, EINA_TRUE);
 
    _inotify_fdh = ecore_main_fd_handler_add(fd, ECORE_FD_READ, _eio_inotify_handler, NULL, NULL, NULL);
    if (!_inotify_fdh)

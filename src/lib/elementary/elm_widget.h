@@ -410,6 +410,7 @@ typedef struct _Elm_Widget_Smart_Data
    const char                   *style;
    const char                   *focus_highlight_style;  /**< custom focus style for a widget */
    const char                   *access_info;
+   const char                   *accessible_name;
    unsigned int                  focus_order;
    Eina_Bool                     focus_order_on_calc;
 
@@ -431,6 +432,20 @@ typedef struct _Elm_Widget_Smart_Data
    Elm_Focus_Move_Policy         focus_move_policy;
    Elm_Focus_Region_Show_Mode    focus_region_show_mode;
 
+   struct {
+     Efl_Ui_Focus_Manager *manager; //manager which is currently regsitered in
+     Efl_Ui_Focus_Object *parent; //the parent where it is currently registered
+     Eina_Bool logical;
+   } focus;
+   struct {
+      int child_count;
+      Efl_Ui_Focus_Object *parent;
+   } logical;
+   struct {
+      Efl_Ui_Focus_Manager *manager;
+      Efl_Ui_Focus_User *provider;
+   } manager;
+
    Eina_Bool                     drag_x_locked : 1;
    Eina_Bool                     drag_y_locked : 1;
 
@@ -445,16 +460,14 @@ typedef struct _Elm_Widget_Smart_Data
    Eina_Bool                     access_highlight_in_theme : 1;
    Eina_Bool                     disabled : 1;
    Eina_Bool                     is_mirrored : 1;
-   Eina_Bool                     mirrored_auto_mode : 1; /* This is
-                                                          * TRUE by
-                                                          * default */
+   Eina_Bool                     mirrored_auto_mode : 1; /* This is TRUE by default */
    Eina_Bool                     still_in : 1;
    Eina_Bool                     highlighted : 1;
    Eina_Bool                     highlight_root : 1;
    Eina_Bool                     on_translate : 1; /**< This is true when any types of elm translate function is being called. */
    Eina_Bool                     on_create : 1; /**< This is true when the widget is on creation(general widget constructor). */
    Eina_Bool                     on_destroy: 1; /**< This is true when the widget is on destruction(general widget destructor). */
-   Eina_Bool                     provider_lookup : 1; /**< This is true when eo_provider_find is currently walking the tree */
+   Eina_Bool                     provider_lookup : 1; /**< This is true when efl_provider_find is currently walking the tree */
 } Elm_Widget_Smart_Data;
 
 /**
@@ -472,6 +485,9 @@ typedef struct _Elm_Access_Info Elm_Access_Info;
 typedef struct _Elm_Access_Item Elm_Access_Item;
 
 typedef struct _Elm_Action Elm_Action;
+
+/** Internal type for mouse cursors */
+typedef struct _Elm_Cursor Elm_Cursor;
 
 #define ELM_ACCESS_DONE          -1   /* sentence done - send done event here */
 #define ELM_ACCESS_CANCEL        -2   /* stop reading immediately */
@@ -571,10 +587,10 @@ struct _Elm_Widget_Item_Signal_Data
 };
 
 #define WIDGET_ITEM_DATA_GET(eo_obj) \
-    eo_key_data_get((Eo *) eo_obj, "__elm_widget_item_data")
+    efl_key_data_get((Eo *) eo_obj, "__elm_widget_item_data")
 
 #define WIDGET_ITEM_DATA_SET(eo_obj, data) \
-    eo_key_data_set((Eo *) eo_obj, "__elm_widget_item_data", data)
+    efl_key_data_set((Eo *) eo_obj, "__elm_widget_item_data", data)
 
 struct _Elm_Widget_Item_Data
 {
@@ -603,6 +619,7 @@ struct _Elm_Widget_Item_Data
 
    Evas_Object                   *access_obj;
    const char                    *access_info;
+   const char                    *accessible_name;
    Eina_List                     *access_order;
    Eina_Inlist                   *translate_strings;
    Eina_List                     *signals;
@@ -714,12 +731,6 @@ EAPI int              elm_widget_scroll_hold_get(const Evas_Object *obj);
 EAPI void             elm_widget_scroll_freeze_push(Evas_Object *obj);
 EAPI void             elm_widget_scroll_freeze_pop(Evas_Object *obj);
 EAPI int              elm_widget_scroll_freeze_get(const Evas_Object *obj);
-EAPI void             elm_widget_scale_set(Evas_Object *obj, double scale);
-EAPI double           elm_widget_scale_get(const Evas_Object *obj);
-EAPI Eina_Bool        elm_widget_mirrored_get(const Evas_Object *obj);
-EAPI void             elm_widget_mirrored_set(Evas_Object *obj, Eina_Bool mirrored);
-EAPI Eina_Bool        elm_widget_mirrored_automatic_get(const Evas_Object *obj);
-EAPI void             elm_widget_mirrored_automatic_set(Evas_Object *obj, Eina_Bool automatic);
 EAPI void             elm_widget_theme_set(Evas_Object *obj, Elm_Theme *th);
 EAPI Elm_Theme       *elm_widget_theme_get(const Evas_Object *obj);
 EAPI Elm_Theme_Apply  elm_widget_style_set(Evas_Object *obj, const char *style);
@@ -788,7 +799,7 @@ EAPI Eina_Bool        _elm_widget_item_onscreen_is(Elm_Object_Item *item);
 
 #define ELM_WIDGET_DATA_GET_OR_RETURN(o, ptr, ...)   \
   Elm_Widget_Smart_Data *ptr;                        \
-  ptr = eo_data_scope_get(o, ELM_WIDGET_CLASS);  \
+  ptr = efl_data_scope_get(o, ELM_WIDGET_CLASS);  \
   if (EINA_UNLIKELY(!ptr))                           \
     {                                                \
        CRI("no widget data for object %p (%s)",      \
@@ -797,7 +808,7 @@ EAPI Eina_Bool        _elm_widget_item_onscreen_is(Elm_Object_Item *item);
     }
 
 #define ELM_WIDGET_CHECK(obj)                              \
-  if (EINA_UNLIKELY(!eo_isa((obj), ELM_WIDGET_CLASS))) \
+  if (EINA_UNLIKELY(!efl_isa((obj), ELM_WIDGET_CLASS))) \
     return
 
 #define ELM_WIDGET_ITEM_RETURN_IF_ONDEL(item, ...)              \
@@ -815,7 +826,7 @@ EAPI Eina_Bool        _elm_widget_item_onscreen_is(Elm_Object_Item *item);
              return __VA_ARGS__;                                \
         }                                                       \
        if ((item)->eo_obj &&                                   \
-           eo_isa((item)->eo_obj, ELM_WIDGET_ITEM_CLASS)) break; \
+           efl_isa((item)->eo_obj, ELM_WIDGET_ITEM_CLASS)) break; \
        if (!EINA_MAGIC_CHECK(item, ELM_WIDGET_ITEM_MAGIC)) {    \
             EINA_MAGIC_FAIL(item, ELM_WIDGET_ITEM_MAGIC);       \
             return __VA_ARGS__;                                 \
@@ -829,7 +840,7 @@ EAPI Eina_Bool        _elm_widget_item_onscreen_is(Elm_Object_Item *item);
              goto label;                                        \
         }                                                       \
        if ((item)->eo_obj &&                                    \
-           eo_isa((item)->eo_obj, ELM_WIDGET_ITEM_CLASS)) break; \
+           efl_isa((item)->eo_obj, ELM_WIDGET_ITEM_CLASS)) break; \
        if (!EINA_MAGIC_CHECK(item, ELM_WIDGET_ITEM_MAGIC)) {    \
             EINA_MAGIC_FAIL(item, ELM_WIDGET_ITEM_MAGIC);       \
             goto label;                                         \
@@ -840,7 +851,8 @@ static inline Eina_Bool
 _elm_widget_sub_object_redirect_to_top(Evas_Object *obj, Evas_Object *sobj)
 {
    Eina_Bool ret = elm_widget_sub_object_del(obj, sobj);
-   if (ret)
+   if (!ret) return ret;
+   if (elm_widget_is(sobj))
      ret = elm_widget_sub_object_add(elm_widget_top_get(obj), sobj);
 
    return ret;
@@ -851,6 +863,15 @@ _elm_widget_sub_object_redirect_to_top(Evas_Object *obj, Evas_Object *sobj)
 #define ELM_INTERNAL_SMART_SUBCLASS_NEW EVAS_SMART_SUBCLASS_NEW
 
 EAPI Eina_Bool elm_selection_selection_has_owner(Evas_Object *obj);
+
+EAPI Eina_Bool _elm_layout_part_aliasing_eval(const Evas_Object *obj,
+                                              const char **part,
+                                              Eina_Bool is_text);
+
+/* Internal EO APIs */
+const char *elm_widget_default_content_part_get(const Eo *obj);
+const char *elm_widget_default_text_part_get(const Eo *obj);
+
 
 #define ELM_WIDGET_ITEM_PROTECTED
 #include "elm_widget_item.eo.h"

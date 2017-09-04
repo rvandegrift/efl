@@ -28,6 +28,10 @@
 #include <limits.h>
 #include <ctype.h>
 
+#ifdef HAVE_BSD_STRING_H
+# include <bsd/string.h>
+#endif
+
 #ifdef HAVE_ICONV
 # include <errno.h>
 # include <iconv.h>
@@ -664,24 +668,27 @@ eina_str_escape(const char *str)
            {
              *d = '\\';
              d++;
+             *d = *s;
              break;
            }
          case '\n':
            {
              *d = '\\'; d++;
-             *d = 'n'; d++;
-             s++;
+             *d = 'n';
              break;
            }
          case '\t':
            {
              *d = '\\'; d++;
-             *d = 't'; d++;
-             s++;
+             *d = 't';
+             break;
+           }
+         default:
+           {
+             *d = *s;
              break;
            }
         }
-        *d = *s;
      }
    *d = 0;
    return s2;

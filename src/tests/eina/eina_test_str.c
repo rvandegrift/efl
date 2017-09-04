@@ -26,7 +26,7 @@
 
 #include "eina_suite.h"
 
-   START_TEST(str_simple)
+START_TEST(str_simple)
 {
    size_t i;
    char *str, *ret;
@@ -88,7 +88,7 @@
    fail_if(eina_streq("x", "x "));
    fail_if(!eina_streq("xab", "xab"));
 
-   fail_if(eina_strlen_bounded("abc", 1024) != strlen("abc"));
+   fail_if(eina_strlen_bounded("abc", 4) != strlen("abc"));
    fail_if(eina_strlen_bounded("abc", 2) != (size_t)-1);
 
    str = malloc(sizeof(char) * 4);
@@ -105,6 +105,13 @@
    fail_if(strlen(ret) != strlen(escape_ret));
    for (i = 0; i <= strlen(ret); i++)
      fail_if(ret[i] != escape_ret[i]);
+   free(str);
+   free(ret);
+
+   str = malloc(sizeof(char) * 4);
+   strcpy(str, "a\t ");
+   ret = eina_str_escape(str);
+   fail_if(!eina_streq(ret, "a\\t\\ "));
    free(str);
    free(ret);
 
@@ -336,7 +343,7 @@ START_TEST(str_memdup)
    t2 = (struct temp *)eina_memdup((unsigned char *)&t1, sizeof(struct temp), EINA_TRUE);
    fail_if(t2->i != t1.i);
    fail_if(strcmp(t2->s,t1.s) != 0);
-   fail_if(t2->d != t1.d);
+   fail_if(!EINA_FLT_EQ(t2->d, t1.d));
    free(t2);
 
    memcpy(buf, "aaabbb", 6);

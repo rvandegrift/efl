@@ -60,6 +60,23 @@
 Eina_Hash *_eina_file_cache = NULL;
 Eina_Lock _eina_file_lock_cache;
 
+#if defined(EINA_SAFETY_CHECKS) && defined(EINA_MAGIC_DEBUG)
+# define EINA_FILE_MAGIC_CHECK(f, ...) do { \
+   if (EINA_UNLIKELY((f) == NULL)) \
+     { \
+       EINA_SAFETY_ERROR("safety check failed: " # f " == NULL"); \
+       return __VA_ARGS__; \
+     } \
+   if (EINA_UNLIKELY((f)->__magic != EINA_FILE_MAGIC)) \
+     { \
+        EINA_MAGIC_FAIL(f, EINA_FILE_MAGIC); \
+        return __VA_ARGS__; \
+     } \
+   } while (0)
+#else
+# define EINA_FILE_MAGIC_CHECK(f, ...) do {} while(0)
+#endif
+
 static char *
 _eina_file_escape(char *path, size_t len)
 {
@@ -386,7 +403,7 @@ eina_file_virtualize(const char *virtual_name, const void *data, unsigned long l
    Eina_Nano_Time tp;
    long int ti;
    const char *tmpname = "/dev/mem/virtual\\/%16x";
-   int slen;
+   size_t slen, head_padded;
 
    EINA_SAFETY_ON_NULL_RETURN_VAL(data, NULL);
 
@@ -395,20 +412,21 @@ eina_file_virtualize(const char *virtual_name, const void *data, unsigned long l
    ti = _eina_time_convert(&tp);
 
    slen = virtual_name ? strlen(virtual_name) + 1 : strlen(tmpname) + 17;
+   // align copied data at end of file struct to 16 bytes...
+   head_padded = 16 * ((sizeof(Eina_File) + slen + 15) / 16);
 
-   file = malloc(sizeof (Eina_File) +
-                 slen +
-                 (copy ? length : 0));
+   file = malloc(head_padded + (copy ? length : 0));
    if (!file) return NULL;
 
    memset(file, 0, sizeof(Eina_File));
-   file->filename = (char*) (file + 1);
+   EINA_MAGIC_SET(file, EINA_FILE_MAGIC);
+   file->filename = (char *)(file + 1);
    if (virtual_name)
-     strcpy((char*) file->filename, virtual_name);
+     strcpy((char *)file->filename, virtual_name);
    else
-     sprintf((char*) file->filename, tmpname, ti);
+     sprintf((char *)file->filename, tmpname, ti);
 
-   eina_lock_new(&file->lock);
+   eina_lock_recursive_new(&file->lock);
    file->mtime = ti / 1000;
    file->length = length;
 #ifdef _STAT_VER_LINUX
@@ -418,8 +436,7 @@ eina_file_virtualize(const char *virtual_name, const void *data, unsigned long l
 #ifndef _WIN32
    file->fd = -1;
 #else
-   file->handle = NULL;
-   file->fm = NULL;
+   file->handle = INVALID_HANDLE_VALUE;
 #endif
    file->virtual = EINA_TRUE;
    file->map = eina_hash_new(EINA_KEY_LENGTH(eina_file_map_key_length),
@@ -431,13 +448,13 @@ eina_file_virtualize(const char *virtual_name, const void *data, unsigned long l
 
    if (copy)
      {
-        file->global_map = (void*)(file->filename +
-                                   strlen(file->filename) + 1);
-        memcpy((char*) file->global_map, data, length);
+        file->copied = EINA_TRUE;
+        file->global_map = ((char *)file) + head_padded;
+        memcpy((char *)file->global_map, data, length);
      }
    else
      {
-        file->global_map = (void*) data;
+        file->global_map = (void *)data;
      }
 
    return file;
@@ -446,8 +463,9 @@ eina_file_virtualize(const char *virtual_name, const void *data, unsigned long l
 EAPI Eina_Bool
 eina_file_virtual(Eina_File *file)
 {
-   if (file) return file->virtual;
-   return EINA_FALSE;
+   if (!file) return EINA_FALSE;
+   EINA_FILE_MAGIC_CHECK(file, EINA_FALSE);
+   return file->virtual;
 }
 
 EAPI Eina_File *
@@ -457,7 +475,21 @@ eina_file_dup(const Eina_File *f)
 
    if (file)
      {
+        EINA_FILE_MAGIC_CHECK(f, NULL);
         eina_lock_take(&file->lock);
+        if (file->virtual)
+          {
+             // For ease of use and safety of the API, if you dup a virtualized file, we prefer to make a copy
+             if (file->global_map != (void*)(file->filename + strlen(file->filename) + 1))
+               {
+                  Eina_File *r;
+
+                  r = eina_file_virtualize(file->filename, file->global_map, file->length, EINA_TRUE);
+                  eina_lock_release(&file->lock);
+
+                  return r;
+               }
+          }
         file->refcount++;
         eina_lock_release(&file->lock);
      }
@@ -486,7 +518,7 @@ eina_file_close(Eina_File *file)
    unsigned int length;
    unsigned int key;
 
-   EINA_SAFETY_ON_NULL_RETURN(file);
+   EINA_FILE_MAGIC_CHECK(file);
 
    eina_lock_take(&_eina_file_lock_cache);
 
@@ -513,21 +545,21 @@ eina_file_close(Eina_File *file)
 EAPI size_t
 eina_file_size_get(const Eina_File *file)
 {
-   EINA_SAFETY_ON_NULL_RETURN_VAL(file, 0);
+   EINA_FILE_MAGIC_CHECK(file, 0);
    return file->length;
 }
 
 EAPI time_t
 eina_file_mtime_get(const Eina_File *file)
 {
-   EINA_SAFETY_ON_NULL_RETURN_VAL(file, 0);
+   EINA_FILE_MAGIC_CHECK(file, 0);
    return file->mtime;
 }
 
 EAPI const char *
 eina_file_filename_get(const Eina_File *file)
 {
-   EINA_SAFETY_ON_NULL_RETURN_VAL(file, NULL);
+   EINA_FILE_MAGIC_CHECK(file, NULL);
    return file->filename;
 }
 
@@ -574,8 +606,8 @@ _eina_file_map_lines_iterator_next(Eina_Lines_Iterator *it, void **data)
    match = *it->current.end;
    if (it->current.index > 0)
      it->current.end++;
-   while ((*it->current.end == '\n' || *it->current.end == '\r')
-          && it->current.end < it->end)
+   while (it->current.end < it->end &&
+          (*it->current.end == '\n' || *it->current.end == '\r'))
      {
         if (match == *it->current.end)
           break;
@@ -622,7 +654,7 @@ eina_file_map_lines(Eina_File *file)
 {
    Eina_Lines_Iterator *it;
 
-   EINA_SAFETY_ON_NULL_RETURN_VAL(file, NULL);
+   EINA_FILE_MAGIC_CHECK(file, NULL);
 
    if (file->length == 0) return NULL;
 
@@ -1031,7 +1063,8 @@ eina_file_init(void)
         return EINA_FALSE;
      }
 
-   eina_lock_new(&_eina_file_lock_cache);
+   eina_lock_recursive_new(&_eina_file_lock_cache);
+   eina_magic_string_set(EINA_FILE_MAGIC, "Eina_File");
 
    return EINA_TRUE;
 }
@@ -1054,10 +1087,49 @@ eina_file_shutdown(void)
      }
 
    eina_hash_free(_eina_file_cache);
+   _eina_file_cache = NULL;
 
    eina_lock_free(&_eina_file_lock_cache);
 
    eina_log_domain_unregister(_eina_file_log_dom);
    _eina_file_log_dom = -1;
    return EINA_TRUE;
+}
+
+EAPI Eina_Bool
+eina_file_close_on_exec(int fd, Eina_Bool on)
+{
+#ifdef HAVE_FCNTL
+   int flags;
+
+   flags = fcntl(fd, F_GETFD);
+   if (flags < 0)
+     {
+        int errno_backup = errno;
+        ERR("%#x = fcntl(%d, F_GETFD): %s", flags, fd, strerror(errno));
+        errno = errno_backup;
+        return EINA_FALSE;
+     }
+
+   if (on)
+     flags |= FD_CLOEXEC;
+   else
+     flags &= (~flags);
+
+   if (fcntl(fd, F_SETFD, flags) == -1)
+     {
+        int errno_backup = errno;
+        ERR("fcntl(%d, F_SETFD, %#x): %s", fd, flags, strerror(errno));
+        errno = errno_backup;
+        return EINA_FALSE;
+     }
+   return EINA_TRUE;
+#else
+   static Eina_Bool statement = EINA_FALSE;
+
+   if (!statement)
+     ERR("fcntl is not available on your platform. fd may leak when using exec.");
+   statement = EINA_TRUE;
+   return EINA_TRUE;
+#endif
 }

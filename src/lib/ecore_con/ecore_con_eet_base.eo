@@ -1,12 +1,11 @@
-import efl_network_server;
+struct @extern Ecore_Con_Server; [[Ecore connection server structure]]
+type @extern Ecore_Con_Eet_Data_Cb: __undefined_type; [[Ecore connection eet data callback type]] /* FIXME: function pointers not supported. */
+type @extern Ecore_Con_Eet_Raw_Data_Cb: __undefined_type; [[Ecore connection eet raw data callback type]]/* FIXME: function pointers not supported. */
 
-type @extern Ecore_Con_Eet_Data_Cb: __undefined_type; /* FIXME: function pointers not supported. */
-type @extern Ecore_Con_Eet_Raw_Data_Cb: __undefined_type; /* FIXME: function pointers not supported. */
+struct @extern Eet.Data.Descriptor; [[Eet data descriptor data structure]]
+struct Ecore.Con.Reply; [[Ecore connection reply data structure]]
 
-struct @extern Eet.Data.Descriptor;
-struct Ecore.Con.Reply;
-
-class Ecore.Con.Eet.Base (Eo.Base) {
+class Ecore.Con.Eet.Base (Efl.Object) {
    [[Ecore Connection Eet Base class.
    
    This class provides Eet data serialization features to Ecore Connection objects.]]
@@ -19,7 +18,7 @@ class Ecore.Con.Eet.Base (Eo.Base) {
          get {
          }
          values {
-            data: Efl.Network.Server;
+            data: ptr(Ecore_Con_Server); [[Server object]]
          }
       }
       @property data_callback {
@@ -64,15 +63,15 @@ class Ecore.Con.Eet.Base (Eo.Base) {
          legacy: ecore_con_eet;
          params {
             name: string; [[The name of the eet stream.]]
-            edd: Eet.Data.Descriptor *; [[The Eet.Data.Descriptor that
-                                          is to be registered.]]
+            edd: ptr(Eet.Data.Descriptor); [[The Eet.Data.Descriptor that
+                                             is to be registered.]]
          }
       }
       send {
          [[Function to send data.]]
          params {
-            reply: Ecore.Con.Reply *; [[Contains the ecore_con_eet object
-                                        to which the data has to be sent.]]
+            reply: ptr(Ecore.Con.Reply); [[Contains the ecore_con_eet object
+                                           to which the data has to be sent.]]
             name: string; [[The name of the eet stream.]]
             value: void_ptr; [[Actual data]]
          }
@@ -80,8 +79,8 @@ class Ecore.Con.Eet.Base (Eo.Base) {
       raw_send {
          [[Function to send raw data.]]
          params {
-            reply: Ecore.Con.Reply *; [[Contains the ecore_con_eet object
-                                        to which the data has to be sent.]]
+            reply: ptr(Ecore.Con.Reply); [[Contains the ecore_con_eet object
+                                           to which the data has to be sent.]]
             protocol_name: string; [[The name of the eet stream.]]
             section: string; [[Name of section in the eet descriptor.]]
             value: void_ptr; [[The value of the section.]]
@@ -90,8 +89,8 @@ class Ecore.Con.Eet.Base (Eo.Base) {
       }
    }
    implements {
-      Eo.Base.constructor;
-      Eo.Base.destructor;
-      Eo.Base.finalize;
+      Efl.Object.constructor;
+      Efl.Object.destructor;
+      Efl.Object.finalize;
    }
 }

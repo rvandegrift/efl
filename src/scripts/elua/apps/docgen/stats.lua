@@ -1,6 +1,3 @@
-local eolian = require("eolian")
-local eomap = require("docgen.mappings")
-
 local is_verbose = false
 
 local M = {}
@@ -117,7 +114,7 @@ local print_missing = function(name, tp)
 end
 
 M.check_class = function(cl)
-    local ct = eomap.classt_to_str[cl:type_get()]
+    local ct = cl:type_str_get()
     if not ct then
         return
     end
@@ -129,7 +126,7 @@ M.check_class = function(cl)
     end
 
     for i, ev in ipairs(cl:events_get()) do
-        if not ev:documentation_get() then
+        if not ev:doc_get():exists() then
             print_missing(cl:full_name_get() .. "." .. ev:name_get(), "event")
             stat_incr("event", true)
         else
@@ -139,24 +136,23 @@ M.check_class = function(cl)
 end
 
 M.check_method = function(fn, cl)
-    local fts = eolian.function_type
     local fulln = cl:full_name_get() .. "." .. fn:name_get()
-    if fn:return_type_get(fts.METHOD) then
-        if not fn:return_documentation_get(fts.METHOD) then
+    if fn:return_type_get(fn.METHOD) then
+        if not fn:return_doc_get(fn.METHOD):exists() then
             print_missing(fulln, "method return")
             stat_incr("mret", true)
         else
             stat_incr("mret", false)
         end
     end
-    if not fn:documentation_get(fts.METHOD) then
+    if not fn:implement_get():doc_get(fn.METHOD):exists() then
         print_missing(fulln, "method")
         stat_incr("method", true)
     else
         stat_incr("method", false)
     end
-    for p in fn:parameters_get() do
-        if not p:documentation_get() then
+    for i, p in ipairs(fn:parameters_get()) do
+        if not p:doc_get():exists() then
             print_missing(fulln .. "." .. p:name_get(), "method parameter")
             stat_incr("param", true)
         else
@@ -166,17 +162,15 @@ M.check_method = function(fn, cl)
 end
 
 M.check_property = function(fn, cl, ft)
-    local fts = eolian.function_type
-
     local pfxs = {
-        [fts.PROP_GET] = "g",
-        [fts.PROP_SET] = "s",
+        [fn.PROP_GET] = "g",
+        [fn.PROP_SET] = "s",
     }
     local pfx = pfxs[ft]
 
     local fulln = cl:full_name_get() .. "." .. fn:name_get()
     if fn:return_type_get(ft) then
-        if not fn:return_documentation_get(ft) then
+        if not fn:return_doc_get(ft):exists() then
             print_missing(fulln, pfx .. "etter return")
             stat_incr(pfx .. "ret", true)
         else
@@ -184,15 +178,17 @@ M.check_property = function(fn, cl, ft)
         end
     end
 
-    if not fn:documentation_get(fts.PROPERTY) and not fn:documentation_get(ft) then
+    local pimp = fn:implement_get()
+
+    if not pimp:doc_get(fn.PROPERTY):exists() and not pimp:doc_get(ft):exists() then
         print_missing(fulln, pfx .. "etter")
         stat_incr(pfx .. "etter", true)
     else
         stat_incr(pfx .. "etter", false)
     end
 
-    for p in fn:property_keys_get(ft) do
-        if not p:documentation_get() then
+    for i, p in ipairs(fn:property_keys_get(ft)) do
+        if not p:doc_get():exists() then
             print_missing(fulln .. "." .. p:name_get(), pfx .. "etter key")
             stat_incr(pfx .. "key", true)
         else
@@ -200,8 +196,8 @@ M.check_property = function(fn, cl, ft)
         end
     end
 
-    for p in fn:property_values_get(ft) do
-        if not p:documentation_get() then
+    for i, p in ipairs(fn:property_values_get(ft)) do
+        if not p:doc_get():exists() then
             print_missing(fulln .. "." .. p:name_get(), pfx .. "etter value")
             stat_incr(pfx .. "value", true)
         else
@@ -211,7 +207,7 @@ M.check_property = function(fn, cl, ft)
 end
 
 M.check_alias = function(v)
-    if not v:documentation_get() then
+    if not v:doc_get():exists() then
         print_missing(v:full_name_get(), "alias")
         stat_incr("alias", true)
     else
@@ -220,14 +216,14 @@ M.check_alias = function(v)
 end
 
 M.check_struct = function(v)
-    if not v:documentation_get() then
+    if not v:doc_get():exists() then
         print_missing(v:full_name_get(), "struct")
         stat_incr("struct", true)
     else
         stat_incr("struct", false)
     end
-    for fl in v:struct_fields_get() do
-        if not fl:documentation_get() then
+    for i, fl in ipairs(v:struct_fields_get()) do
+        if not fl:doc_get():exists() then
             print_missing(v:full_name_get() .. "." .. fl:name_get(), "struct field")
             stat_incr("sfield", true)
         else
@@ -237,14 +233,14 @@ M.check_struct = function(v)
 end
 
 M.check_enum = function(v)
-    if not v:documentation_get() then
+    if not v:doc_get():exists() then
         print_missing(v:full_name_get(), "enum")
         stat_incr("enum", true)
     else
         stat_incr("enum", false)
     end
-    for fl in v:enum_fields_get() do
-        if not fl:documentation_get() then
+    for i, fl in ipairs(v:enum_fields_get()) do
+        if not fl:doc_get():exists() then
             print_missing(v:full_name_get() .. "." .. fl:name_get(), "enum field")
             stat_incr("efield", true)
         else
@@ -254,7 +250,7 @@ M.check_enum = function(v)
 end
 
 M.check_constant = function(v)
-    if not v:documentation_get() then
+    if not v:doc_get():exists() then
         print_missing(v:full_name_get(), "constant")
         stat_incr("constant", true)
     else
@@ -263,7 +259,7 @@ M.check_constant = function(v)
 end
 
 M.check_global = function(v)
-    if not v:documentation_get() then
+    if not v:doc_get():exists() then
         print_missing(v:full_name_get(), "global")
         stat_incr("global", true)
     else

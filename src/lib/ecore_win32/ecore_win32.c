@@ -8,6 +8,7 @@
 #include <windows.h>
 #undef WIN32_LEAN_AND_MEAN
 #include <windowsx.h>
+#include <dbt.h>
 
 #include <Eina.h>
 #include <Ecore.h>
@@ -209,6 +210,7 @@ _ecore_win32_window_procedure(HWND   window,
           efl_AddClipboardFormatListener acfl;
 
           INF("create window message");
+
           acfl = (efl_AddClipboardFormatListener)GetProcAddress(GetModuleHandle("user32.dll"),
                                                                 "AddClipboardFormatListener");
           if (acfl)
@@ -278,6 +280,7 @@ _ecore_win32_window_procedure(HWND   window,
      case WM_WINDOWPOSCHANGED:
        INF("position changed window message");
        _ecore_win32_event_handle_configure_notify(data);
+       _ecore_win32_event_handle_property_notify(data);
        _ecore_win32_event_handle_expose(data);
        return 0;
      case WM_ENTERSIZEMOVE:
@@ -385,6 +388,20 @@ _ecore_win32_window_procedure(HWND   window,
      case WM_SYNCPAINT:
        INF("sync paint message");
        return 0;
+       /* Desktop notifications */
+    case WM_DEVICECHANGE:
+       if (window == ecore_win32_monitor_window)
+         {
+            PDEV_BROADCAST_HDR pHdr = (PDEV_BROADCAST_HDR)data_param;
+
+            if ((window_param == DBT_DEVICEARRIVAL) &&
+                (pHdr->dbch_devicetype == DBT_DEVTYP_DEVICEINTERFACE))
+              ecore_win32_monitor_update(1);
+
+            if ((window_param == DBT_DEVICEREMOVECOMPLETE) &&
+                (pHdr->dbch_devicetype == DBT_DEVTYP_DEVICEINTERFACE))
+              ecore_win32_monitor_update(2);
+         }
      default:
        return DefWindowProc(window, message, window_param, data_param);
      }
@@ -418,6 +435,7 @@ int ECORE_WIN32_EVENT_WINDOW_SHOW           = 0;
 int ECORE_WIN32_EVENT_WINDOW_HIDE           = 0;
 int ECORE_WIN32_EVENT_WINDOW_CONFIGURE      = 0;
 int ECORE_WIN32_EVENT_WINDOW_RESIZE         = 0;
+int ECORE_WIN32_EVENT_WINDOW_PROPERTY       = 0;
 int ECORE_WIN32_EVENT_WINDOW_DELETE_REQUEST = 0;
 int ECORE_WIN32_EVENT_SELECTION_CLEAR       = 0;
 int ECORE_WIN32_EVENT_SELECTION_NOTIFY      = 0;
@@ -567,6 +585,7 @@ ecore_win32_init()
         ECORE_WIN32_EVENT_WINDOW_HIDE           = ecore_event_type_new();
         ECORE_WIN32_EVENT_WINDOW_CONFIGURE      = ecore_event_type_new();
         ECORE_WIN32_EVENT_WINDOW_RESIZE         = ecore_event_type_new();
+        ECORE_WIN32_EVENT_WINDOW_PROPERTY       = ecore_event_type_new();
         ECORE_WIN32_EVENT_WINDOW_DELETE_REQUEST = ecore_event_type_new();
         ECORE_WIN32_EVENT_SELECTION_CLEAR       = ecore_event_type_new();
         ECORE_WIN32_EVENT_SELECTION_NOTIFY      = ecore_event_type_new();
@@ -574,6 +593,8 @@ ecore_win32_init()
 
    for (i = 0; i < 77; i++)
      _ecore_win32_cursor_x[i] = _ecore_win32_cursor_x11_shaped_new(i);
+
+   ecore_win32_monitor_init();
 
    return _ecore_win32_init_count;
 
@@ -609,10 +630,28 @@ ecore_win32_shutdown()
    if (--_ecore_win32_init_count != 0)
      return _ecore_win32_init_count;
 
+   ecore_win32_monitor_shutdown();
+
    for (i = 0; i < 77; i++)
      ecore_win32_cursor_free(_ecore_win32_cursor_x[i]);
 
    ecore_win32_dnd_shutdown();
+
+   ecore_event_type_flush(ECORE_WIN32_EVENT_MOUSE_IN,
+                          ECORE_WIN32_EVENT_MOUSE_OUT,
+                          ECORE_WIN32_EVENT_WINDOW_FOCUS_IN,
+                          ECORE_WIN32_EVENT_WINDOW_FOCUS_OUT,
+                          ECORE_WIN32_EVENT_WINDOW_DAMAGE,
+                          ECORE_WIN32_EVENT_WINDOW_CREATE,
+                          ECORE_WIN32_EVENT_WINDOW_DESTROY,
+                          ECORE_WIN32_EVENT_WINDOW_SHOW,
+                          ECORE_WIN32_EVENT_WINDOW_HIDE,
+                          ECORE_WIN32_EVENT_WINDOW_CONFIGURE,
+                          ECORE_WIN32_EVENT_WINDOW_RESIZE,
+                          ECORE_WIN32_EVENT_WINDOW_PROPERTY,
+                          ECORE_WIN32_EVENT_WINDOW_DELETE_REQUEST,
+                          ECORE_WIN32_EVENT_SELECTION_CLEAR,
+                          ECORE_WIN32_EVENT_SELECTION_NOTIFY);
 
    if (!UnregisterClass(ECORE_WIN32_WINDOW_CLASS, _ecore_win32_instance))
      INF("UnregisterClass() failed");

@@ -49,6 +49,14 @@
 typedef struct _Ecore_Pthread_Worker Ecore_Pthread_Worker;
 typedef struct _Ecore_Pthread        Ecore_Pthread;
 typedef struct _Ecore_Thread_Data    Ecore_Thread_Data;
+typedef struct _Ecore_Thread_Waiter Ecore_Thread_Waiter;
+
+struct _Ecore_Thread_Waiter
+{
+   Ecore_Thread_Cb func_cancel;
+   Ecore_Thread_Cb func_end;
+   Eina_Bool waiting;
+};
 
 struct _Ecore_Thread_Data
 {
@@ -87,6 +95,7 @@ struct _Ecore_Pthread_Worker
       } message_run;
    } u;
 
+   Ecore_Thread_Waiter *waiter;
    Ecore_Thread_Cb func_cancel;
    Ecore_Thread_Cb func_end;
                    PH(self);
@@ -202,6 +211,7 @@ _ecore_thread_data_free(void *data)
 static void
 _ecore_thread_join(PH(thread))
 {
+   DBG("joining thread=%" PRIu64, (uint64_t)thread);
    PHJ(thread);
 }
 
@@ -320,19 +330,44 @@ _ecore_message_notify_handler(void *data)
 }
 
 static void
+_ecore_short_job_cleanup(void *data)
+{
+   Ecore_Pthread_Worker *work = data;
+
+   DBG("cleanup work=%p, thread=%" PRIu64, work, (uint64_t)work->self);
+
+   SLKL(_ecore_running_job_mutex);
+   _ecore_running_job = eina_list_remove(_ecore_running_job, work);
+   SLKU(_ecore_running_job_mutex);
+
+   if (work->reschedule)
+     {
+        work->reschedule = EINA_FALSE;
+
+        SLKL(_ecore_pending_job_threads_mutex);
+        _ecore_pending_job_threads = eina_list_append(_ecore_pending_job_threads, work);
+        SLKU(_ecore_pending_job_threads_mutex);
+     }
+   else
+     {
+        ecore_main_loop_thread_safe_call_async(_ecore_thread_handler, work);
+     }
+}
+
+static void
 _ecore_short_job(PH(thread))
 {
    Ecore_Pthread_Worker *work;
    int cancel;
 
    SLKL(_ecore_pending_job_threads_mutex);
-   
+
    if (!_ecore_pending_job_threads)
      {
         SLKU(_ecore_pending_job_threads_mutex);
         return;
      }
-   
+
    work = eina_list_data_get(_ecore_pending_job_threads);
    _ecore_pending_job_threads = eina_list_remove_list(_ecore_pending_job_threads,
                                                       _ecore_pending_job_threads);
@@ -346,19 +381,31 @@ _ecore_short_job(PH(thread))
    cancel = work->cancel;
    SLKU(work->cancel_mutex);
    work->self = thread;
+
+   EINA_THREAD_CLEANUP_PUSH(_ecore_short_job_cleanup, work);
    if (!cancel)
      work->u.short_run.func_blocking((void *) work->data, (Ecore_Thread*) work);
+   eina_thread_cancellable_set(EINA_FALSE, NULL);
+   EINA_THREAD_CLEANUP_POP(EINA_TRUE);
+}
+
+static void
+_ecore_feedback_job_cleanup(void *data)
+{
+   Ecore_Pthread_Worker *work = data;
+
+   DBG("cleanup work=%p, thread=%" PRIu64, work, (uint64_t)work->self);
 
    SLKL(_ecore_running_job_mutex);
    _ecore_running_job = eina_list_remove(_ecore_running_job, work);
    SLKU(_ecore_running_job_mutex);
-   
+
    if (work->reschedule)
      {
         work->reschedule = EINA_FALSE;
-        
+
         SLKL(_ecore_pending_job_threads_mutex);
-        _ecore_pending_job_threads = eina_list_append(_ecore_pending_job_threads, work);
+        _ecore_pending_job_threads_feedback = eina_list_append(_ecore_pending_job_threads_feedback, work);
         SLKU(_ecore_pending_job_threads_mutex);
      }
    else
@@ -393,51 +440,68 @@ _ecore_feedback_job(PH(thread))
    cancel = work->cancel;
    SLKU(work->cancel_mutex);
    work->self = thread;
+
+   EINA_THREAD_CLEANUP_PUSH(_ecore_feedback_job_cleanup, work);
    if (!cancel)
      work->u.feedback_run.func_heavy((void *) work->data, (Ecore_Thread *) work);
+   eina_thread_cancellable_set(EINA_FALSE, NULL);
+   EINA_THREAD_CLEANUP_POP(EINA_TRUE);
+}
 
-   SLKL(_ecore_running_job_mutex);
-   _ecore_running_job = eina_list_remove(_ecore_running_job, work);
-   SLKU(_ecore_running_job_mutex);
+static void
+_ecore_direct_worker_cleanup(void *data)
+{
+   Ecore_Pthread_Worker *work = data;
 
-   if (work->reschedule)
-     {
-        work->reschedule = EINA_FALSE;
-        
-        SLKL(_ecore_pending_job_threads_mutex);
-        _ecore_pending_job_threads_feedback = eina_list_append(_ecore_pending_job_threads_feedback, work);
-        SLKU(_ecore_pending_job_threads_mutex);
-     }
-   else
-     {
-        ecore_main_loop_thread_safe_call_async(_ecore_thread_handler, work);
-     }
+   DBG("cleanup work=%p, thread=%" PRIu64 " (should join)", work, (uint64_t)work->self);
+
+   ecore_main_loop_thread_safe_call_async(_ecore_thread_handler, work);
+
+   ecore_main_loop_thread_safe_call_async((Ecore_Cb) _ecore_thread_join,
+                                          (void*)(intptr_t)PHS());
 }
 
 static void *
 _ecore_direct_worker(Ecore_Pthread_Worker *work)
 {
+   eina_thread_cancellable_set(EINA_FALSE, NULL);
    eina_thread_name_set(eina_thread_self(), "Ethread-feedback");
    work->self = PHS();
+
+   EINA_THREAD_CLEANUP_PUSH(_ecore_direct_worker_cleanup, work);
    if (work->message_run)
      work->u.message_run.func_main((void *) work->data, (Ecore_Thread *) work);
    else
      work->u.feedback_run.func_heavy((void *) work->data, (Ecore_Thread *) work);
-
-   ecore_main_loop_thread_safe_call_async(_ecore_thread_handler, work);
-
-   ecore_main_loop_thread_safe_call_async((Ecore_Cb) _ecore_thread_join, 
-					  (void*)(intptr_t)PHS());
+   eina_thread_cancellable_set(EINA_FALSE, NULL);
+   EINA_THREAD_CLEANUP_POP(EINA_TRUE);
 
    return NULL;
+}
+
+static void
+_ecore_thread_worker_cleanup(void *data EINA_UNUSED)
+{
+   DBG("cleanup thread=%" PRIuPTR " (should join)", PHS());
+   SLKL(_ecore_pending_job_threads_mutex);
+   _ecore_thread_count--;
+   SLKU(_ecore_pending_job_threads_mutex);
+   ecore_main_loop_thread_safe_call_async((Ecore_Cb) _ecore_thread_join,
+                                          (void*)(intptr_t)PHS());
 }
 
 static void *
 _ecore_thread_worker(void *data EINA_UNUSED)
 {
+   eina_thread_cancellable_set(EINA_FALSE, NULL);
+   EINA_THREAD_CLEANUP_PUSH(_ecore_thread_worker_cleanup, NULL);
 restart:
+
+   /* these 2 are cancellation points as user cb may enable */
    _ecore_short_job(PHS());
    _ecore_feedback_job(PHS());
+
+   /* from here on, cancellations are guaranteed to be disabled */
 
    /* FIXME: Check if there is feedback running task todo, and switch to feedback run handler. */
    eina_thread_name_set(eina_thread_self(), "Ethread-worker");
@@ -463,11 +527,9 @@ restart:
         SLKU(_ecore_pending_job_threads_mutex);
         goto restart;
      }
-   _ecore_thread_count--;
-
-   ecore_main_loop_thread_safe_call_async((Ecore_Cb) _ecore_thread_join,
-					  (void*)(intptr_t)PHS());
    SLKU(_ecore_pending_job_threads_mutex);
+
+   EINA_THREAD_CLEANUP_POP(EINA_TRUE);
 
    return NULL;
 }
@@ -484,6 +546,10 @@ _ecore_thread_worker_new(void)
        result = calloc(1, sizeof(Ecore_Pthread_Worker));
        _ecore_thread_worker_count++;
      }
+   else
+     {
+        memset(result, 0,  sizeof(Ecore_Pthread_Worker));
+     }
 
    SLKI(result->cancel_mutex);
    LKI(result->mutex);
@@ -495,7 +561,7 @@ _ecore_thread_worker_new(void)
 void
 _ecore_thread_init(void)
 {
-   _ecore_thread_count_max = eina_cpu_count();
+   _ecore_thread_count_max = eina_cpu_count() * 4;
    if (_ecore_thread_count_max <= 0)
      _ecore_thread_count_max = 1;
 
@@ -728,6 +794,7 @@ ecore_thread_cancel(Ecore_Thread *thread)
 
    /* Delay the destruction */
  on_exit:
+   eina_thread_cancel(work->self); /* noop unless eina_thread_cancellable_set() was used by user */
    SLKL(work->cancel_mutex);
    work->cancel = EINA_TRUE;
    SLKU(work->cancel_mutex);
@@ -735,44 +802,37 @@ ecore_thread_cancel(Ecore_Thread *thread)
    return EINA_FALSE;
 }
 
-typedef struct _Ecore_Thread_Waiter Ecore_Thread_Waiter;
-struct _Ecore_Thread_Waiter
-{
-   Ecore_Thread_Cb func_cancel;
-   Ecore_Thread_Cb func_end;
-   const void *data;
-};
 
 static void
 _ecore_thread_wait_reset(Ecore_Thread_Waiter *waiter,
                          Ecore_Pthread_Worker *worker)
 {
-   worker->data = waiter->data;
    worker->func_cancel = waiter->func_cancel;
    worker->func_end = waiter->func_end;
-   // The waiter will be checked by _wait, NULL meaning it is done
+   worker->waiter = NULL;
+
    waiter->func_end = NULL;
    waiter->func_cancel = NULL;
-   waiter->data = NULL;
+   waiter->waiting = EINA_FALSE;
 }
 
 static void
-_ecore_thread_wait_cancel(void *data, Ecore_Thread *thread)
+_ecore_thread_wait_cancel(void *data EINA_UNUSED, Ecore_Thread *thread)
 {
    Ecore_Pthread_Worker *worker = (Ecore_Pthread_Worker*) thread;
-   Ecore_Thread_Waiter *waiter = data;
+   Ecore_Thread_Waiter *waiter = worker->waiter;
 
-   if (waiter->func_cancel) waiter->func_cancel((void*) waiter->data, thread);
+   if (waiter->func_cancel) waiter->func_cancel(data, thread);
    _ecore_thread_wait_reset(waiter, worker);
 }
 
 static void
-_ecore_thread_wait_end(void *data, Ecore_Thread *thread)
+_ecore_thread_wait_end(void *data EINA_UNUSED, Ecore_Thread *thread)
 {
    Ecore_Pthread_Worker *worker = (Ecore_Pthread_Worker*) thread;
-   Ecore_Thread_Waiter *waiter = data;
+   Ecore_Thread_Waiter *waiter = worker->waiter;
 
-   if (waiter->func_end) waiter->func_end((void*) waiter->data, thread);
+   if (waiter->func_end) waiter->func_end(data, thread);
    _ecore_thread_wait_reset(waiter, worker);
 }
 
@@ -784,15 +844,16 @@ ecore_thread_wait(Ecore_Thread *thread, double wait)
 
    if (!thread) return EINA_TRUE;
 
-   waiter.data = worker->data;
    waiter.func_end = worker->func_end;
    waiter.func_cancel = worker->func_cancel;
+   waiter.waiting = EINA_TRUE;
+
    // Now trick the thread to call the wrapper function
-   worker->data = &waiter;
+   worker->waiter = &waiter;
    worker->func_cancel = _ecore_thread_wait_cancel;
    worker->func_end = _ecore_thread_wait_end;
 
-   while (waiter.data)
+   while (waiter.waiting == EINA_TRUE)
      {
         double start, end;
 
@@ -805,7 +866,15 @@ ecore_thread_wait(Ecore_Thread *thread, double wait)
         if (wait <= 0) break;
      }
 
-   return (waiter.data == NULL) ? EINA_TRUE : EINA_FALSE;
+   if (waiter.waiting == EINA_FALSE)
+     {
+        return EINA_TRUE;
+     }
+   else
+     {
+        _ecore_thread_wait_reset(&waiter, worker);
+        return EINA_FALSE;
+     }
 }
 
 EAPI Eina_Bool
@@ -1128,7 +1197,7 @@ ecore_thread_max_set(int num)
    EINA_MAIN_LOOP_CHECK_RETURN;
    if (num < 1) return;
    /* avoid doing something hilarious by blocking dumb users */
-   if (num > (16 * eina_cpu_count())) num = 16 * eina_cpu_count();
+   if (num > (32 * eina_cpu_count())) num = 32 * eina_cpu_count();
 
    _ecore_thread_count_max = num;
 }
@@ -1137,7 +1206,7 @@ EAPI void
 ecore_thread_max_reset(void)
 {
    EINA_MAIN_LOOP_CHECK_RETURN;
-   _ecore_thread_count_max = eina_cpu_count();
+   _ecore_thread_count_max = eina_cpu_count() * 4;
 }
 
 EAPI int
@@ -1395,7 +1464,9 @@ ecore_thread_global_data_wait(const char *key,
         if (_ecore_thread_global_hash)
           ret = eina_hash_find(_ecore_thread_global_hash, key);
         LRWKU(_ecore_thread_global_hash_lock);
-        if ((ret) || (!seconds) || ((seconds > 0) && (tm <= ecore_time_get())))
+        if ((ret) ||
+            (!EINA_DBL_EQ(seconds, 0.0)) ||
+            ((seconds > 0) && (tm <= ecore_time_get())))
           break;
         LKL(_ecore_thread_global_hash_mutex);
         CDW(_ecore_thread_global_hash_cond, tm - ecore_time_get());
@@ -1403,4 +1474,181 @@ ecore_thread_global_data_wait(const char *key,
      }
    if (ret) return ret->data;
    return NULL;
+}
+
+typedef struct _Ecore_Thread_Set Ecore_Thread_Set;
+struct _Ecore_Thread_Set
+{
+   Eo *obj;
+
+   union {
+      struct {
+         void *v;
+         Eina_Free_Cb free_cb;
+      } value;
+      Eina_Error error;
+   } u;
+
+   Eina_Bool success;
+};
+
+static void
+_ecore_thread_main_loop_set(void *data)
+{
+   Ecore_Thread_Set *dt = data;
+
+   if (dt->success)
+     efl_promise_value_set(efl_super(dt->obj, EFL_OBJECT_OVERRIDE_CLASS),
+                           dt->u.value.v, dt->u.value.free_cb);
+   else
+     efl_promise_failed_set(efl_super(dt->obj, EFL_OBJECT_OVERRIDE_CLASS),
+                            dt->u.error);
+
+   efl_unref(dt->obj);
+   free(dt);
+}
+
+static Ecore_Thread_Set *
+_ecore_thread_set_new(Eo *obj)
+{
+   Ecore_Thread_Set *dt;
+
+   dt = calloc(1, sizeof (Ecore_Thread_Set));
+   if (!dt) return NULL;
+
+   dt->obj = efl_ref(obj);
+
+   return dt;
+}
+
+static void
+_ecore_thread_value_set(Eo *obj, const void *data EINA_UNUSED, void *v, Eina_Free_Cb free_cb)
+{
+   Ecore_Thread_Set *dt;
+
+   dt = _ecore_thread_set_new(obj);
+   if (!dt) return ;
+
+   dt->success = EINA_TRUE;
+   dt->u.value.v = v;
+   dt->u.value.free_cb = free_cb;
+
+   ecore_main_loop_thread_safe_call_async(_ecore_thread_main_loop_set, dt);
+}
+
+static void
+_ecore_thread_failed_set(Eo *obj, const void *data EINA_UNUSED, Eina_Error err)
+{
+   Ecore_Thread_Set *dt;
+
+   dt = _ecore_thread_set_new(obj);
+   if (!dt) return ;
+
+   dt->success = EINA_FALSE;
+   dt->u.error = err;
+
+   ecore_main_loop_thread_safe_call_async(_ecore_thread_main_loop_set, dt);
+}
+
+typedef struct _Ecore_Thread_Progress Ecore_Thread_Progress;
+struct _Ecore_Thread_Progress
+{
+   Eo *obj;
+   const void *p;
+};
+
+static void *
+_ecore_thread_progress_sync(void *data)
+{
+   Ecore_Thread_Progress *p = data;
+
+   efl_promise_progress_set(efl_super(p->obj, EFL_OBJECT_OVERRIDE_CLASS), p->p);
+
+   return NULL;
+}
+
+static void
+_ecore_thread_progress_set(Eo *obj, const void *data EINA_UNUSED, const void *p)
+{
+   Ecore_Thread_Progress ip = { efl_ref(obj), p };
+
+   ecore_main_loop_thread_safe_call_sync(_ecore_thread_progress_sync, &ip);
+   efl_unref(obj);
+}
+
+static void
+_ecore_thread_future_heavy(void *dp, Ecore_Thread *thread)
+{
+   Ecore_Thread_Future_Cb heavy;
+   const void *data;
+   Eo *p = dp;
+
+   heavy = efl_key_data_get(p, "_ecore_thread.heavy");
+   data = efl_key_data_get(p, "_ecore_thread.data");
+
+   heavy(data, p, thread);
+}
+
+static void
+_ecore_thread_future_end(void *dp, Ecore_Thread *thread EINA_UNUSED)
+{
+   Eina_Free_Cb free_cb;
+   void *data;
+   Eo *p = dp;
+
+   free_cb = efl_key_data_get(p, "_ecore_thread.free_cb");
+   data = efl_key_data_get(p, "_ecore_thread.data");
+
+   if (free_cb) free_cb(data);
+   efl_del(p);
+}
+
+static void
+_ecore_thread_future_none(void *data, const Efl_Event *ev EINA_UNUSED)
+{
+   Ecore_Thread *t = data;
+
+   // Cancelling thread if there is nobody listening on the promise anymore
+   ecore_thread_cancel(t);
+}
+
+EAPI Efl_Future *
+ecore_thread_future_run(Ecore_Thread_Future_Cb heavy, const void *data, Eina_Free_Cb free_cb)
+{
+   Ecore_Thread *t;
+   Eo *p;
+
+   if (!heavy) return NULL;
+
+   EFL_OPS_DEFINE(thread_safe_call,
+                  EFL_OBJECT_OP_FUNC(efl_promise_value_set, _ecore_thread_value_set),
+                  EFL_OBJECT_OP_FUNC(efl_promise_failed_set, _ecore_thread_failed_set),
+                  EFL_OBJECT_OP_FUNC(efl_promise_progress_set, _ecore_thread_progress_set));
+
+   efl_domain_current_push(EFL_ID_DOMAIN_SHARED);
+
+   efl_wref_add(efl_add(EFL_PROMISE_CLASS, ecore_main_loop_get()), &p);
+   if (!p) goto end;
+
+   efl_object_override(p, &thread_safe_call);
+
+   efl_key_data_set(p, "_ecore_thread.data", data);
+   efl_key_data_set(p, "_ecore_thread.free_cb", free_cb);
+   efl_key_data_set(p, "_ecore_thread.heavy", heavy);
+
+   t = ecore_thread_run(_ecore_thread_future_heavy,
+                        _ecore_thread_future_end,
+                        _ecore_thread_future_end,
+                        p);
+
+   if (p)
+     {
+        efl_event_callback_add(p, EFL_PROMISE_EVENT_FUTURE_NONE, _ecore_thread_future_none, t);
+        efl_wref_del(p, &p);
+     }
+
+ end:
+   efl_domain_current_pop();
+
+   return p ? efl_promise_future_get(p) : NULL;
 }

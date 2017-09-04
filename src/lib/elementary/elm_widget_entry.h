@@ -43,6 +43,7 @@ struct _Elm_Entry_Data
    /* for deferred appending */
    Ecore_Idler                          *append_text_idler;
    char                                 *append_text_left;
+   char                                 *prediction_hint;
    int                                   append_text_position;
    int                                   append_text_len;
    /* Only for clipboard */
@@ -154,7 +155,7 @@ typedef enum _Length_Unit
  */
 
 #define ELM_ENTRY_DATA_GET(o, sd) \
-  Elm_Entry_Data * sd = eo_data_scope_get(o, ELM_ENTRY_CLASS)
+  Elm_Entry_Data * sd = efl_data_scope_get(o, ELM_ENTRY_CLASS)
 
 #define ELM_ENTRY_DATA_GET_OR_RETURN(o, ptr)         \
   ELM_ENTRY_DATA_GET(o, ptr);                        \
@@ -175,7 +176,7 @@ typedef enum _Length_Unit
     }
 
 #define ELM_ENTRY_CHECK(obj)                              \
-  if (EINA_UNLIKELY(!eo_isa((obj), ELM_ENTRY_CLASS))) \
+  if (EINA_UNLIKELY(!efl_isa((obj), ELM_ENTRY_CLASS))) \
     return
 
 #endif

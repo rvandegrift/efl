@@ -1,5 +1,5 @@
 /**
- * Simple Evas example illustrating Evas smart interfaces
+ * Example of smart interfaces in Evas.
  *
  * You'll need at least one engine built for it (excluding the buffer
  * one). See stdout/stderr for output.
@@ -55,6 +55,7 @@ struct color_tuple
 {
    int r, g, b, a;
 } clipper_colors[4] = {WHITE, RED, GREEN, BLUE};
+
 int cur_color = 0;
 
 static const char *
@@ -113,7 +114,7 @@ _iface1_del(Evas_Object *obj)
 {
    printf("iface1's del()! Data is %s\n",
           (char *)evas_object_smart_interface_data_get
-            (obj, (Evas_Smart_Interface *)&iface1));
+          (obj, (Evas_Smart_Interface *)&iface1));
 }
 
 static void
@@ -184,8 +185,7 @@ _on_destroy(Ecore_Evas *ee EINA_UNUSED)
    ecore_main_loop_quit();
 }
 
-/* here just to keep our example's window size and background image's
- * size in synchrony */
+/* Keep the example's window size in sync with the background image's size */
 static void
 _canvas_resize_cb(Ecore_Evas *ee)
 {
@@ -499,7 +499,7 @@ _on_keydown(void *data EINA_UNUSED,
 
    if (strcmp(ev->key, "h") == 0) /* print help */
      {
-        fprintf(stdout, commands);
+        printf("%s\n", commands);
         return;
      }
 
@@ -519,7 +519,7 @@ _on_keydown(void *data EINA_UNUSED,
 
         memset(d.rects, 0, sizeof(d.rects));
 
-        fprintf(stdout, "Deleting all members of the smart object.\n");
+        printf("Deleting all members of the smart object.\n");
 
         return;
      }
@@ -535,18 +535,18 @@ _on_keydown(void *data EINA_UNUSED,
         prev = evas_smart_example_set_left(d.smt, rect);
         d.rects[0] = rect;
 
-        fprintf(stdout, "Setting smart object's left spot with a new"
-                        " rectangle.\n");
-        fprintf(stdout, "Checking its new smart object parent: %s\n",
-                evas_object_smart_parent_get(rect) == d.smt ? "OK!" :
-                "Failure!");
+        printf("Setting smart object's left spot with a new"
+               " rectangle.\n");
+        printf("Checking its new smart object parent: %s\n",
+               evas_object_smart_parent_get(rect) == d.smt ? "OK!" :
+               "Failure!");
         if (prev)
           {
              int r, g, b;
 
              evas_object_color_get(prev, &r, &g, &b, NULL);
-             fprintf(stdout, "Deleting previous left child,"
-                             " which had colors (%d, %d, %d)\n", r, g, b);
+             printf("Deleting previous left child,"
+                    " which had colors (%d, %d, %d)\n", r, g, b);
              evas_object_del(prev);
           }
 
@@ -564,18 +564,18 @@ _on_keydown(void *data EINA_UNUSED,
         prev = evas_smart_example_set_right(d.smt, rect);
         d.rects[1] = rect;
 
-        fprintf(stdout, "Setting smart object's right spot with a new"
-                        " rectangle.\n");
-        fprintf(stdout, "Checking its new smart object parent: %s\n",
-                evas_object_smart_parent_get(rect) == d.smt ? "OK!" :
-                "Failure!");
+        printf("Setting smart object's right spot with a new"
+               " rectangle.\n");
+        printf("Checking its new smart object parent: %s\n",
+               evas_object_smart_parent_get(rect) == d.smt ? "OK!" :
+               "Failure!");
         if (prev)
           {
              int r, g, b;
 
              evas_object_color_get(prev, &r, &g, &b, NULL);
-             fprintf(stdout, "Deleting previous right child,"
-                             " which had colors (%d, %d, %d)\n", r, g, b);
+             printf("Deleting previous right child,"
+                    " which had colors (%d, %d, %d)\n", r, g, b);
              evas_object_del(prev);
           }
 
@@ -666,8 +666,8 @@ _on_example_smart_object_child_num_change(void *data EINA_UNUSED,
                                           Evas_Object *obj EINA_UNUSED,
                                           void *event_info)
 {
-   fprintf(stdout, "Number of child members on our example smart"
-                   " object changed to %llu\n", (unsigned long long)(uintptr_t)event_info);
+   printf("Number of child members on our example smart"
+          " object changed to %llu\n", (unsigned long long)(uintptr_t)event_info);
 }
 
 int
@@ -716,13 +716,13 @@ main(void)
    evas_object_show(d.smt);
 
    ret = evas_object_smart_type_check(d.smt, _evas_smart_example_type);
-   fprintf(stdout, "Adding smart object of type \"%s\" to the canvas: %s.\n",
+   printf("Adding smart object of type \"%s\" to the canvas: %s.\n",
            _evas_smart_example_type, ret ? "success" : "failure");
 
    d.clipper = evas_object_smart_clipped_clipper_get(d.smt);
-   fprintf(stdout, "Checking if clipped smart object's clipper is a "
-                   "\"static\" one: %s\n", evas_object_static_clip_get(
-             d.clipper) ? "yes" : "no");
+   printf("Checking if clipped smart object's clipper is a "
+          "\"static\" one: %s\n",
+          evas_object_static_clip_get(d.clipper) ? "yes" : "no");
 
    evas_object_color_set(
      d.clipper, clipper_colors[cur_color].r, clipper_colors[cur_color].g,
@@ -733,9 +733,9 @@ main(void)
 
    for (; *descriptions; descriptions++)
      {
-        fprintf(stdout, "We've found a smart callback on the smart object!"
-                        "\n\tname: %s\n\ttype: %s\n", (*descriptions)->name,
-                (*descriptions)->type);
+        printf("We've found a smart callback on the smart object!"
+               "\n\tname: %s\n\ttype: %s\n", (*descriptions)->name,
+               (*descriptions)->type);
 
         if (strcmp((*descriptions)->type, "i")) continue;
         /* we know we don't have other types of smart callbacks
@@ -759,19 +759,19 @@ main(void)
      {
         char *data;
 
-        fprintf(stdout, "We've found a smart interface on the smart object!"
-                        "\n\tname: %s\n", iface->base.name);
+        printf("We've found a smart interface on the smart object!"
+               "\n\tname: %s\n", iface->base.name);
 
-        fprintf(stdout, "Setting its interface data...\n");
+        printf("Setting its interface data...\n");
         data = evas_object_smart_interface_data_get
             (d.smt, (Evas_Smart_Interface *)iface);
         memcpy(data, iface1_data, sizeof(iface1_data));
 
-        fprintf(stdout, "Calling an interface's function...\n");
+        printf("Calling an interface's function...\n");
         iface->example_func(d.smt);
      }
 
-   fprintf(stdout, commands);
+   printf("%s\n", commands);
    ecore_main_loop_begin();
 
    ecore_evas_free(d.ee);

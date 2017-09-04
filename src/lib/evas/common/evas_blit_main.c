@@ -7,9 +7,11 @@
 #define ALIGN_FIX
 
 static void evas_common_copy_pixels_c        (DATA32 *src, DATA32 *dst, int len);
+#ifdef BUILD_MMX
 static void evas_common_copy_pixels_mmx      (DATA32 *src, DATA32 *dst, int len);
 static void evas_common_copy_pixels_mmx2     (DATA32 *src, DATA32 *dst, int len);
 static void evas_common_copy_pixels_sse/*NB*/ (DATA32 *src, DATA32 *dst, int len);
+#endif
 
 #ifdef BUILD_NEON
 static void evas_common_copy_pixels_neon     (DATA32 *src, DATA32 *dst, int len);
@@ -17,9 +19,10 @@ static void evas_common_copy_pixels_rev_neon (DATA32 *src, DATA32 *dst, int len)
 #endif
 
 static void evas_common_copy_pixels_rev_c           (DATA32 *src, DATA32 *dst, int len);
+#ifdef BUILD_MMX
 static void evas_common_copy_pixels_rev_mmx         (DATA32 *src, DATA32 *dst, int len);
 static void evas_common_copy_pixels_rev_sse/*NB*/ (DATA32 *src, DATA32 *dst, int len);
-
+#endif
 static void evas_common_copy_rev_pixels_c           (DATA32 *src, DATA32 *dst, int len);
 
 
@@ -584,16 +587,16 @@ evas_common_copy_pixels_rev_sse(DATA32 *src, DATA32 *dst, int len)
 #endif
 
 Gfx_Func_Copy
-evas_common_draw_func_copy_get(int pixels, int reverse)
+evas_common_draw_func_copy_get(int pixels EINA_UNUSED, int reverse)
 {
    if (reverse == -1)
-	return evas_common_copy_rev_pixels_c;
+     return evas_common_copy_rev_pixels_c;
    if (reverse)
      {
 #ifdef BUILD_MMX
-	if (evas_common_cpu_has_feature(CPU_FEATURE_SSE) && (pixels > 64 * 64))
-	  return evas_common_copy_pixels_rev_sse;
-	else if (evas_common_cpu_has_feature(CPU_FEATURE_MMX))
+        if (evas_common_cpu_has_feature(CPU_FEATURE_SSE) && (pixels > (64 * 64)))
+          return evas_common_copy_pixels_rev_sse;
+        else if (evas_common_cpu_has_feature(CPU_FEATURE_MMX))
           return evas_common_copy_pixels_rev_mmx;
 #endif
 #ifdef BUILD_NEON
@@ -605,7 +608,7 @@ evas_common_draw_func_copy_get(int pixels, int reverse)
    else
      {
 #ifdef BUILD_MMX
-        if (evas_common_cpu_has_feature(CPU_FEATURE_SSE) && (pixels > 64 * 64))
+        if (evas_common_cpu_has_feature(CPU_FEATURE_SSE) && (pixels > (64 * 64)))
           return evas_common_copy_pixels_sse;
         else if (evas_common_cpu_has_feature(CPU_FEATURE_MMX2))
           return evas_common_copy_pixels_mmx2;

@@ -1,5 +1,5 @@
-#ifndef _EOLIAN_OUTPUT_H_
-#define _EOLIAN_OUTPUT_H_
+#ifndef _EOLIAN_CLASS_SIMPLE_H_
+#define _EOLIAN_CLASS_SIMPLE_H_
 
 #ifndef _CLASS_SIMPLE_EO_CLASS_TYPE
 #define _CLASS_SIMPLE_EO_CLASS_TYPE
@@ -11,6 +11,26 @@ typedef Eo Class_Simple;
 #ifndef _CLASS_SIMPLE_EO_TYPES
 #define _CLASS_SIMPLE_EO_TYPES
 
+#ifndef FOO
+/** doc for constant
+ *
+ * @ingroup Foo
+ */
+#define FOO 5
+#endif
+
+/** doc for global
+ *
+ * @ingroup Bar
+ */
+EWAPI extern float BAR;
+
+/** in header but not in source
+ *
+ * @ingroup Baz
+ */
+EWAPI extern long BAZ;
+
 
 #endif
 /** Class Desc Simple
@@ -19,7 +39,7 @@ typedef Eo Class_Simple;
  */
 #define CLASS_SIMPLE_CLASS class_simple_class_get()
 
-EWAPI const Eo_Class *class_simple_class_get(void);
+EWAPI const Efl_Class *class_simple_class_get(void);
 
 #ifdef CLASS_SIMPLE_BETA
 /**
@@ -66,6 +86,5 @@ EOAPI char *efl_canvas_object_simple_foo(Eo *obj, int a, char *b, double *c, int
 #endif
 
 EOAPI int *efl_canvas_object_simple_bar(Eo *obj, int x);
-
 
 #endif

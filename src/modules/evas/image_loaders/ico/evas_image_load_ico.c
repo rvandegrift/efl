@@ -164,10 +164,10 @@ evas_image_load_file_head_ico(void *loader_data,
    //   more ?
 
    search = BIGGEST;
-   if ((opts->w > 0) && (opts->h > 0))
+   if ((opts->emile.w > 0) && (opts->emile.h > 0))
      {
-        wanted_w = opts->w;
-        wanted_h = opts->h;
+        wanted_w = opts->emile.w;
+        wanted_h = opts->emile.h;
         search = SMALLER;
      }
 
@@ -396,10 +396,10 @@ evas_image_load_file_data_ico(void *loader_data,
    //   more ?
 
    search = BIGGEST;
-   if ((opts->w > 0) && (opts->h > 0))
+   if ((opts->emile.w > 0) && (opts->emile.h > 0))
      {
-        wanted_w = opts->w;
-        wanted_h = opts->h;
+        wanted_w = opts->emile.w;
+        wanted_h = opts->emile.h;
         search = SMALLER;
      }
 
@@ -823,7 +823,11 @@ module_open(Evas_Module *em)
 static void
 module_close(Evas_Module *em EINA_UNUSED)
 {
-   eina_log_domain_unregister(_evas_loader_ico_log_dom);
+   if (_evas_loader_ico_log_dom >= 0)
+     {
+        eina_log_domain_unregister(_evas_loader_ico_log_dom);
+        _evas_loader_ico_log_dom = -1;
+     }
 }
 
 static Evas_Module_Api evas_modapi =

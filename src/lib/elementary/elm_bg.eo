@@ -10,7 +10,7 @@ enum Elm.Bg.Option
   scale, [[Scale the background image, retaining aspect ratio (default).]]
   stretch, [[Stretch the background image to fill the widget's area.]]
   tile, [[Tile background image at its original size.]]
-  last [[Sentinel value, also used to indicate errors.]]
+  last  [[Sentinel value to indicate last enum field during iteration. Also used to indicate errors]]
 }
 
 class Elm.Bg (Elm.Layout, Efl.File)
@@ -88,18 +88,16 @@ class Elm.Bg (Elm.Layout, Efl.File)
             ]]
          }
          values {
-            w: Evas.Coord; [[The new width of the image pixmap representation.]]
-            h: Evas.Coord; [[The new height of the image pixmap representation.]]
+            w: int; [[The new width of the image pixmap representation.]]
+            h: int; [[The new height of the image pixmap representation.]]
          }
       }
    }
    implements {
       class.constructor;
-      Eo.Base.constructor;
-      Efl.Canvas.Group.group_add;
-      Elm.Layout.content_aliases.get;
+      Efl.Object.constructor;
+      Elm.Layout.content_aliases { get; }
       Elm.Layout.sizing_eval;
-      Efl.File.file.set;
-      Efl.File.file.get;
+      Efl.File.file { get; set; }
    }
 }

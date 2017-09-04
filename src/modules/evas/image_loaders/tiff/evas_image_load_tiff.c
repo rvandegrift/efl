@@ -42,11 +42,15 @@ struct TIFFRGBAMap {
 };
 
 static tsize_t
-_evas_tiff_RWProc(thandle_t handle EINA_UNUSED,
-                  tdata_t data EINA_UNUSED,
-                  tsize_t size EINA_UNUSED)
+_evas_tiff_RWProc(thandle_t handle,
+                  tdata_t data,
+                  tsize_t size)
 {
-   return 0;
+   TIFFRGBAMap *map = (TIFFRGBAMap*) handle;
+   if (!data) return 0;
+   memcpy(data, map->mem, size);
+
+   return size;
 }
 
 static toff_t
@@ -359,7 +363,11 @@ module_open(Evas_Module *em)
 static void
 module_close(Evas_Module *em EINA_UNUSED)
 {
-   eina_log_domain_unregister(_evas_loader_tiff_log_dom);
+   if (_evas_loader_tiff_log_dom >= 0)
+     {
+        eina_log_domain_unregister(_evas_loader_tiff_log_dom);
+        _evas_loader_tiff_log_dom = -1;
+     }
 }
 
 static Evas_Module_Api evas_modapi =

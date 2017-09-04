@@ -1,5 +1,5 @@
 /**
- * Simple Evas example illustrating a custom Evas box object
+ * Example of custom box objects in Evas.
  *
  * You'll need at least one engine built for it (excluding the buffer
  * one). See stdout/stderr for output.
@@ -108,7 +108,7 @@ _on_keydown(void        *data EINA_UNUSED,
 
    if (strcmp(ev->key, "h") == 0) /* print help */
      {
-        fprintf(stdout, "%s",  commands);
+        printf("%s",  commands);
         return;
      }
 
@@ -161,8 +161,8 @@ list_free:
 
         evas_object_box_align_set(d.box, h, v);
 
-        fprintf(stdout, "Applying new alignment values (%.1f, %.1f)"
-                        " on the box\n", h, v);
+        printf("Applying new alignment values (%.1f, %.1f) on the box\n",
+               h, v);
         return;
      }
 
@@ -179,8 +179,8 @@ list_free:
 
         evas_object_box_padding_set(d.box, h, v);
 
-        fprintf(stdout, "Applying new padding values (%d, %d)"
-                        " on the box\n", h, v);
+        printf("Applying new padding values (%d, %d) on the box\n",
+               h, v);
         return;
      }
 
@@ -189,7 +189,8 @@ list_free:
         evas_object_box_layout_set(
           d.box, evas_object_box_layout_horizontal, NULL, NULL);
 
-        fprintf(stdout, "Applying '%s' layout on the box\n", "horizontal");
+        printf("Applying '%s' layout on the box\n",
+               "horizontal");
         return;
      }
 
@@ -198,7 +199,8 @@ list_free:
         evas_object_box_layout_set(
           d.box, evas_object_box_layout_vertical, NULL, NULL);
 
-        fprintf(stdout, "Applying '%s' layout on the box\n", "vertical");
+        printf("Applying '%s' layout on the box\n",
+               "vertical");
         return;
      }
 
@@ -208,8 +210,8 @@ list_free:
           d.box, evas_object_box_layout_homogeneous_horizontal, NULL,
           NULL);
 
-        fprintf(stdout, "Applying '%s' layout on the box\n",
-                "horizontal homogeneous");
+        printf("Applying '%s' layout on the box\n",
+               "horizontal homogeneous");
         return;
      }
 
@@ -218,8 +220,8 @@ list_free:
         evas_object_box_layout_set(
           d.box, evas_object_box_layout_homogeneous_vertical, NULL, NULL);
 
-        fprintf(stdout, "Applying '%s' layout on the box\n",
-                "vertical homogeneous");
+        printf("Applying '%s' layout on the box\n",
+               "vertical homogeneous");
         return;
      }
 
@@ -229,8 +231,8 @@ list_free:
           d.box, evas_object_box_layout_homogeneous_max_size_horizontal,
           NULL, NULL);
 
-        fprintf(stdout, "Applying '%s' layout on the box\n",
-                "horizontal maximum size homogeneous");
+        printf("Applying '%s' layout on the box\n",
+               "horizontal maximum size homogeneous");
         return;
      }
 
@@ -240,8 +242,8 @@ list_free:
           d.box, evas_object_box_layout_homogeneous_max_size_vertical,
           NULL, NULL);
 
-        fprintf(stdout, "Applying '%s' layout on the box\n",
-                "vertical maximum size homogeneous");
+        printf("Applying '%s' layout on the box\n",
+               "vertical maximum size homogeneous");
         return;
      }
 
@@ -250,7 +252,8 @@ list_free:
         evas_object_box_layout_set(
           d.box, evas_object_box_layout_flow_horizontal, NULL, NULL);
 
-        fprintf(stdout, "Applying '%s' layout on the box\n", "horizontal flow");
+        printf("Applying '%s' layout on the box\n",
+               "horizontal flow");
         return;
      }
 
@@ -259,7 +262,8 @@ list_free:
         evas_object_box_layout_set(
           d.box, evas_object_box_layout_flow_vertical, NULL, NULL);
 
-        fprintf(stdout, "Applying '%s' layout on the box\n", "vertical flow");
+        printf("Applying '%s' layout on the box\n",
+               "vertical flow");
         return;
      }
 
@@ -268,7 +272,8 @@ list_free:
         evas_object_box_layout_set(
           d.box, evas_object_box_layout_stack, NULL, NULL);
 
-        fprintf(stdout, "Applying '%s' layout on the box\n", "stack");
+        printf("Applying '%s' layout on the box\n",
+               "stack");
         return;
      }
 
@@ -276,7 +281,8 @@ list_free:
      {
         evas_object_box_layout_set(d.box, _custom_layout, NULL, NULL);
 
-        fprintf(stdout, "Applying '%s' layout on the box\n", "CUSTOM");
+        printf("Applying '%s' layout on the box\n",
+               "CUSTOM");
         return;
      }
 }
@@ -361,7 +367,7 @@ main(void)
    evas_object_image_border_center_fill_set(d.border, EVAS_BORDER_FILL_NONE);
    evas_object_show(d.border);
 
-   fprintf(stdout, "%s", commands);
+   printf("%s", commands);
 
    _canvas_resize_cb(d.ee);
    ecore_main_loop_begin();

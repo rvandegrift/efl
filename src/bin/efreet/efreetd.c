@@ -8,6 +8,9 @@
 #include <sys/time.h>
 #include <sys/resource.h>
 #endif
+#include <sys/types.h>
+#include <sys/stat.h>
+#include <fcntl.h>
 
 #include <Ecore.h>
 #include <Ecore_File.h>
@@ -30,7 +33,6 @@ main(int argc, char *argv[])
    char path[PATH_MAX], buf[PATH_MAX];
    FILE *log;
    int fd;
-   const char *s;
    const char *log_file_dir = NULL;
    const char *hostname_str = NULL;
 
@@ -42,15 +44,18 @@ main(int argc, char *argv[])
 
    if (!eina_init()) return 1;
 
+   efreetd_mp_stat = eina_mempool_add("chained_mempool",
+                                      "struct stat", NULL,
+                                     sizeof(struct stat), 10);
+   if (!efreetd_mp_stat) return 1;
+
    if (!ecore_init()) goto ecore_error;
    ecore_app_args_set(argc, (const char **)argv);
    if (!ecore_file_init()) goto ecore_file_error;
    if (!ipc_init()) goto ipc_error;
    if (!cache_init()) goto cache_error;
 
-   s = getenv("XDG_RUNTIME_DIR");
-   if (s) log_file_dir = s;
-   else log_file_dir = eina_environment_tmp_get();
+   log_file_dir = eina_environment_tmp_get();
    if (gethostname(buf, sizeof(buf)) < 0)
      hostname_str = "";
    else
@@ -60,7 +65,7 @@ main(int argc, char *argv[])
    fd = eina_file_mkstemp(path, NULL);
    if (fd < 0)
      {
-        ERR("Can't create log file '%s'\b", path);;
+        ERR("Can't create log file '%s'\b", path);
         goto tmp_error;
      }
    log = fdopen(fd, "wb");
@@ -74,6 +79,8 @@ main(int argc, char *argv[])
      }
 
    ecore_main_loop_begin();
+
+   eina_mempool_del(efreetd_mp_stat);
 
    cache_shutdown();
    ipc_shutdown();

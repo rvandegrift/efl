@@ -24,19 +24,24 @@ _edje_module_handle_load(const char *module)
    const char *path;
    Eina_List *l;
    Eina_Module *em = NULL;
+#ifdef NEED_RUN_IN_TREE
    Eina_Bool run_in_tree;
+#endif
 
    EINA_SAFETY_ON_NULL_RETURN_VAL(module, NULL);
 
    em = (Eina_Module *)eina_hash_find(_registered_modules, module);
    if (em) return em;
 
+#ifdef NEED_RUN_IN_TREE
    run_in_tree = !!getenv("EFL_RUN_IN_TREE");
+#endif
 
    EINA_LIST_FOREACH(_modules_paths, l, path)
      {
         char tmp[PATH_MAX] = "";
 
+#ifdef NEED_RUN_IN_TREE
 #if defined(HAVE_GETUID) && defined(HAVE_GETEUID)
         if (getuid() == geteuid())
 #endif
@@ -50,6 +55,7 @@ _edje_module_handle_load(const char *module)
                   tmp[0] = '\0';
              }
         }
+#endif
 
         if (tmp[0] == '\0')
           snprintf(tmp, sizeof(tmp), "%s/%s/%s/%s",
@@ -79,6 +85,7 @@ _edje_module_init(void)
 
    _registered_modules = eina_hash_string_small_new(EINA_FREE_CB(eina_module_free));
 
+#ifdef NEED_RUN_IN_TREE
 #if defined(HAVE_GETUID) && defined(HAVE_GETEUID)
    if (getuid() == geteuid())
 #endif
@@ -94,6 +101,7 @@ _edje_module_init(void)
              }
         }
    }
+#endif
 
    /* 1. libedje.so/../edje/modules/ */
    paths[0] = eina_module_symbol_path_get(_edje_module_init, "/edje/modules");
@@ -140,6 +148,7 @@ edje_available_modules_get(void)
    Eina_Iterator *it;
    Eina_List *l;
    const char *path;
+   Eina_Strbuf *buf;
    Eina_List *result = NULL;
 
    /* FIXME: Stat each possible dir and check if they did change, before starting a huge round of readdir/stat */
@@ -149,32 +158,29 @@ edje_available_modules_get(void)
           eina_stringshare_del(path);
      }
 
+   buf = eina_strbuf_new();
    EINA_LIST_FOREACH(_modules_paths, l, path)
      {
         it = eina_file_direct_ls(path);
 
-        if (it)
+        EINA_ITERATOR_FOREACH(it, info)
           {
-             EINA_ITERATOR_FOREACH(it, info)
-               {
-                  char tmp[PATH_MAX];
-
-                  snprintf(tmp, sizeof (tmp), "%s/%s/" EDJE_MODULE_NAME, info->path, MODULE_ARCH
+             eina_strbuf_append_printf(buf, "%s/%s/" EDJE_MODULE_NAME, info->path, MODULE_ARCH
 #ifdef EDJE_EXTRA_MODULE_NAME
-                           , info->path + info->name_start
+                                       , info->path + info->name_start
 #endif
-                           );
+                                       );
 
-                  if (ecore_file_exists(tmp))
-                    result = eina_list_append(result, eina_stringshare_add(info->path + info->name_start));
-               }
-
-             eina_iterator_free(it);
+             if (ecore_file_exists(eina_strbuf_string_get(buf)))
+               result = eina_list_append(result, eina_stringshare_add(info->path + info->name_start));
+             eina_strbuf_reset(buf);
           }
+
+        eina_iterator_free(it);
      }
+   eina_strbuf_free(buf);
 
    _modules_found = result;
 
    return result;
 }
-

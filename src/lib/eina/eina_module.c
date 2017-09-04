@@ -324,7 +324,7 @@ EAPI Eina_Bool eina_module_load(Eina_Module *m)
      {
         struct stat st;
         if (!stat(m->file, &st))
-          WRN("could not dlopen(\"%s\", %s): %s", m->file, dlerror(),
+          ERR("could not dlopen(\"%s\", %s): %s", m->file, dlerror(),
               (flag == RTLD_NOW) ? "RTLD_NOW" : "RTLD_LAZY");
         else
           DBG("could not dlopen(\"%s\", %s): %s", m->file, dlerror(),
@@ -404,6 +404,7 @@ EAPI const char *eina_module_file_get(const Eina_Module *m)
 
 EAPI void eina_module_symbol_global_set(Eina_Module *module, Eina_Bool global)
 {
+   EINA_SAFETY_ON_NULL_RETURN(module);
    module->global = !!global;
 }
 

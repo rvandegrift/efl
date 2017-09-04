@@ -1,23 +1,30 @@
-import evas_types;
 import efl_text_types;
 
-abstract Efl.Canvas.Object (Eo.Base, Efl.Gfx, Efl.Gfx.Stack, Efl.Animator,
+abstract Efl.Canvas.Object (Efl.Object, Efl.Gfx, Efl.Gfx.Stack, Efl.Animator,
                             Efl.Input.Interface, Efl.Gfx.Size.Hint,
-                            Efl.Gfx.Map)
+                            Efl.Gfx.Map, Efl.Loop_User)
 {
+   [[Efl canvas object abstract class]]
    legacy_prefix: evas_object;
    data: Evas_Object_Protected_Data;
    methods {
-      legacy_ctor @protected @beta {
-          [[Internal function. Do not use.]]
-      }
-      @property type @protected {
-         set {
-            [[Sets the legacy type name of this Evas object.]]
-            legacy: null;
+      @property pointer_mode_by_device {
+         [[Low-level pointer behaviour by device.
+           See @.pointer_mode.get and @.pointer_mode.set for more explanation.
+           @since 1.19
+         ]]
+         keys {
+            dev: Efl.Input.Device; [[The pointer device to set/get the mode. Use $null for the default pointer.]]
          }
          values {
-            type: string; [[The type of the object.]]
+             pointer_mode: Efl.Input.Object_Pointer_Mode; [[The pointer mode]]
+         }
+         set {
+	    return: bool;
+            legacy: null;
+         }
+         get {
+            legacy: null;
          }
       }
       @property pointer_mode {
@@ -26,19 +33,61 @@ abstract Efl.Canvas.Object (Eo.Base, Efl.Gfx, Efl.Gfx.Stack, Efl.Animator,
            This function has a direct effect on event callbacks related to
            pointers (mouse, ...).
 
-           If the value is @Efl.Event.Object_Pointer_Mode.auto_grab (default),
+           If the value is @Efl.Input.Object_Pointer_Mode.auto_grab (default),
            then when mouse is pressed down over this object, events will be
            restricted to it as source, mouse moves, for example, will be
            emitted even when the pointer goes outside this objects
            geometry.
 
-           If the value is @Efl.Event.Object_Pointer_Mode.no_grab, then events
+           If the value is @Efl.Input.Object_Pointer_Mode.no_grab, then events
            will be emitted just when inside this object area.
 
-           The default value is @Efl.Event.Object_Pointer_Mode.auto_grab.
+           The default value is @Efl.Input.Object_Pointer_Mode.auto_grab.
+           See also: @.pointer_mode_by_device.get and @.pointer_mode_by_device.set
+           Note: This function will only set/get the mode for the default pointer.
          ]]
+	 get {
+	 }
+	 set {
+	    return: bool;
+	 }
          values {
-            pointer_mode: Efl.Event.Object_Pointer_Mode;
+            pointer_mode: Efl.Input.Object_Pointer_Mode; [[Input pointer mode]]
+         }
+      }
+      @property pointer_in {
+         [[Read-only value indicating whether the main pointer is in the object.
+
+           This shall be true between pointer,in and pointer,out events (coming
+           in matching numbers). Note that group objects may receive multiple
+           pointer,in in a row. See algo @.pointer_device_in.get
+
+           @since 1.19
+         ]]
+         get {
+            legacy: null;
+         }
+         values {
+            in: bool; [[If $true the main pointer has entered this object.]]
+         }
+      }
+      @property pointer_device_in {
+         [[Read-only value indicating whether a pointer is in the object.
+
+           This shall be true between pointer,in and pointer,out events (coming
+           in matching numbers). Note that group objects may receive multiple
+           pointer,in in a row.
+
+           @since 1.19
+         ]]
+         get {
+            legacy: null;
+         }
+         keys {
+            pointer: Efl.Input.Device; [[The pointer. Use $null for the defaul pointer]]
+         }
+         values {
+            in: bool; [[If $true the pointer has entered this object.]]
          }
       }
       @property render_op {
@@ -131,27 +180,13 @@ abstract Efl.Canvas.Object (Eo.Base, Efl.Gfx, Efl.Gfx.Stack, Efl.Animator,
               is  called, it gets implicitly removed from the old clipper's
               domain and is made now to be clipped by its new clipper.
 
-              Note: At the moment the only objects that can validly be used
-              to clip other objects are rectangle objects. All other object
-              types are invalid and the result of using them is undefined.
-              The clip object $clip must be a valid object, but can also be
-              $null, in which case the effect of this function is the same
-              as @.clip_unset on the $obj object.
+              If $clip is $null, this call will disable clipping for the object
+              i.e. its visibility and color get detached from the previous
+              clipper. If it wasn't, this has no effect.
+
+              Note: Only rectangle and image (masks) objects can be used
+              as clippers. Anything else will result in undefined behaviour.
             ]]
-            /* FIXME-doc
-            The following figure illustrates some clipping in Evas:
-
-            @image html clipping.png
-            @image rtf clipping.png
-            @image latex clipping.eps
-            ---
-            Example:
-            @dontinclude evas-object-manipulation.c
-            @skip solid white clipper (note that it's the default color for a
-            @until evas_object_show(d.clipper);
-
-            See the full @ref Example_Evas_Object_Manipulation "example".
-            */
          }
          get {
             [[Get the object clipping $obj (if any).
@@ -160,14 +195,6 @@ abstract Efl.Canvas.Object (Eo.Base, Efl.Gfx, Efl.Gfx.Stack, Efl.Animator,
               not being clipped at all, $null is returned. The object $obj
               must be a valid Evas_Object.
             ]]
-            /* FIXME-doc
-            Example:
-            @dontinclude evas-object-manipulation.c
-            @skip if (evas_object_clip_get(d.img) == d.clipper)
-            @until return
-
-            See the full @ref Example_Evas_Object_Manipulation "example".
-            */
          }
          values {
             clip: Efl.Canvas.Object @nonull; [[The object to clip $obj by.]]
@@ -231,6 +258,8 @@ abstract Efl.Canvas.Object (Eo.Base, Efl.Gfx, Efl.Gfx.Stack, Efl.Animator,
            is $true, $obj will be set as the currently focused object
            and it will receive all keyboard events that are not
            exclusive key grabs on other objects.
+           See also @.seat_focus_check,
+           @.seat_focus_add, @.seat_focus_del.
          ]]
          set {
             legacy: evas_object_focus_set;
@@ -242,15 +271,73 @@ abstract Efl.Canvas.Object (Eo.Base, Efl.Gfx, Efl.Gfx.Stack, Efl.Animator,
             focus: bool; [[$true when set as focused or $false otherwise.]]
          }
       }
-      @property is_frame_object {
-         set {
-            [[@since 1.2]]
-         }
+      @property seat_focus {
+         [[
+            Check if this object is focused.
+            @since 1.19
+         ]]
          get {
-            [[@since 1.2]]
+            legacy: null;
          }
          values {
-            is_frame: bool;
+            focus: bool; [[$true if focused by at least one seat or $false otherwise.]]
+         }
+      }
+      seat_focus_check {
+         [[ Check if this object is focused by a given seat @since 1.19 ]]
+         params {
+            @in seat: Efl.Input.Device; [[The seat to check if the object is focused. Use $null for the default seat.]]
+         }
+         legacy: null;
+         return: bool; [[$true if focused or $false otherwise.]]
+      }
+      seat_focus_add {
+         [[ Add a seat to the focus list.
+
+           Evas supports that an Efl.Canvas.Object may be focused by multiple seats
+           at the same time. This function adds a new seat to the focus list, in other words,
+           after the seat is added to the list this object will now be also focused by this new seat.
+
+           This function generates an \@ref EFL_CANVAS_OBJECT_EVENT_FOCUS_DEVICE_IN event.
+
+           \@note The old focus APIs ( \@ref evas_object_focus_get, \@ref evas_object_focus_set,
+           @.key_grab) will still work, however they will only act on the default seat.
+
+           @since 1.19
+         ]]
+         params {
+            @in seat: Efl.Input.Device; [[The seat that should be added to the focus list. Use $null for the default seat.]]
+         }
+         legacy: null;
+         return: bool; [[$true if the focus has been set or $false otherwise.]]
+      }
+      seat_focus_del {
+         [[ Remove a seat from the focus list.
+
+            Removing an seat from the focus list is an unfocus operation, thus it will generate an
+            \@ref EFL_CANVAS_OBJECT_EVENT_FOCUS_DEVICE_OUT event.
+            @since 1.19
+         ]]
+         params {
+            @in seat: Efl.Input.Device; [[The seat that should be removed from the focus list. Use $null for the default seat.]]
+         }
+         legacy: null;
+         return: bool; [[$true if the seat was removed from the focus list or $false otherwise.]]
+      }
+      @property is_frame_object {
+         [[If $true the object belongs to the window border decorations.
+
+           This will be $false by default, and should be $false for all objects
+           created by the application, unless swallowed in some very specific
+           parts of the window.
+
+           It is very unlikely that an application needs to call this manually,
+           as the window will handle this feature automatically.
+
+           @since 1.2
+         ]]
+         values {
+            is_frame: bool; [[$true if the object is a frame, $false otherwise]]
          }
       }
       @property precise_is_inside {
@@ -381,7 +468,7 @@ abstract Efl.Canvas.Object (Eo.Base, Efl.Gfx, Efl.Gfx.Stack, Efl.Animator,
               anymore after that point. Any use of the list after this
               may have undefined results, possibly leading to crashes.
 
-              See also @.clip and @.clip_unset.
+              See also @.clip.
             ]]
             legacy: null;
             return: iterator<Efl.Canvas.Object> @warn_unused; [[An iterator over the
@@ -391,7 +478,7 @@ abstract Efl.Canvas.Object (Eo.Base, Efl.Gfx, Efl.Gfx.Stack, Efl.Animator,
       @property render_parent @protected {
          [[Gets the parent smart object of a given Evas object, if it has one.
 
-           This can be different from @Eo.Base.parent because this one is
+           This can be different from @Efl.Object.parent because this one is
            used internally for rendering and the normal parent is what the
            user expects to be the parent.
 
@@ -419,7 +506,7 @@ abstract Efl.Canvas.Object (Eo.Base, Efl.Gfx, Efl.Gfx.Stack, Efl.Animator,
 
            @since 1.8
          ]]
-         return: bool @warn_unused;
+         return: bool @warn_unused; [[$true if any object is clipped by $obj, $false otherwise]]
       }
       key_grab {
          [[Requests $keyname key events be directed to $obj.
@@ -451,25 +538,17 @@ abstract Efl.Canvas.Object (Eo.Base, Efl.Gfx, Efl.Gfx.Stack, Efl.Animator,
            See also @.key_ungrab, @.key_focus.get, @.key_focus.set,
            \@ref evas_focus_get, \@ref evas_key_modifier_add.
          ]]
-         /* FIXME-doc
-         Example code follows.
-         @dontinclude evas-events.c
-         @skip if (d.focus)
-         @until else
-
-         See the full example @ref Example_Evas_Events "here".
-         */
-
          return: bool @warn_unused; [[$true if the call succeeded, $false otherwise.]]
          params {
             @in keyname: string @nonull; [[The key to request events for.]]
-            @in modifiers: Evas.Modifier_Mask; [[A mask of modifiers that must be
-                                                present to trigger the event.]]
-            @in not_modifiers: Evas.Modifier_Mask; [[A mask of modifiers that must
-                                                     not be present to trigger the event.]]
+            @in modifiers: Efl.Input.Modifier; [[A combinaison of modifier
+                              keys that must be present to trigger the event.]]
+            @in not_modifiers: Efl.Input.Modifier; [[A combinaison of modifier
+                          keys that must not be present to trigger the event.]]
             @in exclusive: bool; [[Request that the $obj is the only object
                                    receiving the $keyname events.]]
          }
+         legacy: null;
       }
       key_ungrab {
          [[Removes the grab on $keyname key events by $obj.
@@ -478,36 +557,17 @@ abstract Efl.Canvas.Object (Eo.Base, Efl.Gfx, Efl.Gfx.Stack, Efl.Animator,
            $not_modifiers match.
 
            See also @.key_grab, @.key_focus.get, @.key_focus.set,
-           \@ref evas_focus_get.
+           and the legacy API evas_focus_get.
          ]]
-         /* FIXME-doc
-         Example code follows.
-         @dontinclude evas-events.c
-         @skip got here by key grabs
-         @until }
-
-         See the full example @ref Example_Evas_Events "here".
-         */
          params {
-            @in keyname: string @nonull; [[he key the grab is set for.]]
-            @in modifiers: Evas.Modifier_Mask; [[A mask of modifiers that must be
+            @in keyname: string @nonull; [[The key the grab is set for.]]
+            @in modifiers: Efl.Input.Modifier; [[A mask of modifiers that must be
                                                  present to trigger the event.]]
-            @in not_modifiers: Evas.Modifier_Mask; [[A mask of modifiers that mus
+            @in not_modifiers: Efl.Input.Modifier; [[A mask of modifiers that must
                                                      not not be present to trigger
-                                                     the event.
-                                                   ]]
+                                                     the event.]]
          }
-      }
-      clip_unset {
-         [[Disable/cease clipping on a clipped $obj object.
-
-           This function disables clipping for the object $obj, if it was
-           already clipped, i.e., its visibility and color get detached from
-           the previous clipper. If it wasn't, this has no effect. The
-           object $obj must be a valid Evas_Object.
-
-           See also @.clip.set, @.clipees.get and @.clip.get.
-         ]]
+         legacy: null;
       }
       @property no_render {
          get {
@@ -546,74 +606,84 @@ abstract Efl.Canvas.Object (Eo.Base, Efl.Gfx, Efl.Gfx.Stack, Efl.Animator,
             enable: bool; [[Enable "no-render" mode.]]
          }
       }
-   }
-   constructors {
-      .legacy_ctor;
-      .type;
+      @property pointer_inside_by_device {
+         [[Returns whether the mouse pointer is logically inside the
+           object. @since 1.20]]
+         keys {
+            dev: Efl.Input.Device; [[The pointer device.]]
+         }
+         get {}
+         values {
+            in: bool; [[$true if the pointer is inside, $false otherwise.]]
+         }
+      }
+      @property pointer_inside {
+         get {
+            [[Returns whether the default mouse pointer is logically inside the
+              object.
+
+              When this function is called it will return a value of either
+              $false or $true, depending on if event_feed_mouse_in or
+              event_feed_mouse_out have been called to feed in a mouse
+              enter event into the object.
+
+              A return value of $true indicates the mouse is logically
+              inside the object, and $false implies it is logically
+              outside the object.
+
+              If $e is not a valid object, the return value is undefined.
+            ]]
+            return: bool @warn_unused; [[$true if the mouse pointer is inside the object, $false otherwise]]
+         }
+      }
+      pointer_coords_inside_get {
+         [[Returns whether the coords are logically inside the
+           object.
+
+           When this function is called it will return a value of either
+           $false or $true, depending on if the coords are inside the object's
+           current geometry.
+
+           A return value of $true indicates the position is logically
+           inside the object, and $false implies it is logically
+           outside the object.
+
+           If $e is not a valid object, the return value is undefined.
+         ]]
+         params {
+            @in x: int; [[The canvas-relative x coordinate.]]
+            @in y: int; [[The canvas-relative y coordinate.]]
+         }
+         return: bool @warn_unused; [[$true if the coords are inside the object, $false otherwise]]
+      }
    }
    implements {
-      Eo.Base.constructor;
-      Eo.Base.destructor;
-      Eo.Base.dbg_info_get;
-      Eo.Base.provider_find;
-      Efl.Gfx.visible.set;
-      Efl.Gfx.visible.get;
-      Efl.Gfx.color.set;
-      Efl.Gfx.color.get;
-      Efl.Gfx.color_part.set;
-      Efl.Gfx.color_part.get;
-      Efl.Gfx.geometry.set;
-      Efl.Gfx.geometry.get;
-      Efl.Gfx.position.set;
-      Efl.Gfx.position.get;
-      Efl.Gfx.size.set;
-      Efl.Gfx.size.get;
-      Efl.Gfx.Stack.layer.set;
-      Efl.Gfx.Stack.layer.get;
-      Efl.Gfx.Stack.below.get;
-      Efl.Gfx.Stack.above.get;
+      Efl.Object.constructor;
+      Efl.Object.destructor;
+      Efl.Object.provider_find;
+      Efl.Gfx.visible { get; set; }
+      Efl.Gfx.color { get; set; }
+      Efl.Gfx.color_part { get; set; }
+      Efl.Gfx.geometry { get; set; }
+      Efl.Gfx.position { get; set; }
+      Efl.Gfx.size { get; set; }
+      Efl.Gfx.Stack.layer { get; set; }
+      Efl.Gfx.Stack.below { get; }
+      Efl.Gfx.Stack.above { get; }
       Efl.Gfx.Stack.stack_below;
       Efl.Gfx.Stack.stack_above;
       Efl.Gfx.Stack.raise;
       Efl.Gfx.Stack.lower;
-      Efl.Gfx.Size.Hint.hint_aspect.set;
-      Efl.Gfx.Size.Hint.hint_aspect.get;
-      Efl.Gfx.Size.Hint.hint_align.set;
-      Efl.Gfx.Size.Hint.hint_align.get;
-      Efl.Gfx.Size.Hint.hint_combined_min.get;
-      Efl.Gfx.Size.Hint.hint_display_mode.set;
-      Efl.Gfx.Size.Hint.hint_display_mode.get;
-      Efl.Gfx.Size.Hint.hint_restricted_min.set;
-      Efl.Gfx.Size.Hint.hint_restricted_min.get;
-      Efl.Gfx.Size.Hint.hint_min.set;
-      Efl.Gfx.Size.Hint.hint_min.get;
-      Efl.Gfx.Size.Hint.hint_max.set;
-      Efl.Gfx.Size.Hint.hint_max.get;
-      Efl.Gfx.Size.Hint.hint_margin.set;
-      Efl.Gfx.Size.Hint.hint_margin.get;
-      Efl.Gfx.Size.Hint.hint_request.set;
-      Efl.Gfx.Size.Hint.hint_request.get;
-      Efl.Gfx.Size.Hint.hint_weight.set;
-      Efl.Gfx.Size.Hint.hint_weight.get;
-      Efl.Gfx.Map.map_enable.set;
-      Efl.Gfx.Map.map_enable.get;
-   }
-   events {
-       mouse,in @beta; [[Mouse In Event ]]
-       mouse,out @beta; [[Mouse Out Event ]]
-       mouse,down @beta; [[Mouse Button Down Event ]]
-       mouse,up @beta; [[Mouse Button Up Event ]]
-       mouse,move @beta; [[Mouse Move Event ]]
-       mouse,wheel @beta; [[Mouse Wheel Event ]]
-       multi,down @beta; [[Mouse-touch Down Event ]]
-       multi,up @beta; [[Mouse-touch Up Event ]]
-       multi,move @beta; [[Multi-touch Move Event ]]
-       free @beta; [[Object Being Freed (Called after Del) ]]
-       key,down @beta; [[Key Press Event ]]
-       key,up @beta; [[Key Release Event ]]
-       focus,in; [[Focus In Event ]]
-       focus,out; [[Focus Out Event ]]
-       del @beta; [[Object Being Deleted (called before Free) ]]
-       hold @beta; [[Events go on/off hold ]]
+      Efl.Gfx.Size.Hint.hint_aspect { get; set; }
+      Efl.Gfx.Size.Hint.hint_align { get; set; }
+      Efl.Gfx.Size.Hint.hint_combined_min { get; }
+      Efl.Gfx.Size.Hint.hint_restricted_min { get; set; }
+      Efl.Gfx.Size.Hint.hint_min { get; set; }
+      Efl.Gfx.Size.Hint.hint_max { get; set; }
+      Efl.Gfx.Size.Hint.hint_margin { get; set; }
+      Efl.Gfx.Size.Hint.hint_request { get; set; }
+      Efl.Gfx.Size.Hint.hint_weight { get; set; }
+      Efl.Input.Interface.seat_event_filter { get; set; }
+      Efl.Loop_User.loop { get; }
    }
 }

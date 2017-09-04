@@ -61,8 +61,8 @@ extern int _evas_engine_GL_X11_log_dom ;
 struct _Outbuf
 {
 #ifdef GL_GLES
-   EGLContext       egl_context[2];
-   EGLSurface       egl_surface[2];
+   EGLContext       egl_context;
+   EGLSurface       egl_surface;
    EGLConfig        egl_config;
    EGLDisplay       egl_disp;
    Eina_Bool        gles3 : 1;
@@ -76,7 +76,6 @@ struct _Outbuf
       unsigned char msaa;
 #ifndef GL_GLES
       Eina_Bool     loose_binding : 1;
-      Eina_Bool     noext_glXCreatePixmap : 1;
 #endif
    } detected;
 
@@ -94,7 +93,7 @@ struct _Outbuf
    Render_Engine_Swap_Mode swap_mode;
    Colormap         colormap;
    Window           win;
-   int              w, h;
+   unsigned int     w, h;
    int              screen;
    int              depth;
    int              alpha;
@@ -165,10 +164,10 @@ extern int      (*glsym_glXWaitVideoSync)   (int a, int b, unsigned int *c);
 
 #endif
 
-Outbuf *eng_window_new(Evas_Engine_Info_GL_X11 *info, Evas *e,
+Outbuf *eng_window_new(Evas_Engine_Info_GL_X11 *info,
                        Display *disp, Window win, int screen,
                        Visual *vis, Colormap cmap,
-                       int depth, int w, int h, int indirect,
+                       int depth, unsigned int w, unsigned int h, int indirect,
                        int alpha, int rot,
                        Render_Engine_Swap_Mode swap_mode,
                        int depth_bits, int stencil_bits, int msaa_bits);
@@ -188,6 +187,9 @@ void      eng_gl_context_use(Context_3D *context);
 void eng_outbuf_reconfigure(Outbuf *ob, int w, int h, int rot, Outbuf_Depth depth);
 int eng_outbuf_get_rot(Outbuf *ob);
 Render_Engine_Swap_Mode eng_outbuf_swap_mode(Outbuf *ob);
+#ifdef GL_GLES
+void eng_outbuf_damage_region_set(Outbuf *ob, Tilebuf_Rect *damage);
+#endif
 Eina_Bool eng_outbuf_region_first_rect(Outbuf *ob);
 void *eng_outbuf_new_region_for_update(Outbuf *ob,
                                        int x, int y, int w, int h,
@@ -195,12 +197,12 @@ void *eng_outbuf_new_region_for_update(Outbuf *ob,
 void eng_outbuf_push_free_region_for_update(Outbuf *ob, RGBA_Image *update);
 void eng_outbuf_push_updated_region(Outbuf *ob, RGBA_Image *update,
                                     int x, int y, int w, int h);
-void eng_outbuf_flush(Outbuf *ob, Tilebuf_Rect *rects, Evas_Render_Mode render_mode);
+void eng_outbuf_flush(Outbuf *ob, Tilebuf_Rect *surface_damage, Tilebuf_Rect *buffer_damage, Evas_Render_Mode render_mode);
 Evas_Engine_GL_Context *eng_outbuf_gl_context_get(Outbuf *ob);
 void *eng_outbuf_egl_display_get(Outbuf *ob);
 
 Eina_Bool eng_preload_make_current(void *data, void *doit);
-void eng_gl_symbols(Eina_Bool noext_glXCreatePixmap);
+void eng_gl_symbols(Outbuf *ob);
 
 static inline int
 _re_wincheck(Outbuf *ob)

@@ -36,31 +36,30 @@ static const char *attr_data[] =
 int total_attributes = sizeof(attribute)/sizeof(attribute[0]);
 
 static void
-_filter_cb(void *data EINA_UNUSED, const Eo_Event *event)
+_main_cb(void *data, const Efl_Event *ev)
 {
-   Eio_Filter_Name_Data *event_info = event->info;
-
-   event_info->filter = EINA_TRUE;
-}
-
-static void
-_main_cb(void *data, void *v)
-{
-   const char* attr = v;
+   Efl_Future_Event_Progress *progress = ev->info;
+   const Eina_Array *attrs = progress->progress;
+   const char* attr;
    int *num_of_attr = (int *)data;
-   unsigned int i;
+   unsigned int i, j;
+   Eina_Array_Iterator it;
 
-   for (i = 0; i < sizeof (attribute) / sizeof (attribute[0]); ++i)
-     if (strcmp(attr, attribute[i]) == 0)
-       {
-          (*num_of_attr)++;
-          break;
-       }
-
+   EINA_ARRAY_ITER_NEXT(attrs, j, attr, it)
+     {
+        for (i = 0; i < sizeof (attribute) / sizeof (attribute[0]); ++i)
+          {
+             if (strcmp(attr, attribute[i]) == 0)
+               {
+                  (*num_of_attr)++;
+                  break;
+               }
+          }
+     }
 }
 
 static void
-_done_cb(void *data, void *value EINA_UNUSED)
+_done_cb(void *data, const Efl_Event *ev EINA_UNUSED)
 
 {
    int *num_of_attr = (int *)data;
@@ -71,17 +70,18 @@ _done_cb(void *data, void *value EINA_UNUSED)
 }
 
 static void
-_done_get_cb(void *data EINA_UNUSED, void* v)
+_done_get_cb(void *data EINA_UNUSED, const Efl_Event *ev)
 {
-   Eina_Iterator** it = (Eina_Iterator**)v;
+   Efl_Future_Event_Success *success = ev->info;
+   Eina_Accessor *ac = success->value;
    int i = 0;
-   Eio_Xattr_Data *get_data;
+   Eina_Binbuf *buf;
 
-   while (eina_iterator_next((*it), (void**)&get_data))
+   EINA_ACCESSOR_FOREACH(ac, i, buf)
      {
-        fail_if(!get_data);
-        fail_if(strcmp(get_data->data, attr_data[i]) != 0);
-        i++;
+        fail_if(!buf);
+        fail_if(strcmp((const char*) eina_binbuf_string_get(buf),
+                       attr_data[i]) != 0);
      }
 
    fail_if(i != total_attributes);
@@ -90,12 +90,15 @@ _done_get_cb(void *data EINA_UNUSED, void* v)
 }
 
 static void
-_done_set_cb(void *data, void* v)
+_done_set_cb(void *data, const Efl_Event *ev)
 {
-   Eina_Iterator** it = (Eina_Iterator**)v;
+   Efl_Future_Event_Success *success = ev->info;
+   Eina_Accessor *ac = success->value;
    int *placeholder;
    int *num_of_attr = data;
-   while(eina_iterator_next((*it), (void**)&placeholder))
+   int i = 0;
+
+   EINA_ACCESSOR_FOREACH(ac, i, placeholder)
      *num_of_attr += 1;
 
    fail_if(*num_of_attr != total_attributes);
@@ -104,10 +107,11 @@ _done_set_cb(void *data, void* v)
 }
 
 static void
-_error_cb(void *data EINA_UNUSED, Eina_Error error)
-
+_error_cb(void *data EINA_UNUSED, const Efl_Event *ev)
 {
-   fprintf(stderr, "Something has gone wrong:%s\n", eina_error_msg_get(error));
+   Efl_Future_Event_Failure *failure = ev->info;
+
+   fprintf(stderr, "Something has gone wrong:%s\n", eina_error_msg_get(failure->error));
    abort();
 
    ecore_main_loop_quit();
@@ -120,16 +124,14 @@ START_TEST(eio_test_job_xattr_set)
    int num_of_attr = 0, fd;
    unsigned int i;
    Eo *job;
-   Eina_Promise *list_promise = NULL;
-   Eina_Promise **attrib_promises = NULL;
+   Efl_Future *ls = NULL;
+   Efl_Future **futures = NULL;
 
    ecore_init();
    eina_init();
    eio_init();
 
-   fprintf(stderr, "eio_test_job_xattr_set\n"); fflush(stderr);
-
-   job = eo_add(EFL_IO_MANAGER_CLASS, NULL);
+   job = efl_add(EFL_IO_MANAGER_CLASS, ecore_main_loop_get());
 
    test_file_path = get_full_path(XATTR_TEST_DIR, filename);
    fd = open(test_file_path,
@@ -137,54 +139,53 @@ START_TEST(eio_test_job_xattr_set)
              S_IRWXU | S_IRWXG | S_IRWXO);
    fail_if(fd == 0);
 
-   attrib_promises = (Eina_Promise**)calloc(total_attributes + 1, sizeof(Eina_Promise*));
-   attrib_promises[total_attributes] = NULL;
+   futures = calloc(total_attributes + 1, sizeof(Efl_Future*));
+   futures[total_attributes] = NULL;
 
    for (i = 0; i < sizeof(attribute) / sizeof(attribute[0]); ++i)
      {
-        attrib_promises[i] = efl_io_manager_file_xattr_set
-          (job, test_file_path, attribute[i],
-           attr_data[i], strlen(attr_data[i]),
-           EINA_XATTR_INSERT);
+        Eina_Binbuf *buf;
+
+        buf = eina_binbuf_manage_new((const unsigned char*) attr_data[i], strlen(attr_data[i]), EINA_TRUE);
+        futures[i] = efl_io_manager_xattr_set(job, test_file_path, attribute[i], buf, EINA_XATTR_INSERT);
+        eina_binbuf_free(buf);
 
         fail_if(num_of_attr != 0); // test asynchronous
      }
-   eina_promise_then(eina_promise_all(eina_carray_iterator_new((void**)attrib_promises)),
-         &_done_set_cb, _error_cb, &num_of_attr);
+   efl_future_then(efl_future_iterator_all(eina_carray_iterator_new((void**) futures)),
+                   _done_set_cb, _error_cb, NULL, &num_of_attr);
 
    ecore_main_loop_begin();
 
-   free(attrib_promises);
+   free(futures);
 
    num_of_attr = 0;
 
-   attrib_promises = (Eina_Promise**)calloc(total_attributes + 1, sizeof(Eina_Promise*));
-   attrib_promises[total_attributes] = NULL;
+   futures = calloc(total_attributes + 1, sizeof(Efl_Future*));
+   futures[total_attributes] = NULL;
 
    for (i = 0; i < sizeof(attribute) / sizeof(attribute[0]); ++i)
-   {
-     attrib_promises[i] = efl_io_manager_file_xattr_get(job, test_file_path, attribute[i]);
-   }
+     {
+        futures[i] = efl_io_manager_xattr_get(job, test_file_path, attribute[i]);
+     }
 
-   eina_promise_then(eina_promise_all(eina_carray_iterator_new((void**)attrib_promises)),
-         _done_get_cb, _error_cb, &num_of_attr);
+   efl_future_then(efl_future_iterator_all(eina_carray_iterator_new((void**)futures)),
+                   _done_get_cb, _error_cb, NULL, &num_of_attr);
 
    ecore_main_loop_begin();
 
    num_of_attr = 0;
 
-   eo_event_callback_add(job, EFL_IO_MANAGER_EVENT_XATTR, _filter_cb, NULL);
-   list_promise = efl_io_manager_file_xattr_list_get(job, test_file_path);
-   eina_promise_progress_cb_add(list_promise, _main_cb, &num_of_attr, NULL);
-   eina_promise_then(list_promise, _done_cb, _error_cb, &num_of_attr);
+   efl_future_use(&ls, efl_io_manager_xattr_ls(job, test_file_path));
+   efl_future_then(ls, _done_cb, _error_cb, _main_cb, &num_of_attr);
 
    fail_if(num_of_attr != 0);
 
    ecore_main_loop_begin();
 
-   free(attrib_promises);
+   free(futures);
 
-   eo_unref(job);
+   efl_unref(job);
    close(fd);
    unlink(test_file_path);
    eina_tmpstr_del(test_file_path);

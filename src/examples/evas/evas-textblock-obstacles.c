@@ -1,5 +1,5 @@
 /**
- * Evas textblock example for obstacles feature
+ * Example of textblock obstacles in Evas.
  *
  * You'll need at least one engine built for it (excluding the buffer
  * one). See stdout/stderr for output.
@@ -125,7 +125,7 @@ _on_keydown(void        *data EINA_UNUSED,
 
    if (strcmp(ev->key, "h") == 0) /* print help */
      {
-        fprintf(stdout, commands);
+        printf("%s\n", commands);
         return;
      }
 
@@ -134,7 +134,7 @@ _on_keydown(void        *data EINA_UNUSED,
         (d.t_data.obs_ptr)++;
         POINTER_CYCLE(d.t_data.obs_ptr, d.t_data.obs);
 
-        fprintf(stdout, "Now controlling obstacle: %p\n", *d.t_data.obs_ptr);
+        printf("Now controlling obstacle: %p\n", *d.t_data.obs_ptr);
 
         return;
      }
@@ -146,8 +146,8 @@ _on_keydown(void        *data EINA_UNUSED,
            evas_object_hide(obj);
         else
            evas_object_show(obj);
-        fprintf(stdout, "Show/hide toggle for obstacle %p\n",
-              *d.t_data.obs_ptr);
+        printf("Show/hide toggle for obstacle %p\n",
+               *d.t_data.obs_ptr);
         evas_object_textblock_obstacles_update(d.text);
 
         return;
@@ -164,10 +164,12 @@ _on_keydown(void        *data EINA_UNUSED,
 
         evas_object_textblock_obstacles_update(d.text);
 
-        fprintf(stdout, "Changing obstacle size to: %d,%d\n", *d.t_data.obs_size_ptr, *d.t_data.obs_size_ptr);
+        printf("Changing obstacle size to: %d,%d\n",
+               *d.t_data.obs_size_ptr, *d.t_data.obs_size_ptr);
 
         return;
      }
+
    if (strcmp(ev->key, "p") == 0) /* change obstacle position */
      {
         Evas_Coord x, y;
@@ -177,20 +179,22 @@ _on_keydown(void        *data EINA_UNUSED,
         evas_object_move(*d.t_data.obs_ptr, x, y);
         evas_object_textblock_obstacles_update(d.text);
 
-        fprintf(stdout, "Changing obstacles position\n");
+        printf("Changing obstacles position\n");
         evas_object_move(*d.t_data.obs_ptr, x, y);
         evas_object_geometry_get(d.t_data.obs[0], &rx, &ry, NULL, NULL);
         evas_object_geometry_get(d.t_data.obs[1], &gx, &gy, NULL, NULL);
-        fprintf(stdout, "Obstacle #1 (red)  : [%d,%d]\n", rx, ry);
-        fprintf(stdout, "Obstacle #2 (green): [%d,%d]\n", gx, gy);
+        printf("Obstacle #1 (red)  : [%d,%d]\n", rx, ry);
+        printf("Obstacle #2 (green): [%d,%d]\n", gx, gy);
 
         return;
      }
+
    if (strcmp(ev->key, "w") == 0) /* change obstacle position */
      {
         (d.t_data.wrap_ptr)++;
         POINTER_CYCLE(d.t_data.wrap_ptr, d.t_data.wrap);
-        fprintf(stdout, "Changing wrap mode to: %s\n", *d.t_data.wrap_ptr);
+        printf("Changing wrap mode to: %s\n",
+               *d.t_data.wrap_ptr);
         _style_set(*d.t_data.wrap_ptr);
         evas_object_textblock_obstacles_update(d.text);
 
@@ -212,7 +216,7 @@ _text_init()
    _style_set("word");
 
    evas_object_textblock_text_markup_set(d.text,
-         "This is an example text to demonstrate the textblock object"
+         "This example text demonstrates the textblock object"
          " with obstacle objects support."
          " Any evas object <item size=72x16></item>can register itself as an obstacle to the textblock"
          " object. Upon reg<color=#0ff>stering, it aff</color>ects the layout of the text in"
@@ -293,7 +297,7 @@ main(void)
    evas_object_show(d.t_data.obs[0]);
    evas_object_show(d.t_data.obs[1]);
 
-   fprintf(stdout, commands);
+   printf("%s\n", commands);
    ecore_main_loop_begin();
 
    evas_textblock_style_free(d.st);
@@ -308,4 +312,3 @@ error:
    ecore_evas_shutdown();
    return -1;
 }
-
