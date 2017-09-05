@@ -22,6 +22,9 @@ libecore.so.1 libecore1 #MINVER#
  _EFL_LOOP_EVENT_IDLE@Base 1.19.1+eo+1
  _EFL_LOOP_EVENT_IDLE_ENTER@Base 1.19.1+eo+1
  _EFL_LOOP_EVENT_IDLE_EXIT@Base 1.19.1+eo+1
++ _EFL_LOOP_EVENT_POLL_HIGH@Base 1.20.3-1
++ _EFL_LOOP_EVENT_POLL_LOW@Base 1.20.3-1
++ _EFL_LOOP_EVENT_POLL_MEDIUM@Base 1.20.3-1
  _EFL_LOOP_FD_EVENT_ERROR@Base 1.19.1+eo+1
  _EFL_LOOP_FD_EVENT_READ@Base 1.19.1+eo+1
  _EFL_LOOP_FD_EVENT_WRITE@Base 1.19.1+eo+1
@@ -150,11 +153,7 @@ libecore.so.1 libecore1 #MINVER#
  ecore_pipe_write_close@Base 1.19.1+eo+1
  ecore_pipe_write_fd@Base 1.19.1+eo+1
  ecore_poller_add@Base 1.19.1+eo+1
- ecore_poller_class_get@Base 1.19.1+eo+1
- ecore_poller_constructor@Base 1.19.1+eo+1
  ecore_poller_del@Base 1.19.1+eo+1
- ecore_poller_interval_get@Base 1.19.1+eo+1
- ecore_poller_interval_set@Base 1.19.1+eo+1
  ecore_poller_poll_interval_get@Base 1.19.1+eo+1
  ecore_poller_poll_interval_set@Base 1.19.1+eo+1
  ecore_poller_poller_interval_get@Base 1.19.1+eo+1

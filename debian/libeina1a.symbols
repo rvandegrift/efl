@@ -150,6 +150,19 @@ libeina.so.1 libeina1a #MINVER#
  eina_cpu_features@Base 1.19.1+eo+1
  eina_cpu_features_get@Base 1.19.1+eo+1
  eina_cpu_page_size@Base 1.19.1+eo+1
+ eina_debug_disable@Base 1.20.3+eo+1
+ eina_debug_dispatch@Base 1.20.3+eo+1
+ eina_debug_local_connect@Base 1.20.3+eo+1
+ eina_debug_opcodes_register@Base 1.20.3+eo+1
+ eina_debug_remote_connect@Base 1.20.3+eo+1
+ eina_debug_session_data_get@Base 1.20.3+eo+1
+ eina_debug_session_data_set@Base 1.20.3+eo+1
+ eina_debug_session_dispatch_get@Base 1.20.3+eo+1
+ eina_debug_session_dispatch_override@Base 1.20.3+eo+1
+ eina_debug_session_send@Base 1.20.3+eo+1
+ eina_debug_session_terminate@Base 1.20.3+eo+1
+ eina_debug_timer_add@Base 1.20.3+eo+1
+ eina_debug_timer_del@Base 1.20.3+eo+1
  eina_environment_home_get@Base 1.19.1+eo+1
  eina_environment_tmp_get@Base 1.19.1+eo+1
  eina_error_find@Base 1.19.1+eo+1
@@ -166,6 +179,7 @@ libeina.so.1 libeina1a #MINVER#
  eina_f32p32_cos@Base 1.19.1+eo+1
  eina_f32p32_sin@Base 1.19.1+eo+1
  eina_file_close@Base 1.19.1+eo+1
+ eina_file_close_on_exec@Base 1.20.3+eo+1
  eina_file_copy@Base 1.19.1+eo+1
  eina_file_dir_list@Base 1.19.1+eo+1
  eina_file_direct_ls@Base 1.19.1+eo+1
@@ -807,6 +821,7 @@ libeo.so.1 libeina1a #MINVER#
  _efl_object_init_generation@Base 1.19.1+eo+1
  _efl_object_op_api_id_get@Base 1.19.1+eo+1
  efl_callbacks_cmp@Base 1.19.1+eo+1
+ efl_cast@Base 1.20.3+eo+1
  efl_children_iterator_new@Base 1.19.1+eo+1
  efl_class_class_get@Base 1.19.1+eo+1
  efl_class_functions_set@Base 1.19.1+eo+1
@@ -821,6 +836,7 @@ libeo.so.1 libeina1a #MINVER#
  efl_composite_part_is@Base 1.19.1+eo+1
  efl_constructor@Base 1.19.1+eo+1
  efl_data_scope_get@Base 1.19.1+eo+1
+ efl_data_scope_safe_get@Base 1.20.3+eo+1
  efl_data_xref_internal@Base 1.19.1+eo+1
  efl_data_xunref_internal@Base 1.19.1+eo+1
  efl_dbg_info_free@Base 1.19.1+eo+1
@@ -893,6 +909,8 @@ libeo.so.1 libeina1a #MINVER#
  efl_wref_del@Base 1.19.1+eo+1
  efl_xref_internal@Base 1.19.1+eo+1
  efl_xunref@Base 1.19.1+eo+1
+ eo_classes_iterator_new@Base 1.20.3+eo+1
+ eo_objects_iterator_new@Base 1.20.3+eo+1
 libefl.so.1 libeina1a #MINVER#
 * Build-Depends-Package: libeina-dev
  EFL_MODEL_ERROR_INCORRECT_VALUE@Base 1.19.1+eo+1
@@ -915,14 +933,14 @@ libefl.so.1 libeina1a #MINVER#
  _EFL_CONTAINER_EVENT_CONTENT_ADDED@Base 1.19.1+eo+1
  _EFL_CONTAINER_EVENT_CONTENT_REMOVED@Base 1.19.1+eo+1
  _EFL_EVENT_ANIMATOR_TICK@Base 1.19.1+eo+1
- _EFL_GFX_CHANGED@Base 1.19.1+eo+1
+ _EFL_GFX_EVENT_CHANGED@Base 1.20.3+eo+1
  _EFL_GFX_EVENT_CHANGE_SIZE_HINTS@Base 1.19.1+eo+1
  _EFL_GFX_EVENT_HIDE@Base 1.19.1+eo+1
  _EFL_GFX_EVENT_MOVE@Base 1.19.1+eo+1
  _EFL_GFX_EVENT_RESIZE@Base 1.19.1+eo+1
  _EFL_GFX_EVENT_RESTACK@Base 1.19.1+eo+1
  _EFL_GFX_EVENT_SHOW@Base 1.19.1+eo+1
- _EFL_GFX_PATH_CHANGED@Base 1.19.1+eo+1
+ _EFL_GFX_PATH_EVENT_CHANGED@Base 1.20.3+eo+1
  _EFL_IMAGE_EVENT_PRELOAD@Base 1.19.1+eo+1
  _EFL_IMAGE_EVENT_RESIZE@Base 1.19.1+eo+1
  _EFL_IMAGE_EVENT_UNLOAD@Base 1.19.1+eo+1
@@ -948,12 +966,15 @@ libefl.so.1 libeina1a #MINVER#
  _EFL_VPATH_FILE_EVENT_FETCHED@Base 1.19.1+eo+1
  __efl_internal_init@Base 1.19.1+eo+1
  efl_animator_interface_get@Base 1.19.1+eo+1
+ efl_canvas_device_get@Base 1.20.3+eo+1
  efl_canvas_image_max_size_get@Base 1.19.1+eo+1
  efl_canvas_interface_get@Base 1.19.1+eo+1
  efl_canvas_object_top_at_xy_get@Base 1.19.1+eo+1
  efl_canvas_object_top_in_rectangle_get@Base 1.19.1+eo+1
  efl_canvas_objects_at_xy_get@Base 1.19.1+eo+1
  efl_canvas_objects_in_rectangle_get@Base 1.19.1+eo+1
+ efl_canvas_seat_get@Base 1.20.3+eo+1
+ efl_canvas_seats@Base 1.20.3+eo+1
  efl_canvas_smart_objects_calculate@Base 1.19.1+eo+1
  efl_config_get@Base 1.19.1+eo+1
  efl_config_interface_get@Base 1.19.1+eo+1
@@ -963,7 +984,6 @@ libefl.so.1 libeina1a #MINVER#
  efl_content_count@Base 1.19.1+eo+1
  efl_content_get@Base 1.19.1+eo+1
  efl_content_iterate@Base 1.19.1+eo+1
- efl_content_part_name_get@Base 1.19.1+eo+1
  efl_content_remove@Base 1.19.1+eo+1
  efl_content_set@Base 1.19.1+eo+1
  efl_content_unset@Base 1.19.1+eo+1
@@ -1086,8 +1106,6 @@ libefl.so.1 libeina1a #MINVER#
  efl_gfx_size_hint_base_get@Base 1.19.1+eo+1
  efl_gfx_size_hint_base_set@Base 1.19.1+eo+1
  efl_gfx_size_hint_combined_min_get@Base 1.19.1+eo+1
- efl_gfx_size_hint_display_mode_get@Base 1.19.1+eo+1
- efl_gfx_size_hint_display_mode_set@Base 1.19.1+eo+1
  efl_gfx_size_hint_interface_get@Base 1.19.1+eo+1
  efl_gfx_size_hint_margin_get@Base 1.19.1+eo+1
  efl_gfx_size_hint_margin_set@Base 1.19.1+eo+1
@@ -1155,16 +1173,15 @@ libefl.so.1 libeina1a #MINVER#
  efl_image_ratio_get@Base 1.19.1+eo+1
  efl_image_scale_hint_get@Base 1.19.1+eo+1
  efl_image_scale_hint_set@Base 1.19.1+eo+1
+ efl_image_size_get@Base 1.20.3+eo+1
  efl_image_smooth_scale_get@Base 1.19.1+eo+1
  efl_image_smooth_scale_set@Base 1.19.1+eo+1
+ efl_input_device_children_iterate@Base 1.20.3+eo+1
  efl_input_device_class_get@Base 1.19.1+eo+1
- efl_input_device_description_get@Base 1.19.1+eo+1
- efl_input_device_description_set@Base 1.19.1+eo+1
- efl_input_device_name_get@Base 1.19.1+eo+1
- efl_input_device_name_set@Base 1.19.1+eo+1
- efl_input_device_parent_get@Base 1.19.1+eo+1
- efl_input_device_parent_set@Base 1.19.1+eo+1
+ efl_input_device_has_pointer_caps@Base 1.20.3+eo+1
  efl_input_device_seat_get@Base 1.19.1+eo+1
+ efl_input_device_seat_id_get@Base 1.20.3+eo+1
+ efl_input_device_seat_id_set@Base 1.20.3+eo+1
  efl_input_device_source_get@Base 1.19.1+eo+1
  efl_input_device_source_set@Base 1.19.1+eo+1
  efl_input_device_subtype_get@Base 1.19.1+eo+1
@@ -1269,9 +1286,6 @@ libefl.so.1 libeina1a #MINVER#
  efl_pack_grid_size_set@Base 1.19.1+eo+1
  efl_pack_index_get@Base 1.19.1+eo+1
  efl_pack_interface_get@Base 1.19.1+eo+1
- efl_pack_layout_do@Base 1.19.1+eo+1
- efl_pack_layout_engine_get@Base 1.19.1+eo+1
- efl_pack_layout_engine_set@Base 1.19.1+eo+1
  efl_pack_layout_interface_get@Base 1.19.1+eo+1
  efl_pack_layout_request@Base 1.19.1+eo+1
  efl_pack_layout_update@Base 1.19.1+eo+1
@@ -1302,14 +1316,150 @@ libefl.so.1 libeina1a #MINVER#
  efl_screen_interface_get@Base 1.19.1+eo+1
  efl_screen_rotation_get@Base 1.19.1+eo+1
  efl_screen_size_get@Base 1.19.1+eo+1
+ efl_text_annotate_interface_get@Base 1.20.3+eo+1
+ efl_text_annotation_del@Base 1.20.3+eo+1
+ efl_text_annotation_get@Base 1.20.3+eo+1
+ efl_text_annotation_insert@Base 1.20.3+eo+1
+ efl_text_annotation_positions_get@Base 1.20.3+eo+1
+ efl_text_annotation_set@Base 1.20.3+eo+1
+ efl_text_backing_color_get@Base 1.20.3+eo+1
+ efl_text_backing_color_set@Base 1.20.3+eo+1
+ efl_text_backing_type_get@Base 1.20.3+eo+1
+ efl_text_backing_type_set@Base 1.20.3+eo+1
+ efl_text_cursor_char_delete@Base 1.20.3+eo+1
+ efl_text_cursor_char_next@Base 1.20.3+eo+1
+ efl_text_cursor_char_prev@Base 1.20.3+eo+1
+ efl_text_cursor_compare@Base 1.20.3+eo+1
+ efl_text_cursor_content_get@Base 1.20.3+eo+1
+ efl_text_cursor_coord_set@Base 1.20.3+eo+1
+ efl_text_cursor_copy@Base 1.20.3+eo+1
+ efl_text_cursor_equal@Base 1.20.3+eo+1
+ efl_text_cursor_free@Base 1.20.3+eo+1
+ efl_text_cursor_geometry_get@Base 1.20.3+eo+1
+ efl_text_cursor_get@Base 1.20.3+eo+1
+ efl_text_cursor_interface_get@Base 1.20.3+eo+1
+ efl_text_cursor_line_char_first@Base 1.20.3+eo+1
+ efl_text_cursor_line_char_last@Base 1.20.3+eo+1
+ efl_text_cursor_line_jump_by@Base 1.20.3+eo+1
+ efl_text_cursor_new@Base 1.20.3+eo+1
+ efl_text_cursor_object_item_annotation_get@Base 1.20.3+eo+1
+ efl_text_cursor_object_item_insert@Base 1.20.3+eo+1
+ efl_text_cursor_paragraph_char_first@Base 1.20.3+eo+1
+ efl_text_cursor_paragraph_char_last@Base 1.20.3+eo+1
+ efl_text_cursor_paragraph_first@Base 1.20.3+eo+1
+ efl_text_cursor_paragraph_last@Base 1.20.3+eo+1
+ efl_text_cursor_paragraph_next@Base 1.20.3+eo+1
+ efl_text_cursor_paragraph_prev@Base 1.20.3+eo+1
+ efl_text_cursor_position_get@Base 1.20.3+eo+1
+ efl_text_cursor_position_set@Base 1.20.3+eo+1
+ efl_text_cursor_text_insert@Base 1.20.3+eo+1
+ efl_text_cursor_word_end@Base 1.20.3+eo+1
+ efl_text_cursor_word_start@Base 1.20.3+eo+1
+ efl_text_effect_type_get@Base 1.20.3+eo+1
+ efl_text_effect_type_set@Base 1.20.3+eo+1
+ efl_text_ellipsis_get@Base 1.20.3+eo+1
+ efl_text_ellipsis_set@Base 1.20.3+eo+1
+ efl_text_font_fallbacks_get@Base 1.20.3+eo+1
+ efl_text_font_fallbacks_set@Base 1.20.3+eo+1
+ efl_text_font_get@Base 1.20.3+eo+1
+ efl_text_font_interface_get@Base 1.20.3+eo+1
+ efl_text_font_lang_get@Base 1.20.3+eo+1
+ efl_text_font_lang_set@Base 1.20.3+eo+1
+ efl_text_font_set@Base 1.20.3+eo+1
+ efl_text_font_slant_get@Base 1.20.3+eo+1
+ efl_text_font_slant_set@Base 1.20.3+eo+1
+ efl_text_font_source_get@Base 1.20.3+eo+1
+ efl_text_font_source_set@Base 1.20.3+eo+1
+ efl_text_font_weight_get@Base 1.20.3+eo+1
+ efl_text_font_weight_set@Base 1.20.3+eo+1
+ efl_text_font_width_get@Base 1.20.3+eo+1
+ efl_text_font_width_set@Base 1.20.3+eo+1
+ efl_text_format_interface_get@Base 1.20.3+eo+1
  efl_text_get@Base 1.19.1+eo+1
+ efl_text_gfx_filter_get@Base 1.20.3+eo+1
+ efl_text_gfx_filter_set@Base 1.20.3+eo+1
+ efl_text_glow2_color_get@Base 1.20.3+eo+1
+ efl_text_glow2_color_set@Base 1.20.3+eo+1
+ efl_text_glow_color_get@Base 1.20.3+eo+1
+ efl_text_glow_color_set@Base 1.20.3+eo+1
+ efl_text_halign_get@Base 1.20.3+eo+1
+ efl_text_halign_set@Base 1.20.3+eo+1
  efl_text_interface_get@Base 1.19.1+eo+1
+ efl_text_linegap_get@Base 1.20.3+eo+1
+ efl_text_linegap_set@Base 1.20.3+eo+1
+ efl_text_linerelgap_get@Base 1.20.3+eo+1
+ efl_text_linerelgap_set@Base 1.20.3+eo+1
+ efl_text_multiline_get@Base 1.20.3+eo+1
+ efl_text_multiline_set@Base 1.20.3+eo+1
+ efl_text_normal_color_get@Base 1.20.3+eo+1
+ efl_text_normal_color_set@Base 1.20.3+eo+1
+ efl_text_object_item_geometry_get@Base 1.20.3+eo+1
+ efl_text_outline_color_get@Base 1.20.3+eo+1
+ efl_text_outline_color_set@Base 1.20.3+eo+1
+ efl_text_password_get@Base 1.20.3+eo+1
+ efl_text_password_set@Base 1.20.3+eo+1
  efl_text_properties_font_get@Base 1.19.1+eo+1
  efl_text_properties_font_set@Base 1.19.1+eo+1
  efl_text_properties_font_source_get@Base 1.19.1+eo+1
  efl_text_properties_font_source_set@Base 1.19.1+eo+1
  efl_text_properties_interface_get@Base 1.19.1+eo+1
+ efl_text_range_annotations_get@Base 1.20.3+eo+1
+ efl_text_replacement_char_get@Base 1.20.3+eo+1
+ efl_text_replacement_char_set@Base 1.20.3+eo+1
  efl_text_set@Base 1.19.1+eo+1
+ efl_text_shadow_color_get@Base 1.20.3+eo+1
+ efl_text_shadow_color_set@Base 1.20.3+eo+1
+ efl_text_shadow_direction_get@Base 1.20.3+eo+1
+ efl_text_shadow_direction_set@Base 1.20.3+eo+1
+ efl_text_strikethrough_color_get@Base 1.20.3+eo+1
+ efl_text_strikethrough_color_set@Base 1.20.3+eo+1
+ efl_text_strikethrough_type_get@Base 1.20.3+eo+1
+ efl_text_strikethrough_type_set@Base 1.20.3+eo+1
+ efl_text_style_interface_get@Base 1.20.3+eo+1
+ efl_text_tabstops_get@Base 1.20.3+eo+1
+ efl_text_tabstops_set@Base 1.20.3+eo+1
+ efl_text_underline2_color_get@Base 1.20.3+eo+1
+ efl_text_underline2_color_set@Base 1.20.3+eo+1
+ efl_text_underline2_type_get@Base 1.20.3+eo+1
+ efl_text_underline2_type_set@Base 1.20.3+eo+1
+ efl_text_underline_color_get@Base 1.20.3+eo+1
+ efl_text_underline_color_set@Base 1.20.3+eo+1
+ efl_text_underline_dashed_color_get@Base 1.20.3+eo+1
+ efl_text_underline_dashed_color_set@Base 1.20.3+eo+1
+ efl_text_underline_dashed_gap_get@Base 1.20.3+eo+1
+ efl_text_underline_dashed_gap_set@Base 1.20.3+eo+1
+ efl_text_underline_dashed_width_get@Base 1.20.3+eo+1
+ efl_text_underline_dashed_width_set@Base 1.20.3+eo+1
+ efl_text_underline_height_get@Base 1.20.3+eo+1
+ efl_text_underline_height_set@Base 1.20.3+eo+1
+ efl_text_underline_type_get@Base 1.20.3+eo+1
+ efl_text_underline_type_set@Base 1.20.3+eo+1
+ efl_text_valign_get@Base 1.20.3+eo+1
+ efl_text_valign_set@Base 1.20.3+eo+1
+ efl_text_wrap_get@Base 1.20.3+eo+1
+ efl_text_wrap_set@Base 1.20.3+eo+1
+ efl_ui_autorepeat_enabled_get@Base 1.20.3+eo+1
+ efl_ui_autorepeat_enabled_set@Base 1.20.3+eo+1
+ efl_ui_autorepeat_gap_timeout_get@Base 1.20.3+eo+1
+ efl_ui_autorepeat_gap_timeout_set@Base 1.20.3+eo+1
+ efl_ui_autorepeat_initial_timeout_get@Base 1.20.3+eo+1
+ efl_ui_autorepeat_initial_timeout_set@Base 1.20.3+eo+1
+ efl_ui_autorepeat_interface_get@Base 1.20.3+eo+1
+ efl_ui_autorepeat_supported_get@Base 1.20.3+eo+1
+ efl_ui_base_interface_get@Base 1.20.3+eo+1
+ efl_ui_base_scale_get@Base 1.20.3+eo+1
+ efl_ui_drag_dir_get@Base 1.20.3+eo+1
+ efl_ui_drag_interface_get@Base 1.20.3+eo+1
+ efl_ui_drag_page_get@Base 1.20.3+eo+1
+ efl_ui_drag_page_move@Base 1.20.3+eo+1
+ efl_ui_drag_page_set@Base 1.20.3+eo+1
+ efl_ui_drag_size_get@Base 1.20.3+eo+1
+ efl_ui_drag_size_set@Base 1.20.3+eo+1
+ efl_ui_drag_step_get@Base 1.20.3+eo+1
+ efl_ui_drag_step_move@Base 1.20.3+eo+1
+ efl_ui_drag_step_set@Base 1.20.3+eo+1
+ efl_ui_drag_value_get@Base 1.20.3+eo+1
+ efl_ui_drag_value_set@Base 1.20.3+eo+1
  efl_ui_factory_create@Base 1.19.1+eo+1
  efl_ui_factory_interface_get@Base 1.19.1+eo+1
  efl_ui_factory_release@Base 1.19.1+eo+1
@@ -1318,22 +1468,36 @@ libefl.so.1 libeina1a #MINVER#
  efl_ui_item_prev_get@Base 1.19.1+eo+1
  efl_ui_item_selected_get@Base 1.19.1+eo+1
  efl_ui_item_selected_set@Base 1.19.1+eo+1
+ efl_ui_language_get@Base 1.20.3+eo+1
+ efl_ui_language_set@Base 1.20.3+eo+1
  efl_ui_menu_first_item_get@Base 1.19.1+eo+1
  efl_ui_menu_interface_get@Base 1.19.1+eo+1
  efl_ui_menu_items_get@Base 1.19.1+eo+1
  efl_ui_menu_last_item_get@Base 1.19.1+eo+1
  efl_ui_menu_selected_item_get@Base 1.19.1+eo+1
  efl_ui_model_connect@Base 1.19.1+eo+1
+ efl_ui_mirrored_automatic_get@Base 1.20.3+eo+1
+ efl_ui_mirrored_automatic_set@Base 1.20.3+eo+1
+ efl_ui_mirrored_get@Base 1.20.3+eo+1
+ efl_ui_mirrored_set@Base 1.20.3+eo+1
  efl_ui_model_connect_interface_get@Base 1.19.1+eo+1
  efl_ui_model_factory_connect@Base 1.19.1+eo+1
  efl_ui_model_factory_connect_interface_get@Base 1.19.1+eo+1
- efl_ui_progress_interface_get@Base 1.19.1+eo+1
- efl_ui_progress_span_size_get@Base 1.19.1+eo+1
- efl_ui_progress_span_size_set@Base 1.19.1+eo+1
- efl_ui_progress_unit_format_get@Base 1.19.1+eo+1
- efl_ui_progress_unit_format_set@Base 1.19.1+eo+1
- efl_ui_progress_value_get@Base 1.19.1+eo+1
- efl_ui_progress_value_set@Base 1.19.1+eo+1
+ efl_ui_range_interface_get@Base 1.20.3+eo+1
+ efl_ui_range_interval_enabled_get@Base 1.20.3+eo+1
+ efl_ui_range_interval_enabled_set@Base 1.20.3+eo+1
+ efl_ui_range_interval_get@Base 1.20.3+eo+1
+ efl_ui_range_interval_set@Base 1.20.3+eo+1
+ efl_ui_range_min_max_get@Base 1.20.3+eo+1
+ efl_ui_range_min_max_set@Base 1.20.3+eo+1
+ efl_ui_range_span_size_get@Base 1.20.3+eo+1
+ efl_ui_range_span_size_set@Base 1.20.3+eo+1
+ efl_ui_range_unit_format_get@Base 1.20.3+eo+1
+ efl_ui_range_unit_format_set@Base 1.20.3+eo+1
+ efl_ui_range_value_get@Base 1.20.3+eo+1
+ efl_ui_range_value_set@Base 1.20.3+eo+1
+ efl_ui_scale_get@Base 1.20.3+eo+1
+ efl_ui_scale_set@Base 1.20.3+eo+1
  efl_ui_spin_interface_get@Base 1.19.1+eo+1
  efl_ui_spin_interval_get@Base 1.19.1+eo+1
  efl_ui_spin_interval_set@Base 1.19.1+eo+1

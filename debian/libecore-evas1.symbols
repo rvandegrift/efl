@@ -42,6 +42,7 @@ libecore_evas.so.1 libecore-evas1 #MINVER#
  _ecore_evas_ref@Base 1.19.1+eo+1
  _ecore_evas_register@Base 1.19.1+eo+1
  _ecore_evas_register_animators@Base 1.19.1+eo+1
+ _ecore_evas_subregister@Base 1.20.3+eo+1
  _ecore_evas_unref@Base 1.19.1+eo+1
  _ecore_evas_window_available_profiles_free@Base 1.19.1+eo+1
  _ecore_evas_window_profile_free@Base 1.19.1+eo+1
@@ -96,6 +97,7 @@ libecore_evas.so.1 libecore-evas1 #MINVER#
  ecore_evas_comp_sync_get@Base 1.19.1+eo+1
  ecore_evas_comp_sync_set@Base 1.19.1+eo+1
  ecore_evas_cursor_device_get@Base 1.19.1+eo+1
+ ecore_evas_cursor_device_unset@Base 1.20.3+eo+1
  ecore_evas_cursor_get@Base 1.19.1+eo+1
  ecore_evas_cursor_set@Base 1.19.1+eo+1
  ecore_evas_cursor_unset@Base 1.19.1+eo+1
@@ -203,6 +205,8 @@ libecore_evas.so.1 libecore-evas1 #MINVER#
  ecore_evas_pointer_xy_get@Base 1.19.1+eo+1
  ecore_evas_psl1ght_new@Base 1.19.1+eo+1
  ecore_evas_raise@Base 1.19.1+eo+1
+ ecore_evas_render@Base 1.20.3+eo+1
+ ecore_evas_render_wait@Base 1.20.3+eo+1
  ecore_evas_request_geometry_get@Base 1.19.1+eo+1
  ecore_evas_resize@Base 1.19.1+eo+1
  ecore_evas_rotation_get@Base 1.19.1+eo+1
@@ -263,7 +267,6 @@ libecore_evas.so.1 libecore-evas1 #MINVER#
  ecore_evas_urgent_set@Base 1.19.1+eo+1
  ecore_evas_visibility_get@Base 1.19.1+eo+1
  ecore_evas_vnc_start@Base 1.19.1+eo+1
- ecore_evas_vnc_stop@Base 1.19.1+eo+1
  ecore_evas_wayland2_window_get@Base 1.19.1+eo+1
  ecore_evas_wayland_egl_new@Base 1.19.1+eo+1
  ecore_evas_wayland_move@Base 1.19.1+eo+1

@@ -1,8 +1,7 @@
 libevas.so.1 libevas1 #MINVER#
 * Build-Depends-Package: libevas-dev
- _EFL_CANVAS_OUTPUT_EVENT_PIXELS_READY@Base 1.19.1+eo+1
- _EFL_CANVAS_TEXT_CURSOR_EVENT_CHANGED@Base 1.19.1+eo+1
  _EFL_CANVAS_TEXT_EVENT_CHANGED@Base 1.19.1+eo+1
+ _EFL_CANVAS_TEXT_EVENT_CURSOR_CHANGED@Base 1.20.3+eo+1
  _EFL_CANVAS_TEXT_EVENT_STYLE_INSETS_CHANGED@Base 1.19.1+eo+1
  _EFL_EVENT_FINGER_DOWN@Base 1.19.1+eo+1
  _EFL_EVENT_FINGER_MOVE@Base 1.19.1+eo+1
@@ -95,6 +94,9 @@ libevas.so.1 libevas1 #MINVER#
  efl_canvas_object_clip_set@Base 1.19.1+eo+1
  efl_canvas_object_clipees_get@Base 1.19.1+eo+1
  efl_canvas_object_clipees_has@Base 1.19.1+eo+1
+ efl_canvas_object_event_grabber_class_get@Base 1.20.3+eo+1
+ efl_canvas_object_event_grabber_freeze_when_visible_get@Base 1.20.3+eo+1
+ efl_canvas_object_event_grabber_freeze_when_visible_set@Base 1.20.3+eo+1
  efl_canvas_object_freeze_events_get@Base 1.19.1+eo+1
  efl_canvas_object_freeze_events_set@Base 1.19.1+eo+1
  efl_canvas_object_is_frame_object_get@Base 1.19.1+eo+1
@@ -110,8 +112,11 @@ libevas.so.1 libevas1 #MINVER#
  efl_canvas_object_paragraph_direction_set@Base 1.19.1+eo+1
  efl_canvas_object_pass_events_get@Base 1.19.1+eo+1
  efl_canvas_object_pass_events_set@Base 1.19.1+eo+1
+ efl_canvas_object_pointer_coords_inside_get@Base 1.20.3+eo+1
  efl_canvas_object_pointer_device_in_get@Base 1.19.1+eo+1
  efl_canvas_object_pointer_in_get@Base 1.19.1+eo+1
+ efl_canvas_object_pointer_inside_by_device_get@Base 1.20.3+eo+1
+ efl_canvas_object_pointer_inside_get@Base 1.20.3+eo+1
  efl_canvas_object_pointer_mode_by_device_get@Base 1.19.1+eo+1
  efl_canvas_object_pointer_mode_by_device_set@Base 1.19.1+eo+1
  efl_canvas_object_pointer_mode_get@Base 1.19.1+eo+1
@@ -133,6 +138,8 @@ libevas.so.1 libevas1 #MINVER#
  efl_canvas_object_seat_focus_get@Base 1.19.1+eo+1
   efl_canvas_object_type_set@Base 1.19.1+eo+1
  efl_canvas_output_class_get@Base 1.19.1+eo+1
+ efl_canvas_output_add@Base 1.20.3+eo+1
+ efl_canvas_output_del@Base 1.20.3+eo+1
  efl_canvas_output_engine_info_get@Base 1.19.1+eo+1
  efl_canvas_output_engine_info_set@Base 1.19.1+eo+1
  efl_canvas_output_lock@Base 1.19.1+eo+1
@@ -154,51 +161,15 @@ libevas.so.1 libevas1 #MINVER#
  efl_canvas_scene3d_get@Base 1.19.1+eo+1
  efl_canvas_scene3d_set@Base 1.19.1+eo+1
  efl_canvas_snapshot_class_get@Base 1.19.1+eo+1
- efl_canvas_text_annotation_del@Base 1.19.1+eo+1
- efl_canvas_text_annotation_get@Base 1.19.1+eo+1
- efl_canvas_text_annotation_insert@Base 1.19.1+eo+1
- efl_canvas_text_annotation_positions_get@Base 1.19.1+eo+1
- efl_canvas_text_annotation_set@Base 1.19.1+eo+1
  efl_canvas_text_bidi_delimiters_get@Base 1.19.1+eo+1
  efl_canvas_text_bidi_delimiters_set@Base 1.19.1+eo+1
  efl_canvas_text_class_get@Base 1.19.1+eo+1
- efl_canvas_text_cursor_char_delete@Base 1.19.1+eo+1
- efl_canvas_text_cursor_char_next@Base 1.19.1+eo+1
- efl_canvas_text_cursor_char_prev@Base 1.19.1+eo+1
- efl_canvas_text_cursor_class_get@Base 1.19.1+eo+1
- efl_canvas_text_cursor_compare@Base 1.19.1+eo+1
- efl_canvas_text_cursor_content_get@Base 1.19.1+eo+1
- efl_canvas_text_cursor_coord_set@Base 1.19.1+eo+1
- efl_canvas_text_cursor_copy@Base 1.19.1+eo+1
- efl_canvas_text_cursor_equal@Base 1.19.1+eo+1
- efl_canvas_text_cursor_geometry_get@Base 1.19.1+eo+1
- efl_canvas_text_cursor_get@Base 1.19.1+eo+1
- efl_canvas_text_cursor_line_char_first@Base 1.19.1+eo+1
- efl_canvas_text_cursor_line_char_last@Base 1.19.1+eo+1
- efl_canvas_text_cursor_line_jump_by@Base 1.19.1+eo+1
- efl_canvas_text_cursor_object_item_annotation_get@Base 1.19.1+eo+1
- efl_canvas_text_cursor_object_item_insert@Base 1.19.1+eo+1
- efl_canvas_text_cursor_paragraph_char_first@Base 1.19.1+eo+1
- efl_canvas_text_cursor_paragraph_char_last@Base 1.19.1+eo+1
- efl_canvas_text_cursor_paragraph_first@Base 1.19.1+eo+1
- efl_canvas_text_cursor_paragraph_last@Base 1.19.1+eo+1
- efl_canvas_text_cursor_paragraph_next@Base 1.19.1+eo+1
- efl_canvas_text_cursor_paragraph_prev@Base 1.19.1+eo+1
- efl_canvas_text_cursor_position_get@Base 1.19.1+eo+1
- efl_canvas_text_cursor_position_set@Base 1.19.1+eo+1
- efl_canvas_text_cursor_text_insert@Base 1.19.1+eo+1
- efl_canvas_text_cursor_text_object_get@Base 1.19.1+eo+1
- efl_canvas_text_cursor_text_object_set@Base 1.19.1+eo+1
- efl_canvas_text_cursor_word_end@Base 1.19.1+eo+1
- efl_canvas_text_cursor_word_start@Base 1.19.1+eo+1
  efl_canvas_text_is_empty_get@Base 1.19.1+eo+1
  efl_canvas_text_legacy_newline_get@Base 1.19.1+eo+1
  efl_canvas_text_legacy_newline_set@Base 1.19.1+eo+1
- efl_canvas_text_object_item_geometry_get@Base 1.19.1+eo+1
  efl_canvas_text_obstacle_add@Base 1.19.1+eo+1
  efl_canvas_text_obstacle_del@Base 1.19.1+eo+1
  efl_canvas_text_obstacles_update@Base 1.19.1+eo+1
- efl_canvas_text_range_annotations_get@Base 1.19.1+eo+1
  efl_canvas_text_range_delete@Base 1.19.1+eo+1
  efl_canvas_text_range_geometry_get@Base 1.19.1+eo+1
  efl_canvas_text_range_simple_geometry_get@Base 1.19.1+eo+1
@@ -214,27 +185,30 @@ libevas.so.1 libevas1 #MINVER#
  efl_gfx_map_clockwise_get@Base 1.19.1+eo+1
  efl_gfx_map_color_get@Base 1.19.1+eo+1
  efl_gfx_map_color_set@Base 1.19.1+eo+1
- efl_gfx_map_dup@Base 1.19.1+eo+1
- efl_gfx_map_enable_get@Base 1.19.1+eo+1
- efl_gfx_map_enable_set@Base 1.19.1+eo+1
+ efl_gfx_map_coord_absolute_get@Base 1.20.3+eo+1
+ efl_gfx_map_coord_absolute_set@Base 1.20.3+eo+1
+ efl_gfx_map_has@Base 1.20.3+eo+1
  efl_gfx_map_lightning_3d@Base 1.19.1+eo+1
+ efl_gfx_map_lightning_3d_absolute@Base 1.20.3+eo+1
  efl_gfx_map_mixin_get@Base 1.19.1+eo+1
- efl_gfx_map_move_sync_get@Base 1.19.1+eo+1
- efl_gfx_map_move_sync_set@Base 1.19.1+eo+1
  efl_gfx_map_perspective_3d@Base 1.19.1+eo+1
- efl_gfx_map_point_coord_get@Base 1.19.1+eo+1
- efl_gfx_map_point_coord_set@Base 1.19.1+eo+1
- efl_gfx_map_point_image_uv_get@Base 1.19.1+eo+1
- efl_gfx_map_point_image_uv_set@Base 1.19.1+eo+1
- efl_gfx_map_point_z_get@Base 1.19.1+eo+1
- efl_gfx_map_populate@Base 1.19.1+eo+1
- efl_gfx_map_populate_manual@Base 1.19.1+eo+1
- efl_gfx_map_quat_rotate@Base 1.19.1+eo+1
+ efl_gfx_map_perspective_3d_absolute@Base 1.20.3+eo+1
+ efl_gfx_map_point_count_get@Base 1.20.3+eo+1
+ efl_gfx_map_point_count_set@Base 1.20.3+eo+1
+ efl_gfx_map_reset@Base 1.20.3+eo+1
  efl_gfx_map_rotate@Base 1.19.1+eo+1
  efl_gfx_map_rotate_3d@Base 1.19.1+eo+1
+ efl_gfx_map_rotate_3d_absolute@Base 1.20.3+eo+1
+ efl_gfx_map_rotate_absolute@Base 1.20.3+eo+1
+ efl_gfx_map_rotate_quat@Base 1.20.3+eo+1
+ efl_gfx_map_rotate_quat_absolute@Base 1.20.3+eo+1
  efl_gfx_map_smooth_get@Base 1.19.1+eo+1
  efl_gfx_map_smooth_set@Base 1.19.1+eo+1
+ efl_gfx_map_translate@Base 1.20.3+eo+1
+ efl_gfx_map_uv_get@Base 1.20.3+eo+1
+ efl_gfx_map_uv_set@Base 1.20.3+eo+1
  efl_gfx_map_zoom@Base 1.19.1+eo+1
+ efl_gfx_map_zoom_absolute@Base 1.20.3+eo+1
  efl_input_device_get@Base 1.19.1+eo+1
  efl_input_device_set@Base 1.19.1+eo+1
  efl_input_dup@Base 1.19.1+eo+1
@@ -278,6 +252,7 @@ libevas.so.1 libevas1 #MINVER#
  efl_input_pointer_delta_get@Base 1.19.1+eo+1
  efl_input_pointer_double_click_get@Base 1.19.1+eo+1
  efl_input_pointer_double_click_set@Base 1.19.1+eo+1
+ efl_input_pointer_finalize@Base 1.20.3+eo+1
  efl_input_pointer_inside_get@Base 1.19.1+eo+1
  efl_input_pointer_iterate@Base 1.19.1+eo+1
  efl_input_pointer_position_get@Base 1.19.1+eo+1
@@ -308,13 +283,46 @@ libevas.so.1 libevas1 #MINVER#
  efl_input_state_interface_get@Base 1.19.1+eo+1
  efl_input_timestamp_get@Base 1.19.1+eo+1
  efl_input_timestamp_set@Base 1.19.1+eo+1
+ efl_text_cursor_char_delete@Base 1.20.3+eo+1
+ efl_text_cursor_char_next@Base 1.20.3+eo+1
+ efl_text_cursor_char_prev@Base 1.20.3+eo+1
+ efl_text_cursor_compare@Base 1.20.3+eo+1
+ efl_text_cursor_content_get@Base 1.20.3+eo+1
+ efl_text_cursor_coord_set@Base 1.20.3+eo+1
+ efl_text_cursor_copy@Base 1.20.3+eo+1
+ efl_text_cursor_equal@Base 1.20.3+eo+1
+ efl_text_cursor_free@Base 1.20.3+eo+1
+ efl_text_cursor_geometry_get@Base 1.20.3+eo+1
+ efl_text_cursor_get@Base 1.20.3+eo+1
+ efl_text_cursor_interface_get@Base 1.20.3+eo+1
+ efl_text_cursor_line_char_first@Base 1.20.3+eo+1
+ efl_text_cursor_line_char_last@Base 1.20.3+eo+1
+ efl_text_cursor_line_jump_by@Base 1.20.3+eo+1
+ efl_text_cursor_new@Base 1.20.3+eo+1
+ efl_text_cursor_paragraph_char_first@Base 1.20.3+eo+1
+ efl_text_cursor_paragraph_char_last@Base 1.20.3+eo+1
+ efl_text_cursor_paragraph_first@Base 1.20.3+eo+1
+ efl_text_cursor_paragraph_last@Base 1.20.3+eo+1
+ efl_text_cursor_paragraph_next@Base 1.20.3+eo+1
+ efl_text_cursor_paragraph_prev@Base 1.20.3+eo+1
+ efl_text_cursor_position_get@Base 1.20.3+eo+1
+ efl_text_cursor_position_set@Base 1.20.3+eo+1
+ efl_text_cursor_text_insert@Base 1.20.3+eo+1
+ efl_text_cursor_word_end@Base 1.20.3+eo+1
+ efl_text_cursor_word_start@Base 1.20.3+eo+1
  efl_ui_clickable_interface_get@Base 1.19.1+eo+1
  efl_ui_draggable_drag_target_get@Base 1.19.1+eo+1
  efl_ui_draggable_drag_target_set@Base 1.19.1+eo+1
  efl_ui_draggable_interface_get@Base 1.19.1+eo+1
  efl_ui_scrollable_interface_get@Base 1.19.1+eo+1
  efl_ui_selectable_interface_get@Base 1.19.1+eo+1
- efl_ui_zoomable_interface_get@Base 1.19.1+eo+1
+ efl_ui_zoom_animation_get@Base 1.20.3+eo+1
+ efl_ui_zoom_animation_set@Base 1.20.3+eo+1
+ efl_ui_zoom_get@Base 1.20.3+eo+1
+ efl_ui_zoom_interface_get@Base 1.20.3+eo+1
+ efl_ui_zoom_mode_get@Base 1.20.3+eo+1
+ efl_ui_zoom_mode_set@Base 1.20.3+eo+1
+ efl_ui_zoom_set@Base 1.20.3+eo+1
  efl_vg_bounds_get@Base 1.19.1+eo+1
  efl_vg_class_get@Base 1.19.1+eo+1
  efl_vg_container_child_get@Base 1.19.1+eo+1
@@ -614,8 +622,6 @@ libevas.so.1 libevas1 #MINVER#
  evas_canvas_damage_rectangle_add@Base 1.19.1+eo+1
  evas_canvas_data_attach_get@Base 1.19.1+eo+1
  evas_canvas_data_attach_set@Base 1.19.1+eo+1
- evas_canvas_engine_info_get@Base 1.19.1+eo+1
- evas_canvas_engine_info_set@Base 1.19.1+eo+1
  evas_canvas_event_default_flags_get@Base 1.19.1+eo+1
  evas_canvas_event_default_flags_set@Base 1.19.1+eo+1
  evas_canvas_event_down_count_get@Base 1.19.1+eo+1
@@ -627,9 +633,6 @@ libevas.so.1 libevas1 #MINVER#
  evas_canvas_font_cache_flush@Base 1.19.1+eo+1
  evas_canvas_font_cache_get@Base 1.19.1+eo+1
  evas_canvas_font_cache_set@Base 1.19.1+eo+1
- evas_canvas_font_hinting_can_hint@Base 1.19.1+eo+1
- evas_canvas_font_hinting_get@Base 1.19.1+eo+1
- evas_canvas_font_hinting_set@Base 1.19.1+eo+1
  evas_canvas_font_path_append@Base 1.19.1+eo+1
  evas_canvas_font_path_clear@Base 1.19.1+eo+1
  evas_canvas_font_path_list@Base 1.19.1+eo+1
@@ -641,13 +644,10 @@ libevas.so.1 libevas1 #MINVER#
  evas_canvas_image_max_size_get@Base 1.19.1+eo+1
  evas_canvas_key_lock_add@Base 1.19.1+eo+1
  evas_canvas_key_lock_del@Base 1.19.1+eo+1
- evas_canvas_key_lock_get@Base 1.19.1+eo+1
  evas_canvas_key_lock_off@Base 1.19.1+eo+1
  evas_canvas_key_lock_on@Base 1.19.1+eo+1
  evas_canvas_key_modifier_add@Base 1.19.1+eo+1
  evas_canvas_key_modifier_del@Base 1.19.1+eo+1
- evas_canvas_key_modifier_get@Base 1.19.1+eo+1
- evas_canvas_key_modifier_mask_get@Base 1.19.1+eo+1
  evas_canvas_key_modifier_off@Base 1.19.1+eo+1
  evas_canvas_key_modifier_on@Base 1.19.1+eo+1
  evas_canvas_nochange_pop@Base 1.19.1+eo+1
@@ -687,10 +687,8 @@ libevas.so.1 libevas1 #MINVER#
  evas_canvas_seat_key_modifier_on@Base 1.19.1+eo+1
  evas_canvas_smart_objects_calculate@Base 1.19.1+eo+1
  evas_canvas_smart_objects_calculate_count_get@Base 1.19.1+eo+1
+ evas_canvas_smart_objects_calculating_get@Base 1.20.3+eo+1
  evas_canvas_sync@Base 1.19.1+eo+1
- evas_canvas_touch_point_list_count@Base 1.19.1+eo+1
- evas_canvas_touch_point_list_nth_id_get@Base 1.19.1+eo+1
- evas_canvas_touch_point_list_nth_state_get@Base 1.19.1+eo+1
  evas_canvas_touch_point_list_nth_xy_get@Base 1.19.1+eo+1
  evas_canvas_tree_objects_at_xy_get@Base 1.19.1+eo+1
  evas_changed_get@Base 1.19.1+eo+1
@@ -958,6 +956,7 @@ libevas.so.1 libevas1 #MINVER#
  evas_device_description_set@Base 1.19.1+eo+1
  evas_device_emulation_source_get@Base 1.19.1+eo+1
  evas_device_emulation_source_set@Base 1.19.1+eo+1
+ evas_device_get_by_seat_id@Base 1.20.3+eo+1
  evas_device_get@Base 1.19.1+eo+1
  evas_device_list@Base 1.19.1+eo+1
  evas_device_name_get@Base 1.19.1+eo+1
@@ -966,11 +965,15 @@ libevas.so.1 libevas1 #MINVER#
  evas_device_parent_set@Base 1.19.1+eo+1
  evas_device_pop@Base 1.19.1+eo+1
  evas_device_push@Base 1.19.1+eo+1
+ evas_device_seat_id_get@Base 1.20.3+eo+1
+ evas_device_seat_id_set@Base 1.20.3+eo+1
  evas_device_subclass_get@Base 1.19.1+eo+1
  evas_device_subclass_set@Base 1.19.1+eo+1
- evas_ector_buffer_engine_image_get@Base 1.19.1+eo+1
+ evas_ector_buffer_drawable_image_get@Base 1.20.3+eo+1
+ evas_ector_buffer_engine_image_release@Base 1.20.3+eo+1
  evas_ector_buffer_engine_image_set@Base 1.19.1+eo+1
  evas_ector_buffer_interface_get@Base 1.19.1+eo+1
+ evas_ector_buffer_render_image_get@Base 1.20.3+eo+1
  evas_ector_software_buffer_class_get@Base 1.19.1+eo+1
  evas_canvas_default_device_get@Base 1.19.1+eo+1
  evas_engine_info_get@Base 1.19.1+eo+1
@@ -1085,11 +1088,13 @@ libevas.so.1 libevas1 #MINVER#
  evas_key_modifier_mask_get@Base 1.19.1+eo+1
  evas_key_modifier_off@Base 1.19.1+eo+1
  evas_key_modifier_on@Base 1.19.1+eo+1
+ evas_language_direction_get@Base 1.20.3+eo+1
  evas_language_reinit@Base 1.19.1+eo+1
  evas_line_class_get@Base 1.19.1+eo+1
  evas_load_error_str@Base 1.19.1+eo+1
  evas_map_alpha_get@Base 1.19.1+eo+1
  evas_map_alpha_set@Base 1.19.1+eo+1
+ evas_map_coords_get@Base 1.20.3+eo+1
  evas_map_count_get@Base 1.19.1+eo+1
  evas_map_dup@Base 1.19.1+eo+1
  evas_map_free@Base 1.19.1+eo+1
@@ -1289,6 +1294,9 @@ libevas.so.1 libevas1 #MINVER#
  evas_object_event_callback_del@Base 1.19.1+eo+1
  evas_object_event_callback_del_full@Base 1.19.1+eo+1
  evas_object_event_callback_priority_add@Base 1.19.1+eo+1
+ evas_object_event_grabber_add@Base 1.20.3+eo+1
+ evas_object_event_grabber_freeze_when_visible_get@Base 1.20.3+eo+1
+ evas_object_event_grabber_freeze_when_visible_set@Base 1.20.3+eo+1
  evas_object_focus_get@Base 1.19.1+eo+1
  evas_object_focus_set@Base 1.19.1+eo+1
  evas_object_freeze_events_get@Base 1.19.1+eo+1
@@ -1401,6 +1409,8 @@ libevas.so.1 libevas1 #MINVER#
  evas_object_intercept_clip_unset_callback_del@Base 1.19.1+eo+1
  evas_object_intercept_color_set_callback_add@Base 1.19.1+eo+1
  evas_object_intercept_color_set_callback_del@Base 1.19.1+eo+1
+ evas_object_intercept_device_focus_set_callback_add@Base 1.20.3+eo+1
+ evas_object_intercept_device_focus_set_callback_del@Base 1.20.3+eo+1
  evas_object_intercept_focus_set_callback_add@Base 1.19.1+eo+1
  evas_object_intercept_focus_set_callback_del@Base 1.19.1+eo+1
  evas_object_intercept_hide_callback_add@Base 1.19.1+eo+1
@@ -1444,6 +1454,9 @@ libevas.so.1 libevas1 #MINVER#
  evas_object_paragraph_direction_set@Base 1.19.1+eo+1
  evas_object_pass_events_get@Base 1.19.1+eo+1
  evas_object_pass_events_set@Base 1.19.1+eo+1
+ evas_object_pointer_coords_inside_get@Base 1.20.3+eo+1
+ evas_object_pointer_inside_by_device_get@Base 1.20.3+eo+1
+ evas_object_pointer_inside_get@Base 1.20.3+eo+1
  evas_object_pointer_mode_get@Base 1.19.1+eo+1
  evas_object_pointer_mode_set@Base 1.19.1+eo+1
  evas_object_polygon_add@Base 1.19.1+eo+1
@@ -1673,6 +1686,7 @@ libevas.so.1 libevas1 #MINVER#
  evas_smart_legacy_type_register@Base 1.19.1+eo+1
  evas_smart_objects_calculate@Base 1.19.1+eo+1
  evas_smart_objects_calculate_count_get@Base 1.19.1+eo+1
+ evas_smart_objects_calculating_get@Base 1.20.3+eo+1
  evas_smart_usage_get@Base 1.19.1+eo+1
  evas_string_char_len_get@Base 1.19.1+eo+1
  evas_string_char_next_get@Base 1.19.1+eo+1
@@ -1751,6 +1765,7 @@ libevas.so.1 libevas1 #MINVER#
  evas_thread_main_loop_begin@Base 1.19.1+eo+1
  evas_thread_main_loop_end@Base 1.19.1+eo+1
  evas_thread_queue_flush@Base 1.19.1+eo+1
+ evas_thread_queue_wait@Base 1.20.3+eo+1
  evas_touch_point_list_count@Base 1.19.1+eo+1
  evas_touch_point_list_nth_id_get@Base 1.19.1+eo+1
  evas_touch_point_list_nth_state_get@Base 1.19.1+eo+1

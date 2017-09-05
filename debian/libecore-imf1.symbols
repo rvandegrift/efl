@@ -68,9 +68,12 @@ libecore_imf.so.1 libecore-imf1 #MINVER#
  ecore_imf_context_input_panel_show_on_demand_get@Base 1.19.1+eo+1
  ecore_imf_context_input_panel_show_on_demand_set@Base 1.19.1+eo+1
  ecore_imf_context_input_panel_state_get@Base 1.19.1+eo+1
+ ecore_imf_context_keyboard_mode_get@Base 1.20.3+eo+1
+ ecore_imf_context_mime_type_accept_set@Base 1.20.3+eo+1
  ecore_imf_context_new@Base 1.19.1+eo+1
  ecore_imf_context_prediction_allow_get@Base 1.19.1+eo+1
  ecore_imf_context_prediction_allow_set@Base 1.19.1+eo+1
+ ecore_imf_context_prediction_hint_set@Base 1.20.3+eo+1
  ecore_imf_context_preedit_changed_event_add@Base 1.19.1+eo+1
  ecore_imf_context_preedit_end_event_add@Base 1.19.1+eo+1
  ecore_imf_context_preedit_start_event_add@Base 1.19.1+eo+1

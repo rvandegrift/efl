@@ -710,70 +710,27 @@ libedje.so.1 libedje1 #MINVER#
  edje_obj_access_part_iterate@Base 1.19.1+eo+1
  edje_obj_animation_get@Base 1.19.1+eo+1
  edje_obj_animation_set@Base 1.19.1+eo+1
- edje_obj_base_scale_get@Base 1.19.1+eo+1
  edje_obj_calc_force@Base 1.19.1+eo+1
+ edje_obj_calc_freeze@Base 1.20.3+eo+1
+ edje_obj_calc_thaw@Base 1.20.3+eo+1
+ edje_obj_calc_update_hints_get@Base 1.20.3+eo+1
+ edje_obj_calc_update_hints_set@Base 1.20.3+eo+1
  edje_obj_color_class_clear@Base 1.19.1+eo+1
  edje_obj_color_class_del@Base 1.19.1+eo+1
  edje_obj_color_class_description_get@Base 1.19.1+eo+1
  edje_obj_color_class_get@Base 1.19.1+eo+1
  edje_obj_color_class_set@Base 1.19.1+eo+1
- edje_obj_data_get@Base 1.19.1+eo+1
- edje_obj_freeze@Base 1.19.1+eo+1
  edje_obj_global_color_class_get@Base 1.19.1+eo+1
  edje_obj_global_color_class_set@Base 1.19.1+eo+1
+ edje_obj_group_data_get@Base 1.20.3+eo+1
+ edje_obj_group_size_max_get@Base 1.20.3+eo+1
+ edje_obj_group_size_min_get@Base 1.20.3+eo+1
  edje_obj_item_provider_set@Base 1.19.1+eo+1
- edje_obj_language_get@Base 1.19.1+eo+1
- edje_obj_language_set@Base 1.19.1+eo+1
  edje_obj_load_error_get@Base 1.19.1+eo+1
- edje_obj_message_handler_set@Base 1.19.1+eo+1
  edje_obj_message_send@Base 1.19.1+eo+1
  edje_obj_message_signal_process@Base 1.19.1+eo+1
- edje_obj_mirrored_get@Base 1.19.1+eo+1
- edje_obj_mirrored_set@Base 1.19.1+eo+1
- edje_obj_part_drag_dir_get@Base 1.19.1+eo+1
- edje_obj_part_drag_page@Base 1.19.1+eo+1
- edje_obj_part_drag_page_get@Base 1.19.1+eo+1
- edje_obj_part_drag_page_set@Base 1.19.1+eo+1
- edje_obj_part_drag_size_get@Base 1.19.1+eo+1
- edje_obj_part_drag_size_set@Base 1.19.1+eo+1
- edje_obj_part_drag_step@Base 1.19.1+eo+1
- edje_obj_part_drag_step_get@Base 1.19.1+eo+1
- edje_obj_part_drag_step_set@Base 1.19.1+eo+1
- edje_obj_part_drag_value_get@Base 1.19.1+eo+1
- edje_obj_part_drag_value_set@Base 1.19.1+eo+1
- edje_obj_part_exists@Base 1.19.1+eo+1
- edje_obj_part_external_content_get@Base 1.19.1+eo+1
- edje_obj_part_external_object_get@Base 1.19.1+eo+1
- edje_obj_part_external_param_get@Base 1.19.1+eo+1
- edje_obj_part_external_param_set@Base 1.19.1+eo+1
- edje_obj_part_external_param_type_get@Base 1.19.1+eo+1
- edje_obj_part_geometry_get@Base 1.19.1+eo+1
- edje_obj_part_object_get@Base 1.19.1+eo+1
- edje_obj_part_state_get@Base 1.19.1+eo+1
- edje_obj_part_text_anchor_geometry_get@Base 1.19.1+eo+1
- edje_obj_part_text_anchor_list_get@Base 1.19.1+eo+1
- edje_obj_part_text_append@Base 1.19.1+eo+1
  edje_obj_part_text_autocapital_type_get@Base 1.19.1+eo+1
  edje_obj_part_text_autocapital_type_set@Base 1.19.1+eo+1
- edje_obj_part_text_cursor_begin_set@Base 1.19.1+eo+1
- edje_obj_part_text_cursor_content_get@Base 1.19.1+eo+1
- edje_obj_part_text_cursor_coord_set@Base 1.19.1+eo+1
- edje_obj_part_text_cursor_copy@Base 1.19.1+eo+1
- edje_obj_part_text_cursor_down@Base 1.19.1+eo+1
- edje_obj_part_text_cursor_end_set@Base 1.19.1+eo+1
- edje_obj_part_text_cursor_geometry_get@Base 1.19.1+eo+1
- edje_obj_part_text_cursor_is_format_get@Base 1.19.1+eo+1
- edje_obj_part_text_cursor_is_visible_format_get@Base 1.19.1+eo+1
- edje_obj_part_text_cursor_line_begin_set@Base 1.19.1+eo+1
- edje_obj_part_text_cursor_line_end_set@Base 1.19.1+eo+1
- edje_obj_part_text_cursor_next@Base 1.19.1+eo+1
- edje_obj_part_text_cursor_pos_get@Base 1.19.1+eo+1
- edje_obj_part_text_cursor_pos_set@Base 1.19.1+eo+1
- edje_obj_part_text_cursor_prev@Base 1.19.1+eo+1
- edje_obj_part_text_cursor_up@Base 1.19.1+eo+1
- edje_obj_part_text_escaped_set@Base 1.19.1+eo+1
- edje_obj_part_text_get@Base 1.19.1+eo+1
- edje_obj_part_text_hide_visible_password@Base 1.19.1+eo+1
  edje_obj_part_text_imf_context_get@Base 1.19.1+eo+1
  edje_obj_part_text_imf_context_reset@Base 1.19.1+eo+1
  edje_obj_part_text_input_hint_get@Base 1.19.1+eo+1
@@ -796,11 +753,9 @@ libedje.so.1 libedje1 #MINVER#
  edje_obj_part_text_input_panel_show@Base 1.19.1+eo+1
  edje_obj_part_text_input_panel_show_on_demand_get@Base 1.19.1+eo+1
  edje_obj_part_text_input_panel_show_on_demand_set@Base 1.19.1+eo+1
- edje_obj_part_text_insert@Base 1.19.1+eo+1
- edje_obj_part_text_item_geometry_get@Base 1.19.1+eo+1
- edje_obj_part_text_item_list_get@Base 1.19.1+eo+1
  edje_obj_part_text_prediction_allow_get@Base 1.19.1+eo+1
  edje_obj_part_text_prediction_allow_set@Base 1.19.1+eo+1
+ edje_obj_part_text_prediction_hint_set@Base 1.20.3+eo+1
  edje_obj_part_text_select_abort@Base 1.19.1+eo+1
  edje_obj_part_text_select_all@Base 1.19.1+eo+1
  edje_obj_part_text_select_allow_set@Base 1.19.1+eo+1
@@ -808,21 +763,12 @@ libedje.so.1 libedje1 #MINVER#
  edje_obj_part_text_select_extend@Base 1.19.1+eo+1
  edje_obj_part_text_select_none@Base 1.19.1+eo+1
  edje_obj_part_text_selection_get@Base 1.19.1+eo+1
- edje_obj_part_text_set@Base 1.19.1+eo+1
- edje_obj_part_text_style_user_peek@Base 1.19.1+eo+1
- edje_obj_part_text_style_user_pop@Base 1.19.1+eo+1
- edje_obj_part_text_style_user_push@Base 1.19.1+eo+1
- edje_obj_part_text_unescaped_get@Base 1.19.1+eo+1
- edje_obj_part_text_unescaped_set@Base 1.19.1+eo+1
- edje_obj_part_text_user_insert@Base 1.19.1+eo+1
  edje_obj_parts_extends_calc@Base 1.19.1+eo+1
  edje_obj_perspective_get@Base 1.19.1+eo+1
  edje_obj_perspective_set@Base 1.19.1+eo+1
  edje_obj_play_get@Base 1.19.1+eo+1
  edje_obj_play_set@Base 1.19.1+eo+1
  edje_obj_preload@Base 1.19.1+eo+1
- edje_obj_scale_get@Base 1.19.1+eo+1
- edje_obj_scale_set@Base 1.19.1+eo+1
  edje_obj_seat_get@Base 1.19.1+eo+1
  edje_obj_seat_name_get@Base 1.19.1+eo+1
  edje_obj_signal_callback_add@Base 1.19.1+eo+1
@@ -831,25 +777,14 @@ libedje.so.1 libedje1 #MINVER#
  edje_obj_size_class_del@Base 1.19.1+eo+1
  edje_obj_size_class_get@Base 1.19.1+eo+1
  edje_obj_size_class_set@Base 1.19.1+eo+1
- edje_obj_size_max_get@Base 1.19.1+eo+1
  edje_obj_size_min_calc@Base 1.19.1+eo+1
- edje_obj_size_min_get@Base 1.19.1+eo+1
  edje_obj_size_min_restricted_calc@Base 1.19.1+eo+1
  edje_obj_text_change_cb_set@Base 1.19.1+eo+1
  edje_obj_text_class_del@Base 1.19.1+eo+1
  edje_obj_text_class_get@Base 1.19.1+eo+1
  edje_obj_text_class_set@Base 1.19.1+eo+1
- edje_obj_text_insert_filter_callback_add@Base 1.19.1+eo+1
- edje_obj_text_insert_filter_callback_del@Base 1.19.1+eo+1
- edje_obj_text_insert_filter_callback_del_full@Base 1.19.1+eo+1
- edje_obj_text_markup_filter_callback_add@Base 1.19.1+eo+1
- edje_obj_text_markup_filter_callback_del@Base 1.19.1+eo+1
- edje_obj_text_markup_filter_callback_del_full@Base 1.19.1+eo+1
- edje_obj_thaw@Base 1.19.1+eo+1
  edje_obj_transition_duration_factor_get@Base 1.19.1+eo+1
  edje_obj_transition_duration_factor_set@Base 1.19.1+eo+1
- edje_obj_update_hints_get@Base 1.19.1+eo+1
- edje_obj_update_hints_set@Base 1.19.1+eo+1
  edje_object_access_part_list_get@Base 1.19.1+eo+1
  edje_object_add@Base 1.19.1+eo+1
  edje_object_animation_get@Base 1.19.1+eo+1
@@ -873,6 +808,7 @@ libedje.so.1 libedje1 #MINVER#
  edje_object_message_handler_set@Base 1.19.1+eo+1
  edje_object_message_send@Base 1.19.1+eo+1
  edje_object_message_signal_process@Base 1.19.1+eo+1
+ edje_object_message_signal_recursive_process@Base 1.20.3+eo+1
  edje_object_mirrored_get@Base 1.19.1+eo+1
  edje_object_mirrored_set@Base 1.19.1+eo+1
  edje_object_mmap_set@Base 1.19.1+eo+1
@@ -963,6 +899,7 @@ libedje.so.1 libedje1 #MINVER#
  edje_object_part_text_item_list_get@Base 1.19.1+eo+1
  edje_object_part_text_prediction_allow_get@Base 1.19.1+eo+1
  edje_object_part_text_prediction_allow_set@Base 1.19.1+eo+1
+ edje_object_part_text_prediction_hint_set@Base 1.20.3+eo+1
  edje_object_part_text_select_abort@Base 1.19.1+eo+1
  edje_object_part_text_select_all@Base 1.19.1+eo+1
  edje_object_part_text_select_allow_set@Base 1.19.1+eo+1
@@ -1039,3 +976,10 @@ libedje.so.1 libedje1 #MINVER#
  edje_transition_duration_factor_get@Base 1.19.1+eo+1
  edje_transition_duration_factor_set@Base 1.19.1+eo+1
  edje_version@Base 1.19.1+eo+1
+ efl_canvas_layout_external_class_get@Base 1.20.3+eo+1
+ efl_canvas_layout_internal_box_class_get@Base 1.20.3+eo+1
+ efl_canvas_layout_internal_class_get@Base 1.20.3+eo+1
+ efl_canvas_layout_internal_state_get@Base 1.20.3+eo+1
+ efl_canvas_layout_internal_swallow_class_get@Base 1.20.3+eo+1
+ efl_canvas_layout_internal_table_class_get@Base 1.20.3+eo+1
+ efl_canvas_layout_internal_text_class_get@Base 1.20.3+eo+1

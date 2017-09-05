@@ -378,8 +378,10 @@ libecore_x.so.1 libecore-x1 #MINVER#
  ecore_x_current_time_get@Base 1.19.1+eo+1
  ecore_x_cursor_color_supported_get@Base 1.19.1+eo+1
  ecore_x_cursor_free@Base 1.19.1+eo+1
+ ecore_x_cursor_hide@Base 1.20.3+eo+1
  ecore_x_cursor_new@Base 1.19.1+eo+1
  ecore_x_cursor_shape_get@Base 1.19.1+eo+1
+ ecore_x_cursor_show@Base 1.20.3+eo+1
  ecore_x_cursor_size_get@Base 1.19.1+eo+1
  ecore_x_cursor_size_set@Base 1.19.1+eo+1
  ecore_x_damage_free@Base 1.19.1+eo+1
@@ -414,6 +416,7 @@ libecore_x.so.1 libecore-x1 #MINVER#
  ecore_x_dpms_capable_get@Base 1.19.1+eo+1
  ecore_x_dpms_enabled_get@Base 1.19.1+eo+1
  ecore_x_dpms_enabled_set@Base 1.19.1+eo+1
+ ecore_x_dpms_force@Base 1.20.3+eo+1
  ecore_x_dpms_power_level_get@Base 1.19.1+eo+1
  ecore_x_dpms_query@Base 1.19.1+eo+1
  ecore_x_dpms_timeout_off_get@Base 1.19.1+eo+1

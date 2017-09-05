@@ -1,4 +1,5 @@
 libelementary.so.1 libelementary1 #MINVER#
+ ELM_CNP_EVENT_SELECTION_CHANGED@Base 1.20.3+eo+1
  ELM_CODE_EVENT_FILE_LOAD_DONE@Base 1.19.1+eo+1
  ELM_CODE_EVENT_LINE_LOAD_DONE@Base 1.19.1+eo+1
  ELM_CODE_PARSER_STANDARD_DIFF@Base 1.19.1+eo+1
@@ -18,8 +19,38 @@ libelementary.so.1 libelementary1 #MINVER#
  _EFL_UI_CLOCK_EVENT_CHANGED@Base 1.19.1+eo+1
  _EFL_UI_FLIP_EVENT_ANIMATE_BEGIN@Base 1.19.1+eo+1
  _EFL_UI_FLIP_EVENT_ANIMATE_DONE@Base 1.19.1+eo+1
+ _EFL_UI_FOCUS_MANAGER_EVENT_COORDS_DIRTY@Base 1.20.3+eo+1
+ _EFL_UI_FOCUS_MANAGER_EVENT_FLUSH_PRE@Base 1.20.3+eo+1
+ _EFL_UI_FOCUS_MANAGER_EVENT_FOCUSED@Base 1.20.3+eo+1
+ _EFL_UI_FOCUS_MANAGER_EVENT_REDIRECT_CHANGED@Base 1.20.3+eo+1
+ _EFL_UI_FOCUS_OBJECT_EVENT_FOCUS_CHANGED@Base 1.20.3+eo+1
+ _EFL_UI_FOCUS_USER_EVENT_LOGICAL_CHANGED@Base 1.20.3+eo+1
+ _EFL_UI_FOCUS_USER_EVENT_MANAGER_CHANGED@Base 1.20.3+eo+1
  _EFL_UI_IMAGE_EVENT_DROP@Base 1.19.1+eo+1
+ _EFL_UI_IMAGE_ZOOMABLE_EVENT_DOWNLOAD_DONE@Base 1.20.3+eo+1
+ _EFL_UI_IMAGE_ZOOMABLE_EVENT_DOWNLOAD_ERROR@Base 1.20.3+eo+1
+ _EFL_UI_IMAGE_ZOOMABLE_EVENT_DOWNLOAD_PROGRESS@Base 1.20.3+eo+1
+ _EFL_UI_IMAGE_ZOOMABLE_EVENT_DOWNLOAD_START@Base 1.20.3+eo+1
+ _EFL_UI_IMAGE_ZOOMABLE_EVENT_LOAD@Base 1.20.3+eo+1
+ _EFL_UI_IMAGE_ZOOMABLE_EVENT_LOADED@Base 1.20.3+eo+1
+ _EFL_UI_IMAGE_ZOOMABLE_EVENT_LOADED_DETAIL@Base 1.20.3+eo+1
+ _EFL_UI_IMAGE_ZOOMABLE_EVENT_LOAD_DETAIL@Base 1.20.3+eo+1
+ _EFL_UI_IMAGE_ZOOMABLE_EVENT_PRESS@Base 1.20.3+eo+1
+ _EFL_UI_IMAGE_ZOOMABLE_PAN_EVENT_DOWNLOAD_DONE@Base 1.20.3+eo+1
+ _EFL_UI_IMAGE_ZOOMABLE_PAN_EVENT_DOWNLOAD_ERROR@Base 1.20.3+eo+1
+ _EFL_UI_IMAGE_ZOOMABLE_PAN_EVENT_DOWNLOAD_PROGRESS@Base 1.20.3+eo+1
+ _EFL_UI_IMAGE_ZOOMABLE_PAN_EVENT_DOWNLOAD_START@Base 1.20.3+eo+1
+ _EFL_UI_IMAGE_ZOOMABLE_PAN_EVENT_LOAD@Base 1.20.3+eo+1
+ _EFL_UI_IMAGE_ZOOMABLE_PAN_EVENT_LOADED@Base 1.20.3+eo+1
+ _EFL_UI_IMAGE_ZOOMABLE_PAN_EVENT_LOADED_DETAIL@Base 1.20.3+eo+1
+ _EFL_UI_IMAGE_ZOOMABLE_PAN_EVENT_LOAD_DETAIL@Base 1.20.3+eo+1
  _EFL_UI_NSTATE_EVENT_STATE_CHANGED@Base 1.19.1+eo+1
+ _EFL_UI_PROGRESSBAR_EVENT_CHANGED@Base 1.20.3+eo+1
+ _EFL_UI_RADIO_EVENT_CHANGED@Base 1.20.3+eo+1
+ _EFL_UI_SLIDER_EVENT_CHANGED@Base 1.20.3+eo+1
+ _EFL_UI_SLIDER_EVENT_DELAY_CHANGED@Base 1.20.3+eo+1
+ _EFL_UI_SLIDER_EVENT_SLIDER_DRAG_START@Base 1.20.3+eo+1
+ _EFL_UI_SLIDER_EVENT_SLIDER_DRAG_STOP@Base 1.20.3+eo+1
  _EFL_UI_TEXT_EVENT_ABORTED@Base 1.19.1+eo+1
  _EFL_UI_TEXT_EVENT_ACTIVATED@Base 1.19.1+eo+1
  _EFL_UI_TEXT_EVENT_ANCHOR_CLICKED@Base 1.19.1+eo+1
@@ -273,28 +304,14 @@ libelementary.so.1 libelementary1 #MINVER#
  _ELM_OBJ_CODE_WIDGET_EVENT_LINE_GUTTER_CLICKED@Base 1.19.1+eo+1
  _ELM_OBJ_CODE_WIDGET_EVENT_SELECTION_CHANGED@Base 1.19.1+eo+1
  _ELM_OBJ_CODE_WIDGET_EVENT_SELECTION_CLEARED@Base 1.19.1+eo+1
+ _ELM_OBJ_CODE_WIDGET_EVENT_SELECTION_COPY@Base 1.20.3+eo+1
+ _ELM_OBJ_CODE_WIDGET_EVENT_SELECTION_CUT@Base 1.20.3+eo+1
+ _ELM_OBJ_CODE_WIDGET_EVENT_SELECTION_PASTE@Base 1.20.3+eo+1
  _ELM_OBJ_CODE_WIDGET_EVENT_SELECTION_START@Base 1.19.1+eo+1
  _ELM_PANEL_EVENT_TOGGLED@Base 1.19.1+eo+1
  _ELM_PANES_EVENT_PRESS@Base 1.19.1+eo+1
  _ELM_PANES_EVENT_UNPRESS@Base 1.19.1+eo+1
  _ELM_PAN_EVENT_CHANGED@Base 1.19.1+eo+1
- _ELM_PHOTOCAM_EVENT_DOWNLOAD_DONE@Base 1.19.1+eo+1
- _ELM_PHOTOCAM_EVENT_DOWNLOAD_ERROR@Base 1.19.1+eo+1
- _ELM_PHOTOCAM_EVENT_DOWNLOAD_PROGRESS@Base 1.19.1+eo+1
- _ELM_PHOTOCAM_EVENT_DOWNLOAD_START@Base 1.19.1+eo+1
- _ELM_PHOTOCAM_EVENT_LOAD@Base 1.19.1+eo+1
- _ELM_PHOTOCAM_EVENT_LOADED@Base 1.19.1+eo+1
- _ELM_PHOTOCAM_EVENT_LOADED_DETAIL@Base 1.19.1+eo+1
- _ELM_PHOTOCAM_EVENT_LOAD_DETAIL@Base 1.19.1+eo+1
- _ELM_PHOTOCAM_EVENT_PRESS@Base 1.19.1+eo+1
- _ELM_PHOTOCAM_PAN_EVENT_DOWNLOAD_DONE@Base 1.19.1+eo+1
- _ELM_PHOTOCAM_PAN_EVENT_DOWNLOAD_ERROR@Base 1.19.1+eo+1
- _ELM_PHOTOCAM_PAN_EVENT_DOWNLOAD_PROGRESS@Base 1.19.1+eo+1
- _ELM_PHOTOCAM_PAN_EVENT_DOWNLOAD_START@Base 1.19.1+eo+1
- _ELM_PHOTOCAM_PAN_EVENT_LOAD@Base 1.19.1+eo+1
- _ELM_PHOTOCAM_PAN_EVENT_LOADED@Base 1.19.1+eo+1
- _ELM_PHOTOCAM_PAN_EVENT_LOADED_DETAIL@Base 1.19.1+eo+1
- _ELM_PHOTOCAM_PAN_EVENT_LOAD_DETAIL@Base 1.19.1+eo+1
  _ELM_PLAYER_EVENT_EJECT_CLICKED@Base 1.19.1+eo+1
  _ELM_PLAYER_EVENT_FORWARD_CLICKED@Base 1.19.1+eo+1
  _ELM_PLAYER_EVENT_INFO_CLICKED@Base 1.19.1+eo+1
@@ -319,8 +336,6 @@ libelementary.so.1 libelementary1 #MINVER#
  _ELM_PREFS_EVENT_PAGE_LOADED@Base 1.19.1+eo+1
  _ELM_PREFS_EVENT_PAGE_RESET@Base 1.19.1+eo+1
  _ELM_PREFS_EVENT_PAGE_SAVED@Base 1.19.1+eo+1
- _ELM_PROGRESSBAR_EVENT_CHANGED@Base 1.19.1+eo+1
- _ELM_RADIO_EVENT_CHANGED@Base 1.19.1+eo+1
  _ELM_SCROLLER_EVENT_EDGE_BOTTOM@Base 1.19.1+eo+1
  _ELM_SCROLLER_EVENT_EDGE_LEFT@Base 1.19.1+eo+1
  _ELM_SCROLLER_EVENT_EDGE_RIGHT@Base 1.19.1+eo+1
@@ -337,14 +352,12 @@ libelementary.so.1 libelementary1 #MINVER#
  _ELM_SCROLLER_EVENT_VBAR_PRESS@Base 1.19.1+eo+1
  _ELM_SCROLLER_EVENT_VBAR_UNPRESS@Base 1.19.1+eo+1
  _ELM_SEGMENT_CONTROL_EVENT_CHANGED@Base 1.19.1+eo+1
- _ELM_SLIDER_EVENT_CHANGED@Base 1.19.1+eo+1
- _ELM_SLIDER_EVENT_DELAY_CHANGED@Base 1.19.1+eo+1
- _ELM_SLIDER_EVENT_SLIDER_DRAG_START@Base 1.19.1+eo+1
- _ELM_SLIDER_EVENT_SLIDER_DRAG_STOP@Base 1.19.1+eo+1
  _ELM_SLIDESHOW_EVENT_CHANGED@Base 1.19.1+eo+1
  _ELM_SLIDESHOW_EVENT_TRANSITION_END@Base 1.19.1+eo+1
  _ELM_SPINNER_EVENT_CHANGED@Base 1.19.1+eo+1
  _ELM_SPINNER_EVENT_DELAY_CHANGED@Base 1.19.1+eo+1
+ _ELM_SPINNER_EVENT_MAX_REACHED@Base 1.20.3+eo+1
+ _ELM_SPINNER_EVENT_MIN_REACHED@Base 1.20.3+eo+1
  _ELM_SPINNER_EVENT_SPINNER_DRAG_START@Base 1.19.1+eo+1
  _ELM_SPINNER_EVENT_SPINNER_DRAG_STOP@Base 1.19.1+eo+1
  _ELM_THUMB_EVENT_GENERATE_ERROR@Base 1.19.1+eo+1
@@ -393,6 +406,7 @@ libelementary.so.1 libelementary1 #MINVER#
  _elm_code_widget_line_refresh@Base 1.19.1+eo+1
  _elm_code_widget_line_visible_get@Base 1.19.1+eo+1
  _elm_code_widget_lines_visible_get@Base 1.19.1+eo+1
+ _elm_layout_part_aliasing_eval@Base 1.20.3+eo+1
  _elm_startup_time@Base 1.19.1+eo+1
  _elm_widget_item_onscreen_is@Base 1.19.1+eo+1
  _elm_widget_onscreen_is@Base 1.19.1+eo+1
@@ -414,6 +428,9 @@ libelementary.so.1 libelementary1 #MINVER#
  efl_ui_box_flow_max_size_get@Base 1.19.1+eo+1
  efl_ui_box_flow_max_size_set@Base 1.19.1+eo+1
  efl_ui_box_stack_class_get@Base 1.19.1+eo+1
+ efl_ui_button_class_get@Base 1.20.3+eo+1
+ efl_ui_button_internal_part_class_get@Base 1.20.3+eo+1
+ efl_ui_check_class_get@Base 1.20.3+eo+1
  efl_ui_check_selected_get@Base 1.19.1+eo+1
  efl_ui_check_selected_set@Base 1.19.1+eo+1
  efl_ui_clock_class_get@Base 1.19.1+eo+1
@@ -444,6 +461,34 @@ libelementary.so.1 libelementary1 #MINVER#
  efl_ui_flip_interaction_get@Base 1.19.1+eo+1
  efl_ui_flip_interaction_set@Base 1.19.1+eo+1
  efl_ui_flip_internal_part_class_get@Base 1.19.1+eo+1
+ efl_ui_focus_manager_border_elements_get@Base 1.20.3+eo+1
+ efl_ui_focus_manager_class_get@Base 1.20.3+eo+1
+ efl_ui_focus_manager_fetch@Base 1.20.3+eo+1
+ efl_ui_focus_manager_focus@Base 1.20.3+eo+1
+ efl_ui_focus_manager_focused@Base 1.20.3+eo+1
+ efl_ui_focus_manager_logical_end@Base 1.20.3+eo+1
+ efl_ui_focus_manager_move@Base 1.20.3+eo+1
+ efl_ui_focus_manager_redirect_get@Base 1.20.3+eo+1
+ efl_ui_focus_manager_redirect_set@Base 1.20.3+eo+1
+ efl_ui_focus_manager_register@Base 1.20.3+eo+1
+ efl_ui_focus_manager_register_logical@Base 1.20.3+eo+1
+ efl_ui_focus_manager_request_move@Base 1.20.3+eo+1
+ efl_ui_focus_manager_root_focus_class_get@Base 1.20.3+eo+1
+ efl_ui_focus_manager_root_get@Base 1.20.3+eo+1
+ efl_ui_focus_manager_root_set@Base 1.20.3+eo+1
+ efl_ui_focus_manager_sub_class_get@Base 1.20.3+eo+1
+ efl_ui_focus_manager_unregister@Base 1.20.3+eo+1
+ efl_ui_focus_manager_update_children@Base 1.20.3+eo+1
+ efl_ui_focus_manager_update_order@Base 1.20.3+eo+1
+ efl_ui_focus_manager_update_parent@Base 1.20.3+eo+1
+ efl_ui_focus_manager_update_redirect@Base 1.20.3+eo+1
+ efl_ui_focus_object_focus_geometry_get@Base 1.20.3+eo+1
+ efl_ui_focus_object_focus_get@Base 1.20.3+eo+1
+ efl_ui_focus_object_focus_set@Base 1.20.3+eo+1
+ efl_ui_focus_object_mixin_get@Base 1.20.3+eo+1
+ efl_ui_focus_user_interface_get@Base 1.20.3+eo+1
+ efl_ui_focus_user_manager_get@Base 1.20.3+eo+1
+ efl_ui_focus_user_parent_get@Base 1.20.3+eo+1
  efl_ui_frame_autocollapse_get@Base 1.19.1+eo+1
  efl_ui_frame_autocollapse_set@Base 1.19.1+eo+1
  efl_ui_frame_class_get@Base 1.19.1+eo+1
@@ -462,6 +507,12 @@ libelementary.so.1 libelementary1 #MINVER#
  efl_ui_image_scalable_set@Base 1.19.1+eo+1
  efl_ui_image_scale_type_get@Base 1.19.1+eo+1
  efl_ui_image_scale_type_set@Base 1.19.1+eo+1
+ efl_ui_image_zoomable_class_get@Base 1.20.3+eo+1
+ efl_ui_image_zoomable_gesture_enabled_get@Base 1.20.3+eo+1
+ efl_ui_image_zoomable_gesture_enabled_set@Base 1.20.3+eo+1
+ efl_ui_image_zoomable_image_region_get@Base 1.20.3+eo+1
+ efl_ui_image_zoomable_image_region_set@Base 1.20.3+eo+1
+ efl_ui_image_zoomable_pan_class_get@Base 1.20.3+eo+1
  efl_ui_internal_text_interactive_class_get@Base 1.19.1+eo+1
  efl_ui_layout_internal_box_class_get@Base 1.19.1+eo+1
  efl_ui_layout_internal_box_real_part_set@Base 1.19.1+eo+1
@@ -473,6 +524,33 @@ libelementary.so.1 libelementary1 #MINVER#
  efl_ui_nstate_count_set@Base 1.19.1+eo+1
  efl_ui_nstate_value_get@Base 1.19.1+eo+1
  efl_ui_nstate_value_set@Base 1.19.1+eo+1
+ efl_ui_progressbar_class_get@Base 1.20.3+eo+1
+ efl_ui_progressbar_internal_part_class_get@Base 1.20.3+eo+1
+ efl_ui_progressbar_pulse_get@Base 1.20.3+eo+1
+ efl_ui_progressbar_pulse_mode_get@Base 1.20.3+eo+1
+ efl_ui_progressbar_pulse_mode_set@Base 1.20.3+eo+1
+ efl_ui_progressbar_pulse_set@Base 1.20.3+eo+1
+ efl_ui_radio_class_get@Base 1.20.3+eo+1
+ efl_ui_radio_group_add@Base 1.20.3+eo+1
+ efl_ui_radio_selected_object_get@Base 1.20.3+eo+1
+ efl_ui_radio_state_value_get@Base 1.20.3+eo+1
+ efl_ui_radio_state_value_set@Base 1.20.3+eo+1
+ efl_ui_radio_value_get@Base 1.20.3+eo+1
+ efl_ui_radio_value_pointer_set@Base 1.20.3+eo+1
+ efl_ui_radio_value_set@Base 1.20.3+eo+1
+ efl_ui_slider_class_get@Base 1.20.3+eo+1
+ efl_ui_slider_indicator_format_function_set@Base 1.20.3+eo+1
+ efl_ui_slider_indicator_format_get@Base 1.20.3+eo+1
+ efl_ui_slider_indicator_format_set@Base 1.20.3+eo+1
+ efl_ui_slider_indicator_show_get@Base 1.20.3+eo+1
+ efl_ui_slider_indicator_show_on_focus_get@Base 1.20.3+eo+1
+ efl_ui_slider_indicator_show_on_focus_set@Base 1.20.3+eo+1
+ efl_ui_slider_indicator_show_set@Base 1.20.3+eo+1
+ efl_ui_slider_indicator_visible_mode_get@Base 1.20.3+eo+1
+ efl_ui_slider_indicator_visible_mode_set@Base 1.20.3+eo+1
+ efl_ui_slider_internal_part_class_get@Base 1.20.3+eo+1
+ efl_ui_slider_step_get@Base 1.20.3+eo+1
+ efl_ui_slider_step_set@Base 1.20.3+eo+1
  efl_ui_text_autocapital_type_get@Base 1.19.1+eo+1
  efl_ui_text_autocapital_type_set@Base 1.19.1+eo+1
  efl_ui_text_class_get@Base 1.19.1+eo+1
@@ -509,8 +587,6 @@ libelementary.so.1 libelementary1 #MINVER#
  efl_ui_text_interactive_editable_get@Base 1.19.1+eo+1
  efl_ui_text_interactive_editable_set@Base 1.19.1+eo+1
  efl_ui_text_interactive_interface_get@Base 1.19.1+eo+1
- efl_ui_text_interactive_multiline_get@Base 1.19.1+eo+1
- efl_ui_text_interactive_multiline_set@Base 1.19.1+eo+1
  efl_ui_text_interactive_selection_allowed_get@Base 1.19.1+eo+1
  efl_ui_text_interactive_selection_allowed_set@Base 1.19.1+eo+1
  efl_ui_text_interactive_selection_cursors_get@Base 1.19.1+eo+1
@@ -595,7 +671,6 @@ libelementary.so.1 libelementary1 #MINVER#
  efl_ui_win_stack_master_id_get@Base 1.19.1+eo+1
  efl_ui_win_stack_master_id_set@Base 1.19.1+eo+1
  efl_ui_win_stack_pop_to@Base 1.19.1+eo+1
- efl_ui_win_standard_class_get@Base 1.19.1+eo+1
  efl_ui_win_sticky_get@Base 1.19.1+eo+1
  efl_ui_win_sticky_set@Base 1.19.1+eo+1
  efl_ui_win_type_get@Base 1.19.1+eo+1
@@ -699,8 +774,7 @@ libelementary.so.1 libelementary1 #MINVER#
  elm_button_autorepeat_initial_timeout_get@Base 1.19.1+eo+1
  elm_button_autorepeat_initial_timeout_set@Base 1.19.1+eo+1
  elm_button_autorepeat_set@Base 1.19.1+eo+1
- elm_button_class_get@Base 1.19.1+eo+1
- elm_button_internal_part_class_get@Base 1.19.1+eo+1
+ elm_actionslider_internal_part_class_get@Base 1.20.3+eo+1
  elm_cache_all_flush@Base 1.19.1+eo+1
  elm_calendar_add@Base 1.19.1+eo+1
  elm_calendar_class_get@Base 1.19.1+eo+1
@@ -732,7 +806,6 @@ libelementary.so.1 libelementary1 #MINVER#
  elm_calendar_weekdays_names_get@Base 1.19.1+eo+1
  elm_calendar_weekdays_names_set@Base 1.19.1+eo+1
  elm_check_add@Base 1.19.1+eo+1
- elm_check_class_get@Base 1.19.1+eo+1
  elm_check_selected_get@Base 1.19.1+eo+1
  elm_check_selected_set@Base 1.19.1+eo+1
  elm_check_state_get@Base 1.19.1+eo+1
@@ -754,6 +827,7 @@ libelementary.so.1 libelementary1 #MINVER#
  elm_clock_show_seconds_set@Base 1.19.1+eo+1
  elm_clock_time_get@Base 1.19.1+eo+1
  elm_clock_time_set@Base 1.19.1+eo+1
+ elm_cnp_clipboard_selection_has_owner@Base 1.20.3+eo+1
  elm_cnp_selection_get@Base 1.19.1+eo+1
  elm_cnp_selection_loss_callback_set@Base 1.19.1+eo+1
  elm_cnp_selection_set@Base 1.19.1+eo+1
@@ -845,6 +919,7 @@ libelementary.so.1 libelementary1 #MINVER#
  elm_code_widget_selection_is_empty@Base 1.19.1+eo+1
  elm_code_widget_selection_normalized_get@Base 1.19.1+eo+1
  elm_code_widget_selection_paste@Base 1.19.1+eo+1
+ elm_code_widget_selection_select_all@Base 1.20.3+eo+1
  elm_code_widget_selection_select_line@Base 1.19.1+eo+1
  elm_code_widget_selection_select_word@Base 1.19.1+eo+1
  elm_code_widget_selection_start@Base 1.19.1+eo+1
@@ -1233,6 +1308,7 @@ libelementary.so.1 libelementary1 #MINVER#
  elm_entry_password_set@Base 1.19.1+eo+1
  elm_entry_prediction_allow_get@Base 1.19.1+eo+1
  elm_entry_prediction_allow_set@Base 1.19.1+eo+1
+ elm_entry_prediction_hint_set@Base 1.20.3+eo+1
  elm_entry_scrollable_get@Base 1.19.1+eo+1
  elm_entry_scrollable_set@Base 1.19.1+eo+1
  elm_entry_scrollbar_policy_set@Base 1.19.1+eo+1
@@ -1304,6 +1380,7 @@ libelementary.so.1 libelementary1 #MINVER#
  elm_fileselector_folder_only_set@Base 1.19.1+eo+1
  elm_fileselector_hidden_visible_get@Base 1.19.1+eo+1
  elm_fileselector_hidden_visible_set@Base 1.19.1+eo+1
+ elm_fileselector_internal_part_class_get@Base 1.20.3+eo+1
  elm_fileselector_is_save_get@Base 1.19.1+eo+1
  elm_fileselector_is_save_set@Base 1.19.1+eo+1
  elm_fileselector_mime_types_filter_append@Base 1.19.1+eo+1
@@ -1932,6 +2009,7 @@ libelementary.so.1 libelementary1 #MINVER#
  elm_label_class_get@Base 1.19.1+eo+1
  elm_label_ellipsis_get@Base 1.19.1+eo+1
  elm_label_ellipsis_set@Base 1.19.1+eo+1
+ elm_label_internal_part_class_get@Base 1.20.3+eo+1
  elm_label_line_wrap_get@Base 1.19.1+eo+1
  elm_label_line_wrap_set@Base 1.19.1+eo+1
  elm_label_slide_duration_get@Base 1.19.1+eo+1
@@ -2144,6 +2222,7 @@ libelementary.so.1 libelementary1 #MINVER#
  elm_menu_items_get@Base 1.19.1+eo+1
  elm_menu_last_item_get@Base 1.19.1+eo+1
  elm_menu_move@Base 1.19.1+eo+1
+ elm_menu_open@Base 1.20.3+eo+1
  elm_menu_parent_get@Base 1.19.1+eo+1
  elm_menu_parent_set@Base 1.19.1+eo+1
  elm_menu_selected_item_get@Base 1.19.1+eo+1
@@ -2157,6 +2236,7 @@ libelementary.so.1 libelementary1 #MINVER#
  elm_multibuttonentry_expanded_set@Base 1.19.1+eo+1
  elm_multibuttonentry_first_item_get@Base 1.19.1+eo+1
  elm_multibuttonentry_format_function_set@Base 1.19.1+eo+1
+ elm_multibuttonentry_internal_part_class_get@Base 1.20.3+eo+1
  elm_multibuttonentry_item_append@Base 1.19.1+eo+1
  elm_multibuttonentry_item_class_get@Base 1.19.1+eo+1
  elm_multibuttonentry_item_data_get@Base 1.19.1+eo+1
@@ -2244,7 +2324,6 @@ libelementary.so.1 libelementary1 #MINVER#
  elm_obj_box_homogeneous_set@Base 1.19.1+eo+1
  elm_obj_box_horizontal_get@Base 1.19.1+eo+1
  elm_obj_box_horizontal_set@Base 1.19.1+eo+1
- elm_obj_box_layout_set@Base 1.19.1+eo+1
  elm_obj_box_pack_after@Base 1.19.1+eo+1
  elm_obj_box_pack_before@Base 1.19.1+eo+1
  elm_obj_box_pack_end@Base 1.19.1+eo+1
@@ -2254,15 +2333,9 @@ libelementary.so.1 libelementary1 #MINVER#
  elm_obj_box_recalculate@Base 1.19.1+eo+1
  elm_obj_box_unpack@Base 1.19.1+eo+1
  elm_obj_box_unpack_all@Base 1.19.1+eo+1
+ elm_bubble_internal_part_class_get@Base 1.20.3+eo+1
  elm_obj_bubble_pos_get@Base 1.19.1+eo+1
  elm_obj_bubble_pos_set@Base 1.19.1+eo+1
- elm_obj_button_admits_autorepeat_get@Base 1.19.1+eo+1
- elm_obj_button_autorepeat_gap_timeout_get@Base 1.19.1+eo+1
- elm_obj_button_autorepeat_gap_timeout_set@Base 1.19.1+eo+1
- elm_obj_button_autorepeat_get@Base 1.19.1+eo+1
- elm_obj_button_autorepeat_initial_timeout_get@Base 1.19.1+eo+1
- elm_obj_button_autorepeat_initial_timeout_set@Base 1.19.1+eo+1
- elm_obj_button_autorepeat_set@Base 1.19.1+eo+1
  elm_obj_calendar_date_max_get@Base 1.19.1+eo+1
  elm_obj_calendar_date_max_set@Base 1.19.1+eo+1
  elm_obj_calendar_date_min_get@Base 1.19.1+eo+1
@@ -2473,6 +2546,7 @@ libelementary.so.1 libelementary1 #MINVER#
  elm_obj_entry_password_set@Base 1.19.1+eo+1
  elm_obj_entry_prediction_allow_get@Base 1.19.1+eo+1
  elm_obj_entry_prediction_allow_set@Base 1.19.1+eo+1
+ elm_obj_entry_prediction_hint_set@Base 1.20.3+eo+1
  elm_obj_entry_scrollable_get@Base 1.19.1+eo+1
  elm_obj_entry_scrollable_set@Base 1.19.1+eo+1
  elm_obj_entry_select_all@Base 1.19.1+eo+1
@@ -2739,8 +2813,6 @@ libelementary.so.1 libelementary1 #MINVER#
  elm_obj_layout_sizing_restricted_eval@Base 1.19.1+eo+1
  elm_obj_layout_sub_object_add_enable@Base 1.19.1+eo+1
  elm_obj_layout_text_aliases_get@Base 1.19.1+eo+1
- elm_obj_layout_text_get@Base 1.19.1+eo+1
- elm_obj_layout_text_set@Base 1.19.1+eo+1
  elm_obj_layout_thaw@Base 1.19.1+eo+1
  elm_obj_layout_theme_enable@Base 1.19.1+eo+1
  elm_obj_layout_theme_set@Base 1.19.1+eo+1
@@ -2829,6 +2901,7 @@ libelementary.so.1 libelementary1 #MINVER#
  elm_obj_menu_item_subitems_clear@Base 1.19.1+eo+1
  elm_obj_menu_item_subitems_get@Base 1.19.1+eo+1
  elm_obj_menu_move@Base 1.19.1+eo+1
+ elm_obj_menu_open@Base 1.20.3+eo+1
  elm_obj_multibuttonentry_clear@Base 1.19.1+eo+1
  elm_obj_multibuttonentry_editable_get@Base 1.19.1+eo+1
  elm_obj_multibuttonentry_editable_set@Base 1.19.1+eo+1
@@ -2907,20 +2980,6 @@ libelementary.so.1 libelementary1 #MINVER#
  elm_obj_panes_content_right_size_set@Base 1.19.1+eo+1
  elm_obj_panes_fixed_get@Base 1.19.1+eo+1
  elm_obj_panes_fixed_set@Base 1.19.1+eo+1
- elm_obj_photocam_gesture_enabled_get@Base 1.19.1+eo+1
- elm_obj_photocam_gesture_enabled_set@Base 1.19.1+eo+1
- elm_obj_photocam_image_orient_get@Base 1.19.1+eo+1
- elm_obj_photocam_image_orient_set@Base 1.19.1+eo+1
- elm_obj_photocam_image_region_get@Base 1.19.1+eo+1
- elm_obj_photocam_image_region_show@Base 1.19.1+eo+1
- elm_obj_photocam_image_size_get@Base 1.19.1+eo+1
- elm_obj_photocam_internal_image_get@Base 1.19.1+eo+1
- elm_obj_photocam_paused_get@Base 1.19.1+eo+1
- elm_obj_photocam_paused_set@Base 1.19.1+eo+1
- elm_obj_photocam_zoom_get@Base 1.19.1+eo+1
- elm_obj_photocam_zoom_mode_get@Base 1.19.1+eo+1
- elm_obj_photocam_zoom_mode_set@Base 1.19.1+eo+1
- elm_obj_photocam_zoom_set@Base 1.19.1+eo+1
  elm_obj_plug_connect@Base 1.19.1+eo+1
  elm_obj_plug_image_object_get@Base 1.19.1+eo+1
  elm_obj_popup_align_get@Base 1.19.1+eo+1
@@ -2953,27 +3012,12 @@ libelementary.so.1 libelementary1 #MINVER#
  elm_obj_prefs_item_visible_get@Base 1.19.1+eo+1
  elm_obj_prefs_item_visible_set@Base 1.19.1+eo+1
  elm_obj_prefs_reset@Base 1.19.1+eo+1
- elm_obj_progressbar_is_pulsing_get@Base 1.19.1+eo+1
- elm_obj_progressbar_part_value_get@Base 1.19.1+eo+1
- elm_obj_progressbar_part_value_set@Base 1.19.1+eo+1
- elm_obj_progressbar_pulse@Base 1.19.1+eo+1
- elm_obj_progressbar_pulse_get@Base 1.19.1+eo+1
- elm_obj_progressbar_pulse_set@Base 1.19.1+eo+1
- elm_obj_radio_group_add@Base 1.19.1+eo+1
- elm_obj_radio_selected_object_get@Base 1.19.1+eo+1
- elm_obj_radio_state_value_get@Base 1.19.1+eo+1
- elm_obj_radio_state_value_set@Base 1.19.1+eo+1
- elm_obj_radio_value_get@Base 1.19.1+eo+1
- elm_obj_radio_value_pointer_set@Base 1.19.1+eo+1
- elm_obj_radio_value_set@Base 1.19.1+eo+1
  elm_obj_route_emap_set@Base 1.19.1+eo+1
  elm_obj_route_latitude_min_max_get@Base 1.19.1+eo+1
  elm_obj_route_longitude_min_max_get@Base 1.19.1+eo+1
  elm_obj_scroller_custom_widget_base_theme_set@Base 1.19.1+eo+1
  elm_obj_scroller_page_scroll_limit_get@Base 1.19.1+eo+1
  elm_obj_scroller_page_scroll_limit_set@Base 1.19.1+eo+1
- elm_obj_scroller_propagate_events_get@Base 1.19.1+eo+1
- elm_obj_scroller_propagate_events_set@Base 1.19.1+eo+1
  elm_obj_segment_control_item_add@Base 1.19.1+eo+1
  elm_obj_segment_control_item_count_get@Base 1.19.1+eo+1
  elm_obj_segment_control_item_del_at@Base 1.19.1+eo+1
@@ -2985,23 +3029,6 @@ libelementary.so.1 libelementary1 #MINVER#
  elm_obj_segment_control_item_object_get@Base 1.19.1+eo+1
  elm_obj_segment_control_item_selected_get@Base 1.19.1+eo+1
  elm_obj_segment_control_item_selected_set@Base 1.19.1+eo+1
- elm_obj_slider_indicator_format_function_set@Base 1.19.1+eo+1
- elm_obj_slider_indicator_format_get@Base 1.19.1+eo+1
- elm_obj_slider_indicator_format_set@Base 1.19.1+eo+1
- elm_obj_slider_indicator_show_get@Base 1.19.1+eo+1
- elm_obj_slider_indicator_show_on_focus_get@Base 1.19.1+eo+1
- elm_obj_slider_indicator_show_on_focus_set@Base 1.19.1+eo+1
- elm_obj_slider_indicator_show_set@Base 1.19.1+eo+1
- elm_obj_slider_indicator_visible_mode_get@Base 1.19.1+eo+1
- elm_obj_slider_indicator_visible_mode_set@Base 1.19.1+eo+1
- elm_obj_slider_min_max_get@Base 1.19.1+eo+1
- elm_obj_slider_min_max_set@Base 1.19.1+eo+1
- elm_obj_slider_range_enabled_get@Base 1.19.1+eo+1
- elm_obj_slider_range_enabled_set@Base 1.19.1+eo+1
- elm_obj_slider_range_get@Base 1.19.1+eo+1
- elm_obj_slider_range_set@Base 1.19.1+eo+1
- elm_obj_slider_step_get@Base 1.19.1+eo+1
- elm_obj_slider_step_set@Base 1.19.1+eo+1
  elm_obj_slideshow_cache_after_get@Base 1.19.1+eo+1
  elm_obj_slideshow_cache_after_set@Base 1.19.1+eo+1
  elm_obj_slideshow_cache_before_get@Base 1.19.1+eo+1
@@ -3169,12 +3196,9 @@ libelementary.so.1 libelementary1 #MINVER#
  elm_obj_widget_can_focus_get@Base 1.19.1+eo+1
  elm_obj_widget_can_focus_set@Base 1.19.1+eo+1
  elm_obj_widget_child_can_focus_get@Base 1.19.1+eo+1
- elm_obj_widget_cursor_add@Base 1.19.1+eo+1
- elm_obj_widget_cursor_del@Base 1.19.1+eo+1
  elm_obj_widget_disable@Base 1.19.1+eo+1
  elm_obj_widget_disabled_get@Base 1.19.1+eo+1
  elm_obj_widget_disabled_set@Base 1.19.1+eo+1
- elm_obj_widget_display_mode_set@Base 1.19.1+eo+1
  elm_obj_widget_domain_part_text_translatable_set@Base 1.19.1+eo+1
  elm_obj_widget_domain_translatable_part_text_set@Base 1.19.1+eo+1
  elm_obj_widget_drag_child_locked_x_get@Base 1.19.1+eo+1
@@ -3184,9 +3208,6 @@ libelementary.so.1 libelementary1 #MINVER#
  elm_obj_widget_drag_lock_y_get@Base 1.19.1+eo+1
  elm_obj_widget_drag_lock_y_set@Base 1.19.1+eo+1
  elm_obj_widget_event@Base 1.19.1+eo+1
- elm_obj_widget_event_callback_add@Base 1.19.1+eo+1
- elm_obj_widget_event_callback_del@Base 1.19.1+eo+1
- elm_obj_widget_event_propagate@Base 1.19.1+eo+1
  elm_obj_widget_focus_custom_chain_append@Base 1.19.1+eo+1
  elm_obj_widget_focus_custom_chain_get@Base 1.19.1+eo+1
  elm_obj_widget_focus_custom_chain_prepend@Base 1.19.1+eo+1
@@ -3205,6 +3226,7 @@ libelementary.so.1 libelementary1 #MINVER#
  elm_obj_widget_focus_highlight_style_set@Base 1.19.1+eo+1
  elm_obj_widget_focus_list_direction_get@Base 1.19.1+eo+1
  elm_obj_widget_focus_list_next_get@Base 1.19.1+eo+1
+ elm_obj_widget_focus_manager_factory@Base 1.20.3+eo+1
  elm_obj_widget_focus_mouse_up_handle@Base 1.19.1+eo+1
  elm_obj_widget_focus_move_policy_automatic_get@Base 1.19.1+eo+1
  elm_obj_widget_focus_move_policy_automatic_set@Base 1.19.1+eo+1
@@ -3223,6 +3245,7 @@ libelementary.so.1 libelementary1 #MINVER#
  elm_obj_widget_focus_region_show@Base 1.19.1+eo+1
  elm_obj_widget_focus_region_show_mode_get@Base 1.19.1+eo+1
  elm_obj_widget_focus_region_show_mode_set@Base 1.19.1+eo+1
+ elm_obj_widget_focus_register@Base 1.20.3+eo+1
  elm_obj_widget_focus_restore@Base 1.19.1+eo+1
  elm_obj_widget_focus_set@Base 1.19.1+eo+1
  elm_obj_widget_focus_steal@Base 1.19.1+eo+1
@@ -3238,10 +3261,6 @@ libelementary.so.1 libelementary1 #MINVER#
  elm_obj_widget_hover_object_set@Base 1.19.1+eo+1
  elm_obj_widget_item_loop_enabled_get@Base 1.19.1+eo+1
  elm_obj_widget_item_loop_enabled_set@Base 1.19.1+eo+1
- elm_obj_widget_mirrored_automatic_get@Base 1.19.1+eo+1
- elm_obj_widget_mirrored_automatic_set@Base 1.19.1+eo+1
- elm_obj_widget_mirrored_get@Base 1.19.1+eo+1
- elm_obj_widget_mirrored_set@Base 1.19.1+eo+1
  elm_obj_widget_name_find@Base 1.19.1+eo+1
  elm_obj_widget_newest_focus_order_get@Base 1.19.1+eo+1
  elm_obj_widget_on_focus@Base 1.19.1+eo+1
@@ -3261,8 +3280,6 @@ libelementary.so.1 libelementary1 #MINVER#
  elm_obj_widget_part_text_set@Base 1.19.1+eo+1
  elm_obj_widget_part_text_translate@Base 1.19.1+eo+1
  elm_obj_widget_resize_object_set@Base 1.19.1+eo+1
- elm_obj_widget_scale_get@Base 1.19.1+eo+1
- elm_obj_widget_scale_set@Base 1.19.1+eo+1
  elm_obj_widget_scroll_freeze_get@Base 1.19.1+eo+1
  elm_obj_widget_scroll_freeze_pop@Base 1.19.1+eo+1
  elm_obj_widget_scroll_freeze_push@Base 1.19.1+eo+1
@@ -3499,7 +3516,6 @@ libelementary.so.1 libelementary1 #MINVER#
  elm_photocam_add@Base 1.19.1+eo+1
  elm_photocam_bounce_get@Base 1.19.1+eo+1
  elm_photocam_bounce_set@Base 1.19.1+eo+1
- elm_photocam_class_get@Base 1.19.1+eo+1
  elm_photocam_file_get@Base 1.19.1+eo+1
  elm_photocam_file_set@Base 1.19.1+eo+1
  elm_photocam_gesture_enabled_get@Base 1.19.1+eo+1
@@ -3511,7 +3527,6 @@ libelementary.so.1 libelementary1 #MINVER#
  elm_photocam_image_region_show@Base 1.19.1+eo+1
  elm_photocam_image_size_get@Base 1.19.1+eo+1
  elm_photocam_internal_image_get@Base 1.19.1+eo+1
- elm_photocam_pan_class_get@Base 1.19.1+eo+1
  elm_photocam_paused_get@Base 1.19.1+eo+1
  elm_photocam_paused_set@Base 1.19.1+eo+1
  elm_photocam_zoom_get@Base 1.19.1+eo+1
@@ -3595,10 +3610,8 @@ libelementary.so.1 libelementary1 #MINVER#
  elm_private_mapbuf_smooth_set@Base 1.19.1+eo+1
  elm_process_state_get@Base 1.19.1+eo+1
  elm_progressbar_add@Base 1.19.1+eo+1
- elm_progressbar_class_get@Base 1.19.1+eo+1
  elm_progressbar_horizontal_get@Base 1.19.1+eo+1
  elm_progressbar_horizontal_set@Base 1.19.1+eo+1
- elm_progressbar_internal_part_class_get@Base 1.19.1+eo+1
  elm_progressbar_inverted_get@Base 1.19.1+eo+1
  elm_progressbar_inverted_set@Base 1.19.1+eo+1
  elm_progressbar_is_pulsing_get@Base 1.19.1+eo+1
@@ -3627,7 +3640,6 @@ libelementary.so.1 libelementary1 #MINVER#
  elm_quicklaunch_sub_init@Base 1.19.1+eo+1
  elm_quicklaunch_sub_shutdown@Base 1.19.1+eo+1
  elm_radio_add@Base 1.19.1+eo+1
- elm_radio_class_get@Base 1.19.1+eo+1
  elm_radio_group_add@Base 1.19.1+eo+1
  elm_radio_selected_object_get@Base 1.19.1+eo+1
  elm_radio_state_value_get@Base 1.19.1+eo+1
@@ -3763,7 +3775,6 @@ libelementary.so.1 libelementary1 #MINVER#
  elm_separator_horizontal_set@Base 1.19.1+eo+1
  elm_shutdown@Base 1.19.1+eo+1
  elm_slider_add@Base 1.19.1+eo+1
- elm_slider_class_get@Base 1.19.1+eo+1
  elm_slider_horizontal_get@Base 1.19.1+eo+1
  elm_slider_horizontal_set@Base 1.19.1+eo+1
  elm_slider_indicator_format_function_set@Base 1.19.1+eo+1
@@ -4264,6 +4275,7 @@ libelementary.so.1 libelementary1 #MINVER#
  elm_widget_focus_highlight_style_set@Base 1.19.1+eo+1
  elm_widget_focus_list_direction_get@Base 1.19.1+eo+1
  elm_widget_focus_list_next_get@Base 1.19.1+eo+1
+ elm_widget_focus_manager_factory@Base 1.20.3+eo+1
  elm_widget_focus_mouse_up_handle@Base 1.19.1+eo+1
  elm_widget_focus_move_policy_automatic_get@Base 1.19.1+eo+1
  elm_widget_focus_move_policy_automatic_set@Base 1.19.1+eo+1
@@ -4282,6 +4294,7 @@ libelementary.so.1 libelementary1 #MINVER#
  elm_widget_focus_region_show@Base 1.19.1+eo+1
  elm_widget_focus_region_show_mode_get@Base 1.19.1+eo+1
  elm_widget_focus_region_show_mode_set@Base 1.19.1+eo+1
+ elm_widget_focus_register@Base 1.20.3+eo+1
  elm_widget_focus_restore@Base 1.19.1+eo+1
  elm_widget_focus_set@Base 1.19.1+eo+1
  elm_widget_focus_steal@Base 1.19.1+eo+1
@@ -4300,10 +4313,6 @@ libelementary.so.1 libelementary1 #MINVER#
  elm_widget_item_class_get@Base 1.19.1+eo+1
  elm_widget_item_loop_enabled_get@Base 1.19.1+eo+1
  elm_widget_item_loop_enabled_set@Base 1.19.1+eo+1
- elm_widget_mirrored_automatic_get@Base 1.19.1+eo+1
- elm_widget_mirrored_automatic_set@Base 1.19.1+eo+1
- elm_widget_mirrored_get@Base 1.19.1+eo+1
- elm_widget_mirrored_set@Base 1.19.1+eo+1
  elm_widget_name_find@Base 1.19.1+eo+1
  elm_widget_newest_focus_order_get@Base 1.19.1+eo+1
  elm_widget_on_focus@Base 1.19.1+eo+1
@@ -4323,8 +4332,6 @@ libelementary.so.1 libelementary1 #MINVER#
  elm_widget_part_text_set@Base 1.19.1+eo+1
  elm_widget_part_text_translate@Base 1.19.1+eo+1
  elm_widget_resize_object_set@Base 1.19.1+eo+1
- elm_widget_scale_get@Base 1.19.1+eo+1
- elm_widget_scale_set@Base 1.19.1+eo+1
  elm_widget_scroll_freeze_get@Base 1.19.1+eo+1
  elm_widget_scroll_freeze_pop@Base 1.19.1+eo+1
  elm_widget_scroll_freeze_push@Base 1.19.1+eo+1
@@ -4395,6 +4402,7 @@ libelementary.so.1 libelementary1 #MINVER#
  elm_win_focus_highlight_style_set@Base 1.19.1+eo+1
  elm_win_fullscreen_get@Base 1.19.1+eo+1
  elm_win_fullscreen_set@Base 1.19.1+eo+1
+ elm_win_get@Base 1.20.3+eo+1
  elm_win_icon_name_get@Base 1.19.1+eo+1
  elm_win_icon_name_set@Base 1.19.1+eo+1
  elm_win_icon_object_get@Base 1.19.1+eo+1

@@ -151,6 +151,7 @@ libeolian.so.1 libeolian1 #MINVER#
  eolian_typedecl_file_get@Base 1.19.1+eo+1
  eolian_typedecl_free_func_get@Base 1.19.1+eo+1
  eolian_typedecl_full_name_get@Base 1.19.1+eo+1
+ eolian_typedecl_function_pointer_get@Base 1.20.3+eo+1
  eolian_typedecl_is_extern@Base 1.19.1+eo+1
  eolian_typedecl_name_get@Base 1.19.1+eo+1
  eolian_typedecl_namespaces_get@Base 1.19.1+eo+1
