@@ -1,3 +1,54 @@
+efl (1.20.3-1) experimental; urgency=medium
+
+  * Team upload.
+  * New upstream version
+    - Fix FTBFS due to lua updates (Closes: #875387)
+
+  [ Ross Vandegrift ]
+  * Update gbp.conf for experimental branch
+  * Include dpkg arch makefile to fix calling debian/rules directly
+    (Closes: #858563)
+  * Build with Wayland support
+  * Build with SCIM support
+  * Build-depend on libibus-1.0-dev to fix ibus support
+  * Setup writable $XDG_RUNTIME_DIR/$HOME for build
+  * Build with fake_home.sh to setup writable $XDG_RUNTIME_DIR/$HOME
+    Needed because edje_cc now fails if it can't mkdir .run in one of these
+    locations.  See src/lib/efl/interfaces/efl_vpath_core.c.
+  * debian/libecore-bin.install: distribute libproxy isolation binary.
+    Ecore now isolates its libproxy usage in a separate process.  This
+    helps avoid crashes in scenarios where libproxy fails to handle
+    exceptions.  See commit bd2f189d for details.
+    - As a result, libecore1 now depends on libecore-bin.
+  * debian/libelementary1.install: update wildcards to catch any new modules
+  * debian/libecore-x1.install: drop removed ecore_x_* helpers
+  * d/copyright: eliminate removed files
+  * Update README.source for tarball-based workflow
+  * Remove empty shlibs:Depends from packages that don't need it
+  * Switch to debhelper 10
+  * Disable EFL test suite during package build, see note in README.source.
+    As a result the following patches have been dropped:
+    - d/p/02_no_ecore_imf_test.diff
+    - d/p/20-skip_dbus_tests.diff
+    - d/p/21-skip_net_tests.diff
+    - d/p/24-skip_gnutls_broken.diff
+    - d/p/26-skip_filter_tests.diff
+    - d/p/75-disable-evas_test_image.diff
+    - d/p/80-disable-ecore_cxx_safe_call_sync.diff
+    - d/p/85-disable-elm_tests.diff
+    - d/p/90-disable-ecore_con_tests.diff
+  * Improve shader code generation scripts, and use that feature during build
+    - d/p/99-fix-shader-regen.diff: add improved script
+    - d/p/100-drop-pregen-shaders.diff: drop, now cleaned in debian/rules
+  * d/p/15_try_curl-gnutls.diff: defuzz
+  * Add -lm, -ldl to LDFLAGS to fix linking problems
+  * Update symbols for changes in 1.20.3 release
+  * Bump all eo symbol versions for 1.20.3 release
+  * debian/copyright: update, try to simplify as much as possible
+  * debian/control: drop conflicts on very old libevas-0.9.9.050a-engines
+
+ -- Ross Vandegrift <ross@kallisti.us>  Mon, 18 Sep 2017 20:01:25 -0700
+
 efl (1.18.4-1) experimental; urgency=medium
 
   * Team upload.
