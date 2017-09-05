@@ -6,7 +6,7 @@ export DEB_BUILD_MAINT_OPTIONS = hardening=+all
 export DEB_BUILD_OPTIONS += nocheck
 
 CFLAGS += -fvisibility=hidden
-LDFLAGS += -Wl,-z,defs -Wl,--as-needed
+LDFLAGS += -Wl,-z,defs -Wl,--as-needed -lm -ldl
 
 ifneq (,$(filter $(DEB_HOST_ARCH), armel armhf))
 	arch_flags += --with-opengl=es --enable-egl
