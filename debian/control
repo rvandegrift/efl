@@ -269,7 +269,6 @@ Package: libevas1-engines-x
 Architecture: any
 Multi-Arch: same
 Depends: ${shlibs:Depends}, ${misc:Depends}
-Conflicts: libevas-0.9.9.050a-engines
 Breaks: libeina1a (<< ${source:Upstream-Version})
 Replaces: libevas-engines, libevas-engines-extras
 Provides: libevas1-engine-software-x11, libevas1-engine-gl-x11, libevas1-engine
@@ -287,7 +286,6 @@ Package: libevas1-engines-fb
 Architecture: linux-any
 Multi-Arch: same
 Depends: ${shlibs:Depends}, ${misc:Depends}
-Conflicts: libevas-0.9.9.050a-engines-extras
 Breaks: libeina1a (<< ${source:Upstream-Version})
 Replaces: libevas-engines-extras, libevas1-engine-fb
 Provides: libevas1-engine
@@ -303,7 +301,6 @@ Package: libevas1-engines-drm
 Architecture: any
 Multi-Arch: same
 Depends: ${shlibs:Depends}, ${misc:Depends}
-Conflicts: libevas-0.9.9.050a-engines
 Breaks: libeina1a (<< ${source:Upstream-Version})
 Replaces: libevas-engines, libevas-engines-extras
 Provides: libevas1-engine
@@ -319,7 +316,6 @@ Package: libevas1-engines-wayland
 Architecture: any
 Multi-Arch: same
 Depends: ${shlibs:Depends}, ${misc:Depends}
-Conflicts: libevas-0.9.9.050a-engines
 Breaks: libeina1a (<< ${source:Upstream-Version})
 Replaces: libevas-engines, libevas-engines-extras
 Provides: libevas1-engine
