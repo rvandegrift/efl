@@ -1,4 +1,4 @@
-efl (1.20.3-1) experimental; urgency=medium
+efl (1.20.4-1) experimental; urgency=medium
 
   * Team upload.
   * New upstream version
@@ -42,12 +42,12 @@ efl (1.20.3-1) experimental; urgency=medium
     - d/p/100-drop-pregen-shaders.diff: drop, now cleaned in debian/rules
   * d/p/15_try_curl-gnutls.diff: defuzz
   * Add -lm, -ldl to LDFLAGS to fix linking problems
-  * Update symbols for changes in 1.20.3 release
-  * Bump all eo symbol versions for 1.20.3 release
   * debian/copyright: update, try to simplify as much as possible
   * debian/control: drop conflicts on very old libevas-0.9.9.050a-engines
+  * Update symbols for changes in 1.20.4 release
+  * Bump all eo symbol versions for 1.20.4 release
 
- -- Ross Vandegrift <ross@kallisti.us>  Mon, 18 Sep 2017 20:01:25 -0700
+ -- Ross Vandegrift <ross@kallisti.us>  Fri, 22 Sep 2017 16:52:21 -0700
 
 efl (1.18.4-1) experimental; urgency=medium
 
