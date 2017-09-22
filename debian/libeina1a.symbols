@@ -1184,8 +1184,6 @@ libefl.so.1 libeina1a #MINVER#
  efl_input_device_seat_id_set@Base 1.20.3+eo+1
  efl_input_device_source_get@Base 1.20.3+eo+1
  efl_input_device_source_set@Base 1.20.3+eo+1
- efl_input_device_subtype_get@Base 1.20.3+eo+1
- efl_input_device_subtype_set@Base 1.20.3+eo+1
  efl_input_device_type_get@Base 1.20.3+eo+1
  efl_input_device_type_set@Base 1.20.3+eo+1
  efl_io_buffer_adopt_readonly@Base 1.20.3+eo+1
