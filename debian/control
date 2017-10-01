@@ -598,7 +598,7 @@ Package: libector-dev
 Section: libdevel
 Architecture: any
 Pre-Depends: ${misc:Pre-Depends}
-Depends: ${misc:Depends},
+Depends: ${misc:Depends}, libector1 (= ${binary:Version}),
  libeina-dev (>= ${source:Upstream-Version})
 Description: Library that provides vector graphics capabilities for EFL development files
  Ector provides a new retained rendering library that is used by Evas
