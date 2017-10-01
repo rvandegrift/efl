@@ -1,9 +1,13 @@
 efl (1.20.4-2) UNRELEASED; urgency=medium
 
+  [ Andreas Metzler ]
   * libector-dev needs to depend on libector1. Closes: #877180
   * Also libelua-dev needs a dependency on libelua1 instead of libeeze1.
 
- -- Andreas Metzler <ametzler@debian.org>  Sun, 01 Oct 2017 15:54:34 +0200
+  [ Ross Vandegrift ]
+  * libefl-all-dev needs to depend on libelementary-dev, libelput-dev.
+
+ -- Ross Vandegrift <ross@kallisti.us>  Sun, 01 Oct 2017 09:12:05 -0700
 
 efl (1.20.4-1) experimental; urgency=medium
 
