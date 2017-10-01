@@ -902,7 +902,7 @@ Description: Lua wrapper and convenience layer for EFL shared objects
 Package: libelua-dev
 Section: libdevel
 Architecture: linux-any
-Depends: ${misc:Depends}, libeeze1 (= ${binary:Version}), pkg-config,
+Depends: ${misc:Depends}, libelua1 (= ${binary:Version}), pkg-config,
  libeina-dev  (>= ${source:Upstream-Version}),
  libecore-dev (>= ${source:Upstream-Version}),
  libluajit-5.1-dev
