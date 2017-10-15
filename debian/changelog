@@ -8,6 +8,11 @@ efl (1.20.4-2) UNRELEASED; urgency=medium
   * libefl-all-dev needs to depend on libelementary-dev, libelput-dev.
   * d/libelocation1.symbols: correct versions to reflect eo 1.20.4.
   * d/control: remove uses of deprecated Priority: extra.
+  * Merge libe*-dev into libefl-all-dev, add transitional packages.  With
+    split -dev packages, adding dependencies to match pkg-config
+    requirements results in circular dependencies.  Also, upstream does
+    not support or test building against part of EFL.  Combining these
+    into a single dev package avoids both problems. (Closes: #878584)
 
  -- Ross Vandegrift <ross@kallisti.us>  Sun, 01 Oct 2017 09:12:05 -0700
 

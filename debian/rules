@@ -64,7 +64,7 @@ override_dh_auto_install:
 override_dh_install:
 	dh_install --list-missing
 ifeq ($(DEB_HOST_ARCH_OS),linux)
-	dh_install -plibecore-dev debian/tmp/usr/lib/*/libecore_fb.so
+	dh_install -plibefl-all-dev debian/tmp/usr/lib/*/libecore_fb.so
 endif
 
 override_dh_makeshlibs:
