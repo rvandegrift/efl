@@ -1103,7 +1103,7 @@ Description: EFL abstraction library for libinput - development
 Package: efl-doc
 Architecture: all
 Section: doc
-Priority: extra
+Priority: optional
 Depends: ${misc:Depends}
 Breaks: libeina-doc    (<= 1.8.3),
         libeet-doc     (<= 1.8.3),
