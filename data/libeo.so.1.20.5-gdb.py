@@ -1,6 +1,6 @@
 import sys
 
-eodir = '/usr/local/share/eo/gdb'
+eodir = '/usr/share/eo/gdb'
 if not eodir in sys.path:
    sys.path.insert(0, eodir)
 

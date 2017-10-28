@@ -485,6 +485,7 @@ ok_klass_back:
                        call->func = func->func;
                        if (is_obj)
                          call->data = (char *)obj + cache->off[i].off;
+                       if (EINA_UNLIKELY(!call->func)) goto err_cache_op;
                        return EINA_TRUE;
                     }
                }
@@ -982,7 +983,8 @@ efl_reuse(const Eo *_obj)
 {
    Eo *obj = (Eo *) _obj;
    efl_object_override(obj, NULL);
-   _efl_object_parent_sink_set(obj, EINA_FALSE);
+   if (!efl_parent_get(obj))
+     _efl_object_parent_sink_set(obj, EINA_FALSE);
 }
 
 void
@@ -2009,26 +2011,26 @@ err_klass:
 EAPI void *
 efl_data_scope_safe_get(const Eo *obj_id, const Efl_Class *klass_id)
 {
-#ifndef EO_DEBUG
    void *ret = NULL;
 
    if (!obj_id) return NULL;
    EO_OBJ_POINTER_RETURN_VAL(obj_id, obj, NULL);
    EO_CLASS_POINTER_GOTO(klass_id, klass, err_klass);
-   if (obj->destructed)
-     {
-        goto err_klass;
-     }
+   if (obj->destructed) goto err_klass;
 
    if (_eo_class_mro_has(obj->klass, klass))
-     ret = _efl_data_scope_safe_get(obj, klass);
+     {
+        ret = _efl_data_scope_safe_get(obj, klass);
+
+#ifdef EO_DEBUG
+        if (!ret && (klass->desc->data_size == 0))
+          ERR("Tried getting data of class '%s', but it has none.", klass->desc->name);
+#endif
+     }
 
 err_klass:
    EO_OBJ_DONE(obj_id);
    return ret;
-#else
-   return efl_data_scope_get(obj_id, klass_id);
-#endif
 }
 
 EAPI void *
