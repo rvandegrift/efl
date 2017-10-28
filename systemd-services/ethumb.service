@@ -4,4 +4,4 @@ Description=Enlightenment Thumbnailer
 [Service]
 Type=dbus
 BusName=org.enlightenment.Ethumb
-ExecStart=/usr/local/bin/ethumbd
+ExecStart=/usr/bin/ethumbd
