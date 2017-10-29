@@ -1,5 +1,5 @@
 libecore_wl2.so.1 libecore-wl2-1 #MINVER#
-* Build-Depends-Package: libecore-dev
+* Build-Depends-Package: libefl-all-dev
  ECORE_WL2_EVENT_AUX_HINT_ALLOWED@Base 1.20.5-0~eo
  ECORE_WL2_EVENT_AUX_HINT_SUPPORTED@Base 1.20.5-0~eo
  ECORE_WL2_EVENT_AUX_MESSAGE@Base 1.20.5-0~eo

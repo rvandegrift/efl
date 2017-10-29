@@ -1,5 +1,5 @@
 libecore_evas.so.1 libecore-evas1 #MINVER#
-* Build-Depends-Package: libecore-dev
+* Build-Depends-Package: libefl-all-dev
  ECORE_EVAS_EWS_EVENT_ACTIVATE@Base 1.20.5-0~eo
  ECORE_EVAS_EWS_EVENT_ADD@Base 1.20.5-0~eo
  ECORE_EVAS_EWS_EVENT_CONFIG_CHANGE@Base 1.20.5-0~eo

@@ -1,5 +1,5 @@
 libecore_audio.so.1 libecore-audio1 #MINVER#
-* Build-Depends-Package: libecore-dev
+* Build-Depends-Package: libefl-all-dev
  _ECORE_AUDIO_IN_EVENT_IN_LOOPED@Base 1.20.5-0~eo
  _ECORE_AUDIO_IN_EVENT_IN_SAMPLERATE_CHANGED@Base 1.20.5-0~eo
  _ECORE_AUDIO_IN_EVENT_IN_STOPPED@Base 1.20.5-0~eo

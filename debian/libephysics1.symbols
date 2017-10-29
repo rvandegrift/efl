@@ -1,5 +1,5 @@
 libephysics.so.1 libephysics1 #MINVER#
-* Build-Depends-Package: libephysics-dev
+* Build-Depends-Package: libefl-all-dev
  ephysics_body_angular_movement_enable_get@Base 1.20.5-0~eo
  ephysics_body_angular_movement_enable_set@Base 1.20.5-0~eo
  ephysics_body_angular_velocity_get@Base 1.20.5-0~eo

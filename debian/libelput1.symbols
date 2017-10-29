@@ -1,5 +1,5 @@
 libelput.so.1 libelput1 #MINVER#
-* Build-Depends-Package: libelput-dev
+* Build-Depends-Package: libefl-all-dev
  ELPUT_EVENT_DEVICE_CHANGE@Base 1.20.5-0~eo
  ELPUT_EVENT_MODIFIERS_SEND@Base 1.20.5-0~eo
  ELPUT_EVENT_POINTER_MOTION@Base 1.20.5-0~eo

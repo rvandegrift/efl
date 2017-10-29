@@ -1,5 +1,5 @@
 libeet.so.1 libeet1 #MINVER#
-* Build-Depends-Package: libeet-dev
+* Build-Depends-Package: libefl-all-dev
  eet_alias@Base 1.20.5-0~eo
  eet_alias_get@Base 1.20.5-0~eo
  eet_clearcache@Base 1.20.5-0~eo

@@ -1,5 +1,5 @@
 libeeze.so.1 libeeze1 #MINVER#
-* Build-Depends-Package: libeeze-dev
+* Build-Depends-Package: libefl-all-dev
  EEZE_EVENT_DISK_EJECT@Base 1.20.5-0~eo
  EEZE_EVENT_DISK_ERROR@Base 1.20.5-0~eo
  EEZE_EVENT_DISK_MOUNT@Base 1.20.5-0~eo

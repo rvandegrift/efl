@@ -1,5 +1,5 @@
 libecore.so.1 libecore1 #MINVER#
-* Build-Depends-Package: libecore-dev
+* Build-Depends-Package: libefl-all-dev
  ECORE_EXE_EVENT_ADD@Base 1.20.5-0~eo
  ECORE_EXE_EVENT_DATA@Base 1.20.5-0~eo
  ECORE_EXE_EVENT_DEL@Base 1.20.5-0~eo
@@ -323,7 +323,7 @@ libecore.so.1 libecore1 #MINVER#
  efl_promise_progress_set@Base 1.20.5-0~eo
  efl_promise_value_set@Base 1.20.5-0~eo
 libeldbus.so.1 libecore1 #MINVER#
-* Build-Depends-Package: libecore-dev
+* Build-Depends-Package: libefl-all-dev
  _ELDBUS_MODEL_METHOD_EVENT_SUCCESSFUL_CALL@Base 1.20.5-0~eo
  eldbus_address_connection_get@Base 1.20.5-0~eo
  eldbus_connection_data_del@Base 1.20.5-0~eo

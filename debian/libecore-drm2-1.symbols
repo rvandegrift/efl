@@ -1,5 +1,5 @@
 libecore_drm2.so.1 libecore-drm2-1 #MINVER#
-* Build-Depends-Package: libecore-dev
+* Build-Depends-Package: libefl-all-dev
  ECORE_DRM2_EVENT_ACTIVATE@Base 1.20.5-0~eo
  ECORE_DRM2_EVENT_OUTPUT_CHANGED@Base 1.20.5-0~eo
  ecore_drm2_device_calibrate@Base 1.20.5-0~eo

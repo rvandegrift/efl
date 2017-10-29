@@ -1,5 +1,5 @@
 libemotion.so.1 libemotion1 #MINVER#
-* Build-Depends-Package: libemotion-dev
+* Build-Depends-Package: libefl-all-dev
  EMOTION_WEBCAM_ADD@Base 1.20.5-0~eo
  EMOTION_WEBCAM_DEL@Base 1.20.5-0~eo
  EMOTION_WEBCAM_UPDATE@Base 1.20.5-0~eo

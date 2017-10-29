@@ -1,5 +1,5 @@
 libeolian.so.1 libeolian1 #MINVER#
-* Build-Depends-Package: libeolian-dev
+* Build-Depends-Package: libefl-all-dev
  eolian_all_classes_get@Base 1.20.5-0~eo
  eolian_all_declarations_get@Base 1.20.5-0~eo
  eolian_all_eo_file_paths_get@Base 1.20.5-0~eo

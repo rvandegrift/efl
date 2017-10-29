@@ -1,5 +1,5 @@
 libeio.so.1 libeio1 #MINVER#
-* Build-Depends-Package: libeio-dev
+* Build-Depends-Package: libefl-all-dev
  EIO_MONITOR_DIRECTORY_CLOSED@Base 1.20.5-0~eo
  EIO_MONITOR_DIRECTORY_CREATED@Base 1.20.5-0~eo
  EIO_MONITOR_DIRECTORY_DELETED@Base 1.20.5-0~eo

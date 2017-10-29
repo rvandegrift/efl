@@ -1,5 +1,5 @@
 libector.so.1 libector1 #MINVER#
-* Build-Depends-Package: libector-dev
+* Build-Depends-Package: libefl-all-dev
  _ECTOR_BUFFER_EVENT_DETACHED@Base 1.20.5-0~eo
  ector_buffer_cspace_get@Base 1.20.5-0~eo
  ector_buffer_flags_get@Base 1.20.5-0~eo

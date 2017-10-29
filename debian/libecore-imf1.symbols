@@ -1,5 +1,5 @@
 libecore_imf.so.1 libecore-imf1 #MINVER#
-* Build-Depends-Package: libecore-dev
+* Build-Depends-Package: libefl-all-dev
  ECORE_IMF_EVENT_COMMIT@Base 1.20.5-0~eo
  ECORE_IMF_EVENT_DELETE_SURROUNDING@Base 1.20.5-0~eo
  ECORE_IMF_EVENT_PREEDIT_CHANGED@Base 1.20.5-0~eo
@@ -91,7 +91,7 @@ libecore_imf.so.1 libecore-imf1 #MINVER#
  ecore_imf_module_register@Base 1.20.5-0~eo
  ecore_imf_shutdown@Base 1.20.5-0~eo
 libecore_imf_evas.so.1 libecore-imf1 #MINVER#
-* Build-Depends-Package: libecore-dev
+* Build-Depends-Package: libefl-all-dev
  ecore_imf_evas_event_key_down_wrap@Base 1.20.5-0~eo
  ecore_imf_evas_event_key_up_wrap@Base 1.20.5-0~eo
  ecore_imf_evas_event_mouse_down_wrap@Base 1.20.5-0~eo

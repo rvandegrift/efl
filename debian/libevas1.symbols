@@ -1,5 +1,5 @@
 libevas.so.1 libevas1 #MINVER#
-* Build-Depends-Package: libevas-dev
+* Build-Depends-Package: libefl-all-dev
  _EFL_CANVAS_TEXT_EVENT_CHANGED@Base 1.20.5-0~eo
  _EFL_CANVAS_TEXT_EVENT_CURSOR_CHANGED@Base 1.20.5-0~eo
  _EFL_CANVAS_TEXT_EVENT_STYLE_INSETS_CHANGED@Base 1.20.5-0~eo
