@@ -5,8 +5,8 @@ include /usr/share/dpkg/architecture.mk
 export DEB_BUILD_MAINT_OPTIONS = hardening=+all
 export DEB_BUILD_OPTIONS += nocheck
 
-CFLAGS += -fvisibility=hidden
-LDFLAGS += -Wl,-z,defs -Wl,--as-needed -lm -ldl
+export DEB_CFLAGS_MAINT_APPEND = -fvisibility=hidden
+export DEB_LDFLAGS_MAINT_APPEND = -Wl,-z,defs -Wl,--as-needed -lm -ldl
 
 ifneq (,$(filter $(DEB_HOST_ARCH), armel armhf))
 	arch_flags += --with-opengl=es --enable-egl
