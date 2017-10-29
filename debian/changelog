@@ -24,6 +24,7 @@ efl (1.20.5-1) UNRELEASED; urgency=medium
     (symbols-file-contains-current-version-with-debian-revision ->
     symbols-file-contains-debian-revision).
   * Refer to libefl-all-dev in the symbol files' Build-Depends-Package field.
+  * List new symbol in libedje1.symbols and libector1.symbols.
 
  -- Ross Vandegrift <ross@kallisti.us>  Sat, 28 Oct 2017 15:22:23 -0700
 

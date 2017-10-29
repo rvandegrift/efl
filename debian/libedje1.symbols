@@ -729,6 +729,7 @@ libedje.so.1 libedje1 #MINVER#
  edje_obj_load_error_get@Base 1.20.5-0~eo
  edje_obj_message_send@Base 1.20.5-0~eo
  edje_obj_message_signal_process@Base 1.20.5-0~eo
+ edje_obj_part_exists@Base 1.20.5-0~eo
  edje_obj_part_text_autocapital_type_get@Base 1.20.5-0~eo
  edje_obj_part_text_autocapital_type_set@Base 1.20.5-0~eo
  edje_obj_part_text_imf_context_get@Base 1.20.5-0~eo
