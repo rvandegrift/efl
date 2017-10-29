@@ -27,6 +27,7 @@ efl (1.20.5-1) UNRELEASED; urgency=medium
   * List new symbol in libedje1.symbols and libector1.symbols.
   * Drop Priority field in efl-doc binary backage stanza
     (binary-control-field-duplicates-source).
+  * Point watchfile to https URL.
 
  -- Ross Vandegrift <ross@kallisti.us>  Sat, 28 Oct 2017 15:22:23 -0700
 
