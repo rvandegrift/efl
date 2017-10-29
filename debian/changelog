@@ -3,10 +3,6 @@ efl (1.20.5-1) UNRELEASED; urgency=medium
   * Team upload.
   * New upstream version
 
-  [ Andreas Metzler ]
-  * libector-dev needs to depend on libector1. Closes: #877180
-  * Also libelua-dev needs a dependency on libelua1 instead of libeeze1.
-
   [ Ross Vandegrift ]
   * libefl-all-dev needs to depend on libelementary-dev, libelput-dev.
   * d/libelocation1.symbols: correct versions to reflect eo release.
@@ -16,6 +12,7 @@ efl (1.20.5-1) UNRELEASED; urgency=medium
     requirements results in circular dependencies.  Also, upstream does
     not support or test building against part of EFL.  Combining these
     into a single dev package avoids both problems. (Closes: #878584)
+    Since libector-dev is one of the dropped packages this Closes: #877180.
   * d/p/95-parallel-previews.diff: defuzz.
   * Bump all eo symbol versions for 1.20.5 release
 
