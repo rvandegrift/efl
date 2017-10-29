@@ -16,6 +16,12 @@ efl (1.20.5-1) UNRELEASED; urgency=medium
   * d/p/95-parallel-previews.diff: defuzz.
   * Bump all eo symbol versions for 1.20.5 release
 
+  [ Andreas Metzler ]
+  * Fix dependency info for eolian symbols by using upstreamversion-0~eo
+    instead of upstreamversion+eo+1. The latter was automatically replaced
+    with upstreamversion-1 since it sorted as greater than the uploaded
+    version.
+
  -- Ross Vandegrift <ross@kallisti.us>  Sat, 28 Oct 2017 15:22:23 -0700
 
 efl (1.20.4-1) experimental; urgency=medium
