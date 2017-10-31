@@ -1,4 +1,4 @@
-efl (1.20.5-1) UNRELEASED; urgency=medium
+efl (1.20.5-1) experimental; urgency=medium
 
   * Team upload.
   * New upstream version
@@ -30,7 +30,7 @@ efl (1.20.5-1) UNRELEASED; urgency=medium
   * Point watchfile to https URL.
   * In debian/rules use DEB_*_MAINT_APPEND to modify (L|C)FLAGS.
 
- -- Ross Vandegrift <ross@kallisti.us>  Sat, 28 Oct 2017 15:22:23 -0700
+ -- Andreas Metzler <ametzler@debian.org>  Mon, 30 Oct 2017 12:16:36 +0100
 
 efl (1.20.4-1) experimental; urgency=medium
 
