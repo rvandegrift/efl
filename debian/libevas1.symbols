@@ -900,7 +900,7 @@ libevas.so.1 libevas1 #MINVER#
  evas_common_scale_rgba_in_to_out_clip_smooth@Base 1.20.5-0~eo
  evas_common_scale_rgba_in_to_out_clip_smooth_c@Base 1.20.5-0~eo
  evas_common_scale_rgba_in_to_out_clip_smooth_do@Base 1.20.5-0~eo
- evas_common_scale_rgba_in_to_out_clip_smooth_mmx@Base 1.20.5-0~eo
+ (arch=any-amd64 any-i386)evas_common_scale_rgba_in_to_out_clip_smooth_mmx@Base 1.20.5-0~eo
  evas_common_scale_rgba_sample_draw@Base 1.20.5-0~eo
  evas_common_scale_rgba_smooth_draw@Base 1.20.5-0~eo
  evas_common_scale_rgba_span@Base 1.20.5-0~eo

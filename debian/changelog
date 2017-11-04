@@ -1,10 +1,12 @@
-efl (1.20.5-2) UNRELEASED; urgency=medium
+efl (1.20.5-2) experimental; urgency=low
 
   * 55_evas-gl-generic-common-add-more-linking-for-gles-mod.patch from
     upstream GIT master, fixing build erro with --with-opengl=es (armel and
     armhf packages).
+  * Tag evas_common_scale_rgba_in_to_out_clip_smooth_mmx symbol as arch
+    specific for any-amd64 and any-i386, fixing a build error on other archs.
 
- -- Andreas Metzler <ametzler@debian.org>  Tue, 31 Oct 2017 14:09:16 +0100
+ -- Andreas Metzler <ametzler@debian.org>  Sat, 04 Nov 2017 14:11:31 +0100
 
 efl (1.20.5-1) experimental; urgency=medium
 
