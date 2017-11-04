@@ -1,3 +1,11 @@
+efl (1.20.5-2) UNRELEASED; urgency=medium
+
+  * 55_evas-gl-generic-common-add-more-linking-for-gles-mod.patch from
+    upstream GIT master, fixing build erro with --with-opengl=es (armel and
+    armhf packages).
+
+ -- Andreas Metzler <ametzler@debian.org>  Tue, 31 Oct 2017 14:09:16 +0100
+
 efl (1.20.5-1) experimental; urgency=medium
 
   * Team upload.

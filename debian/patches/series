@@ -1,5 +1,6 @@
 15_try_curl-gnutls.diff
 45_disable_doc_pack.diff
 50-fix-edje_recc-bashism.diff
+55_evas-gl-generic-common-add-more-linking-for-gles-mod.patch
 95-parallel-previews.diff
 99-fix-shader-regen.diff
