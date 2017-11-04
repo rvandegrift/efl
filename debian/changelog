@@ -5,6 +5,7 @@ efl (1.20.5-2) experimental; urgency=low
     armhf packages).
   * Tag evas_common_scale_rgba_in_to_out_clip_smooth_mmx symbol as arch
     specific for any-amd64 and any-i386, fixing a build error on other archs.
+  * Add myself to uploaders.
 
  -- Andreas Metzler <ametzler@debian.org>  Sat, 04 Nov 2017 14:11:31 +0100
 

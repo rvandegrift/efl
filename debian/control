@@ -4,7 +4,8 @@ Priority: optional
 Maintainer: Debian Pkg-e Team <pkg-e-devel@lists.alioth.debian.org>
 Uploaders: Nicolas Braud-Santoni <nicolas@braud-santoni.eu>,
            Albin Tonnerre <lutin@debian.org>,
-           Ross Vandegrift <ross@kallisti.us>
+           Ross Vandegrift <ross@kallisti.us>,
+           Andreas Metzler <ametzler@debian.org>
 Build-Depends: debhelper (>= 10),
  pkg-config, autopoint,
  zlib1g-dev, libjpeg-dev, libpng-dev, libtiff-dev, libgif-dev, libxpm-dev,
