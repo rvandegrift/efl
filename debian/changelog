@@ -1,6 +1,7 @@
 efl (1.20.6-1) experimental; urgency=medium
 
   * New upstream version
+  * d/rules: switch to dh_missing
 
  -- Ross Vandegrift <ross@kallisti.us>  Sat, 25 Nov 2017 11:59:28 -0800
 
