@@ -1,5 +1,5 @@
 #!/bin/sh
-prefix="/usr"
+prefix="/usr/local"
 exec_prefix="${prefix}"
 
 check_args=1

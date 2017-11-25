@@ -3,12 +3,12 @@
 # This file is distributed under the same license as the enlightenment package.
 # FIRST AUTHOR <EMAIL@ADDRESS>, 2012.
 #
-#: src/lib/elementary/elm_config.c:3749
+#: src/lib/elementary/elm_config.c:3748
 msgid ""
 msgstr ""
 "Project-Id-Version: enlightenment\n"
 "Report-Msgid-Bugs-To: enlightenment-devel@lists.sourceforge.net\n"
-"POT-Creation-Date: 2017-10-19 10:46-0700\n"
+"POT-Creation-Date: 2017-11-22 13:24+0100\n"
 "PO-Revision-Date: 2013-11-05 18:59+0000\n"
 "Last-Translator: Eliovir <Unknown>\n"
 "Language-Team: Esperanto <eo@li.org>\n"
@@ -262,7 +262,7 @@ msgstr "Nuligi"
 
 #: src/lib/elementary/elc_hoversel.c:438 src/lib/elementary/efl_ui_button.c:278
 #: src/lib/elementary/efl_ui_check.c:212 src/lib/elementary/elm_gengrid.c:1470
-#: src/lib/elementary/elm_genlist.c:1738 src/lib/elementary/elm_list.c:2176
+#: src/lib/elementary/elm_genlist.c:1735 src/lib/elementary/elm_list.c:2176
 #: src/lib/elementary/efl_ui_radio.c:214
 #: src/lib/elementary/elm_segment_control.c:529
 #: src/lib/elementary/elm_spinner.c:1020 src/lib/elementary/elm_toolbar.c:2347
@@ -416,7 +416,7 @@ msgstr ""
 msgid "color selector palette item"
 msgstr "ero de elektilo de kolorpaletro"
 
-#: src/lib/elementary/elm_config.c:3766
+#: src/lib/elementary/elm_config.c:3765
 msgid "default:LTR"
 msgstr "default:LTR"
 
