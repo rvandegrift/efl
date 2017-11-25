@@ -4,12 +4,12 @@
 # Aníbal Garrido <khany@member.trisquel.info>, 2012.
 # Adrián Arévalo <adri58@gmail.com>, 2015.
 # Roy W. Reese <waterbearer54@gmx.com> 2015.
-#: src/lib/elementary/elm_config.c:3749
+#: src/lib/elementary/elm_config.c:3748
 msgid ""
 msgstr ""
 "Project-Id-Version: elementary\n"
 "Report-Msgid-Bugs-To: enlightenment-devel@lists.sourceforge.net\n"
-"POT-Creation-Date: 2017-10-19 10:46-0700\n"
+"POT-Creation-Date: 2017-11-22 13:24+0100\n"
 "PO-Revision-Date: 2015-05-03 18:19+0100\n"
 "Last-Translator: Adrián Arévalo <adri58@gmail.com>\n"
 "Language-Team: Enlightenment Team\n"
@@ -262,7 +262,7 @@ msgstr "Cancelar"
 
 #: src/lib/elementary/elc_hoversel.c:438 src/lib/elementary/efl_ui_button.c:278
 #: src/lib/elementary/efl_ui_check.c:212 src/lib/elementary/elm_gengrid.c:1470
-#: src/lib/elementary/elm_genlist.c:1738 src/lib/elementary/elm_list.c:2176
+#: src/lib/elementary/elm_genlist.c:1735 src/lib/elementary/elm_list.c:2176
 #: src/lib/elementary/efl_ui_radio.c:214
 #: src/lib/elementary/elm_segment_control.c:529
 #: src/lib/elementary/elm_spinner.c:1020 src/lib/elementary/elm_toolbar.c:2347
@@ -421,7 +421,7 @@ msgstr ""
 msgid "color selector palette item"
 msgstr "Selector de color de paleta"
 
-#: src/lib/elementary/elm_config.c:3766
+#: src/lib/elementary/elm_config.c:3765
 msgid "default:LTR"
 msgstr "Predeterminado: LTR"
 

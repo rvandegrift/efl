@@ -5,12 +5,12 @@
 # Daniel Juyung Seo <seojuyung2@gmail.com>, 2011-2013
 # Seong-ho Cho <darkcircle.0426@gmail.com>, 2012-2013
 #
-#: src/lib/elementary/elm_config.c:3749
+#: src/lib/elementary/elm_config.c:3748
 msgid ""
 msgstr ""
 "Project-Id-Version: Efl\n"
 "Report-Msgid-Bugs-To: enlightenment-devel@lists.sourceforge.net\n"
-"POT-Creation-Date: 2017-10-19 10:46-0700\n"
+"POT-Creation-Date: 2017-11-22 13:24+0100\n"
 "PO-Revision-Date: 2014-11-10 01:01+0900\n"
 "Last-Translator: Daniel Juyung Seo <seojuyung2@gmail.com>\n"
 "Language-Team: Enlightenment Team\n"
@@ -265,7 +265,7 @@ msgstr ""
 
 #: src/lib/elementary/elc_hoversel.c:438 src/lib/elementary/efl_ui_button.c:278
 #: src/lib/elementary/efl_ui_check.c:212 src/lib/elementary/elm_gengrid.c:1470
-#: src/lib/elementary/elm_genlist.c:1738 src/lib/elementary/elm_list.c:2176
+#: src/lib/elementary/elm_genlist.c:1735 src/lib/elementary/elm_list.c:2176
 #: src/lib/elementary/efl_ui_radio.c:214
 #: src/lib/elementary/elm_segment_control.c:529
 #: src/lib/elementary/elm_spinner.c:1020 src/lib/elementary/elm_toolbar.c:2347
@@ -419,7 +419,7 @@ msgstr ""
 msgid "color selector palette item"
 msgstr ""
 
-#: src/lib/elementary/elm_config.c:3766
+#: src/lib/elementary/elm_config.c:3765
 #, fuzzy
 msgid "default:LTR"
 msgstr "기본값: "
