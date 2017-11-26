@@ -2,9 +2,7 @@
 
 include /usr/share/dpkg/architecture.mk
 
-export DEB_BUILD_MAINT_OPTIONS = hardening=+all
-export DEB_BUILD_OPTIONS += nocheck
-
+export DEB_BUILD_MAINT_OPTIONS = hardening=+all nocheck
 export DEB_CFLAGS_MAINT_APPEND = -fvisibility=hidden
 export DEB_LDFLAGS_MAINT_APPEND = -Wl,-z,defs -Wl,--as-needed -lm -ldl
 

@@ -5,6 +5,8 @@ efl (1.20.6-1) experimental; urgency=medium
   * d/patches/55_evas-gl-generic-common-add-more-linking-for-gles-mod.patch: drop applied upstream
   * d/copyright: use https Format link
   * d/control: bump Standards-Version to 4.1.1
+  * d/rules: remove use of DEB_BUILD_OPTIONS.  nocheck isn't explicitly needed
+    anyhow, since configure is used to disable tests.
 
  -- Ross Vandegrift <ross@kallisti.us>  Sat, 25 Nov 2017 11:59:28 -0800
 
