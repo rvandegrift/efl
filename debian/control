@@ -27,7 +27,7 @@ Build-Depends: debhelper (>= 10),
  wayland-protocols, libwayland-dev, libgbm-dev, libxkbcommon-dev, libinput-dev,
  libscim-dev, libibus-1.0-dev
 Build-Depends-Indep: doxygen, ghostscript, imagemagick, texlive-font-utils
-Standards-Version: 3.9.8
+Standards-Version: 4.1.1
 Vcs-Git: https://anonscm.debian.org/git/pkg-e/libs/efl.git
 Vcs-Browser: https://anonscm.debian.org/cgit/pkg-e/libs/efl.git/
 Homepage: https://www.enlightenment.org
