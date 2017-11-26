@@ -1,6 +1,7 @@
 debian/tmp/usr/lib/*/libeina.so.*
 debian/tmp/usr/share/elua/modules/eina/*
 debian/tmp/usr/lib/*/libeo.so.*
+usr/lib/*/libeo_dbg.so.*
 debian/tmp/usr/share/elua/modules/eo.lua
 #libefl
 usr/lib/*/libefl.so.*

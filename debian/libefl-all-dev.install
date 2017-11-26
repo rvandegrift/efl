@@ -90,10 +90,13 @@ debian/tmp/usr/lib/*/pkgconfig/eina*.pc
 usr/lib/*/cmake/Eina/*.cmake
 usr/lib/*/cmake/EinaCxx/*.cmake
 
+# libeo
 debian/tmp/usr/include/eo-1
 debian/tmp/usr/include/eo-cxx-1
 debian/tmp/usr/lib/*/libeo.so
+debian/tmp/usr/lib/*/libeo_dbg.so
 debian/tmp/usr/lib/*/libeo.a
+debian/tmp/usr/lib/*/libeo_dbg.a
 debian/tmp/usr/lib/*/pkgconfig/eo.pc
 debian/tmp/usr/lib/*/pkgconfig/eo-cxx.pc
 usr/share/eolian/include/eo-1
@@ -101,6 +104,7 @@ debian/tmp/usr/share/gdb/auto-load/usr/lib/*/libeo.so.*.py
 debian/tmp/usr/share/eo/gdb/eo_gdb.py
 usr/lib/*/cmake/Eo/*.cmake
 usr/lib/*/cmake/EoCxx/*.cmake
+usr/bin/eo_debug
 
 #libefl
 debian/tmp/usr/include/efl-1

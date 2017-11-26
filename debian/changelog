@@ -12,6 +12,11 @@ efl (1.20.6-1) experimental; urgency=medium
   * d/rules: remove use of DEB_BUILD_OPTIONS.  nocheck isn't explicitly needed
     anyhow, since configure is used to disable tests.
   * Ship efl-wl artifacts that should've been added with wayland support
+  * Provide eo debugging tools.  libeo_dbg is a special build of libeo
+    that includes additional debugging functionality.  It is designed to
+    be LD_PRELOADed ahead of libeo.  eo_debug is a helper script to do
+    that.  libeo_dbg can have significant performance overhead, so should
+    not be used by default.
 
  -- Ross Vandegrift <ross@kallisti.us>  Sat, 25 Nov 2017 11:59:28 -0800
 
