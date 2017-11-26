@@ -4,5 +4,6 @@ debian/tmp/usr/lib/*/libeo.so.*
 debian/tmp/usr/share/elua/modules/eo.lua
 #libefl
 usr/lib/*/libefl.so.*
+usr/lib/*/libefl_wl.so.*
 usr/share/locale/*/LC_MESSAGES/efl.mo
 debian/tmp/usr/share/elua/modules/efl/*

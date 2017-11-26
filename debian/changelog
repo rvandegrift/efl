@@ -11,6 +11,7 @@ efl (1.20.6-1) experimental; urgency=medium
     + Set Rules-Requires-Root to disable building as root
   * d/rules: remove use of DEB_BUILD_OPTIONS.  nocheck isn't explicitly needed
     anyhow, since configure is used to disable tests.
+  * Ship efl-wl artifacts that should've been added with wayland support
 
  -- Ross Vandegrift <ross@kallisti.us>  Sat, 25 Nov 2017 11:59:28 -0800
 

@@ -1528,3 +1528,18 @@ libefl.so.1 libeina1a #MINVER#
  efl_vpath_manager_fetch@Base 1.20.5-0~eo
  efl_vpath_manager_register@Base 1.20.5-0~eo
  efl_vpath_manager_unregister@Base 1.20.5-0~eo
+libefl_wl.so.1 libeina1a #MINVER#
+* Build-Depends-Package: libefl-all-dev
+ efl_wl_add@Base 1.20.6-0~eo
+ efl_wl_next@Base 1.20.6-0~eo
+ efl_wl_prev@Base 1.20.6-0~eo
+ efl_wl_rotate@Base 1.20.6-0~eo
+ efl_wl_run@Base 1.20.6-0~eo
+ efl_wl_scale_set@Base 1.20.6-0~eo
+ zwp_linux_buffer_params_v1_interface@Base 1.20.6-0~eo
+ zwp_linux_dmabuf_v1_interface@Base 1.20.6-0~eo
+ zxdg_popup_v6_interface@Base 1.20.6-0~eo
+ zxdg_positioner_v6_interface@Base 1.20.6-0~eo
+ zxdg_shell_v6_interface@Base 1.20.6-0~eo
+ zxdg_surface_v6_interface@Base 1.20.6-0~eo
+ zxdg_toplevel_v6_interface@Base 1.20.6-0~eo
