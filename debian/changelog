@@ -1,7 +1,9 @@
 efl (1.20.6-1) experimental; urgency=medium
 
   * New upstream version
-  * d/rules: switch to dh_missing
+  * d/rules:
+    + switch to dh_missing
+    + disable docs if nodoc is set in DEB_BUILD_OPTIONS
   * d/patches:
     + 55_evas-gl-generic-common-add-more-linking-for-gles-mod.patch: drop,
       applied upstream

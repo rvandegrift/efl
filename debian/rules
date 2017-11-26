@@ -17,6 +17,12 @@ LETSBUILDINDEP := $(shell if dh_listpackages | grep -q efl-doc ; then \
 	echo yes ;\
 	else echo no ; fi)
 
+ifeq (,$(findstring nodoc,$(DEB_BUILD_OPTIONS)))
+	docs_flag += --enable-doc
+else
+	docs_flag += --disable-doc
+endif
+
 %:
 	dh $@
 
@@ -24,7 +30,7 @@ override_dh_auto_configure:
 	dh_auto_configure --verbose -- \
 	--disable-rpath \
 	--disable-silent-rules \
-	--enable-doc \
+	$(docs_flag) \
 	--with-profile=release \
 	--with-tests=none \
 	--with-crypto=gnutls \
@@ -48,10 +54,12 @@ override_dh_auto_build:
 	$(CURDIR)/debian/fake_home.sh env EFL_SHD_REGEN=1 \
 		dh_auto_build --verbose
 ifeq ($(filter yes,$(LETSBUILDINDEP)),yes)
+	mkdir -p doc/html
 	$(CURDIR)/debian/fake_home.sh $(MAKE) doc
 endif
 
 override_dh_auto_build-indep:
+	mkdir -p doc/html
 	$(MAKE) doc
 
 # The install phase doesn't work reliably in parallel
