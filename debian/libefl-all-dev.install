@@ -1,115 +1,115 @@
 #
 # libecore-dev.install
-debian/tmp/usr/include/ecore-*
-debian/tmp/usr/lib/*/libecore.so
-debian/tmp/usr/lib/*/libecore_audio.so
-debian/tmp/usr/lib/*/libecore_avahi.so
-debian/tmp/usr/lib/*/libecore_con.so
-debian/tmp/usr/lib/*/libecore_evas.so
+usr/include/ecore-*
+usr/lib/*/libecore.so
+usr/lib/*/libecore_audio.so
+usr/lib/*/libecore_avahi.so
+usr/lib/*/libecore_con.so
+usr/lib/*/libecore_evas.so
 # Conditionally installed from debian/rules (Linux-only):
-# debian/tmp/usr/lib/*/libecore_fb.so
-debian/tmp/usr/lib/*/libecore_file.so
-debian/tmp/usr/lib/*/libecore_imf_evas.so
-debian/tmp/usr/lib/*/libecore_imf.so
-debian/tmp/usr/lib/*/libecore_input.so
-debian/tmp/usr/lib/*/libecore_input_evas.so
-debian/tmp/usr/lib/*/libecore_ipc.so
-debian/tmp/usr/lib/*/libecore_x.so
-debian/tmp/usr/lib/*/libecore_wl2.so
-debian/tmp/usr/lib/*/libecore_drm2.so
-debian/tmp/usr/lib/*/pkgconfig/ecore*.pc
+# usr/lib/*/libecore_fb.so
+usr/lib/*/libecore_file.so
+usr/lib/*/libecore_imf_evas.so
+usr/lib/*/libecore_imf.so
+usr/lib/*/libecore_input.so
+usr/lib/*/libecore_input_evas.so
+usr/lib/*/libecore_ipc.so
+usr/lib/*/libecore_x.so
+usr/lib/*/libecore_wl2.so
+usr/lib/*/libecore_drm2.so
+usr/lib/*/pkgconfig/ecore*.pc
 usr/share/eolian/include/ecore-1
 usr/lib/*/cmake/Ecore/*.cmake
 usr/lib/*/cmake/EcoreCxx/*.cmake
 usr/lib/*/libecore*.a
 
-debian/tmp/usr/include/eldbus-*
-debian/tmp/usr/include/eldbus_cxx-*
-debian/tmp/usr/lib/*/libeldbus.so
-debian/tmp/usr/lib/*/libeldbus.a
-debian/tmp/usr/lib/*/pkgconfig/eldbus.pc
+usr/include/eldbus-*
+usr/include/eldbus_cxx-*
+usr/lib/*/libeldbus.so
+usr/lib/*/libeldbus.a
+usr/lib/*/pkgconfig/eldbus.pc
 usr/lib/*/cmake/Eldbus/*.cmake
 usr/share/eolian/include/eldbus-1
 
 #
 # libector-dev.install
-debian/tmp/usr/lib/*/pkgconfig/ector.pc
-debian/tmp/usr/lib/*/libector.so
-debian/tmp/usr/lib/*/libector.a
-debian/tmp/usr/share/eolian/include/ector-1
+usr/lib/*/pkgconfig/ector.pc
+usr/lib/*/libector.so
+usr/lib/*/libector.a
+usr/share/eolian/include/ector-1
 
 #
 # libedje-dev.install
-debian/tmp/usr/include/edje-1
-debian/tmp/usr/include/edje-cxx-1
-debian/tmp/usr/lib/*/libedje.so
-debian/tmp/usr/lib/*/libedje.a
-debian/tmp/usr/lib/*/pkgconfig/edje*.pc
+usr/include/edje-1
+usr/include/edje-cxx-1
+usr/lib/*/libedje.so
+usr/lib/*/libedje.a
+usr/lib/*/pkgconfig/edje*.pc
 usr/share/eolian/include/edje-1
 usr/lib/*/cmake/Edje/*.cmake
 
 #
 # libeet-dev.install
-debian/tmp/usr/include/eet-1
-debian/tmp/usr/include/eet-cxx-1
-debian/tmp/usr/lib/*/libeet.so
-debian/tmp/usr/lib/*/libeet.a
-debian/tmp/usr/lib/*/pkgconfig/eet*.pc
+usr/include/eet-1
+usr/include/eet-cxx-1
+usr/lib/*/libeet.so
+usr/lib/*/libeet.a
+usr/lib/*/pkgconfig/eet*.pc
 usr/lib/*/cmake/Eet/*.cmake
 usr/lib/*/cmake/EetCxx/*.cmake
 
 #
 # libeeze-dev.install
-debian/tmp/usr/include/eeze-*
-debian/tmp/usr/lib/*/libeeze.so
-debian/tmp/usr/lib/*/libeeze.a
-debian/tmp/usr/lib/*/pkgconfig/eeze.pc
+usr/include/eeze-*
+usr/lib/*/libeeze.so
+usr/lib/*/libeeze.a
+usr/lib/*/pkgconfig/eeze.pc
 usr/lib/*/cmake/Eeze/*.cmake
 
 #
 # libefreet-dev.install
-debian/tmp/usr/include/efreet-1/*.h
-debian/tmp/usr/lib/*/pkgconfig/efreet.pc
-debian/tmp/usr/lib/*/pkgconfig/efreet-mime.pc
-debian/tmp/usr/lib/*/pkgconfig/efreet-trash.pc
-debian/tmp/usr/lib/*/libefreet.so
-debian/tmp/usr/lib/*/libefreet.a
-debian/tmp/usr/lib/*/libefreet_mime.so
-debian/tmp/usr/lib/*/libefreet_mime.a
-debian/tmp/usr/lib/*/libefreet_trash.so
-debian/tmp/usr/lib/*/libefreet_trash.a
+usr/include/efreet-1/*.h
+usr/lib/*/pkgconfig/efreet.pc
+usr/lib/*/pkgconfig/efreet-mime.pc
+usr/lib/*/pkgconfig/efreet-trash.pc
+usr/lib/*/libefreet.so
+usr/lib/*/libefreet.a
+usr/lib/*/libefreet_mime.so
+usr/lib/*/libefreet_mime.a
+usr/lib/*/libefreet_trash.so
+usr/lib/*/libefreet_trash.a
 usr/lib/*/cmake/Efreet/*.cmake
 
 #
 # libeina-dev.install
-debian/tmp/usr/include/eina-1
-debian/tmp/usr/include/eina-cxx-1
-debian/tmp/usr/lib/*/libeina.so
-debian/tmp/usr/lib/*/libeina.a
-debian/tmp/usr/lib/*/pkgconfig/eina*.pc
+usr/include/eina-1
+usr/include/eina-cxx-1
+usr/lib/*/libeina.so
+usr/lib/*/libeina.a
+usr/lib/*/pkgconfig/eina*.pc
 usr/lib/*/cmake/Eina/*.cmake
 usr/lib/*/cmake/EinaCxx/*.cmake
 
 # libeo
-debian/tmp/usr/include/eo-1
-debian/tmp/usr/include/eo-cxx-1
-debian/tmp/usr/lib/*/libeo.so
-debian/tmp/usr/lib/*/libeo_dbg.so
-debian/tmp/usr/lib/*/libeo.a
-debian/tmp/usr/lib/*/libeo_dbg.a
-debian/tmp/usr/lib/*/pkgconfig/eo.pc
-debian/tmp/usr/lib/*/pkgconfig/eo-cxx.pc
+usr/include/eo-1
+usr/include/eo-cxx-1
+usr/lib/*/libeo.so
+usr/lib/*/libeo_dbg.so
+usr/lib/*/libeo.a
+usr/lib/*/libeo_dbg.a
+usr/lib/*/pkgconfig/eo.pc
+usr/lib/*/pkgconfig/eo-cxx.pc
 usr/share/eolian/include/eo-1
-debian/tmp/usr/share/gdb/auto-load/usr/lib/*/libeo.so.*.py
-debian/tmp/usr/share/eo/gdb/eo_gdb.py
+usr/share/gdb/auto-load/usr/lib/*/libeo.so.*.py
+usr/share/eo/gdb/eo_gdb.py
 usr/lib/*/cmake/Eo/*.cmake
 usr/lib/*/cmake/EoCxx/*.cmake
 usr/bin/eo_debug
 
 #libefl
-debian/tmp/usr/include/efl-1
-debian/tmp/usr/include/efl-cxx-1
-debian/tmp/usr/include/efl-wl-1
+usr/include/efl-1
+usr/include/efl-cxx-1
+usr/include/efl-wl-1
 usr/lib/*/libefl.so
 usr/lib/*/libefl_wl.so
 usr/lib/*/libefl.a
@@ -120,65 +120,65 @@ usr/lib/*/cmake/Efl/*.cmake
 
 #
 # libeio-dev.install
-debian/tmp/usr/include/eio-*/*
-debian/tmp/usr/lib/*/libeio.so
-debian/tmp/usr/lib/*/libeio.a
-debian/tmp/usr/lib/*/pkgconfig/eio*.pc
-debian/tmp/usr/share/eolian/include/eio-1
+usr/include/eio-*/*
+usr/lib/*/libeio.so
+usr/lib/*/libeio.a
+usr/lib/*/pkgconfig/eio*.pc
+usr/share/eolian/include/eio-1
 usr/lib/*/cmake/Eio/*.cmake
 
 #
 # libelementary-dev.install
-debian/tmp/usr/include/elementary-1
-debian/tmp/usr/lib/*/libelementary.a
-debian/tmp/usr/lib/*/libelementary.so
-debian/tmp/usr/lib/*/pkgconfig/elementary.pc
+usr/include/elementary-1
+usr/lib/*/libelementary.a
+usr/lib/*/libelementary.so
+usr/lib/*/pkgconfig/elementary.pc
 usr/share/eolian/include/elementary-1
 usr/lib/*/cmake/Elementary/*.cmake
 
 #
 # libelocation-dev.install
-debian/tmp/usr/include/elocation-1/*.h
-debian/tmp/usr/lib/*/pkgconfig/elocation.pc
-debian/tmp/usr/lib/*/libelocation.so
-debian/tmp/usr/lib/*/libelocation.a
+usr/include/elocation-1/*.h
+usr/lib/*/pkgconfig/elocation.pc
+usr/lib/*/libelocation.so
+usr/lib/*/libelocation.a
 
 #
 # libelput-dev.install
-debian/tmp/usr/include/elput-*
-debian/tmp/usr/lib/*/libelput.so
-debian/tmp/usr/lib/*/libelput.a
-debian/tmp/usr/lib/*/pkgconfig/elput.pc
+usr/include/elput-*
+usr/lib/*/libelput.so
+usr/lib/*/libelput.a
+usr/lib/*/pkgconfig/elput.pc
 
 #
 # libelua-dev.install
-debian/tmp/usr/include/elua-1
-debian/tmp/usr/lib/*/libelua.so
-debian/tmp/usr/lib/*/libelua.a
-debian/tmp/usr/lib/*/pkgconfig/elua*.pc
-debian/tmp/usr/lib/*/cmake/Elua/*.cmake
+usr/include/elua-1
+usr/lib/*/libelua.so
+usr/lib/*/libelua.a
+usr/lib/*/pkgconfig/elua*.pc
+usr/lib/*/cmake/Elua/*.cmake
 
 #
 # libembryo-dev.install
-debian/tmp/usr/include/embryo-1
-debian/tmp/usr/lib/*/libembryo.so
-debian/tmp/usr/lib/*/libembryo.a
-debian/tmp/usr/lib/*/pkgconfig/embryo.pc
+usr/include/embryo-1
+usr/lib/*/libembryo.so
+usr/lib/*/libembryo.a
+usr/lib/*/pkgconfig/embryo.pc
 
 #
 # libemile-dev.install
-debian/tmp/usr/include/emile-1
-debian/tmp/usr/lib/*/libemile.so
-debian/tmp/usr/lib/*/libemile.a
-debian/tmp/usr/lib/*/pkgconfig/emile*.pc
+usr/include/emile-1
+usr/lib/*/libemile.so
+usr/lib/*/libemile.a
+usr/lib/*/pkgconfig/emile*.pc
 usr/lib/*/cmake/Emile/*.cmake
 
 #
 # libemotion-dev.install
-debian/tmp/usr/include/emotion-1
-debian/tmp/usr/lib/*/libemotion.so
-debian/tmp/usr/lib/*/libemotion.a
-debian/tmp/usr/lib/*/pkgconfig/emotion.pc
+usr/include/emotion-1
+usr/lib/*/libemotion.so
+usr/lib/*/libemotion.a
+usr/lib/*/pkgconfig/emotion.pc
 usr/share/eolian/include/emotion-1
 usr/lib/*/cmake/Emotion/*.cmake
 
@@ -195,33 +195,33 @@ usr/lib/*/cmake/EolianCxx/*.cmake
 
 #
 # libephysics-dev.install
-debian/tmp/usr/include/ephysics-1
-debian/tmp/usr/lib/*/libephysics.so
-debian/tmp/usr/lib/*/libephysics.a
-debian/tmp/usr/lib/*/pkgconfig/ephysics*.pc
+usr/include/ephysics-1
+usr/lib/*/libephysics.so
+usr/lib/*/libephysics.a
+usr/lib/*/pkgconfig/ephysics*.pc
 
 #
 # libethumb-dev.install
-debian/tmp/usr/include/ethumb-1
-debian/tmp/usr/include/ethumb-client-1
+usr/include/ethumb-1
+usr/include/ethumb-client-1
 
-debian/tmp/usr/lib/*/libethumb.so
-debian/tmp/usr/lib/*/libethumb.a
-debian/tmp/usr/lib/*/libethumb_client.so
-debian/tmp/usr/lib/*/libethumb_client.a
+usr/lib/*/libethumb.so
+usr/lib/*/libethumb.a
+usr/lib/*/libethumb_client.so
+usr/lib/*/libethumb_client.a
 
-debian/tmp/usr/lib/*/pkgconfig/ethumb.pc
-debian/tmp/usr/lib/*/pkgconfig/ethumb_client.pc
+usr/lib/*/pkgconfig/ethumb.pc
+usr/lib/*/pkgconfig/ethumb_client.pc
 usr/lib/*/cmake/Ethumb/*.cmake
 usr/lib/*/cmake/EthumbClient/*.cmake
 
 #
 # libevas-dev.install
-debian/tmp/usr/include/evas-1
-debian/tmp/usr/include/evas-cxx-1
-debian/tmp/usr/lib/*/libevas.so
-debian/tmp/usr/lib/*/libevas.a
-debian/tmp/usr/lib/*/pkgconfig/evas*.pc
+usr/include/evas-1
+usr/include/evas-cxx-1
+usr/lib/*/libevas.so
+usr/lib/*/libevas.a
+usr/lib/*/pkgconfig/evas*.pc
 usr/share/eolian/include/evas-1
 usr/lib/*/cmake/Evas/*.cmake
 usr/lib/*/cmake/EvasCxx/*.cmake

@@ -19,6 +19,7 @@ efl (1.20.6-1) experimental; urgency=medium
     be LD_PRELOADed ahead of libeo.  eo_debug is a helper script to do
     that.  libeo_dbg can have significant performance overhead, so should
     not be used by default.
+  * Eliminate use of debian/tmp from d/install, d/examples files
 
  -- Ross Vandegrift <ross@kallisti.us>  Sat, 25 Nov 2017 11:59:28 -0800
 

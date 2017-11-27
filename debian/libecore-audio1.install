@@ -1,2 +1,2 @@
-debian/tmp/usr/lib/*/libecore_audio.so.*
-debian/tmp/usr/share/elua/modules/ecore_audio/*
+usr/lib/*/libecore_audio.so.*
+usr/share/elua/modules/ecore_audio/*

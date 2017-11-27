@@ -1,2 +1,2 @@
-debian/tmp/usr/bin/embryo_cc
-debian/tmp/usr/share/embryo/include/*.inc
+usr/bin/embryo_cc
+usr/share/embryo/include/*.inc

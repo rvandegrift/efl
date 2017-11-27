@@ -1,9 +1,9 @@
-debian/tmp/usr/lib/*/libeina.so.*
-debian/tmp/usr/share/elua/modules/eina/*
-debian/tmp/usr/lib/*/libeo.so.*
+usr/lib/*/libeina.so.*
+usr/share/elua/modules/eina/*
+usr/lib/*/libeo.so.*
 usr/lib/*/libeo_dbg.so.*
-debian/tmp/usr/share/elua/modules/eo.lua
+usr/share/elua/modules/eo.lua
 #libefl
 usr/lib/*/libefl.so.*
 usr/share/locale/*/LC_MESSAGES/efl.mo
-debian/tmp/usr/share/elua/modules/efl/*
+usr/share/elua/modules/efl/*

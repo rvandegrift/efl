@@ -1,2 +1,2 @@
-debian/tmp/usr/lib/*/evas/modules/engines/wayland_shm/*/module.so
+usr/lib/*/evas/modules/engines/wayland_shm/*/module.so
 usr/lib/*/libefl_wl.so.*

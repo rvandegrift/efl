@@ -1,2 +1,2 @@
-debian/tmp/usr/lib/*/libedje.so.*
-debian/tmp/usr/share/elua/modules/edje/*
+usr/lib/*/libedje.so.*
+usr/share/elua/modules/edje/*

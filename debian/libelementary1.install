@@ -1,5 +1,5 @@
-debian/tmp/usr/lib/*/libelementary*.so.*
-debian/tmp/usr/lib/*/edje/modules/elm/*/module.so
-debian/tmp/usr/lib/*/elementary/modules/*/*/*.so
-debian/tmp/usr/lib/*/elementary/modules/*/*/*.edj
-debian/tmp/usr/lib/*/elementary/modules/*/*/*/*.so
+usr/lib/*/libelementary*.so.*
+usr/lib/*/edje/modules/elm/*/module.so
+usr/lib/*/elementary/modules/*/*/*.so
+usr/lib/*/elementary/modules/*/*/*.edj
+usr/lib/*/elementary/modules/*/*/*/*.so
