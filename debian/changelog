@@ -20,6 +20,7 @@ efl (1.20.6-1) experimental; urgency=medium
     that.  libeo_dbg can have significant performance overhead, so should
     not be used by default.
   * Eliminate use of debian/tmp from d/install, d/examples files
+  * d/efl-doc.examples: fix source dir for example installation
 
  -- Ross Vandegrift <ross@kallisti.us>  Sat, 25 Nov 2017 11:59:28 -0800
 
