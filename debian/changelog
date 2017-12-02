@@ -5,6 +5,8 @@ efl (1.20.6-1) experimental; urgency=medium
     + switch to dh_missing
     + disable docs if nodoc is set in DEB_BUILD_OPTIONS
   * d/patches:
+    + 05-fix-signedness-mismatch.diff: fix a conflicting sign in evas
+      (Closes: #748026).
     + 55_evas-gl-generic-common-add-more-linking-for-gles-mod.patch: drop,
       applied upstream
   * d/copyright: use https Format link

@@ -1,3 +1,4 @@
+05-fix-signedness-mismatch.diff
 15_try_curl-gnutls.diff
 45_disable_doc_pack.diff
 50-fix-edje_recc-bashism.diff

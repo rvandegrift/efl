@@ -1,0 +1,26 @@
+Description: fix a signedness mismatch
+Bug-Debian: 748026
+Forwarded: yes
+Author: Ross Vandegrift <ross@kallisti.us>
+Last-Update: 2017-12-02
+Applied-Upstream: https://phab.enlightenment.org/D5540
+--- a/src/lib/evas/common/evas_image_data.c
++++ b/src/lib/evas/common/evas_image_data.c
+@@ -9,7 +9,7 @@
+ #include "evas_image.h"
+ 
+ int
+-evas_common_rgba_image_from_data(Image_Entry* ie_dst, int w, int h, DATA32 *image_data, int alpha, Evas_Colorspace cspace)
++evas_common_rgba_image_from_data(Image_Entry* ie_dst, unsigned int w, unsigned int h, DATA32 *image_data, int alpha, Evas_Colorspace cspace)
+ {
+    RGBA_Image   *dst = (RGBA_Image *) ie_dst;
+ 
+@@ -67,7 +67,7 @@
+ }
+ 
+ int
+-evas_common_rgba_image_from_copied_data(Image_Entry* ie_dst, int w, int h, DATA32 *image_data, int alpha, Evas_Colorspace cspace)
++evas_common_rgba_image_from_copied_data(Image_Entry* ie_dst, unsigned int w, unsigned int h, DATA32 *image_data, int alpha, Evas_Colorspace cspace)
+ {
+    RGBA_Image   *dst = (RGBA_Image *) ie_dst;
+ 
