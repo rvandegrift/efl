@@ -23,6 +23,7 @@ efl (1.20.6-1) experimental; urgency=medium
     not be used by default.
   * Eliminate use of debian/tmp from d/install, d/examples files
   * d/efl-doc.examples: fix source dir for example installation
+  * Bump all eo symbol versions for 1.20.6 release
 
  -- Ross Vandegrift <ross@kallisti.us>  Sun, 26 Nov 2017 17:47:18 -0800
 
