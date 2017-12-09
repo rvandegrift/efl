@@ -17,7 +17,7 @@ Build-Depends: debhelper (>= 10),
  libxcursor-dev, libxss-dev, libxrender-dev, libxinerama-dev,
  libxrandr-dev, libxext-dev, libxcomposite-dev, libxi-dev,
  libxdamage-dev, libxtst-dev, libglib2.0-dev,
- libluajit-5.1-dev, libdbus-1-dev, libsndfile-dev,
+ libluajit-5.1-dev [!arm64], libdbus-1-dev, libsndfile-dev,
  libgnutls28-dev, libcurl4-gnutls-dev,
  libudev-dev [linux-any], libmount-dev [linux-any], libblkid-dev [linux-any],
  libgstreamer1.0-dev, libgstreamer-plugins-base1.0-dev, libgcrypt-dev,
@@ -536,7 +536,7 @@ Depends: ${misc:Depends}, ${shlibs:Depends},
          libelementary1 (= ${binary:Version}),
          libelocation1 (= ${binary:Version}),
          libelput1 (= ${binary:Version}),
-         libelua1 (= ${binary:Version}),
+         libelua1 (= ${binary:Version}) [!arm64],
          libembryo1 (= ${binary:Version}),
          libemile1 (= ${binary:Version}),
          libemotion1 (= ${binary:Version}),
@@ -556,7 +556,7 @@ Depends: ${misc:Depends}, ${shlibs:Depends},
          libharfbuzz-dev,
          libinput-dev,
          libjpeg-dev,
-         libluajit-5.1-dev,
+         libluajit-5.1-dev [!arm64],
          liblz4-dev,
          libmount-dev,
          libpulse-dev,
@@ -823,7 +823,7 @@ Description: transitional EFL development package
  packages to libefl-all-dev.  You can safely remove this package.
 
 Package: libelua1
-Architecture: linux-any
+Architecture: amd64 armel armhf i386 mips mips64el mipsel ppc64el s390x alpha hppa hurd-i386 kfreebsd-amd64 kfreebsd-i386 m68k powerpc powerpcspe ppc64 sh4 sparc64 x32
 Multi-Arch: same
 Pre-Depends: ${misc:Pre-Depends}
 Depends: ${misc:Depends}, ${shlibs:Depends}
@@ -836,7 +836,7 @@ Description: Lua wrapper and convenience layer for EFL shared objects
  concerned. Currently in very early stage of development.
 
 Package: libelua-bin
-Architecture: any
+Architecture: amd64 armel armhf i386 mips mips64el mipsel ppc64el s390x alpha hppa hurd-i386 kfreebsd-amd64 kfreebsd-i386 m68k powerpc powerpcspe ppc64 sh4 sparc64 x32
 Depends: ${misc:Depends}, ${shlibs:Depends}
 Description: Lua wrapper and convenience layer for EFL
  Elua is a new LuaJIT based runtime (name is temporary) for rapid

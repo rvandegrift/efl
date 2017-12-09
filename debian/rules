@@ -9,6 +9,10 @@ export DEB_LDFLAGS_MAINT_APPEND = -Wl,-z,defs -Wl,--as-needed -lm -ldl
 ifneq (,$(filter $(DEB_HOST_ARCH), armel armhf))
 	arch_flags += --with-opengl=es --enable-egl
 endif
+ifneq (,$(filter $(DEB_HOST_ARCH), arm64))
+	arch_flags += --disable-elua
+	dhinstallflags += --exclude=elua
+endif
 
 ifeq (linux,$(DEB_HOST_ARCH_OS))
 	arch_flags += --enable-fb
@@ -68,9 +72,10 @@ override_dh_auto_install:
 	$(MAKE) -j1 DESTDIR=$(CURDIR)/debian/tmp install
 
 override_dh_install:
-	dh_install
+	dh_install $(dhinstallflags)
 ifeq ($(DEB_HOST_ARCH_OS),linux)
-	dh_install -plibefl-all-dev debian/tmp/usr/lib/*/libecore_fb.so
+	dh_install -plibefl-all-dev $(dhinstallflags) \
+		debian/tmp/usr/lib/*/libecore_fb.so
 endif
 
 override_dh_missing:

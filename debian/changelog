@@ -1,3 +1,10 @@
+efl (1.20.6-2) experimental; urgency=medium
+
+  * Disable ELUA support on arm64 to work around build-error. ("bad light
+    userdata pointer").
+
+ -- Andreas Metzler <ametzler@debian.org>  Thu, 07 Dec 2017 19:09:13 +0100
+
 efl (1.20.6-1) experimental; urgency=medium
 
   * Team upload.
