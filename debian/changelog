@@ -1,3 +1,11 @@
+efl (1.20.6-3) experimental; urgency=medium
+
+  * Even without elua some kind of lua is required for building efl. Run
+    ./configure with --enable-lua-old on arm64 and (build)-depend on
+    liblua5.2-dev.
+
+ -- Andreas Metzler <ametzler@debian.org>  Sat, 16 Dec 2017 11:16:19 +0100
+
 efl (1.20.6-2) experimental; urgency=medium
 
   * Disable ELUA support on arm64 to work around build-error. ("bad light

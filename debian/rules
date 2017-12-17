@@ -10,7 +10,7 @@ ifneq (,$(filter $(DEB_HOST_ARCH), armel armhf))
 	arch_flags += --with-opengl=es --enable-egl
 endif
 ifneq (,$(filter $(DEB_HOST_ARCH), arm64))
-	arch_flags += --disable-elua
+	arch_flags += --enable-lua-old
 	dhinstallflags += --exclude=elua
 endif
 
